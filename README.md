@@ -14,11 +14,15 @@ takeover and reminders (Day 4).
 
 ## Setup
 
-1. Create a project at [supabase.com](https://supabase.com).
-2. Run both files in `supabase/migrations/` in the Supabase SQL editor, in order.
-3. Copy `.env.example` to `.env.local` and fill in the three Supabase values.
-4. `npm install && npm run dev`
-5. Go to `/login`, enter your email, click the magic link, name the studio.
+1. Create a project at [supabase.com](https://supabase.com). Region: London (eu-west-2).
+2. `npx supabase login`, then `npx supabase link --project-ref <ref>`.
+3. `npx supabase db push` to apply `supabase/migrations/`.
+4. Copy `.env.example` to `.env.local` and fill in the three values from
+   Project Settings → API.
+5. `npm install && npm run dev`
+6. Go to `/login`, enter your email, click the magic link, name the studio.
+
+Without the CLI, paste the migration files into the SQL editor in filename order instead.
 
 Supabase sends magic-link emails from a shared server that is heavily rate-limited. For
 real use, set up SMTP under Authentication → Emails.
