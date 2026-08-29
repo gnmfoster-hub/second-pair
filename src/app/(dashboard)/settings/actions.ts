@@ -181,15 +181,20 @@ const STARTER_BANDS = [
   { size_label: "Back piece", hours_low: 25, hours_high: 50, requires_consultation: true },
 ];
 
-export async function seedStarterBands() {
+export async function seedStarterBands(
+  _prev: FormState,
+  _fd: FormData,
+): Promise<FormState> {
   const { studio } = await requireStudio();
   const supabase = await createClient();
 
-  await supabase.from("price_bands").insert(
+  const { error } = await supabase.from("price_bands").insert(
     STARTER_BANDS.map((b, i) => ({ ...b, studio_id: studio.id, sort_order: i })),
   );
+  if (error) return { error: error.message };
 
   revalidatePath("/settings/pricing");
+  return { ok: true };
 }
 
 // ------------------------------------------------------------------ faqs

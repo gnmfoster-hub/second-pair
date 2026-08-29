@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { runTurn } from "@/lib/engine/run";
+import { hasAnthropicEnv } from "@/lib/env";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -48,6 +49,16 @@ export async function POST(request: NextRequest) {
   }
   if (throttled(`${studio}:${session}`)) {
     return NextResponse.json({ error: "Slow down" }, { status: 429 });
+  }
+
+  if (!hasAnthropicEnv()) {
+    return NextResponse.json(
+      {
+        error:
+          "The assistant is not connected yet. Add ANTHROPIC_API_KEY to .env.local and restart.",
+      },
+      { status: 503 },
+    );
   }
 
   try {

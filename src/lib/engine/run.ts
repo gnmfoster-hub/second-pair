@@ -159,6 +159,8 @@ async function generateReply(ctx: ReplyContext): Promise<string> {
 
   let text = "";
   let escalated = false;
+  // Kept so a surprising reply can be traced back to what the model actually called.
+  const toolTrace: { name: string; input: unknown; result: string }[] = [];
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const response = await client.messages.create({
@@ -200,6 +202,7 @@ async function generateReply(ctx: ReplyContext): Promise<string> {
         ctx,
       );
       if (outcome.escalated) escalated = true;
+      toolTrace.push({ name: call.name, input: call.input, result: outcome.result });
       results.push({ type: "tool_result", tool_use_id: call.id, content: outcome.result });
     }
 
@@ -217,6 +220,7 @@ async function generateReply(ctx: ReplyContext): Promise<string> {
     conversation_id: ctx.conversationId,
     role: "assistant",
     content: text,
+    tool_calls: toolTrace.length ? toolTrace : null,
   });
 
   return text;

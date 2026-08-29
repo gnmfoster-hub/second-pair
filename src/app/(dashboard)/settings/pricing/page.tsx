@@ -1,8 +1,8 @@
 import { requireStudio, getArtists, getPriceBands } from "@/lib/studio";
 import { quoteForBand, depositFor, describeDepositRule } from "@/lib/quote";
 import { formatRange, formatPence } from "@/lib/money";
-import { seedStarterBands } from "../actions";
 import { BandEditor } from "./BandEditor";
+import { SeedBands } from "./SeedBands";
 
 export default async function PricingPage() {
   const { studio } = await requireStudio();
@@ -36,16 +36,7 @@ export default async function PricingPage() {
         ))}
         <BandEditor index={bands.length} />
 
-        {bands.length === 0 && (
-          <form action={seedStarterBands} className="border-t border-border px-5 py-4">
-            <button type="submit" className="btn-ghost">
-              Use the standard seven bands
-            </button>
-            <p className="hint mt-2">
-              Coin, palm, hand, forearm, half sleeve, full sleeve, back piece. Edit them after.
-            </p>
-          </form>
-        )}
+        {bands.length === 0 && <SeedBands />}
       </section>
 
       <section className="card overflow-hidden">

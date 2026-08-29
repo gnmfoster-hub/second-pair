@@ -84,19 +84,23 @@ async function seed() {
     active: true,
   });
 
-  await db.from("price_bands").insert([
-    { studio_id: studio.id, size_label: "Coin", hours_low: 0.5, hours_high: 1, sort_order: 0 },
-    { studio_id: studio.id, size_label: "Palm", hours_low: 1, hours_high: 2, sort_order: 1 },
-    { studio_id: studio.id, size_label: "Forearm", hours_low: 3, hours_high: 5, sort_order: 2 },
-    {
-      studio_id: studio.id,
-      size_label: "Half sleeve",
-      hours_low: 6,
-      hours_high: 12,
-      sort_order: 3,
-      requires_consultation: true,
-    },
-  ]);
+  // Every row carries every key: PostgREST sends NULL for a key another row in
+  // the batch has, which is what silently wiped this seed the first time.
+  const { error: bandError } = await db.from("price_bands").insert(
+    [
+      { size_label: "Coin", hours_low: 0.5, hours_high: 1, requires_consultation: false },
+      { size_label: "Palm", hours_low: 1, hours_high: 2, requires_consultation: false },
+      { size_label: "Forearm", hours_low: 3, hours_high: 5, requires_consultation: false },
+      { size_label: "Half sleeve", hours_low: 6, hours_high: 12, requires_consultation: true },
+    ].map((b, i) => ({ ...b, studio_id: studio.id, sort_order: i })),
+  );
+  if (bandError) throw new Error(`seed bands: ${bandError.message}`);
+
+  const { count: bandCount } = await db
+    .from("price_bands")
+    .select("*", { count: "exact", head: true })
+    .eq("studio_id", studio.id);
+  if (bandCount !== 4) throw new Error(`seed bands: expected 4, got ${bandCount}`);
 
   await db.from("faqs").insert({
     studio_id: studio.id,
@@ -122,6 +126,30 @@ async function say(session, message) {
 }
 
 const newSession = (tag) => `${tag}${stamp}`.padEnd(16, "0").slice(0, 40);
+
+/** What the model actually called — the only way to explain a surprising reply. */
+async function showToolCalls(session) {
+  const { data: conv } = await db
+    .from("conversations")
+    .select("id")
+    .eq("external_ref", session)
+    .single();
+  const { data: rows } = await db
+    .from("messages")
+    .select("tool_calls")
+    .eq("conversation_id", conv.id)
+    .not("tool_calls", "is", null)
+    .order("created_at");
+
+  const calls = (rows ?? []).flatMap((r) => r.tool_calls);
+  console.log(`
+      tool calls (${calls.length}):`);
+  for (const c of calls) {
+    console.log(`        ${c.name}(${JSON.stringify(c.input)})`);
+    console.log(`          -> ${c.result}`);
+  }
+  console.log("");
+}
 
 async function conversationState(session) {
   const { data: conv } = await db
@@ -153,6 +181,7 @@ try {
   const priced = await say(s1, "roughly what would that cost?");
 
   const { conv: c1, enq: e1 } = await conversationState(s1);
+  await showToolCalls(s1);
 
   check("the enquiry was captured", Boolean(e1.placement && e1.description));
   check("a size band was chosen", Boolean(e1.size_band_id), "none set");

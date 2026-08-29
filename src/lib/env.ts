@@ -17,3 +17,8 @@ export function supabaseEnv() {
 export function hasSupabaseEnv(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 }
+
+/** The conversation engine needs its own credential, separate from Supabase. */
+export function hasAnthropicEnv(): boolean {
+  return Boolean(process.env.ANTHROPIC_API_KEY);
+}
