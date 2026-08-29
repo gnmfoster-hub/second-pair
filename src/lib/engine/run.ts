@@ -1,6 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { studioSystemPrompt, enquiryStateMessage, type EnquiryState } from "./prompt";
+import {
+  studioSystemPrompt,
+  enquiryStateMessage,
+  type EnquiryState,
+  type ContactState,
+} from "./prompt";
 import { toolDefinitions, executeTool, type ToolContext } from "./tools";
 import type { Artist, Channel, Faq, PriceBand, Studio } from "@/lib/types";
 
@@ -41,7 +46,7 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     db.from("faqs").select("*").eq("studio_id", studio.id).order("sort_order"),
   ]);
 
-  const { conversation, enquiryId } = await findOrCreateConversation(
+  const { conversation, enquiryId, contactId } = await findOrCreateConversation(
     db,
     studio.id,
     input.sessionKey,
@@ -92,6 +97,7 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     faqs: (faqs ?? []) as Faq[],
     conversationId: conversation.id,
     enquiryId,
+    contactId,
   });
 
   const { data: after } = await db
@@ -131,11 +137,10 @@ async function generateReply(ctx: ReplyContext): Promise<string> {
     .in("role", ["client", "assistant", "owner"])
     .order("created_at");
 
-  const { data: enquiry } = await ctx.db
-    .from("enquiries")
-    .select("*")
-    .eq("id", ctx.enquiryId)
-    .single();
+  const [{ data: enquiry }, { data: contact }] = await Promise.all([
+    ctx.db.from("enquiries").select("*").eq("id", ctx.enquiryId).single(),
+    ctx.db.from("contacts").select("name, phone, email").eq("id", ctx.contactId).single(),
+  ]);
 
   const messages: Anthropic.MessageParam[] = (history ?? []).map((m) => ({
     // An owner's own reply reads as the assistant's voice to the client.
@@ -151,6 +156,7 @@ async function generateReply(ctx: ReplyContext): Promise<string> {
       enquiry as EnquiryState | null,
       ctx.bands,
       ctx.artists,
+      contact as ContactState | null,
     ),
   } as Anthropic.MessageParam);
 
@@ -246,14 +252,16 @@ async function findOrCreateConversation(
       .eq("conversation_id", existing.id)
       .maybeSingle();
 
-    if (enquiry) return { conversation: existing, enquiryId: enquiry.id };
+    if (enquiry) {
+      return { conversation: existing, enquiryId: enquiry.id, contactId: existing.contact_id };
+    }
 
     const { data: created } = await db
       .from("enquiries")
       .insert({ conversation_id: existing.id })
       .select("id")
       .single();
-    return { conversation: existing, enquiryId: created!.id };
+    return { conversation: existing, enquiryId: created!.id, contactId: existing.contact_id };
   }
 
   const { data: contact } = await db
@@ -280,5 +288,5 @@ async function findOrCreateConversation(
     .select("id")
     .single();
 
-  return { conversation, enquiryId: enquiry!.id };
+  return { conversation, enquiryId: enquiry!.id, contactId: contact!.id };
 }

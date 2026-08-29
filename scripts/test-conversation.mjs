@@ -215,6 +215,63 @@ try {
   check("first response time was recorded", c1.first_response_ms > 0);
   check("the conversation is marked qualified", c1.status === "qualified", c1.status);
 
+  // ------------------------------------------------------------- contact details
+  console.log("\nGiving name and number");
+  await say(s1, "yeah go on then, put me down for Sam. I'm Jo, 07700 900123");
+  const { enq: e1b } = await conversationState(s1);
+  const { data: conv1 } = await db
+    .from("conversations")
+    .select("contact_id")
+    .eq("external_ref", s1)
+    .single();
+  const { data: contact1 } = await db
+    .from("contacts")
+    .select("name, phone, email")
+    .eq("id", conv1.contact_id)
+    .single();
+
+  check("the name is captured", Boolean(contact1.name), JSON.stringify(contact1));
+  check(
+    "a phone number or email is captured",
+    Boolean(contact1.phone || contact1.email),
+    JSON.stringify(contact1),
+  );
+  check("the chosen artist is recorded", Boolean(e1b.artist_id));
+
+  // ------------------------------------------------------------- attachments
+  console.log("\nAttaching a reference image");
+  const png = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+    "base64",
+  );
+  const form = new FormData();
+  form.append("studio", SLUG);
+  form.append("session", s1);
+  form.append("file", new Blob([png], { type: "image/png" }), "reference.png");
+  const up = await fetch(`${BASE}/api/widget/upload`, { method: "POST", body: form });
+  const upData = await up.json();
+  check("an image uploads", up.ok && Boolean(upData.path), JSON.stringify(upData));
+
+  if (upData.path) {
+    await fetch(`${BASE}/api/widget/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        studio: SLUG,
+        session: s1,
+        message: "(sent an image)",
+        media: [upData.path],
+      }),
+    });
+    const { enq: e1c } = await conversationState(s1);
+    check("the reference is filed against the enquiry", e1c.reference_urls.length === 1);
+    check(
+      "the image is stored under the studio and conversation",
+      upData.path.split("/").length === 3,
+      upData.path,
+    );
+  }
+
   // ------------------------------------------------------------- under 18
   console.log("\nSomeone under 18");
   const s2 = newSession("minor");

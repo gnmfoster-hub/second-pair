@@ -17,7 +17,13 @@ type Row = {
   channel: Channel;
   status: ConvStatus;
   last_message_at: string;
-  contacts: { name: string | null; instagram_handle: string | null; phone: string | null } | null;
+  contacts: {
+    name: string | null;
+    instagram_handle: string | null;
+    phone: string | null;
+    email: string | null;
+  } | null;
+  enquiries: { description: string | null }[] | null;
 };
 
 export default async function InboxPage() {
@@ -27,7 +33,10 @@ export default async function InboxPage() {
   const [{ data }, artists, bands] = await Promise.all([
     supabase
       .from("conversations")
-      .select("id, channel, status, last_message_at, contacts(name, instagram_handle, phone)")
+      .select(
+        "id, channel, status, last_message_at, " +
+          "contacts(name, instagram_handle, phone, email), enquiries(description)",
+      )
       .eq("studio_id", studio.id)
       .order("last_message_at", { ascending: false })
       .limit(50),
@@ -94,30 +103,49 @@ export default async function InboxPage() {
           </div>
         ) : (
           <ul className="divide-y divide-border">
-            {conversations.map((c) => (
-              <li key={c.id} className="flex items-center gap-4 px-5 py-3.5">
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm">
-                    {c.contacts?.name ??
-                      c.contacts?.instagram_handle ??
-                      c.contacts?.phone ??
-                      "Unknown"}
-                  </div>
-                  <div className="hint mt-0.5">{CHANNEL_LABELS[c.channel]}</div>
-                </div>
-                <span
-                  className={`rounded-full px-2.5 py-1 text-xs ${STATUS_STYLES[c.status]}`}
-                >
-                  {CONV_STATUS_LABELS[c.status]}
-                </span>
-                <time className="hint w-24 shrink-0 text-right">
-                  {new Date(c.last_message_at).toLocaleDateString("en-GB", {
-                    day: "numeric",
-                    month: "short",
-                  })}
-                </time>
-              </li>
-            ))}
+            {conversations.map((c) => {
+              const contact = c.contacts;
+              const reach = contact?.phone ?? contact?.email;
+              return (
+                <li key={c.id}>
+                  <Link
+                    href={`/conversations/${c.id}`}
+                    className="flex items-center gap-4 px-5 py-3.5 hover:bg-surface-2/50"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm">
+                        {contact?.name ??
+                          contact?.instagram_handle ??
+                          contact?.phone ??
+                          "Unnamed enquiry"}
+                      </div>
+                      <div className="hint mt-0.5 truncate">
+                        {c.enquiries?.[0]?.description ?? CHANNEL_LABELS[c.channel]}
+                      </div>
+                    </div>
+                    {!reach && (
+                      <span
+                        className="text-xs text-warn"
+                        title="No phone or email captured yet"
+                      >
+                        no contact
+                      </span>
+                    )}
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs ${STATUS_STYLES[c.status]}`}
+                    >
+                      {CONV_STATUS_LABELS[c.status]}
+                    </span>
+                    <time className="hint w-24 shrink-0 text-right">
+                      {new Date(c.last_message_at).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                      })}
+                    </time>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

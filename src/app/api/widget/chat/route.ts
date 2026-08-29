@@ -24,7 +24,7 @@ function throttled(key: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
-  let body: { studio?: string; session?: string; message?: string };
+  let body: { studio?: string; session?: string; message?: string; media?: string[] };
   try {
     body = await request.json();
   } catch {
@@ -38,7 +38,11 @@ export async function POST(request: NextRequest) {
   if (!studio || !session) {
     return NextResponse.json({ error: "Missing studio or session" }, { status: 400 });
   }
-  if (!message) {
+  const media = Array.isArray(body.media)
+    ? body.media.filter((m): m is string => typeof m === "string").slice(0, 6)
+    : [];
+
+  if (!message && media.length === 0) {
     return NextResponse.json({ error: "Empty message" }, { status: 400 });
   }
   if (message.length > MAX_MESSAGE_LENGTH) {
@@ -66,7 +70,8 @@ export async function POST(request: NextRequest) {
       studioSlug: studio,
       sessionKey: session,
       channel: "web",
-      message,
+      message: message || "(sent an image)",
+      mediaUrls: media,
     });
 
     return NextResponse.json({

@@ -12,6 +12,7 @@ export type ToolContext = {
   bands: PriceBand[];
   conversationId: string;
   enquiryId: string;
+  contactId: string;
 };
 
 const STYLE_VALUES = TATTOO_STYLES.map((s) => s.value);
@@ -65,6 +66,22 @@ export function toolDefinitions(bands: PriceBand[], artists: Artist[]): Anthropi
             type: "string",
             description: "Days and times that suit them, in their own words.",
           },
+        },
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "save_contact",
+      description:
+        "Record who you are talking to. Save the name as soon as they give it, and the " +
+        "phone or email as soon as you have it. Without a way to reach them the studio " +
+        "cannot follow anything up.",
+      input_schema: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "First name is enough." },
+          phone: { type: "string", description: "As they typed it. Do not reformat." },
+          email: { type: "string" },
         },
         additionalProperties: false,
       },
@@ -130,6 +147,8 @@ export async function executeTool(
   switch (name) {
     case "save_enquiry":
       return saveEnquiry(input, ctx);
+    case "save_contact":
+      return saveContact(input, ctx);
     case "quote_estimate":
       return quoteEstimate(input, ctx);
     case "escalate_to_owner":
@@ -198,6 +217,29 @@ async function saveEnquiry(
       escalated: true,
     };
   }
+
+  return { result: `Saved: ${saved.join(", ")}.` };
+}
+
+async function saveContact(
+  input: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<ToolOutcome> {
+  const patch: Record<string, unknown> = {};
+  const saved: string[] = [];
+
+  for (const key of ["name", "phone", "email"] as const) {
+    const value = input[key];
+    if (typeof value === "string" && value.trim()) {
+      patch[key] = value.trim();
+      saved.push(key);
+    }
+  }
+
+  if (saved.length === 0) return { result: "Nothing to save." };
+
+  const { error } = await ctx.db.from("contacts").update(patch).eq("id", ctx.contactId);
+  if (error) return { result: `Could not save: ${error.message}` };
 
   return { result: `Saved: ${saved.join(", ")}.` };
 }

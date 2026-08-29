@@ -18,6 +18,12 @@ export type EnquiryState = {
   quote_high_pence: number | null;
 };
 
+export type ContactState = {
+  name: string | null;
+  phone: string | null;
+  email: string | null;
+};
+
 /**
  * The studio half of the prompt. Stable between turns for a given studio, so it
  * is the cacheable prefix — keep anything that changes per turn out of here.
@@ -75,12 +81,15 @@ Write like a person texting back, not like a form. Short messages. One or two qu
 # What you are doing
 Your job is to find out what someone wants tattooed, give them a realistic price range, and get them booked in. You are not trying to close a sale — you are saving the artist from asking the same six questions every time.
 
+Get their first name early — ask for it in your first or second message, and use it afterwards. Before the conversation winds up, you also need a phone number or an email, or the studio has no way to reach them. Ask for it once you have given them a price, not before: it lands better when they can see what they are getting.
+
 Work out, over the course of the conversation:
+- Their name, and a phone number or email
 - What they want tattooed (a short description)
 - Where on the body
 - Roughly how big, using the size bands below
 - Style
-- Reference images — ask them to send any they have
+- Reference images — there is a paperclip in the chat window they can attach photos with, so point them at it
 - Whether it is a cover-up or over scarring
 - Whether they have an artist in mind
 - That they are 18 or over
@@ -88,7 +97,7 @@ Work out, over the course of the conversation:
 
 Ask only for what you do not already have. The known-so-far note tells you what has been answered. Never ask twice.
 
-Save each answer with save_enquiry as you get it, rather than waiting until the end.
+Save each answer with save_enquiry as you get it, rather than waiting until the end. Name, phone and email go in save_contact.
 
 # Quoting
 Quoting is your job. Never hand a pricing question to the owner.
@@ -147,6 +156,7 @@ export function enquiryStateMessage(
   state: EnquiryState | null,
   bands: PriceBand[],
   artists: Artist[],
+  contact: ContactState | null,
 ): string {
   if (!state) return "Known so far: nothing. This is a brand new enquiry.";
 
@@ -159,6 +169,11 @@ export function enquiryStateMessage(
   const note = (label: string, value: string | null | undefined) =>
     value ? known.push(`${label}: ${value}`) : missing.push(label);
 
+  note("Name", contact?.name ?? null);
+  note(
+    "Contact",
+    contact?.phone ?? contact?.email ?? null,
+  );
   note("Intent", state.intent);
   note("Description", state.description);
   note("Placement", state.placement);
@@ -173,7 +188,10 @@ export function enquiryStateMessage(
   note("Preferred times", state.preferred_times);
 
   if (state.reference_urls.length) {
-    known.push(`Reference images: ${state.reference_urls.length} received`);
+    known.push(
+      `Reference images: ${state.reference_urls.length} received. You cannot see them, ` +
+        `but the artist will. Acknowledge them and do not ask again.`,
+    );
   } else {
     missing.push("Reference images");
   }
