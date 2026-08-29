@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { hasSupabaseEnv, supabaseEnv } from "@/lib/env";
 
+// Routes reachable without a session. The widget is embedded on the studio's
+// own site, so it and its endpoint must stay open.
 const PUBLIC_PATHS = ["/login", "/auth", "/widget", "/api/widget"];
 
 export async function proxy(request: NextRequest) {
@@ -49,5 +51,10 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  // Anything served straight out of /public is exempt. Matching on a file
+  // extension rather than a list of names means a new static asset is not
+  // silently auth-gated the way demo.html was.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|js|css|html|txt|xml|json|woff2?|webmanifest)$).*)",
+  ],
 };
