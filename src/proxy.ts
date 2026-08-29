@@ -1,14 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { hasSupabaseEnv, supabaseEnv } from "@/lib/env";
 
 const PUBLIC_PATHS = ["/login", "/auth", "/widget", "/api/widget"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
+  // Before .env.local is filled in, pass everything through rather than 500 on
+  // every route. The page itself then reports what is missing.
+  if (!hasSupabaseEnv()) return response;
+
+  const { url: supabaseUrl, anonKey } = supabaseEnv();
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    anonKey,
     {
       cookies: {
         getAll: () => request.cookies.getAll(),

@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { supabaseEnv } from "@/lib/env";
 
 /**
  * Service-role client. Bypasses RLS.
@@ -8,10 +9,11 @@ import { createClient } from "@supabase/supabase-js";
  * scheduled jobs. Never import this into anything the dashboard renders.
  */
 export function createAdminClient() {
+  const { url } = supabaseEnv();
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!key) throw new Error("SUPABASE_SERVICE_ROLE_KEY is not set");
 
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key, {
+  return createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
