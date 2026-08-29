@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0c0c0e;
+  --surface: #141418;
+  --surface-2: #1c1c22;
+  --border: #2a2a32;
+  --foreground: #ececf1;
+  --muted: #9a9aa8;
+  --accent: #e8482f;
+  --ok: #4ade80;
+  --warn: #fbbf24;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-border bg-surface;
+  }
+
+  .label {
+    @apply block text-xs font-medium uppercase tracking-wide text-muted mb-1.5;
+  }
+
+  .input {
+    @apply w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm
+           text-foreground placeholder:text-muted/60
+           focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent;
+  }
+
+  /* Tailwind v4 cannot @apply one component class inside another, so the shared
+     button rules live in a plain selector list instead. */
+  .btn,
+  .btn-primary,
+  .btn-ghost,
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2
+           text-sm font-medium transition-colors disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply bg-accent text-white hover:bg-accent/90;
+  }
+
+  .btn-ghost {
+    @apply border border-border text-muted hover:text-foreground hover:border-muted/50;
+  }
+
+  .btn-danger {
+    @apply border border-border text-muted hover:text-accent hover:border-accent/50;
+  }
+
+  .hint {
+    @apply text-xs text-muted;
+  }
+}

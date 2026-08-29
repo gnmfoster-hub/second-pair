@@ -1,0 +1,54 @@
+# InkDesk
+
+AI receptionist for tattoo studios. First customer: Living Canvas Tattoo.
+
+## Status
+
+**Day 1 complete.** Supabase schema with RLS, dashboard shell, auth, and full studio
+settings: studio details, opening hours, deposit rules, cancellation policy, artists with
+rates, price bands, and FAQs. The pricing page shows a live quote table so the owner sees
+exactly what the assistant will quote before it quotes it.
+
+Not built yet: the conversation engine (Day 2), calendar and deposits (Day 3), inbox
+takeover and reminders (Day 4).
+
+## Setup
+
+1. Create a project at [supabase.com](https://supabase.com).
+2. Run both files in `supabase/migrations/` in the Supabase SQL editor, in order.
+3. Copy `.env.example` to `.env.local` and fill in the three Supabase values.
+4. `npm install && npm run dev`
+5. Go to `/login`, enter your email, click the magic link, name the studio.
+
+Supabase sends magic-link emails from a shared server that is heavily rate-limited. For
+real use, set up SMTP under Authentication → Emails.
+
+## Layout
+
+```
+supabase/migrations/   schema, RLS policies, storage bucket
+src/lib/               money, quoting, types, supabase clients
+src/app/(dashboard)/   inbox + settings, behind auth
+src/middleware.ts      session refresh and the auth gate
+```
+
+## Conventions
+
+- **Money is integer pence.** `src/lib/money.ts` holds the only conversions.
+- **Quotes come from `src/lib/quote.ts`, nowhere else.** It enforces the guardrail that a
+  quote never falls below an artist's minimum charge. When the conversation engine quotes,
+  it calls this, so the dashboard preview and the assistant can never disagree.
+- **`createAdminClient()` bypasses RLS.** Webhooks and the engine only. Never in a page.
+- Every tenant-scoped table has an RLS policy keyed on `studio_members`.
+
+## Decisions worth knowing
+
+- `studio_members` is not in the original spec. RLS needs something to key on, and it is
+  also how a studio adds a second user later.
+- Day rates apply at 6+ hours and the client gets whichever of hourly and day rate is
+  cheaper, which is how studios actually pitch a day rate. `FULL_DAY_HOURS` in
+  `src/lib/quote.ts`.
+- Quotes round to the nearest £5 — down at the low end, up at the high end — then the low
+  end is clamped to the minimum charge, so rounding can never breach the guardrail.
+- `create_studio` is a `security definer` RPC because the RLS policy on `studios` requires
+  a membership row that cannot exist until the studio does.
