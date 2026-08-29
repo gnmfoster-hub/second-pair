@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { saveBand, deleteBand, type FormState } from "../actions";
+import { saveBand, type FormState } from "../actions";
 import { FormMessage, SubmitButton } from "@/components/Form";
 import type { PriceBand } from "@/lib/types";
 
@@ -58,7 +58,13 @@ export function BandEditor({ band, index }: { band?: PriceBand; index: number })
         </label>
         <SubmitButton className="btn-ghost">{band ? "Save" : "Add"}</SubmitButton>
         {band && (
-          <button type="submit" formAction={deleteBand} formNoValidate className="btn-danger">
+          <button
+            type="submit"
+            name="intent"
+            value="delete"
+            formNoValidate
+            className="btn-danger"
+          >
             ✕
           </button>
         )}

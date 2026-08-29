@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { saveArtist, deleteArtist, type FormState } from "../actions";
+import { saveArtist, type FormState } from "../actions";
 import { Field, FormMessage, SubmitButton } from "@/components/Form";
 import { penceToInput, formatPence } from "@/lib/money";
 import { TATTOO_STYLES, type Artist } from "@/lib/types";
@@ -113,7 +113,8 @@ export function ArtistEditor({ artist }: { artist?: Artist }) {
           {artist && (
             <button
               type="submit"
-              formAction={deleteArtist}
+              name="intent"
+              value="delete"
               formNoValidate
               className="btn-danger"
             >

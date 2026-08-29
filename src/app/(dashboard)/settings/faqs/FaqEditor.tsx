@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { saveFaq, deleteFaq, type FormState } from "../actions";
+import { saveFaq, type FormState } from "../actions";
 import { FormMessage, SubmitButton } from "@/components/Form";
 import type { Faq } from "@/lib/types";
 
@@ -34,7 +34,13 @@ export function FaqEditor({ faq, index }: { faq?: Faq; index: number }) {
         <FormMessage state={state} />
         <div className="flex-1" />
         {faq && (
-          <button type="submit" formAction={deleteFaq} formNoValidate className="btn-danger">
+          <button
+            type="submit"
+            name="intent"
+            value="delete"
+            formNoValidate
+            className="btn-danger"
+          >
             Remove
           </button>
         )}

@@ -56,3 +56,24 @@ src/middleware.ts      session refresh and the auth gate
   end is clamped to the minimum charge, so rounding can never breach the guardrail.
 - `create_studio` is a `security definer` RPC because the RLS policy on `studios` requires
   a membership row that cannot exist until the studio does.
+
+## Erasure
+
+`delete_studio(studio_id)` is the GDPR erasure path. It clears conversations
+first, because `bookings.artist_id` is `on delete restrict` and a plain cascade
+would fail on any studio that has ever taken a booking.
+
+It does **not** remove reference images: Supabase refuses direct deletes from
+`storage.objects`. Whatever calls it must clear the `<studio_id>/` prefix from
+the `references` bucket through the Storage API first.
+
+## Checks
+
+```
+npm test                      # quote and deposit maths
+node scripts/verify-rls.mjs   # tenant isolation against the live database
+node scripts/pull-env.mjs     # refresh .env.local from the linked project
+```
+
+`verify-rls.mjs` creates two throwaway studios and deletes them again. Point it
+at a development project, never at one with real studios in it.

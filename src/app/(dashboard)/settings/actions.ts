@@ -76,6 +76,23 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
   const { studio } = await requireStudio();
   const supabase = await createClient();
 
+  if (str(fd, "intent") === "delete") {
+    const { error } = await supabase.from("artists").delete().eq("id", str(fd, "id"));
+    // 23503: a booking still references this artist. bookings.artist_id is
+    // `on delete restrict` so the diary can never be orphaned.
+    if (error?.code === "23503") {
+      return {
+        error:
+          "This artist has bookings, so they cannot be deleted. Untick “Taking bookings” " +
+          "to stop new enquiries reaching them.",
+      };
+    }
+    if (error) return { error: error.message };
+    revalidatePath("/settings/artists");
+    revalidatePath("/settings/pricing");
+    return { ok: true };
+  }
+
   const name = str(fd, "name");
   if (!name) return { error: "Artist name is required." };
 
@@ -107,17 +124,18 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
   return { ok: true };
 }
 
-export async function deleteArtist(fd: FormData) {
-  const supabase = await createClient();
-  await supabase.from("artists").delete().eq("id", str(fd, "id"));
-  revalidatePath("/settings/artists");
-}
-
 // ------------------------------------------------------------------ price bands
 
 export async function saveBand(_prev: FormState, fd: FormData): Promise<FormState> {
   const { studio } = await requireStudio();
   const supabase = await createClient();
+
+  if (str(fd, "intent") === "delete") {
+    const { error } = await supabase.from("price_bands").delete().eq("id", str(fd, "id"));
+    if (error) return { error: error.message };
+    revalidatePath("/settings/pricing");
+    return { ok: true };
+  }
 
   const label = str(fd, "size_label");
   if (!label) return { error: "Give the band a name." };
@@ -152,12 +170,6 @@ export async function saveBand(_prev: FormState, fd: FormData): Promise<FormStat
   return { ok: true };
 }
 
-export async function deleteBand(fd: FormData) {
-  const supabase = await createClient();
-  await supabase.from("price_bands").delete().eq("id", str(fd, "id"));
-  revalidatePath("/settings/pricing");
-}
-
 /** The sizing scale from the spec, so a new studio is not staring at an empty table. */
 const STARTER_BANDS = [
   { size_label: "Coin", hours_low: 0.5, hours_high: 1, requires_consultation: false },
@@ -186,6 +198,13 @@ export async function saveFaq(_prev: FormState, fd: FormData): Promise<FormState
   const { studio } = await requireStudio();
   const supabase = await createClient();
 
+  if (str(fd, "intent") === "delete") {
+    const { error } = await supabase.from("faqs").delete().eq("id", str(fd, "id"));
+    if (error) return { error: error.message };
+    revalidatePath("/settings/faqs");
+    return { ok: true };
+  }
+
   const question = str(fd, "question");
   const answer = str(fd, "answer");
   if (!question || !answer) return { error: "Both a question and an answer are required." };
@@ -206,10 +225,4 @@ export async function saveFaq(_prev: FormState, fd: FormData): Promise<FormState
 
   revalidatePath("/settings/faqs");
   return { ok: true };
-}
-
-export async function deleteFaq(fd: FormData) {
-  const supabase = await createClient();
-  await supabase.from("faqs").delete().eq("id", str(fd, "id"));
-  revalidatePath("/settings/faqs");
 }

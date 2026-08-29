@@ -74,11 +74,20 @@ async function makeUser(tag) {
 
 async function cleanup(studioIds) {
   for (const id of studioIds.filter(Boolean)) {
-    await admin.from("studios").delete().eq("id", id);
+    // Conversations first: the cascade frees the bookings that would otherwise
+    // block deleting artists via bookings.artist_id's `on delete restrict`.
+    await admin.from("conversations").delete().eq("studio_id", id);
+    const { error } = await admin.from("studios").delete().eq("id", id);
+    // Loud, not silent: an earlier version of this script leaked a test studio
+    // into the live database because it ignored this error.
+    if (error) console.log(`  WARN  could not delete test studio ${id}: ${error.message}`);
   }
   for (const id of users) {
     await admin.auth.admin.deleteUser(id);
   }
+
+  const { data: strays } = await admin.from("studios").select("id").like("slug", "lc-test-%");
+  if (strays?.length) console.log(`  WARN  ${strays.length} test studio(s) left behind`);
 }
 
 const studioIds = [];
@@ -278,6 +287,32 @@ try {
     ends_at: new Date(stamp + 86400000).toISOString(),
   });
   check("a booking ending before it starts is rejected", Boolean(badBookingError));
+
+  // ---------------------------------------------------------------- erasure
+  // Last, because it destroys studio B.
+
+  console.log("\nErasure (UK GDPR)");
+
+  const { error: foreignDeleteError } = await a.client.rpc("delete_studio", { target: studioB });
+  const { data: stillThere } = await admin.from("studios").select("id").eq("id", studioB);
+  check(
+    "owner A cannot erase studio B",
+    Boolean(foreignDeleteError) && stillThere.length === 1,
+  );
+
+  // Studio B has a booking, which is what made a plain cascade delete fail.
+  const { error: selfDeleteError } = await b.client.rpc("delete_studio", { target: studioB });
+  check("owner B can erase their own studio despite a booking", !selfDeleteError,
+    selfDeleteError?.message);
+
+  const { data: goneStudio } = await admin.from("studios").select("id").eq("id", studioB);
+  check("the studio is gone", goneStudio.length === 0);
+
+  const { data: goneBooking } = await admin.from("bookings").select("id").eq("id", bookB.id);
+  check("its bookings went with it", goneBooking.length === 0);
+
+  const { data: goneMessages } = await admin.from("messages").select("id").eq("id", msgB.id);
+  check("its messages went with it", goneMessages.length === 0);
 } catch (err) {
   console.error(`\nAborted: ${err.message}`);
   failures.push(err.message);
