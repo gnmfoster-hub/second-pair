@@ -342,6 +342,35 @@ try {
     check("the database refuses a double booking", clash?.code === "23P01", JSON.stringify(clash));
   }
 
+  // ------------------------------------------------------------- deposit
+  console.log("\nPaying the deposit");
+  const linked = await say(s1, "yes please, send me the link");
+
+  const { data: paid1 } = await db
+    .from("bookings")
+    .select("*, enquiries!inner(conversation_id)")
+    .eq("enquiries.conversation_id", cBook.id)
+    .is("cancelled_at", null);
+
+  const live = (paid1 ?? [])[0];
+  check("a payment link was created", live?.deposit_status === "link_sent", live?.deposit_status);
+  check("the link is in the reply", /checkout\.stripe\.com/.test(linked.reply ?? ""));
+  check("only one live booking exists", (paid1 ?? []).length === 1, `${(paid1 ?? []).length}`);
+
+  // Asking again must reuse the same link, not mint a second one.
+  const firstSession = live?.stripe_payment_link_id;
+  await say(s1, "sorry can you send that link again");
+  const { data: paid2 } = await db
+    .from("bookings")
+    .select("stripe_payment_link_id")
+    .eq("id", live.id)
+    .single();
+  check(
+    "asking again reuses the same payment link",
+    paid2.stripe_payment_link_id === firstSession,
+    `${firstSession} -> ${paid2.stripe_payment_link_id}`,
+  );
+
   // ------------------------------------------------------------- under 18
   console.log("\nSomeone under 18");
   const s2 = newSession("minor");

@@ -108,6 +108,23 @@ export async function createDepositCheckout(args: {
   return { url: session.url, sessionId: session.id, platformHeld: !connected };
 }
 
+/** The URL of a checkout session, if it is still open and payable. */
+export async function retrieveOpenCheckout(
+  studio: Studio,
+  sessionId: string,
+): Promise<string | null> {
+  try {
+    const session = await stripe().checkout.sessions.retrieve(
+      sessionId,
+      undefined,
+      studio.stripe_account_id ? { stripeAccount: studio.stripe_account_id } : undefined,
+    );
+    return session.status === "open" && session.url ? session.url : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Refund a deposit, e.g. when the studio cancels. */
 export async function refundDeposit(
   studio: Studio,

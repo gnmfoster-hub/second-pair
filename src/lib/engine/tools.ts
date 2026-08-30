@@ -3,7 +3,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatPence } from "@/lib/money";
 import { quoteForBand, quoteForStudio, depositFor } from "@/lib/quote";
 import { verticalPack } from "@/lib/verticals";
-import { createDepositCheckout, stripeConfigured } from "@/lib/payments/stripe";
+import {
+  createDepositCheckout,
+  retrieveOpenCheckout,
+  stripeConfigured,
+} from "@/lib/payments/stripe";
 import {
   availableSlots,
   createBooking,
@@ -464,6 +468,39 @@ async function makeBooking(
     return { result: "That is not a time from get_available_slots. Call it again." };
   }
 
+  // One live booking per enquiry. Without this, a client saying "yes" twice
+  // leaves two slots held and two payment links in the wild.
+  const { data: existing } = await ctx.db
+    .from("bookings")
+    .select("id, starts_at, deposit_status")
+    .eq("enquiry_id", ctx.enquiryId)
+    .is("cancelled_at", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) {
+    if (Date.parse(existing.starts_at) === when) {
+      return {
+        result:
+          "That is already booked for them. Confirm it back in words rather than " +
+          "booking it again.",
+      };
+    }
+    if (existing.deposit_status === "paid") {
+      return {
+        result:
+          "They already have a paid booking at another time. Do not book a second — " +
+          "escalate so the owner can move it.",
+      };
+    }
+    // An unpaid hold at a different time is them changing their mind.
+    await ctx.db
+      .from("bookings")
+      .update({ cancelled_at: new Date().toISOString() })
+      .eq("id", existing.id);
+  }
+
   const band = ctx.bands.find((b) => b.id === ctx.enquirySizeBandId);
   const type = bookingTypeFor(band);
   const minutes = durationFor(ctx.studio, band, type);
@@ -532,6 +569,23 @@ async function sendDepositLink(ctx: ToolContext): Promise<ToolOutcome> {
   }
   if (booking.deposit_amount_pence <= 0) {
     return { result: "No deposit is due on this booking. Do not send a link." };
+  }
+
+  // A link already sent and still payable is the same link. Minting a new one
+  // leaves the client with two, and no idea which is live.
+  if (booking.deposit_status === "link_sent" && booking.stripe_payment_link_id) {
+    const existing = await retrieveOpenCheckout(
+      ctx.studio,
+      booking.stripe_payment_link_id,
+    );
+    if (existing) {
+      return {
+        result:
+          `The link already sent is still valid: ${existing}
+` +
+          "Send them that one. Do not describe it as a new link.",
+      };
+    }
   }
 
   const artist = ctx.artists.find((a) => a.id === booking.artist_id);
