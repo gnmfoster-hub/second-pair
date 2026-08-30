@@ -1,6 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { quoteForBand, quoteForStudio, depositFor, FULL_DAY_HOURS } from "./quote.ts";
+import {
+  quoteForBand,
+  quoteForStudio,
+  depositFor,
+  withVat,
+  FULL_DAY_HOURS,
+  type VatSettings,
+} from "./quote.ts";
 import type { Artist, PriceBand } from "./types.ts";
 
 const artist = (over: Partial<Artist> = {}): Artist => ({
@@ -149,4 +156,56 @@ test("a studio range spans fixed and hourly bands alike", () => {
   const fixed = band(1, 1, { price_low_pence: 2500, duration_minutes: 30 });
   const q = quoteForStudio([cheap], fixed)!;
   assert.equal(q.low_pence, 2500);
+});
+
+// ---------------------------------------------------------------- VAT
+
+const vat = (over: Partial<VatSettings> = {}): VatSettings => ({
+  vat_registered: true,
+  vat_rate_percent: 20,
+  prices_include_vat: true,
+  ...over,
+});
+
+test("a business that is not VAT registered says nothing about VAT", () => {
+  // Mentioning VAT when you are not registered is misleading, not just noise.
+  const shown = withVat(
+    { low_pence: 18000, high_pence: 24000, hit_minimum: false },
+    vat({ vat_registered: false }),
+  );
+  assert.equal(shown.low_pence, 18000);
+  assert.equal(shown.note, "");
+});
+
+test("VAT-inclusive prices are quoted as entered", () => {
+  const shown = withVat({ low_pence: 4500, high_pence: 4500, hit_minimum: false }, vat());
+  assert.equal(shown.low_pence, 4500);
+  assert.equal(shown.note, "including VAT");
+});
+
+test("ex-VAT prices have VAT added before quoting", () => {
+  // £300 + 20% = £360. Quoting £300 to a consumer would be wrong by £60.
+  const shown = withVat(
+    { low_pence: 30000, high_pence: 30000, hit_minimum: false },
+    vat({ prices_include_vat: false }),
+  );
+  assert.equal(shown.low_pence, 36000);
+  assert.match(shown.note, /including VAT at 20%/);
+});
+
+test("a non-standard rate is honoured", () => {
+  const shown = withVat(
+    { low_pence: 10000, high_pence: 10000, hit_minimum: false },
+    vat({ prices_include_vat: false, vat_rate_percent: 5 }),
+  );
+  assert.equal(shown.low_pence, 10500);
+});
+
+test("a range has VAT applied to both ends", () => {
+  const shown = withVat(
+    { low_pence: 30000, high_pence: 50000, hit_minimum: false },
+    vat({ prices_include_vat: false }),
+  );
+  assert.equal(shown.low_pence, 36000);
+  assert.equal(shown.high_pence, 60000);
 });

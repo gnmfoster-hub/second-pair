@@ -90,3 +90,43 @@ export function describeDepositRule(rule: DepositRule): string {
   }
   return `${rule.percent}% of the estimate, minimum £${(rule.min_pence / 100).toFixed(0)}`;
 }
+
+// ---------------------------------------------------------------- VAT
+
+export type VatSettings = {
+  vat_registered: boolean;
+  vat_rate_percent: number;
+  prices_include_vat: boolean;
+};
+
+/**
+ * What a customer should actually be told.
+ *
+ * A business not registered says nothing about VAT at all — mentioning it when
+ * you are not registered is misleading. A registered business either quotes a
+ * number that already contains VAT, or one that does not and must say so.
+ */
+export function withVat(
+  quote: Quote,
+  vat: VatSettings,
+): { low_pence: number; high_pence: number; note: string } {
+  if (!vat.vat_registered) {
+    return { low_pence: quote.low_pence, high_pence: quote.high_pence, note: "" };
+  }
+
+  if (vat.prices_include_vat) {
+    return {
+      low_pence: quote.low_pence,
+      high_pence: quote.high_pence,
+      note: "including VAT",
+    };
+  }
+
+  // Entered ex-VAT: the customer-facing figure is the one with VAT on it.
+  const multiplier = 1 + vat.vat_rate_percent / 100;
+  return {
+    low_pence: Math.round(quote.low_pence * multiplier),
+    high_pence: Math.round(quote.high_pence * multiplier),
+    note: `including VAT at ${vat.vat_rate_percent}%`,
+  };
+}

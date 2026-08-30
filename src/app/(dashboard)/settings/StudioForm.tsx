@@ -241,6 +241,71 @@ export function StudioForm({ studio }: { studio: Studio }) {
       </section>
 
       <section className="card space-y-5 p-6">
+        <h2 className="text-sm font-medium">VAT</h2>
+        <p className="hint">
+          Only affects what the assistant quotes. Nothing here goes near your bookkeeping —
+          that is your accountant&rsquo;s job, not ours.
+        </p>
+
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="vat_registered"
+            defaultChecked={studio.vat_registered}
+            className="accent-[var(--accent)]"
+          />
+          We are VAT registered
+        </label>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Rate (%)">
+            <input
+              name="vat_rate_percent"
+              type="number"
+              min={0}
+              max={100}
+              step={0.5}
+              defaultValue={studio.vat_rate_percent}
+              className="input"
+            />
+          </Field>
+          <Field label="VAT number" hint="Optional.">
+            <input
+              name="vat_number"
+              defaultValue={studio.vat_number ?? ""}
+              placeholder="GB123456789"
+              className="input font-mono text-xs"
+            />
+          </Field>
+        </div>
+
+        <Field label="The prices you have entered">
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="prices_include_vat"
+                value="on"
+                defaultChecked={studio.prices_include_vat}
+                className="accent-[var(--accent)]"
+              />
+              Already include VAT — quote them as they are
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="prices_include_vat"
+                value="off"
+                defaultChecked={!studio.prices_include_vat}
+                className="accent-[var(--accent)]"
+              />
+              Exclude VAT — add it before quoting
+            </label>
+          </div>
+        </Field>
+      </section>
+
+      <section className="card space-y-5 p-6">
         <h2 className="text-sm font-medium">Compliance</h2>
 
         <Field

@@ -1,7 +1,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatPence } from "@/lib/money";
-import { quoteForBand, quoteForStudio, depositFor } from "@/lib/quote";
+import { quoteForBand, quoteForStudio, depositFor, withVat } from "@/lib/quote";
 import { verticalPack } from "@/lib/verticals";
 import { stripeConfigured } from "@/lib/payments/stripe";
 import {
@@ -366,23 +366,29 @@ async function quoteEstimate(
   await ctx.db
     .from("enquiries")
     .update({
-      quote_low_pence: quote.low_pence,
-      quote_high_pence: quote.high_pence,
+      quote_low_pence: withVat(quote, ctx.studio).low_pence,
+      quote_high_pence: withVat(quote, ctx.studio).high_pence,
       size_band_id: band.id,
     })
     .eq("id", ctx.enquiryId);
 
   const deposit = depositFor(ctx.studio.deposit_rule, quote);
+  // What the customer should be told, which is not always what was typed in.
+  const shown = withVat(quote, ctx.studio);
 
   return {
     result: [
       `Estimate for ${band.size_label}${named ? ` with ${named.name}` : ""}: ` +
-        `${formatPence(quote.low_pence)} to ${formatPence(quote.high_pence)}.`,
+        `${formatPence(shown.low_pence)} to ${formatPence(shown.high_pence)}` +
+        `${shown.note ? ` ${shown.note}` : ""}.`,
       ctx.studio.deposit_mode === "none" ? "" : `Deposit: ${formatPence(deposit)}.`,
       `Typically ${band.hours_low} to ${band.hours_high} hours.`,
       band.requires_consultation
         ? "This size needs a consultation before a session is booked."
         : "This size can be booked straight into a session.",
+      shown.note
+        ? `Say "${shown.note}" when you give the price — they are VAT registered.`
+        : "",
       "Give these numbers exactly as written. Say it is an estimate confirmed at the consultation.",
     ]
       .filter(Boolean)

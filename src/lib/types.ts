@@ -80,6 +80,10 @@ export type Studio = {
   vertical: string;
   vocabulary: Record<string, string>;
   deposit_mode: "required" | "optional" | "none";
+  vat_registered: boolean;
+  vat_rate_percent: number;
+  prices_include_vat: boolean;
+  vat_number: string | null;
   notice_hours: number;
   consultation_minutes: number;
   max_session_minutes: number;

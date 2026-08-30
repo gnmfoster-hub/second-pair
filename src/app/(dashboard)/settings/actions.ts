@@ -69,6 +69,13 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
       hours: readHours(fd),
       ...(deposit === studioDepositUnchanged ? {} : { deposit_rule: deposit }),
       deposit_mode: depositMode,
+      vat_registered: fd.get("vat_registered") === "on",
+      vat_rate_percent: Math.min(
+        100,
+        Math.max(0, Number(str(fd, "vat_rate_percent")) || 20),
+      ),
+      prices_include_vat: fd.get("prices_include_vat") !== "off",
+      vat_number: str(fd, "vat_number") || null,
       cancellation_policy: str(fd, "cancellation_policy"),
       privacy_notice_url: privacy || null,
       terms_url: terms || null,
