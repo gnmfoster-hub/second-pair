@@ -3,6 +3,7 @@ import type { Artist, PriceBand, Studio } from "@/lib/types";
 import { busyFromIcal } from "./ical";
 import { scheduleReminders, dropReminders } from "@/lib/reminders";
 import { findSlots, describeSlot } from "./slots";
+import { withTravelTime } from "@/lib/travel";
 import {
   PROVIDERS,
   bookingInstructions,
@@ -113,7 +114,13 @@ export async function availableSlots(search: SlotSearch): Promise<Slot[]> {
   const from = new Date(now.getTime() + studio.notice_hours * 3600_000);
   const to = new Date(from.getTime() + 21 * 86400_000);
 
-  const busy = await busyFor(db, artist, from, to);
+  let busy = await busyFor(db, artist, from, to);
+
+  // Work at the customer's address needs getting to. Padding what counts as
+  // busy is what stops two jobs being booked back to back across a city.
+  if (studio.travel_mode !== "at_premises") {
+    busy = withTravelTime(busy, studio.travel_buffer_minutes);
+  }
 
   return findSlots({
     hours: studio.hours,

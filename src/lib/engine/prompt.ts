@@ -46,6 +46,24 @@ export function studioSystemPrompt(
   const ageLine = pack.ageCheck ? "\n- That they are 18 or over" : "";
   const ruleLines = pack.rules.map((r) => `- ${r}`).join("\n");
 
+  // Work at the customer's address changes what has to be asked, and adds a
+  // question that can end the conversation: is it somewhere they even go?
+  const travels = studio.travel_mode !== "at_premises";
+  const areaLine = studio.service_areas?.length
+    ? `Areas covered: ${studio.service_areas.join(", ")}. Anywhere else is a no — say so kindly and do not offer any times.`
+    : "No area restriction.";
+  const locationLine = travels
+    ? `\n- Where the job is: the address, and the postcode especially. Ask early, because it decides whether this is somewhere ${studio.name} covers at all.`
+    : "";
+  const travelSection = travels
+    ? `# Getting there
+The work happens at the customer's address${studio.travel_mode === "both" ? ", or here — whichever suits them" : ", not here"}.
+${areaLine}
+Travelling time is already left either side of every job, so what get_available_slots returns accounts for it. Offer what it gives you and nothing else.
+
+`
+    : "";
+
   // What the assistant may say about booking depends entirely on what the
   // business's diary can do, so it comes from the provider, not from here.
   const bookingPerson = active[0];
@@ -101,7 +119,7 @@ Get their first name early — ask for it in your first or second message, and u
 
 Work out, over the course of the conversation:
 - Their name, and a phone number or email
-${qualificationLines}
+${qualificationLines}${locationLine}
 - Reference images — there is a paperclip in the chat window they can attach photos with, so point them at it
 - Whether they have a particular ${words.practitioner} in mind${ageLine}
 - Which days and times suit them
@@ -146,7 +164,7 @@ This order, and never faster. Each step is a separate message, and you wait for 
 
 Never book a time nobody chose. Never send a payment link in the same breath as making the booking — they get to see what they have agreed to first. Never send a second link when one has already gone out; call send_deposit_link again and it returns the same one.
 
-# The studio
+${travelSection}# The studio
 Opening hours (${studio.timezone}):
 ${hours}
 

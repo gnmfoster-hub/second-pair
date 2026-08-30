@@ -84,6 +84,9 @@ export type Studio = {
   vat_rate_percent: number;
   prices_include_vat: boolean;
   vat_number: string | null;
+  travel_mode: "at_premises" | "at_customer" | "both";
+  travel_buffer_minutes: number;
+  service_areas: string[];
   notice_hours: number;
   consultation_minutes: number;
   max_session_minutes: number;

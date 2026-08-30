@@ -10,6 +10,7 @@ export function StudioForm({ studio }: { studio: Studio }) {
   const [state, action] = useActionState<FormState, FormData>(updateStudio, {});
   const [depositType, setDepositType] = useState(studio.deposit_rule.type);
   const [depositMode, setDepositMode] = useState(studio.deposit_mode ?? "required");
+  const [travelMode, setTravelMode] = useState(studio.travel_mode ?? "at_premises");
 
   const hours = DEFAULT_HOURS.map(
     (d) => studio.hours.find((h) => h.day === d.day) ?? d,
@@ -237,6 +238,69 @@ export function StudioForm({ studio }: { studio: Studio }) {
           />
         </Field>
         </>
+        )}
+      </section>
+
+      <section className="card space-y-5 p-6">
+        <h2 className="text-sm font-medium">Where the work happens</h2>
+
+        <Field label="Do you travel to customers?">
+          <div className="space-y-2">
+            {(
+              [
+                ["at_premises", "They come to us"],
+                ["at_customer", "We go to them"],
+                ["both", "Both, depending on the job"],
+              ] as const
+            ).map(([value, label]) => (
+              <label key={value} className="flex items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="travel_mode"
+                  value={value}
+                  checked={travelMode === value}
+                  onChange={() => setTravelMode(value)}
+                  className="accent-[var(--accent)]"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </Field>
+
+        {travelMode !== "at_premises" && (
+          <>
+            <Field
+              label="Travelling time (minutes)"
+              hint="Left either side of every job, so two cannot be booked back to back across town."
+            >
+              <input
+                name="travel_buffer_minutes"
+                type="number"
+                min={0}
+                max={240}
+                step={5}
+                defaultValue={studio.travel_buffer_minutes}
+                className="input w-32"
+              />
+            </Field>
+
+            <Field
+              label="Areas you cover"
+              hint="Postcode areas or districts, separated by commas — BS, BA, TA16. Leave blank to cover everywhere."
+            >
+              <input
+                name="service_areas"
+                defaultValue={(studio.service_areas ?? []).join(", ")}
+                placeholder="BS, BA, GL"
+                className="input max-w-md"
+              />
+              <p className="hint mt-1.5">
+                Anything outside these and the assistant will say so rather than offering a
+                time it cannot honour.
+              </p>
+            </Field>
+          </>
         )}
       </section>
 

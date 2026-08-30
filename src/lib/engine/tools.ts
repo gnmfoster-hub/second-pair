@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatPence } from "@/lib/money";
 import { quoteForBand, quoteForStudio, depositFor, withVat } from "@/lib/quote";
 import { verticalPack } from "@/lib/verticals";
+import { coversPostcode } from "@/lib/travel";
 import { stripeConfigured } from "@/lib/payments/stripe";
 import {
   availableSlots,
@@ -91,6 +92,20 @@ export function toolDefinitions(
             type: "string",
             description: "Days and times that suit them, in their own words.",
           },
+          ...(studio.travel_mode === "at_premises"
+            ? {}
+            : {
+                job_address: {
+                  type: "string",
+                  description: "Where the work is, when you go to them.",
+                },
+                job_postcode: {
+                  type: "string",
+                  description:
+                    "Their postcode. Save it as soon as you have it — it decides whether " +
+                    "this is even somewhere the business covers.",
+                },
+              }),
         },
         additionalProperties: false,
       },
@@ -268,6 +283,24 @@ async function saveEnquiry(
   copy("cover_up");
   copy("age_confirmed");
   copy("preferred_times");
+  copy("job_address");
+
+  // The postcode decides whether the job is even possible, so it is checked
+  // before it is stored rather than after a slot has been offered.
+  if (typeof input.job_postcode === "string" && input.job_postcode.trim()) {
+    patch.job_postcode = input.job_postcode.trim();
+    saved.push("job_postcode");
+
+    if (!coversPostcode(ctx.studio.service_areas, input.job_postcode)) {
+      await ctx.db.from("enquiries").update(patch).eq("id", ctx.enquiryId);
+      return {
+        result:
+          `Saved, but ${input.job_postcode} is outside the areas this business covers ` +
+          `(${ctx.studio.service_areas.join(", ")}). Tell them plainly that it is out of ` +
+          "the area, do not offer any times, and do not book anything.",
+      };
+    }
+  }
 
   const styleValues = ctx.options.filter((o) => o.kind === "style").map((o) => o.value);
   if (typeof input.style === "string" && styleValues.includes(input.style)) {

@@ -76,6 +76,15 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
       ),
       prices_include_vat: fd.get("prices_include_vat") !== "off",
       vat_number: str(fd, "vat_number") || null,
+      travel_mode: str(fd, "travel_mode") || "at_premises",
+      travel_buffer_minutes: Math.min(
+        240,
+        Math.max(0, Number(str(fd, "travel_buffer_minutes")) || 0),
+      ),
+      service_areas: str(fd, "service_areas")
+        .split(/[,\s]+/)
+        .map((a) => a.trim().toUpperCase())
+        .filter(Boolean),
       cancellation_policy: str(fd, "cancellation_policy"),
       privacy_notice_url: privacy || null,
       terms_url: terms || null,
