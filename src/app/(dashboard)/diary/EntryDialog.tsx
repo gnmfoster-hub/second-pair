@@ -35,7 +35,7 @@ export function EntryDialog({
   onClose,
 }: {
   entry: Entry | null;
-  prefill: { date: string; time: string } | null;
+  prefill: { date: string; time: string; artistId?: string } | null;
   artists: Artist[];
   timezone: string;
   onClose: () => void;
@@ -237,7 +237,7 @@ export function EntryDialog({
           <Field label={artists.length > 1 ? "Who for" : "Diary"}>
             <select
               name="artist_id"
-              defaultValue={entry?.artist_id ?? artists[0]?.id}
+              defaultValue={entry?.artist_id ?? prefill?.artistId ?? artists[0]?.id}
               className="input"
               required
             >

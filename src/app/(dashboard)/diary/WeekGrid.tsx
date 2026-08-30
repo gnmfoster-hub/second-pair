@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { categoryFor, addDays, isoDate } from "@/lib/calendar";
 import { EntryDialog } from "./EntryDialog";
 import type { Artist, OpeningHours } from "@/lib/types";
@@ -24,7 +24,7 @@ export type Entry = {
   conversationId: string | null;
 };
 
-const HOUR_HEIGHT = 52;
+const HOUR_HEIGHT = 60;
 
 /** Local wall-clock minutes since midnight, in the studio's timezone. */
 function minutesInDay(iso: string, timezone: string): number {
@@ -49,88 +49,187 @@ function dayKey(iso: string, timezone: string): string {
   return `${at.year}-${at.month}-${at.day}`;
 }
 
+const clock = (iso: string, timezone: string) =>
+  new Intl.DateTimeFormat("en-GB", {
+    timeZone: timezone,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(new Date(iso));
+
+/**
+ * Side-by-side columns for entries that overlap, so a double-booked hour is
+ * legible rather than one card hiding another.
+ */
+function layout(entries: Entry[], timezone: string) {
+  const sorted = [...entries].sort(
+    (a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at),
+  );
+  const columns: Entry[][] = [];
+
+  for (const entry of sorted) {
+    const start = Date.parse(entry.starts_at);
+    const column = columns.find(
+      (col) => Date.parse(col[col.length - 1].ends_at) <= start,
+    );
+    if (column) column.push(entry);
+    else columns.push([entry]);
+  }
+
+  return sorted.map((entry) => {
+    const index = columns.findIndex((col) => col.includes(entry));
+    const overlapping = columns.filter((col) =>
+      col.some(
+        (other) =>
+          Date.parse(other.starts_at) < Date.parse(entry.ends_at) &&
+          Date.parse(other.ends_at) > Date.parse(entry.starts_at),
+      ),
+    ).length;
+    return {
+      entry,
+      left: (index / Math.max(1, overlapping)) * 100,
+      width: 100 / Math.max(1, overlapping),
+      top: ((minutesInDay(entry.starts_at, timezone)) / 60) * HOUR_HEIGHT,
+      height: Math.max(
+        22,
+        ((Date.parse(entry.ends_at) - Date.parse(entry.starts_at)) / 3600000) * HOUR_HEIGHT,
+      ),
+    };
+  });
+}
+
 export function WeekGrid({
   weekStart,
   entries,
   artists,
   hours,
   timezone,
+  view,
+  day,
 }: {
   weekStart: string;
   entries: Entry[];
   artists: Artist[];
   hours: OpeningHours[];
   timezone: string;
+  view: "week" | "day";
+  day: string;
 }) {
   const [editing, setEditing] = useState<Entry | null>(null);
-  const [creating, setCreating] = useState<{ date: string; time: string } | null>(null);
+  const [creating, setCreating] = useState<{
+    date: string;
+    time: string;
+    artistId?: string;
+  } | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
+  const [nowMinutes, setNowMinutes] = useState<number | null>(null);
 
   const start = useMemo(() => {
     const [y, m, d] = weekStart.split("-").map(Number);
     return new Date(y, m - 1, d);
   }, [weekStart]);
 
-  const days = useMemo(
-    () => Array.from({ length: 7 }, (_, i) => addDays(start, i)),
-    [start],
-  );
-
-  // Show an hour before opening and an hour after closing, so early and late
-  // entries are reachable without the grid running 00:00–24:00.
-  const open = hours.filter((h) => !h.closed);
-  const earliest = Math.min(
-    ...open.map((h) => Number(h.open.split(":")[0])),
-    9,
-  );
-  const latest = Math.max(
-    ...open.map((h) => Number(h.close.split(":")[0])),
-    18,
-  );
-  const fromHour = Math.max(0, earliest - 1);
-  const toHour = Math.min(24, latest + 1);
-  const hourList = Array.from({ length: toHour - fromHour }, (_, i) => fromHour + i);
+  // Columns are days in week view, people in day view — the two things you
+  // actually want to compare.
+  const columns = useMemo(() => {
+    if (view === "day") {
+      return artists.map((a) => ({ key: a.id, label: a.name, sub: "", date: day, artist: a }));
+    }
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = addDays(start, i);
+      return {
+        key: isoDate(d),
+        label: d.toLocaleDateString("en-GB", { weekday: "short" }),
+        sub: String(d.getDate()),
+        date: isoDate(d),
+        artist: undefined,
+      };
+    });
+  }, [view, artists, day, start]);
 
   const todayKey = isoDate(new Date());
 
+  // A live line across today, the thing that makes a calendar feel alive.
+  useEffect(() => {
+    const tick = () => {
+      const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: timezone,
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).formatToParts(new Date());
+      const at = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+      setNowMinutes((Number(at.hour) % 24) * 60 + Number(at.minute));
+    };
+    tick();
+    const timer = setInterval(tick, 60_000);
+    return () => clearInterval(timer);
+  }, [timezone]);
+
+  // Open somewhere useful rather than at midnight.
+  useLayoutEffect(() => {
+    const opens = Math.min(
+      ...hours.filter((h) => !h.closed).map((h) => Number(h.open.split(":")[0])),
+    );
+    if (scroller.current) {
+      scroller.current.scrollTop = Math.max(0, (opens - 1) * HOUR_HEIGHT);
+    }
+  }, [hours]);
+
   const timed = entries.filter((e) => !e.all_day);
   const allDay = entries.filter((e) => e.all_day);
+  const hourList = Array.from({ length: 24 }, (_, i) => i);
 
-  function slotFromClick(event: React.MouseEvent<HTMLDivElement>, date: Date) {
+  function entriesFor(column: (typeof columns)[number]) {
+    return timed.filter((e) => {
+      if (dayKey(e.starts_at, timezone) !== column.date) return false;
+      return column.artist ? e.artist_id === column.artist.id : true;
+    });
+  }
+
+  function slotFromClick(event: React.MouseEvent<HTMLDivElement>, column: (typeof columns)[number]) {
     const box = event.currentTarget.getBoundingClientRect();
-    const y = event.clientY - box.top;
-    const rawMinutes = fromHour * 60 + (y / HOUR_HEIGHT) * 60;
-    const snapped = Math.max(0, Math.round(rawMinutes / 15) * 15);
-    const h = String(Math.floor(snapped / 60)).padStart(2, "0");
-    const m = String(snapped % 60).padStart(2, "0");
-    setCreating({ date: isoDate(date), time: `${h}:${m}` });
+    const minutes = Math.max(
+      0,
+      Math.round(((event.clientY - box.top) / HOUR_HEIGHT) * 60 / 15) * 15,
+    );
+    setCreating({
+      date: column.date,
+      time: `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`,
+      artistId: column.artist?.id,
+    });
   }
 
   return (
     <>
       <div className="card overflow-hidden">
-        {/* ------------------------------------------------ day headings */}
-        <div className="flex border-b border-border">
-          <div className="w-14 shrink-0 border-r border-border" />
-          {days.map((day) => {
-            const key = isoDate(day);
-            const isToday = key === todayKey;
-            const closed = hours.find((h) => h.day === day.getDay())?.closed;
+        {/* ------------------------------------------------ headings */}
+        <div className="flex border-b border-border bg-surface">
+          <div className="w-16 shrink-0 border-r border-border" />
+          {columns.map((col) => {
+            const isToday = view === "week" && col.date === todayKey;
+            const closed =
+              view === "week" &&
+              hours.find((h) => h.day === new Date(col.date).getDay())?.closed;
             return (
               <div
-                key={key}
-                className={`flex-1 border-r border-border px-2 py-2 text-center last:border-r-0 ${
-                  isToday ? "bg-accent/10" : ""
+                key={col.key}
+                className={`flex-1 border-r border-border px-2 py-2.5 text-center last:border-r-0 ${
+                  isToday ? "bg-accent/8" : ""
                 }`}
               >
                 <div className="text-[11px] uppercase tracking-wide text-muted">
-                  {day.toLocaleDateString("en-GB", { weekday: "short" })}
+                  {col.label}
                 </div>
-                <div
-                  className={`text-sm tabular-nums ${isToday ? "font-semibold text-accent" : ""}`}
-                >
-                  {day.getDate()}
-                </div>
+                {col.sub && (
+                  <div
+                    className={`mt-0.5 inline-grid size-7 place-items-center rounded-full text-sm tabular-nums ${
+                      isToday ? "bg-accent font-semibold text-white" : ""
+                    }`}
+                  >
+                    {col.sub}
+                  </div>
+                )}
                 {closed && <div className="text-[10px] text-muted">closed</div>}
               </div>
             );
@@ -140,21 +239,21 @@ export function WeekGrid({
         {/* ------------------------------------------------ all-day band */}
         {allDay.length > 0 && (
           <div className="flex border-b border-border bg-surface-2/40">
-            <div className="w-14 shrink-0 border-r border-border px-2 py-1 text-[10px] uppercase tracking-wide text-muted">
+            <div className="w-16 shrink-0 border-r border-border px-2 py-1.5 text-[10px] uppercase tracking-wide text-muted">
               All day
             </div>
-            {days.map((day) => {
-              const key = isoDate(day);
+            {columns.map((col) => {
               const here = allDay.filter((e) => {
+                if (col.artist && e.artist_id !== col.artist.id) return false;
                 const from = dayKey(e.starts_at, timezone);
-                const to = dayKey(
-                  new Date(Date.parse(e.ends_at) - 1).toISOString(),
-                  timezone,
-                );
-                return key >= from && key <= to;
+                const to = dayKey(new Date(Date.parse(e.ends_at) - 1).toISOString(), timezone);
+                return col.date >= from && col.date <= to;
               });
               return (
-                <div key={key} className="flex-1 space-y-1 border-r border-border p-1 last:border-r-0">
+                <div
+                  key={col.key}
+                  className="flex-1 space-y-1 border-r border-border p-1.5 last:border-r-0"
+                >
                   {here.map((e) => {
                     const cat = categoryFor(e.category);
                     return (
@@ -162,8 +261,12 @@ export function WeekGrid({
                         key={e.id}
                         type="button"
                         onClick={() => setEditing(e)}
-                        className="block w-full truncate rounded px-1.5 py-1 text-left text-[11px] text-white"
-                        style={{ background: cat.hue }}
+                        className="block w-full truncate rounded-md px-2 py-1 text-left text-[11px] font-medium"
+                        style={{
+                          background: `color-mix(in srgb, ${cat.hue} 22%, transparent)`,
+                          color: cat.hue,
+                          boxShadow: `inset 2px 0 0 ${cat.hue}`,
+                        }}
                       >
                         {e.title ?? cat.label}
                       </button>
@@ -176,63 +279,56 @@ export function WeekGrid({
         )}
 
         {/* ------------------------------------------------ time grid */}
-        <div ref={scroller} className="max-h-[62vh] overflow-y-auto">
+        <div ref={scroller} className="max-h-[64vh] overflow-y-auto">
           <div className="flex">
-            <div className="w-14 shrink-0 border-r border-border">
+            <div className="w-16 shrink-0 border-r border-border">
               {hourList.map((h) => (
-                <div
-                  key={h}
-                  style={{ height: HOUR_HEIGHT }}
-                  className="relative border-b border-cal-grid"
-                >
-                  <span className="absolute -top-2 right-1.5 text-[10px] tabular-nums text-muted">
-                    {h.toString().padStart(2, "0")}:00
+                <div key={h} style={{ height: HOUR_HEIGHT }} className="relative">
+                  <span className="absolute -top-1.5 right-2 text-[10px] tabular-nums text-muted">
+                    {h === 0 ? "" : `${h.toString().padStart(2, "0")}:00`}
                   </span>
                 </div>
               ))}
             </div>
 
-            {days.map((day) => {
-              const key = isoDate(day);
-              const opening = hours.find((h) => h.day === day.getDay());
-              const here = timed.filter((e) => dayKey(e.starts_at, timezone) === key);
+            {columns.map((col) => {
+              const opening = hours.find((h) => h.day === new Date(col.date).getDay());
+              const laid = layout(entriesFor(col), timezone);
+              const isToday = col.date === todayKey;
 
               return (
                 <div
-                  key={key}
-                  onClick={(e) => slotFromClick(e, day)}
+                  key={col.key}
+                  onClick={(e) => slotFromClick(e, col)}
                   className="relative flex-1 cursor-copy border-r border-border last:border-r-0"
-                  style={{ height: hourList.length * HOUR_HEIGHT }}
+                  style={{ height: 24 * HOUR_HEIGHT }}
                   title="Click to add something here"
                 >
-                  {/* hour lines */}
                   {hourList.map((h) => (
-                    <div
-                      key={h}
-                      style={{ height: HOUR_HEIGHT }}
-                      className="border-b border-cal-grid"
-                    />
+                    <div key={h} style={{ height: HOUR_HEIGHT }} className="relative">
+                      <div className="absolute inset-x-0 top-0 border-t border-cal-grid" />
+                      <div className="absolute inset-x-0 top-1/2 border-t border-cal-grid/40" />
+                    </div>
                   ))}
 
-                  {/* shade the hours the studio is shut */}
-                  {opening && !opening.closed && (
+                  {/* closed hours recede */}
+                  {opening && !opening.closed ? (
                     <>
                       <div
-                        className="pointer-events-none absolute inset-x-0 top-0 bg-background/45"
+                        className="pointer-events-none absolute inset-x-0 top-0 bg-background/50"
                         style={{
                           height:
                             ((Number(opening.open.split(":")[0]) * 60 +
-                              Number(opening.open.split(":")[1]) -
-                              fromHour * 60) /
+                              Number(opening.open.split(":")[1])) /
                               60) *
                             HOUR_HEIGHT,
                         }}
                       />
                       <div
-                        className="pointer-events-none absolute inset-x-0 bottom-0 bg-background/45"
+                        className="pointer-events-none absolute inset-x-0 bottom-0 bg-background/50"
                         style={{
                           height:
-                            ((toHour * 60 -
+                            ((1440 -
                               (Number(opening.close.split(":")[0]) * 60 +
                                 Number(opening.close.split(":")[1]))) /
                               60) *
@@ -240,21 +336,22 @@ export function WeekGrid({
                         }}
                       />
                     </>
-                  )}
-                  {opening?.closed && (
-                    <div className="pointer-events-none absolute inset-0 bg-background/45" />
+                  ) : (
+                    <div className="pointer-events-none absolute inset-0 bg-background/50" />
                   )}
 
-                  {/* entries */}
-                  {here.map((e) => {
+                  {/* now */}
+                  {isToday && nowMinutes != null && (
+                    <div
+                      className="pointer-events-none absolute inset-x-0 z-10 border-t border-accent"
+                      style={{ top: (nowMinutes / 60) * HOUR_HEIGHT }}
+                    >
+                      <span className="absolute -left-1 -top-[3px] size-1.5 rounded-full bg-accent" />
+                    </div>
+                  )}
+
+                  {laid.map(({ entry: e, top, height, left, width }) => {
                     const cat = categoryFor(e.category);
-                    const startMin = minutesInDay(e.starts_at, timezone);
-                    const length = Math.max(
-                      20,
-                      (Date.parse(e.ends_at) - Date.parse(e.starts_at)) / 60000,
-                    );
-                    const top = ((startMin - fromHour * 60) / 60) * HOUR_HEIGHT;
-                    const height = (length / 60) * HOUR_HEIGHT;
                     const artist = artists.find((a) => a.id === e.artist_id);
                     const unpaid =
                       e.source === "assistant" && e.deposit_status !== "paid";
@@ -267,31 +364,33 @@ export function WeekGrid({
                           event.stopPropagation();
                           setEditing(e);
                         }}
-                        className="absolute inset-x-1 overflow-hidden rounded px-1.5 py-1 text-left text-[11px] leading-tight text-white"
+                        className="absolute overflow-hidden rounded-md px-2 py-1 text-left text-[11px] leading-tight transition-shadow hover:z-20 hover:shadow-lg"
                         style={{
                           top,
                           height,
-                          background: cat.hue,
-                          opacity: e.blocks_availability ? 1 : 0.72,
-                          borderLeft: unpaid ? "3px solid var(--warn)" : undefined,
+                          left: `calc(${left}% + 2px)`,
+                          width: `calc(${width}% - 4px)`,
+                          background: `color-mix(in srgb, ${cat.hue} ${e.blocks_availability ? 20 : 12}%, var(--surface))`,
+                          boxShadow: `inset 3px 0 0 ${unpaid ? "var(--warn)" : cat.hue}`,
+                          color: "var(--foreground)",
+                          border: `1px solid color-mix(in srgb, ${cat.hue} 35%, transparent)`,
                         }}
                       >
                         <div className="truncate font-medium">
                           {e.title ?? e.clientName ?? cat.label}
                         </div>
-                        {height > 34 && (
-                          <div className="truncate opacity-85">
-                            {new Intl.DateTimeFormat("en-GB", {
-                              timeZone: timezone,
-                              hour: "numeric",
-                              minute: "2-digit",
-                              hour12: true,
-                            }).format(new Date(e.starts_at))}
-                            {artists.length > 1 && artist ? ` · ${artist.name}` : ""}
+                        {height > 32 && (
+                          <div className="truncate text-muted">
+                            {clock(e.starts_at, timezone)}
+                            {view === "week" && artists.length > 1 && artist
+                              ? ` · ${artist.name}`
+                              : ""}
                           </div>
                         )}
-                        {height > 56 && e.description && (
-                          <div className="truncate opacity-75">{e.description}</div>
+                        {height > 54 && (e.description || e.notes) && (
+                          <div className="truncate text-muted">
+                            {e.description ?? e.notes}
+                          </div>
                         )}
                       </button>
                     );

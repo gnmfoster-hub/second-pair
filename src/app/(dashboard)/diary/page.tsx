@@ -29,16 +29,18 @@ type RawRow = {
 export default async function DiaryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ week?: string }>;
+  searchParams: Promise<{ week?: string; view?: string; day?: string }>;
 }) {
-  const { week } = await searchParams;
+  const { week, view: viewParam, day: dayParam } = await searchParams;
+  const view = viewParam === "day" ? "day" : "week";
   const { studio } = await requireStudio();
   const supabase = await createClient();
   const artists = await getArtists(studio.id);
 
-  const anchor = week ? parseIsoDate(week) : new Date();
-  const start = startOfWeek(anchor);
-  const end = addDays(start, 7);
+  const focusDay = dayParam ? parseIsoDate(dayParam) : new Date();
+  const anchor = week ? parseIsoDate(week) : focusDay;
+  const start = view === "day" ? focusDay : startOfWeek(anchor);
+  const end = view === "day" ? addDays(focusDay, 1) : addDays(start, 7);
 
   // A little either side, so a multi-day holiday starting last week still shows.
   const { data } = await supabase
@@ -75,10 +77,25 @@ export default async function DiaryPage({
       conversationId: r.enquiries?.conversation_id ?? null,
     }));
 
-  const label = `${start.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${addDays(
-    start,
-    6,
-  ).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
+  const label =
+    view === "day"
+      ? focusDay.toLocaleDateString("en-GB", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+        })
+      : `${start.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${addDays(
+          start,
+          6,
+        ).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
+
+  const step = view === "day" ? 1 : 7;
+  const back = view === "day"
+    ? `/diary?view=day&day=${isoDate(addDays(focusDay, -step))}`
+    : `/diary?week=${isoDate(addDays(start, -step))}`;
+  const forward = view === "day"
+    ? `/diary?view=day&day=${isoDate(addDays(focusDay, step))}`
+    : `/diary?week=${isoDate(addDays(start, step))}`;
 
   const awaiting = entries.filter(
     (e) => e.source === "assistant" && e.deposit_status !== "paid",
@@ -96,13 +113,27 @@ export default async function DiaryPage({
         )}
 
         <div className="ml-auto flex items-center gap-2">
-          <Link href={`/diary?week=${isoDate(addDays(start, -7))}`} className="btn-ghost px-3">
+          <div className="flex overflow-hidden rounded-lg border border-border">
+            <Link
+              href={`/diary?view=day&day=${isoDate(focusDay)}`}
+              className={`px-3 py-2 text-sm ${view === "day" ? "bg-surface-2 text-foreground" : "text-muted hover:text-foreground"}`}
+            >
+              Day
+            </Link>
+            <Link
+              href={`/diary?week=${isoDate(start)}`}
+              className={`px-3 py-2 text-sm ${view === "week" ? "bg-surface-2 text-foreground" : "text-muted hover:text-foreground"}`}
+            >
+              Week
+            </Link>
+          </div>
+          <Link href={back} className="btn-ghost px-3" aria-label="Previous">
             ←
           </Link>
-          <Link href="/diary" className="btn-ghost">
+          <Link href={view === "day" ? "/diary?view=day" : "/diary"} className="btn-ghost">
             Today
           </Link>
-          <Link href={`/diary?week=${isoDate(addDays(start, 7))}`} className="btn-ghost px-3">
+          <Link href={forward} className="btn-ghost px-3" aria-label="Next">
             →
           </Link>
         </div>
@@ -110,12 +141,14 @@ export default async function DiaryPage({
 
       <p className="hint mt-1">
         Click any empty space to add something — a meeting, a delivery to chase, a day off.
-        Click an entry to change it.
+        Click an entry to change it. Day view puts everyone side by side.
       </p>
 
       <div className="mt-6">
         <WeekGrid
           weekStart={isoDate(start)}
+          day={isoDate(focusDay)}
+          view={view}
           entries={entries}
           artists={artists.filter((a) => a.active)}
           hours={studio.hours}
