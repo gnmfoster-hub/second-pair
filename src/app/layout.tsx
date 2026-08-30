@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "InkDesk",
-  description: "AI receptionist for tattoo studios",
+  title: "Handled",
+  description: "AI receptionist for appointment businesses",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

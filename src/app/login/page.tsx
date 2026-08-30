@@ -29,8 +29,8 @@ export default function LoginPage() {
   return (
     <div className="grid min-h-screen place-items-center px-6">
       <div className="w-full max-w-sm">
-        <div className="text-lg font-semibold tracking-tight">InkDesk</div>
-        <p className="hint mt-1">Sign in to your studio.</p>
+        <div className="text-lg font-semibold tracking-tight">Handled</div>
+        <p className="hint mt-1">Sign in to your business.</p>
 
         {status === "sent" ? (
           <div className="card mt-6 p-5 text-sm">

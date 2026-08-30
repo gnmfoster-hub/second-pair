@@ -1,4 +1,4 @@
-# InkDesk
+# Handled
 
 AI receptionist for tattoo studios. First customer: Living Canvas Tattoo.
 

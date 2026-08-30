@@ -9,7 +9,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="flex min-h-screen">
       <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-surface">
         <div className="border-b border-border px-5 py-5">
-          <div className="text-sm font-semibold tracking-tight">InkDesk</div>
+          <div className="text-sm font-semibold tracking-tight">Handled</div>
           <div className="mt-0.5 truncate text-xs text-muted">{studio.name}</div>
         </div>
 

@@ -1,4 +1,4 @@
--- InkDesk initial schema
+-- Handled initial schema
 -- Money is stored in integer pence everywhere. Never floats.
 
 create extension if not exists "pgcrypto";

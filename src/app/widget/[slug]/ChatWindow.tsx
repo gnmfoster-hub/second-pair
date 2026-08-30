@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 type Line = { from: "client" | "studio"; text: string; images?: number };
 
-const SESSION_KEY = "inkdesk_session";
+const SESSION_KEY = "handled_session";
 
 function sessionId(): string {
   try {

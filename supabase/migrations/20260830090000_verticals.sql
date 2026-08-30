@@ -1,4 +1,4 @@
--- InkDesk is aimed at tattoo studios first, but the same engine fits barbers,
+-- Handled is aimed at tattoo studios first, but the same engine fits barbers,
 -- salons, piercers and cosmetic clinics. Two things were tattoo-shaped in a way
 -- that would have cost a data migration later:
 --

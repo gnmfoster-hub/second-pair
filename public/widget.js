@@ -1,8 +1,8 @@
 /**
- * InkDesk chat widget loader.
+ * Handled chat widget loader.
  *
  * Drop one line into the studio's site:
- *   <script src="https://app.inkdesk.example/widget.js" data-studio="living-canvas-tattoo"></script>
+ *   <script src="https://app.handled.example/widget.js" data-studio="living-canvas-tattoo"></script>
  *
  * Everything the client sees lives inside an iframe, so the studio's own CSS
  * and ours can never collide.
@@ -15,7 +15,7 @@
 
   var slug = script.getAttribute("data-studio");
   if (!slug) {
-    console.error("[InkDesk] Missing data-studio on the widget script tag.");
+    console.error("[Handled] Missing data-studio on the widget script tag.");
     return;
   }
 
