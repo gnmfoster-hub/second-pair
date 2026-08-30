@@ -45,6 +45,10 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
   const deposit = readDepositRule(fd);
   if ("error" in deposit) return { error: deposit.error };
 
+  const terms = str(fd, "terms_url");
+  if (terms && !/^https?:\/\//i.test(terms))
+    return { error: "Terms URL must start with http:// or https://" };
+
   const privacy = str(fd, "privacy_notice_url");
   if (privacy && !/^https?:\/\//i.test(privacy))
     return { error: "Privacy notice URL must start with http:// or https://" };
@@ -58,6 +62,7 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
       deposit_rule: deposit,
       cancellation_policy: str(fd, "cancellation_policy"),
       privacy_notice_url: privacy || null,
+      terms_url: terms || null,
       stripe_account_id: str(fd, "stripe_account_id") || null,
       timezone: str(fd, "timezone") || "Europe/London",
       notice_hours: Math.min(720, Math.max(0, Number(str(fd, "notice_hours")) || 0)),

@@ -155,7 +155,17 @@ ${bandLines}
 Deposit: ${describeDepositRule(studio.deposit_rule)}.
 ${
   studio.cancellation_policy
-    ? `Cancellation policy, quote it as written when asked:\n"${studio.cancellation_policy}"`
+    ? [
+        `Cancellation policy, quote it as written when asked:\n"${studio.cancellation_policy}"`,
+        studio.cancellation_policy.includes("{{")
+          ? "Where it shows a placeholder in double braces, say the real figure instead. Never read the braces aloud."
+          : "",
+        studio.terms_url
+          ? `Full terms: ${studio.terms_url} — link it if they want the detail.`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("\n")
     : "No cancellation policy recorded — if asked, say the studio will confirm the terms."
 }
 

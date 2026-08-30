@@ -182,7 +182,7 @@ export function StudioForm({ studio }: { studio: Studio }) {
 
         <Field
           label="Cancellation policy"
-          hint="Quoted verbatim to the client before they pay. Say what happens to the deposit on a no-show or a late reschedule."
+          hint="Read out word for word before any payment link. Write {{amount}} where the deposit figure should go and it is filled in automatically."
         >
           <textarea
             name="cancellation_policy"
@@ -208,6 +208,19 @@ export function StudioForm({ studio }: { studio: Studio }) {
 
       <section className="card space-y-5 p-6">
         <h2 className="text-sm font-medium">Compliance</h2>
+
+        <Field
+          label="Full terms URL"
+          hint="Optional. The full booking and cancellation terms on your own site — the assistant links it if someone wants the detail."
+        >
+          <input
+            name="terms_url"
+            type="url"
+            defaultValue={studio.terms_url ?? ""}
+            placeholder="https://livingcanvastattoo.ink/terms"
+            className="input max-w-md"
+          />
+        </Field>
 
         <Field
           label="Privacy notice URL"

@@ -26,6 +26,29 @@ export function parsePounds(input: FormDataEntryValue | null | undefined): numbe
   return Math.round(value * 100);
 }
 
+/**
+ * Fills placeholders in a studio's policy text with the real figures.
+ *
+ * The policy is read out to clients word for word, so a placeholder that
+ * survives to the client ("Your deposit is {{amount}}") is worse than not
+ * offering placeholders at all. Anything unrecognised is stripped rather than
+ * spoken.
+ */
+export function renderPolicy(
+  policy: string,
+  values: { deposit?: number | null },
+): string {
+  if (!policy.includes("{{")) return policy;
+
+  return policy
+    .replace(/\{\{\s*(amount|deposit|deposit_amount)\s*\}\}/gi, () =>
+      values.deposit != null ? formatPence(values.deposit) : "the deposit",
+    )
+    .replace(/\{\{[^}]*\}\}/g, "")
+    .replace(/[ 	]{2,}/g, " ")
+    .trim();
+}
+
 /** Pence back to a bare pounds string for populating a form input. */
 export function penceToInput(pence: number | null | undefined): string {
   if (pence == null) return "";

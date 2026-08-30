@@ -74,6 +74,7 @@ export type Studio = {
   deposit_rule: DepositRule;
   cancellation_policy: string;
   privacy_notice_url: string | null;
+  terms_url: string | null;
   stripe_account_id: string | null;
   timezone: string;
   vertical: string;

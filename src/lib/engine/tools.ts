@@ -388,7 +388,9 @@ async function quoteEstimate(
         ? "This size needs a consultation before a session is booked."
         : "This size can be booked straight into a session.",
       "Give these numbers exactly as written. Say it is an estimate confirmed at the consultation.",
-    ].join(" "),
+    ]
+      .filter(Boolean)
+      .join(" "),
   };
 }
 
