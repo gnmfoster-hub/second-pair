@@ -202,10 +202,10 @@ export function toolDefinitions(
     {
       name: "escalate_to_owner",
       description:
-        "Hand the conversation to the studio owner and stop replying. Use for anything " +
-        "medical, anyone under 18, complaints, requests for a human, or anything you were " +
-        "not told how to answer. After calling this, tell the client the studio will pick " +
-        "it up, and say nothing further.",
+        "Flag something for the studio owner. Anything medical, anyone under 18, a " +
+        "complaint, or a request for a human hands the whole conversation over and you " +
+        "stop replying. Any other question you cannot answer is only flagged — the owner " +
+        "will come back on that one point, and you carry on helping with everything else.",
       input_schema: {
         type: "object",
         properties: {
@@ -631,16 +631,47 @@ async function sendDepositLink(ctx: ToolContext): Promise<ToolOutcome> {
   }
 }
 
+/**
+ * Reasons the assistant must stop talking altogether. Everything else is a
+ * question for the owner, not a reason to abandon the client — silencing the
+ * whole conversation over one unanswerable question leaves them with no way to
+ * carry on, and swallows anything they say next.
+ */
+const HANDS_OVER = new Set(["medical", "under_18", "complaint", "asked_for_human"]);
+
 async function escalate(
   input: Record<string, unknown>,
   ctx: ToolContext,
 ): Promise<ToolOutcome> {
-  await pauseForOwner(ctx, String(input.summary ?? ""));
+  const reason = String(input.reason ?? "other");
+  const summary = String(input.summary ?? "");
+
+  if (HANDS_OVER.has(reason)) {
+    await pauseForOwner(ctx, summary);
+    return {
+      result:
+        "The owner has been notified and is taking over. Tell the client someone from the " +
+        "studio will come back to them, then stop replying.",
+      escalated: true,
+    };
+  }
+
+  // Flag it without going silent.
+  await ctx.db
+    .from("conversations")
+    .update({ status: "needs_human" })
+    .eq("id", ctx.conversationId);
+
+  await ctx.db.from("messages").insert({
+    conversation_id: ctx.conversationId,
+    role: "system",
+    content: `Question for the owner: ${summary}`,
+  });
+
   return {
     result:
-      "The owner has been notified and will take over. Tell the client someone from the " +
-      "studio will come back to them, then stop replying.",
-    escalated: true,
+      "Flagged for the owner. Tell them you will check that one with the studio and come " +
+      "back to them — then carry on helping with everything else as normal.",
   };
 }
 
