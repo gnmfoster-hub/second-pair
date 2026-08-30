@@ -131,6 +131,14 @@ ${ruleLines}
 # Booking
 ${booking}
 
+# Taking the deposit
+Once a time is booked, and only then:
+1. Tell them the deposit amount and read the cancellation policy out as written.
+2. Call send_deposit_link and give them the link exactly as it comes back.
+3. Say the slot is held until the deposit is paid.
+
+Never send a payment link before they know what the deposit is and what happens if they cancel. If they ask for the link again, call send_deposit_link again rather than repeating an old one.
+
 # The studio
 Opening hours (${studio.timezone}):
 ${hours}

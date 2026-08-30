@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatPence } from "@/lib/money";
 import { quoteForBand, quoteForStudio, depositFor } from "@/lib/quote";
 import { verticalPack } from "@/lib/verticals";
+import { createDepositCheckout, stripeConfigured } from "@/lib/payments/stripe";
 import {
   availableSlots,
   createBooking,
@@ -27,6 +28,9 @@ export type ToolContext = {
   enquiryArtistId: string | null;
   /** Deposit owed on the quote so far. */
   depositPence: number;
+  /** Where the app is served from, for building payment return links. */
+  origin: string;
+  contactEmail: string | null;
 };
 
 export function toolDefinitions(
@@ -175,6 +179,22 @@ export function toolDefinitions(
           },
         ]
       : []),
+    ...(stripeConfigured()
+      ? [
+          {
+            name: "send_deposit_link",
+            description:
+              "Produce the payment link for the deposit on a booking that has been made. " +
+              "Before calling this you MUST have told them the deposit amount and read out " +
+              "the cancellation policy. Only call it after create_booking has succeeded.",
+            input_schema: {
+              type: "object" as const,
+              properties: {},
+              additionalProperties: false,
+            },
+          },
+        ]
+      : []),
     {
       name: "escalate_to_owner",
       description:
@@ -219,6 +239,8 @@ export async function executeTool(
       return getSlots(input, ctx);
     case "create_booking":
       return makeBooking(input, ctx);
+    case "send_deposit_link":
+      return sendDepositLink(ctx);
     case "escalate_to_owner":
       return escalate(input, ctx);
     default:
@@ -490,6 +512,67 @@ async function makeBooking(
       `Booked: ${type} with ${artist.name}, ${said}. Confirm it back to them in words. ` +
       "The slot is held for an hour while the deposit is paid.",
   };
+}
+
+async function sendDepositLink(ctx: ToolContext): Promise<ToolOutcome> {
+  const { data: booking } = await ctx.db
+    .from("bookings")
+    .select("*")
+    .eq("enquiry_id", ctx.enquiryId)
+    .is("cancelled_at", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!booking) {
+    return { result: "Nothing is booked yet. Book a time first, then send the link." };
+  }
+  if (booking.deposit_status === "paid") {
+    return { result: "The deposit is already paid. Tell them they are all set." };
+  }
+  if (booking.deposit_amount_pence <= 0) {
+    return { result: "No deposit is due on this booking. Do not send a link." };
+  }
+
+  const artist = ctx.artists.find((a) => a.id === booking.artist_id);
+  const when = describeSlot(
+    { starts_at: booking.starts_at, ends_at: booking.ends_at },
+    ctx.studio.timezone,
+  );
+
+  try {
+    const checkout = await createDepositCheckout({
+      studio: ctx.studio,
+      bookingId: booking.id,
+      conversationId: ctx.conversationId,
+      amountPence: booking.deposit_amount_pence,
+      description: `${booking.type === "consultation" ? "Consultation" : "Session"} with ${artist?.name ?? "the studio"}, ${when}`,
+      heldUntil: booking.held_until,
+      origin: ctx.origin,
+      clientEmail: ctx.contactEmail,
+    });
+
+    await ctx.db
+      .from("bookings")
+      .update({
+        deposit_status: "link_sent",
+        stripe_payment_link_id: checkout.sessionId,
+      })
+      .eq("id", booking.id);
+
+    return {
+      result:
+        `Payment link for ${formatPence(booking.deposit_amount_pence)}: ${checkout.url}
+` +
+        "Send them the link exactly as written. Say the slot is held until it is paid.",
+    };
+  } catch (error) {
+    return {
+      result:
+        `The payment link could not be created (${(error as Error).message}). Tell them the ` +
+        "studio will send it over, and escalate.",
+    };
+  }
 }
 
 async function escalate(

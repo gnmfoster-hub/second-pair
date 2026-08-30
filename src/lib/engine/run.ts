@@ -21,6 +21,8 @@ export type TurnInput = {
   channel: Channel;
   message: string;
   mediaUrls?: string[];
+  /** Public origin, for payment return links. */
+  origin: string;
 };
 
 export type TurnResult = {
@@ -105,6 +107,8 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     enquirySizeBandId: null,
     enquiryArtistId: null,
     depositPence: 0,
+    origin: input.origin,
+    contactEmail: null,
   });
 
   const { data: after } = await db
@@ -185,6 +189,7 @@ async function generateReply(ctx: ReplyContext): Promise<string> {
   ctx.enquirySizeBandId = enquiry?.size_band_id ?? null;
   ctx.enquiryArtistId = enquiry?.artist_id ?? null;
   ctx.depositPence = quote ? depositFor(ctx.studio.deposit_rule, quote) : 0;
+  ctx.contactEmail = (contact as { email?: string | null } | null)?.email ?? null;
 
   const tools = toolDefinitions(ctx.bands, ctx.artists, ctx.options, ctx.studio);
   const system = studioSystemPrompt(

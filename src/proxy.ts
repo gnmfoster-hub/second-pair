@@ -4,7 +4,14 @@ import { hasSupabaseEnv, supabaseEnv } from "@/lib/env";
 
 // Routes reachable without a session. The widget is embedded on the studio's
 // own site, so it and its endpoint must stay open.
-const PUBLIC_PATHS = ["/login", "/auth", "/widget", "/api/widget"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/auth",
+  "/widget",
+  "/api/widget",
+  "/pay",
+  "/api/stripe",
+];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });

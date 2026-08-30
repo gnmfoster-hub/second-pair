@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
       studioSlug: studio,
       sessionKey: session,
       channel: "web",
+      origin: request.nextUrl.origin,
       message: message || "(sent an image)",
       mediaUrls: media,
     });
