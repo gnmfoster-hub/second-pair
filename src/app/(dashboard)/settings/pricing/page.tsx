@@ -18,7 +18,7 @@ export default async function PricingPage() {
         <div className="px-5 py-4">
           <h2 className="text-sm font-medium">Size bands</h2>
           <p className="hint mt-1">
-            Hours per band, multiplied by the artist&rsquo;s hourly rate, is the quote. Mark
+            Hours per band, multiplied by their hourly rate, is the quote. Mark
             the big ones as consultation-first.
           </p>
         </div>
@@ -43,7 +43,7 @@ export default async function PricingPage() {
         <div className="px-5 py-4">
           <h2 className="text-sm font-medium">What the assistant will quote</h2>
           <p className="hint mt-1">
-            Live from the numbers above. Ranges never drop below an artist&rsquo;s minimum
+            Live from the numbers above. Ranges never drop below anyone&rsquo;s minimum
             charge. Deposit rule: {describeDepositRule(studio.deposit_rule)}.
           </p>
         </div>
@@ -88,7 +88,7 @@ export default async function PricingPage() {
                           {q.hit_minimum && (
                             <span
                               className="ml-1.5 text-warn"
-                              title="Floored at this artist's minimum charge"
+                              title="Floored at their minimum charge"
                             >
                               ↑
                             </span>

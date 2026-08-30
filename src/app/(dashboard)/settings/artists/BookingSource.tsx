@@ -49,7 +49,7 @@ export function BookingSource({ artist }: { artist?: Artist }) {
           <input
             name="calendar_id"
             defaultValue={artist?.calendar_id ?? ""}
-            placeholder="artist@example.com"
+            placeholder="name@example.com"
             className="input max-w-md font-mono text-xs"
           />
         </Field>

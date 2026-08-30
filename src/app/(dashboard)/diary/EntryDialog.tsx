@@ -2,10 +2,10 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { saveDiaryEntry, cancelDiaryEntry, type DiaryState } from "./actions";
+import { saveDiaryEntry, cancelDiaryEntry, cancelSeries, type DiaryState } from "./actions";
 import { Field, SubmitButton } from "@/components/Form";
 import { formatPence } from "@/lib/money";
-import { CATEGORIES, OWNER_CATEGORIES, categoryFor } from "@/lib/calendar";
+import { CATEGORIES, OWNER_CATEGORIES, categoryFor, REPEATS } from "@/lib/calendar";
 import type { Artist } from "@/lib/types";
 import type { Entry } from "./WeekGrid";
 
@@ -56,6 +56,7 @@ export function EntryDialog({
 
   const [category, setCategory] = useState(entry?.category ?? "personal");
   const [allDay, setAllDay] = useState(entry?.all_day ?? false);
+  const [repeats, setRepeats] = useState("none");
   const chosen = categoryFor(category);
 
   // Close on Escape, and put focus somewhere sensible when it opens.
@@ -72,7 +73,7 @@ export function EntryDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4"
+      className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4"
       onClick={onClose}
       role="presentation"
     >
@@ -249,6 +250,36 @@ export function EntryDialog({
             </select>
           </Field>
 
+          {!existing && !fromClient && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Repeat">
+                <select
+                  name="repeats"
+                  value={repeats}
+                  onChange={(e) => setRepeats(e.target.value)}
+                  className="input"
+                >
+                  {REPEATS.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              {repeats !== "none" && (
+                <Field label="Until" hint="Leave blank for the next six months.">
+                  <input type="date" name="repeat_until" className="input" />
+                </Field>
+              )}
+            </div>
+          )}
+
+          {existing && entry?.repeats && entry.repeats !== "none" && (
+            <p className="hint">
+              Part of a repeating set. Saving changes this one only.
+            </p>
+          )}
+
           <Field label="Notes" hint="Only you see these.">
             <textarea name="notes" defaultValue={entry?.notes ?? ""} rows={2} className="input" />
           </Field>
@@ -257,6 +288,16 @@ export function EntryDialog({
             <SubmitButton>{existing ? "Save" : "Add it"}</SubmitButton>
             {state.error && <p className="text-sm text-accent">{state.error}</p>}
             <div className="flex-1" />
+            {existing && entry?.repeats && entry.repeats !== "none" && (
+              <button
+                type="submit"
+                formAction={cancelSeries}
+                formNoValidate
+                className="btn-danger"
+              >
+                Delete all future
+              </button>
+            )}
             {existing && (
               <button
                 type="submit"
@@ -264,7 +305,7 @@ export function EntryDialog({
                 formNoValidate
                 className="btn-danger"
               >
-                {fromClient ? "Cancel booking" : "Delete"}
+                {fromClient ? "Cancel booking" : "Delete this one"}
               </button>
             )}
           </div>

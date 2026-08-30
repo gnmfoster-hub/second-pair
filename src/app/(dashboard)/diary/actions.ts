@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio, getArtists } from "@/lib/studio";
 import { zonedToUtc } from "@/lib/booking/tz";
-import { categoryFor } from "@/lib/calendar";
+import { categoryFor, repeatDates, type RepeatRule } from "@/lib/calendar";
 
 export type DiaryState = { error?: string; ok?: string };
 
@@ -110,7 +110,13 @@ export async function saveDiaryEntry(
   const title = str(fd, "title");
   if (!title) return { error: "Give it a title." };
 
-  const { error } = await supabase.from("bookings").insert({
+  const repeats = (str(fd, "repeats") || "none") as RepeatRule;
+  const untilRaw = str(fd, "repeat_until");
+  const until = /^\d{4}-\d{2}-\d{2}$/.test(untilRaw)
+    ? new Date(`${untilRaw}T23:59:59Z`)
+    : null;
+
+  const base = {
     enquiry_id: null,
     artist_id: artistId,
     source: definition.blocks && category !== "meeting" ? "block" : "manual",
@@ -120,18 +126,94 @@ export async function saveDiaryEntry(
     blocks_availability: definition.blocks,
     title,
     notes: str(fd, "notes") || null,
-    starts_at: starts.toISOString(),
-    ends_at: ends.toISOString(),
     deposit_amount_pence: 0,
     // Nothing the owner adds is waiting on a deposit, so the unpaid-hold sweep
     // must never touch it.
     deposit_status: "paid",
-  });
+    repeats,
+    repeat_until: untilRaw || null,
+  };
 
-  if (error) return { error: clashMessage(error.code, error.message) };
+  const length = ends.getTime() - starts.getTime();
+  const [y, m, d] = str(fd, "date").split("-").map(Number);
+  const occurrences = repeatDates(new Date(y, m - 1, d), repeats, until);
+
+  // Inserted one at a time, so a single clash skips that date rather than
+  // failing the whole pattern — a weekly meeting should still land on the other
+  // eleven weeks when one is already booked.
+  let added = 0;
+  let clashed = 0;
+  let firstId: string | null = null;
+
+  for (const occurrence of occurrences) {
+    const at = instantFrom(
+      `${occurrence.getFullYear()}-${String(occurrence.getMonth() + 1).padStart(2, "0")}-${String(
+        occurrence.getDate(),
+      ).padStart(2, "0")}`,
+      allDay ? "00:00" : str(fd, "start_time"),
+      studio.timezone,
+    );
+    if (!at) continue;
+
+    const result: { data: { id: string } | null; error: { code?: string; message: string } | null } =
+      await supabase
+        .from("bookings")
+        .insert({
+          ...base,
+          repeat_parent_id: firstId,
+          starts_at: at.toISOString(),
+          ends_at: new Date(at.getTime() + length).toISOString(),
+        })
+        .select("id")
+        .single();
+
+    if (result.error || !result.data) {
+      if (result.error?.code === "23P01") clashed++;
+      else if (added === 0) return { error: result.error?.message ?? "Could not add that." };
+      continue;
+    }
+
+    added++;
+    firstId ??= result.data.id;
+  }
+
+  if (added === 0) {
+    return { error: clashMessage("23P01", "Could not add that.") };
+  }
 
   revalidatePath("/diary");
-  return { ok: "Added." };
+  if (repeats === "none") return { ok: "Added." };
+  return {
+    ok:
+      `Added ${added} times` +
+      (clashed ? `. ${clashed} clashed with something already booked and were skipped.` : "."),
+  };
+}
+
+/** Removes every future occurrence of a repeating entry, not just this one. */
+export async function cancelSeries(fd: FormData) {
+  const supabase = await createClient();
+  const id = str(fd, "id");
+
+  const { data: entry } = await supabase
+    .from("bookings")
+    .select("id, repeat_parent_id, starts_at")
+    .eq("id", id)
+    .maybeSingle();
+  if (!entry) return;
+
+  const rootId = entry.repeat_parent_id ?? entry.id;
+  const now = new Date().toISOString();
+
+  // Past occurrences stay as history; only what is still to come is dropped.
+  await supabase
+    .from("bookings")
+    .update({ cancelled_at: now })
+    .or(`id.eq.${rootId},repeat_parent_id.eq.${rootId}`)
+    .gte("starts_at", entry.starts_at)
+    .is("cancelled_at", null);
+
+  revalidatePath("/diary");
 }
 
 export async function cancelDiaryEntry(fd: FormData) {

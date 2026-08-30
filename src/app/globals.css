@@ -1,6 +1,64 @@
 @import "tailwindcss";
 
+/*
+ * Two themes, three states.
+ *
+ * Bare :root is the light palette. `prefers-color-scheme: dark` swaps the
+ * tokens for anyone who has not chosen, guarded so an explicit light choice
+ * still wins. [data-theme="dark"] swaps them again so the toggle wins in both
+ * directions. Components only ever reference tokens, never a literal colour,
+ * so nothing has to know which theme is on.
+ */
+
 :root {
+  --background: #f6f6f8;
+  --surface: #ffffff;
+  --surface-2: #f0f0f4;
+  --border: #e2e2e9;
+  --foreground: #16161c;
+  --muted: #6a6a78;
+  --accent: #d23c22;
+  --ok: #16a34a;
+  --warn: #b45309;
+
+  /* Diary. Client work reads warmest because it is the thing that earns;
+     time off recedes; notes barely register until you look for them. */
+  --cal-client: #d23c22;
+  --cal-work: #3b6fd4;
+  --cal-note: #2f8265;
+  --cal-off: #7b7b8a;
+  --cal-grid: #ebebf1;
+  /* Hours the business is shut. Must read as recessed in both themes, which
+     the page background cannot do — it is white in one and near-black in the other. */
+  --cal-closed: rgba(22, 22, 28, 0.055);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: #0c0c0e;
+    --surface: #141418;
+    --surface-2: #1c1c22;
+    --border: #2a2a32;
+    --foreground: #ececf1;
+    --muted: #9a9aa8;
+    --accent: #e8482f;
+    --ok: #4ade80;
+    --warn: #fbbf24;
+
+    --cal-client: #e8482f;
+    --cal-work: #5b8def;
+    --cal-note: #3f9e7a;
+    --cal-off: #8b8b98;
+    --cal-grid: #23232b;
+    --cal-closed: rgba(0, 0, 0, 0.42);
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
   --background: #0c0c0e;
   --surface: #141418;
   --surface-2: #1c1c22;
@@ -11,13 +69,14 @@
   --ok: #4ade80;
   --warn: #fbbf24;
 
-  /* Diary colours. Client work reads warmest because it is the thing that
-     earns; time off recedes; notes barely register until you look for them. */
   --cal-client: #e8482f;
-  --cal-work:   #5b8def;
-  --cal-off:    #8b8b98;
-  --cal-note:   #3f9e7a;
-  --cal-grid:   #23232b;
+  --cal-work: #5b8def;
+  --cal-note: #3f9e7a;
+  --cal-off: #8b8b98;
+  --cal-grid: #23232b;
+  --cal-closed: rgba(0, 0, 0, 0.42);
+
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -35,6 +94,7 @@
   --color-cal-off: var(--cal-off);
   --color-cal-note: var(--cal-note);
   --color-cal-grid: var(--cal-grid);
+  --color-cal-closed: var(--cal-closed);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

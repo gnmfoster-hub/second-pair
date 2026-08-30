@@ -23,7 +23,7 @@ export function FaqEditor({ faq, index }: { faq?: Faq; index: number }) {
       <textarea
         name="answer"
         defaultValue={faq?.answer ?? ""}
-        placeholder="Answer in the studio's own words. The assistant will use this near-verbatim."
+        placeholder="Answer in your own words. The assistant will use this near-verbatim."
         rows={3}
         className="input"
         required

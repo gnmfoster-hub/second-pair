@@ -21,6 +21,8 @@ export type Vocabulary = {
   /** What the size/duration bands are called. */
   size_unit: string;
   customer: string;
+  /** What the business itself is called: studio, salon, shop, firm. */
+  business: string;
 };
 
 export type QualificationField = {
@@ -62,6 +64,7 @@ const TATTOO: VerticalPack = {
     service_verb: "tattooed",
     size_unit: "size",
     customer: "client",
+    business: "studio",
   },
   ageCheck: true,
   rules: [
@@ -127,6 +130,7 @@ const BARBER: VerticalPack = {
     service_verb: "cut",
     size_unit: "service",
     customer: "customer",
+    business: "shop",
   },
   ageCheck: false,
   rules: [

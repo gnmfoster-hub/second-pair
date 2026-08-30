@@ -17,6 +17,7 @@ type RawRow = {
   notes: string | null;
   deposit_status: string;
   deposit_amount_pence: number;
+  repeats: string;
   enquiries: {
     description: string | null;
     conversation_id: string;
@@ -29,13 +30,17 @@ type RawRow = {
 export default async function DiaryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ week?: string; view?: string; day?: string }>;
+  searchParams: Promise<{ week?: string; view?: string; day?: string; who?: string }>;
 }) {
-  const { week, view: viewParam, day: dayParam } = await searchParams;
-  const view = viewParam === "day" ? "day" : "week";
+  const { week, view: viewParam, day: dayParam, who } = await searchParams;
   const { studio } = await requireStudio();
   const supabase = await createClient();
   const artists = await getArtists(studio.id);
+  const team = artists.filter((a) => a.active);
+
+  // With more than one person, the day — everyone side by side — is the view a
+  // shop actually works from. On your own, the week is more useful.
+  const view = viewParam === "day" || (!viewParam && team.length > 1) ? "day" : "week";
 
   const focusDay = dayParam ? parseIsoDate(dayParam) : new Date();
   const anchor = week ? parseIsoDate(week) : focusDay;
@@ -47,7 +52,7 @@ export default async function DiaryPage({
     .from("bookings")
     .select(
       "id, artist_id, starts_at, ends_at, all_day, category, blocks_availability, source, " +
-        "title, notes, deposit_status, deposit_amount_pence, " +
+        "title, notes, deposit_status, deposit_amount_pence, repeats, " +
         "enquiries(description, conversation_id, conversations(contacts(name, phone)))",
     )
     .is("cancelled_at", null)
@@ -55,7 +60,10 @@ export default async function DiaryPage({
     .gt("ends_at", addDays(start, -1).toISOString())
     .order("starts_at");
 
-  const mine = new Set(artists.map((a) => a.id));
+  const focused = who && team.some((a) => a.id === who) ? who : null;
+  const mine = new Set(
+    (focused ? team.filter((a) => a.id === focused) : artists).map((a) => a.id),
+  );
   const entries: Entry[] = ((data ?? []) as unknown as RawRow[])
     .filter((r) => mine.has(r.artist_id))
     .map((r) => ({
@@ -75,6 +83,7 @@ export default async function DiaryPage({
       clientPhone: r.enquiries?.conversations?.contacts?.phone ?? null,
       description: r.enquiries?.description ?? null,
       conversationId: r.enquiries?.conversation_id ?? null,
+      repeats: r.repeats,
     }));
 
   const label =
@@ -139,9 +148,42 @@ export default async function DiaryPage({
         </div>
       </div>
 
-      <p className="hint mt-1">
+      {team.length > 1 && (
+        <div className="mt-4 flex flex-wrap items-center gap-1.5">
+          <Link
+            href={view === "day" ? `/diary?view=day&day=${isoDate(focusDay)}` : `/diary?week=${isoDate(start)}`}
+            className={`rounded-full px-3 py-1 text-xs transition-colors ${
+              !focused ? "bg-surface-2 text-foreground" : "border border-border text-muted hover:text-foreground"
+            }`}
+          >
+            Everyone
+          </Link>
+          {team.map((a) => (
+            <Link
+              key={a.id}
+              href={
+                view === "day"
+                  ? `/diary?view=day&day=${isoDate(focusDay)}&who=${a.id}`
+                  : `/diary?week=${isoDate(start)}&who=${a.id}`
+              }
+              className={`rounded-full px-3 py-1 text-xs transition-colors ${
+                focused === a.id
+                  ? "bg-surface-2 text-foreground"
+                  : "border border-border text-muted hover:text-foreground"
+              }`}
+            >
+              {a.name}
+            </Link>
+          ))}
+        </div>
+      )}
+
+      <p className="hint mt-3">
         Click any empty space to add something — a meeting, a delivery to chase, a day off.
-        Click an entry to change it. Day view puts everyone side by side.
+        Click an entry to change it.
+        {team.length > 1
+          ? " Day view puts everyone side by side; week view shows one person at a time."
+          : ""}
       </p>
 
       <div className="mt-6">
@@ -150,7 +192,7 @@ export default async function DiaryPage({
           day={isoDate(focusDay)}
           view={view}
           entries={entries}
-          artists={artists.filter((a) => a.active)}
+          artists={focused ? team.filter((a) => a.id === focused) : team}
           hours={studio.hours}
           timezone={studio.timezone}
         />

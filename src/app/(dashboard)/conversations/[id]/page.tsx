@@ -259,7 +259,7 @@ export default async function ConversationPage({
               "Style",
               labelFor(options.filter((o) => o.kind === "style"), enquiry?.style),
             )}
-            {detail("Artist", artist?.name)}
+            {detail("With", artist?.name)}
             {detail(
               "Cover-up",
               enquiry?.cover_up == null ? null : enquiry.cover_up ? "Yes" : "No",

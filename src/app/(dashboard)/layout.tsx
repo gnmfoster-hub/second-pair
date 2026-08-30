@@ -1,5 +1,6 @@
 import { requireStudio } from "@/lib/studio";
 import { NavLink } from "@/components/NavLink";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { signOut } from "./actions";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -21,8 +22,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <NavLink href="/settings">Settings</NavLink>
         </nav>
 
-        <div className="border-t border-border p-3">
-          <div className="truncate px-3 pb-2 text-xs text-muted">{userEmail}</div>
+        <div className="space-y-3 border-t border-border p-3">
+          <ThemeToggle />
+          <div className="truncate px-3 text-xs text-muted">{userEmail}</div>
           <form action={signOut}>
             <button type="submit" className="btn-ghost w-full">
               Sign out

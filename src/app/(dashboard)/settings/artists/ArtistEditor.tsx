@@ -10,9 +10,12 @@ import type { Artist, ServiceOption } from "@/lib/types";
 export function ArtistEditor({
   artist,
   styles,
+  noun,
 }: {
   artist?: Artist;
   styles: ServiceOption[];
+  /** What this trade calls them: artist, stylist, engineer. */
+  noun: string;
 }) {
   const [state, action] = useActionState<FormState, FormData>(saveArtist, {});
   const isNew = !artist;
@@ -22,7 +25,7 @@ export function ArtistEditor({
       <summary className="flex cursor-pointer list-none items-center gap-4 px-5 py-4">
         <div className="min-w-0 flex-1">
           <div className="text-sm">
-            {artist?.name ?? "Add an artist"}
+            {artist?.name ?? `Add ${/^[aeiou]/i.test(noun) ? "an" : "a"} ${noun}`}
             {artist && !artist.active && (
               <span className="ml-2 text-xs text-muted">(inactive)</span>
             )}
@@ -104,7 +107,7 @@ export function ArtistEditor({
         </label>
 
         <div className="flex items-center gap-4 pt-1">
-          <SubmitButton>{isNew ? "Add artist" : "Save"}</SubmitButton>
+          <SubmitButton>{isNew ? `Add ${noun}` : "Save"}</SubmitButton>
           <FormMessage state={state} />
           <div className="flex-1" />
           {artist && (

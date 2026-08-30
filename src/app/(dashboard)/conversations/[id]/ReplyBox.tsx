@@ -14,7 +14,7 @@ export function ReplyBox({ conversationId }: { conversationId: string }) {
         name="message"
         rows={3}
         className="input"
-        placeholder="Reply as the studio…"
+        placeholder="Reply as the business…"
         required
       />
       <div className="flex items-center gap-4">

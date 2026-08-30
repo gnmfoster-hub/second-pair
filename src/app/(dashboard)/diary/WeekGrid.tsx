@@ -22,6 +22,7 @@ export type Entry = {
   clientPhone: string | null;
   description: string | null;
   conversationId: string | null;
+  repeats: string;
 };
 
 const HOUR_HEIGHT = 60;
@@ -315,7 +316,7 @@ export function WeekGrid({
                   {opening && !opening.closed ? (
                     <>
                       <div
-                        className="pointer-events-none absolute inset-x-0 top-0 bg-background/50"
+                        className="pointer-events-none absolute inset-x-0 top-0 bg-cal-closed"
                         style={{
                           height:
                             ((Number(opening.open.split(":")[0]) * 60 +
@@ -325,7 +326,7 @@ export function WeekGrid({
                         }}
                       />
                       <div
-                        className="pointer-events-none absolute inset-x-0 bottom-0 bg-background/50"
+                        className="pointer-events-none absolute inset-x-0 bottom-0 bg-cal-closed"
                         style={{
                           height:
                             ((1440 -
@@ -337,7 +338,7 @@ export function WeekGrid({
                       />
                     </>
                   ) : (
-                    <div className="pointer-events-none absolute inset-0 bg-background/50" />
+                    <div className="pointer-events-none absolute inset-0 bg-cal-closed" />
                   )}
 
                   {/* now */}

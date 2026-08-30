@@ -137,3 +137,59 @@ export function parseIsoDate(value: string | undefined): Date {
   if (!m) return new Date();
   return new Date(+m[1], +m[2] - 1, +m[3]);
 }
+
+// ---------------------------------------------------------------- repeats
+
+export type RepeatRule = "none" | "daily" | "weekdays" | "weekly" | "fortnightly" | "monthly";
+
+export const REPEATS: { value: RepeatRule; label: string }[] = [
+  { value: "none", label: "Does not repeat" },
+  { value: "daily", label: "Every day" },
+  { value: "weekdays", label: "Every weekday" },
+  { value: "weekly", label: "Every week" },
+  { value: "fortnightly", label: "Every 2 weeks" },
+  { value: "monthly", label: "Every month" },
+];
+
+/** How far ahead repeats are generated when no end date is given. */
+export const REPEAT_HORIZON_DAYS = 182;
+
+/**
+ * The dates a rule falls on, starting from `first`.
+ *
+ * Occurrences are generated as real rows rather than computed on read, so the
+ * no-overlap constraint and the assistant's availability query keep working
+ * unchanged — and one week can be moved without breaking the pattern.
+ */
+export function repeatDates(first: Date, rule: RepeatRule, until: Date | null): Date[] {
+  if (rule === "none") return [first];
+
+  const horizon = until ?? new Date(first.getTime() + REPEAT_HORIZON_DAYS * 86400_000);
+  const dates: Date[] = [];
+  const cursor = new Date(first);
+
+  // A hard cap, so a bad rule cannot generate forever.
+  for (let i = 0; i < 400 && cursor <= horizon; i++) {
+    if (rule !== "weekdays" || (cursor.getDay() !== 0 && cursor.getDay() !== 6)) {
+      dates.push(new Date(cursor));
+    }
+
+    switch (rule) {
+      case "daily":
+      case "weekdays":
+        cursor.setDate(cursor.getDate() + 1);
+        break;
+      case "weekly":
+        cursor.setDate(cursor.getDate() + 7);
+        break;
+      case "fortnightly":
+        cursor.setDate(cursor.getDate() + 14);
+        break;
+      case "monthly":
+        cursor.setMonth(cursor.getMonth() + 1);
+        break;
+    }
+  }
+
+  return dates;
+}

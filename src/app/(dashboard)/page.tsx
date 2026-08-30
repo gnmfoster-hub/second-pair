@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio, getArtists, getPriceBands } from "@/lib/studio";
 import { CHANNEL_LABELS, CONV_STATUS_LABELS, type Channel, type ConvStatus } from "@/lib/types";
+import { verticalPack } from "@/lib/verticals";
 
 const STATUS_STYLES: Record<ConvStatus, string> = {
   new: "bg-surface-2 text-muted",
@@ -46,8 +47,11 @@ export default async function InboxPage() {
 
   const conversations = (data ?? []) as unknown as Row[];
 
+  const pack = verticalPack(studio.vertical);
+  const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
+
   const checklist = [
-    { done: artists.length > 0, label: "Add at least one artist with rates", href: "/settings/artists" },
+    { done: artists.length > 0, label: `Add at least one ${words.practitioner} with rates`, href: "/settings/artists" },
     { done: bands.length > 0, label: "Set up size bands", href: "/settings/pricing" },
     {
       done: studio.cancellation_policy.trim().length > 0,
