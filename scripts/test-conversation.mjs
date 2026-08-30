@@ -190,7 +190,7 @@ try {
   // ------------------------------------------------------------- qualifying
   console.log("A normal enquiry");
   const s1 = newSession("qualify");
-  await say(s1, "hiya, thinking about getting something on my forearm");
+  const opener = await say(s1, "hiya, thinking about getting something on my forearm");
   await say(
     s1,
     "a fine line botanical thing, maybe 15cm. I'm 27. no cover up. weekends are best for me",
@@ -200,6 +200,11 @@ try {
   const { conv: c1, enq: e1 } = await conversationState(s1);
   await showToolCalls(s1);
 
+  check(
+    "the privacy notice is in the very first reply",
+    /example\.test\/privacy/.test(opener.reply ?? ""),
+    opener.reply ?? "",
+  );
   check("the enquiry was captured", Boolean(e1.placement && e1.description));
   check("a size band was chosen", Boolean(e1.size_band_id), "none set");
   check("age was recorded", e1.age_confirmed === true);

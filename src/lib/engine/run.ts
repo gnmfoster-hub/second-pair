@@ -153,6 +153,10 @@ async function generateReply(ctx: ReplyContext): Promise<string> {
     ctx.db.from("contacts").select("name, phone, email").eq("id", ctx.contactId).single(),
   ]);
 
+  const isFirstReply = !(history ?? []).some(
+    (m) => m.role === "assistant" || m.role === "owner",
+  );
+
   const messages: Anthropic.MessageParam[] = (history ?? []).map((m) => ({
     // An owner's own reply reads as the assistant's voice to the client.
     role: m.role === "client" ? "user" : "assistant",
@@ -251,6 +255,22 @@ async function generateReply(ctx: ReplyContext): Promise<string> {
 
     // All results for one assistant turn go back in a single user message.
     messages.push({ role: "user", content: results });
+  }
+
+  // The privacy disclosure is a legal requirement, not a stylistic preference,
+  // so it is not left to the model — which reliably drops it in favour of a
+  // more natural-sounding opener. Only added if it did not say it itself.
+  if (isFirstReply && text) {
+    const url = ctx.studio.privacy_notice_url;
+    const alreadySaid = url ? text.includes(url) : /only used to (book|get) you/i.test(text);
+    if (!alreadySaid) {
+      const notice = url
+        ? `Quick note: this chat is handled by ${ctx.studio.name}'s assistant, and your details are only used to book you in — ${url}`
+        : `Quick note: this chat is handled by ${ctx.studio.name}'s assistant, and your details are only used to book you in.`;
+      text = `${notice}
+
+${text}`;
+    }
   }
 
   if (!text) {
