@@ -576,12 +576,6 @@ async function sendDepositLink(ctx: ToolContext): Promise<ToolOutcome> {
     return { result: "No deposit is due on this booking. Do not send a link." };
   }
 
-  const artist = ctx.artists.find((a) => a.id === booking.artist_id);
-  const when = describeSlot(
-    { starts_at: booking.starts_at, ends_at: booking.ends_at },
-    ctx.studio.timezone,
-  );
-
   // A short link of our own rather than Stripe's, which runs to several hundred
   // characters and reads like something you should not click. It forwards, and
   // mints a fresh Stripe session if the old one has expired.
