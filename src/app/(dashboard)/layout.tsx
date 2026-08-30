@@ -19,6 +19,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             Inbox
           </NavLink>
           <NavLink href="/diary">Diary</NavLink>
+          <NavLink href="/report">The week</NavLink>
           <NavLink href="/settings">Settings</NavLink>
         </nav>
 
