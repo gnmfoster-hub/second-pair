@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Artist, PriceBand, Studio } from "@/lib/types";
 import { busyFromIcal } from "./ical";
+import { scheduleReminders, dropReminders } from "@/lib/reminders";
 import { findSlots, describeSlot } from "./slots";
 import {
   PROVIDERS,
@@ -207,5 +208,19 @@ export async function createBooking(args: {
     return { ok: false, reason: "error", message: error.message };
   }
 
+  // Scheduled here rather than by the caller, so every route into a booking —
+  // the assistant, the diary, a future import — gets reminders without having
+  // to remember to ask for them.
+  await scheduleReminders(db, artist.studio_id, data.id, slot.starts_at);
+
   return { ok: true, bookingId: data.id, calendarEventId: null };
+}
+
+/** Cancelling an appointment must never leave a reminder about it queued. */
+export async function cancelBooking(db: SupabaseClient, bookingId: string) {
+  await db
+    .from("bookings")
+    .update({ cancelled_at: new Date().toISOString() })
+    .eq("id", bookingId);
+  await dropReminders(db, bookingId);
 }

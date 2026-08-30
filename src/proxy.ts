@@ -11,6 +11,8 @@ const PUBLIC_PATHS = [
   "/api/widget",
   "/pay",
   "/api/stripe",
+  // Guarded by CRON_SECRET rather than a session, because a scheduler calls it.
+  "/api/cron",
 ];
 
 export async function proxy(request: NextRequest) {

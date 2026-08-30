@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireStudio, getArtists } from "@/lib/studio";
 import { zonedToUtc } from "@/lib/booking/tz";
 import { categoryFor, repeatDates, type RepeatRule } from "@/lib/calendar";
+import { dropReminders } from "@/lib/reminders";
+import { scheduleReminders } from "@/lib/reminders";
 
 export type DiaryState = { error?: string; ok?: string };
 
@@ -101,6 +103,9 @@ export async function saveDiaryEntry(
 
     const { error } = await supabase.from("bookings").update(patch).eq("id", id);
     if (error) return { error: clashMessage(error.code, error.message) };
+
+    // A moved appointment needs its reminders moved with it.
+    await scheduleReminders(supabase, studio.id, id, starts.toISOString());
 
     revalidatePath("/diary");
     return { ok: "Saved." };
@@ -218,6 +223,8 @@ export async function cancelSeries(fd: FormData) {
 
 export async function cancelDiaryEntry(fd: FormData) {
   const supabase = await createClient();
+  // Nobody should get a reminder about an appointment that is not happening.
+  await dropReminders(supabase, str(fd, "id"));
   // Cancelled rather than deleted: the slot frees up, the history stays, and a
   // paid deposit remains traceable for a refund.
   await supabase
