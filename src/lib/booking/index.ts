@@ -163,7 +163,8 @@ export async function createBooking(args: {
   slot: Slot;
   type: "consultation" | "session";
   depositPence: number;
-  holdMinutes?: number;
+  /** Null confirms outright, for businesses that take no deposit. */
+  holdMinutes?: number | null;
 }): Promise<BookResult> {
   const { db, artist, enquiryId, slot, type, depositPence, holdMinutes = 60 } = args;
 
@@ -185,7 +186,10 @@ export async function createBooking(args: {
       ends_at: slot.ends_at,
       deposit_amount_pence: depositPence,
       deposit_status: "unpaid",
-      held_until: new Date(Date.now() + holdMinutes * 60_000).toISOString(),
+      held_until:
+        holdMinutes == null
+          ? null
+          : new Date(Date.now() + holdMinutes * 60_000).toISOString(),
     })
     .select("id")
     .single();

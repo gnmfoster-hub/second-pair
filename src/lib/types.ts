@@ -79,6 +79,7 @@ export type Studio = {
   timezone: string;
   vertical: string;
   vocabulary: Record<string, string>;
+  deposit_mode: "required" | "optional" | "none";
   notice_hours: number;
   consultation_minutes: number;
   max_session_minutes: number;

@@ -58,6 +58,8 @@ export type VerticalPack = {
   vocabulary: Vocabulary;
   /** Whether an 18+ check is legally required before booking. */
   ageCheck: boolean;
+  /** What this trade normally does about deposits. The owner can change it. */
+  deposits: "required" | "optional" | "none";
   /** Extra hard rules, on top of the universal ones. */
   rules: string[];
   styles: { value: string; label: string }[];
@@ -89,6 +91,8 @@ const TATTOO: VerticalPack = {
     business: "studio",
   },
   ageCheck: true,
+  // Tattooing runs on deposits; a no-show is hours of an artist's day gone.
+  deposits: "required",
   rules: [
     "Never give medical advice. Healing problems, infections, skin conditions, medication, pregnancy, allergies — escalate to the owner. Do not offer an opinion first.",
     'Never book anyone under 18. UK law, no exceptions, no "if a parent agrees". If they are under 18 or will not confirm their age, escalate.',
@@ -168,6 +172,8 @@ const SALON: VerticalPack = {
     business: "salon",
   },
   ageCheck: false,
+  // Common in salons for colour work, rarer for a cut. Offered, not demanded.
+  deposits: "optional",
   rules: [
     "Never give medical advice about scalp or skin conditions, hair loss, or a reaction to a product. Escalate to the owner.",
     "Colour work needs a patch test at least 48 hours beforehand. If someone is new to the salon or has not had colour with us before, say so and let the salon confirm the timing.",
@@ -253,6 +259,9 @@ const GENERAL: VerticalPack = {
     business: "business",
   },
   ageCheck: false,
+  // Most trades invoice afterwards. Assuming otherwise made the product
+  // unusable to them, so the safe default is to say nothing about money.
+  deposits: "none",
   rules: [
     "Never give medical, legal or financial advice. Escalate anything of that kind to the owner.",
   ],

@@ -9,6 +9,7 @@ import { DAY_NAMES, DEFAULT_HOURS, type Studio } from "@/lib/types";
 export function StudioForm({ studio }: { studio: Studio }) {
   const [state, action] = useActionState<FormState, FormData>(updateStudio, {});
   const [depositType, setDepositType] = useState(studio.deposit_rule.type);
+  const [depositMode, setDepositMode] = useState(studio.deposit_mode ?? "required");
 
   const hours = DEFAULT_HOURS.map(
     (d) => studio.hours.find((h) => h.day === d.day) ?? d,
@@ -122,6 +123,37 @@ export function StudioForm({ studio }: { studio: Studio }) {
           </p>
         </div>
 
+        <Field label="Do you take deposits?">
+          <div className="space-y-2">
+            {(
+              [
+                ["required", "Yes — the slot is held until it is paid"],
+                ["optional", "Offer it, but book them either way"],
+                ["none", "No — never mention money, just book them in"],
+              ] as const
+            ).map(([value, label]) => (
+              <label key={value} className="flex items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="deposit_mode"
+                  value={value}
+                  checked={depositMode === value}
+                  onChange={() => setDepositMode(value)}
+                  className="accent-[var(--accent)]"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </Field>
+
+        {depositMode === "none" ? (
+          <p className="hint">
+            The assistant will qualify, quote and book, and will never ask anyone for
+            payment. Nothing below applies.
+          </p>
+        ) : (
+        <>
         <Field label="Deposit rule">
           <div className="flex gap-4">
             {(["fixed", "percent"] as const).map((t) => (
@@ -195,7 +227,7 @@ export function StudioForm({ studio }: { studio: Studio }) {
 
         <Field
           label="Stripe account ID"
-          hint="From Stripe Connect. Deposits are paid directly to the studio."
+          hint="From Stripe Connect. Deposits are paid directly to you."
         >
           <input
             name="stripe_account_id"
@@ -204,6 +236,8 @@ export function StudioForm({ studio }: { studio: Studio }) {
             className="input max-w-md font-mono text-xs"
           />
         </Field>
+        </>
+        )}
       </section>
 
       <section className="card space-y-5 p-6">

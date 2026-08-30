@@ -183,7 +183,7 @@ export function toolDefinitions(
           },
         ]
       : []),
-    ...(stripeConfigured()
+    ...(stripeConfigured() && studio.deposit_mode !== "none"
       ? [
           {
             name: "send_deposit_link",
@@ -382,7 +382,7 @@ async function quoteEstimate(
     result: [
       `Estimate for ${band.size_label}${named ? ` with ${named.name}` : ""}: ` +
         `${formatPence(quote.low_pence)} to ${formatPence(quote.high_pence)}.`,
-      `Deposit: ${formatPence(deposit)}.`,
+      ctx.studio.deposit_mode === "none" ? "" : `Deposit: ${formatPence(deposit)}.`,
       `Typically ${band.hours_low} to ${band.hours_high} hours.`,
       band.requires_consultation
         ? "This size needs a consultation before a session is booked."
@@ -524,6 +524,8 @@ async function makeBooking(
     };
   }
 
+  const takesDeposit = ctx.studio.deposit_mode !== "none";
+
   const result = await createBooking({
     db: ctx.db,
     studio: ctx.studio,
@@ -531,7 +533,10 @@ async function makeBooking(
     enquiryId: ctx.enquiryId,
     slot: { starts_at: startsAt, ends_at: new Date(when + minutes * 60_000).toISOString() },
     type,
-    depositPence: ctx.depositPence,
+    depositPence: takesDeposit ? ctx.depositPence : 0,
+    // Without a deposit there is nothing to wait for, so the slot is confirmed
+    // outright rather than held and swept away an hour later.
+    holdMinutes: takesDeposit ? 60 : null,
   });
 
   if (!result.ok) return { result: result.message };
@@ -548,8 +553,10 @@ async function makeBooking(
 
   return {
     result:
-      `Booked: ${type} with ${artist.name}, ${said}. Confirm it back to them in words. ` +
-      "The slot is held for an hour while the deposit is paid.",
+      `Booked: ${type} with ${artist.name}, ${said}. Confirm it back to them in words.` +
+      (takesDeposit
+        ? " The slot is held for an hour while the deposit is paid."
+        : " It is confirmed — there is no deposit to take, so do not mention one."),
   };
 }
 

@@ -135,7 +135,7 @@ ${ruleLines}
 # Booking
 ${booking}
 
-# Taking the deposit
+# Taking the deposit${studio.deposit_mode === "none" ? " — not applicable here, skip this section entirely" : ""}
 This order, and never faster. Each step is a separate message, and you wait for them in between.
 
 1. They ask about times. You call get_available_slots and offer what it returns. You do not book anything.
@@ -156,7 +156,13 @@ ${artistLines}
 Size bands:
 ${bandLines}
 
-Deposit: ${describeDepositRule(studio.deposit_rule)}.
+${
+  studio.deposit_mode === "none"
+    ? "This business does not take deposits. Never mention one, never ask for payment, never send a payment link. Book them in and confirm it."
+    : studio.deposit_mode === "optional"
+      ? `Deposit: ${describeDepositRule(studio.deposit_rule)}. It is optional — offer it as a way to secure the slot, but the booking stands whether or not they pay.`
+      : `Deposit: ${describeDepositRule(studio.deposit_rule)}. The slot is only held once it is paid.`
+}
 ${
   studio.cancellation_policy
     ? [

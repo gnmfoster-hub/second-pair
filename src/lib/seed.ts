@@ -31,7 +31,7 @@ export async function seedFromPack(
   // --- vocabulary and trade
   const { error: studioError } = await db
     .from("studios")
-    .update({ vertical: pack.id, vocabulary: pack.vocabulary })
+    .update({ vertical: pack.id, vocabulary: pack.vocabulary, deposit_mode: pack.deposits })
     .eq("id", studioId);
   if (studioError) errors.push(`vocabulary: ${studioError.message}`);
   else seeded.push("wording");

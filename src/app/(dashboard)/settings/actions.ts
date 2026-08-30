@@ -8,6 +8,9 @@ import { DEFAULT_HOURS, type DepositRule, type OpeningHours } from "@/lib/types"
 
 export type FormState = { error?: string; ok?: boolean };
 
+/** Sentinel: leave the existing deposit rule alone. */
+const studioDepositUnchanged = Symbol("unchanged");
+
 const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
 
 function readHours(fd: FormData): OpeningHours[] {
@@ -42,8 +45,13 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
   const name = str(fd, "name");
   if (!name) return { error: "Studio name is required." };
 
-  const deposit = readDepositRule(fd);
-  if ("error" in deposit) return { error: deposit.error };
+  const depositMode = str(fd, "deposit_mode") || "required";
+  // A business that takes no deposits should not be blocked by an unset amount.
+  const deposit =
+    depositMode === "none" ? studioDepositUnchanged : readDepositRule(fd);
+  if (deposit !== studioDepositUnchanged && "error" in deposit) {
+    return { error: deposit.error };
+  }
 
   const terms = str(fd, "terms_url");
   if (terms && !/^https?:\/\//i.test(terms))
@@ -59,7 +67,8 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
       name,
       tone: str(fd, "tone"),
       hours: readHours(fd),
-      deposit_rule: deposit,
+      ...(deposit === studioDepositUnchanged ? {} : { deposit_rule: deposit }),
+      deposit_mode: depositMode,
       cancellation_policy: str(fd, "cancellation_policy"),
       privacy_notice_url: privacy || null,
       terms_url: terms || null,
