@@ -2,8 +2,8 @@ import type Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatPence } from "@/lib/money";
 import { quoteForBand, quoteForStudio, depositFor } from "@/lib/quote";
-import { TATTOO_STYLES } from "@/lib/types";
-import type { Artist, PriceBand, Studio, TattooStyle } from "@/lib/types";
+import { verticalPack } from "@/lib/verticals";
+import type { Artist, PriceBand, ServiceOption, Studio } from "@/lib/types";
 
 export type ToolContext = {
   db: SupabaseClient;
@@ -13,13 +13,21 @@ export type ToolContext = {
   conversationId: string;
   enquiryId: string;
   contactId: string;
+  options: ServiceOption[];
 };
 
-const STYLE_VALUES = TATTOO_STYLES.map((s) => s.value);
-
-export function toolDefinitions(bands: PriceBand[], artists: Artist[]): Anthropic.Tool[] {
+export function toolDefinitions(
+  bands: PriceBand[],
+  artists: Artist[],
+  options: ServiceOption[],
+  studio: Studio,
+): Anthropic.Tool[] {
   const bandLabels = bands.map((b) => b.size_label);
   const artistNames = artists.filter((a) => a.active).map((a) => a.name);
+  const styleValues = options.filter((o) => o.kind === "style").map((o) => o.value);
+  const intentValues = options.filter((o) => o.kind === "intent").map((o) => o.value);
+  const pack = verticalPack(studio.vertical);
+  const who = studio.vocabulary?.practitioner ?? pack.vocabulary.practitioner;
 
   return [
     {
@@ -33,24 +41,24 @@ export function toolDefinitions(bands: PriceBand[], artists: Artist[]): Anthropi
         properties: {
           intent: {
             type: "string",
-            enum: ["new_tattoo", "cover_up", "touch_up", "consultation", "question"],
+            enum: intentValues,
             description: "What they are getting in touch about.",
           },
           description: {
             type: "string",
-            description: "What they want tattooed, in their own words where possible.",
+            description: "What they want done, in their own words where possible.",
           },
-          placement: { type: "string", description: "Where on the body." },
+          placement: { type: "string", description: "Where on the body, if relevant." },
           size_band: {
             type: "string",
             enum: bandLabels,
             description: "The studio size band that best fits what they described.",
           },
-          style: { type: "string", enum: STYLE_VALUES },
+          style: { type: "string", enum: styleValues },
           artist_name: {
             type: "string",
             enum: artistNames,
-            description: "Only if they asked for a specific artist.",
+            description: `Only if they asked for a specific ${who}.`,
           },
           cover_up: {
             type: "boolean",
@@ -103,8 +111,7 @@ export function toolDefinitions(bands: PriceBand[], artists: Artist[]): Anthropi
           artist_name: {
             type: "string",
             enum: artistNames,
-            description:
-              "Only if they have chosen an artist. Leave out for a whole-studio range.",
+            description: `Only if they have chosen a ${who}. Leave out for a whole-studio range.`,
           },
         },
         required: ["size_band"],
@@ -179,7 +186,8 @@ async function saveEnquiry(
   copy("age_confirmed");
   copy("preferred_times");
 
-  if (typeof input.style === "string" && STYLE_VALUES.includes(input.style as TattooStyle)) {
+  const styleValues = ctx.options.filter((o) => o.kind === "style").map((o) => o.value);
+  if (typeof input.style === "string" && styleValues.includes(input.style)) {
     patch.style = input.style;
     saved.push("style");
   }
@@ -197,7 +205,7 @@ async function saveEnquiry(
     const artist = ctx.artists.find(
       (a) => a.name.toLowerCase() === (input.artist_name as string).toLowerCase(),
     );
-    if (!artist) return { result: `No artist called "${input.artist_name}".` };
+    if (!artist) return { result: `Nobody here called "${input.artist_name}".` };
     patch.artist_id = artist.id;
     saved.push("artist_name");
   }
@@ -261,7 +269,7 @@ async function quoteEstimate(
       : undefined;
 
   if (input.artist_name && !named) {
-    return { result: `No artist called "${input.artist_name}".` };
+    return { result: `Nobody here called "${input.artist_name}".` };
   }
 
   const quote = named
@@ -269,7 +277,7 @@ async function quoteEstimate(
     : quoteForStudio(ctx.artists, band);
 
   if (!quote) {
-    return { result: "No artists are taking bookings, so no quote can be given. Escalate." };
+    return { result: "Nobody is taking bookings, so no quote can be given. Escalate." };
   }
 
   await ctx.db

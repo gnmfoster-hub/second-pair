@@ -7,7 +7,7 @@ import {
   type ContactState,
 } from "./prompt";
 import { toolDefinitions, executeTool, type ToolContext } from "./tools";
-import type { Artist, Channel, Faq, PriceBand, Studio } from "@/lib/types";
+import type { Artist, Channel, Faq, PriceBand, ServiceOption, Studio } from "@/lib/types";
 
 const MODEL = "claude-opus-5";
 
@@ -40,11 +40,13 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     .maybeSingle();
   if (!studio) throw new Error(`No studio with slug "${input.studioSlug}"`);
 
-  const [{ data: artists }, { data: bands }, { data: faqs }] = await Promise.all([
-    db.from("artists").select("*").eq("studio_id", studio.id).order("created_at"),
-    db.from("price_bands").select("*").eq("studio_id", studio.id).order("sort_order"),
-    db.from("faqs").select("*").eq("studio_id", studio.id).order("sort_order"),
-  ]);
+  const [{ data: artists }, { data: bands }, { data: faqs }, { data: options }] =
+    await Promise.all([
+      db.from("artists").select("*").eq("studio_id", studio.id).order("created_at"),
+      db.from("price_bands").select("*").eq("studio_id", studio.id).order("sort_order"),
+      db.from("faqs").select("*").eq("studio_id", studio.id).order("sort_order"),
+      db.from("service_options").select("*").eq("studio_id", studio.id).order("sort_order"),
+    ]);
 
   const { conversation, enquiryId, contactId } = await findOrCreateConversation(
     db,
@@ -95,6 +97,7 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     artists: (artists ?? []) as Artist[],
     bands: (bands ?? []) as PriceBand[],
     faqs: (faqs ?? []) as Faq[],
+    options: (options ?? []) as ServiceOption[],
     conversationId: conversation.id,
     enquiryId,
     contactId,
@@ -157,11 +160,18 @@ async function generateReply(ctx: ReplyContext): Promise<string> {
       ctx.bands,
       ctx.artists,
       contact as ContactState | null,
+      ctx.options,
     ),
   } as Anthropic.MessageParam);
 
-  const tools = toolDefinitions(ctx.bands, ctx.artists);
-  const system = studioSystemPrompt(ctx.studio, ctx.artists, ctx.bands, ctx.faqs);
+  const tools = toolDefinitions(ctx.bands, ctx.artists, ctx.options, ctx.studio);
+  const system = studioSystemPrompt(
+    ctx.studio,
+    ctx.artists,
+    ctx.bands,
+    ctx.faqs,
+    ctx.options,
+  );
 
   let text = "";
   let escalated = false;

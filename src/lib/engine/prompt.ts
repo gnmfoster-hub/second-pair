@@ -1,7 +1,8 @@
 import { formatPence } from "@/lib/money";
 import { describeDepositRule } from "@/lib/quote";
-import { DAY_NAMES, TATTOO_STYLES } from "@/lib/types";
-import type { Artist, Faq, PriceBand, Studio } from "@/lib/types";
+import { DAY_NAMES, labelFor } from "@/lib/types";
+import { verticalPack } from "@/lib/verticals";
+import type { Artist, Faq, PriceBand, ServiceOption, Studio } from "@/lib/types";
 
 export type EnquiryState = {
   intent: string | null;
@@ -33,8 +34,16 @@ export function studioSystemPrompt(
   artists: Artist[],
   bands: PriceBand[],
   faqs: Faq[],
+  options: ServiceOption[],
 ): string {
   const active = artists.filter((a) => a.active);
+  const pack = verticalPack(studio.vertical);
+  const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
+  const styles = options.filter((o) => o.kind === "style");
+
+  const qualificationLines = pack.qualification.map((q) => `- ${q.prompt}`).join("\n");
+  const ageLine = pack.ageCheck ? "\n- That they are 18 or over" : "";
+  const ruleLines = pack.rules.map((r) => `- ${r}`).join("\n");
 
   const hours = DAY_NAMES.map((day, i) => {
     const h = studio.hours.find((x) => x.day === i);
@@ -45,16 +54,14 @@ export function studioSystemPrompt(
   const artistLines = active.length
     ? active
         .map((a) => {
-          const styles = a.styles.length
-            ? a.styles
-                .map((s) => TATTOO_STYLES.find((t) => t.value === s)?.label ?? s)
-                .join(", ")
+          const theirStyles = a.styles.length
+            ? a.styles.map((s) => labelFor(styles, s) ?? s).join(", ")
             : "no styles listed";
           const day = a.day_rate_pence ? `, ${formatPence(a.day_rate_pence)}/day` : "";
-          return `- ${a.name} — ${formatPence(a.hourly_rate_pence)}/hour${day}, minimum ${formatPence(a.min_charge_pence)}. Styles: ${styles}.`;
+          return `- ${a.name} — ${formatPence(a.hourly_rate_pence)}/hour${day}, minimum ${formatPence(a.min_charge_pence)}. Styles: ${theirStyles}.`;
         })
         .join("\n")
-    : "(No artists are set up yet. You cannot quote. Escalate any pricing question.)";
+    : `(No ${words.practitioners} are set up yet. You cannot quote. Escalate any pricing question.)`;
 
   const bandLines = bands.length
     ? bands
@@ -71,28 +78,23 @@ export function studioSystemPrompt(
     ? faqs.map((f) => `Q: ${f.question}\nA: ${f.answer}`).join("\n\n")
     : "(None recorded. Anything factual you were not told, escalate.)";
 
-  return `You are the receptionist for ${studio.name}, a tattoo studio. You handle first contact from people enquiring about tattoos, across the website, WhatsApp and Instagram.
+  return `You are the receptionist for ${studio.name}, a ${pack.label.toLowerCase()}. You handle first contact from people enquiring, across the website, WhatsApp and Instagram.
 
 # Voice
 ${studio.tone}
 
-Write like a person texting back, not like a form. Short messages. One or two questions at a time, never a checklist. Use the studio's name and the artists' names.
+Write like a person texting back, not like a form. Short messages. One or two questions at a time, never a checklist. Use the studio's name and the ${words.practitioners}' names.
 
 # What you are doing
-Your job is to find out what someone wants tattooed, give them a realistic price range, and get them booked in. You are not trying to close a sale — you are saving the artist from asking the same six questions every time.
+Your job is to find out what someone wants, give them a realistic price range, and get them booked in. You are not trying to close a sale — you are saving the ${words.practitioner} from asking the same six questions every time.
 
 Get their first name early — ask for it in your first or second message, and use it afterwards. Before the conversation winds up, you also need a phone number or an email, or the studio has no way to reach them. Ask for it once you have given them a price, not before: it lands better when they can see what they are getting.
 
 Work out, over the course of the conversation:
 - Their name, and a phone number or email
-- What they want tattooed (a short description)
-- Where on the body
-- Roughly how big, using the size bands below
-- Style
+${qualificationLines}
 - Reference images — there is a paperclip in the chat window they can attach photos with, so point them at it
-- Whether it is a cover-up or over scarring
-- Whether they have an artist in mind
-- That they are 18 or over
+- Whether they have a particular ${words.practitioner} in mind${ageLine}
 - Which days and times suit them
 
 Ask only for what you do not already have. The known-so-far note tells you what has been answered. Never ask twice.
@@ -106,14 +108,13 @@ When someone asks what something will cost, pick the size band below that best f
 
 Never work out a price yourself. Use exactly the numbers quote_estimate gives you, and always say it is an estimate confirmed at the consultation.
 
-If someone pushes for an exact figure, explain that the artist confirms it once they have seen the reference and the placement — that is honest, not a dodge.
+If someone pushes for an exact figure, explain that the ${words.practitioner} confirms it once they have seen the detail — that is honest, not a dodge.
 
 # Hard rules
-- Never give medical advice. Healing problems, infections, skin conditions, medication, pregnancy, allergies — escalate to the owner. Do not offer an opinion first.
-- Never book anyone under 18. UK law, no exceptions, no "if a parent agrees". If they are under 18 or will not confirm their age, escalate.
+${ruleLines}
 - Never comment on another studio's prices or work.
 - Never invent availability. You do not yet have access to the calendar, so do not offer specific dates or times. Take their preferred days and tell them the studio will confirm.
-- Never promise a final price, and never quote below the artist's minimum charge — quote_estimate handles this.
+- Never promise a final price, and never quote below the ${words.practitioner}'s minimum charge — quote_estimate handles this.
 - If you are asked whether you are a person, say plainly that you are an assistant that answers for the studio, and that a human sees everything. Never claim to be a person.
 - If someone is upset, complaining, or asks for a human, escalate immediately. Do not try to fix it.
 - If you are asked a factual question about the studio that is not answered below — parking, aftercare, whether an artist covers a style — escalate rather than guess. This does not apply to the enquiry itself: a size or style you have not been told yet is something to ask about, never a reason to escalate.
@@ -122,7 +123,7 @@ If someone pushes for an exact figure, explain that the artist confirms it once 
 Opening hours (${studio.timezone}):
 ${hours}
 
-Artists:
+${words.practitioners.replace(/^./, (c) => c.toUpperCase())}:
 ${artistLines}
 
 Size bands:
@@ -157,6 +158,7 @@ export function enquiryStateMessage(
   bands: PriceBand[],
   artists: Artist[],
   contact: ContactState | null,
+  options: ServiceOption[] = [],
 ): string {
   if (!state) return "Known so far: nothing. This is a brand new enquiry.";
 
@@ -178,9 +180,9 @@ export function enquiryStateMessage(
   note("Description", state.description);
   note("Placement", state.placement);
   note("Size band", band?.size_label ?? null);
-  note("Style", state.style);
+  note("Style", labelFor(options.filter((o) => o.kind === "style"), state.style));
   note("Cover-up", state.cover_up == null ? null : state.cover_up ? "yes" : "no");
-  note("Preferred artist", artist?.name ?? null);
+  note("Preferred person", artist?.name ?? null);
   note(
     "Age confirmed 18+",
     state.age_confirmed == null ? null : state.age_confirmed ? "yes" : "no",

@@ -2,15 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireStudio, getArtists, getPriceBands } from "@/lib/studio";
+import { requireStudio, getArtists, getPriceBands, getServiceOptions } from "@/lib/studio";
 import { formatRange, formatPence } from "@/lib/money";
 import { depositFor } from "@/lib/quote";
-import {
-  CHANNEL_LABELS,
-  CONV_STATUS_LABELS,
-  TATTOO_STYLES,
-  type ConvStatus,
-} from "@/lib/types";
+import { CHANNEL_LABELS, CONV_STATUS_LABELS, labelFor, type ConvStatus } from "@/lib/types";
 import { ReplyBox } from "./ReplyBox";
 import { setPaused, setStatus } from "./actions";
 
@@ -41,7 +36,7 @@ export default async function ConversationPage({
 
   if (!conversation) notFound();
 
-  const [{ data: messages }, { data: enquiry }, artists, bands] = await Promise.all([
+  const [{ data: messages }, { data: enquiry }, artists, bands, options] = await Promise.all([
     supabase
       .from("messages")
       .select("*")
@@ -50,6 +45,7 @@ export default async function ConversationPage({
     supabase.from("enquiries").select("*").eq("conversation_id", id).maybeSingle(),
     getArtists(studio.id),
     getPriceBands(studio.id),
+    getServiceOptions(studio.id),
   ]);
 
   const contact = conversation.contacts;
@@ -212,7 +208,7 @@ export default async function ConversationPage({
             {detail("Size", band?.size_label)}
             {detail(
               "Style",
-              TATTOO_STYLES.find((t) => t.value === enquiry?.style)?.label,
+              labelFor(options.filter((o) => o.kind === "style"), enquiry?.style),
             )}
             {detail("Artist", artist?.name)}
             {detail(

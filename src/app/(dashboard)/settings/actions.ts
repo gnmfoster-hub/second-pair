@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio } from "@/lib/studio";
 import { parsePounds } from "@/lib/money";
-import { DEFAULT_HOURS, type DepositRule, type OpeningHours, type TattooStyle } from "@/lib/types";
+import { DEFAULT_HOURS, type DepositRule, type OpeningHours } from "@/lib/types";
 
 export type FormState = { error?: string; ok?: boolean };
 
@@ -104,7 +104,7 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
   const row = {
     studio_id: studio.id,
     name,
-    styles: fd.getAll("styles").map(String) as TattooStyle[],
+    styles: fd.getAll("styles").map(String),
     hourly_rate_pence: hourly,
     min_charge_pence: minCharge,
     day_rate_pence: parsePounds(fd.get("day_rate")),

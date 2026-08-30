@@ -4,9 +4,15 @@ import { useActionState } from "react";
 import { saveArtist, type FormState } from "../actions";
 import { Field, FormMessage, SubmitButton } from "@/components/Form";
 import { penceToInput, formatPence } from "@/lib/money";
-import { TATTOO_STYLES, type Artist } from "@/lib/types";
+import type { Artist, ServiceOption } from "@/lib/types";
 
-export function ArtistEditor({ artist }: { artist?: Artist }) {
+export function ArtistEditor({
+  artist,
+  styles,
+}: {
+  artist?: Artist;
+  styles: ServiceOption[];
+}) {
   const [state, action] = useActionState<FormState, FormData>(saveArtist, {});
   const isNew = !artist;
 
@@ -67,9 +73,9 @@ export function ArtistEditor({ artist }: { artist?: Artist }) {
           </Field>
         </div>
 
-        <Field label="Styles" hint="Used to route enquiries to the right artist.">
+        <Field label="Styles" hint="Used to route enquiries to the right person.">
           <div className="flex flex-wrap gap-x-5 gap-y-2 pt-1">
-            {TATTOO_STYLES.map((s) => (
+            {styles.map((s) => (
               <label key={s.value} className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"

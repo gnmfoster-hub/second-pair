@@ -102,6 +102,23 @@ async function seed() {
     .eq("studio_id", studio.id);
   if (bandCount !== 4) throw new Error(`seed bands: expected 4, got ${bandCount}`);
 
+  // Style and intent pick-lists now live per studio rather than in a Postgres
+  // enum, so a seeded studio needs them planted like anything else.
+  const { error: optionError } = await db.from("service_options").insert(
+    [
+      { kind: "style", value: "fine_line", label: "Fine line" },
+      { kind: "style", value: "blackwork", label: "Blackwork" },
+      { kind: "style", value: "traditional", label: "Traditional" },
+      { kind: "style", value: "other", label: "Other" },
+      { kind: "intent", value: "new_tattoo", label: "New tattoo" },
+      { kind: "intent", value: "cover_up", label: "Cover-up" },
+      { kind: "intent", value: "touch_up", label: "Touch-up" },
+      { kind: "intent", value: "consultation", label: "Consultation only" },
+      { kind: "intent", value: "question", label: "General question" },
+    ].map((o, i) => ({ ...o, studio_id: studio.id, sort_order: i })),
+  );
+  if (optionError) throw new Error(`seed options: ${optionError.message}`);
+
   await db.from("faqs").insert({
     studio_id: studio.id,
     question: "Do you take walk-ins?",

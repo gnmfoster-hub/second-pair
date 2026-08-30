@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Artist, Faq, PriceBand, Studio } from "@/lib/types";
+import type { Artist, Faq, PriceBand, ServiceOption, Studio } from "@/lib/types";
 
 /**
  * The studio the signed-in user belongs to. MVP assumes one studio per user;
@@ -52,6 +52,16 @@ export async function getPriceBands(studioId: string): Promise<PriceBand[]> {
     .eq("studio_id", studioId)
     .order("sort_order");
   return (data ?? []) as PriceBand[];
+}
+
+export async function getServiceOptions(studioId: string): Promise<ServiceOption[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("service_options")
+    .select("*")
+    .eq("studio_id", studioId)
+    .order("sort_order");
+  return (data ?? []) as ServiceOption[];
 }
 
 export async function getFaqs(studioId: string): Promise<Faq[]> {

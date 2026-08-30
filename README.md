@@ -77,3 +77,27 @@ node scripts/pull-env.mjs     # refresh .env.local from the linked project
 
 `verify-rls.mjs` creates two throwaway studios and deletes them again. Point it
 at a development project, never at one with real studios in it.
+
+## Verticals
+
+The engine is trade-neutral. Tattoo studios are first, but barbers, salons,
+piercers and clinics run on the same qualify → quote → escalate → book → deposit
+loop, and the same channels.
+
+What varies by trade lives in `src/lib/verticals.ts`: vocabulary
+(artist/barber/practitioner), the qualification questions, the style and intent
+pick-lists, default service bands and starter FAQs. Adding a trade is a new pack
+there, not an engine change. Anything a pack cannot express is a real gap in the
+core — fix it there rather than special-casing.
+
+Two things are deliberately per-studio rather than global, because a Postgres
+enum is the worst place for a list that varies by trade:
+
+- `service_options` holds each studio's own style and intent lists. These were
+  the `tattoo_style` and `enquiry_intent` enums.
+- `studios.vertical` and `studios.vocabulary` say which pack seeded a studio and
+  let an owner override the wording.
+
+**Not solved yet:** barbers and salons charge a flat price per service, where
+`price_bands` only expresses hours × an hourly rate. That needs a second pricing
+model, and it is worth designing against a real barber rather than guessing.

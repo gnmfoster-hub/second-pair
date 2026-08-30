@@ -7,34 +7,24 @@ export type ConvStatus =
   | "booked"
   | "needs_human"
   | "lost";
-export type EnquiryIntent =
-  | "new_tattoo"
-  | "cover_up"
-  | "touch_up"
-  | "consultation"
-  | "question";
-export type TattooStyle =
-  | "traditional"
-  | "fine_line"
-  | "realism"
-  | "blackwork"
-  | "script"
-  | "colour"
-  | "black_and_grey"
-  | "other";
+/** Was a Postgres enum; now a key into the studio's own service_options. */
+export type StyleKey = string;
+export type IntentKey = string;
 export type BookingType = "consultation" | "session";
 export type DepositStatus = "unpaid" | "link_sent" | "paid" | "refunded" | "forfeited";
 
-export const TATTOO_STYLES: { value: TattooStyle; label: string }[] = [
-  { value: "traditional", label: "Traditional" },
-  { value: "fine_line", label: "Fine line" },
-  { value: "realism", label: "Realism" },
-  { value: "blackwork", label: "Blackwork" },
-  { value: "script", label: "Script" },
-  { value: "colour", label: "Colour" },
-  { value: "black_and_grey", label: "Black and grey" },
-  { value: "other", label: "Other" },
-];
+/** A studio's own pick-list, loaded from service_options. */
+export type ServiceOption = {
+  id: string;
+  studio_id: string;
+  kind: "style" | "intent";
+  value: string;
+  label: string;
+  sort_order: number;
+};
+
+export const labelFor = (options: ServiceOption[], value: string | null | undefined) =>
+  options.find((o) => o.value === value)?.label ?? value ?? null;
 
 export const CONV_STATUS_LABELS: Record<ConvStatus, string> = {
   new: "New",
@@ -86,13 +76,15 @@ export type Studio = {
   privacy_notice_url: string | null;
   stripe_account_id: string | null;
   timezone: string;
+  vertical: string;
+  vocabulary: Record<string, string>;
 };
 
 export type Artist = {
   id: string;
   studio_id: string;
   name: string;
-  styles: TattooStyle[];
+  styles: StyleKey[];
   hourly_rate_pence: number;
   min_charge_pence: number;
   day_rate_pence: number | null;
