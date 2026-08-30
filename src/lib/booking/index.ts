@@ -43,6 +43,8 @@ export async function busyFor(
       .select("starts_at, ends_at")
       .eq("artist_id", artist.id)
       .is("cancelled_at", null)
+      // Reminders sit in the diary without taking the time.
+      .eq("blocks_availability", true)
       .lt("starts_at", to.toISOString())
       .gt("ends_at", from.toISOString());
 

@@ -10,6 +10,14 @@
   --accent: #e8482f;
   --ok: #4ade80;
   --warn: #fbbf24;
+
+  /* Diary colours. Client work reads warmest because it is the thing that
+     earns; time off recedes; notes barely register until you look for them. */
+  --cal-client: #e8482f;
+  --cal-work:   #5b8def;
+  --cal-off:    #8b8b98;
+  --cal-note:   #3f9e7a;
+  --cal-grid:   #23232b;
 }
 
 @theme inline {
@@ -22,6 +30,11 @@
   --color-accent: var(--accent);
   --color-ok: var(--ok);
   --color-warn: var(--warn);
+  --color-cal-client: var(--cal-client);
+  --color-cal-work: var(--cal-work);
+  --color-cal-off: var(--cal-off);
+  --color-cal-note: var(--cal-note);
+  --color-cal-grid: var(--cal-grid);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
