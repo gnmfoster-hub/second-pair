@@ -138,6 +138,11 @@ export function durationFor(
 ): number {
   if (type === "consultation") return studio.consultation_minutes;
   if (!band) return studio.consultation_minutes;
+  // A flat-price service says how long it takes; there are no hours to derive
+  // it from.
+  if (band.duration_minutes != null) {
+    return Math.min(band.duration_minutes, studio.max_session_minutes);
+  }
   return Math.min(Math.round(band.hours_low * 60), studio.max_session_minutes);
 }
 

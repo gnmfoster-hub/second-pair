@@ -1,5 +1,5 @@
 import { requireStudio, getArtists, getPriceBands } from "@/lib/studio";
-import { quoteForBand, depositFor, describeDepositRule } from "@/lib/quote";
+import { quoteForBand, depositFor, describeDepositRule, isFixedPrice } from "@/lib/quote";
 import { formatRange, formatPence } from "@/lib/money";
 import { BandEditor } from "./BandEditor";
 import { SeedBands } from "./SeedBands";
@@ -18,8 +18,8 @@ export default async function PricingPage() {
         <div className="px-5 py-4">
           <h2 className="text-sm font-medium">Size bands</h2>
           <p className="hint mt-1">
-            Hours per band, multiplied by their hourly rate, is the quote. Mark
-            the big ones as consultation-first.
+            Price a service by the hour, or set a flat price. The two mix freely — a
+            £45 cut and an hourly colour correction can sit side by side.
           </p>
         </div>
 
@@ -76,6 +76,11 @@ export default async function PricingPage() {
                     <tr key={band.id}>
                       <td className="px-5 py-3">
                         {band.size_label}
+                        {isFixedPrice(band) && (
+                          <span className="ml-2 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted">
+                            fixed
+                          </span>
+                        )}
                         {band.requires_consultation && (
                           <span className="ml-2 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted">
                             consult

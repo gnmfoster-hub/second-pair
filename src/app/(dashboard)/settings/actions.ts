@@ -211,22 +211,59 @@ export async function saveBand(_prev: FormState, fd: FormData): Promise<FormStat
   }
 
   const label = str(fd, "size_label");
-  if (!label) return { error: "Give the band a name." };
+  if (!label) return { error: "Give the service a name." };
 
-  const low = Number(str(fd, "hours_low"));
-  const high = Number(str(fd, "hours_high"));
-  if (!Number.isFinite(low) || low <= 0) return { error: "Low hours must be greater than 0." };
-  if (!Number.isFinite(high) || high < low)
-    return { error: "High hours must be at least the low hours." };
+  const fixed = str(fd, "pricing") === "fixed";
 
-  const row = {
-    studio_id: studio.id,
-    size_label: label,
-    hours_low: low,
-    hours_high: high,
-    sort_order: Number(str(fd, "sort_order")) || 0,
-    requires_consultation: fd.get("requires_consultation") === "on",
-  };
+  let row: Record<string, unknown>;
+
+  if (fixed) {
+    const priceLow = parsePounds(fd.get("price_low"));
+    const priceHigh = parsePounds(fd.get("price_high"));
+    if (priceLow == null) return { error: "Enter the price." };
+    if (priceHigh != null && priceHigh < priceLow) {
+      return { error: "The top of the range must be at least the bottom." };
+    }
+
+    const minutes = Number(str(fd, "duration_minutes"));
+    if (!Number.isFinite(minutes) || minutes < 5 || minutes > 1440) {
+      return { error: "How long does it take? Between 5 minutes and 24 hours." };
+    }
+
+    row = {
+      studio_id: studio.id,
+      size_label: label,
+      price_low_pence: priceLow,
+      price_high_pence: priceHigh,
+      duration_minutes: minutes,
+      // Kept in step so the diary and any hourly maths still have something
+      // sensible to read.
+      hours_low: Math.max(0.25, minutes / 60),
+      hours_high: Math.max(0.25, minutes / 60),
+      sort_order: Number(str(fd, "sort_order")) || 0,
+      requires_consultation: fd.get("requires_consultation") === "on",
+    };
+  } else {
+    const low = Number(str(fd, "hours_low"));
+    const high = Number(str(fd, "hours_high"));
+    if (!Number.isFinite(low) || low <= 0) return { error: "Low hours must be greater than 0." };
+    if (!Number.isFinite(high) || high < low) {
+      return { error: "High hours must be at least the low hours." };
+    }
+
+    row = {
+      studio_id: studio.id,
+      size_label: label,
+      hours_low: low,
+      hours_high: high,
+      // Clearing these is what switches a service back to hourly pricing.
+      price_low_pence: null,
+      price_high_pence: null,
+      duration_minutes: null,
+      sort_order: Number(str(fd, "sort_order")) || 0,
+      requires_consultation: fd.get("requires_consultation") === "on",
+    };
+  }
 
   const id = str(fd, "id");
   const { error } = id

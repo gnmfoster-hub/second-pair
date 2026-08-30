@@ -110,6 +110,10 @@ export type PriceBand = {
   hours_high: number;
   sort_order: number;
   requires_consultation: boolean;
+  /** Set for a flat-price service; null means price by the hour. */
+  price_low_pence: number | null;
+  price_high_pence: number | null;
+  duration_minutes: number | null;
 };
 
 export type Faq = {

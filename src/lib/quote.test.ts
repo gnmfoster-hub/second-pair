@@ -21,7 +21,7 @@ const artist = (over: Partial<Artist> = {}): Artist => ({
   ...over,
 });
 
-const band = (low: number, high: number): PriceBand => ({
+const band = (low: number, high: number, over: Partial<PriceBand> = {}): PriceBand => ({
   id: "b",
   studio_id: "s",
   size_label: "Test",
@@ -29,6 +29,10 @@ const band = (low: number, high: number): PriceBand => ({
   hours_high: high,
   sort_order: 0,
   requires_consultation: false,
+  price_low_pence: null,
+  price_high_pence: null,
+  duration_minutes: null,
+  ...over,
 });
 
 test("quotes the hourly rate across the band", () => {
@@ -89,4 +93,60 @@ test("percentage deposits respect their floor and round up", () => {
   assert.equal(depositFor({ type: "percent", percent: 20, min_pence: 5000 }, q), 5000);
   assert.equal(depositFor({ type: "percent", percent: 30, min_pence: 5000 }, q), 7500);
   assert.equal(depositFor({ type: "fixed", amount_pence: 5000 }, q), 5000);
+});
+
+// ---------------------------------------------------------------- flat prices
+
+test("a flat price is used exactly as typed", () => {
+  // £18, from a barber whose hourly rate would say something else entirely.
+  const q = quoteForBand(artist(), band(0.5, 0.5, { price_low_pence: 1800, duration_minutes: 30 }));
+  assert.equal(q.low_pence, 1800);
+  assert.equal(q.high_pence, 1800);
+});
+
+test("a flat price ignores the minimum charge", () => {
+  // The minimum charge protects an hourly rate. Applying it to a price the
+  // owner typed in would quietly overcharge their customers.
+  const q = quoteForBand(
+    artist({ min_charge_pence: 8000 }),
+    band(0.5, 0.5, { price_low_pence: 1800, duration_minutes: 30 }),
+  );
+  assert.equal(q.low_pence, 1800);
+  assert.equal(q.hit_minimum, false);
+});
+
+test("a flat price is never rounded", () => {
+  // £47 must stay £47, not become £45 or £50.
+  const q = quoteForBand(artist(), band(1, 1, { price_low_pence: 4700, duration_minutes: 45 }));
+  assert.equal(q.low_pence, 4700);
+});
+
+test("a flat price can be a range", () => {
+  const q = quoteForBand(
+    artist(),
+    band(3, 4, { price_low_pence: 18000, price_high_pence: 24000, duration_minutes: 210 }),
+  );
+  assert.equal(q.low_pence, 18000);
+  assert.equal(q.high_pence, 24000);
+});
+
+test("a flat price ignores the day rate", () => {
+  const q = quoteForBand(
+    artist({ day_rate_pence: 40000 }),
+    band(8, 8, { price_low_pence: 50000, duration_minutes: 480 }),
+  );
+  assert.equal(q.low_pence, 50000);
+});
+
+test("hourly bands are untouched by any of this", () => {
+  const q = quoteForBand(artist(), band(2, 3));
+  assert.equal(q.low_pence, 24000);
+  assert.equal(q.high_pence, 36000);
+});
+
+test("a studio range spans fixed and hourly bands alike", () => {
+  const cheap = artist({ id: "1", hourly_rate_pence: 10000 });
+  const fixed = band(1, 1, { price_low_pence: 2500, duration_minutes: 30 });
+  const q = quoteForStudio([cheap], fixed)!;
+  assert.equal(q.low_pence, 2500);
 });

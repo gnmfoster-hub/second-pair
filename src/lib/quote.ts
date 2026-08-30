@@ -30,11 +30,27 @@ export type Quote = {
   hit_minimum: boolean;
 };
 
+/** True when this band is priced flat rather than by the hour. */
+export const isFixedPrice = (band: PriceBand) => band.price_low_pence != null;
+
 /**
  * Estimate for a size band with a given artist.
- * Guardrail: the low end is never below the artist's minimum charge.
+ *
+ * A band with a price set is that price — no rounding, no minimum charge, no
+ * day rate. Those exist to protect an hourly rate, and applying them to a
+ * flat-price service would quietly change a number the owner typed in.
+ *
+ * Otherwise: hours × the hourly rate, floored at the minimum charge.
  */
 export function quoteForBand(artist: Artist, band: PriceBand): Quote {
+  if (band.price_low_pence != null) {
+    return {
+      low_pence: band.price_low_pence,
+      high_pence: band.price_high_pence ?? band.price_low_pence,
+      hit_minimum: false,
+    };
+  }
+
   const rawLow = costForHours(artist, band.hours_low);
   const rawHigh = costForHours(artist, band.hours_high);
 
