@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { saveArtist, type FormState } from "../actions";
 import { Field, FormMessage, SubmitButton } from "@/components/Form";
 import { penceToInput, formatPence } from "@/lib/money";
+import { BookingSource } from "./BookingSource";
 import type { Artist, ServiceOption } from "@/lib/types";
 
 export function ArtistEditor({
@@ -90,17 +91,7 @@ export function ArtistEditor({
           </div>
         </Field>
 
-        <Field
-          label="Google Calendar ID"
-          hint="Availability is read from this calendar. Leave blank until it is connected."
-        >
-          <input
-            name="calendar_id"
-            defaultValue={artist?.calendar_id ?? ""}
-            placeholder="artist@livingcanvastattoo.ink"
-            className="input max-w-md font-mono text-xs"
-          />
-        </Field>
+        <BookingSource artist={artist} />
 
         <label className="flex items-center gap-2 text-sm">
           <input

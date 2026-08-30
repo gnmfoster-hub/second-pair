@@ -36,6 +36,8 @@ export async function busyFor(
   const kind = kindOf(artist);
 
   if (kind === "native") {
+    await releaseExpiredHolds(db, artist.id);
+
     const { data, error } = await db
       .from("bookings")
       .select("starts_at, ends_at")
@@ -62,6 +64,32 @@ export async function busyFor(
   // link_only and manual cannot see a diary at all, which is why they never
   // offer specific times.
   return [];
+}
+
+/**
+ * Frees slots held for a deposit that never arrived.
+ *
+ * Done lazily, just before availability is read, so it needs no scheduler and
+ * cannot leave a slot stranded because a cron job failed. Cancelling rather
+ * than deleting keeps the abandoned attempt visible to the owner, and releases
+ * the overlap constraint, which only applies to live bookings.
+ */
+export async function releaseExpiredHolds(
+  db: SupabaseClient,
+  artistId?: string,
+): Promise<number> {
+  let query = db
+    .from("bookings")
+    .update({ cancelled_at: new Date().toISOString() })
+    .eq("deposit_status", "unpaid")
+    .is("cancelled_at", null)
+    .lt("held_until", new Date().toISOString());
+
+  if (artistId) query = query.eq("artist_id", artistId);
+
+  const { data, error } = await query.select("id");
+  if (error) return 0;
+  return (data ?? []).length;
 }
 
 export type SlotSearch = {

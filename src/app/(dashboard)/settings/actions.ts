@@ -60,6 +60,15 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
       privacy_notice_url: privacy || null,
       stripe_account_id: str(fd, "stripe_account_id") || null,
       timezone: str(fd, "timezone") || "Europe/London",
+      notice_hours: Math.min(720, Math.max(0, Number(str(fd, "notice_hours")) || 0)),
+      consultation_minutes: Math.min(
+        480,
+        Math.max(5, Number(str(fd, "consultation_minutes")) || 30),
+      ),
+      max_session_minutes: Math.min(
+        1440,
+        Math.max(30, Number(str(fd, "max_session_minutes")) || 360),
+      ),
     })
     .eq("id", studio.id);
 
@@ -96,6 +105,20 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
   const name = str(fd, "name");
   if (!name) return { error: "Artist name is required." };
 
+  const provider = str(fd, "booking_provider") || "native";
+  if (provider === "ical_link" && !str(fd, "ical_url")) {
+    return { error: "A booking platform needs its calendar feed URL." };
+  }
+  if ((provider === "ical_link" || provider === "link_only") && !str(fd, "booking_url")) {
+    return { error: "That option needs the public booking page link." };
+  }
+  for (const field of ["ical_url", "booking_url"]) {
+    const value = str(fd, field);
+    if (value && !/^(https?|webcal):\/\//i.test(value)) {
+      return { error: "Links must start with http://, https:// or webcal://" };
+    }
+  }
+
   const hourly = parsePounds(fd.get("hourly_rate"));
   const minCharge = parsePounds(fd.get("min_charge"));
   if (hourly == null) return { error: "Enter an hourly rate." };
@@ -109,6 +132,9 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
     min_charge_pence: minCharge,
     day_rate_pence: parsePounds(fd.get("day_rate")),
     calendar_id: str(fd, "calendar_id") || null,
+    booking_provider: str(fd, "booking_provider") || "native",
+    ical_url: str(fd, "ical_url") || null,
+    booking_url: str(fd, "booking_url") || null,
     active: fd.get("active") !== "off",
   };
 

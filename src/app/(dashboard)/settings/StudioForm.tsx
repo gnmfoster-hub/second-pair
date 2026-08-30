@@ -72,6 +72,48 @@ export function StudioForm({ studio }: { studio: Studio }) {
         </div>
       </section>
 
+      <section className="card p-6">
+        <h2 className="text-sm font-medium">Booking rules</h2>
+        <p className="hint mt-1">
+          How the assistant offers times. These apply to everyone in the studio.
+        </p>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-3">
+          <Field label="Notice (hours)" hint="Nothing booked sooner than this.">
+            <input
+              name="notice_hours"
+              type="number"
+              min={0}
+              max={720}
+              defaultValue={studio.notice_hours}
+              className="input"
+            />
+          </Field>
+          <Field label="Consultation (mins)" hint="For sizes that need one first.">
+            <input
+              name="consultation_minutes"
+              type="number"
+              min={5}
+              max={480}
+              step={5}
+              defaultValue={studio.consultation_minutes}
+              className="input"
+            />
+          </Field>
+          <Field label="Longest sitting (mins)" hint="Bigger jobs split across appointments.">
+            <input
+              name="max_session_minutes"
+              type="number"
+              min={30}
+              max={1440}
+              step={30}
+              defaultValue={studio.max_session_minutes}
+              className="input"
+            />
+          </Field>
+        </div>
+      </section>
+
       <section className="card space-y-5 p-6">
         <div>
           <h2 className="text-sm font-medium">Deposits</h2>
