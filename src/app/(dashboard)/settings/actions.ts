@@ -86,6 +86,28 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
 
 // ------------------------------------------------------------------ artists
 
+/** Photos go in the public avatars bucket, under the studio's own folder. */
+async function uploadAvatar(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  studioId: string,
+  file: File,
+): Promise<{ path?: string; error?: string }> {
+  if (file.size > 4 * 1024 * 1024) return { error: "That photo is too big (4MB max)." };
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    return { error: "Photos must be a JPEG, PNG or WebP." };
+  }
+
+  const extension = file.type.split("/")[1].replace("jpeg", "jpg");
+  const path = `${studioId}/${crypto.randomUUID()}.${extension}`;
+
+  const { error } = await supabase.storage
+    .from("avatars")
+    .upload(path, await file.arrayBuffer(), { contentType: file.type, upsert: false });
+
+  if (error) return { error: error.message };
+  return { path };
+}
+
 export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormState> {
   const { studio } = await requireStudio();
   const supabase = await createClient();
@@ -138,10 +160,20 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
     day_rate_pence: parsePounds(fd.get("day_rate")),
     calendar_id: str(fd, "calendar_id") || null,
     booking_provider: str(fd, "booking_provider") || "native",
+    colour: str(fd, "colour") || null,
     ical_url: str(fd, "ical_url") || null,
     booking_url: str(fd, "booking_url") || null,
     active: fd.get("active") !== "off",
   };
+
+  const photo = fd.get("avatar");
+  if (photo instanceof File && photo.size > 0) {
+    const uploaded = await uploadAvatar(supabase, studio.id, photo);
+    if (uploaded.error) return { error: uploaded.error };
+    (row as Record<string, unknown>).avatar_path = uploaded.path;
+  } else if (fd.get("remove_avatar") === "true") {
+    (row as Record<string, unknown>).avatar_path = null;
+  }
 
   const id = str(fd, "id");
   const { error } = id
@@ -152,6 +184,7 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
 
   revalidatePath("/settings/artists");
   revalidatePath("/settings/pricing");
+  revalidatePath("/diary");
   return { ok: true };
 }
 

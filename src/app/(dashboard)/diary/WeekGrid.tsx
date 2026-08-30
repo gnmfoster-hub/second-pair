@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { categoryFor, addDays, isoDate } from "@/lib/calendar";
 import { EntryDialog } from "./EntryDialog";
+import { Avatar } from "@/components/Avatar";
 import type { Artist, OpeningHours } from "@/lib/types";
 
 export type Entry = {
@@ -219,9 +220,16 @@ export function WeekGrid({
                   isToday ? "bg-accent/8" : ""
                 }`}
               >
-                <div className="text-[11px] uppercase tracking-wide text-muted">
-                  {col.label}
-                </div>
+                {col.artist ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <Avatar person={col.artist} size="sm" />
+                    <span className="text-sm">{col.label}</span>
+                  </div>
+                ) : (
+                  <div className="text-[11px] uppercase tracking-wide text-muted">
+                    {col.label}
+                  </div>
+                )}
                 {col.sub && (
                   <div
                     className={`mt-0.5 inline-grid size-7 place-items-center rounded-full text-sm tabular-nums ${

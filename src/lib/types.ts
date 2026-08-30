@@ -97,6 +97,8 @@ export type Artist = {
   booking_provider: string;
   ical_url: string | null;
   booking_url: string | null;
+  avatar_path: string | null;
+  colour: string | null;
 };
 
 export type PriceBand = {

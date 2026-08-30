@@ -5,6 +5,7 @@ import { saveArtist, type FormState } from "../actions";
 import { Field, FormMessage, SubmitButton } from "@/components/Form";
 import { penceToInput, formatPence } from "@/lib/money";
 import { BookingSource } from "./BookingSource";
+import { Avatar } from "@/components/Avatar";
 import type { Artist, ServiceOption } from "@/lib/types";
 
 export function ArtistEditor({
@@ -23,6 +24,13 @@ export function ArtistEditor({
   return (
     <details className="card group">
       <summary className="flex cursor-pointer list-none items-center gap-4 px-5 py-4">
+        {artist ? (
+          <Avatar person={artist} size="md" />
+        ) : (
+          <span className="grid size-10 shrink-0 place-items-center rounded-full border border-dashed border-border text-muted">
+            +
+          </span>
+        )}
         <div className="min-w-0 flex-1">
           <div className="text-sm">
             {artist?.name ?? `Add ${/^[aeiou]/i.test(noun) ? "an" : "a"} ${noun}`}
@@ -44,9 +52,29 @@ export function ArtistEditor({
       <form action={action} className="space-y-5 border-t border-border p-5">
         {artist && <input type="hidden" name="id" value={artist.id} />}
 
-        <Field label="Name">
-          <input name="name" defaultValue={artist?.name ?? ""} className="input max-w-sm" required />
-        </Field>
+        <div className="flex flex-wrap items-end gap-5">
+          <Field label="Name">
+            <input name="name" defaultValue={artist?.name ?? ""} className="input max-w-sm" required />
+          </Field>
+
+          <Field label="Photo" hint="Shown in the diary and to clients. Initials if left blank.">
+            <div className="flex items-center gap-3">
+              {artist && <Avatar person={artist} size="lg" />}
+              <input
+                type="file"
+                name="avatar"
+                accept="image/jpeg,image/png,image/webp"
+                className="text-xs text-muted file:mr-3 file:rounded-lg file:border file:border-border file:bg-surface-2 file:px-3 file:py-1.5 file:text-xs file:text-foreground"
+              />
+            </div>
+            {artist?.avatar_path && (
+              <label className="hint mt-2 flex items-center gap-2">
+                <input type="checkbox" name="remove_avatar" value="true" className="accent-[var(--accent)]" />
+                Remove the photo
+              </label>
+            )}
+          </Field>
+        </div>
 
         <div className="grid grid-cols-3 gap-4">
           <Field label="Hourly rate (£)">

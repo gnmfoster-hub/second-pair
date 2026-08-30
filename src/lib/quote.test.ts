@@ -16,6 +16,8 @@ const artist = (over: Partial<Artist> = {}): Artist => ({
   booking_provider: "native",
   ical_url: null,
   booking_url: null,
+  avatar_path: null,
+  colour: null,
   ...over,
 });
 
