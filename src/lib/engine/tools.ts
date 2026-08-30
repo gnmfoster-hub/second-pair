@@ -3,6 +3,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatPence } from "@/lib/money";
 import { quoteForBand, quoteForStudio, depositFor } from "@/lib/quote";
 import { verticalPack } from "@/lib/verticals";
+import {
+  availableSlots,
+  createBooking,
+  describeSlot,
+  durationFor,
+  bookingTypeFor,
+  capabilitiesFor,
+} from "@/lib/booking";
 import type { Artist, PriceBand, ServiceOption, Studio } from "@/lib/types";
 
 export type ToolContext = {
@@ -14,6 +22,11 @@ export type ToolContext = {
   enquiryId: string;
   contactId: string;
   options: ServiceOption[];
+  /** Current enquiry state, so a tool can pick the right band and person. */
+  enquirySizeBandId: string | null;
+  enquiryArtistId: string | null;
+  /** Deposit owed on the quote so far. */
+  depositPence: number;
 };
 
 export function toolDefinitions(
@@ -118,6 +131,50 @@ export function toolDefinitions(
         additionalProperties: false,
       },
     },
+    ...(capabilitiesFor(artists.find((a) => a.active) ?? artists[0]).readsAvailability
+      ? [
+          {
+            name: "get_available_slots",
+            description:
+              "Real openings in the diary. The ONLY source of times — never invent or " +
+              "guess a date. Call it before offering any appointment.",
+            input_schema: {
+              type: "object" as const,
+              properties: {
+                artist_name: {
+                  type: "string",
+                  enum: artistNames,
+                  description: `Whose diary to look at. Defaults to the first available ${who}.`,
+                },
+              },
+              additionalProperties: false,
+            },
+          },
+        ]
+      : []),
+    ...(capabilitiesFor(artists.find((a) => a.active) ?? artists[0]).writesBookings
+      ? [
+          {
+            name: "create_booking",
+            description:
+              "Take one of the times get_available_slots returned. Only call this once " +
+              "they have picked a specific slot and you have their name and a phone or " +
+              "email. The slot is held while they pay the deposit.",
+            input_schema: {
+              type: "object" as const,
+              properties: {
+                starts_at: {
+                  type: "string",
+                  description: "The exact starts_at value from get_available_slots.",
+                },
+                artist_name: { type: "string", enum: artistNames },
+              },
+              required: ["starts_at"],
+              additionalProperties: false,
+            },
+          },
+        ]
+      : []),
     {
       name: "escalate_to_owner",
       description:
@@ -158,6 +215,10 @@ export async function executeTool(
       return saveContact(input, ctx);
     case "quote_estimate":
       return quoteEstimate(input, ctx);
+    case "get_available_slots":
+      return getSlots(input, ctx);
+    case "create_booking":
+      return makeBooking(input, ctx);
     case "escalate_to_owner":
       return escalate(input, ctx);
     default:
@@ -302,6 +363,132 @@ async function quoteEstimate(
         : "This size can be booked straight into a session.",
       "Give these numbers exactly as written. Say it is an estimate confirmed at the consultation.",
     ].join(" "),
+  };
+}
+
+/** Resolves which person's diary to use: the one asked for, or the first available. */
+function pickArtist(input: Record<string, unknown>, ctx: ToolContext) {
+  if (typeof input.artist_name === "string") {
+    return ctx.artists.find(
+      (a) => a.name.toLowerCase() === (input.artist_name as string).toLowerCase(),
+    );
+  }
+  const enquiryArtist = ctx.artists.find((a) => a.id === ctx.enquiryArtistId);
+  return enquiryArtist ?? ctx.artists.find((a) => a.active);
+}
+
+async function getSlots(
+  input: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<ToolOutcome> {
+  const artist = pickArtist(input, ctx);
+  if (!artist) return { result: "Nobody is taking bookings. Escalate." };
+
+  const band = ctx.bands.find((b) => b.id === ctx.enquirySizeBandId);
+  const type = bookingTypeFor(band);
+  const minutes = durationFor(ctx.studio, band, type);
+
+  let slots;
+  try {
+    slots = await availableSlots({
+      db: ctx.db,
+      studio: ctx.studio,
+      artist,
+      durationMinutes: minutes,
+      limit: 4,
+    });
+  } catch (error) {
+    // A diary we cannot read is not an empty diary. Say so rather than offering
+    // times on top of real work.
+    return {
+      result:
+        `The diary could not be reached (${(error as Error).message}). Do not offer any ` +
+        "times. Ask which days suit them and say the studio will confirm.",
+    };
+  }
+
+  if (slots.length === 0) {
+    return {
+      result:
+        `Nothing free for ${artist.name} in the next three weeks for a ${minutes}-minute ` +
+        `${type}. Ask which days suit them and say the studio will be in touch.`,
+    };
+  }
+
+  const lines = slots
+    .map((s) => `- ${describeSlot(s, ctx.studio.timezone)}  (starts_at: ${s.starts_at})`)
+    .join("\n");
+
+  return {
+    result: [
+      `${type === "consultation" ? "Consultation" : "Session"} with ${artist.name}, ${minutes} minutes.`,
+      "Offer these and no others:",
+      lines,
+      "Give the times in words. Pass the exact starts_at back to create_booking.",
+    ].join("\n"),
+  };
+}
+
+async function makeBooking(
+  input: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<ToolOutcome> {
+  const artist = pickArtist(input, ctx);
+  if (!artist) return { result: "Nobody is taking bookings. Escalate." };
+
+  const startsAt = String(input.starts_at ?? "");
+  const when = Date.parse(startsAt);
+  if (!Number.isFinite(when)) {
+    return { result: "That is not a time from get_available_slots. Call it again." };
+  }
+
+  const band = ctx.bands.find((b) => b.id === ctx.enquirySizeBandId);
+  const type = bookingTypeFor(band);
+  const minutes = durationFor(ctx.studio, band, type);
+
+  // Re-check against the live diary: the slot may have gone since it was offered.
+  const stillFree = await availableSlots({
+    db: ctx.db,
+    studio: ctx.studio,
+    artist,
+    durationMinutes: minutes,
+    limit: 40,
+  }).catch(() => null);
+
+  if (stillFree && !stillFree.some((s) => Date.parse(s.starts_at) === when)) {
+    return {
+      result:
+        "That time is no longer free. Apologise, call get_available_slots again and " +
+        "offer what comes back.",
+    };
+  }
+
+  const result = await createBooking({
+    db: ctx.db,
+    studio: ctx.studio,
+    artist,
+    enquiryId: ctx.enquiryId,
+    slot: { starts_at: startsAt, ends_at: new Date(when + minutes * 60_000).toISOString() },
+    type,
+    depositPence: ctx.depositPence,
+  });
+
+  if (!result.ok) return { result: result.message };
+
+  await ctx.db
+    .from("conversations")
+    .update({ status: "booked" })
+    .eq("id", ctx.conversationId);
+
+  const said = describeSlot(
+    { starts_at: startsAt, ends_at: startsAt },
+    ctx.studio.timezone,
+  );
+
+  return {
+    result:
+      `Booked: ${type} with ${artist.name}, ${said}. Confirm it back to them in words. ` +
+      "The slot is held for an hour while the deposit is paid.",
   };
 }
 

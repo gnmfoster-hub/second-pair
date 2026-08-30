@@ -13,6 +13,9 @@ const artist = (over: Partial<Artist> = {}): Artist => ({
   day_rate_pence: null,
   calendar_id: null,
   active: true,
+  booking_provider: "native",
+  ical_url: null,
+  booking_url: null,
   ...over,
 });
 

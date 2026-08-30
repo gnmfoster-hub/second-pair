@@ -7,6 +7,7 @@ import {
   type ContactState,
 } from "./prompt";
 import { toolDefinitions, executeTool, type ToolContext } from "./tools";
+import { depositFor, quoteForStudio } from "@/lib/quote";
 import type { Artist, Channel, Faq, PriceBand, ServiceOption, Studio } from "@/lib/types";
 
 const MODEL = "claude-opus-5";
@@ -101,6 +102,9 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     conversationId: conversation.id,
     enquiryId,
     contactId,
+    enquirySizeBandId: null,
+    enquiryArtistId: null,
+    depositPence: 0,
   });
 
   const { data: after } = await db
@@ -163,6 +167,24 @@ async function generateReply(ctx: ReplyContext): Promise<string> {
       ctx.options,
     ),
   } as Anthropic.MessageParam);
+
+  // The tools need the enquiry's current state to pick the right band, person
+  // and deposit without the model having to restate any of it.
+  const band = ctx.bands.find((b) => b.id === enquiry?.size_band_id);
+  const quote =
+    enquiry?.quote_low_pence != null && enquiry?.quote_high_pence != null
+      ? {
+          low_pence: enquiry.quote_low_pence,
+          high_pence: enquiry.quote_high_pence,
+          hit_minimum: false,
+        }
+      : band
+        ? quoteForStudio(ctx.artists, band)
+        : null;
+
+  ctx.enquirySizeBandId = enquiry?.size_band_id ?? null;
+  ctx.enquiryArtistId = enquiry?.artist_id ?? null;
+  ctx.depositPence = quote ? depositFor(ctx.studio.deposit_rule, quote) : 0;
 
   const tools = toolDefinitions(ctx.bands, ctx.artists, ctx.options, ctx.studio);
   const system = studioSystemPrompt(

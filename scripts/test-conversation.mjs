@@ -289,6 +289,59 @@ try {
     );
   }
 
+  // ------------------------------------------------------------- booking
+  console.log("\nBooking a real slot");
+  await say(s1, "go on then, whats your first availability?");
+  // It offers, then waits for a yes — so the test has to give one.
+  const booked = await say(s1, "yes that first one please");
+  await showToolCalls(s1);
+
+  const { conv: cBook } = await conversationState(s1);
+  const { data: bookings } = await db
+    .from("bookings")
+    .select("*, enquiries!inner(conversation_id)")
+    .eq("enquiries.conversation_id", cBook.id);
+
+  check("a booking was created", (bookings ?? []).length >= 1, `${(bookings ?? []).length} found`);
+
+  if (bookings?.length) {
+    const b = bookings[0];
+    const start = new Date(b.starts_at);
+    const hourLocal = Number(
+      new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Europe/London",
+        hour: "2-digit",
+        hour12: false,
+      }).format(start),
+    );
+    check("it is inside opening hours", hourLocal >= 10 && hourLocal < 18, `${hourLocal}:00`);
+    check(
+      "it respects the notice period",
+      start.getTime() - Date.now() >= 23 * 3600_000,
+      `${Math.round((start.getTime() - Date.now()) / 3600_000)}h away`,
+    );
+    check("the slot is held pending the deposit", Boolean(b.held_until));
+    check("a deposit is owed", b.deposit_amount_pence > 0, `${b.deposit_amount_pence}p`);
+    check("the conversation is marked booked", cBook.status === "booked", cBook.status);
+    check(
+      "the reply confirms a real day and time",
+      /(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i.test(booked.reply ?? ""),
+      booked.reply ?? "",
+    );
+
+    // The database must refuse a second booking over the same slot, whatever
+    // the application layer believes.
+    const { error: clash } = await db.from("bookings").insert({
+      enquiry_id: b.enquiry_id,
+      artist_id: b.artist_id,
+      type: "session",
+      starts_at: b.starts_at,
+      ends_at: b.ends_at,
+      deposit_amount_pence: 0,
+    });
+    check("the database refuses a double booking", clash?.code === "23P01", JSON.stringify(clash));
+  }
+
   // ------------------------------------------------------------- under 18
   console.log("\nSomeone under 18");
   const s2 = newSession("minor");

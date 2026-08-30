@@ -78,6 +78,9 @@ export type Studio = {
   timezone: string;
   vertical: string;
   vocabulary: Record<string, string>;
+  notice_hours: number;
+  consultation_minutes: number;
+  max_session_minutes: number;
 };
 
 export type Artist = {
@@ -90,6 +93,9 @@ export type Artist = {
   day_rate_pence: number | null;
   calendar_id: string | null;
   active: boolean;
+  booking_provider: string;
+  ical_url: string | null;
+  booking_url: string | null;
 };
 
 export type PriceBand = {

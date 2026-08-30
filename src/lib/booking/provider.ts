@@ -35,7 +35,7 @@ export type ProviderConfig = {
   booking_url?: string | null;
 };
 
-export type ProviderKind = "google" | "ical_link" | "link_only" | "manual";
+export type ProviderKind = "native" | "google" | "ical_link" | "link_only" | "manual";
 
 export type BookingProvider = {
   kind: ProviderKind;
@@ -50,6 +50,10 @@ export type BookingProvider = {
 };
 
 export const PROVIDERS: Record<ProviderKind, ProviderCapabilities> = {
+  // Handled's own diary. No third party, nothing to connect, works immediately.
+  // The default, and the only one that needs nothing from the business.
+  native: { readsAvailability: true, writesBookings: true, handsOverLink: false },
+
   // Full two-way. For businesses with no booking platform of their own.
   google: { readsAvailability: true, writesBookings: true, handsOverLink: false },
 
@@ -67,6 +71,7 @@ export const PROVIDERS: Record<ProviderKind, ProviderCapabilities> = {
 };
 
 export const PROVIDER_LABELS: Record<ProviderKind, string> = {
+  native: "Handled diary",
   google: "Google Calendar",
   ical_link: "Booking platform (Fresha, Booksy, Square…)",
   link_only: "Booking link only",

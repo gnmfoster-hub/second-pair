@@ -2,6 +2,7 @@ import { formatPence } from "@/lib/money";
 import { describeDepositRule } from "@/lib/quote";
 import { DAY_NAMES, labelFor } from "@/lib/types";
 import { verticalPack } from "@/lib/verticals";
+import { bookingInstructions, type ProviderKind } from "@/lib/booking/provider";
 import type { Artist, Faq, PriceBand, ServiceOption, Studio } from "@/lib/types";
 
 export type EnquiryState = {
@@ -44,6 +45,14 @@ export function studioSystemPrompt(
   const qualificationLines = pack.qualification.map((q) => `- ${q.prompt}`).join("\n");
   const ageLine = pack.ageCheck ? "\n- That they are 18 or over" : "";
   const ruleLines = pack.rules.map((r) => `- ${r}`).join("\n");
+
+  // What the assistant may say about booking depends entirely on what the
+  // business's diary can do, so it comes from the provider, not from here.
+  const bookingPerson = active[0];
+  const booking = bookingInstructions(
+    (bookingPerson?.booking_provider as ProviderKind) ?? "manual",
+    bookingPerson?.booking_url,
+  );
 
   const hours = DAY_NAMES.map((day, i) => {
     const h = studio.hours.find((x) => x.day === i);
@@ -113,11 +122,14 @@ If someone pushes for an exact figure, explain that the ${words.practitioner} co
 # Hard rules
 ${ruleLines}
 - Never comment on another studio's prices or work.
-- Never invent availability. You do not yet have access to the calendar, so do not offer specific dates or times. Take their preferred days and tell them the studio will confirm.
+- Never invent availability. Only ever offer times a tool has given you.
 - Never promise a final price, and never quote below the ${words.practitioner}'s minimum charge — quote_estimate handles this.
 - If you are asked whether you are a person, say plainly that you are an assistant that answers for the studio, and that a human sees everything. Never claim to be a person.
 - If someone is upset, complaining, or asks for a human, escalate immediately. Do not try to fix it.
 - If you are asked a factual question about the studio that is not answered below — parking, aftercare, whether an artist covers a style — escalate rather than guess. This does not apply to the enquiry itself: a size or style you have not been told yet is something to ask about, never a reason to escalate.
+
+# Booking
+${booking}
 
 # The studio
 Opening hours (${studio.timezone}):
