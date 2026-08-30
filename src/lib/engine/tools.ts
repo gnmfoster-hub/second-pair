@@ -3,11 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatPence } from "@/lib/money";
 import { quoteForBand, quoteForStudio, depositFor } from "@/lib/quote";
 import { verticalPack } from "@/lib/verticals";
-import {
-  createDepositCheckout,
-  retrieveOpenCheckout,
-  stripeConfigured,
-} from "@/lib/payments/stripe";
+import { stripeConfigured } from "@/lib/payments/stripe";
 import {
   availableSlots,
   createBooking,
@@ -580,62 +576,29 @@ async function sendDepositLink(ctx: ToolContext): Promise<ToolOutcome> {
     return { result: "No deposit is due on this booking. Do not send a link." };
   }
 
-  // A link already sent and still payable is the same link. Minting a new one
-  // leaves the client with two, and no idea which is live.
-  if (booking.deposit_status === "link_sent" && booking.stripe_payment_link_id) {
-    const existing = await retrieveOpenCheckout(
-      ctx.studio,
-      booking.stripe_payment_link_id,
-    );
-    if (existing) {
-      return {
-        result:
-          `The link already sent is still valid: ${existing}
-` +
-          "Send them that one. Do not describe it as a new link.",
-      };
-    }
-  }
-
   const artist = ctx.artists.find((a) => a.id === booking.artist_id);
   const when = describeSlot(
     { starts_at: booking.starts_at, ends_at: booking.ends_at },
     ctx.studio.timezone,
   );
 
-  try {
-    const checkout = await createDepositCheckout({
-      studio: ctx.studio,
-      bookingId: booking.id,
-      conversationId: ctx.conversationId,
-      amountPence: booking.deposit_amount_pence,
-      description: `${booking.type === "consultation" ? "Consultation" : "Session"} with ${artist?.name ?? "the studio"}, ${when}`,
-      heldUntil: booking.held_until,
-      origin: ctx.origin,
-      clientEmail: ctx.contactEmail,
-    });
+  // A short link of our own rather than Stripe's, which runs to several hundred
+  // characters and reads like something you should not click. It forwards, and
+  // mints a fresh Stripe session if the old one has expired.
+  const link = `${ctx.origin}/pay/${booking.id}`;
 
-    await ctx.db
-      .from("bookings")
-      .update({
-        deposit_status: "link_sent",
-        stripe_payment_link_id: checkout.sessionId,
-      })
-      .eq("id", booking.id);
+  await ctx.db
+    .from("bookings")
+    .update({ deposit_status: "link_sent" })
+    .eq("id", booking.id);
 
-    return {
-      result:
-        `Payment link for ${formatPence(booking.deposit_amount_pence)}: ${checkout.url}
+  return {
+    result:
+      `Payment link for ${formatPence(booking.deposit_amount_pence)}: ${link}
 ` +
-        "Send them the link exactly as written. Say the slot is held until it is paid.",
-    };
-  } catch (error) {
-    return {
-      result:
-        `The payment link could not be created (${(error as Error).message}). Tell them the ` +
-        "studio will send it over, and escalate.",
-    };
-  }
+      "Give them that link exactly as written, on its own line. Say the slot is held " +
+      "until it is paid.",
+  };
 }
 
 /**

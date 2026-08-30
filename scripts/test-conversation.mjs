@@ -359,7 +359,7 @@ try {
 
   const live = (paid1 ?? [])[0];
   check("a payment link was created", live?.deposit_status === "link_sent", live?.deposit_status);
-  check("the link is in the reply", /checkout\.stripe\.com/.test(linked.reply ?? ""));
+  check("the link is in the reply", /\/pay\//.test(linked.reply ?? ""), linked.reply ?? "");
   check("only one live booking exists", (paid1 ?? []).length === 1, `${(paid1 ?? []).length}`);
 
   // Asking again must reuse the same link, not mint a second one.

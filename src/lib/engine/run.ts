@@ -10,7 +10,42 @@ import { toolDefinitions, executeTool, type ToolContext } from "./tools";
 import { depositFor, quoteForStudio } from "@/lib/quote";
 import type { Artist, Channel, Faq, PriceBand, ServiceOption, Studio } from "@/lib/types";
 
-const MODEL = "claude-opus-5";
+/**
+ * Overridable so a cheaper model can be measured against the guardrail suite
+ * rather than assumed to be fine. Cost per enquiry comes straight out of the
+ * subscription, so this is a real business number, not a detail.
+ */
+const MODEL = process.env.HANDLED_MODEL || "claude-opus-5";
+const EFFORT = (process.env.HANDLED_EFFORT || "medium") as "low" | "medium" | "high";
+
+/**
+ * Per million tokens, in micros (millionths of a pound), at roughly $1.27/£.
+ * Cache reads are a tenth of the input price, which is the whole reason the
+ * studio prompt is cached — it is resent on every turn of every conversation.
+ */
+const PRICE_MICROS = {
+  input: 3_940_000,
+  output: 19_700_000,
+  cache_write: 4_925_000,
+  cache_read: 394_000,
+} as const;
+
+function costOf(usage: {
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_input_tokens?: number | null;
+  cache_creation_input_tokens?: number | null;
+}) {
+  const read = usage.cache_read_input_tokens ?? 0;
+  const write = usage.cache_creation_input_tokens ?? 0;
+  return Math.round(
+    (usage.input_tokens * PRICE_MICROS.input +
+      usage.output_tokens * PRICE_MICROS.output +
+      write * PRICE_MICROS.cache_write +
+      read * PRICE_MICROS.cache_read) /
+      1_000_000,
+  );
+}
 
 /** A runaway loop would burn tokens and never reply. Real turns use two or three. */
 const MAX_ITERATIONS = 8;
@@ -206,6 +241,7 @@ async function generateReply(ctx: ReplyContext): Promise<string> {
 
   let text = "";
   let escalated = false;
+  const spend = { input: 0, output: 0, cache_read: 0, cache_write: 0, cost_micros: 0 };
   // Kept so a surprising reply can be traced back to what the model actually called.
   const toolTrace: { name: string; input: unknown; result: string }[] = [];
 
@@ -213,11 +249,26 @@ async function generateReply(ctx: ReplyContext): Promise<string> {
     const response = await client.messages.create({
       model: MODEL,
       max_tokens: 2000,
-      output_config: { effort: "medium" },
-      system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
+      output_config: { effort: EFFORT },
+      system: [
+        {
+          type: "text",
+          text: system,
+          // An hour, not the default five minutes. Clients reply in their own
+          // time, and a cache that expires between two messages means the whole
+          // studio prompt is paid for again at full price.
+          cache_control: { type: "ephemeral", ttl: "1h" },
+        },
+      ],
       tools,
       messages,
     });
+
+    spend.input += response.usage.input_tokens;
+    spend.output += response.usage.output_tokens;
+    spend.cache_read += response.usage.cache_read_input_tokens ?? 0;
+    spend.cache_write += response.usage.cache_creation_input_tokens ?? 0;
+    spend.cost_micros += costOf(response.usage);
 
     if (response.stop_reason === "refusal") {
       await ctx.db
@@ -284,6 +335,7 @@ ${text}`;
     role: "assistant",
     content: text,
     tool_calls: toolTrace.length ? toolTrace : null,
+    usage: spend,
   });
 
   return text;

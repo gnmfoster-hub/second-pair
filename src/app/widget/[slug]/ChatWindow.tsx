@@ -4,6 +4,31 @@ import { useEffect, useRef, useState } from "react";
 
 type Line = { from: "client" | "studio"; text: string; images?: number };
 
+/**
+ * Turns URLs in a reply into links you can actually tap.
+ *
+ * Built from the text rather than rendered as HTML: everything here came back
+ * from a model, and nothing it writes should ever be interpreted as markup.
+ */
+function withLinks(text: string, onDark: boolean) {
+  const parts = text.split(/(https?:\/\/[^\s<>"']+)/g);
+  return parts.map((part, i) =>
+    /^https?:\/\//.test(part) ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`underline underline-offset-2 ${onDark ? "text-white" : "text-accent"}`}
+      >
+        {part.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+      </a>
+    ) : (
+      part
+    ),
+  );
+}
+
 const SESSION_KEY = "handled_session";
 
 function sessionId(): string {
@@ -162,7 +187,7 @@ export function ChatWindow({ slug, studioName }: { slug: string; studioName: str
                 : "rounded-tl-sm bg-surface-2"
             }`}
           >
-            {line.text}
+            {withLinks(line.text, line.from === "client")}
             {line.images ? (
               <div className={line.text ? "mt-1 text-xs opacity-80" : "text-xs opacity-80"}>
                 📎 {line.images} image{line.images > 1 ? "s" : ""} attached
