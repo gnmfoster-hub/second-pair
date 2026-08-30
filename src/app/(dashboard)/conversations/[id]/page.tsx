@@ -42,7 +42,7 @@ export default async function ConversationPage({
       .select("*")
       .eq("conversation_id", id)
       .order("created_at"),
-    supabase.from("enquiries").select("*").eq("conversation_id", id).maybeSingle(),
+    supabase.from("enquiries").select("*, bookings(*)").eq("conversation_id", id).maybeSingle(),
     getArtists(studio.id),
     getPriceBands(studio.id),
     getServiceOptions(studio.id),
@@ -200,6 +200,55 @@ export default async function ConversationPage({
               <p className="hint mt-3 text-warn">No way to reach this person yet.</p>
             )}
           </section>
+
+          {(() => {
+            const booking = (enquiry?.bookings ?? []).find(
+              (b: { cancelled_at: string | null }) => !b.cancelled_at,
+            );
+            if (!booking) return null;
+            const bookedWith = artists.find((a) => a.id === booking.artist_id);
+            return (
+              <section className="card p-5">
+                <h2 className="mb-2 text-sm font-medium">Appointment</h2>
+                {detail(
+                  "When",
+                  new Date(booking.starts_at).toLocaleString("en-GB", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    hour: "numeric",
+                    minute: "2-digit",
+                    hour12: true,
+                    timeZone: studio.timezone,
+                  }),
+                )}
+                {detail("Type", booking.type === "consultation" ? "Consultation" : "Session")}
+                {detail("With", bookedWith?.name)}
+                {detail(
+                  "Deposit",
+                  `${formatPence(booking.deposit_amount_pence)} — ${
+                    booking.deposit_status === "paid"
+                      ? "paid"
+                      : booking.deposit_status === "link_sent"
+                        ? "link sent, not paid"
+                        : booking.deposit_status
+                  }`,
+                )}
+                {booking.held_until && booking.deposit_status !== "paid" && (
+                  <p className="hint mt-2 text-warn">
+                    Slot released if unpaid by{" "}
+                    {new Date(booking.held_until).toLocaleTimeString("en-GB", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                      timeZone: studio.timezone,
+                    })}
+                    .
+                  </p>
+                )}
+              </section>
+            );
+          })()}
 
           <section className="card p-5">
             <h2 className="mb-2 text-sm font-medium">Enquiry</h2>
