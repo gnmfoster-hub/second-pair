@@ -80,6 +80,54 @@ Travelling time is already left either side of every job, so what get_available_
     bookingPerson?.booking_url,
   );
 
+  /*
+   * The owner's own instructions.
+   *
+   * Placed after the built-in rules so it reads as "and here is how we do it",
+   * and deliberately not able to override a safety rule — a business cannot
+   * ask the assistant to quote below its minimum, claim to be human, or book
+   * a fifteen-year-old, whatever it types in this box.
+   */
+  const bullets = (lines: string[]) =>
+    lines
+      .filter((l) => l.trim())
+      .map((l) => `- ${l.trim()}`)
+      .join("\n");
+
+  const houseRules = [
+    studio.always_mention?.length
+      ? `Work these in when they are relevant. Never recite them unprompted:\n${bullets(studio.always_mention)}`
+      : "",
+    studio.never_mention?.length
+      ? `Never say any of this:\n${bullets(studio.never_mention)}`
+      : "",
+    studio.escalate_when?.length
+      ? `Fetch a human for these as well as the reasons above:\n${bullets(studio.escalate_when)}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  const houseSection = houseRules
+    ? `# How ${studio.name} does things\n${houseRules}\n\n`
+    : "";
+
+  // Showing the voice beats describing it. Real answers in the owner's words
+  // teach length, warmth and vocabulary in a way "be friendly" never does.
+  const examples = (studio.voice_examples ?? []).filter((e) => e?.ask && e?.reply);
+  const voiceSection = examples.length
+    ? [
+        `# How they write`,
+        `These are real answers from ${studio.name}. Match the length, the warmth and the words — do not copy them as scripts.`,
+        "",
+        examples
+          .map((e) => `Someone asks: ${e.ask.trim()}\nThey answer: ${e.reply.trim()}`)
+          .join("\n\n"),
+        "",
+        "",
+      ].join("\n")
+    : "";
+
   const hours = DAY_NAMES.map((day, i) => {
     const h = studio.hours.find((x) => x.day === i);
     if (!h || h.closed) return `${day}: closed`;
@@ -172,7 +220,7 @@ This order, and never faster. Each step is a separate message, and you wait for 
 
 Never book a time nobody chose. Never send a payment link in the same breath as making the booking — they get to see what they have agreed to first. Never send a second link when one has already gone out; call send_deposit_link again and it returns the same one.
 
-${travelSection}# The studio
+${houseSection}${voiceSection}${travelSection}# The studio
 Opening hours (${studio.timezone}):
 ${hours}
 

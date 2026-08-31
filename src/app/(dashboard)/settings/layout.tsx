@@ -18,6 +18,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
 
       <nav className="mt-6 flex flex-wrap gap-6 border-b border-border">
         <TabLink href="/settings">{title(words.business)}</TabLink>
+        <TabLink href="/settings/assistant">Assistant</TabLink>
         <TabLink href="/settings/artists">{title(words.practitioners)}</TabLink>
         <TabLink href="/settings/pricing">Pricing</TabLink>
         <TabLink href="/settings/reminders">Reminders</TabLink>

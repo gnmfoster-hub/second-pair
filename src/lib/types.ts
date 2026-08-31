@@ -76,6 +76,14 @@ export type Studio = {
   privacy_notice_url: string | null;
   /** Opening line in the widget. Null falls back to the trade pack. */
   greeting: string | null;
+  /** Facts to work in where relevant. Not a script. */
+  always_mention: string[];
+  /** Hard don'ts, in the owner's own words. */
+  never_mention: string[];
+  /** Extra reasons to fetch a human, on top of the built-in ones. */
+  escalate_when: string[];
+  /** How this business writes, shown rather than described. */
+  voice_examples: { ask: string; reply: string }[];
   terms_url: string | null;
   stripe_account_id: string | null;
   timezone: string;

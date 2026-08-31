@@ -388,3 +388,50 @@ export async function saveFaq(_prev: FormState, fd: FormData): Promise<FormState
   revalidatePath("/settings/faqs");
   return { ok: true };
 }
+
+/**
+ * The owner's own instructions for the assistant.
+ *
+ * Everything here is folded into the cached half of the system prompt, so it
+ * costs nothing per message and applies from the very next conversation.
+ *
+ * The lists are one-per-line textareas rather than repeating fields: these get
+ * written once and rarely edited, and a textarea is far quicker to fill in on
+ * a phone than five separate inputs with add and remove buttons.
+ */
+export async function updateAssistant(_prev: FormState, fd: FormData): Promise<FormState> {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  const lines = (key: string, cap = 20) =>
+    String(fd.get(key) ?? "")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(0, cap);
+
+  // Paired by position: the nth question goes with the nth answer. A pair with
+  // either half missing is dropped rather than half-taught to the assistant.
+  const asks = fd.getAll("example_ask").map((v) => String(v).trim());
+  const replies = fd.getAll("example_reply").map((v) => String(v).trim());
+  const examples = asks
+    .map((ask, i) => ({ ask, reply: replies[i] ?? "" }))
+    .filter((e) => e.ask && e.reply)
+    .slice(0, 6);
+
+  const { error } = await supabase
+    .from("studios")
+    .update({
+      tone: str(fd, "tone"),
+      always_mention: lines("always_mention"),
+      never_mention: lines("never_mention"),
+      escalate_when: lines("escalate_when"),
+      voice_examples: examples,
+    })
+    .eq("id", studio.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/assistant");
+  return { ok: true };
+}
