@@ -1,6 +1,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatPence } from "@/lib/money";
+import { notifyStudio } from "@/lib/notify";
 import { quoteForBand, quoteForStudio, depositFor, withVat } from "@/lib/quote";
 import { verticalPack } from "@/lib/verticals";
 import { coversPostcode } from "@/lib/travel";
@@ -339,7 +340,7 @@ async function saveEnquiry(
 
   // An under-18 answer is a hard stop wherever it surfaces.
   if (input.age_confirmed === false) {
-    await pauseForOwner(ctx, "Client indicated they are under 18.");
+    await pauseForOwner(ctx, "Client indicated they are under 18.", "under_18");
     return {
       result:
         "Saved. This client is not 18 or over, so the conversation has been handed to the " +
@@ -663,7 +664,7 @@ async function escalate(
   const summary = String(input.summary ?? "");
 
   if (HANDS_OVER.has(reason)) {
-    await pauseForOwner(ctx, summary);
+    await pauseForOwner(ctx, summary, reason);
     return {
       result:
         "The owner has been notified and is taking over. Tell the client someone from the " +
@@ -692,7 +693,7 @@ async function escalate(
 }
 
 /** Flips the conversation to needs_human and stops the assistant answering. */
-async function pauseForOwner(ctx: ToolContext, summary: string) {
+async function pauseForOwner(ctx: ToolContext, summary: string, reason: string) {
   await ctx.db
     .from("conversations")
     .update({ status: "needs_human", ai_paused: true })
@@ -703,4 +704,36 @@ async function pauseForOwner(ctx: ToolContext, summary: string) {
     role: "system",
     content: `Escalated to owner: ${summary}`,
   });
+
+  /*
+   * This is the one moment the owner genuinely has to be interrupted.
+   *
+   * The assistant has stopped talking, so somebody is now sitting in a chat
+   * with nobody in it. Everything else in this product exists so the owner is
+   * not disturbed; this is the exception that makes the rest trustworthy.
+   *
+   * Awaited but never allowed to throw — a notification that fails must not
+   * take the reply down with it.
+   */
+  await notifyStudio(ctx.db, ctx.studio.id, {
+    title: REASON_TITLES[reason] ?? "Someone needs you",
+    body: summary || "The assistant has handed a conversation over.",
+    url: `/conversations/${ctx.conversationId}`,
+    // One notification per conversation, replaced rather than stacked.
+    tag: `conv-${ctx.conversationId}`,
+  }).catch((error) => console.error("[notify]", error));
 }
+
+/**
+ * What the phone says on the lock screen.
+ *
+ * Specific enough to know whether it can wait until the current client is out
+ * of the chair, without putting anything private in it — a lock screen is read
+ * by whoever is stood next to them.
+ */
+const REASON_TITLES: Record<string, string> = {
+  complaint: "A complaint needs you",
+  medical: "A medical question needs you",
+  under_18: "Someone under 18 got in touch",
+  asked_for_human: "Someone asked for a person",
+};

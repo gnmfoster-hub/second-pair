@@ -6,7 +6,12 @@ import type { Artist, Faq, PriceBand, ServiceOption, Studio } from "@/lib/types"
  * The studio the signed-in user belongs to. MVP assumes one studio per user;
  * when that stops being true this reads a cookie instead of taking the first row.
  */
-export async function requireStudio(): Promise<{ studio: Studio; userEmail: string }> {
+export async function requireStudio(): Promise<{
+  studio: Studio;
+  userEmail: string;
+  /** Who is asking. Needed wherever a row belongs to a person, not the business. */
+  userId: string;
+}> {
   const supabase = await createClient();
 
   const {
@@ -31,7 +36,7 @@ export async function requireStudio(): Promise<{ studio: Studio; userEmail: stri
 
   if (!studio) redirect("/onboarding");
 
-  return { studio: studio as Studio, userEmail: user.email ?? "" };
+  return { studio: studio as Studio, userEmail: user.email ?? "", userId: user.id };
 }
 
 export async function getArtists(studioId: string): Promise<Artist[]> {
