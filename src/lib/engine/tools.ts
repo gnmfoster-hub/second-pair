@@ -34,6 +34,13 @@ export type ToolContext = {
    * an enquiry that arrived on her account must never be offered Tom's diary.
    */
   forArtist?: Artist | null;
+  /**
+   * Which people offer which services, when a business has said.
+   *
+   * Keyed by band, and a band missing from here is one everybody does — which
+   * is nearly all of them, and all of them to begin with.
+   */
+  providers?: Record<string, string[]>;
   /** Deposit owed on the quote so far. */
   depositPence: number;
   /** Where the app is served from, for building payment return links. */
@@ -450,8 +457,28 @@ function pickArtist(input: Record<string, unknown>, ctx: ToolContext) {
       (a) => a.name.toLowerCase() === (input.artist_name as string).toLowerCase(),
     );
   }
+
   const enquiryArtist = ctx.artists.find((a) => a.id === ctx.enquiryArtistId);
-  return enquiryArtist ?? ctx.artists.find((a) => a.active);
+  if (enquiryArtist) return enquiryArtist;
+
+  /*
+   * Somebody who actually does this.
+   *
+   * Falling back to "the first active person" offered a balayage with the nail
+   * technician, quoted it at her rate and put it in her diary. A service with
+   * nobody named against it is done by everybody, so a business that has not
+   * bothered with any of this is unaffected.
+   */
+  return whoCanDo(ctx, ctx.enquirySizeBandId) ?? ctx.artists.find((a) => a.active);
+}
+
+/** The first active person who offers this service, if it is restricted. */
+function whoCanDo(ctx: ToolContext, bandId: string | null) {
+  if (!bandId) return undefined;
+  const allowed = ctx.providers?.[bandId];
+  // No rows against a service means everybody does it.
+  if (!allowed?.length) return undefined;
+  return ctx.artists.find((a) => a.active && allowed.includes(a.id));
 }
 
 async function getSlots(

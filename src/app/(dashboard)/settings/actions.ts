@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireStudio } from "@/lib/studio";
+import { requireStudio, getArtists } from "@/lib/studio";
 import { parsePounds } from "@/lib/money";
 import { DEFAULT_HOURS, type DepositRule, type OpeningHours } from "@/lib/types";
 
@@ -206,10 +206,28 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
   let handle = wanted;
   for (let n = 2; taken.has(handle); n++) handle = `${wanted}-${n}`;
 
+  /*
+   * Their own working week, when they have said they have one.
+   *
+   * Null rather than a copy of the business's, so that "same as the business"
+   * keeps following it — copying would silently freeze this person's hours the
+   * day somebody ticked the box, and nobody would notice until the salon
+   * changed its opening times.
+   */
+  const ownHours = fd.get("own_hours")
+    ? Array.from({ length: 7 }, (_, day) => ({
+        day,
+        open: str(fd, `hours_${day}_open`) || "09:00",
+        close: str(fd, `hours_${day}_close`) || "17:00",
+        closed: fd.get(`hours_${day}_closed`) != null,
+      }))
+    : null;
+
   const row = {
     studio_id: studio.id,
     name,
     handle,
+    hours: ownHours,
     styles: fd.getAll("styles").map(String),
     hourly_rate_pence: hourly,
     min_charge_pence: minCharge,
@@ -433,5 +451,43 @@ export async function updateAssistant(_prev: FormState, fd: FormData): Promise<F
   if (error) return { error: error.message };
 
   revalidatePath("/settings/assistant");
+  return { ok: true };
+}
+
+/**
+ * Who offers a service.
+ *
+ * An empty list means everybody, and is stored as no rows rather than a row
+ * per person — so adding somebody to the team automatically means they do
+ * everything the business has not restricted, which is the behaviour anybody
+ * would expect and the opposite of what a full list would give.
+ */
+export async function setServiceProviders(bandId: string, artistIds: string[]) {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  // The band has to be this studio's; row-level security enforces it, but
+  // checking here turns a silent no-op into an honest failure.
+  const { data: band } = await supabase
+    .from("price_bands")
+    .select("id")
+    .eq("id", bandId)
+    .eq("studio_id", studio.id)
+    .maybeSingle();
+  if (!band) return { error: "That service is not yours." };
+
+  await supabase.from("service_providers").delete().eq("band_id", bandId);
+
+  if (artistIds.length) {
+    const team = await getArtists(studio.id);
+    const owned = artistIds.filter((id) => team.some((a) => a.id === id));
+    if (owned.length) {
+      await supabase
+        .from("service_providers")
+        .insert(owned.map((artist_id) => ({ band_id: bandId, artist_id })));
+    }
+  }
+
+  revalidatePath("/settings/pricing");
   return { ok: true };
 }

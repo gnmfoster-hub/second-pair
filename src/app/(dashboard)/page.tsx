@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { requireStudio, getArtists, getPriceBands } from "@/lib/studio";
+import { requireStudio } from "@/lib/studio";
 import { formatPence } from "@/lib/money";
 import { isOutOfHours } from "@/lib/report";
-import { verticalPack } from "@/lib/verticals";
+import { readinessOf } from "@/lib/readiness";
+import { Readiness } from "@/components/Readiness";
 import { Page, PageHeader } from "@/components/PageHeader";
 import { colourForName, initialsOf } from "@/lib/diaryColour";
 import { ChannelIcon } from "@/components/ChannelIcon";
@@ -73,27 +74,21 @@ export default async function InboxPage() {
 
   const sevenDaysAgo = weekAgo();
 
-  const [{ data }, artists, bands] = await Promise.all([
-    supabase
-      .from("conversations")
-      .select(
-        "id, channel, status, created_at, last_message_at, " +
-          "contacts(name, instagram_handle, phone, email, alert), " +
-          "enquiries(description, quote_low_pence, bookings(cancelled_at))",
-      )
-      .eq("studio_id", studio.id)
-      // Rehearsals by the owner never appear here, or every figure below is a
-      // lie about how much work the assistant actually did.
-      .eq("is_test", false)
-      .order("last_message_at", { ascending: false })
-      .limit(50),
-    getArtists(studio.id),
-    getPriceBands(studio.id),
-  ]);
+  const { data } = await supabase
+    .from("conversations")
+    .select(
+      "id, channel, status, created_at, last_message_at, " +
+        "contacts(name, instagram_handle, phone, email, alert), " +
+        "enquiries(description, quote_low_pence, bookings(cancelled_at))",
+    )
+    .eq("studio_id", studio.id)
+    // Rehearsals by the owner never appear here, or every figure below is a
+    // lie about how much work the assistant actually did.
+    .eq("is_test", false)
+    .order("last_message_at", { ascending: false })
+    .limit(50);
 
   const conversations = (data ?? []) as unknown as Row[];
-  const pack = verticalPack(studio.vertical);
-  const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
 
   // Framed as what the assistant did, not as what happened — that is the thing
   // being paid for, and the reason to open this page at all.
@@ -111,25 +106,7 @@ export default async function InboxPage() {
 
   const waiting = conversations.filter((c) => c.status === "needs_human");
 
-  const checklist = [
-    {
-      done: artists.length > 0,
-      label: `Add at least one ${words.practitioner} with rates`,
-      href: "/settings/artists",
-    },
-    { done: bands.length > 0, label: "Set up your services", href: "/settings/pricing" },
-    {
-      done: studio.deposit_mode === "none" || studio.cancellation_policy.trim().length > 0,
-      label: "Write the cancellation policy",
-      href: "/settings",
-    },
-    {
-      done: Boolean(studio.privacy_notice_url),
-      label: "Add a privacy notice URL",
-      href: "/settings",
-    },
-  ];
-  const outstanding = checklist.filter((c) => !c.done);
+  const capabilities = await readinessOf(supabase, studio);
 
   return (
     <Page>
@@ -180,44 +157,7 @@ export default async function InboxPage() {
         </div>
       )}
 
-      {outstanding.length > 0 && (
-        <div className="card mt-4 p-5">
-          <div className="flex items-baseline justify-between gap-3">
-            <div className="section-title">Finish setting up</div>
-            <div className="hint num">
-              {checklist.length - outstanding.length}/{checklist.length}
-            </div>
-          </div>
-          <div className="mt-3 h-1 overflow-hidden rounded-full bg-surface-2">
-            <div
-              className="h-full rounded-full bg-accent transition-[width]"
-              style={{
-                width: `${((checklist.length - outstanding.length) / checklist.length) * 100}%`,
-              }}
-            />
-          </div>
-          <ul className="mt-4 space-y-2.5">
-            {checklist.map((item) => (
-              <li key={item.label} className="flex items-center gap-2.5 text-sm">
-                <span
-                  className={`grid size-4 shrink-0 place-items-center rounded-full text-[10px] ${
-                    item.done ? "bg-ok/15 text-ok" : "border border-border text-transparent"
-                  }`}
-                >
-                  ✓
-                </span>
-                {item.done ? (
-                  <span className="text-muted line-through">{item.label}</span>
-                ) : (
-                  <Link href={item.href} className="hover:text-accent">
-                    {item.label}
-                  </Link>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <Readiness capabilities={capabilities} />
 
       <div className="card mt-4 overflow-hidden">
         {conversations.length === 0 ? (

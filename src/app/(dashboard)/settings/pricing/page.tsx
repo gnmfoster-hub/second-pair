@@ -3,6 +3,8 @@ import { quoteForBand, depositFor, describeDepositRule, isFixedPrice } from "@/l
 import { formatRange, formatPence } from "@/lib/money";
 import { BandEditor } from "./BandEditor";
 import { SeedBands } from "./SeedBands";
+import { WhoDoesThis } from "./WhoDoesThis";
+import { createClient } from "@/lib/supabase/server";
 import { verticalPack } from "@/lib/verticals";
 
 export default async function PricingPage() {
@@ -12,6 +14,21 @@ export default async function PricingPage() {
     getArtists(studio.id),
   ]);
   const activeArtists = artists.filter((a) => a.active);
+
+  /*
+   * Which people offer which services. No rows for a service means everybody
+   * does it, which is what nearly every service is.
+   */
+  const supabase = await createClient();
+  const { data: providerRows } = await supabase
+    .from("service_providers")
+    .select("band_id, artist_id")
+    .in("band_id", bands.map((b) => b.id));
+
+  const providers: Record<string, string[]> = {};
+  for (const row of providerRows ?? []) {
+    (providers[row.band_id] ??= []).push(row.artist_id);
+  }
   const pack = verticalPack(studio.vertical);
   const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
   const title = (word: string) => word.replace(/^./, (c) => c.toUpperCase());
@@ -36,7 +53,18 @@ export default async function PricingPage() {
         </div>
 
         {bands.map((band, i) => (
-          <BandEditor key={band.id} band={band} index={i} />
+          <div key={band.id} className="relative">
+            <BandEditor band={band} index={i} />
+            {/* Only shown once there is more than one person to choose between. */}
+            <div className="absolute right-5 top-3">
+              <WhoDoesThis
+                bandId={band.id}
+                label={band.size_label}
+                team={activeArtists}
+                current={providers[band.id] ?? []}
+              />
+            </div>
+          </div>
         ))}
         <BandEditor index={bands.length} />
 

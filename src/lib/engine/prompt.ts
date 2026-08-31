@@ -36,6 +36,8 @@ export function studioSystemPrompt(
   bands: PriceBand[],
   faqs: Faq[],
   options: ServiceOption[],
+  /** Which people offer which services. Empty for almost every business. */
+  providers: Record<string, string[]> = {},
 ): string {
   const active = artists.filter((a) => a.active);
   const pack = verticalPack(studio.vertical);
@@ -146,16 +148,32 @@ Travelling time is already left either side of every job, so what get_available_
         .join("\n")
     : `(No ${words.practitioners} are set up yet. You cannot quote. Escalate any pricing question.)`;
 
+  /*
+   * Who does what, when a business has said.
+   *
+   * Named only where it is restricted — telling the assistant that everybody
+   * does everything, service by service, is noise it has to read every turn.
+   * A shop with a piercer or a nail technician gets one clause per service
+   * that actually needs it.
+   */
+  const doneBy = (bandId: string) => {
+    const allowed = providers?.[bandId];
+    if (!allowed?.length) return "";
+    const names = active.filter((a) => allowed.includes(a.id)).map((a) => a.name);
+    if (names.length === 0 || names.length === active.length) return "";
+    return ` — only ${names.join(" or ")} does this`;
+  };
+
   const bandLines = bands.length
     ? bands
         .map(
           (b) =>
             `- ${b.size_label}: roughly ${b.hours_low}–${b.hours_high} hours${
               b.requires_consultation ? " (consultation required before booking)" : ""
-            }`,
+            }${doneBy(b.id)}`,
         )
         .join("\n")
-    : "(No size bands are set up yet. You cannot quote. Escalate any pricing question.)";
+    : `(No ${words.size_unit}s are set up yet. You cannot quote. Escalate any pricing question.)`;
 
   const faqLines = faqs.length
     ? faqs.map((f) => `Q: ${f.question}\nA: ${f.answer}`).join("\n\n")
@@ -227,7 +245,7 @@ ${hours}
 ${words.practitioners.replace(/^./, (c) => c.toUpperCase())}:
 ${artistLines}
 
-Size bands:
+${words.size_unit.replace(/^./, (c) => c.toUpperCase())}s:
 ${bandLines}
 
 ${

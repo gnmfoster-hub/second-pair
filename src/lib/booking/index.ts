@@ -131,8 +131,16 @@ export async function availableSlots(search: SlotSearch): Promise<Slot[]> {
     busy = withTravelTime(busy, studio.travel_buffer_minutes);
   }
 
+  /*
+   * This person's own week, if they have one.
+   *
+   * Hours were the business's only, so a stylist who works Tuesday, Thursday
+   * and Saturday could not be described and the assistant cheerfully offered
+   * her a Monday. Null still means "same as the business", which is what a
+   * one-person business wants and what everybody starts as.
+   */
   return findSlots({
-    hours: studio.hours,
+    hours: artist.hours?.length ? artist.hours : studio.hours,
     busy,
     durationMinutes,
     timezone: studio.timezone,

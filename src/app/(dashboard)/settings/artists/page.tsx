@@ -22,10 +22,16 @@ export default async function ArtistsPage() {
       )}
 
       {artists.map((artist) => (
-        <ArtistEditor key={artist.id} artist={artist} styles={styles} noun={words.practitioner} />
+        <ArtistEditor
+          key={artist.id}
+          artist={artist}
+          styles={styles}
+          studioHours={studio.hours}
+          noun={words.practitioner}
+        />
       ))}
 
-      <ArtistEditor styles={styles} noun={words.practitioner} />
+      <ArtistEditor styles={styles} studioHours={studio.hours} noun={words.practitioner} />
     </div>
   );
 }

@@ -101,6 +101,23 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     ]);
 
   /*
+   * Which people offer which services.
+   *
+   * Loaded once per turn and passed down, rather than queried inside a tool
+   * that may run several times. A band with nobody named against it is done by
+   * everybody, so this is empty for almost every business.
+   */
+  const { data: providerRows } = await db
+    .from("service_providers")
+    .select("band_id, artist_id")
+    .in("band_id", (bands ?? []).map((b) => b.id));
+
+  const providers: Record<string, string[]> = {};
+  for (const row of providerRows ?? []) {
+    (providers[row.band_id] ??= []).push(row.artist_id);
+  }
+
+  /*
    * Who this enquiry is for arrives from the browser, so it is checked against
    * this studio's own active people before it is believed. Without this, a
    * crafted request could pin a conversation in one business to somebody who
@@ -169,6 +186,7 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     contactId,
     enquirySizeBandId: null,
     enquiryArtistId: null,
+    providers,
     forArtist:
       (artists ?? []).find((a) => a.id === conversation.artist_id) ?? null,
     depositPence: 0,
@@ -268,6 +286,7 @@ async function generateReply(ctx: ReplyContext): Promise<string> {
     ctx.bands,
     ctx.faqs,
     ctx.options,
+    ctx.providers ?? {},
   );
 
   let text = "";

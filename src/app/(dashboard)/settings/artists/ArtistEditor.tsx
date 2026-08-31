@@ -6,14 +6,18 @@ import { Field, FormMessage, SubmitButton } from "@/components/Form";
 import { penceToInput, formatPence } from "@/lib/money";
 import { BookingSource } from "./BookingSource";
 import { Avatar } from "@/components/Avatar";
-import type { Artist, ServiceOption } from "@/lib/types";
+import { OwnHours } from "./OwnHours";
+import type { Artist, OpeningHours, ServiceOption } from "@/lib/types";
 
 export function ArtistEditor({
   artist,
+  studioHours,
   styles,
   noun,
 }: {
   artist?: Artist;
+  /** Shown as the fallback when this person has no week of their own. */
+  studioHours: OpeningHours[];
   styles: ServiceOption[];
   /** What this trade calls them: artist, stylist, engineer. */
   noun: string;
@@ -123,6 +127,12 @@ export function ArtistEditor({
         </Field>
 
         <BookingSource artist={artist} />
+
+        <OwnHours
+          hours={artist?.hours ?? null}
+          studioHours={studioHours}
+          noun={noun}
+        />
 
         <label className="flex items-center gap-2 text-sm">
           <input

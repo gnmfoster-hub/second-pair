@@ -122,6 +122,15 @@ export type Artist = {
   name: string;
   /** Short name used in this person's own booking link. */
   handle: string | null;
+  /** Their own working week. Null follows the business's hours. */
+  hours: OpeningHours[] | null;
+  /** Their login, once they accept an invite. Null is a normal team member. */
+  user_id: string | null;
+  /** Their own opening line and voice. Null follows the business. */
+  greeting: string | null;
+  tone: string | null;
+  /** Secret in their own calendar subscribe URL. */
+  calendar_token: string;
   styles: StyleKey[];
   hourly_rate_pence: number;
   min_charge_pence: number;

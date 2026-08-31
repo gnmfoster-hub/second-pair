@@ -171,3 +171,70 @@ test("slots are described in the business's own timezone", () => {
   assert.match(said, /1 September/);
   assert.match(said, /10:00/); // 09:00Z is 10am in London during BST
 });
+
+// ------------------------------------------------------ one person's own week
+//
+// Opening hours used to be the business's only, so a stylist working Tuesday,
+// Thursday and Saturday could not be described — and the assistant offered her
+// a Monday. findSlots takes whichever week it is handed; these prove it
+// honours a narrower one rather than falling back to the business's.
+
+test("somebody who does not work Mondays is not offered one", () => {
+  const tuesdayThursdaySaturday = [0, 1, 2, 3, 4, 5, 6].map((day) => ({
+    day,
+    open: "09:00",
+    close: "17:00",
+    closed: ![2, 4, 6].includes(day),
+  }));
+
+  const slots = findSlots({
+    hours: tuesdayThursdaySaturday,
+    busy: [],
+    durationMinutes: 60,
+    timezone: "Europe/London",
+    noticeHours: 0,
+    limit: 40,
+    // A Monday.
+    now: new Date("2026-09-07T08:00:00Z"),
+  });
+
+  const days = new Set(
+    slots.map((s) =>
+      new Date(s.starts_at).toLocaleDateString("en-GB", {
+        weekday: "long",
+        timeZone: "Europe/London",
+      }),
+    ),
+  );
+
+  assert.equal(days.has("Monday"), false, [...days].join(", "));
+  assert.equal(days.has("Tuesday"), true);
+});
+
+test("a narrower week still offers the days it does work", () => {
+  const saturdaysOnly = [0, 1, 2, 3, 4, 5, 6].map((day) => ({
+    day,
+    open: "10:00",
+    close: "14:00",
+    closed: day !== 6,
+  }));
+
+  const slots = findSlots({
+    hours: saturdaysOnly,
+    busy: [],
+    durationMinutes: 60,
+    timezone: "Europe/London",
+    noticeHours: 0,
+    limit: 10,
+    now: new Date("2026-09-07T08:00:00Z"),
+  });
+
+  assert.ok(slots.length > 0, "a Saturday-only week should still offer Saturdays");
+  for (const slot of slots) {
+    const day = new Date(slot.starts_at).toLocaleDateString("en-GB", {
+      weekday: "long",
+      timeZone: "Europe/London",
+    });
+    assert.equal(day, "Saturday", `offered a ${day}`);
+  }
+});
