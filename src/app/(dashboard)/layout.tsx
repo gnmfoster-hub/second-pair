@@ -31,7 +31,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* Desktop: a sidebar. Phone: a top bar and a bottom tab bar, below. */}
       <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface md:flex">
         <div className="px-4 pb-3 pt-4">
-          <Logo height={26} />
+          {/*
+           * The full lockup, tagline and all. The pack wants 180px of width for
+           * it; the sidebar gives about 208px inside its padding, so it fits.
+           * The mobile header does not, and keeps the horizontal one.
+           */}
+          <Logo height={46} tagline />
           <div className="mt-3 truncate border-t border-border pt-3 text-sm font-medium">
             {studio.name}
           </div>
