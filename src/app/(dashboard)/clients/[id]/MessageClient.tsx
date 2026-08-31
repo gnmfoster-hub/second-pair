@@ -114,7 +114,9 @@ export function MessageClient({
           />
 
           <div className="flex flex-wrap items-center gap-4">
-            <SubmitButton>Send</SubmitButton>
+            <SubmitButton className="btn-highlight" pending="Sending…">
+              Send
+            </SubmitButton>
             <FormMessage state={state} />
             <p className="hint ml-auto">
               {/* An offer is only worth making if the yes gets booked. */}

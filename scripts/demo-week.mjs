@@ -97,6 +97,12 @@ await db.from("bookings").delete().is("enquiry_id", null).in(
   team.map((a) => a.id),
 );
 
+/** Sixty-five pounds an hour, rounded to a price somebody would actually say. */
+function priceFor(minutes) {
+  const pounds = Math.round((minutes / 60) * 65);
+  return Math.round(pounds / 5) * 5 * 100;
+}
+
 const rows = WEEK.map(([day, hour, minutes, category, title, unpaid], i) => {
   const starts = at(day, hour, hour % 1 ? 30 : 0);
   return {
@@ -111,6 +117,18 @@ const rows = WEEK.map(([day, hour, minutes, category, title, unpaid], i) => {
     // Manual throughout: the schema rightly refuses an assistant booking
     // with no enquiry behind it, and this script has no conversations.
     source: "manual",
+    /*
+     * What the job comes to.
+     *
+     * Priced off how long it takes, which is roughly how these businesses
+     * actually price. Without it the week reads "£0 worth" next to twenty-odd
+     * booked hours, and the first thing anybody asks is whether the figure
+     * works at all.
+     */
+    price_pence:
+      category === "appointment" || category === "consultation"
+        ? priceFor(minutes)
+        : null,
     deposit_amount_pence: unpaid ? 3000 : 0,
     deposit_status: unpaid ? "unpaid" : "paid",
   };

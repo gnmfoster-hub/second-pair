@@ -131,7 +131,7 @@ export default async function ClientsPage({
 
         {/* Somebody who has never messaged you still needs a record — the
             walk-in regular, and anybody you want to reach out to first. */}
-        <Link href="/clients/new" className="btn-ghost ml-auto py-1.5 text-xs">
+        <Link href="/clients/new" className="btn-highlight ml-auto px-3.5 py-2 text-xs">
           Add a client
         </Link>
       </div>

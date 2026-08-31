@@ -130,29 +130,48 @@ export default async function InboxPage() {
         )}
       </PageHeader>
 
+      {/*
+       * Three numbers, three weights.
+       *
+       * Neutral, then the money, then whatever needs a person. The middle one
+       * carries the brand colour because it is the only figure on here that
+       * answers "is this worth paying for" — and a screen where everything is
+       * the same navy has no answer to that at all.
+       *
+       * The darker orange, not the bright one: the bright one is for a solid
+       * fill behind ink, and as text on paper it does not pass contrast.
+       */}
       {recent.length > 0 && (
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          <div className="card p-4">
+        <div className="mt-7 grid gap-3 sm:grid-cols-3">
+          <div className="card p-5">
             <div className="stat">{booked.length}</div>
-            <div className="hint mt-1.5">Booked in</div>
+            <div className="hint mt-2">Booked in</div>
           </div>
 
-          {/* The card that justifies the bill, so it is the one with colour. */}
           <div
-            className={`card relative overflow-hidden p-4 ${recovered ? "border-accent/40" : ""}`}
+            className={`card relative overflow-hidden p-5 ${
+              recovered ? "border-highlight/40" : ""
+            }`}
           >
             {recovered > 0 && (
-              <span className="absolute inset-y-0 left-0 w-1 bg-accent" aria-hidden />
+              <span
+                className="absolute inset-y-0 left-0 w-1"
+                style={{ background: "var(--highlight)" }}
+                aria-hidden
+              />
             )}
-            <div className={`stat ${recovered ? "text-accent" : ""}`}>
+            <div
+              className="stat"
+              style={recovered ? { color: "var(--highlight-strong)" } : undefined}
+            >
               {formatPence(recovered)}
             </div>
-            <div className="hint mt-1.5">Won while you were busy</div>
+            <div className="hint mt-2">Won while you were busy</div>
           </div>
 
-          <div className={`card p-4 ${waiting.length ? "border-warn/40" : ""}`}>
+          <div className={`card p-5 ${waiting.length ? "border-warn/40" : ""}`}>
             <div className={`stat ${waiting.length ? "text-warn" : ""}`}>{waiting.length}</div>
-            <div className="hint mt-1.5">Need you</div>
+            <div className="hint mt-2">Need you</div>
           </div>
         </div>
       )}
@@ -177,11 +196,19 @@ export default async function InboxPage() {
               const contact = c.contacts;
               const enquiry = c.enquiries;
               const reach = contact?.phone ?? contact?.email;
-              const who =
-                contact?.name ??
-                contact?.instagram_handle ??
-                contact?.phone ??
-                "Unnamed enquiry";
+              /*
+               * Every row has to say something.
+               *
+               * Plenty of people chat on a website and never give a name, and
+               * the row for them read "Unnamed enquiry" over "Website" — two
+               * lines, no information. What they actually asked for is more use
+               * than the word Unnamed, so it moves up to the title when there
+               * is nobody to name.
+               */
+              const named =
+                contact?.name ?? contact?.instagram_handle ?? contact?.phone ?? null;
+              const description = enquiry?.description ?? null;
+              const who = named ?? description ?? "New enquiry";
               const outOfHours = isOutOfHours(
                 new Date(c.created_at),
                 studio.hours,
@@ -194,14 +221,25 @@ export default async function InboxPage() {
                     href={`/conversations/${c.id}`}
                     className="group flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-surface-2/60 sm:px-5"
                   >
-                    {/* A face, so the list scans as people rather than rows. */}
-                    <span
-                      className="grid size-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white"
-                      style={{ background: colourForName(who) }}
-                      aria-hidden
-                    >
-                      {initialsOf(who)}
-                    </span>
+                    {/* A face, so the list scans as people rather than rows —
+                        and where there is no person yet, where they came in. */}
+                    {named ? (
+                      <span
+                        className="grid size-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white"
+                        style={{ background: colourForName(named) }}
+                        aria-hidden
+                      >
+                        {initialsOf(named)}
+                      </span>
+                    ) : (
+                      <span
+                        className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-2 text-muted"
+                        title={CHANNEL_LABELS[c.channel]}
+                        aria-hidden
+                      >
+                        <ChannelIcon channel={c.channel} />
+                      </span>
+                    )}
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -214,9 +252,21 @@ export default async function InboxPage() {
                             note
                           </span>
                         )}
+                        {/*
+                         * Quiet unless it is actually in the way.
+                         *
+                         * Somebody chatting on the website who has not given a
+                         * number yet is an ordinary enquiry, not a problem, and
+                         * six amber flags down a list made every normal day look
+                         * like a bad one. It turns amber only when the
+                         * conversation needs a person — that is the moment not
+                         * being able to reach them stops you.
+                         */}
                         {!reach && (
                           <span
-                            className="hidden shrink-0 text-[11px] text-warn sm:inline"
+                            className={`hidden shrink-0 text-[11px] sm:inline ${
+                              c.status === "needs_human" ? "text-warn" : "text-muted/70"
+                            }`}
                             title="No phone or email yet"
                           >
                             no contact
@@ -232,7 +282,7 @@ export default async function InboxPage() {
                           <ChannelIcon channel={c.channel} />
                         </span>
                         <span className="truncate">
-                          {enquiry?.description ?? CHANNEL_LABELS[c.channel]}
+                          {named ? description ?? CHANNEL_LABELS[c.channel] : CHANNEL_LABELS[c.channel]}
                         </span>
                       </div>
                     </div>

@@ -22,6 +22,7 @@ type RawRow = {
   notes: string | null;
   deposit_status: string;
   deposit_amount_pence: number;
+  price_pence: number | null;
   repeats: string;
   contacts: { id: string; name: string | null; phone: string | null } | null;
   enquiries: {
@@ -79,7 +80,7 @@ export default async function DiaryPage({
     .from("bookings")
     .select(
       "id, artist_id, starts_at, ends_at, all_day, category, blocks_availability, source, " +
-        "title, notes, deposit_status, deposit_amount_pence, repeats, " +
+        "title, notes, deposit_status, deposit_amount_pence, price_pence, repeats, " +
         "contacts(id, name, phone), " +
         "enquiries(description, quote_low_pence, conversation_id, conversations(contacts(name, phone)))",
     )
@@ -107,6 +108,7 @@ export default async function DiaryPage({
       notes: r.notes,
       deposit_status: r.deposit_status,
       deposit_amount_pence: r.deposit_amount_pence,
+      price_pence: r.price_pence,
       // Either route: a conversation's contact, or one attached by hand.
       clientName: r.enquiries?.conversations?.contacts?.name ?? r.contacts?.name ?? null,
       clientPhone: r.enquiries?.conversations?.contacts?.phone ?? r.contacts?.phone ?? null,
@@ -164,7 +166,17 @@ export default async function DiaryPage({
       0,
     );
 
-  const worth = entries.reduce((total, e) => total + (e.quotePence ?? 0), 0);
+  /*
+   * What was agreed, then what was quoted.
+   *
+   * It used to be the quote alone, which is only ever set on work the
+   * assistant booked. A shop that types its own regulars in saw £0 every week
+   * and quite reasonably stopped believing the number.
+   */
+  const worth = entries.reduce(
+    (total, e) => total + (e.price_pence ?? e.quotePence ?? 0),
+    0,
+  );
 
   // Multiple people multiply the room available, so the figure means something
   // in a salon as well as in a van.

@@ -37,6 +37,8 @@ export type Entry = {
   contactId: string | null;
   description: string | null;
   conversationId: string | null;
+  /** What this booking comes to. Set by hand; falls back to the quote. */
+  price_pence: number | null;
   /** What the enquiry was quoted, for the week's worth. */
   quotePence: number | null;
   repeats: string;

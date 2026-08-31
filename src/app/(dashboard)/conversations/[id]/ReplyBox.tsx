@@ -18,7 +18,9 @@ export function ReplyBox({ conversationId }: { conversationId: string }) {
         required
       />
       <div className="flex items-center gap-4">
-        <SubmitButton>Send reply</SubmitButton>
+        <SubmitButton className="btn-highlight" pending="Sending…">
+          Send reply
+        </SubmitButton>
         <FormMessage state={state} />
         {/*
          * Saved, but it did not reach them.

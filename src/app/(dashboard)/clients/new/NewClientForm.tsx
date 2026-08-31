@@ -45,7 +45,9 @@ export function NewClientForm() {
       </p>
 
       <div className="flex items-center gap-4">
-        <SubmitButton>Add client</SubmitButton>
+        <SubmitButton className="btn-highlight" pending="Adding…">
+          Add client
+        </SubmitButton>
         {state.error && <p className="text-sm text-bad">{state.error}</p>}
       </div>
     </form>

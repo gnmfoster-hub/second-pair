@@ -6,14 +6,23 @@ import type { FormState } from "@/app/(dashboard)/settings/actions";
 export function SubmitButton({
   children = "Save",
   className = "btn-primary",
+  pending: pendingLabel = "Saving…",
 }: {
   children?: React.ReactNode;
   className?: string;
+  /*
+   * What it says while it is working.
+   *
+   * It always said "Saving…", so pressing Send said Saving and pressing Add
+   * client said Saving. A button that changes verb mid-press is a small thing
+   * that makes a product feel unfinished.
+   */
+  pending?: string;
 }) {
   const { pending } = useFormStatus();
   return (
     <button type="submit" className={className} disabled={pending}>
-      {pending ? "Saving…" : children}
+      {pending ? pendingLabel : children}
     </button>
   );
 }

@@ -99,6 +99,7 @@ export async function saveDiaryEntry(
             blocks_availability: definition.blocks,
             title: str(fd, "title") || str(fd, "contact_name") || null,
             notes: str(fd, "notes") || null,
+            price_pence: priceOf(fd),
             contact_id: await resolveContact(supabase, studio.id, fd),
           };
 
@@ -137,6 +138,9 @@ export async function saveDiaryEntry(
     blocks_availability: definition.blocks,
     title,
     notes: str(fd, "notes") || null,
+    // What the job comes to. The week's takings used to be read off the
+    // assistant's quote, so anything typed in by hand was worth nothing.
+    price_pence: priceOf(fd),
     deposit_amount_pence: 0,
     // Nothing the owner adds is waiting on a deposit, so the unpaid-hold sweep
     // must never touch it.
@@ -364,4 +368,20 @@ async function resolveContact(
     .single();
 
   return data?.id ?? null;
+}
+
+/**
+ * A price typed in pounds, kept in pence.
+ *
+ * Blank is null rather than zero: "I have not said" and "it is free" are
+ * different, and a week's total should not be dragged down by every block of
+ * time somebody put in their own diary.
+ */
+function priceOf(fd: FormData): number | null {
+  const raw = String(fd.get("price") ?? "").trim().replace(/[£,\s]/g, "");
+  if (!raw) return null;
+
+  const pounds = Number(raw);
+  if (!Number.isFinite(pounds) || pounds < 0) return null;
+  return Math.round(pounds * 100);
 }

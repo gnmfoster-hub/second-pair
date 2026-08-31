@@ -192,10 +192,23 @@ body {
   /* ------------------------------------------------------------------ type */
 
   /* One scale, used everywhere, so five pages stop inventing five headings. */
+  /*
+   * Fluid, so a heading is confident on a desktop without shouting on a
+   * phone. It was a flat 22px, which read as timid on a wide screen and was
+   * the main reason pages felt like forms rather than a product.
+   */
   .page-title {
     font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-    @apply text-[1.375rem] font-semibold leading-tight tracking-[-0.02em];
+    font-size: clamp(1.5rem, 1.25rem + 0.9vw, 1.875rem);
+    @apply font-semibold leading-[1.15] tracking-[-0.025em];
     text-wrap: balance;
+  }
+
+  /* The sentence under a page title. Wider measure than a hint, and darker,
+     because it is read rather than glanced at. */
+  .page-lede {
+    @apply mt-2 max-w-prose text-sm leading-relaxed text-muted;
+    text-wrap: pretty;
   }
 
   .section-title {
@@ -230,6 +243,33 @@ body {
   .card {
     @apply rounded-2xl border border-border bg-surface;
     box-shadow: var(--shadow-card);
+  }
+
+  /* A card you can click. Lifts a little, rather than changing colour, so a
+     grid of them reads as objects rather than as buttons. */
+  .card-interactive {
+    @apply transition-[box-shadow,transform] duration-150;
+  }
+
+  .card-interactive:hover {
+    box-shadow: var(--shadow-pop);
+    transform: translateY(-1px);
+  }
+
+  /*
+   * A row in a list that goes somewhere.
+   *
+   * Lists were flat text with no sign they could be clicked until the cursor
+   * happened to land on one. The tint is deliberately faint — a list of forty
+   * clients should not flicker as the mouse crosses it.
+   */
+  .row {
+    @apply -mx-2 rounded-xl px-2 transition-colors
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent;
+  }
+
+  .row:hover {
+    background: color-mix(in srgb, var(--accent) 5%, transparent);
   }
 
   /* Status, channel, anything that is a state rather than a sentence. */
@@ -285,6 +325,31 @@ body {
 
   .btn-primary {
     @apply bg-accent text-white hover:bg-accent/90;
+  }
+
+  /*
+   * The one that goes somewhere.
+   *
+   * Orange is the brand's signature and it appeared nowhere in the product —
+   * every button was navy, so no screen had a focal point. The rule that keeps
+   * it meaning something: highlight is for an action that reaches outward or
+   * creates something — Send, Add, Invite. Save stays navy. More than one of
+   * these on a screen and it is being used wrong.
+   *
+   * Ink on orange, never white: white on this orange fails contrast.
+   */
+  .btn-highlight {
+    background: var(--highlight);
+    color: var(--on-highlight);
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
+           text-sm font-semibold transition-colors disabled:opacity-50
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+           focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+    min-height: 2.75rem;
+  }
+
+  .btn-highlight:hover:not(:disabled) {
+    background: var(--highlight-strong);
   }
 
   .btn-ghost {

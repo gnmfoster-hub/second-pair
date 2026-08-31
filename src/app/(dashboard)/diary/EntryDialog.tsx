@@ -187,6 +187,32 @@ export function EntryDialog({
             </Field>
           )}
 
+          {/*
+           * What it comes to.
+           *
+           * Only on client work — a dentist appointment in your own diary has
+           * no price, and asking for one on every entry would be daft. Blank
+           * stays blank rather than becoming zero.
+           */}
+          {!fromClient && isClientWork && (
+            <Field label="Price" hint="What the job comes to. Leave blank if you don't know yet.">
+              <div className="relative max-w-[10rem]">
+                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted">
+                  £
+                </span>
+                <input
+                  name="price"
+                  inputMode="decimal"
+                  defaultValue={
+                    entry?.price_pence != null ? (entry.price_pence / 100).toString() : ""
+                  }
+                  placeholder="65"
+                  className="input pl-7 tabular-nums"
+                />
+              </div>
+            </Field>
+          )}
+
           {!fromClient && !isClientWork && (
             <Field label="Title">
               <input
