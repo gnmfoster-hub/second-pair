@@ -84,12 +84,12 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
     });
 
   return (
-    <div className="mx-auto max-w-4xl px-8 py-10">
+    <div className="mx-auto max-w-4xl px-8 py-9">
       <Link href="/clients" className="hint hover:text-foreground">
         ← Clients
       </Link>
 
-      <h1 className="mt-3 text-xl font-semibold tracking-tight">
+      <h1 className="page-title mt-3">
         {contact.name ?? contact.phone ?? "Unnamed client"}
       </h1>
       <p className="hint mt-1">
@@ -110,15 +110,15 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <div className="card p-4">
-          <div className="text-2xl font-semibold tabular-nums">{live.length}</div>
+          <div className="stat">{live.length}</div>
           <div className="hint mt-0.5">Appointments</div>
         </div>
         <div className="card p-4">
-          <div className="text-2xl font-semibold tabular-nums">{formatPence(paid)}</div>
+          <div className="stat">{formatPence(paid)}</div>
           <div className="hint mt-0.5">Deposits paid</div>
         </div>
         <div className={`card p-4 ${noShows ? "border-warn/40" : ""}`}>
-          <div className={`text-2xl font-semibold tabular-nums ${noShows ? "text-warn" : ""}`}>
+          <div className={`stat ${noShows ? "text-warn" : ""}`}>
             {noShows}
           </div>
           <div className="hint mt-0.5">No-shows</div>

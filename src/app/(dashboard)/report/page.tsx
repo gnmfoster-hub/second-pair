@@ -64,9 +64,9 @@ export default async function ReportPage({
         : `${Math.round(report.medianFirstResponseSeconds / 60)}m`;
 
   return (
-    <div className="mx-auto max-w-4xl px-8 py-10">
+    <div className="mx-auto max-w-4xl px-8 py-9">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
-        <h1 className="text-xl font-semibold tracking-tight">The week</h1>
+        <h1 className="page-title">The week</h1>
         <span className="hint">{range}</span>
         <div className="ml-auto flex gap-2">
           <Link href={`/report?weeks=${back + 1}`} className="btn-ghost px-3">

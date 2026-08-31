@@ -5,12 +5,14 @@ import { updateStudio, type FormState } from "./actions";
 import { Field, FormMessage, SubmitButton } from "@/components/Form";
 import { penceToInput } from "@/lib/money";
 import { DAY_NAMES, DEFAULT_HOURS, type Studio } from "@/lib/types";
+import { verticalPack } from "@/lib/verticals";
 
 export function StudioForm({ studio }: { studio: Studio }) {
   const [state, action] = useActionState<FormState, FormData>(updateStudio, {});
   const [depositType, setDepositType] = useState(studio.deposit_rule.type);
   const [depositMode, setDepositMode] = useState(studio.deposit_mode ?? "required");
   const [travelMode, setTravelMode] = useState(studio.travel_mode ?? "at_premises");
+  const packGreeting = verticalPack(studio.vertical).greeting;
 
   const hours = DEFAULT_HOURS.map(
     (d) => studio.hours.find((h) => h.day === d.day) ?? d,
@@ -30,6 +32,19 @@ export function StudioForm({ studio }: { studio: Studio }) {
           hint="Written into the assistant's system prompt. Be specific: how you greet people, what you never say."
         >
           <textarea name="tone" defaultValue={studio.tone} rows={3} className="input" />
+        </Field>
+
+        <Field
+          label="Opening line in the chat"
+          hint={`The first thing someone reads before they have typed anything. Leave it blank and it uses your trade's: "${packGreeting}"`}
+        >
+          <input
+            name="greeting"
+            defaultValue={studio.greeting ?? ""}
+            placeholder={packGreeting}
+            className="input"
+            maxLength={200}
+          />
         </Field>
 
         <Field label="Timezone">

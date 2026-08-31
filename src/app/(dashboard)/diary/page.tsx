@@ -111,9 +111,9 @@ export default async function DiaryPage({
   ).length;
 
   return (
-    <div className="mx-auto max-w-6xl px-8 py-10">
+    <div className="mx-auto max-w-6xl px-8 py-9">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
-        <h1 className="text-xl font-semibold tracking-tight">Diary</h1>
+        <h1 className="page-title">Diary</h1>
         <span className="hint">{label}</span>
         {awaiting > 0 && (
           <span className="rounded-full bg-warn/10 px-2.5 py-1 text-xs text-warn">

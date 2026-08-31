@@ -78,14 +78,14 @@ export default async function ConversationPage({
       : null;
 
   return (
-    <div className="mx-auto max-w-5xl px-8 py-10">
+    <div className="mx-auto max-w-5xl px-8 py-9">
       <Link href="/" className="hint hover:text-foreground">
         ← Inbox
       </Link>
 
       <div className="mt-3 flex items-start gap-4">
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-semibold tracking-tight">
+          <h1 className="page-title">
             {contact?.name ?? "Unnamed enquiry"}
           </h1>
           <p className="hint mt-1">

@@ -56,9 +56,9 @@ export default async function ClientsPage({
   const clients = (data ?? []) as unknown as Row[];
 
   return (
-    <div className="mx-auto max-w-4xl px-8 py-10">
+    <div className="mx-auto max-w-4xl px-8 py-9">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
-        <h1 className="text-xl font-semibold tracking-tight">Clients</h1>
+        <h1 className="page-title">Clients</h1>
         <span className="hint">
           {clients.length}
           {clients.length === 200 ? "+" : ""} {term ? "matching" : "in total"}

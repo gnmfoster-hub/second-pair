@@ -4,6 +4,7 @@ import { requireStudio, getArtists, getPriceBands } from "@/lib/studio";
 import { formatPence } from "@/lib/money";
 import { isOutOfHours } from "@/lib/report";
 import { verticalPack } from "@/lib/verticals";
+import { Page, PageHeader } from "@/components/PageHeader";
 import {
   CHANNEL_LABELS,
   CONV_STATUS_LABELS,
@@ -16,7 +17,7 @@ const STATUS_STYLES: Record<ConvStatus, string> = {
   qualified: "bg-surface-2 text-foreground",
   deposit_paid: "bg-ok/10 text-ok",
   booked: "bg-ok/10 text-ok",
-  needs_human: "bg-accent/15 text-accent",
+  needs_human: "bg-warn/15 text-warn",
   lost: "bg-surface-2 text-muted/60",
 };
 
@@ -33,13 +34,20 @@ type Row = {
     email: string | null;
     alert: string | null;
   } | null;
-  enquiries:
-    | {
-        description: string | null;
-        quote_low_pence: number | null;
-        bookings: { cancelled_at: string | null }[];
-      }[]
-    | null;
+  /*
+   * An object, not an array.
+   *
+   * `enquiries.conversation_id` is unique, so PostgREST reads the relationship
+   * as to-one and embeds a single row. Typing it as an array compiles happily
+   * and then silently reads `undefined` from `[0]` forever — which is exactly
+   * what it did: every figure on this page was zero while the rows underneath
+   * plainly said "booked".
+   */
+  enquiries: {
+    description: string | null;
+    quote_low_pence: number | null;
+    bookings: { cancelled_at: string | null }[];
+  } | null;
 };
 
 /** Wrapped so the purity rule sees a call, not a bare clock read in render. */
@@ -89,12 +97,12 @@ export default async function InboxPage() {
     isOutOfHours(new Date(c.created_at), studio.hours, studio.timezone),
   );
   const isBooked = (c: Row) =>
-    (c.enquiries?.[0]?.bookings ?? []).some((b) => !b.cancelled_at);
+    (c.enquiries?.bookings ?? []).some((b) => !b.cancelled_at);
 
   const booked = recent.filter(isBooked);
   const recovered = whileShut
     .filter(isBooked)
-    .reduce((total, c) => total + (c.enquiries?.[0]?.quote_low_pence ?? 0), 0);
+    .reduce((total, c) => total + (c.enquiries?.quote_low_pence ?? 0), 0);
 
   const waiting = conversations.filter((c) => c.status === "needs_human");
 
@@ -119,59 +127,71 @@ export default async function InboxPage() {
   const outstanding = checklist.filter((c) => !c.done);
 
   return (
-    <div className="mx-auto max-w-4xl px-8 py-10">
-      <h1 className="text-xl font-semibold tracking-tight">Inbox</h1>
-
-      {recent.length > 0 ? (
-        <p className="hint mt-1">
-          Your assistant answered{" "}
-          <strong className="text-foreground">{recent.length}</strong>{" "}
-          {recent.length === 1 ? "enquiry" : "enquiries"} this week
-          {whileShut.length > 0 && (
-            <>
-              , <strong className="text-foreground">{whileShut.length}</strong> of them
-              while you were working
-            </>
-          )}
-          .
-        </p>
-      ) : (
-        <p className="hint mt-1">Every enquiry, across every channel.</p>
-      )}
+    <Page>
+      <PageHeader title="Inbox">
+        {recent.length > 0 ? (
+          <>
+            Your assistant answered{" "}
+            <strong className="font-semibold text-foreground">{recent.length}</strong>{" "}
+            {recent.length === 1 ? "enquiry" : "enquiries"} this week
+            {whileShut.length > 0 && (
+              <>
+                ,{" "}
+                <strong className="font-semibold text-foreground">{whileShut.length}</strong>{" "}
+                of them while you were working
+              </>
+            )}
+            .
+          </>
+        ) : (
+          <>Every enquiry, across every channel.</>
+        )}
+      </PageHeader>
 
       {recent.length > 0 && (
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <div className="mt-6 grid gap-3 sm:grid-cols-3">
           <div className="card p-4">
-            <div className="text-2xl font-semibold tabular-nums">{booked.length}</div>
-            <div className="hint mt-0.5">Booked in</div>
+            <div className="stat">{booked.length}</div>
+            <div className="hint mt-1.5">Booked in</div>
           </div>
-          <div className={`card p-4 ${recovered ? "border-accent/40 bg-accent/5" : ""}`}>
-            <div
-              className={`text-2xl font-semibold tabular-nums ${recovered ? "text-accent" : ""}`}
-            >
+
+          {/* The card that justifies the bill, so it is the one with colour. */}
+          <div
+            className={`card relative overflow-hidden p-4 ${recovered ? "border-accent/40" : ""}`}
+          >
+            {recovered > 0 && (
+              <span className="absolute inset-y-0 left-0 w-1 bg-accent" aria-hidden />
+            )}
+            <div className={`stat ${recovered ? "text-accent" : ""}`}>
               {formatPence(recovered)}
             </div>
-            <div className="hint mt-0.5">Won while you were busy</div>
+            <div className="hint mt-1.5">Won while you were busy</div>
           </div>
+
           <div className={`card p-4 ${waiting.length ? "border-warn/40" : ""}`}>
-            <div
-              className={`text-2xl font-semibold tabular-nums ${
-                waiting.length ? "text-warn" : ""
-              }`}
-            >
-              {waiting.length}
-            </div>
-            <div className="hint mt-0.5">Need you</div>
+            <div className={`stat ${waiting.length ? "text-warn" : ""}`}>{waiting.length}</div>
+            <div className="hint mt-1.5">Need you</div>
           </div>
         </div>
       )}
 
       {outstanding.length > 0 && (
-        <div className="card mt-5 p-5">
-          <div className="text-sm font-medium">
-            Setup: {checklist.length - outstanding.length} of {checklist.length} done
+        <div className="card mt-4 p-5">
+          <div className="flex items-baseline justify-between gap-3">
+            <div className="section-title">Finish setting up</div>
+            <div className="hint num">
+              {checklist.length - outstanding.length}/{checklist.length}
+            </div>
           </div>
-          <ul className="mt-3 space-y-2">
+          <div className="mt-3 h-1 overflow-hidden rounded-full bg-surface-2">
+            <div
+              className="h-full rounded-full bg-accent transition-[width]"
+              style={{
+                width: `${((checklist.length - outstanding.length) / checklist.length) * 100}%`,
+              }}
+            />
+          </div>
+          <ul className="mt-4 space-y-2.5">
             {checklist.map((item) => (
               <li key={item.label} className="flex items-center gap-2.5 text-sm">
                 <span
@@ -184,7 +204,7 @@ export default async function InboxPage() {
                 {item.done ? (
                   <span className="text-muted line-through">{item.label}</span>
                 ) : (
-                  <Link href={item.href} className="text-foreground hover:text-accent">
+                  <Link href={item.href} className="hover:text-accent">
                     {item.label}
                   </Link>
                 )}
@@ -194,20 +214,23 @@ export default async function InboxPage() {
         </div>
       )}
 
-      <div className="card mt-5 overflow-hidden">
+      <div className="card mt-4 overflow-hidden">
         {conversations.length === 0 ? (
-          <div className="px-5 py-14 text-center">
-            <div className="text-sm">Nothing yet.</div>
-            <p className="hint mx-auto mt-2 max-w-sm">
+          <div className="empty">
+            <div className="empty-title">Nothing yet</div>
+            <p className="empty-body">
               Once the widget is on your site, enquiries land here within a minute of
               arriving — whether or not you are free to look.
             </p>
+            <Link href="/settings/install" className="btn-ghost mt-5">
+              Get the widget code
+            </Link>
           </div>
         ) : (
           <ul className="divide-y divide-border">
             {conversations.map((c) => {
               const contact = c.contacts;
-              const enquiry = c.enquiries?.[0];
+              const enquiry = c.enquiries;
               const reach = contact?.phone ?? contact?.email;
               const outOfHours = isOutOfHours(
                 new Date(c.created_at),
@@ -219,17 +242,17 @@ export default async function InboxPage() {
                 <li key={c.id}>
                   <Link
                     href={`/conversations/${c.id}`}
-                    className="flex items-center gap-4 px-5 py-3.5 hover:bg-surface-2/50"
+                    className="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-surface-2/60"
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 truncate text-sm">
+                      <div className="flex items-center gap-2 truncate text-sm font-medium">
                         {contact?.name ??
                           contact?.instagram_handle ??
                           contact?.phone ??
                           "Unnamed enquiry"}
                         {contact?.alert && (
                           <span
-                            className="rounded-full bg-warn/15 px-2 py-0.5 text-[10px] uppercase tracking-wide text-warn"
+                            className="pill bg-warn/15 text-[10px] uppercase tracking-wide text-warn"
                             title={contact.alert}
                           >
                             note
@@ -243,23 +266,23 @@ export default async function InboxPage() {
 
                     {outOfHours && (
                       <span
-                        className="hint hidden sm:block"
+                        className="hint hidden shrink-0 sm:block"
                         title="Came in outside your opening hours"
                       >
                         out of hours
                       </span>
                     )}
                     {!reach && (
-                      <span className="text-xs text-warn" title="No phone or email yet">
+                      <span className="shrink-0 text-xs text-warn" title="No phone or email yet">
                         no contact
                       </span>
                     )}
                     <span
-                      className={`rounded-full px-2.5 py-1 text-xs ${STATUS_STYLES[c.status]}`}
+                      className={`pill shrink-0 ${STATUS_STYLES[c.status]}`}
                     >
                       {CONV_STATUS_LABELS[c.status]}
                     </span>
-                    <time className="hint w-20 shrink-0 text-right">
+                    <time className="hint num w-20 shrink-0 text-right">
                       {ago(c.last_message_at)}
                     </time>
                   </Link>
@@ -269,6 +292,6 @@ export default async function InboxPage() {
           </ul>
         )}
       </div>
-    </div>
+    </Page>
   );
 }

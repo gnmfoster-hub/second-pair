@@ -19,7 +19,7 @@ export function SubmitButton({
 }
 
 export function FormMessage({ state }: { state: FormState }) {
-  if (state.error) return <p className="text-sm text-accent">{state.error}</p>;
+  if (state.error) return <p className="text-sm text-bad">{state.error}</p>;
   if (state.ok) return <p className="text-sm text-ok">Saved.</p>;
   return null;
 }

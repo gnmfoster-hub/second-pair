@@ -67,7 +67,7 @@ export function ClientForm({
 
       <div className="flex items-center gap-4">
         <SubmitButton />
-        {state.error && <p className="text-sm text-accent">{state.error}</p>}
+        {state.error && <p className="text-sm text-bad">{state.error}</p>}
         {state.ok && <p className="text-sm text-ok">Saved.</p>}
       </div>
     </form>

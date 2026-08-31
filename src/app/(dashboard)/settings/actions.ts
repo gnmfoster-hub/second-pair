@@ -66,6 +66,8 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
     .update({
       name,
       tone: str(fd, "tone"),
+      // Blank means "use the trade pack's wording", not "no greeting".
+      greeting: str(fd, "greeting") || null,
       hours: readHours(fd),
       ...(deposit === studioDepositUnchanged ? {} : { deposit_rule: deposit }),
       deposit_mode: depositMode,

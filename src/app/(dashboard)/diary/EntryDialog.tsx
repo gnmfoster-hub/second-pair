@@ -286,7 +286,7 @@ export function EntryDialog({
 
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <SubmitButton>{existing ? "Save" : "Add it"}</SubmitButton>
-            {state.error && <p className="text-sm text-accent">{state.error}</p>}
+            {state.error && <p className="text-sm text-bad">{state.error}</p>}
             <div className="flex-1" />
             {existing && entry?.repeats && entry.repeats !== "none" && (
               <button

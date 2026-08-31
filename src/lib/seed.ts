@@ -31,7 +31,15 @@ export async function seedFromPack(
   // --- vocabulary and trade
   const { error: studioError } = await db
     .from("studios")
-    .update({ vertical: pack.id, vocabulary: pack.vocabulary, deposit_mode: pack.deposits })
+    .update({
+      vertical: pack.id,
+      vocabulary: pack.vocabulary,
+      deposit_mode: pack.deposits,
+      // Where the work happens decides whether the assistant asks for an
+      // address at all, and whether travel time is left between jobs. Getting
+      // this wrong makes the product unusable for a mobile trade on day one.
+      travel_mode: pack.location,
+    })
     .eq("id", studioId);
   if (studioError) errors.push(`vocabulary: ${studioError.message}`);
   else seeded.push("wording");

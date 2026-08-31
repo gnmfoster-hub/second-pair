@@ -1,6 +1,34 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { colourFor, initialsFor } from "@/components/Avatar";
+
+const stroke = {
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.75,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  "aria-hidden": true,
+};
+
+const ClipIcon = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" {...stroke}>
+    <path d="M20 11.5 12.2 19.3a4.6 4.6 0 0 1-6.5-6.5l7.8-7.8a3 3 0 1 1 4.3 4.3l-7.8 7.8a1.5 1.5 0 0 1-2.1-2.1l7.2-7.2" />
+  </svg>
+);
+
+const SendIcon = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" {...stroke}>
+    <path d="M4 12h13M12.5 6.5 18.5 12l-6 5.5" />
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" {...stroke}>
+    <path d="M6 6l12 12M18 6L6 18" />
+  </svg>
+);
 
 type Line = { from: "client" | "studio"; text: string; images?: number };
 
@@ -45,7 +73,15 @@ function sessionId(): string {
   }
 }
 
-export function ChatWindow({ slug, studioName }: { slug: string; studioName: string }) {
+export function ChatWindow({
+  slug,
+  studioName,
+  greeting,
+}: {
+  slug: string;
+  studioName: string;
+  greeting: string;
+}) {
   const [lines, setLines] = useState<Line[]>([]);
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState<File[]>([]);
@@ -166,15 +202,27 @@ export function ChatWindow({ slug, studioName }: { slug: string; studioName: str
 
   return (
     <div className="flex h-screen flex-col bg-surface">
-      <header className="border-b border-border px-4 py-3">
-        <div className="text-sm font-medium">{studioName}</div>
-        <div className="hint">Usually replies in under a minute</div>
+      <header className="flex items-center gap-3 border-b border-border px-4 py-3">
+        <span
+          className="grid size-9 shrink-0 place-items-center rounded-full text-sm font-semibold text-white"
+          style={{ background: colourFor(studioName) }}
+          aria-hidden
+        >
+          {initialsFor(studioName)}
+        </span>
+        <div className="min-w-0">
+          <div className="truncate text-sm font-medium">{studioName}</div>
+          <div className="flex items-center gap-1.5 text-xs text-muted">
+            <span className="size-1.5 rounded-full bg-ok" aria-hidden />
+            Usually replies in under a minute
+          </div>
+        </div>
       </header>
 
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {lines.length === 0 && (
-          <div className="rounded-2xl rounded-tl-sm bg-surface-2 px-3.5 py-2.5 text-sm">
-            Hi — what were you thinking of getting done?
+          <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-surface-2 px-3.5 py-2.5 text-sm">
+            {greeting}
           </div>
         )}
 
@@ -190,27 +238,29 @@ export function ChatWindow({ slug, studioName }: { slug: string; studioName: str
             {withLinks(line.text, line.from === "client")}
             {line.images ? (
               <div className={line.text ? "mt-1 text-xs opacity-80" : "text-xs opacity-80"}>
-                📎 {line.images} image{line.images > 1 ? "s" : ""} attached
+                {line.images} image{line.images > 1 ? "s" : ""} attached
               </div>
             ) : null}
           </div>
         ))}
 
         {sending && (
-          <div className="w-16 rounded-2xl rounded-tl-sm bg-surface-2 px-3.5 py-3">
-            <span className="flex gap-1">
+          <div className="w-fit rounded-2xl rounded-tl-sm bg-surface-2 px-4 py-3.5">
+            <span className="flex gap-1" role="status" aria-label="Typing">
               {[0, 1, 2].map((i) => (
                 <span
                   key={i}
-                  className="size-1.5 animate-pulse rounded-full bg-muted"
-                  style={{ animationDelay: `${i * 150}ms` }}
+                  className="size-1.5 animate-bounce rounded-full bg-muted/70"
+                  style={{ animationDelay: `${i * 140}ms`, animationDuration: "1s" }}
                 />
               ))}
             </span>
           </div>
         )}
 
-        {error && <div className="text-xs text-accent">{error}</div>}
+        {error && (
+          <div className="rounded-lg bg-warn/10 px-3 py-2 text-xs text-warn">{error}</div>
+        )}
         <div ref={bottom} />
       </div>
 
@@ -225,10 +275,10 @@ export function ChatWindow({ slug, studioName }: { slug: string; studioName: str
               <button
                 type="button"
                 onClick={() => setPending((p) => p.filter((_, j) => j !== i))}
-                className="text-muted hover:text-accent"
+                className="text-muted hover:text-bad"
                 aria-label={`Remove ${file.name}`}
               >
-                ✕
+                <CloseIcon />
               </button>
             </span>
           ))}
@@ -250,11 +300,11 @@ export function ChatWindow({ slug, studioName }: { slug: string; studioName: str
         <button
           type="button"
           onClick={() => picker.current?.click()}
-          className="btn-ghost px-3"
-          aria-label="Attach reference images"
-          title="Attach reference images"
+          className="btn-ghost shrink-0 px-2.5"
+          aria-label="Attach photos"
+          title="Attach photos"
         >
-          📎
+          <ClipIcon />
         </button>
         <input
           value={draft}
@@ -266,10 +316,11 @@ export function ChatWindow({ slug, studioName }: { slug: string; studioName: str
         />
         <button
           type="submit"
-          className="btn-primary"
+          className="btn-primary shrink-0 px-3"
+          aria-label="Send"
           disabled={sending || (!draft.trim() && pending.length === 0)}
         >
-          Send
+          <SendIcon />
         </button>
       </form>
     </div>

@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { seedFromPack } from "@/lib/seed";
-import { VERTICAL_LIST } from "@/lib/verticals";
+import { TradePicker } from "./TradePicker";
 import { parsePounds } from "@/lib/money";
+import { Mark } from "@/components/Icons";
 
 /**
  * Signup.
@@ -73,8 +74,11 @@ export default async function OnboardingPage() {
     <div className="grid min-h-screen place-items-center px-6 py-12">
       <form action={createStudio} className="w-full max-w-lg space-y-8">
         <div>
-          <div className="text-lg font-semibold tracking-tight">Set up your business</div>
-          <p className="hint mt-1">Both of these can be changed later.</p>
+          <Mark className="size-8" />
+          <div className="page-title mt-4">Set up your business</div>
+          <p className="hint mt-1.5">
+            Three questions. All of it can be changed later.
+          </p>
         </div>
 
         <div>
@@ -91,30 +95,11 @@ export default async function OnboardingPage() {
         <fieldset>
           <legend className="label">What sort of business</legend>
           <p className="hint mb-3">
-            This sets the wording, the questions the assistant asks, your starting services
-            and what reminders say. All of it is yours to edit afterwards.
+            This sets your wording, the questions the assistant asks, your starting services,
+            whether you travel to customers, and what reminders say. All of it is yours to
+            edit afterwards.
           </p>
-
-          <div className="space-y-2">
-            {VERTICAL_LIST.map((pack, i) => (
-              <label
-                key={pack.id}
-                className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-4 hover:border-muted/50 has-[:checked]:border-accent has-[:checked]:bg-accent/5"
-              >
-                <input
-                  type="radio"
-                  name="vertical"
-                  value={pack.id}
-                  defaultChecked={i === 0}
-                  className="mt-1 accent-[var(--accent)]"
-                />
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium">{pack.label}</span>
-                  <span className="hint mt-0.5 block">{pack.blurb}</span>
-                </span>
-              </label>
-            ))}
-          </div>
+          <TradePicker />
         </fieldset>
 
         <div className="space-y-4 rounded-lg border border-border p-4">

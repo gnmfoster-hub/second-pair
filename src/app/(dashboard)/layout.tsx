@@ -1,32 +1,62 @@
+import { createClient } from "@/lib/supabase/server";
 import { requireStudio } from "@/lib/studio";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  Mark,
+  InboxIcon,
+  DiaryIcon,
+  ClientsIcon,
+  WeekIcon,
+  SettingsIcon,
+} from "@/components/Icons";
 import { signOut } from "./actions";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { studio, userEmail } = await requireStudio();
+  const supabase = await createClient();
+
+  // The one number worth carrying across every page: conversations the
+  // assistant has handed over. For a one-person business that is the whole
+  // reason to look at this app between jobs.
+  const { count } = await supabase
+    .from("conversations")
+    .select("id", { count: "exact", head: true })
+    .eq("studio_id", studio.id)
+    .eq("status", "needs_human");
 
   return (
     <div className="flex min-h-screen">
       <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-surface">
-        <div className="border-b border-border px-5 py-5">
-          <div className="text-sm font-semibold tracking-tight">Handled</div>
-          <div className="mt-0.5 truncate text-xs text-muted">{studio.name}</div>
+        <div className="flex items-center gap-2.5 px-4 py-4">
+          <Mark className="size-7 shrink-0" />
+          <div className="min-w-0">
+            <div className="truncate text-sm font-medium leading-tight">{studio.name}</div>
+            <div className="text-[11px] leading-tight text-muted">Handled</div>
+          </div>
         </div>
 
-        <nav className="flex-1 space-y-1 p-3">
-          <NavLink href="/" exact>
+        <nav className="flex-1 space-y-0.5 px-3 pt-2">
+          <NavLink href="/" exact icon={<InboxIcon />} badge={count ?? 0}>
             Inbox
           </NavLink>
-          <NavLink href="/diary">Diary</NavLink>
-          <NavLink href="/clients">Clients</NavLink>
-          <NavLink href="/report">The week</NavLink>
-          <NavLink href="/settings">Settings</NavLink>
+          <NavLink href="/diary" icon={<DiaryIcon />}>
+            Diary
+          </NavLink>
+          <NavLink href="/clients" icon={<ClientsIcon />}>
+            Clients
+          </NavLink>
+          <NavLink href="/report" icon={<WeekIcon />}>
+            The week
+          </NavLink>
+          <NavLink href="/settings" icon={<SettingsIcon />}>
+            Settings
+          </NavLink>
         </nav>
 
         <div className="space-y-3 border-t border-border p-3">
           <ThemeToggle />
-          <div className="truncate px-3 text-xs text-muted">{userEmail}</div>
+          <div className="truncate px-3 text-[11px] text-muted">{userEmail}</div>
           <form action={signOut}>
             <button type="submit" className="btn-ghost w-full">
               Sign out
