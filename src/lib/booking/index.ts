@@ -4,6 +4,7 @@ import { busyFromIcal } from "./ical";
 import { scheduleReminders, dropReminders } from "@/lib/reminders";
 import { findSlots, describeSlot } from "./slots";
 import { withTravelTime } from "@/lib/travel";
+import { timeOffAsBusy } from "./timeOff";
 import {
   PROVIDERS,
   bookingInstructions,
@@ -130,6 +131,12 @@ export async function availableSlots(search: SlotSearch): Promise<Slot[]> {
   if (studio.travel_mode !== "at_premises") {
     busy = withTravelTime(busy, studio.travel_buffer_minutes);
   }
+
+  // Lunch, the school run, an early finish on Fridays. Handed to the slot
+  // finder as busy rather than taught as a second concept — these are exactly
+  // the times a business gets caught out on, because they are invisible until
+  // somebody is booked into one.
+  busy = [...busy, ...timeOffAsBusy(artist.time_off ?? [], from, to, studio.timezone)];
 
   /*
    * This person's own week, if they have one.

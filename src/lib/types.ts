@@ -116,6 +116,20 @@ export type Studio = {
   max_session_minutes: number;
 };
 
+/**
+ * A regular gap inside somebody's working week.
+ *
+ * Recurring by nature — a one-off belongs in the diary, where it can be moved
+ * and cancelled like anything else.
+ */
+export type TimeOff = {
+  label: string;
+  /** 0-6, Sunday first, matching hours and JavaScript. */
+  days: number[];
+  from: string;
+  to: string;
+};
+
 export type Artist = {
   id: string;
   studio_id: string;
@@ -124,6 +138,8 @@ export type Artist = {
   handle: string | null;
   /** Their own working week. Null follows the business's hours. */
   hours: OpeningHours[] | null;
+  /** The regular gaps inside it: lunch, a school run, an early finish. */
+  time_off: TimeOff[];
   /** Their login, once they accept an invite. Null is a normal team member. */
   user_id: string | null;
   /** Their own opening line and voice. Null follows the business. */

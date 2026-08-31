@@ -88,6 +88,17 @@ export type VerticalPack = {
    */
   greeting: string;
   vocabulary: Vocabulary;
+  /**
+   * The jobs people actually do inside this kind of business.
+   *
+   * A tattoo studio has a piercer; a salon has a nail technician; a garage
+   * has an MOT tester. They are not separate businesses — they work inside
+   * somebody else's, with their own services, rates and diary.
+   *
+   * A short list on purpose. Anything not here is typed in, which is better
+   * than a long list nobody can find themselves in.
+   */
+  roles: string[];
   /** Whether an 18+ check is legally required before booking. */
   ageCheck: boolean;
   /** What this trade normally does about deposits. The owner can change it. */
@@ -131,6 +142,7 @@ type TradeInput = {
   deposits?: VerticalPack["deposits"];
   location?: VerticalPack["location"];
   pricing?: VerticalPack["pricing"];
+  roles?: string[];
   rules?: string[];
   styles?: { value: string; label: string }[];
   intents?: { value: string; label: string }[];
@@ -211,6 +223,8 @@ function trade(input: TradeInput): VerticalPack {
     aliases: input.aliases ?? [],
     greeting: input.greeting,
     vocabulary: words,
+    // Most trades are one job, done by everybody in the shop.
+    roles: input.roles ?? [],
     ageCheck: input.ageCheck ?? false,
     // Most trades invoice afterwards. Assuming otherwise made the product
     // unusable to them, so the safe default is to say nothing about money.
@@ -277,6 +291,7 @@ const HOME: VerticalPack[] = [
     blurb: "Domestic and commercial electrical work, at the customer's address.",
     aliases: ["sparky", "electrical", "rewire", "niceic", "consumer unit"],
     greeting: "Hi — what electrical work do you need doing?",
+    roles: ["Electrician", "Approved electrician", "Apprentice"],
     words: {
       practitioner: "electrician",
       practitioners: "electricians",
@@ -314,6 +329,7 @@ const HOME: VerticalPack[] = [
     blurb: "Plumbing repairs and installation, at the customer's address.",
     aliases: ["plumbing", "leak", "bathroom", "tap", "blockage"],
     greeting: "Hi — what's the plumbing problem?",
+    roles: ["Plumber", "Gas engineer", "Apprentice"],
     words: {
       practitioner: "plumber",
       practitioners: "plumbers",
@@ -350,6 +366,7 @@ const HOME: VerticalPack[] = [
     blurb: "Boilers, servicing and gas work. Gas Safe registered.",
     aliases: ["boiler", "gas safe", "heating", "central heating", "landlord certificate"],
     greeting: "Hi — is this about a boiler, a service, or something else?",
+    roles: ["Gas engineer", "Heating engineer", "Apprentice"],
     words: {
       practitioner: "engineer",
       practitioners: "engineers",
@@ -601,6 +618,7 @@ const TATTOO = trade({
   blurb: "Tattooing and piercing, priced by the hour.",
   aliases: ["tattooist", "ink", "piercing", "body art", "cover up"],
   greeting: "Hi — what were you thinking of getting done?",
+  roles: ["Tattoo artist", "Piercer", "Apprentice", "Guest artist"],
   words: {
     practitioner: "artist",
     practitioners: "artists",
@@ -690,6 +708,7 @@ const BEAUTY: VerticalPack[] = [
     blurb: "Cutting, colouring and treatments, priced per service.",
     aliases: ["hairdresser", "hair", "colourist", "stylist", "balayage"],
     greeting: "Hi — what were you after? Cut, colour, something else?",
+    roles: ["Stylist", "Colourist", "Senior stylist", "Junior stylist", "Nail technician", "Beauty therapist", "Barber"],
     words: {
       practitioner: "stylist",
       practitioners: "stylists",
@@ -813,6 +832,7 @@ const BEAUTY: VerticalPack[] = [
     blurb: "Facials, waxing, brows, lashes and treatments.",
     aliases: ["beauty", "facial", "waxing", "brows", "lashes", "spray tan", "therapist"],
     greeting: "Hi — which treatment were you after?",
+    roles: ["Beauty therapist", "Nail technician", "Lash technician", "Massage therapist", "Aesthetician"],
     words: {
       practitioner: "therapist",
       practitioners: "therapists",
@@ -940,6 +960,7 @@ const HEALTH: VerticalPack[] = [
     blurb: "Physiotherapy assessment and treatment.",
     aliases: ["physio", "rehab", "injury", "sports injury", "back"],
     greeting: "Hi — is this a new problem, or a follow-up?",
+    roles: ["Physiotherapist", "Sports therapist", "Massage therapist"],
     words: {
       practitioner: "physiotherapist",
       practitioners: "physiotherapists",
@@ -969,6 +990,7 @@ const HEALTH: VerticalPack[] = [
     blurb: "Manual therapy for backs, necks and joints.",
     aliases: ["chiropractor", "osteopath", "back pain", "spine", "manual therapy"],
     greeting: "Hi — is this your first visit with us?",
+    roles: ["Chiropractor", "Osteopath", "Massage therapist"],
     words: {
       practitioner: "practitioner",
       practitioners: "practitioners",
@@ -992,6 +1014,7 @@ const HEALTH: VerticalPack[] = [
     blurb: "One-to-one and small group training.",
     aliases: ["personal training", "pt", "fitness", "gym", "coach", "strength"],
     greeting: "Hi — what are you looking to work on?",
+    roles: ["Personal trainer", "Nutrition coach", "Class instructor"],
     words: {
       practitioner: "trainer",
       practitioners: "trainers",
@@ -1087,6 +1110,7 @@ const PETS: VerticalPack[] = [
     blurb: "Grooming, priced by breed and coat.",
     aliases: ["grooming", "dog", "pet grooming", "clip", "wash", "de-matting"],
     greeting: "Hi — what breed is your dog, and what were you after?",
+    roles: ["Groomer", "Bather", "Trainee groomer"],
     words: {
       practitioner: "groomer",
       practitioners: "groomers",
@@ -1203,6 +1227,7 @@ const MOTORING: VerticalPack[] = [
     blurb: "Servicing, MOTs and repairs at the workshop.",
     aliases: ["mot", "garage", "servicing", "car", "workshop", "repairs"],
     greeting: "Hi — is this for an MOT, a service, or a repair?",
+    roles: ["Technician", "MOT tester", "Bodywork", "Diagnostics"],
     words: {
       practitioner: "technician",
       practitioners: "technicians",

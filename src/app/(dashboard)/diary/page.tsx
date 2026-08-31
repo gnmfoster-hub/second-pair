@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio, getArtists } from "@/lib/studio";
-import { startOfWeek, addDays, isoDate, parseIsoDate, CATEGORIES } from "@/lib/calendar";
+import { startOfWeek, addDays, isoDate, parseIsoDate } from "@/lib/calendar";
 import { WeekGrid, type Entry } from "./WeekGrid";
 import { Shortcuts } from "./Shortcuts";
 import { NewEntry } from "./NewEntry";
@@ -265,7 +265,15 @@ export default async function DiaryPage({
        * and a row of large mostly-empty boxes pushed it below the fold. The
        * bar reads the same at a glance and costs a tenth of the space.
        */}
-      <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm">
+      {/*
+       * The summary and the grid are one card, not two boxes.
+       *
+       * Stacked separately they read as two unrelated panels with a gap
+       * between them; joined, the figures are plainly a caption for the week
+       * underneath, which is what they are.
+       */}
+      <div className="card mt-5 overflow-hidden">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-border px-4 py-2.5 text-sm">
         <Figure label="booked" value={asHours(bookedMinutes)} />
         <Figure label="worth" value={formatPence(worth)} accent={worth > 0} />
         <Figure label="free" value={asHours(freeMinutes)} />
@@ -331,7 +339,6 @@ export default async function DiaryPage({
        * afterwards. They live under the ? key now, with the shortcuts.
        */}
 
-      <div className="mt-4">
         <WeekGrid
           weekStart={isoDate(start)}
           day={isoDate(focusDay)}
@@ -344,24 +351,6 @@ export default async function DiaryPage({
         />
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
-        {[...new Map(CATEGORIES.map((c) => [c.hue, c])).values()].map((c) => (
-          <span key={c.hue} className="flex items-center gap-1.5 text-xs text-muted">
-            <span className="size-2.5 rounded-sm" style={{ background: c.hue }} />
-            {c.hue === "var(--cal-client)"
-              ? "Clients"
-              : c.hue === "var(--cal-work)"
-                ? "Work"
-                : c.hue === "var(--cal-off)"
-                  ? "Time off"
-                  : "Notes — do not block"}
-          </span>
-        ))}
-        <span className="flex items-center gap-1.5 text-xs text-muted">
-          <span className="h-2.5 w-1 rounded-sm bg-warn" />
-          Deposit unpaid
-        </span>
-      </div>
     </div>
   );
 }

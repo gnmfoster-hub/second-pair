@@ -175,7 +175,14 @@ export function WeekGrid({
   // actually want to compare.
   const columns = useMemo(() => {
     if (view === "day") {
-      return artists.map((a) => ({ key: a.id, label: a.name, sub: "", date: day, artist: a }));
+      return artists.map((a) => ({
+        key: a.id,
+        label: a.name,
+        sub: "",
+        month: "",
+        date: day,
+        artist: a,
+      }));
     }
     return Array.from({ length: 7 }, (_, i) => {
       const d = addDays(start, i);
@@ -183,6 +190,9 @@ export function WeekGrid({
         key: isoDate(d),
         label: d.toLocaleDateString("en-GB", { weekday: "short" }),
         sub: String(d.getDate()),
+        // Shown under the weekday, so the month is never a guess — the first
+        // few days of a week can belong to the previous one.
+        month: d.toLocaleDateString("en-GB", { month: "short" }),
         date: isoDate(d),
         artist: undefined,
       };
@@ -336,7 +346,7 @@ export function WeekGrid({
         </div>
       )}
 
-      <div className="card overflow-hidden">
+      <div>
         {/* ------------------------------------------------ headings */}
         <div className="sticky top-0 z-20 flex border-b border-border bg-surface/95 backdrop-blur">
           <div className="w-16 shrink-0 border-r border-border" />
@@ -361,25 +371,35 @@ export function WeekGrid({
                     <span className="truncate text-sm font-medium">{col.label}</span>
                   </div>
                 ) : (
-                  <div
-                    className={`text-[10px] font-semibold uppercase tracking-[0.09em] ${
-                      isToday ? "text-accent" : "text-muted"
-                    }`}
-                  >
-                    {col.label}
-                  </div>
-                )}
-                {col.sub && (
-                  <div
-                    className={`mt-1 inline-grid size-7 place-items-center rounded-full font-display text-sm font-semibold tabular-nums transition-colors ${
-                      isToday
-                        ? "bg-accent text-white"
-                        : closed
-                          ? "text-muted"
-                          : "text-foreground"
-                    }`}
-                  >
-                    {col.sub}
+                  /*
+                   * The day and the date, side by side and both readable.
+                   *
+                   * They were a tiny uppercase label above a small circle,
+                   * which meant squinting to tell Tuesday the 1st from
+                   * Thursday the 3rd — on the page people look at all day.
+                   */
+                  <div className="flex items-center justify-center gap-2">
+                    <span
+                      className={`grid size-8 place-items-center rounded-full font-display text-[0.95rem] font-semibold tabular-nums ${
+                        isToday
+                          ? "bg-accent text-white"
+                          : closed
+                            ? "text-muted"
+                            : "text-foreground"
+                      }`}
+                    >
+                      {col.sub}
+                    </span>
+                    <span className="text-left leading-tight">
+                      <span
+                        className={`block text-[0.8rem] font-semibold ${
+                          isToday ? "text-accent" : closed ? "text-muted" : "text-foreground"
+                        }`}
+                      >
+                        {col.label}
+                      </span>
+                      <span className="block text-[10px] text-muted">{col.month}</span>
+                    </span>
                   </div>
                 )}
                 {closed && (

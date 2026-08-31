@@ -91,9 +91,44 @@ export function ColourBy({ current, hasTeam }: { current: ColourMode; hasTeam: b
                 </button>
               );
             })}
+            {/*
+             * What the colours mean, where somebody would look for it.
+             *
+             * This was a row of swatches orphaned under the diary, read once
+             * and then in the way every day afterwards. It only makes sense
+             * while colour means category, so it only appears then.
+             */}
+            {chosen === "category" && (
+              <div className="border-t border-border bg-surface-2/40 px-3.5 py-2.5">
+                {LEGEND.map((item) => (
+                  <span
+                    key={item.label}
+                    className="mb-1 mr-3 inline-flex items-center gap-1.5 text-[11px] text-muted"
+                  >
+                    <span
+                      className="size-2.5 rounded-sm"
+                      style={{ background: item.hue }}
+                    />
+                    {item.label}
+                  </span>
+                ))}
+                <span className="mr-3 inline-flex items-center gap-1.5 text-[11px] text-muted">
+                  <span className="h-2.5 w-1 rounded-sm bg-warn" />
+                  Deposit unpaid
+                </span>
+              </div>
+            )}
           </div>
         </>
       )}
     </div>
   );
 }
+
+/** One entry per colour, not one per category — several share a colour. */
+const LEGEND = [
+  { hue: "var(--cal-client)", label: "Clients" },
+  { hue: "var(--cal-work)", label: "Work" },
+  { hue: "var(--cal-off)", label: "Time off" },
+  { hue: "var(--cal-note)", label: "Notes — do not block" },
+];

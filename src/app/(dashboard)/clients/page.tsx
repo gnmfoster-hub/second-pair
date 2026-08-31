@@ -25,7 +25,11 @@ type Row = {
   conversations: {
     id: string;
     last_message_at: string;
+    /** Whose channel it arrived on, when the channel says. */
+    artist_id: string | null;
     enquiries: {
+      /** Who they asked for, if they did. */
+      artist_id: string | null;
       quote_low_pence: number | null;
       bookings: {
         artist_id: string;
@@ -53,7 +57,7 @@ export default async function ClientsPage({
     .select(
       "id, name, phone, email, instagram_handle, channel, alert, created_at, " +
         "bookings(artist_id, deposit_amount_pence, deposit_status, cancelled_at), " +
-        "conversations(id, last_message_at, enquiries(quote_low_pence, bookings(artist_id, deposit_amount_pence, deposit_status, cancelled_at)))",
+        "conversations(id, last_message_at, artist_id, enquiries(artist_id, quote_low_pence, bookings(artist_id, deposit_amount_pence, deposit_status, cancelled_at)))",
     )
     .eq("studio_id", studio.id)
     // Nameless strangers left behind by the owner testing their own
@@ -87,15 +91,25 @@ export default async function ClientsPage({
   const mine = team.some((a) => a.id === who) ? who : null;
 
   if (mine) {
-    const theirs = new Set<string>();
-    for (const c of clients) {
-      const worked = [
+    /*
+     * Three ways a client is somebody's.
+     *
+     * Bookings alone was too narrow: most people in the list have enquired and
+     * not booked yet, so filtering by any one person showed nobody. An enquiry
+     * that asked for Sarah, or one that arrived on Sarah's own Instagram, is
+     * Sarah's client before a single appointment exists.
+     */
+    clients = clients.filter((c) => {
+      const booked = [
         ...c.conversations.flatMap((v) => v.enquiries?.bookings ?? []),
         ...(c.bookings ?? []),
       ].some((b) => b.artist_id === mine);
-      if (worked) theirs.add(c.id);
-    }
-    clients = clients.filter((c) => theirs.has(c.id));
+      if (booked) return true;
+
+      return c.conversations.some(
+        (v) => v.artist_id === mine || v.enquiries?.artist_id === mine,
+      );
+    });
   }
 
   const link = (artistId: string | null) => {
