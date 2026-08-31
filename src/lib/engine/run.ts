@@ -287,6 +287,8 @@ async function generateReply(ctx: ReplyContext): Promise<string> {
     ctx.faqs,
     ctx.options,
     ctx.providers ?? {},
+    // Whose enquiry this is, so their own voice is used where they have one.
+    ctx.forArtist ?? null,
   );
 
   let text = "";

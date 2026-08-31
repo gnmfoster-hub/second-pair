@@ -38,6 +38,12 @@ export function studioSystemPrompt(
   options: ServiceOption[],
   /** Which people offer which services. Empty for almost every business. */
   providers: Record<string, string[]> = {},
+  /**
+   * Set when the enquiry belongs to one person — their own Instagram, or a
+   * link with their handle. Their voice replaces the shop's, because on their
+   * own account it is them the customer thinks they are talking to.
+   */
+  forArtist: Artist | null = null,
 ): string {
   const active = artists.filter((a) => a.active);
   const pack = verticalPack(studio.vertical);
@@ -185,7 +191,7 @@ Travelling time is already left either side of every job, so what get_available_
   return `You are the receptionist for ${studio.name}, a ${pack.label.toLowerCase()}. You handle first contact from people enquiring, across the website, WhatsApp and Instagram.
 
 # Voice
-${studio.tone}
+${forArtist?.tone?.trim() || studio.tone}
 
 Write like a person texting back, not like a form. Short messages. One or two questions at a time, never a checklist. Use the studio's name and the ${words.practitioners}' names.
 

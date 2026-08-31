@@ -144,15 +144,16 @@ export type Artist = {
   email: string | null;
   /** What they do, in the business's own words. Suggested by the trade. */
   role: string | null;
+  /** Their opening line, used only on their own link. Null uses the shop's. */
+  greeting: string | null;
+  /** How they write, used only on their own link. Null uses the shop's. */
+  tone: string | null;
   /** Their own working week. Null follows the business's hours. */
   hours: OpeningHours[] | null;
   /** The regular gaps inside it: lunch, a school run, an early finish. */
   time_off: TimeOff[];
   /** Their login, once they accept an invite. Null is a normal team member. */
   user_id: string | null;
-  /** Their own opening line and voice. Null follows the business. */
-  greeting: string | null;
-  tone: string | null;
   /** Secret in their own calendar subscribe URL. */
   calendar_token: string;
   styles: StyleKey[];

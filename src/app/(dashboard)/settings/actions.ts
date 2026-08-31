@@ -68,7 +68,6 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
     .update({
       name,
       email: str(fd, "email") || null,
-    role: str(fd, "role") || null,
       tone: str(fd, "tone"),
       // Blank means "use the trade pack's wording", not "no greeting".
       greeting: str(fd, "greeting") || null,
@@ -233,6 +232,10 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
     handle,
     email: str(fd, "email") || null,
     role: str(fd, "role") || null,
+    // Blank means "sound like the business", which is what almost everybody
+    // wants — so an empty box is null rather than an empty string.
+    greeting: str(fd, "greeting") || null,
+    tone: str(fd, "tone") || null,
     hours: ownHours,
     styles: fd.getAll("styles").map(String),
     hourly_rate_pence: hourly,
@@ -447,7 +450,6 @@ export async function updateAssistant(_prev: FormState, fd: FormData): Promise<F
     .from("studios")
     .update({
       email: str(fd, "email") || null,
-    role: str(fd, "role") || null,
       tone: str(fd, "tone"),
       always_mention: lines("always_mention"),
       never_mention: lines("never_mention"),

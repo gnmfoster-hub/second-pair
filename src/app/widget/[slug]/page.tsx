@@ -62,7 +62,7 @@ export default async function WidgetPage({
   const { data: person } = handle
     ? await db
         .from("artists")
-        .select("id, name, avatar_path, colour")
+        .select("id, name, avatar_path, colour, greeting")
         .eq("studio_id", studio.id)
         .eq("active", true)
         .ilike("handle", handle)
@@ -80,9 +80,19 @@ export default async function WidgetPage({
     <ChatWindow
       slug={studio.slug}
       studioName={studio.name}
-      // The business's own wording wins; the trade pack is the fallback so a
-      // new signup is never greeted by a blank line.
-      greeting={studio.greeting?.trim() || verticalPack(studio.vertical).greeting}
+      /*
+       * Their wording, then the shop's, then the trade pack.
+       *
+       * On somebody's own link it is them the customer thinks they are
+       * messaging, so a greeting in their words beats the shop's — and the
+       * pack is the last fallback so a new signup is never greeted by a
+       * blank line.
+       */
+      greeting={
+        person?.greeting?.trim() ||
+        studio.greeting?.trim() ||
+        verticalPack(studio.vertical).greeting
+      }
       forArtistId={person?.id ?? null}
       forArtistName={person?.name ?? null}
       photoUrl={avatarUrl(person?.avatar_path) ?? null}

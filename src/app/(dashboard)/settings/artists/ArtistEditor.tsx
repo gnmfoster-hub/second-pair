@@ -154,6 +154,56 @@ export function ArtistEditor({
           noun={noun}
         />
 
+        {/*
+          * Their own voice, on their own link.
+          *
+          * Folded away because it applies to one situation and most businesses
+          * are not in it: a shop where each person has their own Instagram, and
+          * an enquiry arriving on Sarah's account should sound like Sarah
+          * rather than like the salon. Left blank, the shop's own wording is
+          * used, which is the right answer for nearly everybody.
+          */}
+        <details className="rounded-xl border border-border">
+          <summary className="cursor-pointer list-none px-4 py-3 text-sm">
+            How they sound on their own link
+            <span className="hint ml-2">optional</span>
+          </summary>
+
+          <div className="space-y-5 border-t border-border p-4">
+            <p className="hint">
+              Only used when somebody arrives through this person&rsquo;s own link or
+              their own Instagram. Everywhere else the {noun} sounds like the
+              business.
+            </p>
+
+            <Field
+              label="Their opening line"
+              hint="The first thing a client sees. Blank uses the business's."
+            >
+              <textarea
+                name="greeting"
+                defaultValue={artist?.greeting ?? ""}
+                rows={2}
+                placeholder={`Hi, it's ${artist?.name?.split(" ")[0] ?? "Sarah"} — what were you thinking of having done?`}
+                className="input"
+              />
+            </Field>
+
+            <Field
+              label="How they write"
+              hint="How they greet people, what they never say. Blank uses the business's."
+            >
+              <textarea
+                name="tone"
+                defaultValue={artist?.tone ?? ""}
+                rows={3}
+                placeholder="Warm and quite chatty. Uses first names. Never pushes anyone to book."
+                className="input"
+              />
+            </Field>
+          </div>
+        </details>
+
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
