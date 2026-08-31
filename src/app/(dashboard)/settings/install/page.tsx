@@ -6,12 +6,32 @@ import { Avatar } from "@/components/Avatar";
 import { Snippet } from "./Snippet";
 
 /**
- * Getting the assistant in front of people.
+ * Channels — every way the outside world can reach this business.
  *
- * Two routes, because half of this market has a website and half has an
- * Instagram page and a van. The link matters as much as the embed code.
+ * Grouped by *who owns it*, because that is the decision a business actually
+ * makes. A one-person trade sees one section and never thinks about it. A
+ * salon sees the shop's accounts and then a section per stylist, and can run
+ * both at once: the shop Instagram asks who you want, Sarah's own does not.
+ *
+ * Nothing here pretends. A channel that needs the Meta review says so, and
+ * says whose job it is, rather than offering a button that does nothing.
  */
-export default async function InstallPage() {
+
+type ChannelKey = "web" | "whatsapp" | "instagram" | "messenger" | "sms";
+
+const CHANNELS: {
+  key: ChannelKey;
+  label: string;
+  note: string;
+}[] = [
+  { key: "whatsapp", label: "WhatsApp", note: "Needs a number that isn't on the WhatsApp app" },
+  { key: "instagram", label: "Instagram DMs", note: "Needs a Professional account linked to a Facebook Page" },
+  { key: "messenger", label: "Messenger", note: "Comes with the Facebook Page" },
+  { key: "sms", label: "Text messages", note: "Needs a number of its own" },
+];
+
+
+export default async function ChannelsPage() {
   const { studio } = await requireStudio();
   const artists = (await getArtists(studio.id)).filter((a) => a.active);
   const words = {
@@ -24,115 +44,158 @@ export default async function InstallPage() {
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const origin = `${proto}://${host}`;
 
+  const shopLink = `${origin}/widget/${studio.slug}`;
   const embed = `<script src="${origin}/widget.js" data-studio="${studio.slug}"></script>`;
-  const link = `${origin}/widget/${studio.slug}`;
 
-  const wheres = [
-    {
-      what: "Squarespace",
-      how: "Settings → Advanced → Code Injection → Footer",
-    },
-    { what: "Wix", how: "Settings → Custom Code → Add Code → Body end" },
-    { what: "WordPress", how: "Appearance → Theme File Editor → footer.php, before </body>" },
-    { what: "Shopify", how: "Online Store → Themes → Edit code → theme.liquid, before </body>" },
-    { what: "Anything else", how: "Paste it just before the closing </body> tag" },
-  ];
+  const solo = artists.length <= 1;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-9">
       <section>
-        <div className="section-title">On your website</div>
-        <p className="hint mt-1 max-w-prose">
-          One line, pasted once. A chat button appears in the bottom corner of every page.
-          It sits in its own frame, so it cannot break your site&rsquo;s design and your
-          design cannot break it.
+        <p className="hint max-w-prose">
+          Every channel belongs either to{" "}
+          <strong className="text-foreground">the whole {words.business}</strong> or to{" "}
+          <strong className="text-foreground">one person</strong>. That one choice decides
+          how the assistant behaves: on a shared account it asks who they&rsquo;d like, and
+          on somebody&rsquo;s own account it already knows and never asks.
+          {!solo && " You can run both at once."}
         </p>
+      </section>
 
-        <div className="mt-4">
-          <Snippet value={embed} label="Paste this into your site" />
+      {/* ------------------------------------------------------ the business */}
+      <section>
+        <div className="flex items-center gap-2.5">
+          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-surface-2 text-xs font-semibold text-muted">
+            {studio.name.slice(0, 2).toUpperCase()}
+          </span>
+          <div>
+            <div className="section-title">{studio.name}</div>
+            <div className="hint">
+              {solo
+                ? "Everything comes to you"
+                : `Shared — the assistant asks which ${words.practitioner} they want`}
+            </div>
+          </div>
         </div>
 
-        <div className="card mt-4 overflow-hidden">
+        <div className="card mt-4 divide-y divide-border">
+          <div className="p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="text-sm font-medium">Website and link</div>
+              <span className="pill bg-ok/10 text-ok">Live</span>
+            </div>
+            <p className="hint mt-1">
+              On your site, or shared on its own. No setup, no approval.
+            </p>
+            <div className="mt-3 space-y-2.5">
+              <Snippet value={shopLink} label="Your link" />
+              <Snippet value={embed} label="For your website" />
+            </div>
+          </div>
+
+          {CHANNELS.map((channel) => (
+            <ChannelRow key={channel.key} label={channel.label} note={channel.note} />
+          ))}
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------- each person */}
+      {!solo &&
+        artists.map((person) => (
+          <section key={person.id}>
+            <div className="flex items-center gap-2.5">
+              <Avatar person={person} size="sm" />
+              <div>
+                <div className="section-title">{person.name}</div>
+                <div className="hint">
+                  Their own — the assistant knows it&rsquo;s for {person.name.split(" ")[0]}{" "}
+                  and never asks
+                </div>
+              </div>
+            </div>
+
+            <div className="card mt-4 divide-y divide-border">
+              <div className="p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-sm font-medium">Their own link</div>
+                  <span className="pill bg-ok/10 text-ok">Live</span>
+                </div>
+                <p className="hint mt-1">
+                  For {person.name.split(" ")[0]}&rsquo;s own Instagram bio or Facebook page.
+                </p>
+                <div className="mt-3">
+                  <Snippet value={`${shopLink}?with=${person.handle ?? ""}`} />
+                </div>
+              </div>
+
+              {CHANNELS.map((channel) => (
+                <ChannelRow
+                  key={channel.key}
+                  label={channel.label}
+                  note={`${person.name.split(" ")[0]}'s own`}
+                />
+              ))}
+            </div>
+          </section>
+        ))}
+
+      {solo && artists.length === 1 && (
+        <p className="hint">
+          Add another {words.practitioner} in{" "}
+          <Link href="/settings/artists" className="underline underline-offset-2">
+            settings
+          </Link>{" "}
+          and they get their own link and their own accounts here, separate from yours.
+        </p>
+      )}
+
+      <section>
+        <div className="section-title">Where the website code goes</div>
+        <div className="card mt-3 overflow-hidden">
           <table className="w-full text-sm">
             <tbody className="divide-y divide-border">
-              {wheres.map((w) => (
-                <tr key={w.what}>
-                  <th
-                    scope="row"
-                    className="w-36 px-4 py-2.5 text-left font-medium align-top"
-                  >
-                    {w.what}
+              {[
+                ["Squarespace", "Settings → Advanced → Code Injection → Footer"],
+                ["Wix", "Settings → Custom Code → Add Code → Body end"],
+                ["WordPress", "Appearance → Theme File Editor → footer.php, before </body>"],
+                ["Shopify", "Online Store → Themes → Edit code → theme.liquid, before </body>"],
+                ["Anything else", "Paste it just before the closing </body> tag"],
+              ].map(([what, how]) => (
+                <tr key={what}>
+                  <th scope="row" className="w-36 px-4 py-2.5 text-left align-top font-medium">
+                    {what}
                   </th>
-                  <td className="px-4 py-2.5 text-muted">{w.how}</td>
+                  <td className="px-4 py-2.5 text-muted">{how}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </section>
-
-      <section>
-        <div className="section-title">Or just share the link</div>
-        <p className="hint mt-1 max-w-prose">
-          No website needed. Put this in your Instagram bio, your Facebook page button, or
-          the auto-reply on your business WhatsApp. It opens the same assistant, and the
-          enquiries land in the same inbox.
+        <p className="hint mt-3 max-w-prose">
+          The button uses your accent colour. Add{" "}
+          <code className="font-mono">data-accent=&quot;#1d4ed8&quot;</code> with any hex code
+          to change it.
         </p>
-
-        <div className="mt-4">
-          <Snippet value={link} label="Your chat link" />
-        </div>
-
-        <Link href={link} target="_blank" className="btn-ghost mt-4">
-          Open it and try it
-        </Link>
       </section>
+    </div>
+  );
+}
 
-      {artists.length > 1 && (
-        <section>
-          <div className="section-title">A link each</div>
-          <p className="hint mt-1 max-w-prose">
-            Every {words.practitioner} gets their own link. Someone arriving on it is{" "}
-            <strong className="text-foreground">theirs</strong> — the assistant never asks
-            who they would like, and only ever offers that person&rsquo;s times.
-          </p>
-          <p className="hint mt-2 max-w-prose">
-            Put these in each person&rsquo;s own Instagram bio or Facebook page. The shop
-            link above still reaches everybody, so you can run both: people who come
-            through the salon get asked who they want, people who come through
-            {" "}
-            {artists[0]?.name}&rsquo;s page do not.
-          </p>
-
-          <div className="mt-4 space-y-4">
-            {artists.map((person) => (
-              <div key={person.id}>
-                <div className="mb-1.5 flex items-center gap-2">
-                  <Avatar person={person} size="xs" />
-                  <span className="text-sm font-medium">{person.name}</span>
-                </div>
-                <Snippet
-                  value={`${link}?with=${person.handle ?? ""}`}
-                  label={undefined}
-                />
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <section>
-        <div className="section-title">Matching your colours</div>
-        <p className="hint mt-1 max-w-prose">
-          The button uses your accent colour. Add <code className="font-mono">data-accent</code>{" "}
-          with any hex code to change it.
-        </p>
-        <div className="mt-4">
-          <Snippet
-            value={`<script src="${origin}/widget.js" data-studio="${studio.slug}" data-accent="#1d4ed8"></script>`}
-          />
-        </div>
-      </section>
+/**
+ * A messaging channel that is not connectable yet.
+ *
+ * Deliberately not a button. The Meta app review is a job for Handled, not for
+ * the business, and offering a dead "Connect" would be a lie that generates a
+ * support message.
+ */
+function ChannelRow({ label, note }: { label: string; note: string }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 p-4">
+      <div className="min-w-0">
+        <div className="text-sm font-medium">{label}</div>
+        <p className="hint mt-0.5">{note}</p>
+      </div>
+      <span className="pill shrink-0 bg-surface-2 text-muted">Coming shortly</span>
     </div>
   );
 }

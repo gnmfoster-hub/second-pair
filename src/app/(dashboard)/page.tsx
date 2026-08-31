@@ -223,7 +223,7 @@ export default async function InboxPage() {
               arriving — whether or not you are free to look.
             </p>
             <Link href="/settings/install" className="btn-ghost mt-5">
-              Get the widget code
+              Get your link
             </Link>
           </div>
         ) : (

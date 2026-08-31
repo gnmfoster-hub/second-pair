@@ -22,7 +22,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
         <TabLink href="/settings/pricing">Pricing</TabLink>
         <TabLink href="/settings/reminders">Reminders</TabLink>
         <TabLink href="/settings/faqs">FAQs</TabLink>
-        <TabLink href="/settings/install">Install</TabLink>
+        <TabLink href="/settings/install">Channels</TabLink>
       </nav>
 
       <div className="mt-8">{children}</div>
