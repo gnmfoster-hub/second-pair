@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Archivo, Public_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { themeScript } from "@/components/ThemeToggle";
@@ -35,6 +35,33 @@ const mono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Handled",
   description: "The receptionist you haven't got, for the hours you can't answer.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "Handled", statusBarStyle: "black-translucent" },
+  icons: {
+    icon: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/icon-180.png", sizes: "180x180", type: "image/png" }],
+  },
+};
+
+/*
+ * Installable, and behaving like an app once installed.
+ *
+ * Most of these owners will keep this on a home screen and open it between
+ * jobs, so it wants no browser chrome. viewportFit: "cover" lets the layout
+ * reach under the notch, which is why the nav uses safe-area insets.
+ *
+ * userScalable stays on: pinch-zoom is an accessibility feature, and turning
+ * it off to look more app-like is not worth locking someone out of their own
+ * diary.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7f8fa" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0c10" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

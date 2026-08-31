@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Mark } from "@/components/Icons";
 
@@ -26,6 +27,7 @@ const FRIENDLY: Record<string, string> = {
 };
 
 export default function LoginPage() {
+  const router = useRouter();
   const [mode, setMode] = useState<Mode>("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -57,11 +59,17 @@ export default function LoginPage() {
       if (error) setError(say(error.message));
       // With email confirmation on there is a user but no session yet.
       else if (!data.session) setSent("confirm");
-      else window.location.href = "/";
+      else {
+        router.refresh();
+        router.push("/");
+      }
     } else if (mode === "signin") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) setError(say(error.message));
-      else window.location.href = "/";
+      else {
+        router.refresh();
+        router.push("/");
+      }
     } else {
       const { error } = await supabase.auth.signInWithOtp({
         email,

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireStudio } from "@/lib/studio";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { MobileNav, MobileHeader } from "@/components/MobileNav";
 import {
   Mark,
   InboxIcon,
@@ -27,7 +28,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex min-h-screen">
-      <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-surface">
+      {/* Desktop: a sidebar. Phone: a top bar and a bottom tab bar, below. */}
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface md:flex">
         <div className="flex items-center gap-2.5 px-4 py-4">
           <Mark className="size-7 shrink-0" />
           <div className="min-w-0">
@@ -65,7 +67,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </aside>
 
-      <main className="min-w-0 flex-1">{children}</main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <MobileHeader businessName={studio.name}>
+          <ThemeToggle compact />
+        </MobileHeader>
+
+        {/* The padding keeps the last row clear of the tab bar. */}
+        <main className="min-w-0 flex-1 pb-24 md:pb-0">{children}</main>
+      </div>
+
+      <MobileNav needsYou={count ?? 0} />
     </div>
   );
 }

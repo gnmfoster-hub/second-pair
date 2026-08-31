@@ -56,12 +56,14 @@ const OPTIONS: { value: Choice; label: string; icon: string }[] = [
   { value: "dark", label: "Dark", icon: "☾" },
 ];
 
-export function ThemeToggle() {
+export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const choice = useSyncExternalStore(subscribe, snapshot, serverSnapshot);
 
   return (
     <div
-      className="flex overflow-hidden rounded-lg border border-border"
+      className={`flex overflow-hidden rounded-lg border border-border ${
+        compact ? "shrink-0" : ""
+      }`}
       role="group"
       aria-label="Colour theme"
     >
@@ -72,7 +74,7 @@ export function ThemeToggle() {
           onClick={() => choose(option.value)}
           aria-pressed={choice === option.value}
           title={option.label}
-          className={`flex-1 px-2 py-1.5 text-xs transition-colors ${
+          className={`px-2.5 py-2 text-xs transition-colors ${compact ? "" : "flex-1"} ${
             choice === option.value
               ? "bg-surface-2 text-foreground"
               : "text-muted hover:text-foreground"
