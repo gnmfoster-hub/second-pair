@@ -128,6 +128,12 @@ export default async function ClientsPage({
           {clients.length}
           {clients.length === 200 ? "+" : ""} {term ? "matching" : "in total"}
         </span>
+
+        {/* Somebody who has never messaged you still needs a record — the
+            walk-in regular, and anybody you want to reach out to first. */}
+        <Link href="/clients/new" className="btn-ghost ml-auto py-1.5 text-xs">
+          Add a client
+        </Link>
       </div>
 
       <form className="mt-5">

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { deliver, recordDelivery } from "@/lib/messaging/deliver";
 import type { Channel } from "@/lib/types";
 import { requireStudio } from "@/lib/studio";
+import { canMessage } from "@/lib/permissions";
 import type { ConvStatus } from "@/lib/types";
 
 export type ReplyState = {
@@ -35,7 +36,7 @@ export async function sendOwnerReply(
   // RLS would block a foreign id, but failing here gives a better message.
   const { data: conversation } = await supabase
     .from("conversations")
-    .select("id, channel, external_ref, contacts(phone)")
+    .select("id, channel, external_ref, last_inbound_at, contacts(phone)")
     .eq("id", id)
     .eq("studio_id", studio.id)
     .maybeSingle();
@@ -56,22 +57,13 @@ export async function sendOwnerReply(
    * channel that has to hand it to a platform. The owner saw their reply in
    * the thread and had no idea it never left.
    */
-  const { data: lastInbound } = await supabase
-    .from("messages")
-    .select("created_at")
-    .eq("conversation_id", id)
-    .eq("role", "client")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
   const contact = conversation.contacts as unknown as { phone: string | null } | null;
 
   const result = await deliver({
     channel: conversation.channel as Channel,
     to: conversation.channel === "sms" ? contact?.phone ?? null : conversation.external_ref,
     body: text,
-    lastInboundAt: lastInbound?.created_at ?? null,
+    lastInboundAt: conversation.last_inbound_at,
   });
 
   if (message) await recordDelivery(supabase, message.id, result);
@@ -88,29 +80,6 @@ export async function sendOwnerReply(
   return result.error ? { ok: true, warning: result.error } : { ok: true };
 }
 
-/**
- * Whether the person signed in may message customers.
- *
- * Owners always can. Staff can unless the owner has said otherwise — reading a
- * thread and writing in the business's voice are different things.
- */
-async function canMessage(): Promise<boolean> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return false;
-
-  const { data } = await supabase
-    .from("studio_members")
-    .select("role, can_message")
-    .eq("user_id", user.id)
-    .limit(1)
-    .maybeSingle();
-
-  if (!data) return false;
-  return data.role === "owner" || data.can_message !== false;
-}
 
 export async function setPaused(fd: FormData) {
   const supabase = await createClient();

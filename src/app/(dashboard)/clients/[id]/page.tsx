@@ -6,6 +6,10 @@ import { formatPence } from "@/lib/money";
 import { Timeline, type TimelineReminder } from "./Timeline";
 import { CHANNEL_LABELS, CONV_STATUS_LABELS, type Channel, type ConvStatus } from "@/lib/types";
 import { ClientForm } from "./ClientForm";
+import { MessageClient } from "./MessageClient";
+import { routesFor } from "@/lib/messaging/reach";
+import { connectedChannels } from "@/lib/messaging/connections";
+import { canMessage } from "@/lib/permissions";
 
 type ContactRow = {
   id: string;
@@ -23,6 +27,8 @@ type ContactRow = {
     status: ConvStatus;
     created_at: string;
     last_message_at: string;
+    external_ref: string | null;
+    last_inbound_at: string | null;
     enquiries: {
       description: string | null;
       quote_low_pence: number | null;
@@ -42,8 +48,16 @@ type Booking = {
   attended: boolean | null;
 };
 
-export default async function ClientPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ClientPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  /** `found` is set when adding a client landed on somebody who already existed. */
+  searchParams: Promise<{ found?: string }>;
+}) {
   const { id } = await params;
+  const { found } = await searchParams;
   const { studio } = await requireStudio();
   const supabase = await createClient();
   const artists = await getArtists(studio.id);
@@ -51,7 +65,8 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
   const { data: contactRow } = await supabase
     .from("contacts")
     .select(
-      "*, conversations(id, channel, status, created_at, last_message_at, " +
+      "*, conversations(id, channel, status, created_at, last_message_at, "
+        + "external_ref, last_inbound_at, " +
         "enquiries(description, quote_low_pence, quote_high_pence, bookings(*)))",
     )
     .eq("id", id)
@@ -96,6 +111,20 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
         .order("due_at", { ascending: false })
     : { data: [] };
 
+  /*
+   * Whether this person can be messaged, and on what.
+   *
+   * Worked out here so the page can say why not before anybody types. The
+   * action works it out again on the way through — this is for the screen,
+   * not for the decision.
+   */
+  const routes = routesFor({
+    conversations,
+    phone: contact.phone,
+    connected: await connectedChannels(supabase, studio.id),
+  });
+  const mayMessage = await canMessage();
+
   const live = bookings.filter((b) => !b.cancelled_at);
   const paid = live
     .filter((b) => b.deposit_status === "paid")
@@ -107,6 +136,20 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
       <Link href="/clients" className="hint hover:text-foreground">
         ← Clients
       </Link>
+
+      {/*
+       * Why you are looking at somebody you did not type.
+       *
+       * Adding a client who already exists takes you to them rather than
+       * refusing. Silently is worse than not at all — you would think the name
+       * you typed had been saved and it had not.
+       */}
+      {found && (
+        <p className="mt-3 rounded-xl border border-border bg-surface-2/60 px-4 py-3 text-sm">
+          You already had this client, so nothing was added. Their existing details
+          are below.
+        </p>
+      )}
 
       <h1 className="page-title mt-3">
         {contact.name ?? contact.phone ?? "Unnamed client"}
@@ -160,6 +203,13 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
         </div>
 
         <aside className="space-y-6">
+          <MessageClient
+            contactId={contact.id}
+            name={contact.name ?? "them"}
+            routes={routes}
+            allowed={mayMessage}
+          />
+
           <section className="card p-5">
             <h2 className="section-title mb-4 text-sm">History</h2>
             <Timeline

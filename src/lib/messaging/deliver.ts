@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Channel } from "@/lib/types";
+import { withinWindow as isWithinWindow, WINDOWED } from "./reach";
 
 /**
  * Getting a message to a customer.
@@ -29,21 +30,9 @@ export type Delivery = {
   externalId?: string;
 };
 
-/**
- * WhatsApp and Messenger only allow a free-form message within 24 hours of the
- * customer's last one. Outside that, Meta requires a template it has approved
- * in advance — a platform rule, not ours, and one that cannot be coded around.
- *
- * Instagram is the same 24 hours, with no template escape at all.
- */
-const WINDOW_HOURS = 24;
-
-const NEEDS_WINDOW: Channel[] = ["whatsapp", "messenger", "instagram"];
-
-export function withinWindow(lastInboundAt: string | null | undefined): boolean {
-  if (!lastInboundAt) return false;
-  return Date.now() - Date.parse(lastInboundAt) < WINDOW_HOURS * 3600_000;
-}
+// The window rule lives with the question it answers — whether this person can
+// be reached — so there is one copy of it and it can be tested on its own.
+export { withinWindow, WINDOWED as NEEDS_WINDOW } from "./reach";
 
 /** Whether this channel can be used to start a conversation at all. */
 export function canOpenConversation(channel: Channel): boolean {
@@ -77,7 +66,7 @@ export async function deliver({
     };
   }
 
-  if (NEEDS_WINDOW.includes(channel) && !withinWindow(lastInboundAt)) {
+  if (WINDOWED.includes(channel) && !isWithinWindow(lastInboundAt)) {
     return {
       status: "outside_window",
       error:

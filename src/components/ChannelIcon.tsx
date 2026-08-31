@@ -8,7 +8,7 @@ import type { Channel } from "@/lib/types";
  * question, four different visual weights fighting each other in a list, and
  * a row of brand colours competing with the status pill that actually matters.
  */
-const base = {
+const icon = {
   width: 12,
   height: 12,
   viewBox: "0 0 24 24",
@@ -20,7 +20,16 @@ const base = {
   "aria-hidden": true,
 };
 
-export function ChannelIcon({ channel }: { channel: Channel }) {
+export function ChannelIcon({
+  channel,
+  className,
+}: {
+  channel: Channel;
+  /** For sizing and alignment where twelve pixels on the baseline is wrong. */
+  className?: string;
+}) {
+  const base = { ...icon, className };
+
   switch (channel) {
     case "whatsapp":
     case "messenger":
