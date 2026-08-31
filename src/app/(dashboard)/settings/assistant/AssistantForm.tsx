@@ -5,6 +5,7 @@ import { updateAssistant, type FormState } from "../actions";
 import { Field, FormMessage, SubmitButton } from "@/components/Form";
 import { verticalPack } from "@/lib/verticals";
 import { Notifications } from "@/components/Notifications";
+import { TryIt } from "./TryIt";
 import type { Studio } from "@/lib/types";
 
 /**
@@ -171,6 +172,10 @@ export function AssistantForm({ studio }: { studio: Studio }) {
           <FormMessage state={state} />
         </div>
       </form>
+
+      {/* Above notifications: hearing what it says is the thing that makes
+          everything above this worth filling in. */}
+      <TryIt slug={studio.slug} />
 
       <Notifications />
     </div>

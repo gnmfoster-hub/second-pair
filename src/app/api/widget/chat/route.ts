@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { runTurn } from "@/lib/engine/run";
 import { hasAnthropicEnv } from "@/lib/env";
+import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -30,6 +31,7 @@ export async function POST(request: NextRequest) {
     message?: string;
     media?: string[];
     with?: string | null;
+    test?: boolean;
   };
   try {
     body = await request.json();
@@ -57,6 +59,16 @@ export async function POST(request: NextRequest) {
   if (!/^[A-Za-z0-9_-]{16,64}$/.test(session)) {
     return NextResponse.json({ error: "Invalid session" }, { status: 400 });
   }
+  /*
+   * Is this the owner rehearsing, or a real customer?
+   *
+   * This can only ever be believed from somebody signed in as a member of the
+   * business being messaged. Taking the browser's word for it would let a
+   * stranger mark their own enquiry as a test and hide it from the owner —
+   * which is a way to make a complaint disappear.
+   */
+  const isTest = body.test === true ? await isOwnerOf(studio) : false;
+
   const forArtist =
     typeof body.with === "string" &&
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.with)
@@ -89,6 +101,7 @@ export async function POST(request: NextRequest) {
       // trusted: it arrives from the browser, and it decides whose diary gets
       // booked.
       forArtistId: forArtist,
+      isTest,
     });
 
     return NextResponse.json({
@@ -102,5 +115,31 @@ export async function POST(request: NextRequest) {
       { error: "Something went wrong. Please try again." },
       { status: 500 },
     );
+  }
+}
+
+/**
+ * Whether the caller is signed in as a member of this business.
+ *
+ * Uses the session client rather than the admin one, so row-level security
+ * does the checking: a non-member simply sees no membership row.
+ */
+async function isOwnerOf(slug: string): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    const { data } = await supabase
+      .from("studios")
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle();
+
+    return Boolean(data);
+  } catch {
+    return false;
   }
 }

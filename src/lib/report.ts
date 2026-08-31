@@ -80,6 +80,9 @@ export async function weeklyReport(
         "enquiries(id, quote_low_pence, bookings(id, starts_at, deposit_amount_pence, deposit_status, cancelled_at, attended))",
     )
     .eq("studio_id", studio.id)
+    // The week is a claim about what the assistant earned. A rehearsal by the
+    // owner counted in it would make that claim false.
+    .eq("is_test", false)
     .gte("created_at", from.toISOString())
     .lt("created_at", to.toISOString());
 

@@ -65,6 +65,13 @@ export type TurnInput = {
    * does not ask a question it already has the answer to.
    */
   forArtistId?: string | null;
+  /**
+   * The owner trying their own assistant out.
+   *
+   * Kept out of the inbox, the client list and every figure — "your assistant
+   * answered 14 enquiries" is worthless if nine were the owner rehearsing.
+   */
+  isTest?: boolean;
 };
 
 export type TurnResult = {
@@ -111,6 +118,7 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     input.sessionKey,
     input.channel,
     forArtistId,
+    input.isTest ?? false,
   );
 
   const startedAt = Date.now();
@@ -370,6 +378,7 @@ async function findOrCreateConversation(
   sessionKey: string,
   channel: Channel,
   forArtistId: string | null,
+  isTest: boolean,
 ) {
   /*
    * Scoped to the studio, and that is not optional.
@@ -409,7 +418,7 @@ async function findOrCreateConversation(
 
   const { data: contact } = await db
     .from("contacts")
-    .insert({ studio_id: studioId, channel })
+    .insert({ studio_id: studioId, channel, is_test: isTest })
     .select("id")
     .single();
 
@@ -421,6 +430,7 @@ async function findOrCreateConversation(
       channel,
       external_ref: sessionKey,
       artist_id: forArtistId,
+      is_test: isTest,
     })
     .select("*")
     .single();

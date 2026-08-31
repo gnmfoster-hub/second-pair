@@ -26,6 +26,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .from("conversations")
     .select("id", { count: "exact", head: true })
     .eq("studio_id", studio.id)
+    .eq("is_test", false)
     .eq("status", "needs_human");
 
   return (

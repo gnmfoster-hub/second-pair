@@ -56,6 +56,9 @@ export default async function ClientsPage({
         "conversations(id, last_message_at, enquiries(quote_low_pence, bookings(artist_id, deposit_amount_pence, deposit_status, cancelled_at)))",
     )
     .eq("studio_id", studio.id)
+    // Nameless strangers left behind by the owner testing their own
+    // assistant are not clients.
+    .eq("is_test", false)
     .order("created_at", { ascending: false })
     .limit(200);
 

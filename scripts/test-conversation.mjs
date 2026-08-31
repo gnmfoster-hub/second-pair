@@ -438,6 +438,53 @@ try {
     .eq("role", "client");
   check("client messages are still recorded while paused", stored === 2, `${stored} stored`);
 
+  // ------------------------------------------------- hiding your own message
+  //
+  // The owner can rehearse with their own assistant, and those conversations
+  // are kept out of the inbox, the client list and every figure.
+  //
+  // Which makes "this is only a test" a way to make a complaint disappear, if
+  // a stranger could claim it. It is only ever believed from somebody signed
+  // in as a member of the business being messaged.
+  console.log("\nA stranger claiming their message is only a test");
+
+  const spoof = newSession("spoof");
+  const spoofResponse = await fetch(`${BASE}/api/widget/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      studio: SLUG,
+      session: spoof,
+      message: "I want to complain about my last appointment",
+      test: true,
+    }),
+  });
+  check("the message is still accepted", spoofResponse.ok);
+
+  const { data: spoofed } = await db
+    .from("conversations")
+    .select("is_test")
+    .eq("external_ref", spoof)
+    .maybeSingle();
+
+  check(
+    "but it is not hidden from the owner",
+    spoofed?.is_test === false,
+    `is_test = ${spoofed?.is_test}`,
+  );
+
+  const { data: spoofContact } = await db
+    .from("contacts")
+    .select("is_test")
+    .eq("studio_id", studioId)
+    .eq("is_test", true);
+
+  check(
+    "and no phantom test client is created",
+    (spoofContact ?? []).length === 0,
+    `${(spoofContact ?? []).length} test contacts`,
+  );
+
   // ────────────────────────────────────────────────────── tenant isolation
   //
   // Regression for a real leak. A widget session key used to be unique across

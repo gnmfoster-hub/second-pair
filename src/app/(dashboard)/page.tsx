@@ -82,6 +82,9 @@ export default async function InboxPage() {
           "enquiries(description, quote_low_pence, bookings(cancelled_at))",
       )
       .eq("studio_id", studio.id)
+      // Rehearsals by the owner never appear here, or every figure below is a
+      // lie about how much work the assistant actually did.
+      .eq("is_test", false)
       .order("last_message_at", { ascending: false })
       .limit(50),
     getArtists(studio.id),
