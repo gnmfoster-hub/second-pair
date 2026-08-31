@@ -25,8 +25,21 @@ export type Route = {
   lastInboundAt: string | null;
 };
 
-/** Channels where the business may write first, with no prior message. */
-const CAN_START: Channel[] = ["sms", "web"];
+/**
+ * Channels where the business may write first, with no prior message.
+ *
+ * Text and email, and that is the whole list. Nothing on Meta can start a
+ * conversation, which is the single most important thing to know about it.
+ */
+const CAN_START: Channel[] = ["sms", "email", "web"];
+
+/**
+ * Which cold channel to offer first when there is a choice.
+ *
+ * A text gets read. An email gets read eventually, or not — fine for a receipt,
+ * second best for "we have had a cancellation at four".
+ */
+const COLD_ORDER: Channel[] = ["sms", "email"];
 
 /**
  * Channels Meta holds to a 24-hour reply window.
@@ -67,6 +80,7 @@ function ago(iso: string, now: number): string {
 export function routesFor({
   conversations,
   phone,
+  email,
   connected,
   now = Date.now(),
 }: {
@@ -76,8 +90,10 @@ export function routesFor({
     external_ref: string | null;
     last_inbound_at: string | null;
   }[];
-  /** The customer's number, if known — the only way to start cold. */
+  /** The customer's number, if known. The best way to start cold. */
   phone: string | null;
+  /** Their email, if known. The other way, and a weaker one. */
+  email?: string | null;
   /** Channels this business has actually connected. */
   connected: Channel[];
   now?: number;
@@ -119,24 +135,51 @@ export function routesFor({
    * who expects to is going to be disappointed by the platform, not by us, and
    * saying so here is kinder than letting them find out.
    */
-  if (phone && !routes.some((r) => r.channel === "sms")) {
-    routes.push({
+  const cold: { channel: Channel; to: string | null; missing: string }[] = [
+    {
       channel: "sms",
       to: phone,
+      missing:
+        "Text messages are not set up yet. They are the surest way to reach " +
+        "somebody who has not written to you first.",
+    },
+    {
+      channel: "email",
+      to: email ?? null,
+      missing:
+        "Email is not set up yet. It is the other way to reach somebody who " +
+        "has not written to you first.",
+    },
+  ];
+
+  for (const { channel, to, missing } of cold) {
+    if (!to) continue;
+    if (routes.some((r) => r.channel === channel)) continue;
+
+    routes.push({
+      channel,
+      to,
       conversationId: null,
-      open: connected.includes("sms"),
-      blocked: connected.includes("sms")
-        ? undefined
-        : "Text messages are not set up yet. They are the only way to message " +
-          "somebody who has not written to you first.",
+      open: connected.includes(channel),
+      blocked: connected.includes(channel) ? undefined : missing,
       lastInboundAt: null,
     });
   }
 
-  // What they can actually use, first; then the most recently active.
+  /*
+   * What they can actually use, first; then whoever wrote most recently.
+   *
+   * Cold routes have never been written on, so they fall to the end and are
+   * ordered between themselves by which is likelier to be read.
+   */
   return routes.sort((a, b) => {
     if (a.open !== b.open) return a.open ? -1 : 1;
-    return Date.parse(b.lastInboundAt ?? "0") - Date.parse(a.lastInboundAt ?? "0");
+
+    const recency =
+      Date.parse(b.lastInboundAt ?? "0") - Date.parse(a.lastInboundAt ?? "0");
+    if (recency !== 0) return recency;
+
+    return COLD_ORDER.indexOf(a.channel) - COLD_ORDER.indexOf(b.channel);
   });
 }
 

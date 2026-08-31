@@ -61,6 +61,15 @@ export function ArtistEditor({
             <input name="name" defaultValue={artist?.name ?? ""} className="input max-w-sm" required />
           </Field>
 
+          <Field label="Email" hint="Only used to send them their login.">
+            <input
+              name="email"
+              type="email"
+              defaultValue={artist?.email ?? ""}
+              className="input max-w-sm"
+            />
+          </Field>
+
           <Field label="Photo" hint="Shown in the diary and to clients. Initials if left blank.">
             <div className="flex items-center gap-3">
               {artist && <Avatar person={artist} size="lg" />}

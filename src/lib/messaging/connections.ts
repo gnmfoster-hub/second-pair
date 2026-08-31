@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Channel } from "@/lib/types";
+import { emailConfigured } from "./email";
 
 /**
  * Which ways of reaching people this business has actually plugged in.
@@ -20,6 +21,16 @@ export async function connectedChannels(
     .eq("active", true);
 
   const found = new Set<Channel>((data ?? []).map((r) => r.channel as Channel));
+
+  // The widget is served from here and needs nothing connecting.
   found.add("web");
+
+  /*
+   * Email is not connected per business — it is one account of ours, and every
+   * business sends through it under its own name. So it is on for everybody or
+   * nobody, decided by whether the key is in the environment.
+   */
+  if (emailConfigured()) found.add("email");
+
   return [...found];
 }

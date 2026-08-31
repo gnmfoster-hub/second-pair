@@ -82,7 +82,7 @@ export async function messageClient(
 
   const { data: contact } = await supabase
     .from("contacts")
-    .select("id, phone, conversations(id, channel, external_ref, last_inbound_at)")
+    .select("id, name, phone, email, conversations(id, channel, external_ref, last_inbound_at)")
     .eq("id", contactId)
     .eq("studio_id", studio.id)
     .maybeSingle();
@@ -91,6 +91,7 @@ export async function messageClient(
   const routes = routesFor({
     conversations: (contact.conversations ?? []) as never,
     phone: contact.phone,
+    email: contact.email,
     connected: await connectedChannels(supabase, studio.id),
   });
 
@@ -136,6 +137,16 @@ export async function messageClient(
     to: route.to,
     body: text,
     lastInboundAt: route.lastInboundAt,
+    /*
+     * Email needs a subject and somebody to reply to.
+     *
+     * It goes out from our verified domain, so the business's name sits in the
+     * display line and their own address in reply-to. Without that, a customer
+     * answering writes to us and nobody at the salon ever sees it.
+     */
+    subject: `Message from ${studio.name}`,
+    fromName: studio.name,
+    replyTo: studio.email ?? undefined,
   });
   if (message) await recordDelivery(supabase, message.id, result);
 

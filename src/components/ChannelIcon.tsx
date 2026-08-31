@@ -57,6 +57,14 @@ export function ChannelIcon({
         </svg>
       );
 
+    case "email":
+      return (
+        <svg {...base}>
+          <rect x="2.5" y="5" width="19" height="14" rx="2" />
+          <path d="m3 7 9 6 9-6" />
+        </svg>
+      );
+
     case "voice":
       return (
         <svg {...base}>

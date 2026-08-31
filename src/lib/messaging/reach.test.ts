@@ -152,3 +152,83 @@ test("channels are named the way the owner would name them", () => {
   assert.equal(channelLabel("whatsapp"), "WhatsApp");
   assert.equal(channelLabel("sms"), "Text message");
 });
+
+// ----------------------------------------------------------------- by email
+
+test("a known email offers a cold route once email is set up", () => {
+  const routes = routesFor({
+    conversations: [],
+    phone: null,
+    email: "priya@example.com",
+    connected: ["email"],
+    now: NOW,
+  });
+  assert.equal(routes.length, 1);
+  assert.equal(routes[0].channel, "email");
+  assert.equal(routes[0].open, true);
+  assert.equal(routes[0].conversationId, null);
+});
+
+test("without email set up, the route says so rather than vanishing", () => {
+  const [route] = routesFor({
+    conversations: [],
+    phone: null,
+    email: "priya@example.com",
+    connected: [],
+    now: NOW,
+  });
+  assert.equal(route.open, false);
+  assert.match(route.blocked ?? "", /not set up/);
+});
+
+test("a text is offered before an email, because a text gets read", () => {
+  const routes = routesFor({
+    conversations: [],
+    phone: "447700900123",
+    email: "priya@example.com",
+    connected: ["sms", "email"],
+    now: NOW,
+  });
+  assert.deepEqual(
+    routes.map((r) => r.channel),
+    ["sms", "email"],
+  );
+});
+
+test("a live conversation still beats both cold routes", () => {
+  const routes = routesFor({
+    conversations: [conv({ last_inbound_at: hoursAgo(1) })],
+    phone: "447700900123",
+    email: "priya@example.com",
+    connected: ["whatsapp", "sms", "email"],
+    now: NOW,
+  });
+  assert.equal(routes[0].channel, "whatsapp");
+  assert.equal(routes[0].conversationId, "c1", "it carries on where they left off");
+});
+
+test("an existing email thread is not duplicated by the cold route", () => {
+  const routes = routesFor({
+    conversations: [
+      conv({ channel: "email", external_ref: "priya@example.com", last_inbound_at: hoursAgo(5) }),
+    ],
+    phone: null,
+    email: "priya@example.com",
+    connected: ["email"],
+    now: NOW,
+  });
+  assert.equal(routes.length, 1);
+  assert.equal(routes[0].conversationId, "c1");
+});
+
+test("email has no twenty-four hour window — it is not Meta's to close", () => {
+  const [route] = routesFor({
+    conversations: [
+      conv({ channel: "email", external_ref: "p@example.com", last_inbound_at: hoursAgo(400) }),
+    ],
+    phone: null,
+    connected: ["email"],
+    now: NOW,
+  });
+  assert.equal(route.open, true);
+});

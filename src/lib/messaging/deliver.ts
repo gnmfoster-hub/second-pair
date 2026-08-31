@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Channel } from "@/lib/types";
 import { withinWindow as isWithinWindow, WINDOWED } from "./reach";
+import { sendEmail } from "./email";
 
 /**
  * Getting a message to a customer.
@@ -34,16 +35,16 @@ export type Delivery = {
 // be reached — so there is one copy of it and it can be tested on its own.
 export { withinWindow, WINDOWED as NEEDS_WINDOW } from "./reach";
 
-/** Whether this channel can be used to start a conversation at all. */
-export function canOpenConversation(channel: Channel): boolean {
-  return channel === "sms" || channel === "web";
-}
+
 
 export async function deliver({
   channel,
   to,
   body,
   lastInboundAt,
+  subject,
+  fromName,
+  replyTo,
 }: {
   channel: Channel;
   /** Phone number, page-scoped id, or the widget session — whatever the channel addresses. */
@@ -51,6 +52,12 @@ export async function deliver({
   body: string;
   /** When the customer last messaged, which decides the 24-hour window. */
   lastInboundAt?: string | null;
+  /** Email only. Everything else is a chat message and has no subject. */
+  subject?: string;
+  /** The business's name, so an email does not look like it came from us. */
+  fromName?: string;
+  /** Where a reply should go. The business, not us. */
+  replyTo?: string;
 }): Promise<Delivery> {
   if (!body.trim()) return { status: "failed", error: "Nothing to send." };
 
@@ -84,6 +91,15 @@ export async function deliver({
 
     case "sms":
       return notConnected("text messages", "no SMS number is connected yet");
+
+    case "email":
+      return sendEmail({
+        to,
+        subject: subject ?? (fromName ? `Message from ${fromName}` : "A message for you"),
+        text: body,
+        fromName,
+        replyTo,
+      });
 
     case "voice":
       return { status: "failed", error: "You cannot send a message down a phone call." };

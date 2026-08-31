@@ -7,6 +7,7 @@ export type Channel =
   | "instagram"
   | "messenger"
   | "sms"
+  | "email"
   | "voice";
 export type MessageRole = "client" | "assistant" | "owner" | "system";
 export type ConvStatus =
@@ -50,6 +51,7 @@ export const CHANNEL_LABELS: Record<Channel, string> = {
   instagram: "Instagram",
   messenger: "Messenger",
   sms: "SMS",
+  email: "Email",
   voice: "Voice",
 };
 
@@ -79,6 +81,8 @@ export type Studio = {
   id: string;
   name: string;
   slug: string;
+  /** Where replies to email we send on their behalf go. */
+  email: string | null;
   tone: string;
   hours: OpeningHours[];
   deposit_rule: DepositRule;
@@ -136,6 +140,8 @@ export type Artist = {
   name: string;
   /** Short name used in this person's own booking link. */
   handle: string | null;
+  /** Where to send their invitation. Optional — a link can be copied instead. */
+  email: string | null;
   /** Their own working week. Null follows the business's hours. */
   hours: OpeningHours[] | null;
   /** The regular gaps inside it: lunch, a school run, an early finish. */

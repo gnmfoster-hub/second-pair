@@ -31,6 +31,18 @@ export function StudioForm({ studio }: { studio: Studio }) {
         </Field>
 
         <Field
+          label="Email"
+          hint="Where a customer's reply goes. Email we send for you comes from our address, so without this an answer reaches nobody."
+        >
+          <input
+            name="email"
+            type="email"
+            defaultValue={studio.email ?? ""}
+            className="input max-w-md"
+          />
+        </Field>
+
+        <Field
           label="Tone of voice"
           hint="Written into the assistant's system prompt. Be specific: how you greet people, what you never say."
         >

@@ -3,7 +3,7 @@ import { verticalPack } from "@/lib/verticals";
 import { ArtistEditor } from "./ArtistEditor";
 import { InviteButton } from "./InviteButton";
 import { createClient } from "@/lib/supabase/server";
-import { headers } from "next/headers";
+import { siteOrigin } from "@/lib/origin";
 
 export default async function ArtistsPage() {
   const { studio } = await requireStudio();
@@ -24,10 +24,7 @@ export default async function ArtistsPage() {
 
   const pending = new Map((invites ?? []).map((i) => [i.artist_id, i.token]));
 
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  const origin = `${proto}://${host}`;
+  const origin = await siteOrigin();
   const pack = verticalPack(studio.vertical);
   const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
 

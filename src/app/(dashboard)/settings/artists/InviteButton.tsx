@@ -33,6 +33,9 @@ export function InviteButton({
   const [token, setToken] = useState(pendingToken);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
+  /** Set when we managed to email it for them, so they need not send it. */
+  const [emailedTo, setEmailedTo] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [busy, run] = useTransition();
 
   if (hasLogin) {
@@ -61,7 +64,9 @@ export function InviteButton({
       <div className="w-full rounded-xl border border-border bg-surface-2/50 p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs font-medium">
-            Send this to {name.split(" ")[0]} — it works once, and expires in 14 days
+            {emailedTo
+              ? `Emailed to ${emailedTo}. It works once, and expires in 14 days`
+              : `Send this to ${name.split(" ")[0]} — it works once, and expires in 14 days`}
           </span>
           <button
             type="button"
@@ -76,6 +81,14 @@ export function InviteButton({
             Withdraw
           </button>
         </div>
+
+        {/* It did not send, so the link below is the only way. Said plainly,
+            because an owner who assumes it went will wait for nothing. */}
+        {emailError && (
+          <p className="mt-2 rounded-lg bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">
+            It could not be emailed: {emailError} Send them the link instead.
+          </p>
+        )}
 
         <div className="mt-2 flex items-stretch gap-2">
           <code className="min-w-0 flex-1 overflow-x-auto rounded-lg border border-border bg-surface px-3 py-2 font-mono text-[11px] leading-relaxed">
@@ -98,8 +111,13 @@ export function InviteButton({
           run(async () => {
             setError("");
             const result = await inviteToTeam(artistId);
-            if (result.error) setError(result.error);
-            else setToken(result.token ?? null);
+            if (result.error) {
+              setError(result.error);
+              return;
+            }
+            setToken(result.token ?? null);
+            setEmailedTo(result.emailedTo ?? "");
+            setEmailError(result.emailError ?? "");
           })
         }
         className="btn-ghost py-1.5 text-xs"

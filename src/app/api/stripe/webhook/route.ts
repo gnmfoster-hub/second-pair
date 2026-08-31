@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type Stripe from "stripe";
 import { stripe } from "@/lib/payments/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendBookingConfirmation } from "@/lib/messaging/confirmation";
 
 export const runtime = "nodejs";
 
@@ -68,6 +69,15 @@ export async function POST(request: NextRequest) {
           content: `Deposit paid — ${((session.amount_total ?? 0) / 100).toLocaleString("en-GB", { style: "currency", currency: "GBP" })}.`,
         });
       }
+
+      /*
+       * The confirmation, with the appointment attached.
+       *
+       * Deliberately after the booking is already updated, and deliberately
+       * unable to throw: an email that does not send must never be the reason
+       * Stripe retries a payment that has already gone through.
+       */
+      await sendBookingConfirmation(db, bookingId);
       break;
     }
 

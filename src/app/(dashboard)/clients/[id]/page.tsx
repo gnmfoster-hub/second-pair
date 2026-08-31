@@ -121,6 +121,7 @@ export default async function ClientPage({
   const routes = routesFor({
     conversations,
     phone: contact.phone,
+    email: contact.email,
     connected: await connectedChannels(supabase, studio.id),
   });
   const mayMessage = await canMessage();

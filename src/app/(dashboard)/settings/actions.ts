@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireStudio, getArtists } from "@/lib/studio";
 import { parsePounds } from "@/lib/money";
 import { DEFAULT_HOURS, type DepositRule, type OpeningHours } from "@/lib/types";
+import { sendEmail, emailConfigured } from "@/lib/messaging/email";
+import { siteOrigin } from "@/lib/origin";
 
 export type FormState = { error?: string; ok?: boolean };
 
@@ -65,6 +67,7 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
     .from("studios")
     .update({
       name,
+      email: str(fd, "email") || null,
       tone: str(fd, "tone"),
       // Blank means "use the trade pack's wording", not "no greeting".
       greeting: str(fd, "greeting") || null,
@@ -227,6 +230,7 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
     studio_id: studio.id,
     name,
     handle,
+    email: str(fd, "email") || null,
     hours: ownHours,
     styles: fd.getAll("styles").map(String),
     hourly_rate_pence: hourly,
@@ -440,6 +444,7 @@ export async function updateAssistant(_prev: FormState, fd: FormData): Promise<F
   const { error } = await supabase
     .from("studios")
     .update({
+      email: str(fd, "email") || null,
       tone: str(fd, "tone"),
       always_mention: lines("always_mention"),
       never_mention: lines("never_mention"),
@@ -503,7 +508,7 @@ export async function setServiceProviders(bandId: string, artistIds: string[]) {
  */
 export async function inviteToTeam(
   artistId: string,
-): Promise<{ token?: string; error?: string }> {
+): Promise<{ token?: string; error?: string; emailedTo?: string; emailError?: string }> {
   const { studio } = await requireStudio();
   const supabase = await createClient();
 
@@ -528,7 +533,45 @@ export async function inviteToTeam(
   if (error) return { error: error.message };
 
   revalidatePath("/settings/artists");
-  return { token: data.token };
+
+  /*
+   * Sent for them, when we can.
+   *
+   * The link is still shown either way. Email is the polite way to hand
+   * somebody their login, but it is not the reliable one — plenty of these
+   * will go over WhatsApp because that is where the team already talks, and
+   * the owner should never be stuck waiting on an inbox.
+   */
+  if (!person.email || !emailConfigured()) return { token: data.token };
+
+  const link = `${await siteOrigin()}/join/${data.token}`;
+  const first = person.name.split(" ")[0];
+
+  const sent = await sendEmail({
+    to: person.email,
+    subject: `Your login for ${studio.name}`,
+    text:
+      `Hello ${first},
+
+` +
+      `${studio.name} has set you up with a login for the diary.
+
+` +
+      `${link}
+
+` +
+      `The link works once and expires in fourteen days. You will be asked to ` +
+      `choose a password when you open it.
+
+` +
+      `If you were not expecting this, ignore it and nothing happens.`,
+    fromName: studio.name,
+    replyTo: studio.email ?? undefined,
+  });
+
+  return sent.status === "sent"
+    ? { token: data.token, emailedTo: person.email }
+    : { token: data.token, emailError: sent.error };
 }
 
 /** Cancels a link that has been sent but not used. */
