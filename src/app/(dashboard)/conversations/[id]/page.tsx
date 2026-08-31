@@ -5,18 +5,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireStudio, getArtists, getPriceBands, getServiceOptions } from "@/lib/studio";
 import { formatRange, formatPence } from "@/lib/money";
 import { depositFor } from "@/lib/quote";
-import { CHANNEL_LABELS, CONV_STATUS_LABELS, labelFor, type ConvStatus } from "@/lib/types";
+import { CHANNEL_LABELS, labelFor, type ConvStatus } from "@/lib/types";
+import { verticalPack } from "@/lib/verticals";
 import { ReplyBox } from "./ReplyBox";
-import { setPaused, setStatus } from "./actions";
-
-const STATUSES: ConvStatus[] = [
-  "new",
-  "qualified",
-  "deposit_paid",
-  "booked",
-  "needs_human",
-  "lost",
-];
+import { setPaused } from "./actions";
+import { StatusPicker } from "./StatusPicker";
 
 export default async function ConversationPage({
   params,
@@ -25,6 +18,11 @@ export default async function ConversationPage({
 }) {
   const { id } = await params;
   const { studio } = await requireStudio();
+  const pack = verticalPack(studio.vertical);
+  // Which questions this trade actually asks, so the panel shows those.
+  const asks = new Set(pack.qualification.map((q) => q.key));
+  const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
+  const sizeLabel = words.size_unit.replace(/^./, (c) => c.toUpperCase());
   const supabase = await createClient();
 
   const { data: conversation } = await supabase
@@ -100,23 +98,10 @@ export default async function ConversationPage({
           </p>
         </div>
 
-        <form action={setStatus} className="flex items-center gap-2">
-          <input type="hidden" name="conversation_id" value={conversation.id} />
-          <select
-            name="status"
-            defaultValue={conversation.status}
-            className="input w-40 py-1.5"
-          >
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {CONV_STATUS_LABELS[s]}
-              </option>
-            ))}
-          </select>
-          <button type="submit" className="btn-ghost">
-            Set
-          </button>
-        </form>
+        <StatusPicker
+          conversationId={conversation.id}
+          current={conversation.status as ConvStatus}
+        />
       </div>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_20rem]">
@@ -252,26 +237,42 @@ export default async function ConversationPage({
 
           <section className="card p-5">
             <h2 className="mb-2 text-sm font-medium">Enquiry</h2>
+            {/*
+             * Only the fields this trade actually asks about.
+             *
+             * These were a fixed tattoo-shaped list, so a hair salon was shown
+             * "Placement", "Cover-up" and "18 or over" — three questions its
+             * assistant never asks and its stylists have no use for. The trade
+             * pack already knows which questions it asks; this reads from it.
+             *
+             * The others are shown whenever there is something in them, so an
+             * old enquiry from before a business changed trade still displays
+             * everything that was gathered rather than quietly losing it.
+             */}
             {detail("Wants", enquiry?.description)}
-            {detail("Placement", enquiry?.placement)}
-            {detail("Size", band?.size_label)}
-            {detail(
-              "Style",
-              labelFor(options.filter((o) => o.kind === "style"), enquiry?.style),
-            )}
+            {(asks.has("placement") || enquiry?.placement) &&
+              detail("Placement", enquiry?.placement)}
+            {detail(sizeLabel, band?.size_label)}
+            {(asks.has("style") || enquiry?.style) &&
+              detail(
+                "Style",
+                labelFor(options.filter((o) => o.kind === "style"), enquiry?.style),
+              )}
             {detail("With", artist?.name)}
-            {detail(
-              "Cover-up",
-              enquiry?.cover_up == null ? null : enquiry.cover_up ? "Yes" : "No",
-            )}
-            {detail(
-              "18 or over",
-              enquiry?.age_confirmed == null
-                ? null
-                : enquiry.age_confirmed
-                  ? "Confirmed"
-                  : "Not confirmed",
-            )}
+            {(asks.has("cover_up") || enquiry?.cover_up != null) &&
+              detail(
+                "Cover-up",
+                enquiry?.cover_up == null ? null : enquiry.cover_up ? "Yes" : "No",
+              )}
+            {(pack.ageCheck || enquiry?.age_confirmed != null) &&
+              detail(
+                "18 or over",
+                enquiry?.age_confirmed == null
+                  ? null
+                  : enquiry.age_confirmed
+                    ? "Confirmed"
+                    : "Not confirmed",
+              )}
             {detail("Availability", enquiry?.preferred_times)}
             {detail("Quoted", quote)}
             {quote && enquiry && (
