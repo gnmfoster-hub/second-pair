@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Studio } from "@/lib/types";
 import { describeSlot } from "@/lib/booking";
+import { deliver } from "@/lib/messaging/deliver";
+import { routesFor } from "@/lib/messaging/reach";
+import { connectedChannels, smsNumberFor } from "@/lib/messaging/connections";
+import type { Channel } from "@/lib/types";
 
 /**
  * Reminders.
@@ -106,15 +110,25 @@ type DueRow = {
     starts_at: string;
     cancelled_at: string | null;
     artists: { name: string; studio_id: string } | null;
+    /** Set when somebody typed this into the diary rather than the assistant booking it. */
+    contacts: Person | null;
     enquiries: {
       conversations: {
         id: string;
-        channel: string;
+        channel: Channel;
+        external_ref: string | null;
+        last_inbound_at: string | null;
         ai_paused: boolean;
-        contacts: { name: string | null } | null;
+        contacts: Person | null;
       } | null;
     } | null;
   } | null;
+};
+
+type Person = {
+  name: string | null;
+  phone: string | null;
+  email: string | null;
 };
 
 export type SendResult = {
@@ -141,8 +155,10 @@ export async function sendDueReminders(
     .from("reminders")
     .select(
       "id, due_at, template_id, " +
-        "bookings!inner(id, starts_at, cancelled_at, artists!inner(name, studio_id), " +
-        "enquiries(conversations(id, channel, ai_paused, contacts(name))))",
+        "bookings!inner(id, starts_at, cancelled_at, " +
+        "artists!inner(name, studio_id), contacts(name, phone, email), " +
+        "enquiries(conversations(id, channel, external_ref, last_inbound_at, " +
+        "ai_paused, contacts(name, phone, email))))",
     )
     .eq("status", "pending")
     .lte("due_at", now.toISOString())
@@ -160,6 +176,10 @@ export async function sendDueReminders(
     .select("id, body")
     .eq("studio_id", studio.id);
   const bodyFor = new Map((templates ?? []).map((t) => [t.id, t.body]));
+
+  // Looked up once for the whole batch rather than per reminder.
+  const connected = await connectedChannels(db, studio.id);
+  const smsFrom = await smsNumberFor(db, studio.id);
 
   for (const row of rows) {
     const booking = row.bookings;
@@ -189,43 +209,94 @@ export async function sendDueReminders(
       ),
     });
 
-    // Web conversations get it in the thread they started, which is the only
-    // channel wired up so far. SMS, WhatsApp and email land here next.
-    if (conversation && conversation.channel === "web") {
-      const { error } = await db.from("messages").insert({
-        conversation_id: conversation.id,
-        role: "assistant",
-        content: body,
+    /*
+     * Where this one can actually go.
+     *
+     * The same rules the rest of the product uses, which matters most here:
+     * a reminder goes out the evening before, and Meta shuts twenty-four hours
+     * after the customer's last message. So the channel they arrived on is
+     * usually closed by the time we want it, and the honest answer is to fall
+     * back to a text rather than to try and fail.
+     *
+     * routesFor already orders open routes first, so picking the first open one
+     * gets that fallback without any special case for it.
+     */
+    const person = conversation?.contacts ?? booking.contacts ?? null;
+
+    const route = routesFor({
+      conversations: conversation
+        ? [
+            {
+              id: conversation.id,
+              channel: conversation.channel,
+              external_ref: conversation.external_ref,
+              last_inbound_at: conversation.last_inbound_at,
+            },
+          ]
+        : [],
+      phone: person?.phone ?? null,
+      email: person?.email ?? null,
+      connected,
+    }).find((r) => r.open);
+
+    if (route) {
+      /*
+       * Written into the thread as well as sent.
+       *
+       * On the website that IS the delivery — they read it when they come back.
+       * Everywhere else it is the record, so "was he reminded?" has an answer
+       * weeks later without going to the phone company for it.
+       */
+      if (conversation) {
+        await db.from("messages").insert({
+          conversation_id: conversation.id,
+          role: "assistant",
+          content: body,
+        });
+      }
+
+      const sent = await deliver({
+        channel: route.channel,
+        to: route.to,
+        body,
+        lastInboundAt: route.lastInboundAt,
+        from: route.channel === "sms" ? smsFrom : undefined,
+        subject: `Your appointment with ${studio.name}`,
+        fromName: studio.name,
+        replyTo: studio.email ?? undefined,
       });
 
-      if (error) {
-        await db
-          .from("reminders")
-          .update({ status: "failed", error: error.message })
-          .eq("id", row.id);
-        result.failed++;
-        continue;
-      }
+      const arrived = sent.status === "sent" || sent.status === "delivered" ||
+        sent.status === "not_needed";
 
       await db
         .from("reminders")
         .update({
-          status: "sent",
+          status: arrived ? "sent" : "failed",
           body,
-          channel: conversation.channel,
-          sent_at: new Date().toISOString(),
+          channel: route.channel,
+          error: sent.error ?? null,
+          sent_at: arrived ? new Date().toISOString() : null,
         })
         .eq("id", row.id);
-      result.sent++;
+
+      if (arrived) result.sent++;
+      else result.failed++;
       continue;
     }
 
-    // Nowhere to send it yet. Left pending and surfaced to the owner rather
-    // than quietly marked done.
+    /*
+     * Nowhere to send it. Left pending and surfaced to the owner rather than
+     * quietly marked done.
+     *
+     * Usually means one of two things: no channel is connected yet, or they
+     * came in on WhatsApp and the window has shut with no number on file to
+     * text instead.
+     */
     result.waiting.push({
       id: row.id,
       body,
-      who: conversation?.contacts?.name ?? "a client",
+      who: person?.name ?? "a client",
       when: describeSlot(
         { starts_at: booking.starts_at, ends_at: booking.starts_at },
         studio.timezone,
