@@ -163,7 +163,8 @@ takes days and the clock only starts when you apply.
 
 1. Sign up at twilio.com. The trial credit covers testing.
 2. **Phone Numbers → Buy a Number.** Country: United Kingdom. Tick **SMS**.
-   Buy **one**. Do not buy one per business yet — the code is not written.
+   Buy **one** to start with — you will want one per business eventually, but
+   one proves it works.
 3. It will ask for a **Regulatory Bundle**: a UK address and a document proving
    it (a utility bill or bank statement in the business name). Submit it
    immediately. A day or two normally, longer if they query anything.
@@ -179,8 +180,13 @@ takes days and the clock only starts when you apply.
    TWILIO_FROM_NUMBER=+447xxxxxxxxx
    ```
 
-Tell me when the number is live and I will point the webhook at it so replies
-come back into the inbox.
+6. Then, in Second Pair: **Settings → Channels**. Put the number in, and it
+   shows you the webhook URL to paste back into Twilio under **A message comes
+   in**. Without that step, texts arrive at Twilio and go nowhere.
+
+The number is also how an incoming text is routed to the right business, so each
+one needs its own before you take on a second customer. A shared number arrives
+with no way of telling whose customer it is.
 
 ---
 
