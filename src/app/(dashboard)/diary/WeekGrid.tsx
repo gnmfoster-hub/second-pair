@@ -50,6 +50,16 @@ export type Entry = {
  */
 const HOUR_HEIGHT = 72;
 
+/*
+ * The narrowest a column may get before the grid scrolls sideways instead.
+ *
+ * Seven days across a 414px phone leaves about 49 pixels each, which is not a
+ * diary — a card cannot hold a name in it. Below this the columns keep their
+ * width and the grid scrolls, the way every desktop calendar handles a week on
+ * a narrow screen.
+ */
+const MIN_COLUMN = 116;
+
 /** Local wall-clock minutes since midnight, in the studio's timezone. */
 function minutesInDay(iso: string, timezone: string): number {
   const parts = new Intl.DateTimeFormat("en-GB", {
@@ -243,6 +253,15 @@ export function WeekGrid({
     if (scroller.current) scroller.current.scrollTop = target * HOUR_HEIGHT;
   }, [hours]);
 
+  /*
+   * How wide the grid needs to be for every column to stay readable.
+   *
+   * The time gutter is fixed; the rest is the columns at their floor. When
+   * that is wider than the screen the wrapper scrolls, which is why the gutter
+   * and the headings are sticky.
+   */
+  const gridWidth = 68 + columns.length * MIN_COLUMN;
+
   const timed = entries.filter((e) => !e.all_day);
   const allDay = entries.filter((e) => e.all_day);
   const hourList = Array.from({ length: 24 }, (_, i) => i);
@@ -352,10 +371,15 @@ export function WeekGrid({
         </div>
       )}
 
-      <div>
+      <div ref={scroller} className="max-h-[70vh] overflow-auto">
         {/* ------------------------------------------------ headings */}
-        <div className="sticky top-0 z-20 flex border-b border-border bg-surface/95 backdrop-blur">
-          <div className="w-[4.25rem] shrink-0 border-r border-border" />
+        <div
+          className="sticky top-0 z-20 flex border-b border-border bg-surface/95 backdrop-blur"
+          style={{ minWidth: gridWidth }}
+        >
+          {/* Sticky left, so the times stay put while the week scrolls under
+              them — a column of numbers that scrolls away is no use. */}
+          <div className="sticky left-0 z-10 w-[4.25rem] shrink-0 border-r border-border bg-surface/95 backdrop-blur" />
           {columns.map((col) => {
             const isToday = view === "week" && col.date === todayKey;
             const weekday = new Date(col.date).getDay();
@@ -422,8 +446,11 @@ export function WeekGrid({
 
         {/* ------------------------------------------------ all-day band */}
         {allDay.length > 0 && (
-          <div className="flex border-b border-border bg-surface-2/40">
-            <div className="w-16 shrink-0 border-r border-border px-2 py-1.5 text-[10px] uppercase tracking-wide text-muted">
+          <div
+            className="flex border-b border-border bg-surface-2/40"
+            style={{ minWidth: gridWidth }}
+          >
+            <div className="sticky left-0 z-10 w-[4.25rem] shrink-0 border-r border-border bg-surface-2 px-2 py-1.5 text-[10px] uppercase tracking-wide text-muted">
               All day
             </div>
             {columns.map((col) => {
@@ -469,9 +496,9 @@ export function WeekGrid({
         )}
 
         {/* ------------------------------------------------ time grid */}
-        <div ref={scroller} className="max-h-[64vh] overflow-y-auto">
-          <div className="flex">
-            <div className="w-[4.25rem] shrink-0 border-r border-border">
+        <div>
+          <div className="flex" style={{ minWidth: gridWidth }}>
+            <div className="sticky left-0 z-10 w-[4.25rem] shrink-0 border-r border-border bg-surface">
               {hourList.map((h) => (
                 <div key={h} style={{ height: HOUR_HEIGHT }} className="relative">
                   {/*
