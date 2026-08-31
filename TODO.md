@@ -278,22 +278,21 @@ the fallback when there is no mobile number.
 
 # Mine
 
-**Doing now:** SMS. Twilio behind the same `deliver()` everything else uses, a
-number stored per business, and an inbound webhook so replies land in the inbox
-and the assistant picks them up. This is what makes outbound messaging actually
-send.
+**Doing now:** reminders over SMS. They currently only reach people who came in
+through the website widget, which is almost nobody.
 
 **Then:**
 
-1. Reminders over SMS. They currently only reach people who came in through the
-   website widget, which is almost nobody.
+1. Deposit receipts by email.
 2. Meta, once the app is through review.
 3. Roles on the artist editor, and per-person greeting and tone — all three have
    database columns and no screen yet.
-4. Deposit receipts by email.
 
 **Done and waiting on you:**
 
+- Text messages: sending, an inbound webhook so replies reach the inbox and the
+  assistant answers them, and a number registered per business under Settings →
+  Channels. Needs step 5.
 - Email: confirmations with a calendar file, staff invites that send themselves.
   Needs step 2.
 - Outbound messaging: message a client from their page, add a client who has
