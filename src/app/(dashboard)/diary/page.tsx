@@ -4,6 +4,7 @@ import { requireStudio, getArtists } from "@/lib/studio";
 import { startOfWeek, addDays, isoDate, parseIsoDate, CATEGORIES } from "@/lib/calendar";
 import { WeekGrid, type Entry } from "./WeekGrid";
 import { Shortcuts } from "./Shortcuts";
+import { NewEntry } from "./NewEntry";
 import { formatPence } from "@/lib/money";
 
 type RawRow = {
@@ -161,29 +162,54 @@ export default async function DiaryPage({
         )}
 
         <div className="ml-auto flex items-center gap-2">
-          <div className="flex overflow-hidden rounded-lg border border-border">
+          {/* One segmented control rather than five loose buttons: the view and
+              the date are the same decision, and they belong together. */}
+          <div className="flex overflow-hidden rounded-xl border border-border bg-surface">
             <Link
               href={`/diary?view=day&day=${isoDate(focusDay)}`}
-              className={`px-3 py-2 text-sm ${view === "day" ? "bg-surface-2 text-foreground" : "text-muted hover:text-foreground"}`}
+              className={`px-3.5 py-2 text-sm font-medium transition-colors ${
+                view === "day"
+                  ? "bg-surface-2 text-foreground"
+                  : "text-muted hover:text-foreground"
+              }`}
             >
               Day
             </Link>
             <Link
               href={`/diary?week=${isoDate(start)}`}
-              className={`px-3 py-2 text-sm ${view === "week" ? "bg-surface-2 text-foreground" : "text-muted hover:text-foreground"}`}
+              className={`border-l border-border px-3.5 py-2 text-sm font-medium transition-colors ${
+                view === "week"
+                  ? "bg-surface-2 text-foreground"
+                  : "text-muted hover:text-foreground"
+              }`}
             >
               Week
             </Link>
           </div>
-          <Link href={back} className="btn-ghost px-3" aria-label="Previous">
-            ←
-          </Link>
-          <Link href={view === "day" ? "/diary?view=day" : "/diary"} className="btn-ghost">
-            Today
-          </Link>
-          <Link href={forward} className="btn-ghost px-3" aria-label="Next">
-            →
-          </Link>
+
+          <div className="flex items-center overflow-hidden rounded-xl border border-border bg-surface">
+            <Link
+              href={back}
+              className="px-3 py-2 text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+              aria-label="Previous"
+            >
+              ‹
+            </Link>
+            <Link
+              href={view === "day" ? "/diary?view=day" : "/diary"}
+              className="border-x border-border px-3.5 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+            >
+              Today
+            </Link>
+            <Link
+              href={forward}
+              className="px-3 py-2 text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+              aria-label="Next"
+            >
+              ›
+            </Link>
+          </div>
+
           <Shortcuts
             back={back}
             forward={forward}
@@ -191,22 +217,47 @@ export default async function DiaryPage({
             dayHref={`/diary?view=day&day=${isoDate(focusDay)}`}
             weekHref={`/diary?week=${isoDate(start)}`}
           />
+
+          {/*
+           * The only way to add anything used to be clicking the grid, which
+           * nobody finds on their own. Amber, because the pack allows one call
+           * to action per screen and on this page it is obviously this.
+           */}
+          <NewEntry artists={team} timezone={studio.timezone} />
         </div>
       </div>
 
-      {/* What this period is worth, and how much room is left in it. */}
-      <div className="mt-5 flex flex-wrap items-stretch gap-2">
-        <Figure label={view === "day" ? "Booked today" : "Booked this week"} value={asHours(bookedMinutes)} />
-        <Figure label="Worth" value={formatPence(worth)} accent={worth > 0} />
-        <Figure
-          label="Still free"
-          value={asHours(freeMinutes)}
-          hint={
-            capacity > 0
-              ? `${Math.round((bookedMinutes / capacity) * 100)}% full`
-              : "Closed all period"
-          }
-        />
+      {/*
+       * What this period is worth, and how much room is left.
+       *
+       * One line rather than three cards: the diary is what people came for,
+       * and a row of large mostly-empty boxes pushed it below the fold. The
+       * bar reads the same at a glance and costs a tenth of the space.
+       */}
+      <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm">
+        <Figure label="booked" value={asHours(bookedMinutes)} />
+        <Figure label="worth" value={formatPence(worth)} accent={worth > 0} />
+        <Figure label="free" value={asHours(freeMinutes)} />
+
+        {capacity > 0 ? (
+          <div className="ml-auto flex items-center gap-2.5">
+            <div className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-2">
+              <div
+                className="h-full rounded-full bg-accent"
+                style={{
+                  width: `${Math.min(100, Math.round((bookedMinutes / capacity) * 100))}%`,
+                }}
+              />
+            </div>
+            <span className="hint num">
+              {Math.round((bookedMinutes / capacity) * 100)}% full
+            </span>
+          </div>
+        ) : (
+          <Link href="/settings" className="ml-auto text-xs text-warn hover:underline">
+            No opening hours set — add them
+          </Link>
+        )}
       </div>
 
       {team.length > 1 && (
@@ -239,15 +290,13 @@ export default async function DiaryPage({
         </div>
       )}
 
-      <p className="hint mt-3">
-        Click any empty space to add something — a meeting, a delivery to chase, a day off.
-        Click an entry to change it.
-        {team.length > 1
-          ? " Day view puts everyone side by side; week view shows one person at a time."
-          : ""}
-      </p>
+      {/*
+       * The instructions used to sit here as a paragraph above the diary,
+       * where they were read once and then got in the way every day
+       * afterwards. They live under the ? key now, with the shortcuts.
+       */}
 
-      <div className="mt-6">
+      <div className="mt-4">
         <WeekGrid
           weekStart={isoDate(start)}
           day={isoDate(focusDay)}
@@ -290,21 +339,20 @@ export default async function DiaryPage({
 function Figure({
   label,
   value,
-  hint,
   accent = false,
 }: {
   label: string;
   value: string;
-  hint?: string;
   accent?: boolean;
 }) {
   return (
-    <div className="card flex-1 basis-40 px-4 py-3">
-      <div className={`font-display text-xl font-semibold tabular-nums ${accent ? "text-accent" : ""}`}>
+    <span className="flex items-baseline gap-1.5">
+      <span
+        className={`font-display text-base font-semibold tabular-nums ${accent ? "text-accent" : ""}`}
+      >
         {value}
-      </div>
-      <div className="hint mt-0.5">{label}</div>
-      {hint && <div className="hint mt-0.5 opacity-70">{hint}</div>}
-    </div>
+      </span>
+      <span className="text-xs text-muted">{label}</span>
+    </span>
   );
 }

@@ -61,10 +61,10 @@
     /* Reversed, to the pack's own dark values: cream bubble, forest dot, amber
        stays amber. Forest is too dark to be an accent on a dark ground, so the
        accent lifts to a lighter forest that still reads as the same green. */
-    --background: #0f1512;
-    --surface: #161f1b;
-    --surface-2: #1e2a25;
-    --border: #2b3832;
+    --background: #090d0b;
+    --surface: #141d19;
+    --surface-2: #1f2b25;
+    --border: #31413a;
     --foreground: #f4f2ec;
     --muted: #9fbfb2;
     --accent: #5aa98d;
@@ -85,7 +85,7 @@
     --cal-work: #a98fd4;
     --cal-note: #56b3c4;
     --cal-off: #7f908a;
-    --cal-grid: #232f2a;
+    --cal-grid: #26332d;
     --cal-closed: rgba(0, 0, 0, 0.38);
 
     color-scheme: dark;
@@ -96,10 +96,10 @@
     /* Reversed, to the pack's own dark values: cream bubble, forest dot, amber
      stays amber. Forest is too dark to be an accent on a dark ground, so the
      accent lifts to a lighter forest that still reads as the same green. */
-  --background: #0f1512;
-  --surface: #161f1b;
-  --surface-2: #1e2a25;
-  --border: #2b3832;
+  --background: #090d0b;
+  --surface: #141d19;
+  --surface-2: #1f2b25;
+  --border: #31413a;
   --foreground: #f4f2ec;
   --muted: #9fbfb2;
   --accent: #5aa98d;
@@ -120,7 +120,7 @@
   --cal-work: #a98fd4;
   --cal-note: #56b3c4;
   --cal-off: #7f908a;
-  --cal-grid: #232f2a;
+  --cal-grid: #26332d;
   --cal-closed: rgba(0, 0, 0, 0.38);
 
   color-scheme: dark;
@@ -155,6 +155,26 @@ body {
   color: var(--foreground);
   font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
 }
+
+/*
+ * Which logo file shows.
+ *
+ * Three states, not two: an explicit choice stamps data-theme, and the default
+ * "system" setting stamps nothing at all — so the media query has to carry the
+ * un-stamped case while the attribute selectors beat it in either direction.
+ */
+.light-hidden { display: none; }
+.dark-hidden { display: block; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .dark-hidden { display: none; }
+  :root:not([data-theme="light"]) .light-hidden { display: block; }
+}
+
+:root[data-theme="dark"] .dark-hidden { display: none; }
+:root[data-theme="dark"] .light-hidden { display: block; }
+:root[data-theme="light"] .dark-hidden { display: block; }
+:root[data-theme="light"] .light-hidden { display: none; }
 
 @layer components {
   /* ------------------------------------------------------------------ type */

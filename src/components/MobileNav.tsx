@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Logo } from "@/components/Logo";
 import {
   InboxIcon,
   DiaryIcon,
@@ -85,11 +86,9 @@ export function MobileHeader({
       className="sticky top-0 z-30 flex items-center gap-2.5 border-b border-border bg-surface/95 px-4 py-3 backdrop-blur md:hidden"
       style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
     >
-      <div className="min-w-0 flex-1">
+      <Logo height={20} className="shrink-0" />
+      <div className="min-w-0 flex-1 border-l border-border pl-3">
         <div className="truncate text-sm font-medium leading-tight">{businessName}</div>
-        <div className="wordmark text-[11px] leading-tight text-muted">
-          second <span className="font-medium">pair</span>
-        </div>
       </div>
       {children}
     </header>

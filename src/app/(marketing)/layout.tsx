@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Logo, Mark } from "@/components/Logo";
+import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 /**
@@ -15,7 +15,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center gap-4 px-5 py-3.5 sm:px-8">
           <Link href="/" aria-label="Second Pair">
-            <Logo markClass="size-7" />
+            <Logo height={26} />
           </Link>
 
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
@@ -41,10 +41,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
 
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-5 py-8 text-xs text-muted sm:px-8">
-          <span className="wordmark flex items-center gap-2 text-foreground">
-            <Mark className="size-4" />
-            second <span className="font-medium">pair</span>
-          </span>
+          <Logo height={18} />
           <Link href="/privacy" className="hover:text-foreground">
             Privacy
           </Link>

@@ -253,6 +253,64 @@ try {
   const { data: bMsgs } = await b.client.from("messages").select("id").eq("id", msgB.id);
   check("owner B can read their own messages", (bMsgs ?? []).length === 1);
 
+  // ------------------------------------------------------ the manual diary
+  //
+  // Regression for a real one. The bookings policy used to reach a row only
+  // through its enquiry, so anything the owner put in the diary by hand — a
+  // block, a day off, a delivery, a dentist appointment — had no enquiry, and
+  // was therefore invisible to them and impossible to create.
+  //
+  // Ownership now runs through the artist, which every booking has.
+
+  const manualStart = new Date(stamp + 200000000).toISOString();
+  const { data: manual, error: manualError } = await b.client
+    .from("bookings")
+    .insert({
+      artist_id: artistB.id,
+      type: "session",
+      source: "manual",
+      category: "personal",
+      title: "Dentist",
+      starts_at: manualStart,
+      ends_at: new Date(stamp + 203600000).toISOString(),
+    })
+    .select("id")
+    .single();
+
+  check(
+    "owner B can put something in their own diary by hand",
+    !manualError && Boolean(manual?.id),
+    manualError?.message,
+  );
+
+  if (manual?.id) {
+    const { data: readBack } = await b.client
+      .from("bookings")
+      .select("id, title")
+      .eq("id", manual.id);
+    check(
+      "and can read it back afterwards",
+      (readBack ?? []).length === 1 && readBack[0].title === "Dentist",
+    );
+
+    const { data: peek } = await a.client.from("bookings").select("id").eq("id", manual.id);
+    check("owner A cannot see it", (peek ?? []).length === 0);
+
+    const { error: stealError } = await a.client
+      .from("bookings")
+      .update({ title: "Moved by a stranger" })
+      .eq("id", manual.id);
+    const { data: afterSteal } = await admin
+      .from("bookings")
+      .select("title")
+      .eq("id", manual.id)
+      .single();
+    check(
+      "owner A cannot move it",
+      Boolean(stealError) || afterSteal?.title === "Dentist",
+    );
+  }
+
   // ---------------------------------------------------------------- schema guardrails
 
   console.log("\nSchema constraints");

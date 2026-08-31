@@ -188,14 +188,23 @@ export function WeekGrid({
     return () => clearInterval(timer);
   }, [timezone]);
 
-  // Open somewhere useful rather than at midnight.
+  /*
+   * Open somewhere useful rather than at midnight.
+   *
+   * Math.min of an empty list is Infinity, so a business that has not set its
+   * hours yet — every business on its first day — got a diary scrolled to one
+   * in the morning. Seven is the fallback, and it never scrolls past nine.
+   */
   useLayoutEffect(() => {
-    const opens = Math.min(
-      ...hours.filter((h) => !h.closed).map((h) => Number(h.open.split(":")[0])),
-    );
-    if (scroller.current) {
-      scroller.current.scrollTop = Math.max(0, (opens - 1) * HOUR_HEIGHT);
-    }
+    const openings = hours
+      .filter((h) => !h.closed)
+      .map((h) => Number(h.open.split(":")[0]))
+      .filter((n) => Number.isFinite(n));
+
+    const earliest = openings.length ? Math.min(...openings) : 8;
+    const target = Math.min(Math.max(0, earliest - 1), 9);
+
+    if (scroller.current) scroller.current.scrollTop = target * HOUR_HEIGHT;
   }, [hours]);
 
   const timed = entries.filter((e) => !e.all_day);
@@ -309,40 +318,55 @@ export function WeekGrid({
 
       <div className="card overflow-hidden">
         {/* ------------------------------------------------ headings */}
-        <div className="flex border-b border-border bg-surface">
+        <div className="sticky top-0 z-20 flex border-b border-border bg-surface/95 backdrop-blur">
           <div className="w-16 shrink-0 border-r border-border" />
           {columns.map((col) => {
             const isToday = view === "week" && col.date === todayKey;
-            const closed =
-              view === "week" &&
-              hours.find((h) => h.day === new Date(col.date).getDay())?.closed;
+            const weekday = new Date(col.date).getDay();
+            const closed = view === "week" && hours.find((h) => h.day === weekday)?.closed;
+
             return (
               <div
                 key={col.key}
                 className={`flex-1 border-r border-border px-2 py-2.5 text-center last:border-r-0 ${
-                  isToday ? "bg-accent/8" : ""
+                  // Weekends sit back a little, so the working week reads first.
+                  view === "week" && (weekday === 0 || weekday === 6)
+                    ? "bg-surface-2/40"
+                    : ""
                 }`}
               >
                 {col.artist ? (
                   <div className="flex items-center justify-center gap-2">
                     <Avatar person={col.artist} size="sm" />
-                    <span className="text-sm">{col.label}</span>
+                    <span className="truncate text-sm font-medium">{col.label}</span>
                   </div>
                 ) : (
-                  <div className="text-[11px] uppercase tracking-wide text-muted">
+                  <div
+                    className={`text-[10px] font-semibold uppercase tracking-[0.09em] ${
+                      isToday ? "text-accent" : "text-muted"
+                    }`}
+                  >
                     {col.label}
                   </div>
                 )}
                 {col.sub && (
                   <div
-                    className={`mt-0.5 inline-grid size-7 place-items-center rounded-full text-sm tabular-nums ${
-                      isToday ? "bg-accent font-semibold text-white" : ""
+                    className={`mt-1 inline-grid size-7 place-items-center rounded-full font-display text-sm font-semibold tabular-nums transition-colors ${
+                      isToday
+                        ? "bg-accent text-white"
+                        : closed
+                          ? "text-muted"
+                          : "text-foreground"
                     }`}
                   >
                     {col.sub}
                   </div>
                 )}
-                {closed && <div className="text-[10px] text-muted">closed</div>}
+                {closed && (
+                  <div className="text-[10px] uppercase tracking-wide text-muted/70">
+                    closed
+                  </div>
+                )}
               </div>
             );
           })}
@@ -396,8 +420,10 @@ export function WeekGrid({
             <div className="w-16 shrink-0 border-r border-border">
               {hourList.map((h) => (
                 <div key={h} style={{ height: HOUR_HEIGHT }} className="relative">
-                  <span className="absolute -top-1.5 right-2 text-[10px] tabular-nums text-muted">
-                    {h === 0 ? "" : `${h.toString().padStart(2, "0")}:00`}
+                  {/* Sitting on the line rather than under it, so the eye
+                      matches a time to the rule it belongs to. */}
+                  <span className="num absolute -top-2 right-2.5 text-[10px] text-muted">
+                    {h === 0 ? "" : `${h % 12 === 0 ? 12 : h % 12}${h < 12 ? "am" : "pm"}`}
                   </span>
                 </div>
               ))}
@@ -443,14 +469,23 @@ export function WeekGrid({
                       artistId: col.artist?.id,
                     });
                   }}
-                  className="relative flex-1 cursor-copy touch-none border-r border-border last:border-r-0"
+                  className={`relative flex-1 cursor-copy touch-none border-r border-border last:border-r-0 ${
+                    isToday
+                      ? "bg-accent/[0.045]"
+                      : view === "week" &&
+                          (new Date(col.date).getDay() === 0 || new Date(col.date).getDay() === 6)
+                        ? "bg-surface-2/25"
+                        : ""
+                  }`}
                   style={{ height: 24 * HOUR_HEIGHT }}
                   title="Click to add an hour, or drag out the time you want"
                 >
+                  {/* The hour is a line; the half hour is a whisper. Any more
+                      and the grid competes with what is written on it. */}
                   {hourList.map((h) => (
                     <div key={h} style={{ height: HOUR_HEIGHT }} className="relative">
                       <div className="absolute inset-x-0 top-0 border-t border-cal-grid" />
-                      <div className="absolute inset-x-0 top-1/2 border-t border-cal-grid/40" />
+                      <div className="absolute inset-x-0 top-1/2 border-t border-dashed border-cal-grid/50" />
                     </div>
                   ))}
 
@@ -486,10 +521,11 @@ export function WeekGrid({
                   {/* now */}
                   {isToday && nowMinutes != null && (
                     <div
-                      className="pointer-events-none absolute inset-x-0 z-10 border-t border-accent"
+                      className="pointer-events-none absolute inset-x-0 z-10"
                       style={{ top: (nowMinutes / 60) * HOUR_HEIGHT }}
                     >
-                      <span className="absolute -left-1 -top-[3px] size-1.5 rounded-full bg-accent" />
+                      <div className="border-t-2 border-[var(--highlight)]" />
+                      <span className="absolute -left-1.5 -top-[5px] size-2.5 rounded-full bg-[var(--highlight)] ring-2 ring-surface" />
                     </div>
                   )}
 
@@ -538,13 +574,13 @@ export function WeekGrid({
                           height,
                           left: `calc(${left}% + 2px)`,
                           width: `calc(${width}% - 4px)`,
-                          background: `color-mix(in srgb, ${cat.hue} ${e.blocks_availability ? 20 : 12}%, var(--surface))`,
-                          boxShadow: `inset 3px 0 0 ${unpaid ? "var(--warn)" : cat.hue}`,
+                          background: `color-mix(in srgb, ${cat.hue} ${e.blocks_availability ? 16 : 9}%, var(--surface))`,
+                          boxShadow: `inset 4px 0 0 ${unpaid ? "var(--warn)" : cat.hue}, var(--shadow-card)`,
                           color: "var(--foreground)",
-                          border: `1px solid color-mix(in srgb, ${cat.hue} 35%, transparent)`,
+                          border: `1px solid color-mix(in srgb, ${cat.hue} 28%, var(--border))`,
                         }}
                       >
-                        <div className="flex items-center gap-1 truncate font-medium">
+                        <div className="flex items-center gap-1 truncate text-[11.5px] font-semibold">
                           {unpaid && (
                             <span
                               className="size-1.5 shrink-0 rounded-full bg-warn"
@@ -556,7 +592,7 @@ export function WeekGrid({
                           </span>
                         </div>
                         {height > 32 && (
-                          <div className="truncate text-muted">
+                          <div className="num truncate text-[10px] text-muted">
                             {clock(e.starts_at, timezone)}
                             {view === "week" && artists.length > 1 && artist
                               ? ` · ${artist.name}`

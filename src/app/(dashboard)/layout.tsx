@@ -3,7 +3,7 @@ import { requireStudio } from "@/lib/studio";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { MobileNav, MobileHeader } from "@/components/MobileNav";
-import { Mark } from "@/components/Logo";
+import { Logo } from "@/components/Logo";
 import {
   InboxIcon,
   DiaryIcon,
@@ -30,13 +30,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="flex min-h-screen">
       {/* Desktop: a sidebar. Phone: a top bar and a bottom tab bar, below. */}
       <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface md:flex">
-        <div className="flex items-center gap-2.5 px-4 py-4">
-          <Mark className="size-7 shrink-0" />
-          <div className="min-w-0">
-            <div className="truncate text-sm font-medium leading-tight">{studio.name}</div>
-            <div className="wordmark text-[11px] leading-tight text-muted">
-              second <span className="font-medium">pair</span>
-            </div>
+        <div className="px-4 pb-3 pt-4">
+          <Logo height={26} />
+          <div className="mt-3 truncate border-t border-border pt-3 text-sm font-medium">
+            {studio.name}
           </div>
         </div>
 

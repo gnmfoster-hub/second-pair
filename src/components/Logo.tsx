@@ -1,14 +1,15 @@
 /**
  * The Second Pair mark and lockup.
  *
- * Adapted from the supplied brand pack so the colours come from theme tokens
- * rather than being hard-coded: the pack ships separate files for light and
- * dark, which cannot work in a page that switches theme live. The tokens are
- * set to exactly the pack's colour and reversed values in globals.css, so the
- * result is identical to their files in each theme.
+ * The mark is drawn inline from the brand pack's own path so it can take theme
+ * tokens — the pack ships separate files for light and dark, which cannot work
+ * on a page that switches theme live. The tokens hold exactly the pack's
+ * colour and reversed values, so it matches their files in each theme.
  *
- * The mark is a speech bubble with two dots — the typing indicator everybody
- * recognises, and there being two of them is the pair.
+ * The full lockup uses the pack's SVG files rather than setting the words in
+ * live text. Their wordmark is Inter converted to outlines with the spacing
+ * already right; live text at 11px was never going to look like a logo, and
+ * did not.
  */
 
 const BUBBLE =
@@ -48,34 +49,45 @@ export function Mark({
 }
 
 /**
- * Mark plus words.
+ * The horizontal lockup, from the pack's own files.
  *
- * The pack's wordmark files are Inter converted to outlines. This sets it in
- * live text instead, to the pack's own spec — Inter, "second" at 400 and
- * "pair" at 500, tracking -0.02em — so it stays selectable, scales with the
- * surrounding type and needs no image request.
+ * Both variants are rendered and CSS picks one, because the theme can change
+ * after the page has loaded and a server-rendered choice would then be wrong.
+ * The hidden one costs a request that the browser caches and never repeats.
  */
 export function Logo({
   className = "",
-  tagline,
-  markClass = "size-7",
+  height = 26,
+  tagline = false,
 }: {
   className?: string;
-  /** The pack's line is "you work, we answer". Omit it under 180px wide. */
-  tagline?: string;
-  markClass?: string;
+  /** In pixels. Under 90 the pack says use the mark alone instead. */
+  height?: number;
+  /** The primary lockup, which carries "you work, we answer". Needs 180px. */
+  tagline?: boolean;
 }) {
+  const light = tagline ? "/brand/svg/logo-primary.svg" : "/brand/svg/logo-horizontal.svg";
+  const dark = tagline
+    ? "/brand/svg/logo-primary-reversed.svg"
+    : "/brand/svg/logo-horizontal-reversed.svg";
+
   return (
-    <span className={`inline-flex items-center gap-2.5 ${className}`}>
-      <Mark className={`${markClass} shrink-0`} />
-      <span className="flex min-w-0 flex-col leading-tight">
-        <span className="wordmark text-[0.95rem]">
-          second <span className="font-medium">pair</span>
-        </span>
-        {tagline && (
-          <span className="truncate text-[0.68rem] text-muted">{tagline}</span>
-        )}
-      </span>
+    <span className={`inline-block ${className}`} style={{ height }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={light}
+        alt="Second Pair"
+        style={{ height }}
+        className="w-auto dark-hidden"
+      />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={dark}
+        alt=""
+        aria-hidden="true"
+        style={{ height }}
+        className="w-auto light-hidden"
+      />
     </span>
   );
 }

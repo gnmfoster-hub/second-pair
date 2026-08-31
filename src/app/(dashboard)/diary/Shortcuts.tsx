@@ -117,10 +117,20 @@ export function Shortcuts({
                 </li>
               ))}
             </ul>
-            <p className="hint mt-4">
-              Drag an entry to move it, pull its bottom edge to make it longer, or drag
-              across empty space to block time out.
-            </p>
+            <div className="mt-4 space-y-2 border-t border-border pt-4">
+              <p className="hint">
+                <strong className="text-foreground">Drag an entry</strong> to move it, even
+                into somebody else&rsquo;s column.
+              </p>
+              <p className="hint">
+                <strong className="text-foreground">Pull its bottom edge</strong> to make it
+                longer or shorter.
+              </p>
+              <p className="hint">
+                <strong className="text-foreground">Drag across empty space</strong> to block
+                out exactly the time you want. A plain click adds an hour.
+              </p>
+            </div>
           </div>
         </div>
       )}
