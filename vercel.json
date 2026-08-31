@@ -1,8 +1,9 @@
 {
   "crons": [
     {
+      "comment": "Once a day, because Vercel's Hobby plan allows no more than that. This is the backstop, not the schedule — .github/workflows/reminders.yml calls the same endpoint every fifteen minutes, free. Both hitting it is harmless: a reminder moves off pending the moment it is handled, so it cannot go twice.",
       "path": "/api/cron/reminders",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 7 * * *"
     }
   ]
 }
