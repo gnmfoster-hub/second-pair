@@ -103,7 +103,7 @@ export function EntryDialog({
         className="card max-h-[88vh] w-full max-w-lg overflow-y-auto p-6"
       >
         <div className="flex items-start justify-between gap-4">
-          <h2 className="text-sm font-medium">
+          <h2 className="section-title">
             {existing ? "Edit" : "Add to the diary"}
           </h2>
           <button type="button" onClick={onClose} className="hint hover:text-foreground">

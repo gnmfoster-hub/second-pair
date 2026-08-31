@@ -124,7 +124,7 @@ export default async function ReportPage({
       </div>
 
       <div className="card mt-6 p-5">
-        <h2 className="text-sm font-medium">What it cost</h2>
+        <h2 className="section-title">What it cost</h2>
         <p className="hint mt-1">
           The assistant ran for {formatPence(report.aiCostPence)} this week
           {report.recoveredPence > 0 && report.aiCostPence > 0

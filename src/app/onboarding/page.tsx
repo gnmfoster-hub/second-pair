@@ -86,7 +86,7 @@ export default async function OnboardingPage() {
           <input
             name="name"
             required
-            placeholder="Living Canvas Tattoo"
+            placeholder="Your business name"
             className="input"
             autoFocus
           />

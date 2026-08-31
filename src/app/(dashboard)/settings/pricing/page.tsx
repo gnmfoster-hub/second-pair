@@ -3,6 +3,7 @@ import { quoteForBand, depositFor, describeDepositRule, isFixedPrice } from "@/l
 import { formatRange, formatPence } from "@/lib/money";
 import { BandEditor } from "./BandEditor";
 import { SeedBands } from "./SeedBands";
+import { verticalPack } from "@/lib/verticals";
 
 export default async function PricingPage() {
   const { studio } = await requireStudio();
@@ -11,12 +12,15 @@ export default async function PricingPage() {
     getArtists(studio.id),
   ]);
   const activeArtists = artists.filter((a) => a.active);
+  const pack = verticalPack(studio.vertical);
+  const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
+  const title = (word: string) => word.replace(/^./, (c) => c.toUpperCase());
 
   return (
     <div className="space-y-8">
       <section className="card overflow-hidden">
         <div className="px-5 py-4">
-          <h2 className="text-sm font-medium">Size bands</h2>
+          <h2 className="section-title">{title(words.size_unit)}s</h2>
           <p className="hint mt-1">
             Price a service by the hour, or set a flat price. The two mix freely — a
             £45 cut and an hourly colour correction can sit side by side.
@@ -24,7 +28,7 @@ export default async function PricingPage() {
         </div>
 
         <div className="flex gap-3 border-t border-border px-5 py-2 text-xs uppercase tracking-wide text-muted">
-          <span className="flex-1">Size</span>
+          <span className="flex-1">{title(words.size_unit)}</span>
           <span className="w-24">Hours from</span>
           <span className="w-24">to</span>
           <span className="w-32" />
@@ -41,7 +45,7 @@ export default async function PricingPage() {
 
       <section className="card overflow-hidden">
         <div className="px-5 py-4">
-          <h2 className="text-sm font-medium">What the assistant will quote</h2>
+          <h2 className="section-title">What the assistant will quote</h2>
           <p className="hint mt-1">
             Live from the numbers above. Ranges never drop below anyone&rsquo;s minimum
             charge. Deposit rule: {describeDepositRule(studio.deposit_rule)}.

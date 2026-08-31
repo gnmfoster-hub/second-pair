@@ -107,7 +107,7 @@ export default async function ConversationPage({
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_20rem]">
         <div className="min-w-0 space-y-6">
           <section className="card p-5">
-            <h2 className="mb-4 text-sm font-medium">Conversation</h2>
+            <h2 className="section-title mb-4">Conversation</h2>
             <div className="space-y-3">
               {(messages ?? []).map((m) => {
                 if (m.role === "system") {
@@ -147,7 +147,7 @@ export default async function ConversationPage({
 
           <section className="card p-5">
             <div className="mb-4 flex items-center gap-3">
-              <h2 className="text-sm font-medium">Reply</h2>
+              <h2 className="section-title">Reply</h2>
               <form action={setPaused} className="ml-auto">
                 <input type="hidden" name="conversation_id" value={conversation.id} />
                 <input
@@ -171,7 +171,7 @@ export default async function ConversationPage({
 
         <aside className="space-y-6">
           <section className="card p-5">
-            <h2 className="mb-2 text-sm font-medium">Contact</h2>
+            <h2 className="section-title mb-2">Contact</h2>
             {detail("Name", contact?.name)}
             {detail(
               "Phone",
@@ -194,7 +194,7 @@ export default async function ConversationPage({
             const bookedWith = artists.find((a) => a.id === booking.artist_id);
             return (
               <section className="card p-5">
-                <h2 className="mb-2 text-sm font-medium">Appointment</h2>
+                <h2 className="section-title mb-2">Appointment</h2>
                 {detail(
                   "When",
                   new Date(booking.starts_at).toLocaleString("en-GB", {
@@ -236,7 +236,7 @@ export default async function ConversationPage({
           })()}
 
           <section className="card p-5">
-            <h2 className="mb-2 text-sm font-medium">Enquiry</h2>
+            <h2 className="section-title mb-2">Enquiry</h2>
             {/*
              * Only the fields this trade actually asks about.
              *
@@ -293,7 +293,7 @@ export default async function ConversationPage({
 
           {signed.length > 0 && (
             <section className="card p-5">
-              <h2 className="mb-3 text-sm font-medium">References</h2>
+              <h2 className="section-title mb-3">References</h2>
               <div className="grid grid-cols-2 gap-2">
                 {signed.map((image) => (
                   <a key={image.path} href={image.url} target="_blank" rel="noreferrer">

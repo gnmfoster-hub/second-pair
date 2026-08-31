@@ -12,7 +12,10 @@ export function StudioForm({ studio }: { studio: Studio }) {
   const [depositType, setDepositType] = useState(studio.deposit_rule.type);
   const [depositMode, setDepositMode] = useState(studio.deposit_mode ?? "required");
   const [travelMode, setTravelMode] = useState(studio.travel_mode ?? "at_premises");
-  const packGreeting = verticalPack(studio.vertical).greeting;
+  const pack = verticalPack(studio.vertical);
+  const packGreeting = pack.greeting;
+  const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
+  const title = (word: string) => word.replace(/^./, (c) => c.toUpperCase());
 
   const hours = DEFAULT_HOURS.map(
     (d) => studio.hours.find((h) => h.day === d.day) ?? d,
@@ -21,10 +24,10 @@ export function StudioForm({ studio }: { studio: Studio }) {
   return (
     <form action={action} className="space-y-8">
       <section className="card space-y-5 p-6">
-        <h2 className="text-sm font-medium">Studio</h2>
+        <h2 className="section-title">{title(words.business)}</h2>
 
         <Field label="Name">
-          <input name="name" defaultValue={studio.name} className="input" required />
+          <input name="name" defaultValue={studio.name} className="input max-w-md" required />
         </Field>
 
         <Field
@@ -48,12 +51,12 @@ export function StudioForm({ studio }: { studio: Studio }) {
         </Field>
 
         <Field label="Timezone">
-          <input name="timezone" defaultValue={studio.timezone} className="input" />
+          <input name="timezone" defaultValue={studio.timezone} className="input max-w-xs" />
         </Field>
       </section>
 
       <section className="card p-6">
-        <h2 className="text-sm font-medium">Opening hours</h2>
+        <h2 className="section-title">Opening hours</h2>
         <p className="hint mt-1">
           The assistant will not offer slots outside these hours, even if the calendar is free.
         </p>
@@ -90,9 +93,9 @@ export function StudioForm({ studio }: { studio: Studio }) {
       </section>
 
       <section className="card p-6">
-        <h2 className="text-sm font-medium">Booking rules</h2>
+        <h2 className="section-title">Booking rules</h2>
         <p className="hint mt-1">
-          How the assistant offers times. These apply to everyone in the studio.
+          How the assistant offers times. These apply to everyone in the {words.business}.
         </p>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-3">
@@ -133,7 +136,7 @@ export function StudioForm({ studio }: { studio: Studio }) {
 
       <section className="card space-y-5 p-6">
         <div>
-          <h2 className="text-sm font-medium">Deposits</h2>
+          <h2 className="section-title">Deposits</h2>
           <p className="hint mt-1">
             Stated in full before the payment link is ever sent.
           </p>
@@ -257,7 +260,7 @@ export function StudioForm({ studio }: { studio: Studio }) {
       </section>
 
       <section className="card space-y-5 p-6">
-        <h2 className="text-sm font-medium">Where the work happens</h2>
+        <h2 className="section-title">Where the work happens</h2>
 
         <Field label="Do you travel to customers?">
           <div className="space-y-2">
@@ -320,7 +323,7 @@ export function StudioForm({ studio }: { studio: Studio }) {
       </section>
 
       <section className="card space-y-5 p-6">
-        <h2 className="text-sm font-medium">VAT</h2>
+        <h2 className="section-title">VAT</h2>
         <p className="hint">
           Only affects what the assistant quotes. Nothing here goes near your bookkeeping —
           that is your accountant&rsquo;s job, not ours.
@@ -385,7 +388,7 @@ export function StudioForm({ studio }: { studio: Studio }) {
       </section>
 
       <section className="card space-y-5 p-6">
-        <h2 className="text-sm font-medium">Compliance</h2>
+        <h2 className="section-title">Compliance</h2>
 
         <Field
           label="Full terms URL"
@@ -395,7 +398,7 @@ export function StudioForm({ studio }: { studio: Studio }) {
             name="terms_url"
             type="url"
             defaultValue={studio.terms_url ?? ""}
-            placeholder="https://livingcanvastattoo.ink/terms"
+            placeholder="https://yourbusiness.co.uk/terms"
             className="input max-w-md"
           />
         </Field>
@@ -408,7 +411,7 @@ export function StudioForm({ studio }: { studio: Studio }) {
             name="privacy_notice_url"
             type="url"
             defaultValue={studio.privacy_notice_url ?? ""}
-            placeholder="https://livingcanvastattoo.ink/privacy"
+            placeholder="https://yourbusiness.co.uk/privacy"
             className="input max-w-md"
           />
         </Field>
