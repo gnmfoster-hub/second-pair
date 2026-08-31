@@ -4,6 +4,10 @@ import { requireStudio, getArtists } from "@/lib/studio";
 import { verticalPack } from "@/lib/verticals";
 import { Avatar } from "@/components/Avatar";
 import { Snippet } from "./Snippet";
+import { TextNumber } from "./TextNumber";
+import { smsNumberFor } from "@/lib/messaging/connections";
+import { smsConfigured } from "@/lib/messaging/sms";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * Channels — every way the outside world can reach this business.
@@ -49,6 +53,8 @@ export default async function ChannelsPage() {
 
   const solo = artists.length <= 1;
 
+  const smsNumber = await smsNumberFor(await createClient(), studio.id);
+
   return (
     <div className="space-y-9">
       <section>
@@ -60,6 +66,15 @@ export default async function ChannelsPage() {
           on somebody&rsquo;s own account it already knows and never asks.
           {!solo && " You can run both at once."}
         </p>
+      </section>
+
+      {/* --------------------------------------------------- text messages */}
+      <section>
+        <TextNumber
+          number={smsNumber}
+          sendingReady={smsConfigured()}
+          webhookUrl={`${origin}/api/sms/webhook`}
+        />
       </section>
 
       {/* ------------------------------------------------------ the business */}

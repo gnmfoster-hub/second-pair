@@ -6,7 +6,7 @@ import { requireStudio } from "@/lib/studio";
 import { canMessage } from "@/lib/permissions";
 import { deliver, recordDelivery } from "@/lib/messaging/deliver";
 import { routesFor } from "@/lib/messaging/reach";
-import { connectedChannels } from "@/lib/messaging/connections";
+import { connectedChannels, smsNumberFor } from "@/lib/messaging/connections";
 import type { Channel } from "@/lib/types";
 
 export type ClientState = { error?: string; ok?: boolean };
@@ -144,6 +144,7 @@ export async function messageClient(
      * display line and their own address in reply-to. Without that, a customer
      * answering writes to us and nobody at the salon ever sees it.
      */
+    from: route.channel === "sms" ? await smsNumberFor(supabase, studio.id) : undefined,
     subject: `Message from ${studio.name}`,
     fromName: studio.name,
     replyTo: studio.email ?? undefined,

@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Channel } from "@/lib/types";
 import { withinWindow as isWithinWindow, WINDOWED } from "./reach";
 import { sendEmail } from "./email";
+import { sendSms } from "./sms";
 
 /**
  * Getting a message to a customer.
@@ -45,6 +46,7 @@ export async function deliver({
   subject,
   fromName,
   replyTo,
+  from,
 }: {
   channel: Channel;
   /** Phone number, page-scoped id, or the widget session — whatever the channel addresses. */
@@ -58,6 +60,8 @@ export async function deliver({
   fromName?: string;
   /** Where a reply should go. The business, not us. */
   replyTo?: string;
+  /** Text messages: the business's own number, when it has one. */
+  from?: string | null;
 }): Promise<Delivery> {
   if (!body.trim()) return { status: "failed", error: "Nothing to send." };
 
@@ -90,7 +94,7 @@ export async function deliver({
       return notConnected("Meta", "the app has not been through review yet");
 
     case "sms":
-      return notConnected("text messages", "no SMS number is connected yet");
+      return sendSms({ to, body, from });
 
     case "email":
       return sendEmail({

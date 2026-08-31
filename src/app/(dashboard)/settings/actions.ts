@@ -603,3 +603,84 @@ async function isOwner(): Promise<boolean> {
 
   return data?.role === "owner";
 }
+
+/**
+ * Registering the number this business texts from.
+ *
+ * Stored as a channel connection rather than a column on the business, because
+ * that is where every other channel lives and because a number can belong to
+ * one person rather than the whole shop — the same nullable artist_id that
+ * makes a personal Instagram work.
+ *
+ * The number is also how an incoming text is routed. Two businesses sharing a
+ * number would both have a claim on every reply, so it is unique across all of
+ * them and saving a duplicate is refused rather than quietly stealing it.
+ */
+export async function saveSmsNumber(
+  _prev: ClientStateLike,
+  fd: FormData,
+): Promise<ClientStateLike> {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  const raw = String(fd.get("sms_number") ?? "").trim();
+
+  if (!raw) {
+    await supabase
+      .from("channel_connections")
+      .delete()
+      .eq("studio_id", studio.id)
+      .eq("channel", "sms");
+    revalidatePath("/settings/install");
+    return { ok: true };
+  }
+
+  // Twilio addresses everything in full international form, and a number
+  // typed as 07700 900123 will simply never match an incoming webhook.
+  const number = raw.replace(/[\s()-]/g, "");
+  if (!/^\+[1-9]\d{7,14}$/.test(number)) {
+    return {
+      error:
+        "Use the full international number, starting with +. A UK mobile looks " +
+        "like +447700900123.",
+    };
+  }
+
+  const { data: taken } = await supabase
+    .from("channel_connections")
+    .select("studio_id")
+    .eq("channel", "sms")
+    .eq("external_id", number)
+    .maybeSingle();
+
+  if (taken && taken.studio_id !== studio.id) {
+    return { error: "That number is already in use by another business." };
+  }
+
+  const { data: existing } = await supabase
+    .from("channel_connections")
+    .select("id")
+    .eq("studio_id", studio.id)
+    .eq("channel", "sms")
+    .maybeSingle();
+
+  const { error } = existing
+    ? await supabase
+        .from("channel_connections")
+        .update({ external_id: number, label: number, active: true })
+        .eq("id", existing.id)
+    : await supabase.from("channel_connections").insert({
+        studio_id: studio.id,
+        channel: "sms",
+        external_id: number,
+        label: number,
+        active: true,
+      });
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/install");
+  return { ok: true };
+}
+
+type ClientStateLike = { error?: string; ok?: boolean };
