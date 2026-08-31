@@ -6,6 +6,10 @@ import { hasSupabaseEnv, supabaseEnv } from "@/lib/env";
 // own site, so it and its endpoint must stay open.
 const PUBLIC_PATHS = [
   "/login",
+  // The pitch, and the two pages Meta's reviewer will ask for.
+  "/home",
+  "/privacy",
+  "/terms",
   "/auth",
   "/widget",
   "/api/widget",
@@ -48,6 +52,18 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+
+  /*
+   * The root is two different pages depending on who is asking: the inbox for
+   * a business, and the pitch for everyone else. Rewritten rather than
+   * redirected so the address bar still just says the domain — a marketing
+   * page that bounces you to /home looks broken.
+   */
+  if (!user && pathname === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/home";
+    return NextResponse.rewrite(url);
+  }
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
