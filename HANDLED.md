@@ -55,6 +55,56 @@ where the booking is a shopping cart rather than a conversation.
 Everything the assistant says comes from settings the owner controls, and the owner can
 see and take over any conversation.
 
+## Channels — where enquiries come from
+
+**Working now**
+
+- **Website widget.** One line of code on their site. A chat button in the corner,
+  in its own frame so it cannot break their design.
+- **A shareable link.** The same assistant on its own page. For the many one-person
+  businesses with no website — goes in an Instagram bio or a Facebook page button.
+
+**Built, waiting on the Meta app review**
+
+- **WhatsApp.** The big one for most trades. Needs a number that is not already on
+  the WhatsApp app.
+- **Instagram DMs.** Requires the business's Instagram to be a Professional account
+  linked to a Facebook Page.
+- **Facebook Messenger.** Same app, same review, no extra work.
+
+**Decided but not built**
+
+- **SMS.** A Twilio number, about £1 a month plus a few pence per message. Half a
+  day's work once deployed.
+- **Email.** Enquiries forwarded to a Handled address and answered like any other.
+
+**Phone calls — the honest position**
+
+Not built, and it is a genuinely different product, not another channel.
+
+A voice assistant needs telephony, speech-to-text, the existing engine, and
+text-to-speech, all chained inside about 800 milliseconds or the caller feels the
+lag and hangs up. All-in it costs roughly 8-15p a minute, so a five-minute call is
+50-75p against 11p for an entire text enquiry — five to seven times the price, for a
+worse experience if any link in the chain stutters.
+
+**Missed-call-to-text is the better answer for this market.** The phone rings, nobody
+picks up because they are under a floor, and the caller instantly gets a text: *"Sorry
+we missed you — what do you need? I can get you booked in."* The assistant then handles
+it in text, where it is already good. That captures the same lost enquiry at a fraction
+of the cost, with none of the uncanny-valley risk, and it is a few days of work rather
+than a rebuild. Real voice can come later if customers actually ask for it.
+
+## The app
+
+Handled installs from the browser as a **progressive web app** — no app store, no
+review, no waiting. The owner opens the link on their phone, taps *Add to Home Screen*,
+and it behaves like an app: its own icon, full screen, no browser chrome. Updates ship
+the moment they are deployed.
+
+Native App Store and Play Store versions are possible later. They are not needed to
+launch, and they add review cycles and fees to every update.
+
 ## What it deliberately does not do
 
 - **No accounting.** No invoicing, no bookkeeping, no tax. Out of scope on purpose.
