@@ -23,6 +23,7 @@ type RawRow = {
   deposit_status: string;
   deposit_amount_pence: number;
   repeats: string;
+  contacts: { id: string; name: string | null; phone: string | null } | null;
   enquiries: {
     description: string | null;
     quote_low_pence: number | null;
@@ -59,6 +60,7 @@ export default async function DiaryPage({
     .select(
       "id, artist_id, starts_at, ends_at, all_day, category, blocks_availability, source, " +
         "title, notes, deposit_status, deposit_amount_pence, repeats, " +
+        "contacts(id, name, phone), " +
         "enquiries(description, quote_low_pence, conversation_id, conversations(contacts(name, phone)))",
     )
     .is("cancelled_at", null)
@@ -85,8 +87,10 @@ export default async function DiaryPage({
       notes: r.notes,
       deposit_status: r.deposit_status,
       deposit_amount_pence: r.deposit_amount_pence,
-      clientName: r.enquiries?.conversations?.contacts?.name ?? null,
-      clientPhone: r.enquiries?.conversations?.contacts?.phone ?? null,
+      // Either route: a conversation's contact, or one attached by hand.
+      clientName: r.enquiries?.conversations?.contacts?.name ?? r.contacts?.name ?? null,
+      clientPhone: r.enquiries?.conversations?.contacts?.phone ?? r.contacts?.phone ?? null,
+      contactId: r.contacts?.id ?? null,
       description: r.enquiries?.description ?? null,
       conversationId: r.enquiries?.conversation_id ?? null,
       quotePence: r.enquiries?.quote_low_pence ?? null,

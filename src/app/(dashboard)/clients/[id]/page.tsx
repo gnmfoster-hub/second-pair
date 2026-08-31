@@ -60,10 +60,21 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
   const contact = contactRow as unknown as ContactRow | null;
   if (!contact) notFound();
 
+  // Bookings typed straight into the diary and attached to this person. They
+  // have no conversation to hang off, so they are fetched separately.
+  const { data: direct } = await supabase
+    .from("bookings")
+    .select("*")
+    .eq("contact_id", id);
+
   const conversations = contact.conversations ?? [];
 
-  const bookings = conversations
-    .flatMap((c) => c.enquiries?.bookings ?? [])
+  // Bookings reach a client two ways: through a conversation, or attached
+  // directly when somebody typed them into the diary.
+  const bookings = [
+    ...conversations.flatMap((c) => c.enquiries?.bookings ?? []),
+    ...(direct ?? []),
+  ]
     .sort((a, b) => Date.parse(b.starts_at) - Date.parse(a.starts_at));
 
   const live = bookings.filter((b) => !b.cancelled_at);

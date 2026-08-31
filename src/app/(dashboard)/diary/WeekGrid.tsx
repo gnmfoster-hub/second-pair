@@ -33,6 +33,8 @@ export type Entry = {
   deposit_amount_pence: number;
   clientName: string | null;
   clientPhone: string | null;
+  /** Set when a manual entry was attached to somebody. */
+  contactId: string | null;
   description: string | null;
   conversationId: string | null;
   /** What the enquiry was quoted, for the week's worth. */

@@ -97,8 +97,9 @@ export async function saveDiaryEntry(
             all_day: allDay,
             category,
             blocks_availability: definition.blocks,
-            title: str(fd, "title") || null,
+            title: str(fd, "title") || str(fd, "contact_name") || null,
             notes: str(fd, "notes") || null,
+            contact_id: await resolveContact(supabase, studio.id, fd),
           };
 
     const { error } = await supabase.from("bookings").update(patch).eq("id", id);
@@ -112,8 +113,12 @@ export async function saveDiaryEntry(
   }
 
   // ---------------------------------------------------------------- adding
-  const title = str(fd, "title");
-  if (!title) return { error: "Give it a title." };
+  //
+  // Client bookings are titled by who they are for, so somebody booking Marie
+  // in over the phone types her name once rather than into two fields.
+  const contactId = await resolveContact(supabase, studio.id, fd);
+  const title = str(fd, "title") || str(fd, "contact_name");
+  if (!title) return { error: "Give it a title, or say who it is for." };
 
   const repeats = (str(fd, "repeats") || "none") as RepeatRule;
   const untilRaw = str(fd, "repeat_until");
@@ -123,6 +128,7 @@ export async function saveDiaryEntry(
 
   const base = {
     enquiry_id: null,
+    contact_id: contactId,
     artist_id: artistId,
     source: definition.blocks && category !== "meeting" ? "block" : "manual",
     type: category === "consultation" ? "consultation" : "session",
@@ -310,4 +316,52 @@ export async function setDiaryColour(mode: "category" | "client" | "person") {
 
   await supabase.from("studios").update({ diary_colour: mode }).eq("id", studio.id);
   revalidatePath("/diary");
+}
+
+/**
+ * Looking somebody up while booking them in.
+ *
+ * Scoped to the studio by row-level security, and capped — this runs on every
+ * other keystroke and nobody scrolls past ten matches anyway.
+ */
+export async function findClients(query: string) {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  const { data } = await supabase
+    .from("contacts")
+    .select("id, name, phone, alert")
+    .eq("studio_id", studio.id)
+    .or(`name.ilike.%${query}%,phone.ilike.%${query}%`)
+    .order("name")
+    .limit(8);
+
+  return data ?? [];
+}
+
+/**
+ * Resolves what the client picker submitted into a contact id.
+ *
+ * An existing client comes back with an id. A new name comes back without one
+ * and gets a contact row created for them, so a booking taken over the phone
+ * builds the same history an assistant booking would.
+ */
+async function resolveContact(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  studioId: string,
+  fd: FormData,
+): Promise<string | null> {
+  const id = str(fd, "contact_id");
+  if (id) return id;
+
+  const name = str(fd, "contact_name");
+  if (!name) return null;
+
+  const { data } = await supabase
+    .from("contacts")
+    .insert({ studio_id: studioId, name })
+    .select("id")
+    .single();
+
+  return data?.id ?? null;
 }

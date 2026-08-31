@@ -5,6 +5,7 @@ import { formatPence } from "@/lib/money";
 import { CHANNEL_LABELS, type Channel } from "@/lib/types";
 
 type Row = {
+  bookings: { deposit_amount_pence: number; deposit_status: string; cancelled_at: string | null }[] | null;
   id: string;
   name: string | null;
   phone: string | null;
@@ -38,6 +39,7 @@ export default async function ClientsPage({
     .from("contacts")
     .select(
       "id, name, phone, email, instagram_handle, channel, alert, created_at, " +
+        "bookings(deposit_amount_pence, deposit_status, cancelled_at), " +
         "conversations(id, last_message_at, enquiries(quote_low_pence, bookings(deposit_amount_pence, deposit_status, cancelled_at)))",
     )
     .eq("studio_id", studio.id)
@@ -83,9 +85,20 @@ export default async function ClientsPage({
         ) : (
           <ul className="divide-y divide-border">
             {clients.map((c) => {
-              const bookings = c.conversations.flatMap(
-                (v) => v.enquiries?.bookings?.filter((b) => !b.cancelled_at) ?? [],
-              );
+              /*
+               * Both routes to a booking.
+               *
+               * One made through a conversation hangs off its enquiry; one
+               * typed into the diary is attached to the contact directly.
+               * Counting only the first made a client booked in over the phone
+               * look like somebody who had never been.
+               */
+              const bookings = [
+                ...c.conversations.flatMap(
+                  (v) => v.enquiries?.bookings?.filter((b) => !b.cancelled_at) ?? [],
+                ),
+                ...(c.bookings ?? []).filter((b) => !b.cancelled_at),
+              ];
               const paid = bookings
                 .filter((b) => b.deposit_status === "paid")
                 .reduce((t, b) => t + b.deposit_amount_pence, 0);

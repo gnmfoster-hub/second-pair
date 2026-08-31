@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { ClientPicker } from "./ClientPicker";
 import Link from "next/link";
 import { saveDiaryEntry, cancelDiaryEntry, cancelSeries, type DiaryState } from "./actions";
 import { Field, SubmitButton } from "@/components/Form";
@@ -72,6 +73,8 @@ export function EntryDialog({
   const [allDay, setAllDay] = useState(entry?.all_day ?? false);
   const [repeats, setRepeats] = useState("none");
   const chosen = categoryFor(category);
+  // Appointments and consultations are for a person; a delivery is not.
+  const isClientWork = category === "appointment" || category === "consultation";
 
   // Close on Escape, and put focus somewhere sensible when it opens.
   useEffect(() => {
@@ -163,7 +166,28 @@ export function EntryDialog({
             </Field>
           )}
 
-          {!fromClient && (
+          {/*
+           * Client work is for somebody; everything else is a title.
+           *
+           * A booking taken over the phone used to be a bare string, so that
+           * person never reached the client list and had no history, no notes
+           * and no alert. Now it builds the same record an assistant booking
+           * does — which is the whole reason the client list is worth having.
+           */}
+          {!fromClient && isClientWork && (
+            <Field
+              label="Who it's for"
+              hint="Search your clients, or type a name to add them."
+            >
+              <ClientPicker
+                defaultValue={
+                  entry ? { id: entry.contactId, name: entry.clientName } : null
+                }
+              />
+            </Field>
+          )}
+
+          {!fromClient && !isClientWork && (
             <Field label="Title">
               <input
                 name="title"
