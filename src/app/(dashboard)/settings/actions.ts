@@ -491,3 +491,72 @@ export async function setServiceProviders(bandId: string, artistIds: string[]) {
   revalidatePath("/settings/pricing");
   return { ok: true };
 }
+
+/**
+ * Inviting somebody to sign in as themselves.
+ *
+ * Only an owner may do this. Staff being able to hand out logins to a business
+ * they do not own is the kind of thing nobody thinks about until it happens.
+ *
+ * Re-inviting replaces rather than accumulates — a unique index on the pending
+ * invite enforces it, so a second link cannot quietly exist alongside a first.
+ */
+export async function inviteToTeam(
+  artistId: string,
+): Promise<{ token?: string; error?: string }> {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  if (!(await isOwner())) {
+    return { error: "Only the owner can give somebody a login." };
+  }
+
+  const team = await getArtists(studio.id);
+  const person = team.find((a) => a.id === artistId);
+  if (!person) return { error: "That is not one of your team." };
+  if (person.user_id) return { error: `${person.name} already has a login.` };
+
+  // Replace any earlier invite rather than leaving two live links.
+  await supabase.from("team_invites").delete().eq("artist_id", artistId).is("accepted_at", null);
+
+  const { data, error } = await supabase
+    .from("team_invites")
+    .insert({ studio_id: studio.id, artist_id: artistId, role: "staff" })
+    .select("token")
+    .single();
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/artists");
+  return { token: data.token };
+}
+
+/** Cancels a link that has been sent but not used. */
+export async function withdrawInvite(artistId: string): Promise<{ error?: string }> {
+  await requireStudio();
+  const supabase = await createClient();
+
+  if (!(await isOwner())) return { error: "Only the owner can do that." };
+
+  await supabase.from("team_invites").delete().eq("artist_id", artistId).is("accepted_at", null);
+  revalidatePath("/settings/artists");
+  return {};
+}
+
+/** Whether the person signed in owns this business, rather than working in it. */
+async function isOwner(): Promise<boolean> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data } = await supabase
+    .from("studio_members")
+    .select("role")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  return data?.role === "owner";
+}

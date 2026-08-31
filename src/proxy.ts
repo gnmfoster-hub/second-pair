@@ -6,6 +6,8 @@ import { hasSupabaseEnv, supabaseEnv } from "@/lib/env";
 // own site, so it and its endpoint must stay open.
 const PUBLIC_PATHS = [
   "/login",
+  // An invitation is opened by somebody who is not a member yet.
+  "/join",
   // The pitch, and the two pages Meta's reviewer will ask for.
   "/home",
   "/privacy",
