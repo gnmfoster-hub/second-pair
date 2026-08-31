@@ -7,6 +7,7 @@ import { penceToInput, formatPence } from "@/lib/money";
 import { BookingSource } from "./BookingSource";
 import { Avatar } from "@/components/Avatar";
 import { OwnHours } from "./OwnHours";
+import { RolePicker } from "./RolePicker";
 import type { Artist, OpeningHours, ServiceOption } from "@/lib/types";
 
 export function ArtistEditor({
@@ -14,6 +15,7 @@ export function ArtistEditor({
   studioHours,
   styles,
   noun,
+  roles,
 }: {
   artist?: Artist;
   /** Shown as the fallback when this person has no week of their own. */
@@ -21,6 +23,8 @@ export function ArtistEditor({
   styles: ServiceOption[];
   /** What this trade calls them: artist, stylist, engineer. */
   noun: string;
+  /** The roles this trade usually has. Suggestions, not a fixed list. */
+  roles: string[];
 }) {
   const [state, action] = useActionState<FormState, FormData>(saveArtist, {});
   const isNew = !artist;
@@ -68,6 +72,13 @@ export function ArtistEditor({
               defaultValue={artist?.email ?? ""}
               className="input max-w-sm"
             />
+          </Field>
+
+          <Field
+            label="What they do"
+            hint="Optional. Shown to clients, and it lets the assistant answer &ldquo;who does piercings?&rdquo;"
+          >
+            <RolePicker suggested={roles} value={artist?.role ?? null} />
           </Field>
 
           <Field label="Photo" hint="Shown in the diary and to clients. Initials if left blank.">

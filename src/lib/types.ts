@@ -142,6 +142,8 @@ export type Artist = {
   handle: string | null;
   /** Where to send their invitation. Optional — a link can be copied instead. */
   email: string | null;
+  /** What they do, in the business's own words. Suggested by the trade. */
+  role: string | null;
   /** Their own working week. Null follows the business's hours. */
   hours: OpeningHours[] | null;
   /** The regular gaps inside it: lunch, a school run, an early finish. */

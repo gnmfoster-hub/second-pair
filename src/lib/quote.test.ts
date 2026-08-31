@@ -16,6 +16,7 @@ const artist = (over: Partial<Artist> = {}): Artist => ({
   name: "Test",
   handle: "test",
   email: null,
+  role: null,
   hours: null,
   time_off: [],
   user_id: null,

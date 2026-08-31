@@ -44,6 +44,7 @@ export default async function ArtistsPage() {
             styles={styles}
             studioHours={studio.hours}
             noun={words.practitioner}
+            roles={pack.roles}
           />
           {/* Offered once somebody exists, never as a step in creating them —
               plenty of people here will never sign in at all. */}
@@ -59,7 +60,12 @@ export default async function ArtistsPage() {
         </div>
       ))}
 
-      <ArtistEditor styles={styles} studioHours={studio.hours} noun={words.practitioner} />
+      <ArtistEditor
+        styles={styles}
+        studioHours={studio.hours}
+        noun={words.practitioner}
+        roles={pack.roles}
+      />
     </div>
   );
 }

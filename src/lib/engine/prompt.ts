@@ -143,7 +143,10 @@ Travelling time is already left either side of every job, so what get_available_
             ? a.styles.map((s) => labelFor(styles, s) ?? s).join(", ")
             : "no styles listed";
           const day = a.day_rate_pence ? `, ${formatPence(a.day_rate_pence)}/day` : "";
-          return `- ${a.name} — ${formatPence(a.hourly_rate_pence)}/hour${day}, minimum ${formatPence(a.min_charge_pence)}. Styles: ${theirStyles}.`;
+          // What they do, where the business has said. It is how "who does
+          // piercings?" gets a name rather than a list of everybody.
+          const role = a.role ? ` (${a.role})` : "";
+          return `- ${a.name}${role} — ${formatPence(a.hourly_rate_pence)}/hour${day}, minimum ${formatPence(a.min_charge_pence)}. Styles: ${theirStyles}.`;
         })
         .join("\n")
     : `(No ${words.practitioners} are set up yet. You cannot quote. Escalate any pricing question.)`;
