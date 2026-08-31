@@ -57,14 +57,31 @@ function withLinks(text: string, onDark: boolean) {
   );
 }
 
-const SESSION_KEY = "handled_session";
+/**
+ * What to say when you do not know what to say.
+ *
+ * Deliberately phrased as the customer, not as a menu: each one is a real
+ * first message that the assistant can answer properly, and none of them
+ * commit anybody to anything.
+ */
+const OPENERS = ["How much would it be?", "What have you got free?", "I've got a question"];
 
-function sessionId(): string {
+/*
+ * One key per business.
+ *
+ * Every business embeds this widget from the same origin, so they all share a
+ * single localStorage. An unscoped key therefore followed a customer from one
+ * business's site to the next and resumed the wrong conversation.
+ */
+const sessionKeyFor = (slug: string) => `handled_session_${slug}`;
+
+function sessionId(slug: string): string {
+  const key = sessionKeyFor(slug);
   try {
-    const existing = localStorage.getItem(SESSION_KEY);
+    const existing = localStorage.getItem(key);
     if (existing) return existing;
     const fresh = crypto.randomUUID().replace(/-/g, "");
-    localStorage.setItem(SESSION_KEY, fresh);
+    localStorage.setItem(key, fresh);
     return fresh;
   } catch {
     // Private browsing, or storage blocked: the conversation just will not
@@ -98,8 +115,8 @@ export function ChatWindow({
   const picker = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    session.current = sessionId();
-  }, []);
+    session.current = sessionId(slug);
+  }, [slug]);
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: "smooth" });
@@ -113,9 +130,9 @@ export function ChatWindow({
     setPending((p) => [...p, ...images].slice(0, 6));
   }
 
-  async function send(e: React.FormEvent) {
-    e.preventDefault();
-    const message = draft.trim();
+  async function send(e?: React.FormEvent, preset?: string) {
+    e?.preventDefault();
+    const message = (preset ?? draft).trim();
     if ((!message && pending.length === 0) || sending) return;
 
     const attached = pending;
@@ -178,6 +195,9 @@ export function ChatWindow({
 
       if (data.reply) {
         setLines((l) => [...l, { from: "studio", text: data.reply }]);
+        // Tells the launcher on the host page that something arrived, so a
+        // closed widget can show an unread dot instead of sitting silent.
+        window.parent?.postMessage({ handled: "reply" }, "*");
       } else if (data.paused) {
         setLines((l) => [
           ...l,
@@ -208,45 +228,81 @@ export function ChatWindow({
 
   return (
     <div className="flex h-screen flex-col bg-surface">
-      <header className="flex items-center gap-3 border-b border-border px-4 py-3">
+      <header className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3">
         <span
           className="grid size-9 shrink-0 place-items-center rounded-full text-sm font-semibold text-white"
-          style={{ background: colourFor(studioName) }}
+          style={{ background: colourFor(forArtistName ?? studioName) }}
           aria-hidden
         >
-          {initialsFor(studioName)}
+          {initialsFor(forArtistName ?? studioName)}
         </span>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-medium">
             {forArtistName ? `${forArtistName} · ${studioName}` : studioName}
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted">
-            <span className="size-1.5 rounded-full bg-ok" aria-hidden />
+            <span className="relative flex size-1.5" aria-hidden>
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-ok opacity-60" />
+              <span className="relative inline-flex size-1.5 rounded-full bg-ok" />
+            </span>
             Usually replies in under a minute
           </div>
         </div>
+
+        {/* Only shown inside the launcher, where there is a parent to tell. */}
+        <button
+          type="button"
+          onClick={() => window.parent?.postMessage({ handled: "close" }, "*")}
+          className="grid size-8 shrink-0 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+          aria-label="Close chat"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" {...stroke}>
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
       </header>
 
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {lines.length === 0 && (
-          <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-surface-2 px-3.5 py-2.5 text-sm">
-            {greeting}
-          </div>
+          <>
+            <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-surface-2 px-3.5 py-2.5 text-sm">
+              {greeting}
+            </div>
+
+            {/*
+             * The hardest part of any chat widget is the blank box. Somebody
+             * who half-wants a price will not compose a sentence to get one,
+             * so these do it for them — and each one starts a real
+             * conversation rather than opening a menu.
+             */}
+            <div className="flex flex-wrap gap-2 pt-1">
+              {OPENERS.map((opener) => (
+                <button
+                  key={opener}
+                  type="button"
+                  onClick={() => send(undefined, opener)}
+                  className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium transition-colors hover:border-accent hover:text-accent"
+                >
+                  {opener}
+                </button>
+              ))}
+            </div>
+          </>
         )}
 
         {lines.map((line, i) => (
           <div
             key={i}
-            className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm ${
+            className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
               line.from === "client"
                 ? "ml-auto rounded-br-sm bg-accent text-white"
                 : "rounded-tl-sm bg-surface-2"
-            }`}
+            } motion-safe:animate-[rise_200ms_ease-out]`}
           >
             {withLinks(line.text, line.from === "client")}
             {line.images ? (
               <div className={line.text ? "mt-1 text-xs opacity-80" : "text-xs opacity-80"}>
-                {line.images} image{line.images > 1 ? "s" : ""} attached
+                {line.images} photo{line.images > 1 ? "s" : ""} attached
               </div>
             ) : null}
           </div>
@@ -293,7 +349,10 @@ export function ChatWindow({
         </div>
       )}
 
-      <form onSubmit={send} className="flex items-center gap-2 border-t border-border p-3">
+      <form
+        onSubmit={send}
+        className="flex shrink-0 items-end gap-2 border-t border-border p-3"
+      >
         <input
           ref={picker}
           type="file"
@@ -314,13 +373,31 @@ export function ChatWindow({
         >
           <ClipIcon />
         </button>
-        <input
+        {/*
+         * A textarea rather than an input, so a long message is readable while
+         * it is being typed. It grows to five lines and then scrolls. Enter
+         * sends, shift-enter makes a new line — which is what people expect
+         * from every other chat they use.
+         */}
+        <textarea
           value={draft}
+          rows={1}
           onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              send();
+            }
+          }}
           placeholder="Type a message…"
-          className="input flex-1"
+          className="input max-h-32 flex-1 resize-none py-2.5"
+          style={{ height: "auto" }}
+          ref={(el) => {
+            if (!el) return;
+            el.style.height = "auto";
+            el.style.height = Math.min(el.scrollHeight, 128) + "px";
+          }}
           maxLength={2000}
-          autoFocus
         />
         <button
           type="submit"

@@ -371,9 +371,19 @@ async function findOrCreateConversation(
   channel: Channel,
   forArtistId: string | null,
 ) {
+  /*
+   * Scoped to the studio, and that is not optional.
+   *
+   * Without it, a session key that reached two businesses returned whichever
+   * conversation was found first — so a customer who chatted with a salon and
+   * then opened an electrician's widget resumed the salon's thread and saw its
+   * history. Every business embeds the widget from the same origin, so they
+   * share one browser storage area and the same key really does travel.
+   */
   const { data: existing } = await db
     .from("conversations")
     .select("*")
+    .eq("studio_id", studioId)
     .eq("channel", channel)
     .eq("external_ref", sessionKey)
     .maybeSingle();

@@ -437,6 +437,82 @@ try {
     .eq("conversation_id", c5.id)
     .eq("role", "client");
   check("client messages are still recorded while paused", stored === 2, `${stored} stored`);
+
+  // ────────────────────────────────────────────────────── tenant isolation
+  //
+  // Regression for a real leak. A widget session key used to be unique across
+  // the whole platform rather than per business, and the conversation lookup
+  // did not filter by studio — so a customer who chatted with one business and
+  // then opened another's widget resumed the first thread and saw its history.
+  //
+  // Every business embeds the widget from the same origin, so they genuinely
+  // share one browser storage area and the same key really does travel.
+  console.log("\nThe same session key reaching a second business");
+
+  const { data: other, error: otherError } = await db
+    .from("studios")
+    .insert({
+      name: "Second Business",
+      slug: `${SLUG}-second`,
+      tone: "Plain and brief.",
+      privacy_notice_url: "https://example.test/privacy",
+      hours: [
+        { day: 0, open: "09:00", close: "17:00", closed: true },
+        ...[1, 2, 3, 4, 5].map((day) => ({ day, open: "09:00", close: "17:00", closed: false })),
+        { day: 6, open: "09:00", close: "13:00", closed: false },
+      ],
+    })
+    .select("id")
+    .single();
+  if (otherError) throw new Error(`second studio: ${otherError.message}`);
+
+  const shared = newSession("shared");
+
+  // The same key, first at one business and then at the other.
+  await say(shared, "hi, quick question about a forearm piece");
+
+  const crossResponse = await fetch(`${BASE}/api/widget/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      studio: `${SLUG}-second`,
+      session: shared,
+      message: "hello",
+    }),
+  });
+  const crossData = await crossResponse.json();
+  check("a shared session key is accepted by the second business", crossResponse.ok, crossData.error ?? "");
+
+  const { data: mine } = await db
+    .from("conversations")
+    .select("id, studio_id")
+    .eq("external_ref", shared);
+
+  check(
+    "it makes a separate conversation rather than resuming the other one",
+    (mine ?? []).length === 2,
+    `${(mine ?? []).length} conversation(s) for one key`,
+  );
+  check(
+    "each conversation belongs to its own business",
+    new Set((mine ?? []).map((c) => c.studio_id)).size === (mine ?? []).length,
+    "two conversations, two studios",
+  );
+
+  const { data: leaked } = await db
+    .from("messages")
+    .select("content, conversations!inner(studio_id)")
+    .eq("conversations.studio_id", other.id);
+
+  check(
+    "none of the first business's messages appear in the second",
+    !(leaked ?? []).some((m) => (m.content ?? "").includes("forearm")),
+    `${(leaked ?? []).length} message(s) in the second business`,
+  );
+
+  await db.from("conversations").delete().eq("studio_id", other.id);
+  await db.from("studios").delete().eq("id", other.id);
+
 } catch (err) {
   console.error(`\nAborted: ${err.message}`);
   failures.push(err.message);

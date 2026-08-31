@@ -15,10 +15,19 @@ import {
 export { describeSlot, bookingInstructions, PROVIDERS };
 export type { Slot, ProviderKind };
 
-const kindOf = (artist: Artist): ProviderKind =>
-  (artist.booking_provider as ProviderKind) ?? "native";
+const kindOf = (artist: Artist | undefined): ProviderKind =>
+  (artist?.booking_provider as ProviderKind) ?? "native";
 
-export function capabilitiesFor(artist: Artist) {
+/**
+ * What this person's diary can do.
+ *
+ * Nobody set up is a real state, not a bug: it is every business between
+ * signing up and filling the form in, and their first enquiry can arrive in
+ * that window. It used to crash the whole reply. It now falls back to the
+ * manual provider, which offers no times and asks when suits instead.
+ */
+export function capabilitiesFor(artist: Artist | undefined) {
+  if (!artist) return PROVIDERS.manual;
   return PROVIDERS[kindOf(artist)] ?? PROVIDERS.manual;
 }
 

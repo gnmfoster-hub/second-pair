@@ -156,7 +156,7 @@ export function toolDefinitions(
         additionalProperties: false,
       },
     },
-    ...(capabilitiesFor(artists.find((a) => a.active) ?? artists[0]).readsAvailability
+    ...(capabilitiesFor(artists.find((a) => a.active)).readsAvailability
       ? [
           {
             name: "get_available_slots",
@@ -177,7 +177,7 @@ export function toolDefinitions(
           },
         ]
       : []),
-    ...(capabilitiesFor(artists.find((a) => a.active) ?? artists[0]).writesBookings
+    ...(capabilitiesFor(artists.find((a) => a.active)).writesBookings
       ? [
           {
             name: "create_booking",
