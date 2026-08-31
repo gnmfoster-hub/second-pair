@@ -5,6 +5,8 @@ import { formatPence } from "@/lib/money";
 import { isOutOfHours } from "@/lib/report";
 import { verticalPack } from "@/lib/verticals";
 import { Page, PageHeader } from "@/components/PageHeader";
+import { colourForName, initialsOf } from "@/lib/diaryColour";
+import { ChannelIcon } from "@/components/ChannelIcon";
 import {
   CHANNEL_LABELS,
   CONV_STATUS_LABELS,
@@ -232,6 +234,11 @@ export default async function InboxPage() {
               const contact = c.contacts;
               const enquiry = c.enquiries;
               const reach = contact?.phone ?? contact?.email;
+              const who =
+                contact?.name ??
+                contact?.instagram_handle ??
+                contact?.phone ??
+                "Unnamed enquiry";
               const outOfHours = isOutOfHours(
                 new Date(c.created_at),
                 studio.hours,
@@ -242,47 +249,65 @@ export default async function InboxPage() {
                 <li key={c.id}>
                   <Link
                     href={`/conversations/${c.id}`}
-                    className="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-surface-2/60"
+                    className="group flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-surface-2/60 sm:px-5"
                   >
+                    {/* A face, so the list scans as people rather than rows. */}
+                    <span
+                      className="grid size-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white"
+                      style={{ background: colourForName(who) }}
+                      aria-hidden
+                    >
+                      {initialsOf(who)}
+                    </span>
+
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 truncate text-sm font-medium">
-                        {contact?.name ??
-                          contact?.instagram_handle ??
-                          contact?.phone ??
-                          "Unnamed enquiry"}
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-sm font-medium">{who}</span>
                         {contact?.alert && (
                           <span
-                            className="pill bg-warn/15 text-[10px] uppercase tracking-wide text-warn"
+                            className="pill shrink-0 bg-warn/15 text-[10px] uppercase tracking-wide text-warn"
                             title={contact.alert}
                           >
                             note
                           </span>
                         )}
+                        {!reach && (
+                          <span
+                            className="hidden shrink-0 text-[11px] text-warn sm:inline"
+                            title="No phone or email yet"
+                          >
+                            no contact
+                          </span>
+                        )}
                       </div>
-                      <div className="hint mt-0.5 truncate">
-                        {enquiry?.description ?? CHANNEL_LABELS[c.channel]}
+
+                      <div className="hint mt-0.5 flex items-center gap-1.5">
+                        <span
+                          className="shrink-0 text-muted/70"
+                          title={CHANNEL_LABELS[c.channel]}
+                        >
+                          <ChannelIcon channel={c.channel} />
+                        </span>
+                        <span className="truncate">
+                          {enquiry?.description ?? CHANNEL_LABELS[c.channel]}
+                        </span>
                       </div>
                     </div>
 
                     {outOfHours && (
                       <span
-                        className="hint hidden shrink-0 sm:block"
+                        className="hidden shrink-0 rounded-full border border-border px-2 py-0.5 text-[10px] text-muted lg:block"
                         title="Came in outside your opening hours"
                       >
                         out of hours
                       </span>
                     )}
-                    {!reach && (
-                      <span className="shrink-0 text-xs text-warn" title="No phone or email yet">
-                        no contact
-                      </span>
-                    )}
-                    <span
-                      className={`pill shrink-0 ${STATUS_STYLES[c.status]}`}
-                    >
+
+                    <span className={`pill shrink-0 ${STATUS_STYLES[c.status]}`}>
                       {CONV_STATUS_LABELS[c.status]}
                     </span>
-                    <time className="hint num w-20 shrink-0 text-right">
+
+                    <time className="hint num hidden w-16 shrink-0 text-right sm:block">
                       {ago(c.last_message_at)}
                     </time>
                   </Link>

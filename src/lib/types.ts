@@ -1,4 +1,13 @@
-export type Channel = "web" | "whatsapp" | "instagram" | "sms" | "voice";
+/* Kept in step with the `channel` enum in the database. Messenger was added
+   with the channel connections and missed here, so a Messenger conversation
+   would have rendered with no label at all. */
+export type Channel =
+  | "web"
+  | "whatsapp"
+  | "instagram"
+  | "messenger"
+  | "sms"
+  | "voice";
 export type MessageRole = "client" | "assistant" | "owner" | "system";
 export type ConvStatus =
   | "new"
@@ -39,6 +48,7 @@ export const CHANNEL_LABELS: Record<Channel, string> = {
   web: "Website",
   whatsapp: "WhatsApp",
   instagram: "Instagram",
+  messenger: "Messenger",
   sms: "SMS",
   voice: "Voice",
 };

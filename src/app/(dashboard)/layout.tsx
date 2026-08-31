@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
-import { requireStudio } from "@/lib/studio";
+import { requireStudio, getArtists } from "@/lib/studio";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { MobileNav, MobileHeader } from "@/components/MobileNav";
 import { Logo } from "@/components/Logo";
+import { UpNext } from "@/components/UpNext";
 import {
   InboxIcon,
   DiaryIcon,
@@ -16,6 +17,7 @@ import { signOut } from "./actions";
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { studio, userEmail } = await requireStudio();
   const supabase = await createClient();
+  const team = (await getArtists(studio.id)).filter((a) => a.active);
 
   // The one number worth carrying across every page: conversations the
   // assistant has handed over. For a one-person business that is the whole
@@ -42,7 +44,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
         </div>
 
-        <nav className="flex-1 space-y-0.5 px-3 pt-2">
+        <nav className="space-y-0.5 px-3 pt-2">
           <NavLink href="/" exact icon={<InboxIcon />} badge={count ?? 0}>
             Inbox
           </NavLink>
@@ -59,6 +61,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
             Settings
           </NavLink>
         </nav>
+
+        {/* The middle of the sidebar was empty on every page. */}
+        <UpNext timezone={studio.timezone} team={team} />
+
+        <div className="flex-1" />
 
         <div className="space-y-3 border-t border-border p-3">
           <ThemeToggle />

@@ -47,7 +47,27 @@ export default async function DiaryPage({
 
   // With more than one person, the day — everyone side by side — is the view a
   // shop actually works from. On your own, the week is more useful.
-  const view = viewParam === "day" || (!viewParam && team.length > 1) ? "day" : "week";
+  /*
+   * Which view, and why it kept snapping back.
+   *
+   * This used to read: day if asked for, or if there is a team and nothing was
+   * asked for. But the Week button links to ?week=<date> with no view
+   * parameter — so on any diary with more than one person, clicking Week fell
+   * straight through to "nothing was asked for" and went back to Day. Week
+   * view was unreachable for a salon, which is the one place it earns its
+   * keep.
+   *
+   * Now an explicit choice always wins, a ?week= is itself a choice, and the
+   * team-size default only applies when nobody has asked for anything.
+   */
+  const view: "day" | "week" =
+    viewParam === "day"
+      ? "day"
+      : viewParam === "week" || week
+        ? "week"
+        : team.length > 1
+          ? "day"
+          : "week";
 
   const focusDay = dayParam ? parseIsoDate(dayParam) : new Date();
   const anchor = week ? parseIsoDate(week) : focusDay;
@@ -112,10 +132,10 @@ export default async function DiaryPage({
   const step = view === "day" ? 1 : 7;
   const back = view === "day"
     ? `/diary?view=day&day=${isoDate(addDays(focusDay, -step))}`
-    : `/diary?week=${isoDate(addDays(start, -step))}`;
+    : `/diary?view=week&week=${isoDate(addDays(start, -step))}`;
   const forward = view === "day"
     ? `/diary?view=day&day=${isoDate(addDays(focusDay, step))}`
-    : `/diary?week=${isoDate(addDays(start, step))}`;
+    : `/diary?view=week&week=${isoDate(addDays(start, step))}`;
 
   const awaiting = entries.filter(
     (e) => e.deposit_amount_pence > 0 && e.deposit_status !== "paid",
@@ -182,7 +202,7 @@ export default async function DiaryPage({
               Day
             </Link>
             <Link
-              href={`/diary?week=${isoDate(start)}`}
+              href={`/diary?view=week&week=${isoDate(start)}`}
               className={`border-l border-border px-3.5 py-2 text-sm font-medium transition-colors ${
                 view === "week"
                   ? "bg-surface-2 text-foreground"
@@ -202,7 +222,7 @@ export default async function DiaryPage({
               ‹
             </Link>
             <Link
-              href={view === "day" ? "/diary?view=day" : "/diary"}
+              href={view === "day" ? "/diary?view=day" : "/diary?view=week"}
               className="border-x border-border px-3.5 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
             >
               Today
@@ -224,9 +244,9 @@ export default async function DiaryPage({
           <Shortcuts
             back={back}
             forward={forward}
-            today={view === "day" ? "/diary?view=day" : "/diary"}
+            today={view === "day" ? "/diary?view=day" : "/diary?view=week"}
             dayHref={`/diary?view=day&day=${isoDate(focusDay)}`}
-            weekHref={`/diary?week=${isoDate(start)}`}
+            weekHref={`/diary?view=week&week=${isoDate(start)}`}
           />
 
           {/*
@@ -274,7 +294,11 @@ export default async function DiaryPage({
       {team.length > 1 && (
         <div className="mt-4 flex flex-wrap items-center gap-1.5">
           <Link
-            href={view === "day" ? `/diary?view=day&day=${isoDate(focusDay)}` : `/diary?week=${isoDate(start)}`}
+            href={
+              view === "day"
+                ? `/diary?view=day&day=${isoDate(focusDay)}`
+                : `/diary?view=week&week=${isoDate(start)}`
+            }
             className={`rounded-full px-3 py-1 text-xs transition-colors ${
               !focused ? "bg-surface-2 text-foreground" : "border border-border text-muted hover:text-foreground"
             }`}
@@ -287,7 +311,7 @@ export default async function DiaryPage({
               href={
                 view === "day"
                   ? `/diary?view=day&day=${isoDate(focusDay)}&who=${a.id}`
-                  : `/diary?week=${isoDate(start)}&who=${a.id}`
+                  : `/diary?view=week&week=${isoDate(start)}&who=${a.id}`
               }
               className={`rounded-full px-3 py-1 text-xs transition-colors ${
                 focused === a.id

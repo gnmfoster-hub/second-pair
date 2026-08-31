@@ -455,7 +455,7 @@ export function WeekGrid({
               ))}
             </div>
 
-            {columns.map((col) => {
+            {columns.map((col, index) => {
               const opening = hours.find((h) => h.day === new Date(col.date).getDay());
               const laid = layout(entriesFor(col), timezone);
               const isToday = col.date === todayKey;
@@ -551,7 +551,12 @@ export function WeekGrid({
                       style={{ top: (nowMinutes / 60) * HOUR_HEIGHT }}
                     >
                       <div className="border-t-2 border-[var(--highlight)]" />
-                      <span className="absolute -left-1.5 -top-[5px] size-2.5 rounded-full bg-[var(--highlight)] ring-2 ring-surface" />
+                      {/* One dot, at the start of the line. Rendering it in
+                          every column put a bead on each boundary, which read
+                          as five separate markers rather than one time. */}
+                      {index === 0 && (
+                        <span className="absolute -left-1.5 -top-[5px] size-2.5 rounded-full bg-[var(--highlight)] ring-2 ring-surface" />
+                      )}
                     </div>
                   )}
 
