@@ -17,6 +17,9 @@ const PUBLIC_PATHS = [
   "/api/stripe",
   // Guarded by CRON_SECRET rather than a session, because a scheduler calls it.
   "/api/cron",
+  // A calendar app cannot log in. The 64-character token in the URL is the
+  // credential, and the route refuses anything that is not one.
+  "/api/calendar",
 ];
 
 export async function proxy(request: NextRequest) {

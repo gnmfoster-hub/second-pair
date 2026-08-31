@@ -5,6 +5,8 @@ import { startOfWeek, addDays, isoDate, parseIsoDate, CATEGORIES } from "@/lib/c
 import { WeekGrid, type Entry } from "./WeekGrid";
 import { Shortcuts } from "./Shortcuts";
 import { NewEntry } from "./NewEntry";
+import { ColourBy } from "./ColourBy";
+import type { ColourMode } from "@/lib/diaryColour";
 import { formatPence } from "@/lib/money";
 
 type RawRow = {
@@ -112,7 +114,7 @@ export default async function DiaryPage({
     : `/diary?week=${isoDate(addDays(start, step))}`;
 
   const awaiting = entries.filter(
-    (e) => e.source === "assistant" && e.deposit_status !== "paid",
+    (e) => e.deposit_amount_pence > 0 && e.deposit_status !== "paid",
   ).length;
 
   /*
@@ -210,6 +212,11 @@ export default async function DiaryPage({
             </Link>
           </div>
 
+          <ColourBy
+            current={(studio.diary_colour ?? "category") as ColourMode}
+            hasTeam={team.length > 1}
+          />
+
           <Shortcuts
             back={back}
             forward={forward}
@@ -301,6 +308,7 @@ export default async function DiaryPage({
           weekStart={isoDate(start)}
           day={isoDate(focusDay)}
           view={view}
+          colourBy={(studio.diary_colour ?? "category") as ColourMode}
           entries={entries}
           artists={focused ? team.filter((a) => a.id === focused) : team}
           hours={studio.hours}

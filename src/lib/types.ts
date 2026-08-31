@@ -76,6 +76,10 @@ export type Studio = {
   privacy_notice_url: string | null;
   /** Opening line in the widget. Null falls back to the trade pack. */
   greeting: string | null;
+  /** What an entry's colour means in the diary. */
+  diary_colour: "category" | "client" | "person";
+  /** Secret in the subscribe URL for the whole business. */
+  calendar_token: string;
   /** Facts to work in where relevant. Not a script. */
   always_mention: string[];
   /** Hard don'ts, in the owner's own words. */

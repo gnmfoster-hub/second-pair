@@ -10,6 +10,7 @@ import {
   useTransition,
 } from "react";
 import { categoryFor, addDays, isoDate } from "@/lib/calendar";
+import { hueFor, initialsOf, colourForName, type ColourMode } from "@/lib/diaryColour";
 import { EntryDialog } from "./EntryDialog";
 import { moveDiaryEntry } from "./actions";
 import { zonedToUtc as toUtc } from "@/lib/booking/tz";
@@ -100,10 +101,25 @@ function layout(entries: Entry[], timezone: string) {
           Date.parse(other.ends_at) > Date.parse(entry.starts_at),
       ),
     ).length;
+
+    /*
+     * Beyond four abreast, dividing the column evenly makes slivers.
+     *
+     * A salon with five stylists all booked at ten produced five columns
+     * about twenty pixels wide, which is not a diary — it is a bar chart of
+     * nothing. Past four, the cards cascade with an offset and overlap
+     * instead, the way every desktop calendar handles a crowded hour: the
+     * front one is readable and the rest are visibly there behind it.
+     */
+    const abreast = Math.min(overlapping, 4);
+    const cascade = overlapping > 4 ? index - 3 : 0;
+
     return {
       entry,
-      left: (index / Math.max(1, overlapping)) * 100,
-      width: 100 / Math.max(1, overlapping),
+      left: (Math.min(index, 3) / Math.max(1, abreast)) * 100 + cascade * 3,
+      width: 100 / Math.max(1, abreast),
+      // Later cards sit on top, so the cascade reads as a stack.
+      depth: index,
       top: ((minutesInDay(entry.starts_at, timezone)) / 60) * HOUR_HEIGHT,
       height: Math.max(
         22,
@@ -121,6 +137,7 @@ export function WeekGrid({
   timezone,
   view,
   day,
+  colourBy,
 }: {
   weekStart: string;
   entries: Entry[];
@@ -129,6 +146,7 @@ export function WeekGrid({
   timezone: string;
   view: "week" | "day";
   day: string;
+  colourBy: ColourMode;
 }) {
   const [editing, setEditing] = useState<Entry | null>(null);
   const [creating, setCreating] = useState<{
@@ -392,6 +410,12 @@ export function WeekGrid({
                 >
                   {here.map((e) => {
                     const cat = categoryFor(e.category);
+                    const who = artists.find((a) => a.id === e.artist_id);
+                    const hue = hueFor(
+                      colourBy,
+                      { clientName: e.clientName, artistName: who?.name },
+                      cat.hue,
+                    );
                     return (
                       <button
                         key={e.id}
@@ -399,9 +423,9 @@ export function WeekGrid({
                         onClick={() => setEditing(e)}
                         className="block w-full truncate rounded-md px-2 py-1 text-left text-[11px] font-medium"
                         style={{
-                          background: `color-mix(in srgb, ${cat.hue} 22%, transparent)`,
-                          color: cat.hue,
-                          boxShadow: `inset 2px 0 0 ${cat.hue}`,
+                          background: `color-mix(in srgb, ${hue} 22%, transparent)`,
+                          color: hue,
+                          boxShadow: `inset 2px 0 0 ${hue}`,
                         }}
                       >
                         {e.title ?? cat.label}
@@ -529,11 +553,35 @@ export function WeekGrid({
                     </div>
                   )}
 
-                  {laid.map(({ entry: e, top, height, left, width }) => {
+                  {laid.map(({ entry: e, top, height, left, width, depth }) => {
                     const cat = categoryFor(e.category);
                     const artist = artists.find((a) => a.id === e.artist_id);
+
+                    // What this entry's colour means is the owner's choice.
+                    const hue = hueFor(
+                      colourBy,
+                      { clientName: e.clientName, artistName: artist?.name },
+                      cat.hue,
+                    );
+
+                    /*
+                     * Whose it is, when that is not otherwise obvious.
+                     *
+                     * Week view puts the whole team in one column per day,
+                     * so without this a salon cannot tell four stylists
+                     * apart. Day view already has a column each, so it
+                     * would only be noise there.
+                     */
+                    const showWho = view === "week" && artists.length > 1 && artist;
+                    /*
+                     * Owed, not "came from the assistant".
+                     *
+                     * This used to key on the source, so a booking taken over
+                     * the phone with a deposit owing never showed as unpaid —
+                     * which is exactly the one somebody needs chasing about.
+                     */
                     const unpaid =
-                      e.source === "assistant" && e.deposit_status !== "paid";
+                      e.deposit_amount_pence > 0 && e.deposit_status !== "paid";
                     const dragging = drag?.id === e.id;
                     const startMinutes = minutesInDay(e.starts_at, timezone);
                     const endMinutes =
@@ -574,13 +622,23 @@ export function WeekGrid({
                           height,
                           left: `calc(${left}% + 2px)`,
                           width: `calc(${width}% - 4px)`,
-                          background: `color-mix(in srgb, ${cat.hue} ${e.blocks_availability ? 16 : 9}%, var(--surface))`,
-                          boxShadow: `inset 4px 0 0 ${unpaid ? "var(--warn)" : cat.hue}, var(--shadow-card)`,
+                          zIndex: 1 + depth,
+                          background: `color-mix(in srgb, ${hue} ${e.blocks_availability ? 16 : 9}%, var(--surface))`,
+                          boxShadow: `inset 4px 0 0 ${unpaid ? "var(--warn)" : hue}, var(--shadow-card)`,
                           color: "var(--foreground)",
-                          border: `1px solid color-mix(in srgb, ${cat.hue} 28%, var(--border))`,
+                          border: `1px solid color-mix(in srgb, ${hue} 28%, var(--border))`,
                         }}
                       >
                         <div className="flex items-center gap-1 truncate text-[11.5px] font-semibold">
+                          {showWho && (
+                            <span
+                              className="grid size-4 shrink-0 place-items-center rounded-full text-[8px] font-bold text-white"
+                              style={{ background: colourForName(artist.name) }}
+                              title={artist.name}
+                            >
+                              {initialsOf(artist.name)}
+                            </span>
+                          )}
                           {unpaid && (
                             <span
                               className="size-1.5 shrink-0 rounded-full bg-warn"
@@ -594,9 +652,6 @@ export function WeekGrid({
                         {height > 32 && (
                           <div className="num truncate text-[10px] text-muted">
                             {clock(e.starts_at, timezone)}
-                            {view === "week" && artists.length > 1 && artist
-                              ? ` · ${artist.name}`
-                              : ""}
                           </div>
                         )}
                         {height > 54 && (e.description || e.notes) && (

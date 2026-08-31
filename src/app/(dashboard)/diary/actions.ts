@@ -296,3 +296,18 @@ export async function moveDiaryEntry(input: {
   revalidatePath("/");
   return { ok: "Moved." };
 }
+
+/**
+ * What the colours in the diary mean.
+ *
+ * Stored on the business rather than the person: a salon wants everyone
+ * looking at the same diary reading it the same way, and arguing about whose
+ * colours are right is not a feature.
+ */
+export async function setDiaryColour(mode: "category" | "client" | "person") {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  await supabase.from("studios").update({ diary_colour: mode }).eq("id", studio.id);
+  revalidatePath("/diary");
+}
