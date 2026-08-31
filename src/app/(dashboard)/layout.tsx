@@ -39,7 +39,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
            * it; the sidebar gives about 208px inside its padding, so it fits.
            * The mobile header does not, and keeps the horizontal one.
            */}
-          <Logo height={46} tagline />
+          <Logo height={44} lockup="flush-right" />
           <div className="mt-3 truncate border-t border-border pt-3 text-sm font-medium">
             {studio.name}
           </div>

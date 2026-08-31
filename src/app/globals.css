@@ -16,76 +16,83 @@
 
 :root {
   /*
-   * Second Pair. Forest, amber, cream and ink, from the brand pack.
+   * Second Pair. Navy, orange, paper and ink, from the brand pack.
    *
-   * Amber never carries text — it fails contrast on cream — so it is the
-   * highlight only: one call to action per screen, and the second dot in the
-   * mark. Warnings use a darkened amber that can be read.
+   * Orange never carries body text — it fails contrast on paper at small
+   * sizes — so it is the highlight only: one call to action per screen, and
+   * the second dot in the mark.
    */
-  --background: #f4f2ec;
+  --background: #efeee9;
   --surface: #ffffff;
-  --surface-2: #eae7dd;
-  --border: #dcd8cc;
+  --surface-2: #e6e5df;
+  --border: #d6d5ce;
   --foreground: #17150f;
-  --muted: #6e7f76;
-  --accent: #1e5647;
-  --accent-strong: #143b31;
-  --highlight: #e8a33d;
-  --ok: #1e5647;
-  --warn: #8a5a06;
-  --bad: #a83226;
+  --muted: #5a6577;
+  --accent: #14243f;
+  --accent-strong: #0c1729;
+  --highlight: #f07818;
+  --highlight-strong: #c85d0b;
+  /* Ink on orange passes AA; white on it does not. Named once so no
+     button has to remember. */
+  --on-highlight: #17150f;
+  --ok: #1f6b4a;
+  --warn: #a5560a;
+  --bad: #b03024;
 
-  --logo-bubble: #1e5647;
-  --logo-dot-1: #f4f2ec;
-  --logo-dot-2: #e8a33d;
+  --logo-bubble: #14243f;
+  --logo-dot-1: #efeee9;
+  --logo-dot-2: #f07818;
 
-  --shadow-card: 0 1px 2px rgba(23, 21, 15, 0.05), 0 1px 3px rgba(23, 21, 15, 0.04);
-  --shadow-pop: 0 8px 28px rgba(23, 21, 15, 0.14);
+  --shadow-card: 0 1px 2px rgba(20, 36, 63, 0.06), 0 1px 3px rgba(20, 36, 63, 0.04);
+  --shadow-pop: 0 8px 28px rgba(20, 36, 63, 0.16);
 
   /* Diary. Client work carries the accent because it is the thing that earns;
      everything else is deliberately quieter. */
-  --cal-client: #1e5647;
-  --cal-work: #7a5ea8;
-  --cal-note: #2f7d8f;
-  --cal-off: #8a9a92;
-  --cal-grid: #e3dfd4;
+  --cal-client: #14243f;
+  --cal-work: #6b4a9e;
+  --cal-note: #16697a;
+  --cal-off: #7b8598;
+  --cal-grid: #dedcd5;
   /* Hours the business is shut. Must read as recessed in both themes, which
-     the page background cannot do — it is cream in one and near-black in the other. */
-  --cal-closed: rgba(23, 21, 15, 0.05);
+     the page background cannot do — it is paper in one and near-black in the other. */
+  --cal-closed: rgba(20, 36, 63, 0.05);
 
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    /* Reversed, to the pack's own dark values: cream bubble, forest dot, amber
-       stays amber. Forest is too dark to be an accent on a dark ground, so the
-       accent lifts to a lighter forest that still reads as the same green. */
-    --background: #090d0b;
-    --surface: #141d19;
-    --surface-2: #1f2b25;
-    --border: #31413a;
-    --foreground: #f4f2ec;
-    --muted: #9fbfb2;
-    --accent: #5aa98d;
-    --accent-strong: #7cc3a8;
-    --highlight: #e8a33d;
-    --ok: #5aa98d;
-    --warn: #e8a33d;
-    --bad: #e8776a;
+    /* Reversed, to the pack's own dark values. Navy is the brand but it is far
+       too dark to be an accent on a dark ground, so the accent lifts to a
+       lighter blue that still reads as the same family. Orange stays orange —
+       it is the fixed point the identity hangs on. */
+    --background: #0a0f1a;
+    --surface: #121a2a;
+    --surface-2: #1b2536;
+    --border: #2a3648;
+    --foreground: #eef1f6;
+    --muted: #9baac2;
+    --accent: #6f9bf0;
+    --accent-strong: #93b6f7;
+    --highlight: #f07818;
+    --highlight-strong: #ff8f38;
+    --on-highlight: #17150f;
+    --ok: #46c98e;
+    --warn: #eda13f;
+    --bad: #ef7264;
 
-    --logo-bubble: #f4f2ec;
-    --logo-dot-1: #1e5647;
-    --logo-dot-2: #e8a33d;
+    --logo-bubble: #efeee9;
+    --logo-dot-1: #14243f;
+    --logo-dot-2: #f07818;
 
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
     --shadow-pop: 0 8px 32px rgba(0, 0, 0, 0.6);
 
-    --cal-client: #5aa98d;
-    --cal-work: #a98fd4;
-    --cal-note: #56b3c4;
-    --cal-off: #7f908a;
-    --cal-grid: #26332d;
+    --cal-client: #6f9bf0;
+    --cal-work: #a98fe0;
+    --cal-note: #48b3c6;
+    --cal-off: #7d879a;
+    --cal-grid: #212c3d;
     --cal-closed: rgba(0, 0, 0, 0.38);
 
     color-scheme: dark;
@@ -93,34 +100,37 @@
 }
 
 :root[data-theme="dark"] {
-    /* Reversed, to the pack's own dark values: cream bubble, forest dot, amber
-     stays amber. Forest is too dark to be an accent on a dark ground, so the
-     accent lifts to a lighter forest that still reads as the same green. */
-  --background: #090d0b;
-  --surface: #141d19;
-  --surface-2: #1f2b25;
-  --border: #31413a;
-  --foreground: #f4f2ec;
-  --muted: #9fbfb2;
-  --accent: #5aa98d;
-  --accent-strong: #7cc3a8;
-  --highlight: #e8a33d;
-  --ok: #5aa98d;
-  --warn: #e8a33d;
-  --bad: #e8776a;
+  /* Reversed, to the pack's own dark values. Navy is the brand but it is far
+     too dark to be an accent on a dark ground, so the accent lifts to a
+     lighter blue that still reads as the same family. Orange stays orange —
+     it is the fixed point the identity hangs on. */
+  --background: #0a0f1a;
+  --surface: #121a2a;
+  --surface-2: #1b2536;
+  --border: #2a3648;
+  --foreground: #eef1f6;
+  --muted: #9baac2;
+  --accent: #6f9bf0;
+  --accent-strong: #93b6f7;
+  --highlight: #f07818;
+  --highlight-strong: #ff8f38;
+  --on-highlight: #17150f;
+  --ok: #46c98e;
+  --warn: #eda13f;
+  --bad: #ef7264;
 
-  --logo-bubble: #f4f2ec;
-  --logo-dot-1: #1e5647;
-  --logo-dot-2: #e8a33d;
+  --logo-bubble: #efeee9;
+  --logo-dot-1: #14243f;
+  --logo-dot-2: #f07818;
 
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
   --shadow-pop: 0 8px 32px rgba(0, 0, 0, 0.6);
 
-  --cal-client: #5aa98d;
-  --cal-work: #a98fd4;
-  --cal-note: #56b3c4;
-  --cal-off: #7f908a;
-  --cal-grid: #26332d;
+  --cal-client: #6f9bf0;
+  --cal-work: #a98fe0;
+  --cal-note: #48b3c6;
+  --cal-off: #7d879a;
+  --cal-grid: #212c3d;
   --cal-closed: rgba(0, 0, 0, 0.38);
 
   color-scheme: dark;
@@ -138,6 +148,8 @@
   --color-warn: var(--warn);
   --color-bad: var(--bad);
   --color-highlight: var(--highlight);
+  --color-highlight-strong: var(--highlight-strong);
+  --color-on-highlight: var(--on-highlight);
   --color-accent-strong: var(--accent-strong);
   --color-cal-client: var(--cal-client);
   --color-cal-work: var(--cal-work);

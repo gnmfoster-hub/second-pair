@@ -160,7 +160,7 @@ export function ChatWindow({
    * pasted the plain one-liner a random purple, which reads as accidental.
    * Forest is at least a decision.
    */
-  const brand = accent ?? "#1e5647";
+  const brand = accent ?? "#14243f";
   const onBrand = onAccent ?? "#ffffff";
 
   useEffect(() => {

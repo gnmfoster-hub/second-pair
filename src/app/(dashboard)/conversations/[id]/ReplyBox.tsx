@@ -20,6 +20,18 @@ export function ReplyBox({ conversationId }: { conversationId: string }) {
       <div className="flex items-center gap-4">
         <SubmitButton>Send reply</SubmitButton>
         <FormMessage state={state} />
+        {/*
+         * Saved, but it did not reach them.
+         *
+         * Silence here would be the worst outcome: the owner sees their reply
+         * in the thread, assumes it went, and finds out days later that the
+         * customer never heard from anybody.
+         */}
+        {state.warning && (
+          <p className="mt-2 rounded-lg bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">
+            {state.warning}
+          </p>
+        )}
         <p className="hint ml-auto">Sending pauses the assistant on this conversation.</p>
       </div>
     </form>

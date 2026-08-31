@@ -15,7 +15,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center gap-4 px-5 py-3.5 sm:px-8">
           <Link href="/" aria-label="Second Pair">
-            <Logo height={26} />
+            <Logo height={30} lockup="inline" />
           </Link>
 
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
@@ -29,7 +29,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 is that one, and it is the only amber on the page. */}
             <Link
               href="/login"
-              className="btn inline-flex bg-highlight font-semibold text-[#17150f] hover:brightness-95"
+              className="btn inline-flex bg-highlight font-semibold text-on-highlight hover:brightness-95"
             >
               Get started
             </Link>
@@ -41,7 +41,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
 
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-5 py-8 text-xs text-muted sm:px-8">
-          <Logo height={18} />
+          <Logo height={22} lockup="inline" />
           <Link href="/privacy" className="hover:text-foreground">
             Privacy
           </Link>

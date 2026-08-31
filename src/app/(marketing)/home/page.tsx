@@ -68,7 +68,7 @@ export default function HomePage() {
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
                 href="/login"
-                className="btn inline-flex bg-highlight px-5 text-[0.95rem] font-semibold text-[#17150f] hover:brightness-95"
+                className="btn inline-flex bg-highlight px-5 text-[0.95rem] font-semibold text-on-highlight hover:brightness-95"
               >
                 Start free
               </Link>
@@ -206,7 +206,7 @@ export default function HomePage() {
           </p>
           <Link
             href="/login"
-            className="btn mt-8 inline-flex bg-highlight px-6 text-[0.95rem] font-semibold text-[#17150f] hover:brightness-95"
+            className="btn mt-8 inline-flex bg-highlight px-6 text-[0.95rem] font-semibold text-on-highlight hover:brightness-95"
           >
             Start free
           </Link>

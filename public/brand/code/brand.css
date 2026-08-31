@@ -1,12 +1,13 @@
 :root {
-  --sp-forest: #1E5647;
-  --sp-forest-dark: #143B31;
-  --sp-amber: #E8A33D;
-  --sp-cream: #F4F2EC;
+  --sp-navy: #14243F;
+  --sp-navy-deep: #0C1729;
+  --sp-orange: #F07818;
+  --sp-orange-dark: #C85D0B;
+  --sp-paper: #EFEEE9;
   --sp-ink: #17150F;
-  --sp-sage: #9FBFB2;
-  --sp-muted: #6E7F76;
-  --sp-hi-vis: #D6E23C;
+  --sp-muted: #5A6577;
+  --sp-muted-dark: #9BAAC2;
+  --sp-hi-vis: #F5C518;
 
   --sp-font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --sp-tracking-display: -0.02em;

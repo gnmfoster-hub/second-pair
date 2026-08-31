@@ -72,7 +72,7 @@ export function NewEntry({ artists, timezone }: { artists: Artist[]; timezone: s
       <button
         type="button"
         onClick={start}
-        className="btn inline-flex bg-highlight px-4 font-semibold text-[#17150f] transition-[filter] hover:brightness-95"
+        className="btn inline-flex bg-highlight px-4 font-semibold text-on-highlight transition-[filter] hover:brightness-95"
         title="Add something (N)"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" aria-hidden>

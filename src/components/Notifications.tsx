@@ -159,7 +159,7 @@ export function Notifications() {
           <button
             type="button"
             onClick={turnOn}
-            className="btn shrink-0 bg-highlight font-semibold text-[#17150f] hover:brightness-95"
+            className="btn shrink-0 bg-highlight font-semibold text-on-highlight hover:brightness-95"
           >
             Turn on
           </button>

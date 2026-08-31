@@ -349,7 +349,7 @@ export function WeekGrid({
       <div>
         {/* ------------------------------------------------ headings */}
         <div className="sticky top-0 z-20 flex border-b border-border bg-surface/95 backdrop-blur">
-          <div className="w-16 shrink-0 border-r border-border" />
+          <div className="w-[4.25rem] shrink-0 border-r border-border" />
           {columns.map((col) => {
             const isToday = view === "week" && col.date === todayKey;
             const weekday = new Date(col.date).getDay();
@@ -380,11 +380,11 @@ export function WeekGrid({
                    */
                   <div className="flex items-center justify-center gap-2">
                     <span
-                      className={`grid size-8 place-items-center rounded-full font-display text-[0.95rem] font-semibold tabular-nums ${
+                      className={`grid size-9 place-items-center rounded-xl font-display text-lg font-bold tabular-nums leading-none ${
                         isToday
-                          ? "bg-accent text-white"
+                          ? "bg-accent text-white shadow-[var(--shadow-card)]"
                           : closed
-                            ? "text-muted"
+                            ? "text-muted/70"
                             : "text-foreground"
                       }`}
                     >
@@ -392,13 +392,15 @@ export function WeekGrid({
                     </span>
                     <span className="text-left leading-tight">
                       <span
-                        className={`block text-[0.8rem] font-semibold ${
+                        className={`block text-[0.82rem] font-semibold tracking-tight ${
                           isToday ? "text-accent" : closed ? "text-muted" : "text-foreground"
                         }`}
                       >
                         {col.label}
                       </span>
-                      <span className="block text-[10px] text-muted">{col.month}</span>
+                      <span className="block text-[10px] uppercase tracking-wide text-muted">
+                        {col.month}
+                      </span>
                     </span>
                   </div>
                 )}
@@ -463,13 +465,24 @@ export function WeekGrid({
         {/* ------------------------------------------------ time grid */}
         <div ref={scroller} className="max-h-[64vh] overflow-y-auto">
           <div className="flex">
-            <div className="w-16 shrink-0 border-r border-border">
+            <div className="w-[4.25rem] shrink-0 border-r border-border">
               {hourList.map((h) => (
                 <div key={h} style={{ height: HOUR_HEIGHT }} className="relative">
-                  {/* Sitting on the line rather than under it, so the eye
-                      matches a time to the rule it belongs to. */}
-                  <span className="num absolute -top-2 right-2.5 text-[10px] text-muted">
-                    {h === 0 ? "" : `${h % 12 === 0 ? 12 : h % 12}${h < 12 ? "am" : "pm"}`}
+                  {/*
+                   * Sitting on the line rather than under it, so the eye
+                   * matches a time to the rule it belongs to.
+                   *
+                   * The hour is the size of body text and the am/pm is not —
+                   * at a glance you are looking for "3", and the suffix only
+                   * matters once you have found it.
+                   */}
+                  <span className="absolute -top-2.5 right-2.5 flex items-baseline gap-px">
+                    <span className="num text-[13px] font-medium text-foreground/70">
+                      {h === 0 ? "" : h % 12 === 0 ? 12 : h % 12}
+                    </span>
+                    <span className="text-[9px] font-medium uppercase text-muted">
+                      {h === 0 ? "" : h < 12 ? "am" : "pm"}
+                    </span>
                   </span>
                 </div>
               ))}

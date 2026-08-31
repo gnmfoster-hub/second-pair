@@ -27,7 +27,7 @@
   }
 
   var origin = new URL(script.src, window.location.href).origin;
-  var accent = script.getAttribute("data-accent") || "#1E5647";
+  var accent = script.getAttribute("data-accent") || "#14243F";
   var teaserText =
     script.getAttribute("data-teaser") || "Hi — anything I can help you with?";
   var onLeft = script.getAttribute("data-position") === "left";

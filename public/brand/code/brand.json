@@ -1,21 +1,26 @@
 {
   "name": "Second Pair",
-  "tagline": "you work, we answer",
-  "taglineAlt": "answers while you're on the job",
+  "taglines": {
+    "default": "you work, we answer",
+    "trades": "answers while you're on the job",
+    "leadIn": "you work, we answer"
+  },
   "colour": {
-    "forest": "#1E5647",
-    "forestDark": "#143B31",
-    "amber": "#E8A33D",
-    "cream": "#F4F2EC",
+    "navy": "#14243F",
+    "navyDeep": "#0C1729",
+    "orange": "#F07818",
+    "orangeDark": "#C85D0B",
+    "paper": "#EFEEE9",
     "ink": "#17150F",
-    "sage": "#9FBFB2",
-    "muted": "#6E7F76",
-    "hiVis": "#D6E23C"
+    "muted": "#5A6577",
+    "mutedDark": "#9BAAC2",
+    "hiVis": "#F5C518"
   },
   "type": {
     "family": "Inter",
     "wordmarkWeights": { "second": 400, "pair": 500 },
-    "tracking": "-0.02em"
+    "tracking": "-0.02em",
+    "taglineRatio": 0.44
   },
-  "minWidthPx": { "primaryWithTagline": 180, "horizontal": 90, "markOnly": 16 }
+  "minWidthPx": { "lockupWithTagline": 180, "horizontal": 90, "markOnly": 16 }
 }

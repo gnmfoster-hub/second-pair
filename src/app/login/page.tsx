@@ -235,7 +235,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen items-center justify-center px-6 py-10">
       <div className="w-full max-w-sm">
-        <Logo height={54} tagline />
+        <Logo height={56} lockup="flush-right" />
         <p className="hint mt-3">
           Answers your enquiries, quotes from your prices, and books people in — while
           your hands are full.
