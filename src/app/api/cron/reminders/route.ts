@@ -15,8 +15,16 @@ export const maxDuration = 60;
  * open endpoint that sends messages to a studio's clients is not something to
  * leave lying around.
  *
- * On Vercel this is wired to a cron entry; anything that can make an HTTPS
- * request on a timer works just as well.
+ * Called from two places, on purpose.
+ *
+ * vercel.json runs it once a day, which is all the Hobby plan allows and is not
+ * a schedule for something that has to send a reminder at the right hour. The
+ * real one is .github/workflows/reminders.yml, every fifteen minutes, free.
+ * Both is harmless: a reminder moves off `pending` the moment it is handled, so
+ * it cannot be sent twice.
+ *
+ * vercel.json carries no note saying so because its schema rejects any key it
+ * does not recognise — including a comment. Hence this.
  */
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
