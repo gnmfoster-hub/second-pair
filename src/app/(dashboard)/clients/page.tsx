@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio } from "@/lib/studio";
 import { formatPence } from "@/lib/money";
+import { colourForName, initialsOf } from "@/lib/diaryColour";
 import { CHANNEL_LABELS, type Channel } from "@/lib/types";
 
 type Row = {
@@ -106,35 +107,57 @@ export default async function ClientsPage({
                 .map((v) => v.last_message_at)
                 .sort()
                 .pop();
+              const who = c.name ?? c.phone ?? c.instagram_handle ?? "Unnamed";
 
               return (
                 <li key={c.id}>
                   <Link
                     href={`/clients/${c.id}`}
-                    className="flex items-center gap-4 px-5 py-3.5 hover:bg-surface-2/50"
+                    className="flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-surface-2/60 sm:px-5"
                   >
+                    {/* The same faces as the inbox, so the two lists read as
+                        the same people rather than two databases. */}
+                    <span
+                      className="grid size-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white"
+                      style={{ background: colourForName(who) }}
+                      aria-hidden
+                    >
+                      {initialsOf(who)}
+                    </span>
+
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 truncate text-sm">
-                        {c.name ?? c.phone ?? c.instagram_handle ?? "Unnamed"}
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-sm font-medium">{who}</span>
                         {c.alert && (
-                          <span className="rounded-full bg-warn/15 px-2 py-0.5 text-[10px] uppercase tracking-wide text-warn">
+                          <span
+                            className="pill shrink-0 bg-warn/15 text-[10px] uppercase tracking-wide text-warn"
+                            title={c.alert}
+                          >
                             note
                           </span>
                         )}
                       </div>
-                      <div className="hint mt-0.5 truncate tabular-nums">
+                      <div className="hint num mt-0.5 truncate">
                         {[c.phone, c.email].filter(Boolean).join(" · ") ||
                           CHANNEL_LABELS[c.channel]}
                       </div>
                     </div>
 
-                    <div className="hint w-24 shrink-0 text-right">
-                      {bookings.length} booking{bookings.length === 1 ? "" : "s"}
+                    {/* Spend first: it is the number that says whether this is
+                        a regular or somebody who enquired once. */}
+                    {paid > 0 && (
+                      <div className="num hidden shrink-0 text-sm font-medium sm:block">
+                        {formatPence(paid)}
+                      </div>
+                    )}
+
+                    <div className="hint w-20 shrink-0 text-right">
+                      {bookings.length
+                        ? `${bookings.length} booking${bookings.length === 1 ? "" : "s"}`
+                        : "enquiry only"}
                     </div>
-                    <div className="w-20 shrink-0 text-right text-sm tabular-nums">
-                      {paid ? formatPence(paid) : ""}
-                    </div>
-                    <time className="hint w-20 shrink-0 text-right">
+
+                    <time className="hint num hidden w-14 shrink-0 text-right sm:block">
                       {last
                         ? new Date(last).toLocaleDateString("en-GB", {
                             day: "numeric",
