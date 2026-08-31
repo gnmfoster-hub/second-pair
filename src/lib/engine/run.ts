@@ -58,6 +58,13 @@ export type TurnInput = {
   mediaUrls?: string[];
   /** Public origin, for payment return links. */
   origin: string;
+  /**
+   * Who this enquiry is for, when the channel already says so — an enquiry on
+   * Sarah's own Instagram, or a link with her handle in it. Set on the
+   * conversation so it survives every turn, and told to the assistant so it
+   * does not ask a question it already has the answer to.
+   */
+  forArtistId?: string | null;
 };
 
 export type TurnResult = {
@@ -86,11 +93,24 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
       db.from("service_options").select("*").eq("studio_id", studio.id).order("sort_order"),
     ]);
 
+  /*
+   * Who this enquiry is for arrives from the browser, so it is checked against
+   * this studio's own active people before it is believed. Without this, a
+   * crafted request could pin a conversation in one business to somebody who
+   * works at another.
+   */
+  const forArtistId =
+    input.forArtistId &&
+    (artists ?? []).some((a) => a.id === input.forArtistId && a.active)
+      ? input.forArtistId
+      : null;
+
   const { conversation, enquiryId, contactId } = await findOrCreateConversation(
     db,
     studio.id,
     input.sessionKey,
     input.channel,
+    forArtistId,
   );
 
   const startedAt = Date.now();
@@ -141,6 +161,8 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     contactId,
     enquirySizeBandId: null,
     enquiryArtistId: null,
+    forArtist:
+      (artists ?? []).find((a) => a.id === conversation.artist_id) ?? null,
     depositPence: 0,
     origin: input.origin,
     contactEmail: null,
@@ -208,6 +230,7 @@ async function generateReply(ctx: ReplyContext): Promise<string> {
       ctx.artists,
       contact as ContactState | null,
       ctx.options,
+      ctx.forArtist ?? null,
     ),
   } as Anthropic.MessageParam);
 
@@ -346,6 +369,7 @@ async function findOrCreateConversation(
   studioId: string,
   sessionKey: string,
   channel: Channel,
+  forArtistId: string | null,
 ) {
   const { data: existing } = await db
     .from("conversations")
@@ -386,6 +410,7 @@ async function findOrCreateConversation(
       contact_id: contact!.id,
       channel,
       external_ref: sessionKey,
+      artist_id: forArtistId,
     })
     .select("*")
     .single();
@@ -393,7 +418,7 @@ async function findOrCreateConversation(
 
   const { data: enquiry } = await db
     .from("enquiries")
-    .insert({ conversation_id: conversation.id })
+    .insert({ conversation_id: conversation.id, artist_id: forArtistId })
     .select("id")
     .single();
 

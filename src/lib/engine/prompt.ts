@@ -66,6 +66,14 @@ Travelling time is already left either side of every job, so what get_available_
 
   // What the assistant may say about booking depends entirely on what the
   // business's diary can do, so it comes from the provider, not from here.
+  // With one person there is nobody to choose between, and asking "who would
+  // you like?" in a one-man band reads as a script rather than a person.
+  const teamLine =
+    active.length > 1
+      ? `
+- Which ${words.practitioner} they want, if they have a preference. If they have not, say who is free soonest rather than making them pick.`
+      : "";
+
   const bookingPerson = active[0];
   const booking = bookingInstructions(
     (bookingPerson?.booking_provider as ProviderKind) ?? "manual",
@@ -121,7 +129,7 @@ Work out, over the course of the conversation:
 - Their name, and a phone number or email
 ${qualificationLines}${locationLine}
 - Reference images — there is a paperclip in the chat window they can attach photos with, so point them at it
-- Whether they have a particular ${words.practitioner} in mind${ageLine}
+${teamLine}${ageLine}
 - Which days and times suit them
 
 Ask only for what you do not already have. The known-so-far note tells you what has been answered. Never ask twice.
@@ -220,8 +228,29 @@ export function enquiryStateMessage(
   artists: Artist[],
   contact: ContactState | null,
   options: ServiceOption[] = [],
+  /**
+   * Set when the channel itself says who this is for — their own Instagram,
+   * their own booking link. Lives here rather than in the studio prompt above
+   * because it changes per conversation, and the studio prompt is the cached
+   * prefix that must not.
+   */
+  forArtist: Artist | null = null,
 ): string {
-  if (!state) return "Known so far: nothing. This is a brand new enquiry.";
+  const channelLine = forArtist
+    ? [
+        `This enquiry came in on ${forArtist.name}'s own account, so it is for ${forArtist.name}.`,
+        "Never ask who they would like — you already know.",
+        `Only ever offer ${forArtist.name}'s times.`,
+        "If they ask for somebody else by name, say you will pass that on, and escalate.",
+        "Do not book it with anyone else yourself.",
+      ].join(" ")
+    : "";
+
+  if (!state) {
+    return [channelLine, "Known so far: nothing. This is a brand new enquiry."]
+      .filter(Boolean)
+      .join("\n\n");
+  }
 
   const band = bands.find((b) => b.id === state.size_band_id);
   const artist = artists.find((a) => a.id === state.artist_id);
@@ -266,6 +295,7 @@ export function enquiryStateMessage(
   }
 
   return [
+    ...(channelLine ? [channelLine, ""] : []),
     "Known so far:",
     known.length ? known.map((k) => `- ${k}`).join("\n") : "- nothing yet",
     "",

@@ -98,6 +98,8 @@ export type Artist = {
   id: string;
   studio_id: string;
   name: string;
+  /** Short name used in this person's own booking link. */
+  handle: string | null;
   styles: StyleKey[];
   hourly_rate_pence: number;
   min_charge_pence: number;

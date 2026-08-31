@@ -24,7 +24,13 @@ function throttled(key: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
-  let body: { studio?: string; session?: string; message?: string; media?: string[] };
+  let body: {
+    studio?: string;
+    session?: string;
+    message?: string;
+    media?: string[];
+    with?: string | null;
+  };
   try {
     body = await request.json();
   } catch {
@@ -51,6 +57,12 @@ export async function POST(request: NextRequest) {
   if (!/^[A-Za-z0-9_-]{16,64}$/.test(session)) {
     return NextResponse.json({ error: "Invalid session" }, { status: 400 });
   }
+  const forArtist =
+    typeof body.with === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.with)
+      ? body.with
+      : null;
+
   if (throttled(`${studio}:${session}`)) {
     return NextResponse.json({ error: "Slow down" }, { status: 429 });
   }
@@ -73,6 +85,10 @@ export async function POST(request: NextRequest) {
       origin: request.nextUrl.origin,
       message: message || "(sent an image)",
       mediaUrls: media,
+      // Which person this link belongs to. Validated as a uuid rather than
+      // trusted: it arrives from the browser, and it decides whose diary gets
+      // booked.
+      forArtistId: forArtist,
     });
 
     return NextResponse.json({

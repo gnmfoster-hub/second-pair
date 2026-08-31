@@ -77,10 +77,15 @@ export function ChatWindow({
   slug,
   studioName,
   greeting,
+  forArtistId = null,
+  forArtistName = null,
 }: {
   slug: string;
   studioName: string;
   greeting: string;
+  /** Set when this link is one person's own. Every enquiry here is theirs. */
+  forArtistId?: string | null;
+  forArtistName?: string | null;
 }) {
   const [lines, setLines] = useState<Line[]>([]);
   const [draft, setDraft] = useState("");
@@ -137,6 +142,7 @@ export function ChatWindow({
           session: session.current,
           message: message || "(sent an image)",
           media,
+          with: forArtistId,
         }),
       });
 
@@ -211,7 +217,9 @@ export function ChatWindow({
           {initialsFor(studioName)}
         </span>
         <div className="min-w-0">
-          <div className="truncate text-sm font-medium">{studioName}</div>
+          <div className="truncate text-sm font-medium">
+            {forArtistName ? `${forArtistName} · ${studioName}` : studioName}
+          </div>
           <div className="flex items-center gap-1.5 text-xs text-muted">
             <span className="size-1.5 rounded-full bg-ok" aria-hidden />
             Usually replies in under a minute

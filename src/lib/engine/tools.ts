@@ -27,6 +27,12 @@ export type ToolContext = {
   /** Current enquiry state, so a tool can pick the right band and person. */
   enquirySizeBandId: string | null;
   enquiryArtistId: string | null;
+  /**
+   * Set when the channel itself identifies one person — Sarah's own Instagram,
+   * or a link with her handle. Everything that picks somebody must respect it:
+   * an enquiry that arrived on her account must never be offered Tom's diary.
+   */
+  forArtist?: Artist | null;
   /** Deposit owed on the quote so far. */
   depositPence: number;
   /** Where the app is served from, for building payment return links. */
@@ -431,6 +437,13 @@ async function quoteEstimate(
 
 /** Resolves which person's diary to use: the one asked for, or the first available. */
 function pickArtist(input: Record<string, unknown>, ctx: ToolContext) {
+  // The channel decides, and nothing overrides it. An enquiry that arrived on
+  // this person's own Instagram is theirs — the assistant must not hand it to
+  // somebody else because the model felt like naming a different name. If the
+  // client genuinely wants another person, the prompt escalates instead, and a
+  // human routes it.
+  if (ctx.forArtist) return ctx.forArtist;
+
   if (typeof input.artist_name === "string") {
     return ctx.artists.find(
       (a) => a.name.toLowerCase() === (input.artist_name as string).toLowerCase(),

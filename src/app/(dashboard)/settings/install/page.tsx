@@ -1,6 +1,8 @@
 import { headers } from "next/headers";
 import Link from "next/link";
-import { requireStudio } from "@/lib/studio";
+import { requireStudio, getArtists } from "@/lib/studio";
+import { verticalPack } from "@/lib/verticals";
+import { Avatar } from "@/components/Avatar";
 import { Snippet } from "./Snippet";
 
 /**
@@ -11,6 +13,11 @@ import { Snippet } from "./Snippet";
  */
 export default async function InstallPage() {
   const { studio } = await requireStudio();
+  const artists = (await getArtists(studio.id)).filter((a) => a.active);
+  const words = {
+    ...verticalPack(studio.vertical).vocabulary,
+    ...(studio.vocabulary ?? {}),
+  };
 
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
@@ -80,6 +87,39 @@ export default async function InstallPage() {
           Open it and try it
         </Link>
       </section>
+
+      {artists.length > 1 && (
+        <section>
+          <div className="section-title">A link each</div>
+          <p className="hint mt-1 max-w-prose">
+            Every {words.practitioner} gets their own link. Someone arriving on it is{" "}
+            <strong className="text-foreground">theirs</strong> — the assistant never asks
+            who they would like, and only ever offers that person&rsquo;s times.
+          </p>
+          <p className="hint mt-2 max-w-prose">
+            Put these in each person&rsquo;s own Instagram bio or Facebook page. The shop
+            link above still reaches everybody, so you can run both: people who come
+            through the salon get asked who they want, people who come through
+            {" "}
+            {artists[0]?.name}&rsquo;s page do not.
+          </p>
+
+          <div className="mt-4 space-y-4">
+            {artists.map((person) => (
+              <div key={person.id}>
+                <div className="mb-1.5 flex items-center gap-2">
+                  <Avatar person={person} size="xs" />
+                  <span className="text-sm font-medium">{person.name}</span>
+                </div>
+                <Snippet
+                  value={`${link}?with=${person.handle ?? ""}`}
+                  label={undefined}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
         <div className="section-title">Matching your colours</div>

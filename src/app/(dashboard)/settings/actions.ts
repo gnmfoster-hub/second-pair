@@ -135,6 +135,17 @@ async function uploadAvatar(
   return { path };
 }
 
+/** Lower-case, hyphenated, safe in a URL. */
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 24);
+}
+
 export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormState> {
   const { studio } = await requireStudio();
   const supabase = await createClient();
@@ -178,9 +189,27 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
   if (hourly == null) return { error: "Enter an hourly rate." };
   if (minCharge == null) return { error: "Enter a minimum charge." };
 
+  /*
+   * The handle is what goes in this person's own booking link, so it wants to
+   * be readable in an Instagram bio. Derived from the name when they have not
+   * chosen one, and made unique within the studio because two Sarahs is not a
+   * rare problem in a salon.
+   */
+  const wanted =
+    slugify(str(fd, "handle")) || slugify(name.split(/\s+/)[0]) || "team";
+  const { data: clashes } = await supabase
+    .from("artists")
+    .select("id, handle")
+    .eq("studio_id", studio.id)
+    .neq("id", str(fd, "id") || "00000000-0000-0000-0000-000000000000");
+  const taken = new Set((clashes ?? []).map((a) => (a.handle ?? "").toLowerCase()));
+  let handle = wanted;
+  for (let n = 2; taken.has(handle); n++) handle = `${wanted}-${n}`;
+
   const row = {
     studio_id: studio.id,
     name,
+    handle,
     styles: fd.getAll("styles").map(String),
     hourly_rate_pence: hourly,
     min_charge_pence: minCharge,

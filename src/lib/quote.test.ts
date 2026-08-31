@@ -14,6 +14,7 @@ const artist = (over: Partial<Artist> = {}): Artist => ({
   id: "a",
   studio_id: "s",
   name: "Test",
+  handle: "test",
   styles: [],
   hourly_rate_pence: 12000, // £120/hr
   min_charge_pence: 8000, // £80
