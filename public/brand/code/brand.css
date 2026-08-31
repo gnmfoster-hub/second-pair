@@ -1,0 +1,17 @@
+:root {
+  --sp-forest: #1E5647;
+  --sp-forest-dark: #143B31;
+  --sp-amber: #E8A33D;
+  --sp-cream: #F4F2EC;
+  --sp-ink: #17150F;
+  --sp-sage: #9FBFB2;
+  --sp-muted: #6E7F76;
+  --sp-hi-vis: #D6E23C;
+
+  --sp-font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sp-tracking-display: -0.02em;
+
+  --sp-radius-sm: 8px;
+  --sp-radius: 12px;
+  --sp-radius-tile: 22%;
+}

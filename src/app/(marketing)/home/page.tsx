@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { VERTICALS_BY_CATEGORY, VERTICAL_LIST } from "@/lib/verticals";
 
 export const metadata: Metadata = {
-  title: "Handled — the receptionist you haven't got",
+  title: "Second Pair — you work, we answer",
   description:
     "An AI receptionist for one-person businesses. Answers enquiries, quotes, and books people in while your hands are busy.",
 };
@@ -48,10 +48,10 @@ export default function HomePage() {
               Answering right now, for {VERTICAL_LIST.length} trades
             </p>
 
-            <h1 className="mt-5 text-[2.6rem] font-bold leading-[1.03] tracking-[-0.035em] sm:text-6xl">
-              <span className="font-display">You lose the job</span>
+            <h1 className="mt-5 font-display text-[2.6rem] font-bold leading-[1.03] tracking-[-0.035em] sm:text-6xl">
+              You lose the job
               <br />
-              <span className="font-display text-accent">because you were working.</span>
+              <span className="text-accent">because you were working.</span>
             </h1>
 
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
@@ -61,12 +61,15 @@ export default function HomePage() {
             </p>
 
             <p className="mt-4 max-w-xl text-lg leading-relaxed">
-              Handled answers in under a minute, quotes from your own prices, and puts them
+              Second Pair answers in under a minute, quotes from your own prices, and puts them
               in your diary — in your words, while your hands are full.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link href="/login" className="btn-primary px-5 text-[0.95rem]">
+              <Link
+                href="/login"
+                className="btn inline-flex bg-highlight px-5 text-[0.95rem] font-semibold text-[#17150f] hover:brightness-95"
+              >
                 Start free
               </Link>
               <span className="text-sm text-muted">
@@ -178,7 +181,7 @@ export default function HomePage() {
         <div className="mt-8 grid gap-x-10 gap-y-8 sm:grid-cols-2">
           {[
             ["A proper diary", "Day, week and person views, repeats, blocks, all-day entries. Or keep the Fresha diary you already have — it reads that too."],
-            ["Deposits, if you want them", "Straight to your bank through Stripe at their normal rate. Handled takes nothing from it. Off entirely for trades that invoice after."],
+            ["Deposits, if you want them", "Straight to your bank through Stripe at their normal rate. Second Pair takes nothing from it. Off entirely for trades that invoice after."],
             ["A link each", "In a salon, every stylist gets their own link for their own Instagram. Enquiries there are theirs, and it never asks who you'd like."],
             ["Reminders that suit the job", "Bring photo ID for a tattoo. Come with dry hair for a colour. Leave access and somewhere to park for a sparky."],
             ["Client records", "History, what they've spent, no-shows, and a private note that flags every time they come back."],
@@ -201,7 +204,10 @@ export default function HomePage() {
           <p className="mx-auto mt-4 max-w-md text-base leading-relaxed text-muted">
             Set it up in about a minute and see what it says to the next one.
           </p>
-          <Link href="/login" className="btn-primary mt-8 px-6 text-[0.95rem]">
+          <Link
+            href="/login"
+            className="btn mt-8 inline-flex bg-highlight px-6 text-[0.95rem] font-semibold text-[#17150f] hover:brightness-95"
+          >
             Start free
           </Link>
         </div>

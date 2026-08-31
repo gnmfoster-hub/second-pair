@@ -15,55 +15,77 @@
  */
 
 :root {
-  --background: #f7f8fa;
+  /*
+   * Second Pair. Forest, amber, cream and ink, from the brand pack.
+   *
+   * Amber never carries text — it fails contrast on cream — so it is the
+   * highlight only: one call to action per screen, and the second dot in the
+   * mark. Warnings use a darkened amber that can be read.
+   */
+  --background: #f4f2ec;
   --surface: #ffffff;
-  --surface-2: #f0f2f6;
-  --border: #e3e6ec;
-  --foreground: #0e1116;
-  --muted: #646c7a;
-  --accent: #2563eb;
-  --ok: #0f7a52;
-  --warn: #b06000;
-  --bad: #c2352b;
+  --surface-2: #eae7dd;
+  --border: #dcd8cc;
+  --foreground: #17150f;
+  --muted: #6e7f76;
+  --accent: #1e5647;
+  --accent-strong: #143b31;
+  --highlight: #e8a33d;
+  --ok: #1e5647;
+  --warn: #8a5a06;
+  --bad: #a83226;
 
-  --shadow-card: 0 1px 2px rgba(14, 17, 22, 0.05), 0 1px 3px rgba(14, 17, 22, 0.04);
-  --shadow-pop: 0 8px 28px rgba(14, 17, 22, 0.12);
+  --logo-bubble: #1e5647;
+  --logo-dot-1: #f4f2ec;
+  --logo-dot-2: #e8a33d;
+
+  --shadow-card: 0 1px 2px rgba(23, 21, 15, 0.05), 0 1px 3px rgba(23, 21, 15, 0.04);
+  --shadow-pop: 0 8px 28px rgba(23, 21, 15, 0.14);
 
   /* Diary. Client work carries the accent because it is the thing that earns;
      everything else is deliberately quieter. */
-  --cal-client: #2563eb;
-  --cal-work: #7c4dcc;
-  --cal-note: #0f7a52;
-  --cal-off: #78808f;
-  --cal-grid: #e8ebf0;
+  --cal-client: #1e5647;
+  --cal-work: #7a5ea8;
+  --cal-note: #2f7d8f;
+  --cal-off: #8a9a92;
+  --cal-grid: #e3dfd4;
   /* Hours the business is shut. Must read as recessed in both themes, which
-     the page background cannot do — it is white in one and near-black in the other. */
-  --cal-closed: rgba(14, 17, 22, 0.045);
+     the page background cannot do — it is cream in one and near-black in the other. */
+  --cal-closed: rgba(23, 21, 15, 0.05);
 
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --background: #0a0c10;
-    --surface: #13161c;
-    --surface-2: #1b1f27;
-    --border: #272c36;
-    --foreground: #e9ecf2;
-    --muted: #949cab;
-    --accent: #5b8cf7;
-    --ok: #3ecf8e;
+    /* Reversed, to the pack's own dark values: cream bubble, forest dot, amber
+       stays amber. Forest is too dark to be an accent on a dark ground, so the
+       accent lifts to a lighter forest that still reads as the same green. */
+    --background: #0f1512;
+    --surface: #161f1b;
+    --surface-2: #1e2a25;
+    --border: #2b3832;
+    --foreground: #f4f2ec;
+    --muted: #9fbfb2;
+    --accent: #5aa98d;
+    --accent-strong: #7cc3a8;
+    --highlight: #e8a33d;
+    --ok: #5aa98d;
     --warn: #e8a33d;
-    --bad: #f2685c;
+    --bad: #e8776a;
+
+    --logo-bubble: #f4f2ec;
+    --logo-dot-1: #1e5647;
+    --logo-dot-2: #e8a33d;
 
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
     --shadow-pop: 0 8px 32px rgba(0, 0, 0, 0.6);
 
-    --cal-client: #5b8cf7;
-    --cal-work: #a583e8;
-    --cal-note: #3ecf8e;
-    --cal-off: #8890a0;
-    --cal-grid: #212632;
+    --cal-client: #5aa98d;
+    --cal-work: #a98fd4;
+    --cal-note: #56b3c4;
+    --cal-off: #7f908a;
+    --cal-grid: #232f2a;
     --cal-closed: rgba(0, 0, 0, 0.38);
 
     color-scheme: dark;
@@ -71,25 +93,34 @@
 }
 
 :root[data-theme="dark"] {
-    --background: #0a0c10;
-  --surface: #13161c;
-  --surface-2: #1b1f27;
-  --border: #272c36;
-  --foreground: #e9ecf2;
-  --muted: #949cab;
-  --accent: #5b8cf7;
-  --ok: #3ecf8e;
+    /* Reversed, to the pack's own dark values: cream bubble, forest dot, amber
+     stays amber. Forest is too dark to be an accent on a dark ground, so the
+     accent lifts to a lighter forest that still reads as the same green. */
+  --background: #0f1512;
+  --surface: #161f1b;
+  --surface-2: #1e2a25;
+  --border: #2b3832;
+  --foreground: #f4f2ec;
+  --muted: #9fbfb2;
+  --accent: #5aa98d;
+  --accent-strong: #7cc3a8;
+  --highlight: #e8a33d;
+  --ok: #5aa98d;
   --warn: #e8a33d;
-  --bad: #f2685c;
+  --bad: #e8776a;
+
+  --logo-bubble: #f4f2ec;
+  --logo-dot-1: #1e5647;
+  --logo-dot-2: #e8a33d;
 
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
   --shadow-pop: 0 8px 32px rgba(0, 0, 0, 0.6);
 
-  --cal-client: #5b8cf7;
-  --cal-work: #a583e8;
-  --cal-note: #3ecf8e;
-  --cal-off: #8890a0;
-  --cal-grid: #212632;
+  --cal-client: #5aa98d;
+  --cal-work: #a98fd4;
+  --cal-note: #56b3c4;
+  --cal-off: #7f908a;
+  --cal-grid: #232f2a;
   --cal-closed: rgba(0, 0, 0, 0.38);
 
   color-scheme: dark;
@@ -106,6 +137,8 @@
   --color-ok: var(--ok);
   --color-warn: var(--warn);
   --color-bad: var(--bad);
+  --color-highlight: var(--highlight);
+  --color-accent-strong: var(--accent-strong);
   --color-cal-client: var(--cal-client);
   --color-cal-work: var(--cal-work);
   --color-cal-off: var(--cal-off);
@@ -141,6 +174,13 @@ body {
   .stat {
     font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
     @apply text-[1.75rem] font-semibold leading-none tracking-[-0.02em] tabular-nums;
+  }
+
+  /* The pack sets the wordmark in Inter: "second" at 400, "pair" at 500,
+     tracking -0.02em. Used for the wordmark and nothing else. */
+  .wordmark {
+    font-family: var(--font-wordmark), ui-sans-serif, system-ui, sans-serif;
+    @apply font-normal tracking-[-0.02em];
   }
 
   .hint {

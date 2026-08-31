@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { seedFromPack } from "@/lib/seed";
 import { TradePicker } from "./TradePicker";
 import { parsePounds } from "@/lib/money";
-import { Mark } from "@/components/Icons";
+import { Mark } from "@/components/Logo";
 
 /**
  * Signup.
@@ -74,7 +74,7 @@ export default async function OnboardingPage() {
     <div className="grid min-h-screen place-items-center px-6 py-12">
       <form action={createStudio} className="w-full max-w-lg space-y-8">
         <div>
-          <Mark className="size-8" />
+          <Mark className="size-9" />
           <div className="page-title mt-4">Set up your business</div>
           <p className="hint mt-1.5">
             Three questions. All of it can be changed later.

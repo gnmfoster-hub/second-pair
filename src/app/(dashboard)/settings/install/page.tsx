@@ -184,7 +184,7 @@ export default async function ChannelsPage() {
 /**
  * A messaging channel that is not connectable yet.
  *
- * Deliberately not a button. The Meta app review is a job for Handled, not for
+ * Deliberately not a button. The Meta app review is a job for Second Pair, not for
  * the business, and offering a dead "Connect" would be a lie that generates a
  * support message.
  */

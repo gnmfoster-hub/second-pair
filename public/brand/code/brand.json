@@ -1,0 +1,21 @@
+{
+  "name": "Second Pair",
+  "tagline": "you work, we answer",
+  "taglineAlt": "answers while you're on the job",
+  "colour": {
+    "forest": "#1E5647",
+    "forestDark": "#143B31",
+    "amber": "#E8A33D",
+    "cream": "#F4F2EC",
+    "ink": "#17150F",
+    "sage": "#9FBFB2",
+    "muted": "#6E7F76",
+    "hiVis": "#D6E23C"
+  },
+  "type": {
+    "family": "Inter",
+    "wordmarkWeights": { "second": 400, "pair": 500 },
+    "tracking": "-0.02em"
+  },
+  "minWidthPx": { "primaryWithTagline": 180, "horizontal": 90, "markOnly": 16 }
+}

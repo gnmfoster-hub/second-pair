@@ -50,7 +50,7 @@ export type BookingProvider = {
 };
 
 export const PROVIDERS: Record<ProviderKind, ProviderCapabilities> = {
-  // Handled's own diary. No third party, nothing to connect, works immediately.
+  // Second Pair's own diary. No third party, nothing to connect, works immediately.
   // The default, and the only one that needs nothing from the business.
   native: { readsAvailability: true, writesBookings: true, handsOverLink: false },
 
@@ -71,7 +71,7 @@ export const PROVIDERS: Record<ProviderKind, ProviderCapabilities> = {
 };
 
 export const PROVIDER_LABELS: Record<ProviderKind, string> = {
-  native: "Handled diary",
+  native: "Second Pair diary",
   google: "Google Calendar",
   ical_link: "Booking platform (Fresha, Booksy, Square…)",
   link_only: "Booking link only",

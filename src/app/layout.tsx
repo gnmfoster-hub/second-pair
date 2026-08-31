@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Public_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Archivo, Public_Sans, IBM_Plex_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { themeScript } from "@/components/ThemeToggle";
 
@@ -26,6 +26,20 @@ const body = Public_Sans({
   subsets: ["latin"],
 });
 
+/*
+ * The wordmark, and only the wordmark.
+ *
+ * The brand pack sets "second pair" in Inter and ships it as outlines. Live
+ * text is better here — selectable, scales with its surroundings, no image
+ * request — so Inter is loaded for that one string. The interface keeps
+ * Archivo and Public Sans.
+ */
+const wordmark = Inter({
+  variable: "--font-wordmark",
+  subsets: ["latin"],
+  weight: ["400", "500"],
+});
+
 const mono = IBM_Plex_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
@@ -33,13 +47,21 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Handled",
-  description: "The receptionist you haven't got, for the hours you can't answer.",
+  title: "Second Pair",
+  description: "You work, we answer. An assistant that handles enquiries while your hands are full.",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "Handled", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "Second Pair", statusBarStyle: "black-translucent" },
   icons: {
-    icon: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],
-    apple: [{ url: "/icon-180.png", sizes: "180x180", type: "image/png" }],
+    icon: [
+      { url: "/brand/svg/favicon.svg", type: "image/svg+xml" },
+      { url: "/brand/png/favicon-32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [{ url: "/brand/png/app-icon-180.png", sizes: "180x180", type: "image/png" }],
+  },
+  openGraph: {
+    title: "Second Pair",
+    description: "You work, we answer.",
+    images: ["/brand/png/og-image.png"],
   },
 };
 
@@ -59,8 +81,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f8fa" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0c10" },
+    { media: "(prefers-color-scheme: light)", color: "#f4f2ec" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1512" },
   ],
 };
 
@@ -72,7 +94,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       // Without this React reports the attribute it did not render as a
       // mismatch on every single page load.
       suppressHydrationWarning
-      className={`${display.variable} ${body.variable} ${mono.variable} h-full antialiased`}
+      className={`${display.variable} ${body.variable} ${mono.variable} ${wordmark.variable} h-full antialiased`}
     >
       <head>
         {/* Applies a stored theme before paint, so the page never flashes the

@@ -63,29 +63,3 @@ export function SettingsIcon({ className }: IconProps) {
     </svg>
   );
 }
-
-/**
- * The mark.
- *
- * A message that has been dealt with: a bubble with the tail squared off, and
- * a tick through it. It has to survive being 20px in a sidebar, so it is two
- * shapes and no detail.
- */
-export function Mark({ className = "size-7" }: IconProps) {
-  return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden>
-      <path
-        d="M6 4h20a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H14l-8 6V4Z"
-        fill="var(--accent)"
-      />
-      <path
-        d="m11 13 3.6 3.6L21.5 9.5"
-        fill="none"
-        stroke="#fff"
-        strokeWidth="2.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}

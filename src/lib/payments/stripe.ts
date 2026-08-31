@@ -6,7 +6,7 @@ import { formatPence } from "@/lib/money";
  * Deposits.
  *
  * Each business is paid directly through Stripe Connect, so money never rests
- * in the platform account — which keeps Handled out of the business of holding
+ * in the platform account — which keeps Second Pair out of the business of holding
  * other people's money, and out of the regulation that comes with it.
  *
  * A business without a connected account can still be demonstrated in test

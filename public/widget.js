@@ -1,5 +1,5 @@
 /**
- * Handled chat widget loader.
+ * Second Pair chat widget loader.
  *
  * Drop one line into the business's site:
  *   <script src="https://app.handled.example/widget.js" data-studio="living-canvas-tattoo"></script>
@@ -22,18 +22,18 @@
 
   var slug = script.getAttribute("data-studio");
   if (!slug) {
-    console.error("[Handled] Missing data-studio on the widget script tag.");
+    console.error("[Second Pair] Missing data-studio on the widget script tag.");
     return;
   }
 
   var origin = new URL(script.src, window.location.href).origin;
-  var accent = script.getAttribute("data-accent") || "#2563eb";
+  var accent = script.getAttribute("data-accent") || "#1E5647";
   var teaserText =
     script.getAttribute("data-teaser") || "Hi — anything I can help you with?";
   var onLeft = script.getAttribute("data-position") === "left";
 
-  var STATE_KEY = "handled_widget_open";
-  var TEASER_KEY = "handled_teaser_seen";
+  var STATE_KEY = "secondpair_widget_open";
+  var TEASER_KEY = "secondpair_teaser_seen";
 
   var open = false;
   var teaserShown = false;
@@ -56,7 +56,15 @@
   // ---------------------------------------------------------------- elements
 
   var panel = document.createElement("iframe");
-  panel.src = origin + "/widget/" + encodeURIComponent(slug);
+  // The accent travels into the frame, so the whole widget wears the
+  // business's colour rather than ours. Without it a salon with a pink button
+  // gets a blue conversation, which is worse than not offering the option.
+  panel.src =
+    origin +
+    "/widget/" +
+    encodeURIComponent(slug) +
+    "?a=" +
+    encodeURIComponent(accent.replace("#", ""));
   panel.title = "Chat with us";
   panel.setAttribute("aria-hidden", "true");
 
@@ -267,11 +275,11 @@
   // there is something waiting rather than sitting there silently.
   window.addEventListener("message", function (event) {
     if (event.origin !== origin || !event.data) return;
-    if (event.data.handled === "reply" && !open) {
+    if (event.data.secondPair === "reply" && !open) {
       unread = true;
       render();
     }
-    if (event.data.handled === "close") toggle(false);
+    if (event.data.secondPair === "close") toggle(false);
   });
 
   function mount() {

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Mark } from "@/components/Icons";
+import { Logo } from "@/components/Logo";
 
 /**
  * Sign in, or create an account.
@@ -235,12 +235,10 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen items-center justify-center px-6 py-10">
       <div className="w-full max-w-sm">
-        <div className="flex items-center gap-2.5">
-          <Mark className="size-8" />
-          <span className="page-title">Handled</span>
-        </div>
-        <p className="hint mt-2">
-          The receptionist you haven&rsquo;t got, for the hours you can&rsquo;t answer.
+        <Logo markClass="size-9" tagline="you work, we answer" className="[&_.wordmark]:text-lg" />
+        <p className="hint mt-3">
+          Answers your enquiries, quotes from your prices, and books people in — while
+          your hands are full.
         </p>
         {children}
       </div>

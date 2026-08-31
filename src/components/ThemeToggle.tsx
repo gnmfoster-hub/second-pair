@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 
 type Choice = "system" | "light" | "dark";
 
-const STORAGE_KEY = "handled_theme";
+const STORAGE_KEY = "secondpair_theme";
 
 /**
  * The theme lives outside React — in localStorage and on the root element — so

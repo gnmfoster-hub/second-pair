@@ -1,4 +1,4 @@
-# Handled
+# Second Pair
 
 AI receptionist for tattoo studios. First customer: Living Canvas Tattoo.
 

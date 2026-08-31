@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Legal, Section } from "../Legal";
 
 export const metadata: Metadata = {
-  title: "Terms — Handled",
-  description: "The terms for businesses using Handled.",
+  title: "Terms — Second Pair",
+  description: "The terms for businesses using Second Pair.",
 };
 
 /*
@@ -15,14 +15,14 @@ export default function TermsPage() {
   return (
     <Legal title="Terms" updated="31 August 2026">
       <p className="lede">
-        These are the terms for businesses using Handled. If you are a member of the public
+        These are the terms for businesses using Second Pair. If you are a member of the public
         who has messaged a business, the{" "}
         <a href="/privacy">privacy page</a> is the one you want.
       </p>
 
-      <Section title="What Handled does">
+      <Section title="What Second Pair does">
         <p>
-          Handled provides software that answers enquiries, gives price estimates, and takes
+          Second Pair provides software that answers enquiries, gives price estimates, and takes
           bookings on your behalf, using your own settings, rates and wording.
         </p>
         <p>
@@ -36,7 +36,7 @@ export default function TermsPage() {
       <Section title="You are still the business">
         <p>
           Estimates the assistant gives are estimates. The contract for the work is between
-          you and your customer, and Handled is not a party to it. You are responsible for
+          you and your customer, and Second Pair is not a party to it. You are responsible for
           the work, for your prices, and for anything you have told the assistant to say.
         </p>
         <p>
@@ -48,7 +48,7 @@ export default function TermsPage() {
       <Section title="Payments">
         <p>
           Deposits are taken through Stripe and go to your own Stripe account. You pay
-          Stripe&rsquo;s standard rate for that. Handled does not take a cut of your
+          Stripe&rsquo;s standard rate for that. Second Pair does not take a cut of your
           deposits, does not hold your money, and is not a payment service.
         </p>
         <p>
@@ -60,7 +60,7 @@ export default function TermsPage() {
       <Section title="Your data">
         <p>
           Your business data and your customers&rsquo; details are yours. We do not sell
-          them, share them with other businesses on Handled, or use them to train AI models.
+          them, share them with other businesses on Second Pair, or use them to train AI models.
         </p>
         <p>
           Close your account and everything of yours is deleted. Export what you need first,
@@ -69,7 +69,7 @@ export default function TermsPage() {
       </Section>
 
       <Section title="Fair use">
-        <p>You must not use Handled to:</p>
+        <p>You must not use Second Pair to:</p>
         <ul>
           <li>Mislead anyone about whether they are talking to a person</li>
           <li>Give medical, legal or financial advice</li>
@@ -84,7 +84,7 @@ export default function TermsPage() {
 
       <Section title="Availability">
         <p>
-          We aim to keep Handled running at all times but cannot promise it. It depends on
+          We aim to keep Second Pair running at all times but cannot promise it. It depends on
           services we do not control, including Anthropic, Supabase, Stripe and Meta. If it
           is down, your enquiries wait rather than disappear.
         </p>

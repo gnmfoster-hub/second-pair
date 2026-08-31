@@ -3,8 +3,8 @@ import { requireStudio } from "@/lib/studio";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { MobileNav, MobileHeader } from "@/components/MobileNav";
+import { Mark } from "@/components/Logo";
 import {
-  Mark,
   InboxIcon,
   DiaryIcon,
   ClientsIcon,
@@ -34,7 +34,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <Mark className="size-7 shrink-0" />
           <div className="min-w-0">
             <div className="truncate text-sm font-medium leading-tight">{studio.name}</div>
-            <div className="text-[11px] leading-tight text-muted">Handled</div>
+            <div className="wordmark text-[11px] leading-tight text-muted">
+              second <span className="font-medium">pair</span>
+            </div>
           </div>
         </div>
 

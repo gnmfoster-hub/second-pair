@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Legal, Section } from "../Legal";
 
 export const metadata: Metadata = {
-  title: "Privacy — Handled",
-  description: "What Handled collects, why, and how to get it deleted.",
+  title: "Privacy — Second Pair",
+  description: "What Second Pair collects, why, and how to get it deleted.",
 };
 
 /*
@@ -19,13 +19,13 @@ export default function PrivacyPage() {
   return (
     <Legal title="Privacy" updated="31 August 2026">
       <p className="lede">
-        Handled provides an assistant that answers enquiries for small businesses. This
+        Second Pair provides an assistant that answers enquiries for small businesses. This
         explains what it collects, why, and how to have it removed.
       </p>
 
       <Section title="You are talking to an assistant">
         <p>
-          When you message a business using Handled, the first reply is written by an AI
+          When you message a business using Second Pair, the first reply is written by an AI
           assistant, not by a person. It says so at the start of every conversation.
         </p>
         <p>
@@ -36,7 +36,7 @@ export default function PrivacyPage() {
       </Section>
 
       <Section title="What is collected">
-        <p>When you enquire through a business using Handled, we hold:</p>
+        <p>When you enquire through a business using Second Pair, we hold:</p>
         <ul>
           <li>Your name, and a phone number or email address if you give one</li>
           <li>What you have asked about, and anything you tell the assistant about it</li>
@@ -63,7 +63,7 @@ export default function PrivacyPage() {
         <ul>
           <li>
             <strong>The business you contacted.</strong> They can see the whole
-            conversation. No other business on Handled can see any of it.
+            conversation. No other business on Second Pair can see any of it.
           </li>
           <li>
             <strong>Anthropic</strong>, whose model writes the replies. Conversations are
@@ -74,7 +74,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Stripe</strong>, if you pay a deposit. Card details go straight to
-            Stripe and are never seen or held by Handled or by the business.
+            Stripe and are never seen or held by Second Pair or by the business.
           </li>
         </ul>
       </Section>
@@ -86,7 +86,7 @@ export default function PrivacyPage() {
           need to keep transaction records. Photos you attach are deleted when the business
           deletes the enquiry.
         </p>
-        <p>If a business closes its Handled account, everything of theirs is deleted.</p>
+        <p>If a business closes its Second Pair account, everything of theirs is deleted.</p>
       </Section>
 
       <Section title="Your rights">
@@ -112,7 +112,7 @@ export default function PrivacyPage() {
       <Section title="Contact">
         <p>
           Written questions and requests to{" "}
-          <a href="mailto:privacy@gethandled.co.uk">privacy@gethandled.co.uk</a>.
+          <a href="mailto:privacy@secondpair.co.uk">privacy@secondpair.co.uk</a>.
         </p>
         <p className="draft">
           Before this goes live it needs the registered company name and address, the ICO

@@ -9,9 +9,9 @@ const ORDER: ProviderKind[] = ["native", "ical_link", "google", "link_only", "ma
 
 const BLURB: Record<ProviderKind, string> = {
   native:
-    "Handled keeps the diary. Nothing to connect, and the assistant books straight into it.",
+    "Second Pair keeps the diary. Nothing to connect, and the assistant books straight into it.",
   ical_link:
-    "Already on Fresha, Booksy, Treatwell or Square? Handled reads what's free from their calendar feed and sends people to your own booking page, so your system stays in charge.",
+    "Already on Fresha, Booksy, Treatwell or Square? Second Pair reads what's free from their calendar feed and sends people to your own booking page, so your system stays in charge.",
   google: "Availability read from a Google Calendar, and bookings written back to it.",
   link_only: "No diary access. The assistant qualifies and quotes, then hands over your link.",
   manual: "No diary at all. The assistant takes preferred days and you confirm.",

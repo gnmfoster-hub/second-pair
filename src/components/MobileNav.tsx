@@ -87,7 +87,9 @@ export function MobileHeader({
     >
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium leading-tight">{businessName}</div>
-        <div className="text-[11px] leading-tight text-muted">Handled</div>
+        <div className="wordmark text-[11px] leading-tight text-muted">
+          second <span className="font-medium">pair</span>
+        </div>
       </div>
       {children}
     </header>

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { colourFor, initialsFor } from "@/components/Avatar";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { initialsFor } from "@/components/Avatar";
 
 const stroke = {
   fill: "none",
@@ -13,48 +13,74 @@ const stroke = {
 };
 
 const ClipIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" {...stroke}>
+  <svg width="18" height="18" viewBox="0 0 24 24" {...stroke}>
     <path d="M20 11.5 12.2 19.3a4.6 4.6 0 0 1-6.5-6.5l7.8-7.8a3 3 0 1 1 4.3 4.3l-7.8 7.8a1.5 1.5 0 0 1-2.1-2.1l7.2-7.2" />
   </svg>
 );
 
 const SendIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" {...stroke}>
-    <path d="M4 12h13M12.5 6.5 18.5 12l-6 5.5" />
+  <svg width="17" height="17" viewBox="0 0 24 24" {...stroke} strokeWidth={2}>
+    <path d="M4.5 12h13M12 6.5 17.5 12 12 17.5" />
   </svg>
 );
 
 const CloseIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" {...stroke}>
+  <svg width="16" height="16" viewBox="0 0 24 24" {...stroke} strokeWidth={2}>
     <path d="M6 6l12 12M18 6L6 18" />
   </svg>
 );
 
-type Line = { from: "client" | "studio"; text: string; images?: number };
+/** Two ticks, the universal "it got there". */
+const TickIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" {...stroke} strokeWidth={2.2}>
+    <path d="M2 13l4 4 8-9M11.5 16.5l1.5 1.5 8-9" />
+  </svg>
+);
+
+type Line = {
+  from: "client" | "studio";
+  text: string;
+  /** Object URLs for anything attached, so it shows as a picture not a filename. */
+  photos?: string[];
+  at: number;
+};
 
 /**
  * Turns URLs in a reply into links you can actually tap.
  *
  * Built from the text rather than rendered as HTML: everything here came back
  * from a model, and nothing it writes should ever be interpreted as markup.
+ *
+ * Bold is the one exception, and only the **double-asterisk** kind — models
+ * reach for it constantly when quoting a price, and leaving the asterisks on
+ * screen looks broken to somebody who has never seen markdown.
  */
 function withLinks(text: string, onDark: boolean) {
-  const parts = text.split(/(https?:\/\/[^\s<>"']+)/g);
-  return parts.map((part, i) =>
-    /^https?:\/\//.test(part) ? (
-      <a
-        key={i}
-        href={part}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={`underline underline-offset-2 ${onDark ? "text-white" : "text-accent"}`}
-      >
-        {part.replace(/^https?:\/\//, "").replace(/\/$/, "")}
-      </a>
-    ) : (
-      part
-    ),
-  );
+  return text.split(/(https?:\/\/[^\s<>"']+|\*\*[^*]+\*\*)/g).map((part, i) => {
+    if (/^https?:\/\//.test(part)) {
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`font-medium underline underline-offset-2 ${
+            onDark ? "text-white" : "text-[var(--brand)]"
+          }`}
+        >
+          {part.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+        </a>
+      );
+    }
+    if (/^\*\*[^*]+\*\*$/.test(part)) {
+      return (
+        <strong key={i} className="font-semibold">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    return part;
+  });
 }
 
 /**
@@ -73,7 +99,7 @@ const OPENERS = ["How much would it be?", "What have you got free?", "I've got a
  * single localStorage. An unscoped key therefore followed a customer from one
  * business's site to the next and resumed the wrong conversation.
  */
-const sessionKeyFor = (slug: string) => `handled_session_${slug}`;
+const sessionKeyFor = (slug: string) => `secondpair_session_${slug}`;
 
 function sessionId(slug: string): string {
   const key = sessionKeyFor(slug);
@@ -90,12 +116,18 @@ function sessionId(slug: string): string {
   }
 }
 
+const clock = (at: number) =>
+  new Date(at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+
 export function ChatWindow({
   slug,
   studioName,
   greeting,
   forArtistId = null,
   forArtistName = null,
+  photoUrl = null,
+  accent = null,
+  onAccent = null,
 }: {
   slug: string;
   studioName: string;
@@ -103,6 +135,10 @@ export function ChatWindow({
   /** Set when this link is one person's own. Every enquiry here is theirs. */
   forArtistId?: string | null;
   forArtistName?: string | null;
+  photoUrl?: string | null;
+  /** The business's own colour, from the script tag on their site. */
+  accent?: string | null;
+  onAccent?: string | null;
 }) {
   const [lines, setLines] = useState<Line[]>([]);
   const [draft, setDraft] = useState("");
@@ -114,6 +150,19 @@ export function ChatWindow({
   const bottom = useRef<HTMLDivElement>(null);
   const picker = useRef<HTMLInputElement>(null);
 
+  // Who the customer thinks they are talking to. A person's own link shows
+  // that person; the shop's link shows the shop.
+  const who = forArtistName ?? studioName;
+  /*
+   * Their colour if they set one, ours if they did not.
+   *
+   * Falling back to a colour derived from the business name gave whoever
+   * pasted the plain one-liner a random purple, which reads as accidental.
+   * Forest is at least a decision.
+   */
+  const brand = accent ?? "#1e5647";
+  const onBrand = onAccent ?? "#ffffff";
+
   useEffect(() => {
     session.current = sessionId(slug);
   }, [slug]);
@@ -122,11 +171,15 @@ export function ChatWindow({
     bottom.current?.scrollIntoView({ behavior: "smooth" });
   }, [lines, sending]);
 
+  // Object URLs are a browser resource, not a value — they leak until revoked.
+  const previews = useMemo(() => pending.map((f) => URL.createObjectURL(f)), [pending]);
+  useEffect(() => () => previews.forEach(URL.revokeObjectURL), [previews]);
+
   function addFiles(files: FileList | null) {
     if (!files) return;
     setError("");
     const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
-    if (images.length !== files.length) setError("Images only, please.");
+    if (images.length !== files.length) setError("Photos only, please.");
     setPending((p) => [...p, ...images].slice(0, 6));
   }
 
@@ -136,9 +189,10 @@ export function ChatWindow({
     if ((!message && pending.length === 0) || sending) return;
 
     const attached = pending;
+    const shots = attached.map((f) => URL.createObjectURL(f));
     setLines((l) => [
       ...l,
-      { from: "client", text: message, images: attached.length || undefined },
+      { from: "client", text: message, photos: shots.length ? shots : undefined, at: Date.now() },
     ]);
     setDraft("");
     setPending([]);
@@ -157,7 +211,7 @@ export function ChatWindow({
         body: JSON.stringify({
           studio: slug,
           session: session.current,
-          message: message || "(sent an image)",
+          message: message || "(sent a photo)",
           media,
           with: forArtistId,
         }),
@@ -182,30 +236,38 @@ export function ChatWindow({
             body: JSON.stringify({
               studio: slug,
               session: session.current,
-              message: "(sent an image)",
+              message: "(sent a photo)",
               media: late,
+              with: forArtistId,
             }),
           }).then(async (r) => {
             const d = await r.json();
-            if (r.ok && d.reply) setLines((l) => [...l, { from: "studio", text: d.reply }]);
+            if (r.ok && d.reply) {
+              setLines((l) => [...l, { from: "studio", text: d.reply, at: Date.now() }]);
+              window.parent?.postMessage({ secondPair: "reply" }, "*");
+            }
           });
           return;
         }
       }
 
       if (data.reply) {
-        setLines((l) => [...l, { from: "studio", text: data.reply }]);
+        setLines((l) => [...l, { from: "studio", text: data.reply, at: Date.now() }]);
         // Tells the launcher on the host page that something arrived, so a
         // closed widget can show an unread dot instead of sitting silent.
-        window.parent?.postMessage({ handled: "reply" }, "*");
+        window.parent?.postMessage({ secondPair: "reply" }, "*");
       } else if (data.paused) {
         setLines((l) => [
           ...l,
-          { from: "studio", text: `Thanks — someone at ${studioName} will reply here shortly.` },
+          {
+            from: "studio",
+            text: `Thanks — someone at ${studioName} will reply here shortly.`,
+            at: Date.now(),
+          },
         ]);
       }
     } catch {
-      setError("Could not reach the studio. Please try again.");
+      setError("Could not reach them. Please try again.");
     } finally {
       setSending(false);
     }
@@ -221,138 +283,175 @@ export function ChatWindow({
       const response = await fetch("/api/widget/upload", { method: "POST", body: form });
       const data = await response.json();
       if (response.ok) paths.push(data.path);
-      else setError(data.error ?? "That image would not upload.");
+      else setError(data.error ?? "That photo would not upload.");
     }
     return paths;
   }
 
   return (
-    <div className="flex h-screen flex-col bg-surface">
-      <header className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3">
-        <span
-          className="grid size-9 shrink-0 place-items-center rounded-full text-sm font-semibold text-white"
-          style={{ background: colourFor(forArtistName ?? studioName) }}
-          aria-hidden
-        >
-          {initialsFor(forArtistName ?? studioName)}
+    <div
+      className="flex h-screen flex-col bg-background"
+      style={{ ["--brand" as string]: brand, ["--on-brand" as string]: onBrand }}
+    >
+      {/* ─────────────────────────────────────────────────────────── header */}
+      <header
+        className="flex shrink-0 items-center gap-3 px-4 py-3.5"
+        style={{
+          background: `linear-gradient(180deg, ${brand}, color-mix(in srgb, ${brand} 88%, black))`,
+          color: onBrand,
+        }}
+      >
+        <span className="relative shrink-0">
+          <span
+            className="grid size-10 place-items-center overflow-hidden rounded-full bg-white/20 text-sm font-semibold ring-2 ring-white/25 backdrop-blur"
+            aria-hidden
+          >
+            {photoUrl ? (
+              // Supabase serves these; next/image would need the host
+              // allow-listed and buys nothing for a 40px circle.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={photoUrl} alt="" className="size-full object-cover" />
+            ) : (
+              initialsFor(who)
+            )}
+          </span>
+          <span
+            className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-[#22c55e] ring-2"
+            style={{ ["--tw-ring-color" as string]: brand }}
+            aria-hidden
+          />
         </span>
+
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-medium">
-            {forArtistName ? `${forArtistName} · ${studioName}` : studioName}
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted">
-            <span className="relative flex size-1.5" aria-hidden>
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-ok opacity-60" />
-              <span className="relative inline-flex size-1.5 rounded-full bg-ok" />
-            </span>
-            Usually replies in under a minute
+          <div className="truncate text-[0.95rem] font-semibold leading-tight">{who}</div>
+          <div className="truncate text-xs leading-tight opacity-80">
+            {forArtistName ? studioName : "Usually replies in under a minute"}
           </div>
         </div>
 
-        {/* Only shown inside the launcher, where there is a parent to tell. */}
         <button
           type="button"
-          onClick={() => window.parent?.postMessage({ handled: "close" }, "*")}
-          className="grid size-8 shrink-0 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+          onClick={() => window.parent?.postMessage({ secondPair: "close" }, "*")}
+          className="grid size-8 shrink-0 place-items-center rounded-lg transition-colors hover:bg-white/15"
+          style={{ color: onBrand }}
           aria-label="Close chat"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" {...stroke}>
-            <path d="M6 6l12 12M18 6L6 18" />
-          </svg>
+          <CloseIcon />
         </button>
       </header>
 
-      <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-        {lines.length === 0 && (
-          <>
-            <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-surface-2 px-3.5 py-2.5 text-sm">
-              {greeting}
-            </div>
+      {/* ──────────────────────────────────────────────────────────── thread */}
+      <div className="relative flex-1 overflow-hidden">
+        <div className="h-full space-y-1 overflow-y-auto px-3.5 py-4">
+          {lines.length === 0 && (
+            <>
+              <Bubble from="studio" first last who={who} photoUrl={photoUrl}>
+                {greeting}
+              </Bubble>
 
-            {/*
-             * The hardest part of any chat widget is the blank box. Somebody
-             * who half-wants a price will not compose a sentence to get one,
-             * so these do it for them — and each one starts a real
-             * conversation rather than opening a menu.
-             */}
-            <div className="flex flex-wrap gap-2 pt-1">
-              {OPENERS.map((opener) => (
-                <button
-                  key={opener}
-                  type="button"
-                  onClick={() => send(undefined, opener)}
-                  className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium transition-colors hover:border-accent hover:text-accent"
-                >
-                  {opener}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-
-        {lines.map((line, i) => (
-          <div
-            key={i}
-            className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-              line.from === "client"
-                ? "ml-auto rounded-br-sm bg-accent text-white"
-                : "rounded-tl-sm bg-surface-2"
-            } motion-safe:animate-[rise_200ms_ease-out]`}
-          >
-            {withLinks(line.text, line.from === "client")}
-            {line.images ? (
-              <div className={line.text ? "mt-1 text-xs opacity-80" : "text-xs opacity-80"}>
-                {line.images} photo{line.images > 1 ? "s" : ""} attached
+              {/*
+               * The hardest part of any chat widget is the blank box. Somebody
+               * who half-wants a price will not compose a sentence to get one,
+               * so these do it for them — and each one starts a real
+               * conversation rather than opening a menu.
+               */}
+              <div className="flex flex-wrap gap-2 pl-10 pt-2">
+                {OPENERS.map((opener, i) => (
+                  <button
+                    key={opener}
+                    type="button"
+                    onClick={() => send(undefined, opener)}
+                    className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium transition-all hover:-translate-y-px hover:border-[var(--brand)] hover:text-[var(--brand)] motion-safe:animate-[rise_260ms_ease-out_both]"
+                    style={{ animationDelay: `${120 + i * 70}ms` }}
+                  >
+                    {opener}
+                  </button>
+                ))}
               </div>
-            ) : null}
-          </div>
-        ))}
+            </>
+          )}
 
-        {sending && (
-          <div className="w-fit rounded-2xl rounded-tl-sm bg-surface-2 px-4 py-3.5">
-            <span className="flex gap-1" role="status" aria-label="Typing">
-              {[0, 1, 2].map((i) => (
-                <span
-                  key={i}
-                  className="size-1.5 animate-bounce rounded-full bg-muted/70"
-                  style={{ animationDelay: `${i * 140}ms`, animationDuration: "1s" }}
-                />
-              ))}
-            </span>
-          </div>
-        )}
+          {lines.map((line, i) => {
+            const prev = lines[i - 1];
+            const next = lines[i + 1];
+            // Consecutive messages from the same side are one group: one
+            // avatar, one timestamp, tails only on the ends. It reads as a
+            // conversation rather than a stack of receipts.
+            const first = !prev || prev.from !== line.from;
+            const last = !next || next.from !== line.from;
 
-        {error && (
-          <div className="rounded-lg bg-warn/10 px-3 py-2 text-xs text-warn">{error}</div>
-        )}
-        <div ref={bottom} />
+            return (
+              <Bubble
+                key={i}
+                from={line.from}
+                first={first}
+                last={last}
+                who={who}
+                photoUrl={photoUrl}
+                at={last ? line.at : undefined}
+                photos={line.photos}
+              >
+                {line.text}
+              </Bubble>
+            );
+          })}
+
+          {sending && (
+            <div className="flex items-end gap-2 pt-1">
+              <Face who={who} photoUrl={photoUrl} />
+              <div className="rounded-2xl rounded-bl-md bg-surface-2 px-4 py-3.5">
+                <span className="flex gap-1" role="status" aria-label="Typing">
+                  {[0, 1, 2].map((i) => (
+                    <span
+                      key={i}
+                      className="size-1.5 rounded-full bg-muted/70 motion-safe:animate-bounce"
+                      style={{ animationDelay: `${i * 140}ms`, animationDuration: "1s" }}
+                    />
+                  ))}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="mx-auto w-fit rounded-full bg-warn/10 px-3 py-1.5 text-xs text-warn">
+              {error}
+            </div>
+          )}
+          <div ref={bottom} className="h-1" />
+        </div>
+
+        {/* Tells you there is more above without a scrollbar doing it. */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-5 bg-gradient-to-b from-background to-transparent" />
       </div>
 
+      {/* ───────────────────────────────────────────────────────── composer */}
       {pending.length > 0 && (
-        <div className="flex flex-wrap gap-2 border-t border-border px-3 pt-3">
+        <div className="flex shrink-0 flex-wrap gap-2 border-t border-border px-3.5 pt-3">
           {pending.map((file, i) => (
-            <span
-              key={i}
-              className="flex items-center gap-1.5 rounded-lg bg-surface-2 px-2 py-1 text-xs"
-            >
-              <span className="max-w-32 truncate">{file.name}</span>
+            <span key={i} className="group relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previews[i]}
+                alt={file.name}
+                className="size-14 rounded-xl border border-border object-cover"
+              />
               <button
                 type="button"
                 onClick={() => setPending((p) => p.filter((_, j) => j !== i))}
-                className="text-muted hover:text-bad"
+                className="absolute -right-1.5 -top-1.5 grid size-5 place-items-center rounded-full bg-foreground text-background shadow"
                 aria-label={`Remove ${file.name}`}
               >
-                <CloseIcon />
+                <svg width="10" height="10" viewBox="0 0 24 24" {...stroke} strokeWidth={3}>
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
               </button>
             </span>
           ))}
         </div>
       )}
 
-      <form
-        onSubmit={send}
-        className="flex shrink-0 items-end gap-2 border-t border-border p-3"
-      >
+      <form onSubmit={send} className="shrink-0 px-3.5 pb-3.5 pt-3">
         <input
           ref={picker}
           type="file"
@@ -364,50 +463,152 @@ export function ChatWindow({
             e.target.value = "";
           }}
         />
-        <button
-          type="button"
-          onClick={() => picker.current?.click()}
-          className="btn-ghost shrink-0 px-2.5"
-          aria-label="Attach photos"
-          title="Attach photos"
-        >
-          <ClipIcon />
-        </button>
-        {/*
-         * A textarea rather than an input, so a long message is readable while
-         * it is being typed. It grows to five lines and then scrolls. Enter
-         * sends, shift-enter makes a new line — which is what people expect
-         * from every other chat they use.
-         */}
-        <textarea
-          value={draft}
-          rows={1}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              send();
-            }
-          }}
-          placeholder="Type a message…"
-          className="input max-h-32 flex-1 resize-none py-2.5"
-          style={{ height: "auto" }}
-          ref={(el) => {
-            if (!el) return;
-            el.style.height = "auto";
-            el.style.height = Math.min(el.scrollHeight, 128) + "px";
-          }}
-          maxLength={2000}
-        />
-        <button
-          type="submit"
-          className="btn-primary shrink-0 px-3"
-          aria-label="Send"
-          disabled={sending || (!draft.trim() && pending.length === 0)}
-        >
-          <SendIcon />
-        </button>
+
+        <div className="flex items-end gap-1.5 rounded-2xl border border-border bg-surface p-1.5 transition-colors focus-within:border-[var(--brand)]">
+          <button
+            type="button"
+            onClick={() => picker.current?.click()}
+            className="grid size-9 shrink-0 place-items-center rounded-xl text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+            aria-label="Attach photos"
+            title="Attach photos"
+          >
+            <ClipIcon />
+          </button>
+
+          {/*
+           * A textarea rather than an input, so a long message is readable
+           * while it is being typed. Enter sends, shift-enter makes a new line,
+           * which is what every other chat they use does.
+           */}
+          <textarea
+            value={draft}
+            rows={1}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                send();
+              }
+            }}
+            placeholder="Write a message…"
+            className="max-h-28 flex-1 resize-none border-0 bg-transparent py-2 text-sm text-foreground outline-none placeholder:text-muted/70"
+            style={{ fontSize: "max(0.875rem, 16px)" }}
+            ref={(el) => {
+              if (!el) return;
+              el.style.height = "auto";
+              el.style.height = Math.min(el.scrollHeight, 112) + "px";
+            }}
+            maxLength={2000}
+          />
+
+          <button
+            type="submit"
+            className="grid size-9 shrink-0 place-items-center rounded-xl transition-all disabled:opacity-35"
+            style={{ background: brand, color: onBrand }}
+            aria-label="Send"
+            disabled={sending || (!draft.trim() && pending.length === 0)}
+          >
+            <SendIcon />
+          </button>
+        </div>
+
+        <p className="mt-2 text-center text-[10px] text-muted/70">
+          Answered by an assistant · a human sees everything
+        </p>
       </form>
+    </div>
+  );
+}
+
+/** The face beside a group of replies. */
+function Face({ who, photoUrl }: { who: string; photoUrl: string | null }) {
+  return (
+    <span
+      className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-full text-[10px] font-semibold text-white"
+      style={{ background: "var(--brand)" }}
+      aria-hidden
+    >
+      {photoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={photoUrl} alt="" className="size-full object-cover" />
+      ) : (
+        initialsFor(who)
+      )}
+    </span>
+  );
+}
+
+/**
+ * One message.
+ *
+ * The shape carries the grouping: a tail only on the last bubble of a run, and
+ * the avatar only beside it, so five replies in a row read as one person
+ * talking rather than five separate notifications.
+ */
+function Bubble({
+  from,
+  first,
+  last,
+  who,
+  photoUrl,
+  at,
+  photos,
+  children,
+}: {
+  from: "client" | "studio";
+  first: boolean;
+  last: boolean;
+  who: string;
+  photoUrl: string | null;
+  at?: number;
+  photos?: string[];
+  children: string;
+}) {
+  const mine = from === "client";
+
+  return (
+    <div className={`flex items-end gap-2 ${mine ? "flex-row-reverse" : ""} ${first ? "pt-2" : ""}`}>
+      {!mine && (last ? <Face who={who} photoUrl={photoUrl} /> : <span className="size-7 shrink-0" />)}
+
+      <div className={`flex max-w-[80%] flex-col ${mine ? "items-end" : "items-start"}`}>
+        {photos?.length ? (
+          <div className={`mb-1 flex flex-wrap gap-1.5 ${mine ? "justify-end" : ""}`}>
+            {photos.map((src, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={i}
+                src={src}
+                alt="Attached"
+                className="size-24 rounded-xl border border-border object-cover"
+              />
+            ))}
+          </div>
+        ) : null}
+
+        {children ? (
+          <div
+            className={`whitespace-pre-wrap px-3.5 py-2.5 text-sm leading-relaxed motion-safe:animate-[rise_200ms_ease-out] ${
+              mine
+                ? "rounded-2xl text-[var(--on-brand)] " + (last ? "rounded-br-md" : "")
+                : "rounded-2xl bg-surface-2 text-foreground " + (last ? "rounded-bl-md" : "")
+            }`}
+            style={mine ? { background: "var(--brand)" } : undefined}
+          >
+            {withLinks(children, mine)}
+          </div>
+        ) : null}
+
+        {at != null && (
+          <div className="mt-1 flex items-center gap-1 px-1 text-[10px] text-muted">
+            <span className="tabular-nums">{clock(at)}</span>
+            {mine && (
+              <span className="text-[var(--brand)]">
+                <TickIcon />
+              </span>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

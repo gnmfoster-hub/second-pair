@@ -1,13 +1,13 @@
-# Handled — what it is
+# Second Pair — what it is
 
 *A briefing sheet. Paste this into any other prompt, doc or conversation that needs
-to know what Handled is without reading the code.*
+to know what Second Pair is without reading the code.*
 
 ---
 
 ## One line
 
-Handled is an AI receptionist for appointment businesses run by the person who does
+Second Pair is an AI receptionist for appointment businesses run by the person who does
 the work — it answers enquiries, quotes, and books people in while the owner's hands
 are busy.
 
@@ -76,7 +76,7 @@ see and take over any conversation.
 
 - **SMS.** A Twilio number, about £1 a month plus a few pence per message. Half a
   day's work once deployed.
-- **Email.** Enquiries forwarded to a Handled address and answered like any other.
+- **Email.** Enquiries forwarded to a Second Pair address and answered like any other.
 
 **Phone calls — the honest position**
 
@@ -97,7 +97,7 @@ than a rebuild. Real voice can come later if customers actually ask for it.
 
 ## The app
 
-Handled installs from the browser as a **progressive web app** — no app store, no
+Second Pair installs from the browser as a **progressive web app** — no app store, no
 review, no waiting. The owner opens the link on their phone, taps *Add to Home Screen*,
 and it behaves like an app: its own icon, full screen, no browser chrome. Updates ship
 the moment they are deployed.
@@ -109,14 +109,14 @@ launch, and they add review cycles and fees to every update.
 
 - **No accounting.** No invoicing, no bookkeeping, no tax. Out of scope on purpose.
 - **No payment processing markup.** Deposits go through the business's own Stripe
-  account and the business pays Stripe's normal rate. Handled takes nothing from it.
+  account and the business pays Stripe's normal rate. Second Pair takes nothing from it.
 - **No pretending to be human.** Asked directly, it says it is an assistant answering
   for the business and that a human sees everything.
 
 ## The commercial model
 
 Revenue is a **monthly subscription** for the assistant and the software. Card fees are
-Stripe's and go to Stripe. The promise to the customer is that moving to Handled does
+Stripe's and go to Stripe. The promise to the customer is that moving to Second Pair does
 not cost them more than what they use now — the subscription buys the thing nobody else
 sells them, which is somebody answering while they work.
 
@@ -125,12 +125,12 @@ sells them, which is somebody answering while they work.
 Those are diaries. They are good ones, and most of this market is already on one of
 them and pays nothing for it.
 
-**Handled's selling point is the AI agent, not diary features.** Matching Fresha is a
+**Second Pair's selling point is the AI agent, not diary features.** Matching Fresha is a
 bonus that removes a reason to say no; it is not the reason to say yes. A diary does
-not answer a message at nine on a Tuesday night. Handled is worth paying for because
+not answer a message at nine on a Tuesday night. Second Pair is worth paying for because
 it deals with enquiries during the hours the owner is working and cannot respond.
 
-Handled can also read an existing Fresha, Booksy or Square diary through its iCal feed,
+Second Pair can also read an existing Fresha, Booksy or Square diary through its iCal feed,
 so a business can keep the diary it has and still have its enquiries answered.
 
 ## Multi-trade architecture
@@ -177,5 +177,9 @@ First customer: Living Canvas Tattoo. Second in the pipeline: a hair salon.
 
 ## Name
 
-Working name **Handled**. Chosen because it is what the owner wants to feel about the
-enquiry they did not have time to read: handled.
+The name is a second pair of hands: somebody answering while you work. The mark is a
+speech bubble with two dots — the typing indicator everyone recognises, and two of them
+for the pair.
+
+**Not yet cleared.** Before it goes on anything printed: Companies House, a UK IPO trade
+mark search in classes 9 and 42, and the domain and social handles.
