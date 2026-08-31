@@ -52,10 +52,10 @@
   --cal-work: #6b4a9e;
   --cal-note: #16697a;
   --cal-off: #7b8598;
-  --cal-grid: #dedcd5;
+  --cal-grid: #e2e0d9;
   /* Hours the business is shut. Must read as recessed in both themes, which
      the page background cannot do — it is paper in one and near-black in the other. */
-  --cal-closed: rgba(20, 36, 63, 0.05);
+  --cal-closed: rgba(20, 36, 63, 0.055);
 
   color-scheme: light;
 }
@@ -92,7 +92,7 @@
     --cal-work: #a98fe0;
     --cal-note: #48b3c6;
     --cal-off: #7d879a;
-    --cal-grid: #212c3d;
+    --cal-grid: #1e2839;
     --cal-closed: rgba(0, 0, 0, 0.38);
 
     color-scheme: dark;
@@ -130,7 +130,7 @@
   --cal-work: #a98fe0;
   --cal-note: #48b3c6;
   --cal-off: #7d879a;
-  --cal-grid: #212c3d;
+  --cal-grid: #1e2839;
   --cal-closed: rgba(0, 0, 0, 0.38);
 
   color-scheme: dark;

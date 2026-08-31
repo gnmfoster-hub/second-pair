@@ -33,7 +33,7 @@ export default function Loading() {
           ))}
         </div>
 
-        <div className="flex" style={{ height: "24rem" }}>
+        <div className="flex" style={{ height: "26rem" }}>
           <div className="w-16 shrink-0 border-r border-border" />
           {Array.from({ length: 7 }, (_, i) => (
             <div

@@ -42,7 +42,13 @@ export type Entry = {
   repeats: string;
 };
 
-const HOUR_HEIGHT = 60;
+/*
+ * Sixty pixels an hour left a 45-minute appointment 45px for two lines of
+ * text, which is why they felt cramped. Seventy-two gives a card room to
+ * breathe without costing much of the week — an open day still fits on one
+ * screen, and the diary is read far more often than it is scrolled.
+ */
+const HOUR_HEIGHT = 72;
 
 /** Local wall-clock minutes since midnight, in the studio's timezone. */
 function minutesInDay(iso: string, timezone: string): number {
@@ -476,11 +482,11 @@ export function WeekGrid({
                    * at a glance you are looking for "3", and the suffix only
                    * matters once you have found it.
                    */}
-                  <span className="absolute -top-2.5 right-2.5 flex items-baseline gap-px">
-                    <span className="num text-[13px] font-medium text-foreground/70">
+                  <span className="absolute -top-2.5 right-3 flex items-baseline gap-0.5">
+                    <span className="num text-[13px] font-semibold text-foreground/75">
                       {h === 0 ? "" : h % 12 === 0 ? 12 : h % 12}
                     </span>
-                    <span className="text-[9px] font-medium uppercase text-muted">
+                    <span className="text-[9px] font-medium text-muted/70">
                       {h === 0 ? "" : h < 12 ? "am" : "pm"}
                     </span>
                   </span>
@@ -528,7 +534,7 @@ export function WeekGrid({
                       artistId: col.artist?.id,
                     });
                   }}
-                  className={`relative flex-1 cursor-copy touch-none border-r border-border last:border-r-0 ${
+                  className={`relative flex-1 cursor-copy touch-none border-r border-cal-grid last:border-r-0 ${
                     isToday
                       ? "bg-accent/[0.045]"
                       : view === "week" &&
@@ -539,12 +545,17 @@ export function WeekGrid({
                   style={{ height: 24 * HOUR_HEIGHT }}
                   title="Click to add an hour, or drag out the time you want"
                 >
-                  {/* The hour is a line; the half hour is a whisper. Any more
-                      and the grid competes with what is written on it. */}
+                  {/*
+                   * The hour is a line and the half hour is nothing at all.
+                   *
+                   * A dashed half-hour rule in every column of every day added
+                   * up to more ink than the appointments, which are the point.
+                   * Dragging already snaps to fifteen minutes without needing
+                   * to be shown where.
+                   */}
                   {hourList.map((h) => (
                     <div key={h} style={{ height: HOUR_HEIGHT }} className="relative">
                       <div className="absolute inset-x-0 top-0 border-t border-cal-grid" />
-                      <div className="absolute inset-x-0 top-1/2 border-t border-dashed border-cal-grid/50" />
                     </div>
                   ))}
 
@@ -663,10 +674,18 @@ export function WeekGrid({
                           left: `calc(${left}% + 2px)`,
                           width: `calc(${width}% - 4px)`,
                           zIndex: 1 + depth,
-                          background: `color-mix(in srgb, ${hue} ${e.blocks_availability ? 16 : 9}%, var(--surface))`,
-                          boxShadow: `inset 4px 0 0 ${unpaid ? "var(--warn)" : hue}, var(--shadow-card)`,
+                          /*
+                           * One edge treatment, not three.
+                           *
+                           * These carried a border, an inset stripe and a
+                           * shadow at once, which fought each other and left
+                           * the fill so pale the colour did no work. Now the
+                           * fill is confident enough to be the boundary, and
+                           * the bar down the left is the only edge.
+                           */
+                          background: `color-mix(in srgb, ${hue} ${e.blocks_availability ? 22 : 12}%, var(--surface))`,
+                          borderLeft: `3px solid ${unpaid ? "var(--warn)" : hue}`,
                           color: "var(--foreground)",
-                          border: `1px solid color-mix(in srgb, ${hue} 28%, var(--border))`,
                         }}
                       >
                         <div className="flex items-center gap-1 truncate text-[11.5px] font-semibold">
