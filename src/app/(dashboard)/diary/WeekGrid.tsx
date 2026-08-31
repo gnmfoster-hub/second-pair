@@ -1,8 +1,19 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { categoryFor, addDays, isoDate } from "@/lib/calendar";
 import { EntryDialog } from "./EntryDialog";
+import { moveDiaryEntry } from "./actions";
+import { zonedToUtc as toUtc } from "@/lib/booking/tz";
+import { useDrag, clockOf, lengthOf, SNAP_MINUTES } from "./useDrag";
 import { Avatar } from "@/components/Avatar";
 import type { Artist, OpeningHours } from "@/lib/types";
 
@@ -23,6 +34,8 @@ export type Entry = {
   clientPhone: string | null;
   description: string | null;
   conversationId: string | null;
+  /** What the enquiry was quoted, for the week's worth. */
+  quotePence: number | null;
   repeats: string;
 };
 
@@ -121,10 +134,17 @@ export function WeekGrid({
   const [creating, setCreating] = useState<{
     date: string;
     time: string;
+    /** Set when the slot was dragged out rather than clicked. */
+    endTime?: string;
     artistId?: string;
   } | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const [nowMinutes, setNowMinutes] = useState<number | null>(null);
+  const [moveError, setMoveError] = useState("");
+  const [, startMove] = useTransition();
+
+  // Where each column sits on screen, so a drag knows which one it is over.
+  const columnBoxes = useRef(new Map<string, HTMLDivElement>());
 
   const start = useMemo(() => {
     const [y, m, d] = weekStart.split("-").map(Number);
@@ -189,21 +209,104 @@ export function WeekGrid({
     });
   }
 
-  function slotFromClick(event: React.MouseEvent<HTMLDivElement>, column: (typeof columns)[number]) {
-    const box = event.currentTarget.getBoundingClientRect();
-    const minutes = Math.max(
-      0,
-      Math.round(((event.clientY - box.top) / HOUR_HEIGHT) * 60 / 15) * 15,
-    );
-    setCreating({
-      date: column.date,
-      time: `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`,
-      artistId: column.artist?.id,
-    });
-  }
+  /** "2026-09-01" plus wall-clock minutes, in the business's timezone. */
+  const zonedToUtc = (date: string, minutes: number, tz: string) => {
+    const [y, m, d] = date.split("-").map(Number);
+    return toUtc(y, m, d, minutes, tz).toISOString();
+  };
+
+  const hhmm = (minutes: number) =>
+    `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+
+  /** Which column a page x-coordinate is over. */
+  const columnKeyAt = useCallback((clientX: number) => {
+    for (const [key, el] of columnBoxes.current) {
+      const box = el.getBoundingClientRect();
+      if (clientX >= box.left && clientX <= box.right) return key;
+    }
+    return null;
+  }, []);
+
+  /*
+   * Committing a drag.
+   *
+   * The times coming back are wall-clock minutes in the business's timezone,
+   * which is not the browser's — so they go back through the same conversion
+   * the forms use rather than being treated as local. Getting this wrong would
+   * move every dragged appointment an hour through British Summer Time.
+   */
+  const commit = useCallback(
+    (drag: { kind: string; id?: string; startMinutes: number; endMinutes: number; columnKey: string }) => {
+      const column = columns.find((c) => c.key === drag.columnKey);
+      if (!column) return;
+
+      if (drag.kind === "create") {
+        setCreating({
+          date: column.date,
+          time: hhmm(drag.startMinutes),
+          endTime: hhmm(drag.endMinutes),
+          artistId: column.artist?.id,
+        });
+        return;
+      }
+
+      const entry = entries.find((e) => e.id === drag.id);
+      if (!entry) return;
+
+      const startsAt = zonedToUtc(column.date, drag.startMinutes, timezone);
+      const endsAt = zonedToUtc(column.date, drag.endMinutes, timezone);
+
+      // Nothing actually changed — a nudge that landed back where it started.
+      if (
+        startsAt === entry.starts_at &&
+        endsAt === entry.ends_at &&
+        (!column.artist || column.artist.id === entry.artist_id)
+      ) {
+        return;
+      }
+
+      setMoveError("");
+      startMove(async () => {
+        const result = await moveDiaryEntry({
+          id: entry.id,
+          startsAt,
+          endsAt,
+          artistId: column.artist?.id,
+        });
+        if (result.error) setMoveError(result.error);
+      });
+    },
+    [columns, entries, timezone],
+  );
+
+  const { drag, begin } = useDrag({ hourHeight: HOUR_HEIGHT, columnKeyAt, onCommit: commit });
 
   return (
     <>
+      {/*
+       * A move can be refused — the database will not allow two things in the
+       * same slot. Without this the entry silently springs back and it looks
+       * like the drag did not work.
+       */}
+      {moveError && (
+        <div
+          role="alert"
+          className="fixed inset-x-4 bottom-24 z-50 mx-auto w-fit max-w-sm rounded-xl border border-warn/40 bg-surface px-4 py-3 text-sm shadow-[var(--shadow-pop)] md:bottom-6"
+        >
+          <div className="flex items-start gap-3">
+            <span className="text-warn">{moveError}</span>
+            <button
+              type="button"
+              onClick={() => setMoveError("")}
+              className="shrink-0 text-muted hover:text-foreground"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="card overflow-hidden">
         {/* ------------------------------------------------ headings */}
         <div className="flex border-b border-border bg-surface">
@@ -308,10 +411,41 @@ export function WeekGrid({
               return (
                 <div
                   key={col.key}
-                  onClick={(e) => slotFromClick(e, col)}
-                  className="relative flex-1 cursor-copy border-r border-border last:border-r-0"
+                  ref={(el) => {
+                    if (el) columnBoxes.current.set(col.key, el);
+                    else columnBoxes.current.delete(col.key);
+                  }}
+                  onPointerDown={(event) => {
+                    const box = event.currentTarget.getBoundingClientRect();
+                    const at =
+                      Math.round(
+                        (((event.clientY - box.top) / HOUR_HEIGHT) * 60) / SNAP_MINUTES,
+                      ) * SNAP_MINUTES;
+                    begin(event, {
+                      kind: "create",
+                      startMinutes: at,
+                      endMinutes: at + 60,
+                      columnKey: col.key,
+                    });
+                  }}
+                  onClick={(event) => {
+                    // A plain click still adds an hour here; the drag only
+                    // takes over once the pointer has actually moved.
+                    if (drag) return;
+                    const box = event.currentTarget.getBoundingClientRect();
+                    const at =
+                      Math.round(
+                        (((event.clientY - box.top) / HOUR_HEIGHT) * 60) / SNAP_MINUTES,
+                      ) * SNAP_MINUTES;
+                    setCreating({
+                      date: col.date,
+                      time: hhmm(at),
+                      artistId: col.artist?.id,
+                    });
+                  }}
+                  className="relative flex-1 cursor-copy touch-none border-r border-border last:border-r-0"
                   style={{ height: 24 * HOUR_HEIGHT }}
-                  title="Click to add something here"
+                  title="Click to add an hour, or drag out the time you want"
                 >
                   {hourList.map((h) => (
                     <div key={h} style={{ height: HOUR_HEIGHT }} className="relative">
@@ -364,16 +498,41 @@ export function WeekGrid({
                     const artist = artists.find((a) => a.id === e.artist_id);
                     const unpaid =
                       e.source === "assistant" && e.deposit_status !== "paid";
+                    const dragging = drag?.id === e.id;
+                    const startMinutes = minutesInDay(e.starts_at, timezone);
+                    const endMinutes =
+                      startMinutes +
+                      (Date.parse(e.ends_at) - Date.parse(e.starts_at)) / 60000;
 
                     return (
-                      <button
+                      <div
                         key={e.id}
-                        type="button"
+                        onPointerDown={(event) =>
+                          begin(event, {
+                            kind: "move",
+                            id: e.id,
+                            startMinutes,
+                            endMinutes,
+                            columnKey: col.key,
+                          })
+                        }
                         onClick={(event) => {
                           event.stopPropagation();
+                          // A drag that moved is not a click to open.
+                          if (drag) return;
                           setEditing(e);
                         }}
-                        className="absolute overflow-hidden rounded-md px-2 py-1 text-left text-[11px] leading-tight transition-shadow hover:z-20 hover:shadow-lg"
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setEditing(e);
+                          }
+                        }}
+                        className={`group absolute touch-none overflow-hidden rounded-lg px-2 py-1 text-left text-[11px] leading-tight transition-[box-shadow,opacity] hover:z-20 hover:shadow-[var(--shadow-pop)] focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                          dragging ? "opacity-30" : "cursor-grab active:cursor-grabbing"
+                        }`}
                         style={{
                           top,
                           height,
@@ -385,8 +544,16 @@ export function WeekGrid({
                           border: `1px solid color-mix(in srgb, ${cat.hue} 35%, transparent)`,
                         }}
                       >
-                        <div className="truncate font-medium">
-                          {e.title ?? e.clientName ?? cat.label}
+                        <div className="flex items-center gap-1 truncate font-medium">
+                          {unpaid && (
+                            <span
+                              className="size-1.5 shrink-0 rounded-full bg-warn"
+                              title="Waiting on a deposit"
+                            />
+                          )}
+                          <span className="truncate">
+                            {e.title ?? e.clientName ?? cat.label}
+                          </span>
                         </div>
                         {height > 32 && (
                           <div className="truncate text-muted">
@@ -401,9 +568,53 @@ export function WeekGrid({
                             {e.description ?? e.notes}
                           </div>
                         )}
-                      </button>
+
+                        {/* Pull the bottom edge to change how long it runs.
+                            Invisible until hovered, so it does not clutter a
+                            full week, but always eight pixels of target. */}
+                        <span
+                          onPointerDown={(event) =>
+                            begin(event, {
+                              kind: "resize",
+                              id: e.id,
+                              startMinutes,
+                              endMinutes,
+                              columnKey: col.key,
+                            })
+                          }
+                          className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize opacity-0 transition-opacity group-hover:opacity-100"
+                          style={{ background: `color-mix(in srgb, ${cat.hue} 45%, transparent)` }}
+                          aria-hidden
+                        />
+                      </div>
                     );
                   })}
+
+                  {/* Where it will land. Follows the pointer, shows the times
+                      it is snapping to, and is the only thing on screen that
+                      says what releasing will do. */}
+                  {drag && drag.columnKey === col.key && (
+                    <div
+                      className="pointer-events-none absolute inset-x-1 z-30 rounded-lg border-2 border-dashed px-2 py-1 text-[11px] font-medium"
+                      style={{
+                        top: (drag.startMinutes / 60) * HOUR_HEIGHT,
+                        height: Math.max(
+                          20,
+                          ((drag.endMinutes - drag.startMinutes) / 60) * HOUR_HEIGHT,
+                        ),
+                        borderColor: "var(--accent)",
+                        background: "color-mix(in srgb, var(--accent) 14%, var(--surface))",
+                        color: "var(--foreground)",
+                      }}
+                    >
+                      <div className="truncate">
+                        {clockOf(drag.startMinutes)} – {clockOf(drag.endMinutes)}
+                      </div>
+                      <div className="truncate text-muted">
+                        {lengthOf(drag.endMinutes - drag.startMinutes)}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

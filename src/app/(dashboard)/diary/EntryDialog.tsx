@@ -35,7 +35,7 @@ export function EntryDialog({
   onClose,
 }: {
   entry: Entry | null;
-  prefill: { date: string; time: string; artistId?: string } | null;
+  prefill: { date: string; time: string; endTime?: string; artistId?: string } | null;
   artists: Artist[];
   timezone: string;
   onClose: () => void;
@@ -50,9 +50,23 @@ export function EntryDialog({
     ? localFields(entry.starts_at, timezone)
     : { date: prefill?.date ?? "", time: prefill?.time ?? "10:00" };
 
+  /*
+   * How long it runs.
+   *
+   * An existing entry knows. A slot dragged out on the grid knows, because the
+   * drag said so — opening the form at a default hour after somebody carefully
+   * pulled out ninety minutes would throw away what they just told us. A plain
+   * click falls back to an hour.
+   */
+  const dragged =
+    prefill?.endTime && prefill.time
+      ? (Number(prefill.endTime.slice(0, 2)) * 60 + Number(prefill.endTime.slice(3, 5))) -
+        (Number(prefill.time.slice(0, 2)) * 60 + Number(prefill.time.slice(3, 5)))
+      : null;
+
   const minutes = entry
     ? Math.round((Date.parse(entry.ends_at) - Date.parse(entry.starts_at)) / 60000)
-    : 60;
+    : (dragged ?? 60);
 
   const [category, setCategory] = useState(entry?.category ?? "personal");
   const [allDay, setAllDay] = useState(entry?.all_day ?? false);

@@ -235,3 +235,64 @@ export async function cancelDiaryEntry(fd: FormData) {
   revalidatePath("/diary");
   revalidatePath("/");
 }
+
+/**
+ * Moving or resizing an entry by dragging it.
+ *
+ * Kept separate from saveDiaryEntry because it is a different kind of edit: no
+ * form, no category, no repeat rule — just new times, and possibly a different
+ * person's column. Reusing the form action would mean sending twenty fields
+ * back to change two, and any field the drag forgot would be wiped.
+ *
+ * Only this one occurrence moves. Dragging one instance of a repeating entry
+ * detaches nothing and rewrites nothing else, which is what somebody nudging
+ * next Tuesday half an hour later actually means.
+ */
+export async function moveDiaryEntry(input: {
+  id: string;
+  startsAt: string;
+  endsAt: string;
+  artistId?: string;
+}): Promise<DiaryState> {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  const starts = new Date(input.startsAt);
+  const ends = new Date(input.endsAt);
+  if (Number.isNaN(starts.getTime()) || Number.isNaN(ends.getTime())) {
+    return { error: "That time did not make sense." };
+  }
+  if (ends <= starts) return { error: "It has to end after it starts." };
+
+  // Belt and braces on top of row-level security: the id arrives from the
+  // browser, and this must never reach into another business's diary.
+  const team = await getArtists(studio.id);
+  const owned = team.map((a) => a.id);
+  if (input.artistId && !owned.includes(input.artistId)) {
+    return { error: "That is not one of your team." };
+  }
+
+  const patch: Record<string, unknown> = {
+    starts_at: starts.toISOString(),
+    ends_at: ends.toISOString(),
+  };
+  if (input.artistId) patch.artist_id = input.artistId;
+
+  const { error } = await supabase
+    .from("bookings")
+    .update(patch)
+    .eq("id", input.id)
+    .in("artist_id", owned);
+
+  if (error) {
+    return { error: clashMessage(error.code, "That could not be moved.") };
+  }
+
+  // The reminder said "Tuesday at two". It is not Tuesday at two any more.
+  await dropReminders(supabase, input.id);
+  await scheduleReminders(supabase, studio.id, input.id, starts.toISOString());
+
+  revalidatePath("/diary");
+  revalidatePath("/");
+  return { ok: "Moved." };
+}

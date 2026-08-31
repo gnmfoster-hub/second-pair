@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireStudio, getArtists } from "@/lib/studio";
 import { startOfWeek, addDays, isoDate, parseIsoDate, CATEGORIES } from "@/lib/calendar";
 import { WeekGrid, type Entry } from "./WeekGrid";
+import { Shortcuts } from "./Shortcuts";
+import { formatPence } from "@/lib/money";
 
 type RawRow = {
   id: string;
@@ -20,6 +22,7 @@ type RawRow = {
   repeats: string;
   enquiries: {
     description: string | null;
+    quote_low_pence: number | null;
     conversation_id: string;
     conversations: {
       contacts: { name: string | null; phone: string | null } | null;
@@ -53,7 +56,7 @@ export default async function DiaryPage({
     .select(
       "id, artist_id, starts_at, ends_at, all_day, category, blocks_availability, source, " +
         "title, notes, deposit_status, deposit_amount_pence, repeats, " +
-        "enquiries(description, conversation_id, conversations(contacts(name, phone)))",
+        "enquiries(description, quote_low_pence, conversation_id, conversations(contacts(name, phone)))",
     )
     .is("cancelled_at", null)
     .lt("starts_at", addDays(end, 1).toISOString())
@@ -83,6 +86,7 @@ export default async function DiaryPage({
       clientPhone: r.enquiries?.conversations?.contacts?.phone ?? null,
       description: r.enquiries?.description ?? null,
       conversationId: r.enquiries?.conversation_id ?? null,
+      quotePence: r.enquiries?.quote_low_pence ?? null,
       repeats: r.repeats,
     }));
 
@@ -109,6 +113,41 @@ export default async function DiaryPage({
   const awaiting = entries.filter(
     (e) => e.source === "assistant" && e.deposit_status !== "paid",
   ).length;
+
+  /*
+   * What the period is worth.
+   *
+   * A one-person business looking at their week wants three numbers: how much
+   * of it is spoken for, what it earns, and how much room is left. The last
+   * one is the reason to look — it is the answer to "can I fit this job in?"
+   */
+  const workingMinutes = Array.from({ length: view === "day" ? 1 : 7 }, (_, i) => {
+    const d = addDays(view === "day" ? focusDay : start, i);
+    const h = studio.hours.find((x) => x.day === d.getDay());
+    if (!h || h.closed) return 0;
+    const from = Number(h.open.slice(0, 2)) * 60 + Number(h.open.slice(3, 5));
+    const to = Number(h.close.slice(0, 2)) * 60 + Number(h.close.slice(3, 5));
+    return Math.max(0, to - from);
+  }).reduce((a, b) => a + b, 0);
+
+  const bookedMinutes = entries
+    .filter((e) => e.blocks_availability && !e.all_day)
+    .reduce(
+      (total, e) => total + (Date.parse(e.ends_at) - Date.parse(e.starts_at)) / 60000,
+      0,
+    );
+
+  const worth = entries.reduce((total, e) => total + (e.quotePence ?? 0), 0);
+
+  // Multiple people multiply the room available, so the figure means something
+  // in a salon as well as in a van.
+  const capacity = workingMinutes * Math.max(1, focused ? 1 : team.length);
+  const freeMinutes = Math.max(0, capacity - bookedMinutes);
+  const asHours = (mins: number) => {
+    const h = Math.floor(mins / 60);
+    const m = Math.round(mins % 60);
+    return m ? `${h}h ${m}m` : `${h}h`;
+  };
 
   return (
     <div className="mx-auto max-w-6xl px-8 py-9">
@@ -145,7 +184,29 @@ export default async function DiaryPage({
           <Link href={forward} className="btn-ghost px-3" aria-label="Next">
             →
           </Link>
+          <Shortcuts
+            back={back}
+            forward={forward}
+            today={view === "day" ? "/diary?view=day" : "/diary"}
+            dayHref={`/diary?view=day&day=${isoDate(focusDay)}`}
+            weekHref={`/diary?week=${isoDate(start)}`}
+          />
         </div>
+      </div>
+
+      {/* What this period is worth, and how much room is left in it. */}
+      <div className="mt-5 flex flex-wrap items-stretch gap-2">
+        <Figure label={view === "day" ? "Booked today" : "Booked this week"} value={asHours(bookedMinutes)} />
+        <Figure label="Worth" value={formatPence(worth)} accent={worth > 0} />
+        <Figure
+          label="Still free"
+          value={asHours(freeMinutes)}
+          hint={
+            capacity > 0
+              ? `${Math.round((bookedMinutes / capacity) * 100)}% full`
+              : "Closed all period"
+          }
+        />
       </div>
 
       {team.length > 1 && (
@@ -216,6 +277,34 @@ export default async function DiaryPage({
           Deposit unpaid
         </span>
       </div>
+    </div>
+  );
+}
+
+/**
+ * One number from the strip.
+ *
+ * Deliberately quiet: this sits above the diary and must never compete with
+ * it. The only one allowed any colour is what the period earns.
+ */
+function Figure({
+  label,
+  value,
+  hint,
+  accent = false,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className="card flex-1 basis-40 px-4 py-3">
+      <div className={`font-display text-xl font-semibold tabular-nums ${accent ? "text-accent" : ""}`}>
+        {value}
+      </div>
+      <div className="hint mt-0.5">{label}</div>
+      {hint && <div className="hint mt-0.5 opacity-70">{hint}</div>}
     </div>
   );
 }
