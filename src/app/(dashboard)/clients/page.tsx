@@ -1,12 +1,19 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { requireStudio } from "@/lib/studio";
+import { requireStudio, getArtists } from "@/lib/studio";
 import { formatPence } from "@/lib/money";
 import { colourForName, initialsOf } from "@/lib/diaryColour";
 import { CHANNEL_LABELS, type Channel } from "@/lib/types";
 
 type Row = {
-  bookings: { deposit_amount_pence: number; deposit_status: string; cancelled_at: string | null }[] | null;
+  bookings:
+    | {
+        artist_id: string;
+        deposit_amount_pence: number;
+        deposit_status: string;
+        cancelled_at: string | null;
+      }[]
+    | null;
   id: string;
   name: string | null;
   phone: string | null;
@@ -20,7 +27,12 @@ type Row = {
     last_message_at: string;
     enquiries: {
       quote_low_pence: number | null;
-      bookings: { deposit_amount_pence: number; deposit_status: string; cancelled_at: string | null }[];
+      bookings: {
+        artist_id: string;
+        deposit_amount_pence: number;
+        deposit_status: string;
+        cancelled_at: string | null;
+      }[];
     } | null;
   }[];
 };
@@ -28,9 +40,9 @@ type Row = {
 export default async function ClientsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; who?: string }>;
 }) {
-  const { q } = await searchParams;
+  const { q, who } = await searchParams;
   const term = (q ?? "").trim();
 
   const { studio } = await requireStudio();
@@ -40,8 +52,8 @@ export default async function ClientsPage({
     .from("contacts")
     .select(
       "id, name, phone, email, instagram_handle, channel, alert, created_at, " +
-        "bookings(deposit_amount_pence, deposit_status, cancelled_at), " +
-        "conversations(id, last_message_at, enquiries(quote_low_pence, bookings(deposit_amount_pence, deposit_status, cancelled_at)))",
+        "bookings(artist_id, deposit_amount_pence, deposit_status, cancelled_at), " +
+        "conversations(id, last_message_at, enquiries(quote_low_pence, bookings(artist_id, deposit_amount_pence, deposit_status, cancelled_at)))",
     )
     .eq("studio_id", studio.id)
     .order("created_at", { ascending: false })
@@ -56,7 +68,40 @@ export default async function ClientsPage({
   }
 
   const { data } = await query;
-  const clients = (data ?? []) as unknown as Row[];
+  let clients = (data ?? []) as unknown as Row[];
+
+  /*
+   * Whose clients these are.
+   *
+   * A client does not belong to one stylist in the schema — they belong to the
+   * business — so this is derived from who has actually worked with them. That
+   * is the honest answer to "are they mine?" and it needs no extra column.
+   *
+   * Only offered when there is more than one person. In a one-person business
+   * the answer is always "yours", and a filter with one option is clutter.
+   */
+  const team = (await getArtists(studio.id)).filter((a) => a.active);
+  const mine = team.some((a) => a.id === who) ? who : null;
+
+  if (mine) {
+    const theirs = new Set<string>();
+    for (const c of clients) {
+      const worked = [
+        ...c.conversations.flatMap((v) => v.enquiries?.bookings ?? []),
+        ...(c.bookings ?? []),
+      ].some((b) => b.artist_id === mine);
+      if (worked) theirs.add(c.id);
+    }
+    clients = clients.filter((c) => theirs.has(c.id));
+  }
+
+  const link = (artistId: string | null) => {
+    const params = new URLSearchParams();
+    if (term) params.set("q", term);
+    if (artistId) params.set("who", artistId);
+    const query = params.toString();
+    return query ? `/clients?${query}` : "/clients";
+  };
 
   return (
     <div className="mx-auto max-w-4xl px-8 py-9">
@@ -69,6 +114,9 @@ export default async function ClientsPage({
       </div>
 
       <form className="mt-5">
+        {/* Carried through the search, or filtering one person and then
+            searching would silently drop back to everybody. */}
+        {mine && <input type="hidden" name="who" value={mine} />}
         <input
           name="q"
           defaultValue={term}
@@ -77,6 +125,34 @@ export default async function ClientsPage({
           aria-label="Search clients"
         />
       </form>
+
+      {team.length > 1 && (
+        <div className="mt-4 flex flex-wrap items-center gap-1.5">
+          <Link
+            href={link(null)}
+            className={`rounded-full px-3 py-1 text-xs transition-colors ${
+              !mine
+                ? "bg-surface-2 font-medium text-foreground"
+                : "border border-border text-muted hover:text-foreground"
+            }`}
+          >
+            Everyone
+          </Link>
+          {team.map((a) => (
+            <Link
+              key={a.id}
+              href={link(a.id)}
+              className={`rounded-full px-3 py-1 text-xs transition-colors ${
+                mine === a.id
+                  ? "bg-surface-2 font-medium text-foreground"
+                  : "border border-border text-muted hover:text-foreground"
+              }`}
+            >
+              {a.name}
+            </Link>
+          ))}
+        </div>
+      )}
 
       <div className="card mt-5 overflow-hidden">
         {clients.length === 0 ? (

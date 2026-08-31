@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio, getArtists } from "@/lib/studio";
 import { formatPence } from "@/lib/money";
+import { Timeline, type TimelineReminder } from "./Timeline";
 import { CHANNEL_LABELS, CONV_STATUS_LABELS, type Channel, type ConvStatus } from "@/lib/types";
 import { ClientForm } from "./ClientForm";
 
@@ -77,22 +78,29 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
   ]
     .sort((a, b) => Date.parse(b.starts_at) - Date.parse(a.starts_at));
 
+  /*
+   * What was actually sent to this person.
+   *
+   * The reminders table has always recorded the rendered body, the channel and
+   * any error — it simply never reached a screen, so "I never got a reminder"
+   * was unanswerable.
+   */
+  const { data: reminders } = bookings.length
+    ? await supabase
+        .from("reminders")
+        .select("id, booking_id, due_at, sent_at, status, channel, body, error")
+        .in(
+          "booking_id",
+          bookings.map((b) => b.id),
+        )
+        .order("due_at", { ascending: false })
+    : { data: [] };
+
   const live = bookings.filter((b) => !b.cancelled_at);
   const paid = live
     .filter((b) => b.deposit_status === "paid")
     .reduce((t, b) => t + b.deposit_amount_pence, 0);
   const noShows = bookings.filter((b) => b.attended === false).length;
-
-  const when = (iso: string) =>
-    new Date(iso).toLocaleString("en-GB", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-      timeZone: studio.timezone,
-    });
 
   return (
     <div className="mx-auto max-w-4xl px-8 py-9">
@@ -153,30 +161,13 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
 
         <aside className="space-y-6">
           <section className="card p-5">
-            <h2 className="mb-3 text-sm font-medium">History</h2>
-            {bookings.length === 0 && conversations.length === 0 && (
-              <p className="hint">Nothing yet.</p>
-            )}
-
-            <ul className="space-y-3">
-              {bookings.map((b) => {
-                const artist = artists.find((a) => a.id === b.artist_id);
-                return (
-                  <li key={b.id} className="text-sm">
-                    <div className={b.cancelled_at ? "text-muted line-through" : ""}>
-                      {when(b.starts_at)}
-                    </div>
-                    <div className="hint">
-                      {b.type}
-                      {artist ? ` · ${artist.name}` : ""}
-                      {b.deposit_amount_pence
-                        ? ` · ${formatPence(b.deposit_amount_pence)} ${b.deposit_status}`
-                        : ""}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            <h2 className="section-title mb-4 text-sm">History</h2>
+            <Timeline
+              bookings={bookings}
+              reminders={(reminders ?? []) as TimelineReminder[]}
+              artists={artists}
+              timezone={studio.timezone}
+            />
           </section>
 
           <section className="card p-5">
