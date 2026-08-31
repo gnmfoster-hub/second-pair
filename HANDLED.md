@@ -142,7 +142,13 @@ the service list, the reminder wording, and whether things like an 18+ check app
 Adding a new trade is a config file, not a development project. Every business can then
 edit everything the pack gave them.
 
-Packs today: tattoo studio, salon, and a general pack for any appointment business.
+34 trades ship today, grouped into six categories: trades and home (electrician,
+plumber, gas engineer, joiner, decorator, plasterer, roofer, handyman, locksmith,
+gardener, cleaner), hair and beauty (tattoo, salon, mobile hairdresser, barber,
+beauty, nails, aesthetics, massage), health and wellbeing (physio, chiropractor,
+personal trainer, counsellor, podiatrist), pets (dog groomer, dog walker), motoring
+(mobile mechanic, garage, valeting, driving instructor), and everything else
+(photographer, tutor, window cleaner, plus a blank one).
 
 Trade differences already handled: hourly vs flat pricing, deposits required / optional
 / never, work at the premises vs at the customer's address, service areas by postcode,
@@ -163,7 +169,8 @@ never quote a figure the owner's own settings would not produce.
 ## Status
 
 Working end to end: the conversation engine, quoting, the diary, deposits, reminders,
-client records, the weekly report, and the embeddable website widget. WhatsApp and
+client records, the weekly report, the embeddable website widget, and a phone-ready
+dashboard that installs from the browser. WhatsApp and
 Instagram need the Meta app reviewed, which needs the app deployed to a public URL.
 
 First customer: Living Canvas Tattoo. Second in the pipeline: a hair salon.
