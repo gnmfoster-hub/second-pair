@@ -218,7 +218,7 @@ export default function LoginPage() {
                 // Not in the tab order: somebody tabbing through the form wants
                 // the next field, not a button that changes nothing they typed.
                 tabIndex={-1}
-                className="absolute right-1 top-1/2 grid h-9 w-10 -translate-y-1/2 place-items-center rounded-lg text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-lg text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
                 {showPassword ? (
                   // Struck through: the state it would go to, not the state it is in.
@@ -283,7 +283,7 @@ export default function LoginPage() {
             setMode("forgot");
             setError("");
           }}
-          className="hint mt-4 underline underline-offset-2 hover:text-foreground"
+          className="hint mt-2 inline-flex min-h-11 items-center underline underline-offset-2 hover:text-foreground"
         >
           Forgotten your password?
         </button>

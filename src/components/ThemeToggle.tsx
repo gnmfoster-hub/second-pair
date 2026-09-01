@@ -74,7 +74,17 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
           onClick={() => choose(option.value)}
           aria-pressed={choice === option.value}
           title={option.label}
-          className={`px-2.5 py-2 text-xs transition-colors ${compact ? "" : "flex-1"} ${
+          /*
+           * The compact one lives in the mobile header, where it is a thumb
+           * rather than a cursor doing the tapping. It was 30x32, which is
+           * under every touch-target guideline and noticeably fiddly on the
+           * narrowest of the three. 44px square is what the rest of the app
+           * uses for anything you press, and there is room: the three of them
+           * take 132px of a 375px header, which holds nothing else.
+           */
+          className={`text-xs transition-colors ${
+            compact ? "grid h-11 w-11 place-items-center text-sm" : "flex-1 px-2.5 py-2"
+          } ${
             choice === option.value
               ? "bg-surface-2 text-foreground"
               : "text-muted hover:text-foreground"

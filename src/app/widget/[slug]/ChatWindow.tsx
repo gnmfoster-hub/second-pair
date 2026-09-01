@@ -374,7 +374,10 @@ export function ChatWindow({
                     key={opener}
                     type="button"
                     onClick={() => send(undefined, opener)}
-                    className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium transition-all hover:-translate-y-px hover:border-[var(--brand)] hover:text-[var(--brand)] motion-safe:animate-[rise_260ms_ease-out_both]"
+                    // Thirty pixels tall, and the first thing a customer is
+                    // invited to tap. On a phone that is a miss waiting to
+                    // happen, on the one screen where a miss costs an enquiry.
+                    className="min-h-11 rounded-full border border-border bg-surface px-4 py-2.5 text-xs font-medium transition-all hover:-translate-y-px hover:border-[var(--brand)] hover:text-[var(--brand)] motion-safe:animate-[rise_260ms_ease-out_both]"
                     style={{ animationDelay: `${120 + i * 70}ms` }}
                   >
                     {opener}
@@ -516,7 +519,7 @@ export function ChatWindow({
 
           <button
             type="submit"
-            className="grid size-9 shrink-0 place-items-center rounded-xl transition-all disabled:opacity-35"
+            className="grid size-11 shrink-0 place-items-center rounded-xl transition-all disabled:opacity-35"
             style={{ background: brand, color: onBrand }}
             aria-label="Send"
             disabled={sending || (!draft.trim() && pending.length === 0)}
@@ -525,7 +528,7 @@ export function ChatWindow({
           </button>
         </div>
 
-        <p className="mt-2 text-center text-[10px] text-muted/70">
+        <p className="mt-2 text-center text-[11px] text-muted">
           Answered by an assistant · a human sees everything
         </p>
       </form>

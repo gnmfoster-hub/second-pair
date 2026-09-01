@@ -31,12 +31,47 @@ async function createStudio(formData: FormData) {
       .replace(/^-|-$/g, "") || "business";
 
   const supabase = await createClient();
-  const { data: studioId, error } = await supabase.rpc("create_studio", {
-    studio_name: name,
-    studio_slug: `${slug}-${Math.random().toString(36).slice(2, 6)}`,
-  });
 
-  if (error) throw new Error(error.message);
+  /*
+   * The plain name first, and only then something uglier.
+   *
+   * Four random characters used to be appended every time, so the very first
+   * tattoo studio to sign up got living-canvas-tattoo-nxst. That slug is not an
+   * internal detail — it is the link they put in their Instagram bio, and the
+   * address their customers see. Almost every business is the only one with its
+   * name, so almost every business should get it.
+   *
+   * Uniqueness stays where it belongs, on the column. This asks, and takes the
+   * database's answer rather than trying to guess it beforehand.
+   */
+  const candidates = [
+    slug,
+    ...Array.from({ length: 4 }, () => `${slug}-${Math.random().toString(36).slice(2, 6)}`),
+  ];
+
+  let studioId: unknown = null;
+  let lastError: { code?: string; message: string } | null = null;
+
+  for (const candidate of candidates) {
+    const { data, error } = await supabase.rpc("create_studio", {
+      studio_name: name,
+      studio_slug: candidate,
+    });
+
+    if (!error) {
+      studioId = data;
+      break;
+    }
+
+    // Taken. Anything else is a real failure and must not be retried.
+    const taken = error.code === "23505" || /duplicate|unique/i.test(error.message);
+    if (!taken) throw new Error(error.message);
+    lastError = error;
+  }
+
+  if (!studioId) {
+    throw new Error(lastError?.message ?? "Could not create the business.");
+  }
 
   if (studioId) {
     // Everything the trade implies, all editable afterwards.

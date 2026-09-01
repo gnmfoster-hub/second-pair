@@ -107,7 +107,7 @@ export default function ResetPasswordPage() {
                   aria-label={show ? "Hide password" : "Show password"}
                   aria-pressed={show}
                   tabIndex={-1}
-                  className="absolute right-1 top-1/2 grid h-9 w-10 -translate-y-1/2 place-items-center rounded-lg text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  className="absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-lg text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   {show ? (
                     <svg
