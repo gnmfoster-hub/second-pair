@@ -170,7 +170,17 @@ export async function busyFromIcal(
     throw new Error(`Calendar feed returned ${response.status}`);
   }
 
-  const body = await response.text();
+  return busyFromIcalText(await response.text(), from, to);
+}
+
+/**
+ * The same thing, given the document rather than a URL.
+ *
+ * Separated so the parsing can be tested without a network: this decides which
+ * hours a business already has taken, and a period it fails to read becomes a
+ * slot the assistant cheerfully offers to somebody who cannot have it.
+ */
+export function busyFromIcalText(body: string, from: Date, to: Date): BusyPeriod[] {
   if (!body.includes("BEGIN:VCALENDAR")) {
     throw new Error("That URL did not return a calendar feed.");
   }
