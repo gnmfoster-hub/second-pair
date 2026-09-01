@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Studio } from "@/lib/types";
 import { describeSlot } from "@/lib/booking";
+import { renderReminder } from "@/lib/reminderText";
 import { deliver } from "@/lib/messaging/deliver";
 import { routesFor } from "@/lib/messaging/reach";
 import { connectedChannels, smsNumberFor } from "@/lib/messaging/connections";
@@ -27,28 +28,14 @@ export type PendingReminder = {
   channel: string | null;
 };
 
-/**
- * Fills a template. Anything unrecognised is stripped rather than shown — a
- * client seeing "{{name}}" is worse than a slightly plainer sentence.
+/*
+ * Filling a template lives in reminderText.ts, which imports nothing.
+ *
+ * This file reaches the database and the messaging layer, so node cannot load
+ * it to test anything — and the filling is the part that actually reaches a
+ * customer's phone, so it is the part most worth testing.
  */
-export function renderReminder(
-  template: string,
-  values: {
-    name?: string | null;
-    practitioner?: string | null;
-    business?: string | null;
-    when?: string | null;
-  },
-): string {
-  return template
-    .replace(/\{\{\s*name\s*\}\}/gi, values.name?.trim() || "there")
-    .replace(/\{\{\s*practitioner\s*\}\}/gi, values.practitioner?.trim() || "us")
-    .replace(/\{\{\s*business\s*\}\}/gi, values.business?.trim() || "us")
-    .replace(/\{\{\s*when\s*\}\}/gi, values.when?.trim() || "your appointment")
-    .replace(/\{\{[^}]*\}\}/g, "")
-    .replace(/[ \t]{2,}/g, " ")
-    .trim();
-}
+export { renderReminder } from "@/lib/reminderText";
 
 /**
  * Schedules a booking's reminders.
@@ -199,8 +186,12 @@ export async function sendDueReminders(
       continue;
     }
 
+    // Who it is for: from the conversation where there is one, and from the
+    // booking itself where somebody typed it into the diary.
+    const person = conversation?.contacts ?? booking.contacts ?? null;
+
     const body = renderReminder(template, {
-      name: conversation?.contacts?.name,
+      name: person?.name,
       practitioner: booking.artists?.name,
       business: studio.name,
       when: describeSlot(
@@ -221,8 +212,6 @@ export async function sendDueReminders(
      * routesFor already orders open routes first, so picking the first open one
      * gets that fallback without any special case for it.
      */
-    const person = conversation?.contacts ?? booking.contacts ?? null;
-
     const route = routesFor({
       conversations: conversation
         ? [
