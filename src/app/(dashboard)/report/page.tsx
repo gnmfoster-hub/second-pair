@@ -39,22 +39,37 @@ export default async function ReportPage({
   searchParams: Promise<{ weeks?: string }>;
 }) {
   const { weeks } = await searchParams;
-  const back = Math.min(12, Math.max(0, Number(weeks) || 0));
+  /*
+   * -1 is the week we are in; 0 is the last completed one.
+   *
+   * It used to stop at 0, so on a Friday afternoon there was no way to see how
+   * the week was going — the page you would open to ask that question could
+   * only show you the one before. The default is still the completed week,
+   * because that is the one worth reviewing.
+   */
+  const back = Math.min(12, Math.max(-1, Number(weeks) || 0));
+  const thisWeek = back === -1;
 
   const { studio } = await requireStudio();
   const supabase = await createClient();
 
-  const { from, to } = lastWeek(new Date(), studio.timezone);
+  const now = new Date();
+  const { from, to } = lastWeek(now, studio.timezone);
   from.setUTCDate(from.getUTCDate() - back * 7);
   to.setUTCDate(to.getUTCDate() - back * 7);
+
+  // The week in progress ends now, not on a Monday that has not happened.
+  if (thisWeek) to.setTime(now.getTime());
 
   const report = await weeklyReport(supabase, studio, from, to);
   const pack = verticalPack(studio.vertical);
   const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
 
-  const range = `${from.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${new Date(
-    to.getTime() - 86400000,
-  ).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
+  const range = thisWeek
+    ? `${from.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – today`
+    : `${from.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${new Date(
+        to.getTime() - 86400000,
+      ).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
 
   const responded =
     report.medianFirstResponseSeconds == null
@@ -66,13 +81,13 @@ export default async function ReportPage({
   return (
     <div className="mx-auto max-w-4xl px-8 py-9">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
-        <h1 className="page-title">The week</h1>
+        <h1 className="page-title">{thisWeek ? "This week so far" : "The week"}</h1>
         <span className="hint">{range}</span>
         <div className="ml-auto flex gap-2">
           <Link href={`/report?weeks=${back + 1}`} className="btn-ghost px-3">
             ←
           </Link>
-          {back > 0 && (
+          {back > -1 && (
             <Link href={`/report?weeks=${back - 1}`} className="btn-ghost px-3">
               →
             </Link>
@@ -133,11 +148,36 @@ export default async function ReportPage({
         </p>
       </div>
 
+      {/*
+       * An empty week is not the same as an empty business.
+       *
+       * This used to say "once the widget is on your site and the channels are
+       * connected" whatever the reason, which reads as broken to somebody whose
+       * widget is up and busy — the report simply defaults to the last complete
+       * week, and their work is in this one. So it points at where the enquiries
+       * actually are, when there are some.
+       */}
       {report.enquiries === 0 && (
-        <p className="hint mt-6">
-          Nothing came in during this week. Once the widget is on your site and the
-          channels are connected, this fills up on its own.
-        </p>
+        <div className="mt-6">
+          <p className="hint">
+            Nothing came in {thisWeek ? "yet this week" : `between ${range}`}.
+          </p>
+          {!thisWeek && (
+            <p className="hint mt-2">
+              The report shows the last completed week by default.{" "}
+              <Link href="/report?weeks=-1" className="text-accent hover:underline">
+                See this week so far
+              </Link>
+              , or use the arrows to look further back.
+            </p>
+          )}
+          {thisWeek && (
+            <p className="hint mt-2">
+              Once the widget is on your site and the channels are connected, this fills
+              up on its own.
+            </p>
+          )}
+        </div>
       )}
     </div>
   );
