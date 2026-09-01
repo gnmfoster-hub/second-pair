@@ -15,7 +15,11 @@ import { Logo } from "@/components/Logo";
  * handles mail rather than the one they started in, so the session lands
  * somewhere they are not.
  *
- * The link is kept as the way back in for anyone who forgets their password.
+ * Forgetting the password sends a real reset — a link that lets them choose a
+ * new one — rather than a link that signs them in and leaves the old password
+ * still wrong. On a phone that link opens in whichever browser handles mail,
+ * which is fine here: setting a password is a page you visit once, not a
+ * session you need in the browser you started in.
  */
 type Mode = "signup" | "signin" | "forgot";
 
@@ -32,9 +36,10 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [sent, setSent] = useState<"link" | "confirm" | null>(null);
+  const [sent, setSent] = useState<"reset" | "confirm" | null>(null);
 
   const say = (message: string) => FRIENDLY[message] ?? message;
 
@@ -71,12 +76,18 @@ export default function LoginPage() {
         router.push("/");
       }
     } else {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: redirect },
+      /*
+       * A real reset, not a link that signs them in.
+       *
+       * The old behaviour sent a magic link: they got back in, but the password
+       * they had forgotten was still the password, so the next visit failed the
+       * same way. This sends them somewhere they can choose a new one.
+       */
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
       });
       if (error) setError(say(error.message));
-      else setSent("link");
+      else setSent("reset");
     }
 
     setBusy(false);
@@ -96,7 +107,7 @@ export default function LoginPage() {
             ) : (
               <>
                 We have sent <span className="text-foreground">{email}</span> a link to
-                sign in. It works once, and lasts an hour.
+                choose a new password. It works once, and lasts an hour.
               </>
             )}
           </p>
@@ -178,17 +189,73 @@ export default function LoginPage() {
             <label className="label" htmlFor="password">
               Password
             </label>
-            <input
-              id="password"
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 8 characters"
-              className="input"
-              autoComplete={mode === "signup" ? "new-password" : "current-password"}
-              minLength={8}
-            />
+            {/*
+              * Showing it is worth more here than hiding it.
+              *
+              * Almost everybody signs in alone on their own phone, where the
+              * risk is a typo in a field you cannot read rather than somebody
+              * behind you — and a mistyped password on signup is a failure you
+              * only discover on the next visit. It starts hidden, because that
+              * is what people expect, and the choice is theirs.
+              */}
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="At least 8 characters"
+                className="input pr-12"
+                autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                minLength={8}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                // Not in the tab order: somebody tabbing through the form wants
+                // the next field, not a button that changes nothing they typed.
+                tabIndex={-1}
+                className="absolute right-1 top-1/2 grid h-9 w-10 -translate-y-1/2 place-items-center rounded-lg text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                {showPassword ? (
+                  // Struck through: the state it would go to, not the state it is in.
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M3 3l18 18" />
+                    <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                    <path d="M9.4 5.2A9.5 9.5 0 0 1 12 4.9c5 0 9 4.1 9 7.1a8.6 8.6 0 0 1-2.2 3.4" />
+                    <path d="M6.3 6.9C4.2 8.3 3 10.4 3 12c0 3 4 7.1 9 7.1a9.8 9.8 0 0 0 3.6-.7" />
+                  </svg>
+                ) : (
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M3 12s3.6-7.1 9-7.1 9 4.1 9 7.1-3.6 7.1-9 7.1S3 15 3 12Z" />
+                    <circle cx="12" cy="12" r="2.6" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
         )}
 
@@ -205,7 +272,7 @@ export default function LoginPage() {
               ? "Create account"
               : mode === "signin"
                 ? "Sign in"
-                : "Email me a link"}
+                : "Send me a reset link"}
         </button>
       </form>
 
@@ -218,7 +285,7 @@ export default function LoginPage() {
           }}
           className="hint mt-4 underline underline-offset-2 hover:text-foreground"
         >
-          Forgotten your password? Get a link instead
+          Forgotten your password?
         </button>
       )}
 

@@ -8,6 +8,14 @@ const PUBLIC_PATHS = [
   "/login",
   // An invitation is opened by somebody who is not a member yet.
   "/join",
+  /*
+   * Reached from a reset link, which normally arrives with a session already
+   * exchanged. Open anyway so an expired or reused link can say so — bounced
+   * to /login it would look like the link had simply done nothing. Safe
+   * without a session: changing a password needs one, and the page has none
+   * to offer.
+   */
+  "/reset-password",
   // The pitch, and the two pages Meta's reviewer will ask for.
   "/home",
   "/privacy",
