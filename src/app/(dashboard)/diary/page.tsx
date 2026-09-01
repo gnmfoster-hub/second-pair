@@ -6,7 +6,7 @@ import { WeekGrid, type Entry } from "./WeekGrid";
 import { Shortcuts } from "./Shortcuts";
 import { NewEntry } from "./NewEntry";
 import { ColourBy } from "./ColourBy";
-import type { ColourMode } from "@/lib/diaryColour";
+import { colourForName, type ColourMode } from "@/lib/diaryColour";
 import { formatPence } from "@/lib/money";
 
 type RawRow = {
@@ -333,12 +333,30 @@ export default async function DiaryPage({
                   ? `/diary?view=day&day=${isoDate(focusDay)}&who=${a.id}`
                   : `/diary?view=week&week=${isoDate(start)}&who=${a.id}`
               }
-              className={`rounded-full px-3 py-1 text-xs transition-colors ${
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition-colors ${
                 focused === a.id
                   ? "bg-surface-2 text-foreground"
                   : "border border-border text-muted hover:text-foreground"
               }`}
             >
+              {/*
+               * The chips are the key.
+               *
+               * Cards are coloured by person, and nothing anywhere said which
+               * colour was whose — so a four-chair salon read as pretty
+               * confetti. A dot on the name each person already has costs no
+               * space and answers it, without a legend to put somewhere.
+               *
+               * Only when the colour actually means the person; by client or by
+               * category a dot here would be a lie.
+               */}
+              {(studio.diary_colour ?? "category") === "person" && (
+                <span
+                  className="size-2 shrink-0 rounded-full"
+                  style={{ background: a.colour || colourForName(a.name) }}
+                  aria-hidden
+                />
+              )}
               {a.name}
             </Link>
           ))}
