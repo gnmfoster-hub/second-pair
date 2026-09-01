@@ -84,7 +84,13 @@ export default async function ConversationPage({
       <div className="mt-3 flex items-start gap-4">
         <div className="min-w-0 flex-1">
           <h1 className="page-title">
-            {contact?.name ?? "Unnamed enquiry"}
+            {/*
+             * The third place this pattern turned up, after the inbox and the
+             * client list. Plenty of people never give a name, so "Unnamed
+             * enquiry" is the common heading rather than the rare one — and
+             * what they asked about is a better title than the word Unnamed.
+             */}
+            {contact?.name ?? enquiry?.description ?? band?.size_label ?? "New enquiry"}
           </h1>
           <p className="hint mt-1">
             {CHANNEL_LABELS[conversation.channel as keyof typeof CHANNEL_LABELS]} ·{" "}
@@ -172,17 +178,34 @@ export default async function ConversationPage({
         <aside className="space-y-6">
           <section className="card p-5">
             <h2 className="section-title mb-2">Contact</h2>
-            {detail("Name", contact?.name)}
-            {detail(
-              "Phone",
-              contact?.phone ? <a href={`tel:${contact.phone}`}>{contact.phone}</a> : null,
-            )}
-            {detail(
-              "Email",
-              contact?.email ? <a href={`mailto:${contact.email}`}>{contact.email}</a> : null,
-            )}
+            {/*
+             * Three dashes and then a sentence saying the same thing.
+             *
+             * When nothing has been given yet, the rows carry no information
+             * that the sentence below them does not already carry — so they
+             * are not drawn at all. A panel of empty fields reads as software
+             * that has broken rather than a conversation that is young.
+             */}
+            {contact?.name || contact?.phone || contact?.email ? (
+              <>
+                {detail("Name", contact?.name)}
+                {detail(
+                  "Phone",
+                  contact?.phone ? <a href={`tel:${contact.phone}`}>{contact.phone}</a> : null,
+                )}
+                {detail(
+                  "Email",
+                  contact?.email ? <a href={`mailto:${contact.email}`}>{contact.email}</a> : null,
+                )}
+              </>
+            ) : null}
+
             {!contact?.phone && !contact?.email && (
-              <p className="hint mt-3 text-warn">No way to reach this person yet.</p>
+              <p className={`hint text-warn ${contact?.name ? "mt-3" : ""}`}>
+                {contact?.name
+                  ? "No way to reach this person yet."
+                  : "They have not given a name or a way to reach them yet."}
+              </p>
             )}
           </section>
 
