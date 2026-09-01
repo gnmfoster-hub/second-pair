@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireStudio, getArtists } from "@/lib/studio";
 import { startOfWeek, addDays, isoDate, parseIsoDate } from "@/lib/calendar";
 import { WeekGrid, type Entry } from "./WeekGrid";
+import { MonthGrid } from "./MonthGrid";
 import { Shortcuts } from "./Shortcuts";
 import { NewEntry } from "./NewEntry";
 import { ColourBy } from "./ColourBy";
@@ -61,19 +62,38 @@ export default async function DiaryPage({
    * Now an explicit choice always wins, a ?week= is itself a choice, and the
    * team-size default only applies when nobody has asked for anything.
    */
-  const view: "day" | "week" =
+  const view: "day" | "week" | "month" =
     viewParam === "day"
       ? "day"
-      : viewParam === "week" || week
-        ? "week"
-        : team.length > 1
-          ? "day"
-          : "week";
+      : viewParam === "month"
+        ? "month"
+        : viewParam === "week" || week
+          ? "week"
+          : team.length > 1
+            ? "day"
+            : "week";
 
   const focusDay = dayParam ? parseIsoDate(dayParam) : new Date();
   const anchor = week ? parseIsoDate(week) : focusDay;
-  const start = view === "day" ? focusDay : startOfWeek(anchor);
-  const end = view === "day" ? addDays(focusDay, 1) : addDays(start, 7);
+  /*
+   * A month is shown as whole weeks, so the grid is rectangular and the days
+   * either side belong to the neighbouring months rather than being blanks.
+   */
+  const monthAnchor = new Date(
+    Date.UTC(anchor.getFullYear(), anchor.getMonth(), 1, 12),
+  );
+  const monthStart = startOfWeek(monthAnchor);
+  const monthEnd = (() => {
+    const last = new Date(
+      Date.UTC(anchor.getFullYear(), anchor.getMonth() + 1, 0, 12),
+    );
+    return addDays(startOfWeek(last), 7);
+  })();
+
+  const start =
+    view === "day" ? focusDay : view === "month" ? monthStart : startOfWeek(anchor);
+  const end =
+    view === "day" ? addDays(focusDay, 1) : view === "month" ? monthEnd : addDays(start, 7);
 
   // A little either side, so a multi-day holiday starting last week still shows.
   const { data } = await supabase
@@ -126,18 +146,36 @@ export default async function DiaryPage({
           day: "numeric",
           month: "long",
         })
-      : `${start.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${addDays(
-          start,
-          6,
-        ).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
+      : view === "month"
+        ? anchor.toLocaleDateString("en-GB", { month: "long", year: "numeric" })
+        : `${start.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${addDays(
+            start,
+            6,
+          ).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
+
+  const monthWeeks: string[][] = [];
+  for (let cursor = new Date(monthStart); cursor < monthEnd; cursor = addDays(cursor, 7)) {
+    monthWeeks.push(Array.from({ length: 7 }, (_, i) => isoDate(addDays(cursor, i))));
+  }
 
   const step = view === "day" ? 1 : 7;
-  const back = view === "day"
-    ? `/diary?view=day&day=${isoDate(addDays(focusDay, -step))}`
-    : `/diary?view=week&week=${isoDate(addDays(start, -step))}`;
-  const forward = view === "day"
-    ? `/diary?view=day&day=${isoDate(addDays(focusDay, step))}`
-    : `/diary?view=week&week=${isoDate(addDays(start, step))}`;
+
+  // A month steps by a month, not by four weeks, or the label drifts.
+  const shiftMonth = (by: number) =>
+    isoDate(new Date(Date.UTC(anchor.getFullYear(), anchor.getMonth() + by, 1, 12)));
+
+  const back =
+    view === "day"
+      ? `/diary?view=day&day=${isoDate(addDays(focusDay, -step))}`
+      : view === "month"
+        ? `/diary?view=month&week=${shiftMonth(-1)}`
+        : `/diary?view=week&week=${isoDate(addDays(start, -step))}`;
+  const forward =
+    view === "day"
+      ? `/diary?view=day&day=${isoDate(addDays(focusDay, step))}`
+      : view === "month"
+        ? `/diary?view=month&week=${shiftMonth(1)}`
+        : `/diary?view=week&week=${isoDate(addDays(start, step))}`;
 
   const awaiting = entries.filter(
     (e) => e.deposit_amount_pence > 0 && e.deposit_status !== "paid",
@@ -150,7 +188,17 @@ export default async function DiaryPage({
    * of it is spoken for, what it earns, and how much room is left. The last
    * one is the reason to look — it is the answer to "can I fit this job in?"
    */
-  const workingMinutes = Array.from({ length: view === "day" ? 1 : 7 }, (_, i) => {
+  /*
+   * However many days are actually on screen.
+   *
+   * This counted seven whatever you were looking at, so a month's bookings were
+   * being measured against a week's capacity — a figure that was quietly four
+   * or five times too full and looked plausible enough not to notice.
+   */
+  const daysInView =
+    view === "day" ? 1 : view === "month" ? monthWeeks.length * 7 : 7;
+
+  const workingMinutes = Array.from({ length: daysInView }, (_, i) => {
     const d = addDays(view === "day" ? focusDay : start, i);
     const h = studio.hours.find((x) => x.day === d.getDay());
     if (!h || h.closed) return 0;
@@ -214,7 +262,7 @@ export default async function DiaryPage({
               Day
             </Link>
             <Link
-              href={`/diary?view=week&week=${isoDate(start)}`}
+              href={`/diary?view=week&week=${isoDate(view === "month" ? focusDay : start)}`}
               className={`border-l border-border px-3.5 py-2 text-sm font-medium transition-colors ${
                 view === "week"
                   ? "bg-surface-2 text-foreground"
@@ -222,6 +270,21 @@ export default async function DiaryPage({
               }`}
             >
               Week
+            </Link>
+            {/*
+             * The question day and week cannot answer: how does October look.
+             * A tattooist books six weeks out and an owner wants to see which
+             * weeks are thin before deciding to run an offer.
+             */}
+            <Link
+              href={`/diary?view=month&week=${isoDate(anchor)}`}
+              className={`border-l border-border px-3.5 py-2 text-sm font-medium transition-colors ${
+                view === "month"
+                  ? "bg-surface-2 text-foreground"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              Month
             </Link>
           </div>
 
@@ -234,7 +297,7 @@ export default async function DiaryPage({
               ‹
             </Link>
             <Link
-              href={view === "day" ? "/diary?view=day" : "/diary?view=week"}
+              href={`/diary?view=${view}`}
               className="border-x border-border px-3.5 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
             >
               Today
@@ -256,7 +319,7 @@ export default async function DiaryPage({
           <Shortcuts
             back={back}
             forward={forward}
-            today={view === "day" ? "/diary?view=day" : "/diary?view=week"}
+            today={`/diary?view=${view}`}
             dayHref={`/diary?view=day&day=${isoDate(focusDay)}`}
             weekHref={`/diary?view=week&week=${isoDate(start)}`}
           />
@@ -369,6 +432,16 @@ export default async function DiaryPage({
        * afterwards. They live under the ? key now, with the shortcuts.
        */}
 
+        {view === "month" ? (
+          <MonthGrid
+            weeks={monthWeeks}
+            entries={entries}
+            monthIndex={anchor.getMonth()}
+            todayKey={isoDate(new Date())}
+            timezone={studio.timezone}
+            colourBy={(studio.diary_colour ?? "category") as ColourMode}
+          />
+        ) : (
         <WeekGrid
           weekStart={isoDate(start)}
           day={isoDate(focusDay)}
@@ -379,6 +452,7 @@ export default async function DiaryPage({
           hours={studio.hours}
           timezone={studio.timezone}
         />
+        )}
       </div>
 
     </div>
