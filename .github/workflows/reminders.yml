@@ -20,18 +20,36 @@ jobs:
   send:
     runs-on: ubuntu-latest
     steps:
-      - name: Call the reminders endpoint
+      # Nothing to do until the secrets exist, and that is not a failure.
+      #
+      # This used to exit 1 when they were missing, which meant a repository
+      # that had simply not been set up yet emailed its owner a failure every
+      # fifteen minutes. Loud when something is broken is right; loud about a
+      # step somebody has not got to yet is just noise, and noise is how real
+      # failures stop being read.
+      - name: Are the secrets set?
+        id: configured
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           if [ -z "$SITE_URL" ] || [ -z "$CRON_SECRET" ]; then
-            echo "SITE_URL or CRON_SECRET is not set in this repository's secrets."
-            exit 1
+            echo "ready=no" >> "$GITHUB_OUTPUT"
+            echo "Skipping: SITE_URL and CRON_SECRET are not set in this"
+            echo "repository's secrets yet, so there is nothing to call."
+            echo "Settings -> Secrets and variables -> Actions."
+          else
+            echo "ready=yes" >> "$GITHUB_OUTPUT"
           fi
 
-          # --fail-with-body so a 401 or a 503 fails the run loudly rather than
-          # succeeding quietly, which is how nobody notices reminders stopped.
+      # From here a failure is a real one: the secrets exist, so either the app
+      # is down, the secret does not match, or CRON_SECRET is missing in Vercel.
+      - name: Call the reminders endpoint
+        if: steps.configured.outputs.ready == 'yes'
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
           curl --silent --show-error --fail-with-body \
                --max-time 120 \
                --header "Authorization: Bearer $CRON_SECRET" \
