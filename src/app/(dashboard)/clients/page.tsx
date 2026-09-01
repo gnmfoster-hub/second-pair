@@ -4,6 +4,7 @@ import { requireStudio, getArtists } from "@/lib/studio";
 import { formatPence } from "@/lib/money";
 import { colourForName, initialsOf } from "@/lib/diaryColour";
 import { CHANNEL_LABELS, type Channel } from "@/lib/types";
+import { ChannelIcon } from "@/components/ChannelIcon";
 
 type Row = {
   bookings:
@@ -30,6 +31,8 @@ type Row = {
     enquiries: {
       /** Who they asked for, if they did. */
       artist_id: string | null;
+      /** What they asked about. Names the row when nobody gave a name. */
+      description: string | null;
       quote_low_pence: number | null;
       bookings: {
         artist_id: string;
@@ -57,7 +60,7 @@ export default async function ClientsPage({
     .select(
       "id, name, phone, email, instagram_handle, channel, alert, created_at, " +
         "bookings(artist_id, deposit_amount_pence, deposit_status, cancelled_at), " +
-        "conversations(id, last_message_at, artist_id, enquiries(artist_id, quote_low_pence, bookings(artist_id, deposit_amount_pence, deposit_status, cancelled_at)))",
+        "conversations(id, last_message_at, artist_id, enquiries(artist_id, description, quote_low_pence, bookings(artist_id, deposit_amount_pence, deposit_status, cancelled_at)))",
     )
     .eq("studio_id", studio.id)
     // Nameless strangers left behind by the owner testing their own
@@ -206,7 +209,20 @@ export default async function ClientsPage({
                 .map((v) => v.last_message_at)
                 .sort()
                 .pop();
-              const who = c.name ?? c.phone ?? c.instagram_handle ?? "Unnamed";
+              /*
+               * A row has to be worth choosing between.
+               *
+               * Four clients called "Unnamed" over the word "Website" tell you
+               * nothing and are impossible to pick between. Plenty of people
+               * chat and never give a name, so this is the common case, not the
+               * edge one — and what they asked about identifies them far better
+               * than the channel they used.
+               */
+              const named = c.name ?? c.phone ?? c.instagram_handle ?? null;
+              const asked = c.conversations
+                .map((v) => v.enquiries?.description)
+                .find(Boolean);
+              const who = named ?? asked ?? "Unnamed";
 
               return (
                 <li key={c.id}>
@@ -216,13 +232,23 @@ export default async function ClientsPage({
                   >
                     {/* The same faces as the inbox, so the two lists read as
                         the same people rather than two databases. */}
-                    <span
-                      className="grid size-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white"
-                      style={{ background: colourForName(who) }}
-                      aria-hidden
-                    >
-                      {initialsOf(who)}
-                    </span>
+                    {named ? (
+                      <span
+                        className="grid size-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white"
+                        style={{ background: colourForName(named) }}
+                        aria-hidden
+                      >
+                        {initialsOf(named)}
+                      </span>
+                    ) : (
+                      <span
+                        className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-2 text-muted"
+                        title={CHANNEL_LABELS[c.channel]}
+                        aria-hidden
+                      >
+                        <ChannelIcon channel={c.channel} />
+                      </span>
+                    )}
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -237,8 +263,10 @@ export default async function ClientsPage({
                         )}
                       </div>
                       <div className="hint num mt-0.5 truncate">
-                        {[c.phone, c.email].filter(Boolean).join(" · ") ||
-                          CHANNEL_LABELS[c.channel]}
+                        {named
+                          ? [c.phone, c.email].filter(Boolean).join(" · ") ||
+                            CHANNEL_LABELS[c.channel]
+                          : CHANNEL_LABELS[c.channel]}
                       </div>
                     </div>
 
