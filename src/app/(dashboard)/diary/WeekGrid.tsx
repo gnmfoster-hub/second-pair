@@ -94,6 +94,26 @@ const clock = (iso: string, timezone: string) =>
   }).format(new Date(iso));
 
 /**
+ * "9:00 – 9:45 am", not "9:00 am – 9:45 am".
+ *
+ * Saying am twice costs six characters on a card that is already narrow, and
+ * it was pushing the end time off the edge in a seven-day week. Every calendar
+ * drops it from the first half when both halves share it; when they straddle
+ * noon or midnight it has to stay, and it does.
+ */
+function timeRange(startIso: string, endIso: string, timezone: string): string {
+  const start = clock(startIso, timezone);
+  const end = clock(endIso, timezone);
+
+  const startMeridiem = start.slice(-2);
+  const endMeridiem = end.slice(-2);
+
+  return startMeridiem === endMeridiem
+    ? `${start.slice(0, -3)} – ${end}`
+    : `${start} – ${end}`;
+}
+
+/**
  * Side-by-side columns for entries that overlap, so a double-booked hour is
  * legible rather than one card hiding another.
  */
@@ -782,9 +802,22 @@ export function WeekGrid({
                             {e.title ?? e.clientName ?? cat.label}
                           </span>
                         </div>
+                        {/*
+                          * When it starts and when it ends.
+                          *
+                          * The height says how long it runs, but only if you
+                          * measure it against the hour lines — and "how long
+                          * have I got after this" is a question asked far more
+                          * often than that is worth. The end time only appears
+                          * where the card is wide enough for both, so a
+                          * fifteen-minute slot in a seven-day week is not made
+                          * unreadable for it.
+                          */}
                         {height > 32 && (
                           <div className="num truncate text-[11px] text-foreground/85">
-                            {clock(e.starts_at, timezone)}
+                            {width > 45
+                              ? timeRange(e.starts_at, e.ends_at, timezone)
+                              : clock(e.starts_at, timezone)}
                           </div>
                         )}
                         {height > 54 && (e.description || e.notes) && (
