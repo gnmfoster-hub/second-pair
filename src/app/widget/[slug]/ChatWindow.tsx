@@ -290,7 +290,20 @@ export function ChatWindow({
 
   return (
     <div
-      className="flex h-screen flex-col bg-background"
+      /*
+       * Two things, both only visible on the shareable link rather than the
+       * embedded widget.
+       *
+       * max-w-2xl: inside a business's website the frame is about 380px and
+       * this never binds. Opened as a link on a desktop it was a chat stretched
+       * across the whole monitor, with the bubbles stranded at one edge.
+       *
+       * h-dvh rather than h-screen: on iOS Safari 100vh includes the space the
+       * address bar occupies, so the composer sat underneath it and the last
+       * thing typed could not be seen. The link goes in an Instagram bio, so
+       * a phone is where most people will open it.
+       */
+      className="mx-auto flex h-dvh w-full max-w-2xl flex-col bg-background sm:border-x sm:border-border"
       style={{ ["--brand" as string]: brand, ["--on-brand" as string]: onBrand }}
     >
       {/* ─────────────────────────────────────────────────────────── header */}
