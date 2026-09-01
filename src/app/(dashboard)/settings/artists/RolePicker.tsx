@@ -49,7 +49,7 @@ export function RolePicker({
                 }}
                 className={`rounded-full px-3 py-1 text-xs transition-colors ${
                   chosen
-                    ? "bg-accent text-white"
+                    ? "bg-accent text-on-accent"
                     : "border border-border text-muted hover:text-foreground"
                 }`}
               >
@@ -67,7 +67,7 @@ export function RolePicker({
             }}
             className={`rounded-full px-3 py-1 text-xs transition-colors ${
               typing
-                ? "bg-accent text-white"
+                ? "bg-accent text-on-accent"
                 : "border border-dashed border-border text-muted hover:text-foreground"
             }`}
           >

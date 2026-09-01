@@ -126,7 +126,7 @@ function Tick({ on }: { on: boolean }) {
   return (
     <span
       className={`grid size-4 shrink-0 place-items-center rounded border ${
-        on ? "border-accent bg-accent text-white" : "border-border"
+        on ? "border-accent bg-accent text-on-accent" : "border-border"
       }`}
       aria-hidden
     >

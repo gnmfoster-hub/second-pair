@@ -130,7 +130,7 @@ export default async function ConversationPage({
                     className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm ${
                       fromClient
                         ? "rounded-tl-sm bg-surface-2"
-                        : "ml-auto rounded-br-sm bg-accent/90 text-white"
+                        : "ml-auto rounded-br-sm bg-accent/90 text-on-accent"
                     }`}
                   >
                     {m.role === "owner" && (

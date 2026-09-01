@@ -81,7 +81,7 @@ export default function HomePage() {
           {/* The product, being the product. */}
           <div className="card overflow-hidden p-0">
             <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
-              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-xs font-semibold text-white">
+              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-xs font-semibold text-on-accent">
                 FE
               </span>
               <div className="min-w-0">
@@ -100,7 +100,7 @@ export default function HomePage() {
                   key={i}
                   className={`max-w-[86%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                     line.from === "them"
-                      ? "ml-auto rounded-br-sm bg-accent text-white"
+                      ? "ml-auto rounded-br-sm bg-accent text-on-accent"
                       : "rounded-tl-sm bg-surface-2"
                   }`}
                 >

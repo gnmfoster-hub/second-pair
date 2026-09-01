@@ -90,7 +90,7 @@ export function MessageClient({
                   aria-pressed={channel === r.channel}
                   className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors ${
                     channel === r.channel
-                      ? "border-accent bg-accent text-white"
+                      ? "border-accent bg-accent text-on-accent"
                       : "border-border text-muted hover:text-foreground"
                   }`}
                 >

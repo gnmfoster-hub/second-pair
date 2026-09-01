@@ -265,7 +265,7 @@ export default async function InboxPage() {
                         {!reach && (
                           <span
                             className={`hidden shrink-0 text-[11px] sm:inline ${
-                              c.status === "needs_human" ? "text-warn" : "text-muted/70"
+                              c.status === "needs_human" ? "text-warn" : "text-muted"
                             }`}
                             title="No phone or email yet"
                           >

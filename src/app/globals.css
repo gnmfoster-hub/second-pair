@@ -35,8 +35,11 @@
   /* Ink on orange passes AA; white on it does not. Named once so no
      button has to remember. */
   --on-highlight: #17150f;
+  /* Same idea for the accent. White here, ink in dark mode, where the
+     accent is a pale blue that white cannot be read on. */
+  --on-accent: #ffffff;
   --ok: #1f6b4a;
-  --warn: #a5560a;
+  --warn: #8a4708;
   --bad: #b03024;
 
   --logo-bubble: #14243f;
@@ -77,6 +80,7 @@
     --highlight: #f07818;
     --highlight-strong: #ff8f38;
     --on-highlight: #17150f;
+    --on-accent: #0a0f1a;
     --ok: #46c98e;
     --warn: #eda13f;
     --bad: #ef7264;
@@ -115,6 +119,7 @@
   --highlight: #f07818;
   --highlight-strong: #ff8f38;
   --on-highlight: #17150f;
+  --on-accent: #0a0f1a;
   --ok: #46c98e;
   --warn: #eda13f;
   --bad: #ef7264;
@@ -150,6 +155,7 @@
   --color-highlight: var(--highlight);
   --color-highlight-strong: var(--highlight-strong);
   --color-on-highlight: var(--on-highlight);
+  --color-on-accent: var(--on-accent);
   --color-accent-strong: var(--accent-strong);
   --color-cal-client: var(--cal-client);
   --color-cal-work: var(--cal-work);
@@ -324,7 +330,8 @@ body {
   }
 
   .btn-primary {
-    @apply bg-accent text-white hover:bg-accent/90;
+    @apply bg-accent hover:bg-accent/90;
+    color: var(--on-accent);
   }
 
   /*

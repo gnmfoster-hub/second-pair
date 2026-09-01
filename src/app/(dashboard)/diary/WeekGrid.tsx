@@ -414,7 +414,7 @@ export function WeekGrid({
                     <span
                       className={`grid size-9 place-items-center rounded-xl font-display text-lg font-bold tabular-nums leading-none ${
                         isToday
-                          ? "bg-accent text-white shadow-[var(--shadow-card)]"
+                          ? "bg-accent text-on-accent shadow-[var(--shadow-card)]"
                           : closed
                             ? "text-muted/70"
                             : "text-foreground"
@@ -437,7 +437,7 @@ export function WeekGrid({
                   </div>
                 )}
                 {closed && (
-                  <div className="text-[10px] uppercase tracking-wide text-muted/70">
+                  <div className="text-[10px] font-medium uppercase tracking-wide text-muted">
                     closed
                   </div>
                 )}
@@ -512,7 +512,7 @@ export function WeekGrid({
                    * matters once you have found it.
                    */}
                   <span className="absolute -top-2.5 right-3 flex items-baseline gap-0.5">
-                    <span className="num text-[13px] font-semibold text-foreground/75">
+                    <span className="num text-[13px] font-semibold text-foreground/85">
                       {h === 0 ? "" : h % 12 === 0 ? 12 : h % 12}
                     </span>
                     <span className="text-[9px] font-medium text-muted/70">
@@ -738,12 +738,12 @@ export function WeekGrid({
                           </span>
                         </div>
                         {height > 32 && (
-                          <div className="num truncate text-[10px] text-muted">
+                          <div className="num truncate text-[11px] text-foreground/85">
                             {clock(e.starts_at, timezone)}
                           </div>
                         )}
                         {height > 54 && (e.description || e.notes) && (
-                          <div className="truncate text-muted">
+                          <div className="truncate text-foreground/70">
                             {e.description ?? e.notes}
                           </div>
                         )}
@@ -789,7 +789,7 @@ export function WeekGrid({
                       <div className="truncate">
                         {clockOf(drag.startMinutes)} – {clockOf(drag.endMinutes)}
                       </div>
-                      <div className="truncate text-muted">
+                      <div className="truncate text-foreground/70">
                         {lengthOf(drag.endMinutes - drag.startMinutes)}
                       </div>
                     </div>

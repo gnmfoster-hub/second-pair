@@ -130,7 +130,7 @@ export function TryIt({ slug }: { slug: string }) {
             key={i}
             className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
               line.from === "you"
-                ? "ml-auto rounded-br-md bg-accent text-white"
+                ? "ml-auto rounded-br-md bg-accent text-on-accent"
                 : "rounded-bl-md bg-surface text-foreground shadow-[var(--shadow-card)]"
             }`}
           >
