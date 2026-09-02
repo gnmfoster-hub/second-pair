@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { LiveDemo } from "./LiveDemo";
 import type { Metadata } from "next";
 import { VERTICALS_BY_CATEGORY, VERTICAL_LIST } from "@/lib/verticals";
 
@@ -34,7 +34,7 @@ const CONVERSATION = [
     from: "us",
     text: "Booked in — Thursday 4 September at 1pm, and I've got your number. Anything else you need before then?",
   },
-];
+] as const;
 
 export default function HomePage() {
   return (
@@ -76,53 +76,41 @@ export default function HomePage() {
               in your diary — in your words, while your hands are full.
             </p>
 
+            {/*
+              * The call to action is the product.
+              *
+              * This said "Start free — no card", which promised a self-serve
+              * signup: pick a password, land in an empty account, work out your
+              * own prices and hours and tone. That is not what happens. Every
+              * business so far has been set up with them, on a call, and there
+              * is no billing behind the button to make "free" mean anything yet.
+              * A promise the door cannot keep is a bad first impression from a
+              * product whose entire pitch is answering honestly.
+              *
+              * So the button does the thing instead. It hands them to our own
+              * assistant, which answers whatever they want to ask and passes
+              * them to a person — which is exactly what theirs would do, on the
+              * page where we are claiming it works.
+              */}
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link
-                href="/login"
+              <a
+                href="#see-it"
                 className="btn inline-flex bg-highlight px-5 text-[0.95rem] font-semibold text-on-highlight hover:brightness-95"
               >
-                Start free
-              </Link>
+                Ask ours anything
+              </a>
               <span className="text-sm text-muted">
-                Set up in about a minute. No card.
+                It answers now. We set yours up with you.
               </span>
             </div>
           </div>
 
-          {/* The product, being the product. */}
-          <div className="card overflow-hidden p-0">
-            <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
-              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-xs font-semibold text-on-accent">
-                FE
-              </span>
-              <div className="min-w-0">
-                <div className="truncate text-sm font-medium">Foster Electrical</div>
-                <div className="flex items-center gap-1.5 text-xs text-muted">
-                  <span className="size-1.5 rounded-full bg-ok" aria-hidden />
-                  Usually replies in under a minute
-                </div>
-              </div>
-              <span className="num ml-auto shrink-0 text-[11px] text-muted">21:47</span>
-            </div>
-
-            <div className="space-y-2.5 p-4">
-              {CONVERSATION.map((line, i) => (
-                <div
-                  key={i}
-                  className={`max-w-[86%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                    line.from === "them"
-                      ? "ml-auto rounded-br-sm bg-accent text-on-accent"
-                      : "rounded-tl-sm bg-surface-2"
-                  }`}
-                >
-                  {line.text}
-                </div>
-              ))}
-            </div>
-
-            <p className="border-t border-border px-4 py-2.5 text-center text-[11px] text-muted">
-              A real conversation shape. Nobody at Foster Electrical was awake.
-            </p>
+          {/* The product, being the product — actually doing it. */}
+          <div id="see-it" className="scroll-mt-24">
+            <LiveDemo
+              conversation={CONVERSATION}
+              supportSlug={process.env.NEXT_PUBLIC_SUPPORT_SLUG}
+            />
           </div>
         </div>
       </section>
@@ -213,14 +201,15 @@ export default function HomePage() {
             The enquiries arrive whether you&rsquo;re free or not.
           </h2>
           <p className="mx-auto mt-4 max-w-md text-base leading-relaxed text-muted">
-            Set it up in about a minute and see what it says to the next one.
+            Ask ours what you want to know. It answers straight away, and it will put you
+            in front of a person to get you set up.
           </p>
-          <Link
-            href="/login"
+          <a
+            href="#see-it"
             className="btn mt-8 inline-flex bg-highlight px-6 text-[0.95rem] font-semibold text-on-highlight hover:brightness-95"
           >
-            Start free
-          </Link>
+            Ask ours anything
+          </a>
         </div>
       </section>
     </>

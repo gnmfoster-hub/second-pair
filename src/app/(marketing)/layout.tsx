@@ -28,12 +28,17 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               Sign in
             </Link>
             {/* The pack allows amber for one call to action per screen. This
-                is that one, and it is the only amber on the page. */}
+                is that one, and it is the only amber on the page.
+
+                It pointed at /login, which is a password box — a door for
+                people who already have an account, offered to people who do
+                not. Nobody self-serves onto this yet: every business is set up
+                with them. So it asks, and our own assistant does the asking. */}
             <Link
-              href="/login"
+              href="/home#see-it"
               className="btn inline-flex bg-highlight font-semibold text-on-highlight hover:brightness-95"
             >
-              Get started
+              Get set up
             </Link>
           </div>
         </div>
