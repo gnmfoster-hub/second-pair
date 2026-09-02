@@ -339,6 +339,20 @@ async function saveEnquiry(
     );
     if (!band) return { result: `No size band called "${input.size_band}".` };
     patch.size_band_id = band.id;
+    /*
+     * Tell the rest of this turn, not just the database.
+     *
+     * The context is read once before the tools run, so anything learned
+     * during a turn was invisible to every tool after it. A customer who asks
+     * the price and the availability in one message — which is how people
+     * actually ask — had the band saved and then the diary searched as though
+     * nothing were known, which falls back to the consultation length.
+     *
+     * That offered, and would have booked, a thirty-minute slot for a two and
+     * a half hour tattoo: the artist double-booked for the rest of the
+     * afternoon, from one ordinary sentence.
+     */
+    ctx.enquirySizeBandId = band.id;
     saved.push("size_band");
   }
 
@@ -347,6 +361,8 @@ async function saveEnquiry(
       (a) => a.name.toLowerCase() === (input.artist_name as string).toLowerCase(),
     );
     if (!artist) return { result: `Nobody here called "${input.artist_name}".` };
+    // Same reason as the band above: later tools in this turn need to know.
+    ctx.enquiryArtistId = artist.id;
     patch.artist_id = artist.id;
     saved.push("artist_name");
   }
@@ -429,6 +445,9 @@ async function quoteEstimate(
       size_band_id: band.id,
     })
     .eq("id", ctx.enquiryId);
+
+  // As above — a quote in the same turn as a diary lookup has to inform it.
+  ctx.enquirySizeBandId = band.id;
 
   const deposit = depositFor(ctx.studio.deposit_rule, quote);
   // What the customer should be told, which is not always what was typed in.
