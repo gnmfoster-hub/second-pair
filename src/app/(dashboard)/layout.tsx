@@ -32,7 +32,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="flex min-h-screen">
       {/* Desktop: a sidebar. Phone: a top bar and a bottom tab bar, below. */}
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface md:flex">
+      {/*
+        * The shell recedes so the work can come forward.
+        *
+        * The sidebar was white and the page was paper, which put the
+        * navigation on the same plane as the cards and slightly brighter
+        * than them — so the chrome competed with the content. Paper here
+        * and white on the cards gives one clear order: frame, page, thing.
+        */}
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-background md:flex">
         <div className="px-4 pb-3 pt-4">
           {/*
            * The full lockup, tagline and all. The pack wants 180px of width for

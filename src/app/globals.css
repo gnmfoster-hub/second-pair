@@ -46,8 +46,14 @@
   --logo-dot-1: #efeee9;
   --logo-dot-2: #f07818;
 
-  --shadow-card: 0 1px 2px rgba(20, 36, 63, 0.06), 0 1px 3px rgba(20, 36, 63, 0.04);
-  --shadow-pop: 0 8px 28px rgba(20, 36, 63, 0.16);
+  --shadow-card:
+    0 1px 1px rgba(20, 36, 63, 0.04),
+    0 3px 8px -2px rgba(20, 36, 63, 0.06),
+    0 12px 24px -12px rgba(20, 36, 63, 0.10);
+  --shadow-pop:
+    0 2px 4px rgba(20, 36, 63, 0.06),
+    0 12px 28px -6px rgba(20, 36, 63, 0.16),
+    0 28px 56px -24px rgba(20, 36, 63, 0.22);
 
   /* Diary. Client work carries the accent because it is the thing that earns;
      everything else is deliberately quieter. */
@@ -89,8 +95,13 @@
     --logo-dot-1: #14243f;
     --logo-dot-2: #f07818;
 
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
-    --shadow-pop: 0 8px 32px rgba(0, 0, 0, 0.6);
+    --shadow-card:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 1px 2px rgba(0, 0, 0, 0.4),
+      0 8px 20px -10px rgba(0, 0, 0, 0.6);
+    --shadow-pop:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 16px 40px -12px rgba(0, 0, 0, 0.7);
 
     --cal-client: #6f9bf0;
     --cal-work: #a98fe0;
@@ -128,8 +139,13 @@
   --logo-dot-1: #14243f;
   --logo-dot-2: #f07818;
 
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow-pop: 0 8px 32px rgba(0, 0, 0, 0.6);
+  --shadow-card:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 8px 20px -10px rgba(0, 0, 0, 0.6);
+  --shadow-pop:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 16px 40px -12px rgba(0, 0, 0, 0.7);
 
   --cal-client: #6f9bf0;
   --cal-work: #a98fe0;
