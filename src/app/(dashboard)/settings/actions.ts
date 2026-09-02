@@ -189,12 +189,26 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
    * somebody hitting it is somebody who wants to pay for more.
    */
   if (!str(fd, "id") && studio.seat_limit != null) {
-    const { count } = await supabase
+    const { count, error } = await supabase
       .from("artists")
       .select("id", { count: "exact", head: true })
       .eq("studio_id", studio.id);
 
-    if ((count ?? 0) >= studio.seat_limit) {
+    /*
+     * A limit that cannot be checked is not a limit.
+     *
+     * This read `count ?? 0`, so a failed query became nought people, nought
+     * was under every limit, and the seat cap silently stopped applying — the
+     * one check standing between a plan and an unpaid team. Any counting
+     * question that cannot be answered has to refuse, not wave things through:
+     * the cost of a wrong refusal is somebody rings up, and the cost of a wrong
+     * allowance is nobody ever finds out.
+     */
+    if (error || count == null) {
+      return { error: "Could not check how many people your plan covers. Try again." };
+    }
+
+    if (count >= studio.seat_limit) {
       return {
         error:
           `Your plan covers ${studio.seat_limit} ${studio.seat_limit === 1 ? "person" : "people"}, ` +
