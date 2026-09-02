@@ -80,7 +80,7 @@ export async function createBusiness(_prev: Result, fd: FormData): Promise<Resul
 
   const { data: studio, error: studioError } = await db
     .from("studios")
-    .insert({ name, slug, vertical })
+    .insert({ name, slug, vertical, owner_name: String(fd.get("owner") ?? "").trim() || null })
     .select("id, slug")
     .single();
 
@@ -226,6 +226,9 @@ export async function saveAccount(_prev: Result, fd: FormData): Promise<Result> 
       account_status: status,
       billing_started_on: started,
       account_note: String(fd.get("note") ?? "").trim() || null,
+      owner_name: String(fd.get("owner_name") ?? "").trim() || null,
+      owner_phone: String(fd.get("owner_phone") ?? "").trim() || null,
+      trial_ends_on: String(fd.get("trial_ends") ?? "").trim() || null,
     })
     .eq("id", id);
 

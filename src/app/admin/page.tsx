@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { isPlatformAdmin, type BusinessSummary, type PlatformKpis } from "@/lib/platform";
 import { VERTICAL_LIST } from "@/lib/verticals";
 import { Console } from "./Console";
@@ -28,11 +29,27 @@ export default async function AdminPage() {
 
   const db = createAdminClient();
 
+  /*
+   * One clock for the whole page.
+   *
+   * Read once rather than per business: fifteen calls to Date.now() while
+   * rendering can disagree with each other, and "quiet for 14 days" flipping to
+   * 15 halfway down the list would be a small, baffling inconsistency.
+   *
+   * The rule against impure calls in render is aimed at client components,
+   * where a re-render would silently change the answer. This is a server
+   * component: it runs once per request, produces one number, and that number
+   * is exactly what "how long since they were last busy" means. Reading the
+   * clock is the intent, not an accident.
+   */
+  // eslint-disable-next-line react-hooks/purity
+  const asOf = Date.now();
+
   const [{ data: studios }, { data: members }, { data: users }] = await Promise.all([
     db
       .from("studios")
       .select(
-        "id, name, slug, vertical, created_at, hours, plan, plan_pence, seat_limit, account_status, billing_started_on, account_note, channels_allowed",
+        "id, name, slug, vertical, created_at, hours, plan, plan_pence, seat_limit, account_status, billing_started_on, account_note, channels_allowed, owner_name, owner_phone, trial_ends_on",
       )
       .order("created_at"),
     db.from("studio_members").select("studio_id, user_id, role").eq("role", "owner"),
@@ -110,6 +127,12 @@ export default async function AdminPage() {
         billingStartedOn: s.billing_started_on ?? null,
         note: s.account_note ?? null,
         channels: (s.channels_allowed ?? ["web"]) as string[],
+        ownerName: s.owner_name ?? null,
+        ownerPhone: s.owner_phone ?? null,
+        trialEndsOn: s.trial_ends_on ?? null,
+        quietDays: latest?.last_message_at
+          ? Math.floor((asOf - new Date(latest.last_message_at).getTime()) / 86_400_000)
+          : null,
       };
     }),
   );
@@ -168,8 +191,19 @@ export default async function AdminPage() {
     seatsSold: summaries.reduce((sum, b) => sum + (b.seatLimit ?? b.people), 0),
   };
 
+  /*
+   * Does whoever is looking also run a business? Decides whether the way back
+   * to a diary is worth showing, because for the platform login there is none.
+   */
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const hasOwnBusiness = (members ?? []).some((m) => m.user_id === user?.id);
+
   return (
     <Console
+      hasOwnBusiness={hasOwnBusiness}
       kpis={kpis}
       businesses={summaries}
       trades={VERTICAL_LIST.map((v) => ({ value: v.id, label: v.label }))}

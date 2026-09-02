@@ -84,6 +84,16 @@ export type BusinessSummary = {
   note: string | null;
   /** What they are authorised to use. Everything here is chargeable but "web". */
   channels: string[];
+
+  /*
+   * How to reach the person who runs it. An email address is not how you ring
+   * somebody whose diary has stopped working on a Saturday morning.
+   */
+  ownerName: string | null;
+  ownerPhone: string | null;
+  trialEndsOn: string | null;
+  /** Days since anybody messaged them. Null when nobody ever has. */
+  quietDays: number | null;
 };
 
 /**

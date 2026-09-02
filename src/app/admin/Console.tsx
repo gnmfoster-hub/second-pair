@@ -19,23 +19,31 @@ export function Console({
   kpis,
   businesses,
   trades,
+  hasOwnBusiness,
 }: {
   kpis: PlatformKpis;
   businesses: BusinessSummary[];
   trades: { value: string; label: string }[];
+  /** Whether this administrator also runs a business, and so has a diary. */
+  hasOwnBusiness: boolean;
 }) {
   const [adding, setAdding] = useState(false);
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
       {/*
-        * A way back, because this sits outside the app and has no navigation of
-        * its own. Somebody who came here to set a business up usually wants
-        * their own diary next.
+        * No link back when there is nowhere to go back to.
+        *
+        * The platform login owns no business, so "/" sends it straight here
+        * again — a link that appeared to do nothing, because it did nothing.
+        * It only shows for somebody who also runs a business of their own,
+        * which is the only case where it means anything.
         */}
-      <Link href="/" className="hint inline-flex items-center gap-1.5 hover:text-foreground">
-        &larr; Your own account
-      </Link>
+      {hasOwnBusiness && (
+        <Link href="/" className="hint inline-flex items-center gap-1.5 hover:text-foreground">
+          &larr; Your own diary
+        </Link>
+      )}
 
       <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-2">
         <h1 className="page-title">Second Pair</h1>
@@ -175,6 +183,17 @@ function Business({ b }: { b: BusinessSummary }) {
             {b.seatLimit != null && b.people > b.seatLimit && (
               <span className="pill bg-warn/10 text-warn">Over seats</span>
             )}
+            {b.status === "trial" && b.trialEndsOn && (
+              <span
+                className={`pill ${
+                  new Date(b.trialEndsOn) < new Date()
+                    ? "bg-warn/10 text-warn"
+                    : "bg-surface-2 text-muted"
+                }`}
+              >
+                {new Date(b.trialEndsOn) < new Date() ? "Trial ended" : `Trial to ${new Date(b.trialEndsOn).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`}
+              </span>
+            )}
             {b.channels
               .filter((c) => c !== "web")
               .map((c) => (
@@ -183,10 +202,31 @@ function Business({ b }: { b: BusinessSummary }) {
                 </span>
               ))}
           </div>
+          {/*
+            * Who to ask for, and how to reach them, without opening anything.
+            *
+            * An email address is not how you ring somebody whose diary has
+            * stopped working on a Saturday, so the phone number is a link you
+            * can press.
+            */}
           <p className="hint mt-1">
-            {owner ?? "no owner attached"} · /{b.slug}
+            {b.ownerName ? <strong className="text-foreground">{b.ownerName}</strong> : null}
+            {b.ownerName && (owner || b.ownerPhone) ? " · " : ""}
+            {owner ? <a href={`mailto:${owner}`} className="hover:underline">{owner}</a> : "no owner attached"}
+            {b.ownerPhone ? (
+              <>
+                {" · "}
+                <a href={`tel:${b.ownerPhone.replace(/\s+/g, "")}`} className="hover:underline">
+                  {b.ownerPhone}
+                </a>
+              </>
+            ) : null}
+          </p>
+          <p className="hint mt-0.5">
+            /{b.slug}
             {b.plan ? ` · ${b.plan}` : ""}
             {b.planPence > 0 ? ` · ${formatPence(b.planPence)}/mo` : ""}
+            {b.quietDays != null && b.quietDays > 14 ? ` · quiet for ${b.quietDays} days` : ""}
           </p>
         </div>
 
@@ -264,6 +304,29 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
         */}
       <form action={saveAction} className="grid gap-3 sm:grid-cols-3">
         <input type="hidden" name="id" value={b.id} />
+        {/*
+          * Who to ring, first. It is the field this screen gets opened for
+          * more often than any of the money ones.
+          */}
+        <label className="block">
+          <span className="label">Who to ask for</span>
+          <input name="owner_name" defaultValue={b.ownerName ?? ""} className="input" placeholder="Dave" />
+        </label>
+        <label className="block">
+          <span className="label">Phone</span>
+          <input
+            name="owner_phone"
+            inputMode="tel"
+            defaultValue={b.ownerPhone ?? ""}
+            className="input"
+            placeholder="07700 900123"
+          />
+        </label>
+        <label className="block">
+          <span className="label">Trial ends</span>
+          <input type="date" name="trial_ends" defaultValue={b.trialEndsOn ?? ""} className="input" />
+        </label>
+
         <label className="block">
           <span className="label">Plan</span>
           <input name="plan" defaultValue={b.plan ?? ""} className="input" placeholder="Standard" />
