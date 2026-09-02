@@ -2,7 +2,7 @@
  * Second Pair chat widget loader.
  *
  * Drop one line into the business's site:
- *   <script src="https://app.handled.example/widget.js" data-studio="living-canvas-tattoo"></script>
+ *   <script src="https://www.second-pair.com/widget.js" data-studio="living-canvas-tattoo"></script>
  *
  * Optional:
  *   data-accent="#1d4ed8"   the button colour

@@ -76,7 +76,27 @@ export default function PrivacyPage() {
             <strong>Stripe</strong>, if you pay a deposit. Card details go straight to
             Stripe and are never seen or held by Second Pair or by the business.
           </li>
+          <li>
+            <strong>Vercel</strong>, which runs the software itself.
+          </li>
+          <li>
+            <strong>Resend</strong>, if the business emails you — a confirmation, a
+            reminder, or a reply.
+          </li>
+          <li>
+            <strong>Twilio</strong>, if the business texts you.
+          </li>
+          <li>
+            <strong>Meta</strong>, if you messaged the business on Instagram, Facebook or
+            WhatsApp. That conversation is on Meta&rsquo;s systems as well as ours, under
+            their own privacy policy.
+          </li>
         </ul>
+        <p>
+          Nobody else. These are the only companies your details reach, and each of them
+          only receives what it needs to do its part — Twilio gets a phone number and a
+          message, not your appointment history.
+        </p>
       </Section>
 
       <Section title="How long it is kept">
@@ -112,12 +132,14 @@ export default function PrivacyPage() {
       <Section title="Contact">
         <p>
           Written questions and requests to{" "}
-          <a href="mailto:privacy@second-pair.com">privacy@second-pair.com</a>.
+          <a href="mailto:info@second-pair.com">info@second-pair.com</a>.
         </p>
         <p className="draft">
-          Before this goes live it needs the registered company name and address, the ICO
-          registration number, and confirmation of the retention period. Ask me and
-          I&rsquo;ll fill them in.
+          Still to add before this is final: the registered name and address behind Second
+          Pair, the ICO registration number, and confirmation of where the database
+          actually sits — this notice says the United Kingdom and that has to be checked
+          against the Supabase project rather than assumed. The six-year retention below
+          also wants confirming.
         </p>
       </Section>
     </Legal>

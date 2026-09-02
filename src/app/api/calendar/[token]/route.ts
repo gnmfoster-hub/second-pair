@@ -120,7 +120,7 @@ export async function GET(
     return {
       // Stable and globally unique, so refreshing updates rather than
       // duplicating, and two businesses cannot collide in one calendar.
-      uid: `${row.id}@secondpair`,
+      uid: `${row.id}@second-pair.com`,
       starts: new Date(row.starts_at),
       ends: new Date(row.ends_at),
       allDay: row.all_day,

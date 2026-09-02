@@ -25,7 +25,7 @@ function ready(): boolean {
       // A domain we actually own. secondpair.co.uk was never registered, and a
       // push service that cannot reach the sender at the address it was given
       // is entitled to stop delivering.
-      process.env.VAPID_SUBJECT || "mailto:hello@second-pair.com",
+      process.env.VAPID_SUBJECT || "mailto:info@second-pair.com",
       publicKey,
       privateKey,
     );
