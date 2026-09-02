@@ -41,13 +41,34 @@ export function ArtistEditor({
         )}
         <div className="min-w-0 flex-1">
           <div className="text-sm">
-            {artist?.name ?? `Add ${/^[aeiou]/i.test(noun) ? "an" : "a"} ${noun}`}
+            {/*
+              * "Add someone", not "Add a stylist".
+              *
+              * The trade word is the studio's, and inside one trade it is often
+              * wrong for the person being added: a salon has nail technicians
+              * and beauty therapists as well as stylists, a garage has a valeter
+              * as well as mechanics. Naming them before they have said what they
+              * do is a small thing that tells somebody the software does not
+              * quite know their business.
+              *
+              * What they do is asked two fields down, in their own words, and is
+              * shown beside their name from then on.
+              */}
+            {artist?.name ?? "Add someone"}
             {artist && !artist.active && (
               <span className="ml-2 text-xs text-muted">(inactive)</span>
             )}
           </div>
           {artist && (
             <div className="hint mt-0.5">
+              {/*
+                * What they do comes first, before what they cost.
+                *
+                * The role has been stored for a while and shown nowhere, so a
+                * team of five read as five interchangeable rows. It is also the
+                * answer to why the heading above no longer guesses.
+                */}
+              {artist.role ? `${artist.role} · ` : ""}
               {formatPence(artist.hourly_rate_pence)}/hour · minimum{" "}
               {formatPence(artist.min_charge_pence)}
               {artist.calendar_id ? "" : " · no calendar connected"}
@@ -215,7 +236,7 @@ export function ArtistEditor({
         </label>
 
         <div className="flex items-center gap-4 pt-1">
-          <SubmitButton>{isNew ? `Add ${noun}` : "Save"}</SubmitButton>
+          <SubmitButton>{isNew ? "Add them" : "Save"}</SubmitButton>
           <FormMessage state={state} />
           <div className="flex-1" />
           {artist && (
