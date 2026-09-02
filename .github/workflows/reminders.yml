@@ -2,17 +2,26 @@ name: Send due reminders
 
 # Vercel's Hobby plan allows one cron run a day, which is not a schedule for
 # something that has to send a reminder at the right hour. GitHub Actions runs
-# this every fifteen minutes for nothing, against the same endpoint.
+# this every five minutes for nothing, against the same endpoint.
+#
+# Five rather than fifteen since first refusal arrived: when the assistant
+# stands back to let the owner answer first, this sweep is what picks the
+# enquiry up afterwards. A five-minute head start released on a fifteen-minute
+# sweep is a twenty-minute wait, which is not what was promised to the customer
+# or the owner. Five minutes is GitHub's floor.
 #
 # Calling it twice is safe by design: a reminder moves off `pending` the moment
 # it is handled, so the Vercel daily run and this one cannot double-send.
 #
 # GitHub's scheduler is best-effort and can run several minutes late under load.
-# That is fine here — a reminder is due within a window, not to the second.
+# A reminder is due within a window rather than to the second, and a held
+# enquiry answered a few minutes late is still answered — but it is why the
+# head start is described to owners as "about five minutes" rather than exactly
+# five, because promising a number this cannot keep would be a lie.
 
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "*/5 * * * *"
   # So it can be run by hand from the Actions tab when something looks stuck.
   workflow_dispatch:
 

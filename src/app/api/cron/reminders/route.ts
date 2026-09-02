@@ -2,13 +2,16 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendDueReminders } from "@/lib/reminders";
 import { releaseExpiredHolds } from "@/lib/booking";
+import { releaseHeldConversations } from "@/lib/engine/release";
+import { siteOrigin } from "@/lib/origin";
 import type { Studio } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 /**
- * The scheduled job: send what is due, release slots nobody paid for.
+ * The scheduled job: send what is due, release slots nobody paid for, and
+ * answer the enquiries the owner did not get to.
  *
  * Protected by a shared secret rather than a session, because it is called by a
  * scheduler and not a person. Without the secret set it refuses outright — an
@@ -19,7 +22,10 @@ export const maxDuration = 60;
  *
  * vercel.json runs it once a day, which is all the Hobby plan allows and is not
  * a schedule for something that has to send a reminder at the right hour. The
- * real one is .github/workflows/reminders.yml, every fifteen minutes, free.
+ * real one is .github/workflows/reminders.yml, every five minutes, free. It was
+ * fifteen until first refusal arrived: a five-minute head start released on a
+ * fifteen-minute sweep is a twenty-minute wait, which is not what was promised
+ * to either party.
  * Both is harmless: a reminder moves off `pending` the moment it is handled, so
  * it cannot be sent twice.
  *
@@ -65,5 +71,14 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ released, due, sent, waiting, failures });
+  /*
+   * The enquiries the owner was given first refusal on and did not answer.
+   *
+   * Last, and deliberately not inside the try above: a reminder that fails to
+   * send must not stop somebody's customer getting a reply, which is the more
+   * urgent of the two by a distance.
+   */
+  const answered = await releaseHeldConversations(db, await siteOrigin());
+
+  return NextResponse.json({ released, due, sent, waiting, failures, answered });
 }

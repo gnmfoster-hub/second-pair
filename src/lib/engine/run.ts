@@ -1,4 +1,7 @@
 import type { Moment } from "./moments";
+import { whoAnswers, type AnsweringMode } from "@/lib/answering";
+import { isOutOfHours } from "@/lib/report";
+import { notifyStudio } from "@/lib/notify";
 import Anthropic from "@anthropic-ai/sdk";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -76,6 +79,13 @@ export type TurnInput = {
    */
   signedIn?: boolean | null;
   /**
+   * Set only by the sweep that releases a held conversation.
+   *
+   * Without it the release would run the same decision again, hold the message
+   * a second time, and go round for ever — the assistant would never speak.
+   */
+  released?: boolean;
+  /**
    * The owner trying their own assistant out.
    *
    * Kept out of the inbox, the client list and every figure — "your assistant
@@ -95,6 +105,8 @@ export type TurnResult = {
    * Always safe to ignore — the reply says all of it in words too.
    */
   moments: Moment[];
+  /** Set when the assistant stood back: when it will answer if nobody else has. */
+  held?: Date;
 };
 
 export async function runTurn(input: TurnInput): Promise<TurnResult> {
@@ -155,12 +167,21 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
 
   const startedAt = Date.now();
 
-  await db.from("messages").insert({
-    conversation_id: conversation.id,
-    role: "client",
-    content: input.message,
-    media_urls: input.mediaUrls ?? [],
-  });
+  /*
+   * The customer's message, unless this turn is only here to answer one.
+   *
+   * A released hold re-enters with no message: the original was recorded when
+   * it arrived, minutes ago, and writing it again would show the customer
+   * saying the same thing twice in their own transcript.
+   */
+  if (!input.released) {
+    await db.from("messages").insert({
+      conversation_id: conversation.id,
+      role: "client",
+      content: input.message,
+      media_urls: input.mediaUrls ?? [],
+    });
+  }
 
   if (input.mediaUrls?.length) {
     const { data: current } = await db
@@ -188,6 +209,60 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
       paused: true,
       moments: [],
     };
+  }
+
+  /*
+   * Does this one want the owner first?
+   *
+   * Only asked when the message has just arrived from the customer. The sweep
+   * that releases a held conversation calls back in with `released`, and asking
+   * again there would hold it a second time and never answer at all.
+   */
+  if (!input.released) {
+    const decision = whoAnswers({
+      channel: input.channel,
+      now: new Date(),
+      mode: (studio.answering_mode ?? "when_free") as AnsweringMode,
+      mineUntil: studio.mine_until ? new Date(studio.mine_until) : null,
+      outOfHours: isOutOfHours(new Date(), studio.hours, studio.timezone),
+      withAClient: await withAClientNow(db, studio.id),
+      firstRefusalMinutes: studio.first_refusal_minutes ?? 5,
+    });
+
+    if (!decision.answer) {
+      await db
+        .from("conversations")
+        .update({ hold_until: decision.holdUntil.toISOString() })
+        .eq("id", conversation.id);
+
+      /*
+       * Tell them, because the hold is only worth anything if they know.
+       *
+       * This is the whole bargain: the assistant is standing back for a few
+       * minutes, and if that notification does not arrive it has simply made
+       * the business slower for no reason.
+       */
+      await notifyStudio(db, studio.id, {
+        title: "Yours first",
+        body:
+          decision.because === "owner_asked"
+            ? "You said you had this one. Reply and the assistant stays out of the way."
+            : "A new message. Reply and the assistant stays out; leave it and it answers shortly.",
+        url: `/conversations/${conversation.id}`,
+        // One notification per conversation, replaced rather than stacked. Four
+        // buzzes about the same customer is how people turn notifications off.
+        tag: `hold-${conversation.id}`,
+      });
+
+      return {
+        conversationId: conversation.id,
+        reply: null,
+        status: conversation.status,
+        paused: false,
+        moments: [],
+        held: decision.holdUntil,
+      };
+    }
   }
 
   const { text: reply, moments } = await generateReply({
@@ -223,6 +298,8 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     patch.first_response_ms = Date.now() - startedAt;
   }
   if (after?.status === "new") patch.status = "qualified";
+  // It has spoken, so nothing is being held back any more.
+  patch.hold_until = null;
   await db.from("conversations").update(patch).eq("id", conversation.id);
 
   return {
@@ -249,6 +326,29 @@ type ReplyContext = Omit<ToolContext, "db"> & {
  * a sentence and thrown away, which left the widget with prose where it could
  * have had buttons.
  */
+/**
+ * Is somebody in the chair right now?
+ *
+ * The plainest signal there is that the owner's hands are full, and it is
+ * already sitting in the diary — which is why this needs no scheduling screen
+ * and nothing to remember. Cancelled appointments do not count, and neither
+ * does a slot still being held for an unpaid deposit: nobody is in it yet.
+ */
+async function withAClientNow(db: ReturnType<typeof createAdminClient>, studioId: string) {
+  const now = new Date().toISOString();
+  const { data } = await db
+    .from("bookings")
+    .select("id")
+    .eq("studio_id", studioId)
+    .is("cancelled_at", null)
+    .is("held_until", null)
+    .lte("starts_at", now)
+    .gt("ends_at", now)
+    .limit(1);
+
+  return Boolean(data?.length);
+}
+
 async function generateReply(
   ctx: ReplyContext,
 ): Promise<{ text: string; moments: Moment[] }> {
