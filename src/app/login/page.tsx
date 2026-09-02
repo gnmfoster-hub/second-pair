@@ -300,8 +300,22 @@ export default function LoginPage() {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center px-6 py-10">
-      <div className="w-full max-w-sm">
+    /*
+     * The same warmth as the front of the site, and a real viewport unit.
+     *
+     * This was a small card alone on flat paper in the middle of a very large
+     * screen, which reads as unfinished rather than focused — and it is the
+     * first thing anybody sees. The aura is the wash already used on the home
+     * page, so signing in looks like the same product somebody just decided to
+     * use rather than a separate utility.
+     *
+     * min-h-dvh rather than min-h-screen: on iOS the latter is the height of
+     * the screen with the browser chrome hidden, so the card sat slightly low
+     * and the page scrolled by exactly the height of the toolbar.
+     */
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden px-6 py-10">
+      <div className="aura" aria-hidden />
+      <div className="relative w-full max-w-sm">
         <Logo height={56} lockup="flush-right" />
         <p className="hint mt-3">
           Answers your enquiries, quotes from your prices, and books people in — while
