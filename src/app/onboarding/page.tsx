@@ -84,7 +84,7 @@ async function createStudio(formData: FormData) {
       const hourly = parsePounds(formData.get("hourly_rate")) ?? 5000;
       const minimum = parsePounds(formData.get("min_charge")) ?? Math.min(hourly, 3000);
 
-      await supabase.from("artists").insert({
+      const { error } = await supabase.from("artists").insert({
         studio_id: studioId as string,
         name: yourName,
         hourly_rate_pence: hourly,
@@ -92,6 +92,24 @@ async function createStudio(formData: FormData) {
         active: true,
         booking_provider: "native",
       });
+
+      /*
+       * This one cannot be allowed to fail quietly.
+       *
+       * Without a person the assistant can neither quote nor book, and the
+       * next screen would look perfectly normal — a business set up, a trade
+       * chosen, and nothing that works. They would find out when a customer
+       * asked a price and got nothing, which is the worst possible moment.
+       *
+       * Throwing is right here and nowhere else on this page: everything
+       * before it either succeeded or already threw, and there is no partial
+       * state worth keeping somebody in.
+       */
+      if (error) {
+        throw new Error(
+          `The business was created but ${yourName} could not be added: ${error.message}`,
+        );
+      }
     }
   }
 

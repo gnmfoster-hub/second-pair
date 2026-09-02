@@ -28,6 +28,16 @@ export function Console({
   hasOwnBusiness: boolean;
 }) {
   const [adding, setAdding] = useState(false);
+  const [find, setFind] = useState("");
+
+  const needle = find.trim().toLowerCase();
+  const shown = needle
+    ? businesses.filter((b) =>
+        [b.name, b.slug, b.ownerName, b.ownerPhone, b.owners[0]?.email]
+          .filter(Boolean)
+          .some((field) => String(field).toLowerCase().includes(needle)),
+      )
+    : businesses;
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
@@ -61,11 +71,36 @@ export function Console({
 
       {adding && <NewBusiness trades={trades} onDone={() => setAdding(false)} />}
 
-      <div className="mt-6 space-y-3">
-        {businesses.length === 0 && (
-          <p className="hint">Nothing yet. Set the first one up.</p>
+      <NeedsYou businesses={businesses} />
+
+      {/*
+        * Search, because fifteen businesses is a scroll and a hundred is not.
+        *
+        * Matches the business, the owner and the slug: on the phone somebody
+        * says their own name far more often than the name above their door.
+        */}
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <input
+          value={find}
+          onChange={(e) => setFind(e.target.value)}
+          placeholder="Find a business, an owner, a number…"
+          className="input max-w-sm flex-1"
+          aria-label="Find a business"
+        />
+        <span className="hint">
+          {shown.length === businesses.length
+            ? `${businesses.length} businesses`
+            : `${shown.length} of ${businesses.length}`}
+        </span>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {shown.length === 0 && (
+          <p className="hint">
+            {businesses.length === 0 ? "Nothing yet. Set the first one up." : "Nobody matches that."}
+          </p>
         )}
-        {businesses.map((b) => (
+        {shown.map((b) => (
           <Business key={b.id} b={b} />
         ))}
       </div>
@@ -162,6 +197,70 @@ function Kpi({
       <div className="mt-1.5 text-sm font-medium">{label}</div>
       {detail && <div className="hint mt-0.5">{detail}</div>}
     </div>
+  );
+}
+
+/**
+ * The businesses that want something doing, at the top where they belong.
+ *
+ * Running this is not reading a list of fifteen and deciding; it is knowing
+ * which three need a phone call today. Four things qualify, and each is a
+ * different conversation:
+ *
+ *   - not finished setting up, so it cannot answer anybody
+ *   - over the seats they are paying for
+ *   - a trial that has run out
+ *   - overdue
+ *
+ * Nothing here when there is nothing to do, which is the point. A panel that
+ * is always on screen stops being read.
+ */
+function NeedsYou({ businesses }: { businesses: BusinessSummary[] }) {
+  const today = new Date().toISOString().slice(0, 10);
+
+  const rows = businesses
+    .map((b) => {
+      if (!ready(b)) {
+        const missing = [
+          b.people === 0 ? "nobody added" : null,
+          b.services === 0 ? "no prices" : null,
+          !b.hasHours ? "no opening hours" : null,
+        ].filter(Boolean);
+        return { b, why: `Cannot answer anybody — ${missing.join(", ")}` };
+      }
+      if (b.seatLimit != null && b.people > b.seatLimit) {
+        return { b, why: `${b.people} people on a plan for ${b.seatLimit}` };
+      }
+      if (b.status === "overdue") return { b, why: "Payment overdue" };
+      if (b.status === "trial" && b.trialEndsOn && b.trialEndsOn < today) {
+        return { b, why: "Trial has run out" };
+      }
+      return null;
+    })
+    .filter((r): r is { b: BusinessSummary; why: string } => r !== null);
+
+  if (rows.length === 0) return null;
+
+  return (
+    <section className="card mt-6 border-warn/40 p-5">
+      <h2 className="section-title">Wants something doing</h2>
+      <ul className="mt-3 space-y-2">
+        {rows.map(({ b, why }) => (
+          <li key={b.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
+            <strong>{b.name}</strong>
+            <span className="text-muted">{why}</span>
+            {b.ownerPhone && (
+              <a
+                href={`tel:${b.ownerPhone.replace(/\s+/g, "")}`}
+                className="ml-auto hover:underline"
+              >
+                {b.ownerPhone}
+              </a>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
