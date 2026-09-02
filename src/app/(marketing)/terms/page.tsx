@@ -92,9 +92,9 @@ export default function TermsPage() {
 
       <Section title="Ending it">
         <p className="draft">
-          Notice period, subscription price, billing terms and the registered company name
-          and address still need deciding. Tell me what they are and I will put them in
-          rather than guess at them.
+          Still to decide: the notice period, the price, and how billing works. Second Pair
+          trades as a sole trader, so no company number is needed here — but the trading
+          name and business address are, and they have to match the privacy notice.
         </p>
       </Section>
     </Legal>

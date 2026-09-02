@@ -70,7 +70,7 @@ export default function PrivacyPage() {
             not used to train it.
           </li>
           <li>
-            <strong>Supabase</strong>, where the data is stored, in the United Kingdom.
+            <strong>Supabase</strong>, where the data is stored — in London, and it does not leave the United Kingdom.
           </li>
           <li>
             <strong>Stripe</strong>, if you pay a deposit. Card details go straight to
@@ -129,17 +129,27 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
+      <Section title="Who is responsible">
+        <p>
+          Second Pair is run as a sole trader in the United Kingdom, and is the data
+          controller for what this notice describes. Each business using it is the
+          controller for its own customers&rsquo; details; Second Pair processes those on
+          their behalf.
+        </p>
+        <p className="draft">
+          The trading name and business address go here.
+        </p>
+      </Section>
+
       <Section title="Contact">
         <p>
           Written questions and requests to{" "}
           <a href="mailto:info@second-pair.com">info@second-pair.com</a>.
         </p>
         <p className="draft">
-          Still to add before this is final: the registered name and address behind Second
-          Pair, the ICO registration number, and confirmation of where the database
-          actually sits — this notice says the United Kingdom and that has to be checked
-          against the Supabase project rather than assumed. The six-year retention below
-          also wants confirming.
+          Two things still to add, and neither can be guessed: the name and business
+          address Second Pair trades under, and the ICO registration number. Send them and
+          they go straight in.
         </p>
       </Section>
     </Legal>
