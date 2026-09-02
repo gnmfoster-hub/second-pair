@@ -94,6 +94,18 @@ export type BusinessSummary = {
   trialEndsOn: string | null;
   /** Days since anybody messaged them. Null when nobody ever has. */
   quietDays: number | null;
+
+  /*
+   * The settings a support call is usually about. Configuration, not anybody's
+   * personal data — see the note on fixSettings for where the line is.
+   */
+  settings: {
+    timezone: string;
+    tone: string | null;
+    depositMode: string;
+    answeringMode: string;
+    hours: { day: number; open: string; close: string; closed: boolean }[];
+  };
 };
 
 /**

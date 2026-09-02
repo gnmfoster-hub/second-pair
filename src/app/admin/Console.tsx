@@ -3,7 +3,14 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import type { BusinessSummary } from "@/lib/platform";
-import { createBusiness, resetLink, deleteBusiness, saveAccount, type Result } from "./actions";
+import {
+  createBusiness,
+  resetLink,
+  deleteBusiness,
+  saveAccount,
+  fixSettings,
+  type Result,
+} from "./actions";
 import { formatPence } from "@/lib/money";
 import type { PlatformKpis } from "@/lib/platform";
 
@@ -544,6 +551,8 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
 
       <Handover state={reset} />
 
+      <FixSettings b={b} />
+
       {/*
         * Deleting takes real customers' conversations with it, so it asks for
         * the name to be typed. A confirmation that can be dismissed by reflex
@@ -571,6 +580,118 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
         {gone.note && <p className="mt-2 text-sm text-ok">{gone.note}</p>}
       </details>
     </div>
+  );
+}
+
+/**
+ * Fixing their settings while they are on the phone.
+ *
+ * The support call is nearly always the same: something is not answering, and
+ * the reason is a setting. Talking somebody through their own settings between
+ * clients is slow and goes wrong. Doing it while they describe the problem does
+ * not.
+ *
+ * Settings only, and folded away until asked for — this is the panel you open
+ * during a call, not something to browse. It cannot reach a conversation, a
+ * customer's name or a diary.
+ */
+function FixSettings({ b }: { b: BusinessSummary }) {
+  const [state, action] = useActionState<Result, FormData>(fixSettings, {});
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const hoursFor = (day: number) =>
+    b.settings.hours.find((h) => h.day === day) ?? {
+      day,
+      open: "09:00",
+      close: "17:00",
+      closed: false,
+    };
+
+  return (
+    <details className="rounded-xl border border-border p-3">
+      <summary className="cursor-pointer text-sm text-muted">
+        Fix their settings for them
+      </summary>
+
+      <form action={action} className="mt-4 space-y-4">
+        <input type="hidden" name="id" value={b.id} />
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="label">Business name</span>
+            <input name="name" defaultValue={b.name} className="input" />
+          </label>
+          <label className="block">
+            <span className="label">Timezone</span>
+            <input name="timezone" defaultValue={b.settings.timezone} className="input" />
+          </label>
+          <label className="block">
+            <span className="label">Deposits</span>
+            <select name="deposit_mode" defaultValue={b.settings.depositMode} className="input">
+              <option value="required">Required</option>
+              <option value="optional">Optional</option>
+              <option value="none">None</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="label">Who answers first</span>
+            <select name="answering_mode" defaultValue={b.settings.answeringMode} className="input">
+              <option value="when_free">First refusal while free</option>
+              <option value="always_ask_me">First refusal on everything</option>
+              <option value="always">Answer everything at once</option>
+            </select>
+          </label>
+        </div>
+
+        <label className="block">
+          <span className="label">Tone of voice</span>
+          <textarea name="tone" defaultValue={b.settings.tone ?? ""} rows={2} className="input" />
+        </label>
+
+        {/*
+          * Opening hours, because this is the setting that breaks most often —
+          * an assistant with none cannot offer a time, and that is the product.
+          */}
+        <fieldset>
+          <legend className="label">Opening hours</legend>
+          <div className="mt-1 space-y-1.5">
+            {[1, 2, 3, 4, 5, 6, 0].map((day) => {
+              const h = hoursFor(day);
+              return (
+                <div key={day} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                  <input type="hidden" name="day" value={day} />
+                  <span className="w-24 shrink-0 text-muted">{days[day]}</span>
+                  <input type="time" name={`open_${day}`} defaultValue={h.open} className="input w-[6.75rem]" />
+                  <span className="text-muted">to</span>
+                  <input type="time" name={`close_${day}`} defaultValue={h.close} className="input w-[6.75rem]" />
+                  <label className="flex items-center gap-1.5 text-muted">
+                    <input
+                      type="checkbox"
+                      name={`closed_${day}`}
+                      defaultChecked={h.closed}
+                      className="accent-[var(--accent)]"
+                    />
+                    Closed
+                  </label>
+                </div>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        <div className="flex items-center gap-3">
+          <button type="submit" className="btn bg-accent text-on-accent">
+            Save their settings
+          </button>
+          {state.error && <span className="text-sm text-warn">{state.error}</span>}
+          {state.note && <span className="text-sm text-ok">{state.note}</span>}
+        </div>
+
+        <p className="hint">
+          Changes their account, not yours. Tell them what you changed — software that
+          alters somebody&rsquo;s settings without saying so is how trust goes.
+        </p>
+      </form>
+    </details>
   );
 }
 

@@ -49,7 +49,7 @@ export default async function AdminPage() {
     db
       .from("studios")
       .select(
-        "id, name, slug, vertical, created_at, hours, plan, plan_pence, seat_limit, account_status, billing_started_on, account_note, channels_allowed, owner_name, owner_phone, trial_ends_on",
+        "id, name, slug, vertical, created_at, hours, plan, plan_pence, seat_limit, account_status, billing_started_on, account_note, channels_allowed, owner_name, owner_phone, trial_ends_on, timezone, tone, deposit_mode, answering_mode",
       )
       .order("created_at"),
     db.from("studio_members").select("studio_id, user_id, role").eq("role", "owner"),
@@ -103,7 +103,7 @@ export default async function AdminPage() {
         .limit(1)
         .maybeSingle();
 
-      const hours = (s.hours ?? []) as { closed?: boolean }[];
+      const hours = (s.hours ?? []) as { day: number; open: string; close: string; closed: boolean }[];
 
       return {
         id: s.id,
@@ -130,6 +130,13 @@ export default async function AdminPage() {
         ownerName: s.owner_name ?? null,
         ownerPhone: s.owner_phone ?? null,
         trialEndsOn: s.trial_ends_on ?? null,
+        settings: {
+          timezone: s.timezone ?? "Europe/London",
+          tone: s.tone ?? null,
+          depositMode: s.deposit_mode ?? "none",
+          answeringMode: s.answering_mode ?? "when_free",
+          hours: hours as { day: number; open: string; close: string; closed: boolean }[],
+        },
         quietDays: latest?.last_message_at
           ? Math.floor((asOf - new Date(latest.last_message_at).getTime()) / 86_400_000)
           : null,

@@ -237,3 +237,66 @@ export async function saveAccount(_prev: Result, fd: FormData): Promise<Result> 
   revalidatePath("/admin");
   return { ok: true, note: "Saved." };
 }
+
+/**
+ * Fixing a business's settings for them, from here.
+ *
+ * The support call is almost always the same: something is not answering, and
+ * the reason is a setting. Talking somebody through Settings → Assistant while
+ * they are between clients is slow and goes wrong; doing it while they describe
+ * the problem does not.
+ *
+ * Deliberately settings only. This cannot open a conversation, read a customer's
+ * name or look at a diary — the same boundary the rest of the suite keeps, and
+ * the reason the privacy notice can go on telling every customer that nobody
+ * else reads what they wrote. A business's opening hours are the business's own
+ * configuration; their customer's message is somebody else's.
+ */
+export async function fixSettings(_prev: Result, fd: FormData): Promise<Result> {
+  const denied = await guard();
+  if (denied) return denied;
+
+  const id = String(fd.get("id") ?? "");
+  if (!id) return { error: "No business." };
+
+  const patch: Record<string, unknown> = {};
+
+  const name = String(fd.get("name") ?? "").trim();
+  if (name) patch.name = name;
+
+  const timezone = String(fd.get("timezone") ?? "").trim();
+  if (timezone) patch.timezone = timezone;
+
+  const tone = String(fd.get("tone") ?? "").trim();
+  patch.tone = tone || null;
+
+  const deposit = String(fd.get("deposit_mode") ?? "").trim();
+  if (["required", "optional", "none"].includes(deposit)) patch.deposit_mode = deposit;
+
+  const mode = String(fd.get("answering_mode") ?? "").trim();
+  if (["always", "when_free", "always_ask_me"].includes(mode)) patch.answering_mode = mode;
+
+  /*
+   * Opening hours, which is the setting that breaks most often — an assistant
+   * with none cannot offer a time, and that is the whole product.
+   *
+   * All seven days or none: a partial update would leave a business open on
+   * days it had said it was shut, which is worse than not touching them.
+   */
+  const days = fd.getAll("day").map(String);
+  if (days.length === 7) {
+    patch.hours = days.map((day) => ({
+      day: Number(day),
+      open: String(fd.get(`open_${day}`) ?? "09:00"),
+      close: String(fd.get(`close_${day}`) ?? "17:00"),
+      closed: fd.get(`closed_${day}`) === "on",
+    }));
+  }
+
+  const db = createAdminClient();
+  const { error } = await db.from("studios").update(patch).eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin");
+  return { ok: true, note: "Changed. It takes effect on their next enquiry." };
+}
