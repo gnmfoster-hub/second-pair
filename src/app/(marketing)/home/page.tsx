@@ -169,7 +169,7 @@ export default function HomePage() {
               */}
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <a
-                href="#see-it"
+                href="#ask"
                 className="btn inline-flex bg-highlight px-5 text-[0.95rem] font-semibold text-on-highlight hover:brightness-95"
               >
                 Ask ours anything
@@ -284,7 +284,7 @@ export default function HomePage() {
             in front of a person to get you set up.
           </p>
           <a
-            href="#see-it"
+            href="#ask"
             className="btn mt-8 inline-flex bg-highlight px-6 text-[0.95rem] font-semibold text-on-highlight hover:brightness-95"
           >
             Ask ours anything

@@ -96,6 +96,29 @@ export function LiveDemo({
     setLive(true);
   }, []);
 
+  /*
+   * The buttons on the page open this, rather than scrolling to it.
+   *
+   * They were anchors pointing at the panel, which works on a phone where it is
+   * below the fold and does nothing at all on a desktop where it is already on
+   * screen — the main call to action on the page moved sixty-seven pixels and
+   * appeared broken. They now point at #ask, which this listens for: it opens
+   * the assistant and brings itself into view, so the same link is right at
+   * both sizes.
+   */
+  useEffect(() => {
+    const open = () => {
+      if (window.location.hash !== "#ask") return;
+      setAsking(true);
+      // Only worth scrolling when it is actually somewhere else.
+      const box = thread.current?.closest("[id]");
+      box?.scrollIntoView({ behavior: "smooth", block: "center" });
+    };
+    open();
+    window.addEventListener("hashchange", open);
+    return () => window.removeEventListener("hashchange", open);
+  }, []);
+
   // Follow the conversation down, the way the real thing does.
   useEffect(() => {
     const el = thread.current;
@@ -350,7 +373,14 @@ export function LiveDemo({
       {supportSlug && (
         <button
           type="button"
-          onClick={() => setAsking((a) => !a)}
+          onClick={() => {
+            // Clear the hash on the way back, otherwise the link that opened
+            // this is already "used" and pressing it again does nothing.
+            if (asking && window.location.hash === "#ask") {
+              history.replaceState(null, "", window.location.pathname);
+            }
+            setAsking((a) => !a);
+          }}
           className="w-full border-t border-border py-2.5 text-center text-[12px] font-medium text-highlight-strong transition-colors hover:bg-surface-2"
         >
           {asking ? "← Back to the demo" : "Ask ours anything, right now →"}
