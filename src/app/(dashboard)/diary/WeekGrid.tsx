@@ -313,6 +313,20 @@ export function WeekGrid({
    */
   const gridWidth = 68 + columns.length * MIN_COLUMN;
 
+  /*
+   * How much room a card has, and therefore how big its writing should be.
+   *
+   * The card text was a fixed 11.5px whatever the view. In a seven-day week
+   * that is right — the columns are barely wider than the words. In a day view
+   * with two people the cards are five hundred pixels across and seventy tall,
+   * and the appointment, which is the most important object on the busiest
+   * screen in the product, was still whispering at eleven and a half.
+   *
+   * Two sizes rather than a fluid scale: the jump happens when the layout
+   * changes, so it never reflows while somebody is reading.
+   */
+  const roomy = columns.length <= 3;
+
   const timed = entries.filter((e) => !e.all_day);
   const allDay = entries.filter((e) => e.all_day);
   const hourList = Array.from({ length: 24 }, (_, i) => i);
@@ -806,7 +820,11 @@ export function WeekGrid({
                           color: "var(--foreground)",
                         }}
                       >
-                        <div className="flex items-center gap-1 truncate text-[11.5px] font-semibold">
+                        <div
+                          className={`flex items-center gap-1 truncate font-semibold ${
+                            roomy ? "text-[13.5px]" : "text-[11.5px]"
+                          }`}
+                        >
                           {showWho && (
                             <span
                               className="grid size-4 shrink-0 place-items-center rounded-full text-[8px] font-bold text-white"
@@ -838,7 +856,11 @@ export function WeekGrid({
                           * unreadable for it.
                           */}
                         {height > 32 && (
-                          <div className="num truncate text-[11px] text-foreground/85">
+                          <div
+                            className={`num truncate text-foreground/85 ${
+                              roomy ? "mt-0.5 text-[12px]" : "text-[11px]"
+                            }`}
+                          >
                             {width > 45
                               ? timeRange(e.starts_at, e.ends_at, timezone)
                               : clock(e.starts_at, timezone)}
