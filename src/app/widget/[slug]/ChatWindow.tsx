@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import { initialsFor } from "@/components/Avatar";
 import { MomentCard } from "./Moments";
 import type { Moment } from "@/lib/engine/moments";
+import { retires, withoutLink } from "@/lib/conversationCards";
 
 const stroke = {
   fill: "none",
@@ -671,41 +672,6 @@ export function ChatWindow({
       </form>
     </div>
   );
-}
-
-/**
- * The words, minus what the card underneath already says better.
- *
- * The assistant is told to give the payment link on its own line, and it must
- * keep doing that — a text message has no buttons, and that sentence is what
- * gets stored and what gets sent. But in the widget it lands directly above a
- * card with the same link on a button, so the customer is shown the same URL
- * twice, once as raw text they are being asked to trust.
- *
- * Stripped only from what is drawn here. Nothing about the stored reply
- * changes, and if the card is not rendered the link stays exactly where it was.
- */
-function withoutLink(text: string, url: string) {
-  const bare = url.replace(/^https?:\/\//, "");
-  return text
-    .split("\n")
-    .filter((line) => line.trim() !== url && line.trim() !== bare)
-    .join("\n")
-    .replace(/(\n\s*){3,}/g, "\n\n")
-    .trim();
-}
-
-/**
- * Which card puts which other card out of date.
- *
- * A later card of the same kind always replaces an earlier one — a second look
- * at the diary withdraws the first set of times. Booking retires the times as
- * well, and that one matters: without it four tappable slots sat under a
- * confirmed appointment, inviting somebody who had just booked to book again.
- */
-function retires(newer: Moment["kind"], older: Moment["kind"]) {
-  if (newer === older) return true;
-  return newer === "booked" && older === "slots";
 }
 
 /** The face beside a group of replies. */

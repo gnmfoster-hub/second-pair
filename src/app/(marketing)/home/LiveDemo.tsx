@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { MomentCard } from "@/app/widget/[slug]/Moments";
 import type { Moment } from "@/lib/engine/moments";
+import { retires } from "@/lib/conversationCards";
 
 /**
  * The assistant, working, while you watch.
@@ -110,9 +111,24 @@ export function LiveDemo({
     const open = () => {
       if (window.location.hash !== "#ask") return;
       setAsking(true);
-      // Only worth scrolling when it is actually somewhere else.
+
+      /*
+       * Only scroll if it is actually off screen.
+       *
+       * "Bring it into view" and "centre it" are different requests, and this
+       * asked for the second — so on a desktop, where the panel is already
+       * beside the headline, pressing the button shoved the page down to
+       * centre something the reader was already looking at. Nothing appeared
+       * to happen except the page moving, which is the worst of both.
+       *
+       * On a phone it genuinely is below the fold, and there the scroll is the
+       * whole point.
+       */
       const box = thread.current?.closest("[id]");
-      box?.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (!box) return;
+      const seen = box.getBoundingClientRect();
+      const mostlyVisible = seen.top >= 0 && seen.bottom <= window.innerHeight;
+      if (!mostlyVisible) box.scrollIntoView({ behavior: "smooth", block: "nearest" });
     };
     open();
     window.addEventListener("hashchange", open);
@@ -388,12 +404,6 @@ export function LiveDemo({
       )}
     </div>
   );
-}
-
-/** Mirrors the widget's rule: a booking retires the times it was chosen from. */
-function retires(newer: Moment["kind"], older: Moment["kind"]) {
-  if (newer === older) return true;
-  return newer === "booked" && older === "slots";
 }
 
 function lastSlots(script: readonly Beat[]) {

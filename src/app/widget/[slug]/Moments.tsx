@@ -2,6 +2,7 @@
 
 import { formatPence } from "@/lib/money";
 import type { Moment } from "@/lib/engine/moments";
+import { buildCalendar } from "@/lib/ics";
 
 /**
  * The bits of a booking that should not be a sentence.
@@ -239,36 +240,29 @@ const hours = (low: number, high: number) =>
 /**
  * The appointment, as a file their phone understands.
  *
- * Built here rather than fetched: everything needed is already on screen, and a
- * data URL works with no round trip and nothing to go wrong offline. Folded and
- * escaped per RFC 5545 — the same rules the reminder calendar files follow.
+ * Built with the same writer the diary feed uses rather than a second one of
+ * its own. RFC 5545 is unforgiving and fails silently — a calendar will import
+ * a malformed file, show nothing, and report no error — and the version that
+ * lived here escaped three characters and folded no lines at all, so a long
+ * enough name would have produced a file that simply did nothing when tapped.
+ *
+ * A data URL rather than a fetch: everything needed is already on screen, so
+ * there is no round trip and nothing to fail offline.
  */
 function calendarHref(moment: Extract<Moment, { kind: "booked" }>) {
-  const stamp = (iso: string) => iso.replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-  const esc = (s: string) => s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,");
-
-  const body = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//Second Pair//EN",
-    "BEGIN:VEVENT",
-    `UID:${stamp(moment.startsAt)}-secondpair`,
-    /*
-     * Stamped from the appointment, not from the clock.
-     *
-     * DTSTAMP wants the moment the object was made, and reading the clock at
-     * render time made the server and the browser produce different files —
-     * a hydration mismatch on the home page, where this card is rendered on
-     * both. The appointment itself is a fixed point and every calendar
-     * application is content with it.
-     */
-    `DTSTAMP:${stamp(moment.startsAt)}`,
-    `DTSTART:${stamp(moment.startsAt)}`,
-    `DTEND:${stamp(moment.endsAt)}`,
-    `SUMMARY:${esc(`Appointment with ${moment.person}`)}`,
-    "END:VEVENT",
-    "END:VCALENDAR",
-  ].join("\r\n");
+  const body = buildCalendar({
+    name: `Appointment with ${moment.person}`,
+    events: [
+      {
+        // Stable, so tapping it twice updates the entry rather than making a
+        // second one.
+        uid: `${moment.startsAt}-${moment.person}`.replace(/\W+/g, "-").toLowerCase(),
+        starts: new Date(moment.startsAt),
+        ends: new Date(moment.endsAt),
+        summary: `Appointment with ${moment.person}`,
+      },
+    ],
+  });
 
   return `data:text/calendar;charset=utf-8,${encodeURIComponent(body)}`;
 }

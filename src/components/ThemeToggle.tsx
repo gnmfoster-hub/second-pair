@@ -22,18 +22,30 @@ function subscribe(notify: () => void) {
   };
 }
 
+/*
+ * Light unless somebody says otherwise.
+ *
+ * This followed the device, which sounds like the considerate default and is
+ * not: most people have never chosen a device theme deliberately, and a
+ * business owner showing the app to a client on a phone that flipped to dark
+ * at sunset gets a look they did not pick and cannot explain. The product has
+ * a light identity, so that is what it opens as.
+ *
+ * "Match my device" is still there and still works — it is now a choice rather
+ * than the thing that happens to you.
+ */
 function snapshot(): Choice {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "light" || stored === "dark") return stored;
+    if (stored === "light" || stored === "dark" || stored === "system") return stored;
   } catch {
-    // Storage blocked; following the device is a fine place to be.
+    // Storage blocked. Light is the default anyway, so nothing is lost.
   }
-  return "system";
+  return "light";
 }
 
-/** The server has no idea what the device prefers, so it renders "system". */
-const serverSnapshot = (): Choice => "system";
+/** Matches the pre-hydration script below: nothing chosen means light. */
+const serverSnapshot = (): Choice => "light";
 
 function choose(next: Choice) {
   const root = document.documentElement;
@@ -41,8 +53,9 @@ function choose(next: Choice) {
   else root.setAttribute("data-theme", next);
 
   try {
-    if (next === "system") localStorage.removeItem(STORAGE_KEY);
-    else localStorage.setItem(STORAGE_KEY, next);
+    // "system" is now stored rather than cleared: clearing it would mean the
+    // same thing as never having chosen, which is light.
+    localStorage.setItem(STORAGE_KEY, next);
   } catch {
     // The choice still applies for this visit.
   }
@@ -103,4 +116,11 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
  * flashing the other theme. Inlined in the document head, deliberately tiny,
  * and silent if storage is unavailable.
  */
-export const themeScript = `(function(){try{var t=localStorage.getItem("${STORAGE_KEY}");if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t)}}catch(e){}})();`;
+/*
+ * Stamped before the first paint, or the page flashes the wrong theme.
+ *
+ * Anything other than a deliberate "system" gets light, including a visitor who
+ * has never chosen — which is the default, and has to be applied here rather
+ * than in CSS so that a device set to dark does not show one frame of it.
+ */
+export const themeScript = `(function(){try{var t=localStorage.getItem("${STORAGE_KEY}");if(t!=="system"){document.documentElement.setAttribute("data-theme",t==="dark"?"dark":"light")}}catch(e){document.documentElement.setAttribute("data-theme","light")}})();`;
