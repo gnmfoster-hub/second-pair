@@ -41,7 +41,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
         * than them — so the chrome competed with the content. Paper here
         * and white on the cards gives one clear order: frame, page, thing.
         */}
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-background md:flex">
+      {/*
+       * Stays put while the page moves.
+       *
+       * It was an ordinary flex child, so it was as tall as whatever it sat
+       * beside and scrolled away with it — on a long settings page or a diary
+       * scrolled down, the navigation, the business name and the sign-out
+       * simply left. Sticky with a viewport height of its own keeps it there,
+       * and it scrolls internally on a short screen so the sign-out at the
+       * bottom is always reachable.
+       */}
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-background md:sticky md:top-0 md:flex md:h-dvh md:overflow-y-auto">
         <div className="px-4 pb-3 pt-4">
           {/*
            * The full lockup, tagline and all. The pack wants 180px of width for
