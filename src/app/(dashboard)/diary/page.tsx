@@ -247,7 +247,17 @@ export default async function DiaryPage({
           </span>
         )}
 
-        <div className="ml-auto flex items-center gap-2">
+        {/*
+         * Wraps, or the phone scrolls sideways.
+         *
+         * Six controls — three views, back, today, forward, the colour
+         * picker, the shortcuts key and Add — sat in one row that could not
+         * break. On a 390px screen that was a hundred and nine pixels of
+         * overflow: Add was off the edge of the display, and the whole page
+         * slid left and right under the thumb, which on the screen an owner
+         * opens twenty times a day is the worst place for it.
+         */}
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
           {/* One segmented control rather than five loose buttons: the view and
               the date are the same decision, and they belong together. */}
           <div className="flex overflow-hidden rounded-xl border border-border bg-surface">
