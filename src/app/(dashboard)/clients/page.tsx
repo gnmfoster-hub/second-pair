@@ -5,6 +5,7 @@ import { formatPence } from "@/lib/money";
 import { colourForName, initialsOf } from "@/lib/diaryColour";
 import { CHANNEL_LABELS, type Channel } from "@/lib/types";
 import { ChannelIcon } from "@/components/ChannelIcon";
+import { Waiting } from "@/components/Waiting";
 
 type Row = {
   bookings:
@@ -182,9 +183,38 @@ export default async function ClientsPage({
 
       <div className="card mt-5 overflow-hidden">
         {clients.length === 0 ? (
-          <p className="px-5 py-14 text-center text-sm">
-            {term ? "Nobody matches that." : "No clients yet — they arrive with the first enquiry."}
-          </p>
+          /*
+           * The same shape as the empty inbox, which had it right.
+           *
+           * This was one sentence centred in a large white box. Two screens in
+           * the same app answering the same question — "there is nothing here
+           * yet" — in two different registers reads as two different products,
+           * and the poorer of the two was the one that had an "Add a client"
+           * button sitting above it that it never mentioned.
+           *
+           * A search that found nothing is a different thing entirely: they
+           * know the list is not empty, they just cannot see what they wanted.
+           */
+          <div className="empty">
+            {term ? (
+              <>
+                <div className="empty-title">Nobody matches that</div>
+                <p className="empty-body">
+                  Try part of a name, a number, or an email address.
+                </p>
+              </>
+            ) : (
+              <>
+                <Waiting className="mx-auto mb-4 size-14" />
+                <div className="empty-title">No clients yet</div>
+                <p className="empty-body">
+                  They arrive on their own with the first enquiry — the assistant keeps
+                  their details as it books them in. You can add somebody yourself if you
+                  already know who they are.
+                </p>
+              </>
+            )}
+          </div>
         ) : (
           <ul className="divide-y divide-border">
             {clients.map((c) => {
