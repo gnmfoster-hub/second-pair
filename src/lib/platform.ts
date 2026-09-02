@@ -82,6 +82,8 @@ export type BusinessSummary = {
   status: "trial" | "active" | "overdue" | "paused" | "closed";
   billingStartedOn: string | null;
   note: string | null;
+  /** What they are authorised to use. Everything here is chargeable but "web". */
+  channels: string[];
 };
 
 /**

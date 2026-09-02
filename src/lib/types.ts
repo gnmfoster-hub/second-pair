@@ -129,6 +129,8 @@ export type Studio = {
   account_status: "trial" | "active" | "overdue" | "paused" | "closed";
   billing_started_on: string | null;
   account_note: string | null;
+  /** Channels this business may use. Everything else is refused on arrival. */
+  channels_allowed: Channel[];
   vat_registered: boolean;
   vat_rate_percent: number;
   prices_include_vat: boolean;

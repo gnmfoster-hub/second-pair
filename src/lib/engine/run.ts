@@ -200,6 +200,31 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     .update({ last_message_at: new Date().toISOString() })
     .eq("id", conversation.id);
 
+  /*
+   * Is this business authorised for the channel the message arrived on?
+   *
+   * Seats stop an owner adding their whole team on a one-person price; this
+   * stops them wiring up a channel nobody agreed to pay for. Checked here
+   * rather than only in their settings, because a channel could be connected
+   * once and then removed from the plan, and a webhook does not care what a
+   * settings page says.
+   *
+   * The message is still recorded. It is a real customer who really wrote in,
+   * and losing it because of a billing arrangement between us and the business
+   * would be punishing the wrong person — the owner sees it in their inbox and
+   * can answer by hand.
+   */
+  const allowed = (studio.channels_allowed ?? ["web"]) as Channel[];
+  if (!allowed.includes(input.channel)) {
+    return {
+      conversationId: conversation.id,
+      reply: null,
+      status: conversation.status,
+      paused: true,
+      moments: [],
+    };
+  }
+
   // The owner has taken this one over. Record what the client said and stay quiet.
   if (conversation.ai_paused) {
     return {

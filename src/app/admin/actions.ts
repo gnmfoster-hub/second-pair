@@ -204,10 +204,22 @@ export async function saveAccount(_prev: Result, fd: FormData): Promise<Result> 
 
   const started = String(fd.get("started") ?? "").trim() || null;
 
+  /*
+   * Channels are entitlements, like seats.
+   *
+   * The web widget is always on: it costs nothing extra to run and a business
+   * without it has nothing at all. Everything else is something somebody agreed
+   * to, and can be charged for differently.
+   */
+  const channels = ["web", ...fd.getAll("channel").map(String)].filter(
+    (c, i, all) => all.indexOf(c) === i,
+  );
+
   const db = createAdminClient();
   const { error } = await db
     .from("studios")
     .update({
+      channels_allowed: channels,
       plan: String(fd.get("plan") ?? "").trim() || null,
       plan_pence: pence,
       seat_limit: seats,

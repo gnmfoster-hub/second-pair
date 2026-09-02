@@ -32,7 +32,7 @@ export default async function AdminPage() {
     db
       .from("studios")
       .select(
-        "id, name, slug, vertical, created_at, hours, plan, plan_pence, seat_limit, account_status, billing_started_on, account_note",
+        "id, name, slug, vertical, created_at, hours, plan, plan_pence, seat_limit, account_status, billing_started_on, account_note, channels_allowed",
       )
       .order("created_at"),
     db.from("studio_members").select("studio_id, user_id, role").eq("role", "owner"),
@@ -109,6 +109,7 @@ export default async function AdminPage() {
         status: (s.account_status ?? "trial") as BusinessSummary["status"],
         billingStartedOn: s.billing_started_on ?? null,
         note: s.account_note ?? null,
+        channels: (s.channels_allowed ?? ["web"]) as string[],
       };
     }),
   );

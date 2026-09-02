@@ -165,6 +165,13 @@ function Business({ b }: { b: BusinessSummary }) {
             {b.seatLimit != null && b.people > b.seatLimit && (
               <span className="pill bg-warn/10 text-warn">Over seats</span>
             )}
+            {b.channels
+              .filter((c) => c !== "web")
+              .map((c) => (
+                <span key={c} className="pill bg-surface-2 text-muted">
+                  {c}
+                </span>
+              ))}
           </div>
           <p className="hint mt-1">
             {owner ?? "no owner attached"} · /{b.slug}
@@ -290,6 +297,45 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
             Save account
           </button>
         </div>
+        {/*
+          * What they are allowed to use, and therefore what they are paying for.
+          *
+          * The web widget is not listed: it is always on, it costs nothing
+          * extra, and a business without it has nothing. Everything here is a
+          * decision somebody made on a call.
+          */}
+        <fieldset className="sm:col-span-3">
+          <legend className="label">Channels authorised</legend>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {[
+              { value: "sms", label: "Text messages" },
+              { value: "email", label: "Email" },
+              { value: "instagram", label: "Instagram" },
+              { value: "whatsapp", label: "WhatsApp" },
+              { value: "messenger", label: "Messenger" },
+              { value: "voice", label: "Calls" },
+            ].map((c) => (
+              <label
+                key={c.value}
+                className="row flex cursor-pointer items-center gap-2 rounded-full border border-border px-3 py-1.5 text-sm has-[:checked]:border-accent has-[:checked]:bg-surface-2"
+              >
+                <input
+                  type="checkbox"
+                  name="channel"
+                  value={c.value}
+                  defaultChecked={b.channels.includes(c.value)}
+                  className="size-3.5 accent-[var(--accent)]"
+                />
+                {c.label}
+              </label>
+            ))}
+          </div>
+          <p className="hint mt-1.5">
+            The website widget is always on. Anything unticked is refused when a message
+            arrives on it, and the owner is told to ask you.
+          </p>
+        </fieldset>
+
         <label className="block sm:col-span-3">
           <span className="label">Note to self</span>
           <input
