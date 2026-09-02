@@ -390,13 +390,20 @@ export function WeekGrid({
    *
    * A minute is plenty — the line moves about a pixel in that time.
    */
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const tick = window.setInterval(() => setNow(Date.now()), 60_000);
-    return () => window.clearInterval(tick);
-  }, []);
-
-  const nowOffset = (minutesInDay(new Date(now).toISOString(), timezone) / 60) * HOUR_HEIGHT;
+  /*
+   * There is one current-time line, and it is drawn from `nowMinutes` above.
+   *
+   * There were two. The second kept its own clock in
+   * `useState(() => Date.now())`, which runs on the server as well — so the
+   * page was sent with the line at 1290px and hydrated with it at 1291.2, and
+   * React logged a mismatch on every single load of the busiest screen in the
+   * app. Two lines were also drawn on top of each other, which nobody noticed
+   * because they were a pixel apart and the same colour.
+   *
+   * The surviving one is set in an effect, so the server sends no line at all
+   * and the browser draws it once it knows what time it is where the customer
+   * is. That is the honest arrangement: the server genuinely does not know.
+   */
 
   const { drag, begin } = useDrag({ hourHeight: HOUR_HEIGHT, columnKeyAt, onCommit: commit });
 
@@ -654,33 +661,6 @@ export function WeekGrid({
                       <div className="absolute inset-x-0 top-0 border-t border-cal-grid" />
                     </div>
                   ))}
-
-                  {/*
-                   * The line itself, on today's column only. Drawn above the
-                   * closed-hours shading and below the cards, so it never hides
-                   * an appointment — it is a reference, not a thing to read.
-                   */}
-                  {isToday && (
-                    <div
-                      className="pointer-events-none absolute inset-x-0 z-10"
-                      style={{ top: nowOffset }}
-                      aria-hidden
-                    >
-                      <div
-                        className="h-px w-full"
-                        style={{ background: "var(--highlight)" }}
-                      />
-                      {/* One dot, at the left edge, the way every calendar
-                          people already use draws it. One per column was five
-                          dots across a row and read as decoration. */}
-                      {index === 0 && (
-                        <div
-                          className="absolute -left-1 -top-[3px] size-[7px] rounded-full"
-                          style={{ background: "var(--highlight)" }}
-                        />
-                      )}
-                    </div>
-                  )}
 
                   {/* closed hours recede */}
                   {opening && !opening.closed ? (

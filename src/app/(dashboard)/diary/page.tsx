@@ -356,11 +356,18 @@ export default async function DiaryPage({
         * printed. One beat, and it stops for anybody who has asked for less
         * motion.
         */}
-      <div className="card settle mt-5 overflow-hidden">
+      <div className="card settle relative mt-5 overflow-hidden">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-border px-4 py-2.5 text-sm">
         <Figure label="booked" value={asHours(bookedMinutes)} />
         <Figure label="worth" value={formatPence(worth)} accent={worth > 0} />
-        <Figure label="free" value={asHours(freeMinutes)} />
+        {/*
+          * "0h free" is a lie when nobody has said when they are open.
+          *
+          * It reads as "you are fully booked" to somebody whose diary is
+          * completely empty — the opposite of the truth, on the day they are
+          * setting the business up.
+          */}
+        <Figure label="free" value={capacity > 0 ? asHours(freeMinutes) : "—"} />
 
         {capacity > 0 ? (
           <div className="ml-auto flex items-center gap-2.5">
@@ -440,6 +447,54 @@ export default async function DiaryPage({
        * where they were read once and then got in the way every day
        * afterwards. They live under the ? key now, with the shortcuts.
        */}
+
+      {/*
+        * What an empty diary should say.
+        *
+        * It said nothing at all: a new business opened the screen it will spend
+        * its day in and got a grey grid, two names, and a small orange line in
+        * the far corner — which was the only thing on the page that mattered,
+        * because without opening hours the assistant cannot offer a time and
+        * nothing can ever be booked.
+        *
+        * Two different silences, so two different answers. No hours is a
+        * blocked product and says so. An empty day is just a quiet day, and the
+        * only useful thing to say is how to put something in it — which was
+        * documented under the ? key, where nobody looks on their first morning.
+        */}
+      {entries.length === 0 && (
+        <div className="pointer-events-none absolute inset-x-0 top-1/2 z-10 flex -translate-y-1/2 justify-center px-6">
+          {/*
+            * On a surface of its own, because grid lines run underneath it.
+            *
+            * Set on the ruled paper it was reading as something written across
+            * the diary rather than something about it, and the button in
+            * particular disappeared into the eleven o'clock line.
+            */}
+          <div className="max-w-xs rounded-2xl border border-border bg-surface/95 px-5 py-4 text-center shadow-[var(--shadow-pop)] backdrop-blur-sm">
+            {capacity === 0 ? (
+              <>
+                <p className="text-sm font-medium">Your hours aren&rsquo;t set yet</p>
+                <p className="hint mt-1.5">
+                  Until they are, the assistant has no times to offer and nothing can be
+                  booked — by it or by you.
+                </p>
+                <Link
+                  href="/settings"
+                  className="btn pointer-events-auto mt-3.5 inline-flex bg-accent text-on-accent"
+                >
+                  Set your opening hours
+                </Link>
+              </>
+            ) : (
+              <p className="hint">
+                Nothing booked{view === "day" ? " today" : " yet"}. Drag down a column to
+                put something in.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
         {view === "month" ? (
           <MonthGrid
