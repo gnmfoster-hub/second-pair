@@ -216,10 +216,31 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
    */
   const allowed = (studio.channels_allowed ?? ["web"]) as Channel[];
   if (!allowed.includes(input.channel)) {
+    /*
+     * Say why, or this is indistinguishable from broken.
+     *
+     * The owner would otherwise watch a message land in their inbox with the
+     * assistant silent beside it and no explanation anywhere — which is a
+     * support call, and a fair one. The conversation is marked as needing them
+     * so it surfaces where they already look, and the notification names the
+     * channel and what to do about it.
+     */
+    await db
+      .from("conversations")
+      .update({ status: "needs_human", ai_paused: true })
+      .eq("id", conversation.id);
+
+    await notifyStudio(db, studio.id, {
+      title: `A message on ${input.channel}`,
+      body: `Your plan does not include ${input.channel} yet, so the assistant left it for you. Ask us to switch it on.`,
+      url: `/conversations/${conversation.id}`,
+      tag: `channel-${input.channel}`,
+    });
+
     return {
       conversationId: conversation.id,
       reply: null,
-      status: conversation.status,
+      status: "needs_human",
       paused: true,
       moments: [],
     };
