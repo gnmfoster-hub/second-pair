@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { initialsFor } from "@/components/Avatar";
 import { MomentCard } from "./Moments";
 import type { Moment } from "@/lib/engine/moments";
@@ -166,6 +166,30 @@ export function ChatWindow({
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
+  /*
+   * Is there a frame around us?
+   *
+   * This decides whether to draw a close button, and it cannot be answered on
+   * the server: the same page is both an iframe on somebody's website and a
+   * link in an Instagram bio. Read through useSyncExternalStore rather than an
+   * effect, which is the one way to take a value from outside React without
+   * either a second render or a hydration mismatch — it is told the server's
+   * answer (no frame) and the browser's, and reconciles them itself.
+   */
+  const embedded = useSyncExternalStore(
+    // Nothing to subscribe to: a page does not change whether it is framed.
+    () => () => {},
+    () => {
+      try {
+        return window.parent !== window;
+      } catch {
+        // A cross-origin parent throws on access, which is itself the answer.
+        return true;
+      }
+    },
+    () => false,
+  );
+
   const [error, setError] = useState("");
   const [started, setStarted] = useState(false);
   const session = useRef<string>("");
@@ -331,56 +355,93 @@ export function ChatWindow({
       className="mx-auto flex h-dvh w-full max-w-2xl flex-col bg-background sm:border-x sm:border-border"
       style={{ ["--brand" as string]: brand, ["--on-brand" as string]: onBrand }}
     >
-      {/* ─────────────────────────────────────────────────────────── header */}
-      <header
-        className="flex shrink-0 items-center gap-3 px-4 py-3.5"
-        style={{
-          background: `linear-gradient(180deg, ${brand}, color-mix(in srgb, ${brand} 88%, black))`,
-          color: onBrand,
-        }}
-      >
-        <span className="relative shrink-0">
-          <span
-            className="grid size-10 place-items-center overflow-hidden rounded-full bg-white/20 text-sm font-semibold ring-2 ring-white/25 backdrop-blur"
-            aria-hidden
-          >
-            {photoUrl ? (
-              // Supabase serves these; next/image would need the host
-              // allow-listed and buys nothing for a 40px circle.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={photoUrl} alt="" className="size-full object-cover" />
-            ) : (
-              initialsFor(who)
-            )}
-          </span>
-          <span
-            className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-[#22c55e] ring-2"
-            style={{ ["--tw-ring-color" as string]: brand }}
-            aria-hidden
-          />
-        </span>
-
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-[0.95rem] font-semibold leading-tight">{who}</div>
-          <div className="truncate text-xs leading-tight opacity-80">
-            {forArtistName ? studioName : "Usually replies in under a minute"}
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => window.parent?.postMessage({ secondPair: "close" }, "*")}
-          className="grid size-8 shrink-0 place-items-center rounded-lg transition-colors hover:bg-white/15"
-          style={{ color: onBrand }}
-          aria-label="Close chat"
-        >
-          <CloseIcon />
-        </button>
-      </header>
-
+      {/*
+        * No title bar.
+        *
+        * A solid coloured bar across the top with an avatar, a name and a
+        * close button is what every chat widget on the internet looks like —
+        * Intercom, Crisp, Tidio, Drift, all of them — and it costs about a
+        * fifth of the height of a phone screen to say something the customer
+        * already knows: whose website they are on.
+        *
+        * Instead the conversation runs the full height of the panel and the
+        * identity floats over it on a piece of frosted glass, with the
+        * messages passing underneath. It gives the space back to the thing
+        * people are here for, and it stops the widget announcing itself as a
+        * widget the moment it opens.
+        */}
       {/* ──────────────────────────────────────────────────────────── thread */}
       <div className="relative flex-1 overflow-hidden">
-        <div className="h-full space-y-1 overflow-y-auto px-3.5 py-4">
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start gap-2 p-3">
+          <div className="pointer-events-auto flex min-w-0 items-center gap-2.5 rounded-full border border-border bg-surface/75 py-1.5 pl-1.5 pr-4 shadow-[var(--shadow-card)] backdrop-blur-xl">
+            <span className="relative shrink-0">
+              <span
+                className="grid size-8 place-items-center overflow-hidden rounded-full text-[11px] font-semibold"
+                style={{ background: brand, color: onBrand }}
+                aria-hidden
+              >
+                {photoUrl ? (
+                  // Supabase serves these; next/image would need the host
+                  // allow-listed and buys nothing for a 32px circle.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={photoUrl} alt="" className="size-full object-cover" />
+                ) : (
+                  initialsFor(who)
+                )}
+              </span>
+            </span>
+
+            <div className="min-w-0">
+              <div className="truncate text-[0.8rem] font-semibold leading-tight">{who}</div>
+              {/*
+                * A state, not a promise.
+                *
+                * This said "usually replies in under a minute", which is a
+                * claim the customer has no way to check and which reads as
+                * marketing. What is true and useful is whether anything is
+                * happening right now — and while it composes a reply, the same
+                * two dots that make up the mark do the saying.
+                */}
+              <div className="flex items-center gap-1.5 text-[0.68rem] leading-tight text-muted">
+                {sending ? (
+                  <>
+                    <span className="flex gap-[3px]" aria-hidden>
+                      {[0, 1].map((d) => (
+                        <span
+                          key={d}
+                          className="breathe size-[3px] rounded-full"
+                          style={{ background: brand, animationDelay: `${d * 400}ms` }}
+                        />
+                      ))}
+                    </span>
+                    Typing
+                  </>
+                ) : (
+                  <>
+                    <span className="size-1.5 rounded-full bg-[#22c55e]" aria-hidden />
+                    {forArtistName ? studioName : "Answering now"}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Only when there is something to close. Opened directly from a
+              link there is no parent frame, and a button that does nothing
+              is worse than no button. */}
+          {embedded && (
+            <button
+              type="button"
+              onClick={() => window.parent?.postMessage({ secondPair: "close" }, "*")}
+              className="pointer-events-auto ml-auto grid size-9 shrink-0 place-items-center rounded-full border border-border bg-surface/75 text-muted shadow-[var(--shadow-card)] backdrop-blur-xl transition-colors hover:text-foreground"
+              aria-label="Close chat"
+            >
+              <CloseIcon />
+            </button>
+          )}
+        </div>
+
+        <div className="h-full space-y-1 overflow-y-auto px-3.5 pb-4 pt-[4.5rem]">
           {lines.length === 0 && (
             <>
               <Bubble from="studio" first last who={who} photoUrl={photoUrl}>
@@ -501,7 +562,7 @@ export function ChatWindow({
         </div>
 
         {/* Tells you there is more above without a scrollbar doing it. */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-5 bg-gradient-to-b from-background to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-16 bg-gradient-to-b from-background via-background/85 to-transparent" />
       </div>
 
       {/* ───────────────────────────────────────────────────────── composer */}

@@ -79,10 +79,21 @@
   teaser.type = "button";
   teaser.textContent = teaserText;
 
+  /*
+   * Two dots in a bubble, not an outlined speech balloon.
+   *
+   * The stock balloon is the icon on every chat widget there is, so it reads as
+   * "widget" before it reads as anything else. Two dots inside one is the
+   * typing indicator everybody already knows on sight — it says somebody is
+   * about to answer, which is the entire promise — and it is the shape of our
+   * own mark, so the product and the button agree.
+   */
   var CHAT_ICON =
-    '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
-    'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-    '<path d="M20 11.5a7.5 7.5 0 0 1-10.9 6.7L4 19.5l1.4-4.6A7.5 7.5 0 1 1 20 11.5Z"/></svg>';
+    '<svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">' +
+    '<path d="M6 2.5h14a3.5 3.5 0 0 1 3.5 3.5v8a3.5 3.5 0 0 1-3.5 3.5h-7.5l-6 4.5V17.5H6A3.5 3.5 0 0 1 2.5 14V6A3.5 3.5 0 0 1 6 2.5Z" ' +
+    'fill="currentColor" opacity="0.22"/>' +
+    '<circle cx="9.5" cy="10" r="2.1" fill="currentColor"/>' +
+    '<circle cx="16.5" cy="10" r="2.1" fill="currentColor"/></svg>';
 
   var CLOSE_ICON =
     '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
@@ -115,7 +126,14 @@
       border: "0",
       zIndex: "2147483000",
       colorScheme: "normal",
-      transformOrigin: full ? "center bottom" : onLeft ? "20% 110%" : "80% 110%",
+      /*
+       * It grows out of the button, from the corner that points at it.
+       *
+       * The origin was up near the middle of the panel, so it expanded from
+       * roughly nowhere and read as a box fading in. Anchoring it to the
+       * pinched corner makes the button and the panel one movement.
+       */
+      transformOrigin: full ? "center bottom" : onLeft ? "0% 100%" : "100% 100%",
       transition: "opacity " + ease + ", transform " + ease + ", visibility " + ease,
       // On a phone this is a sheet, not a floating card. A 380px box inside a
       // 390px screen is the classic tell of a widget nobody tested on a phone.
@@ -125,7 +143,19 @@
       width: full ? "100%" : "384px",
       height: full ? "88%" : "min(620px, calc(100vh - 130px))",
       maxWidth: "100vw",
-      borderRadius: full ? "20px 20px 0 0" : "18px",
+      /*
+       * A bubble anchored to its button, not a rectangle floating near one.
+       *
+       * Uniform corners are what every widget does, and they leave the panel
+       * looking like it happens to be nearby. Pulling in the corner nearest
+       * the launcher points the whole shape at it — the same trick the teaser
+       * above already uses, so the two now read as one thing.
+       *
+       * Full-screen on a phone keeps square lower corners: there is no button
+       * to point at, and rounding into the bottom of the screen only shows a
+       * strip of the page behind.
+       */
+      borderRadius: full ? "22px 22px 0 0" : onLeft ? "22px 22px 22px 6px" : "22px 22px 6px 22px",
       boxShadow: "0 16px 50px rgba(10, 12, 16, 0.26), 0 2px 8px rgba(10, 12, 16, 0.1)",
     });
 
@@ -177,15 +207,20 @@
 
     panel.style.opacity = open ? "1" : "0";
     panel.style.visibility = open ? "visible" : "hidden";
+    // Small enough that it visibly comes from the button. 0.97 was a nudge
+    // nobody could see, which is the same as no animation with the cost of one.
     panel.style.transform = open
       ? "translateY(0) scale(1)"
       : narrow()
         ? "translateY(16px)"
-        : "translateY(10px) scale(0.97)";
+        : "translateY(8px) scale(0.88)";
     panel.setAttribute("aria-hidden", open ? "false" : "true");
 
     icon.innerHTML = open ? CLOSE_ICON : CHAT_ICON;
     icon.style.transform = open ? "rotate(90deg)" : "rotate(0deg)";
+    // The button steps back while the panel is up: it is no longer the thing
+    // being offered, and a full-size button under an open panel competes.
+    button.style.transform = open ? "scale(0.88)" : "scale(1)";
     button.setAttribute("aria-expanded", open ? "true" : "false");
     button.setAttribute("aria-label", open ? "Close chat" : "Chat with us");
 
