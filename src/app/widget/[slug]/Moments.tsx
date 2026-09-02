@@ -29,7 +29,7 @@ import { buildCalendar } from "@/lib/ics";
  */
 
 /** Tapping a time sends this. Written as the customer would say it. */
-export const slotMessage = (label: string) => `${label} please`;
+const slotMessage = (label: string) => `${label} please`;
 
 export function MomentCard({
   moment,

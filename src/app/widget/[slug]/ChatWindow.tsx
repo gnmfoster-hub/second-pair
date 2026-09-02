@@ -191,6 +191,15 @@ export function ChatWindow({
     () => false,
   );
 
+  /*
+   * Has a person taken this one over?
+   *
+   * The line under the name said "Answering now" whatever was happening, which
+   * is wrong in the one case it matters: once the assistant hands over it is
+   * deliberately silent, and telling somebody they are being answered now while
+   * nobody is answering is how a wait turns into a complaint.
+   */
+  const [handedOver, setHandedOver] = useState(false);
   const [error, setError] = useState("");
   const [started, setStarted] = useState(false);
   const session = useRef<string>("");
@@ -321,6 +330,7 @@ export function ChatWindow({
         // closed widget can show an unread dot instead of sitting silent.
         window.parent?.postMessage({ secondPair: "reply" }, "*");
       } else if (data.paused) {
+        setHandedOver(true);
         setLines((l) => [
           ...l,
           {
@@ -433,8 +443,15 @@ export function ChatWindow({
                   </>
                 ) : (
                   <>
-                    <span className="size-1.5 rounded-full bg-[#22c55e]" aria-hidden />
-                    {forArtistName ? studioName : "Answering now"}
+                    <span
+                      className={`size-1.5 rounded-full ${handedOver ? "bg-warn" : "bg-[#22c55e]"}`}
+                      aria-hidden
+                    />
+                    {handedOver
+                      ? `Someone at ${studioName} is replying`
+                      : forArtistName
+                        ? studioName
+                        : "Answering now"}
                   </>
                 )}
               </div>
