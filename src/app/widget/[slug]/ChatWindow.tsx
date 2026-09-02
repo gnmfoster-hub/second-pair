@@ -90,6 +90,14 @@ function withLinks(text: string, onDark: boolean) {
  * first message that the assistant can answer properly, and none of them
  * commit anybody to anything.
  */
+/*
+ * What to offer somebody who has not typed yet.
+ *
+ * These are right for a customer of a salon and nonsense for anybody using the
+ * help assistant, who is not going to ask a support desk what it charges. The
+ * page works out which set applies and passes them in; this is only the
+ * fallback for a business that has nothing better to offer.
+ */
 const OPENERS = ["How much would it be?", "What have you got free?", "I've got a question"];
 
 /*
@@ -123,6 +131,7 @@ export function ChatWindow({
   slug,
   studioName,
   greeting,
+  openers,
   forArtistId = null,
   forArtistName = null,
   photoUrl = null,
@@ -132,6 +141,8 @@ export function ChatWindow({
   slug: string;
   studioName: string;
   greeting: string;
+  /** Three things worth tapping. Falls back to the customer-facing set. */
+  openers?: string[];
   /** Set when this link is one person's own. Every enquiry here is theirs. */
   forArtistId?: string | null;
   forArtistName?: string | null;
@@ -369,7 +380,7 @@ export function ChatWindow({
                * conversation rather than opening a menu.
                */}
               <div className="flex flex-wrap gap-2 pl-10 pt-2">
-                {OPENERS.map((opener, i) => (
+                {(openers?.length ? openers : OPENERS).map((opener, i) => (
                   <button
                     key={opener}
                     type="button"

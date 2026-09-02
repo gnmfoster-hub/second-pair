@@ -8,6 +8,8 @@ import { Readiness } from "@/components/Readiness";
 import { Page, PageHeader } from "@/components/PageHeader";
 import { colourForName, initialsOf } from "@/lib/diaryColour";
 import { ChannelIcon } from "@/components/ChannelIcon";
+import { Ticker } from "@/components/Ticker";
+import { Waiting } from "@/components/Waiting";
 import {
   CHANNEL_LABELS,
   CONV_STATUS_LABELS,
@@ -143,15 +145,16 @@ export default async function InboxPage() {
        */}
       {recent.length > 0 && (
         <div className="mt-7 grid gap-3 sm:grid-cols-3">
-          <div className="card p-5">
-            <div className="stat">{booked.length}</div>
+          <div className="card settle p-5">
+            <div className="stat"><Ticker value={booked.length} /></div>
             <div className="hint mt-2">Booked in</div>
           </div>
 
           <div
-            className={`card relative overflow-hidden p-5 ${
+            className={`card settle relative overflow-hidden p-5 ${
               recovered ? "border-highlight/40" : ""
             }`}
+            style={{ animationDelay: "70ms" }}
           >
             {recovered > 0 && (
               <span
@@ -164,13 +167,18 @@ export default async function InboxPage() {
               className="stat"
               style={recovered ? { color: "var(--highlight-strong)" } : undefined}
             >
-              {formatPence(recovered)}
+              <Ticker value={recovered} money />
             </div>
             <div className="hint mt-2">Won while you were busy</div>
           </div>
 
-          <div className={`card p-5 ${waiting.length ? "border-warn/40" : ""}`}>
-            <div className={`stat ${waiting.length ? "text-warn" : ""}`}>{waiting.length}</div>
+          <div
+            className={`card settle p-5 ${waiting.length ? "border-warn/40" : ""}`}
+            style={{ animationDelay: "140ms" }}
+          >
+            <div className={`stat ${waiting.length ? "text-warn" : ""}`}>
+              <Ticker value={waiting.length} />
+            </div>
             <div className="hint mt-2">Need you</div>
           </div>
         </div>
@@ -181,6 +189,7 @@ export default async function InboxPage() {
       <div className="card mt-4 overflow-hidden">
         {conversations.length === 0 ? (
           <div className="empty">
+            <Waiting className="mx-auto mb-4 size-14" />
             <div className="empty-title">Nothing yet</div>
             <p className="empty-body">
               Once the widget is on your site, enquiries land here within a minute of

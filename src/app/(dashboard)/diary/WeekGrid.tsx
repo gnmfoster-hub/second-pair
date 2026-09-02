@@ -188,7 +188,22 @@ export function WeekGrid({
   day: string;
   colourBy: ColourMode;
 }) {
-  const [editing, setEditing] = useState<Entry | null>(null);
+  /*
+   * Which entry is open, not a copy of it.
+   *
+   * This held the entry object itself, captured at the moment it was clicked.
+   * Move the appointment afterwards — drag it to another person, or to another
+   * time — and the card redrew from fresh data while the dialog went on showing
+   * the snapshot. The grid said one thing and the box open over it said another.
+   *
+   * Holding the id and looking it up each render means the dialog is always
+   * showing what is actually there. It also closes itself if the entry stops
+   * existing, which is the right answer to somebody deleting it in another tab.
+   */
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editing = editingId ? (entries.find((e) => e.id === editingId) ?? null) : null;
+
+  const setEditing = (entry: Entry | null) => setEditingId(entry?.id ?? null);
   const [creating, setCreating] = useState<{
     date: string;
     time: string;
@@ -428,7 +443,21 @@ export function WeekGrid({
             return (
               <div
                 key={col.key}
-                className={`flex-1 border-r border-border px-2 py-2.5 text-center last:border-r-0 ${
+                /*
+                 * min-w-0, or the heading stops matching its own column.
+                 *
+                 * flex-1 is flex: 1 1 0%, but a flex item still refuses to go
+                 * below its min-content width — so a heading sized itself to
+                 * the name in it while the empty column below stayed at 116px.
+                 * The error accumulated left to right: by the fifth person the
+                 * name sat sixty-eight pixels off, over half a column, above
+                 * somebody else's appointments. On the page the whole business
+                 * is read from, whose column is whose has to be exact.
+                 *
+                 * min-w-0 releases that floor, which is also what finally lets
+                 * the truncate on the name do its job.
+                 */
+                className={`min-w-0 flex-1 border-r border-border px-2 py-2.5 text-center last:border-r-0 ${
                   // Weekends sit back a little, so the working week reads first.
                   view === "week" && (weekday === 0 || weekday === 6)
                     ? "bg-surface-2/40"
@@ -436,7 +465,7 @@ export function WeekGrid({
                 }`}
               >
                 {col.artist ? (
-                  <div className="flex items-center justify-center gap-2">
+                  <div className="flex min-w-0 items-center justify-center gap-1.5">
                     <Avatar person={col.artist} size="sm" />
                     <span className="truncate text-sm font-medium">{col.label}</span>
                   </div>

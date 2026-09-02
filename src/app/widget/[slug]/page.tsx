@@ -76,6 +76,32 @@ export default async function WidgetPage({
    */
   const accent = a && /^[0-9a-f]{6}$/i.test(a) ? readable(a) : null;
 
+  /*
+   * An assistant with nobody to book is answering questions, not taking work.
+   *
+   * That is exactly the help assistant, and offering it "How much would it be?"
+   * and "What have you got free?" is offering a support desk a price list. When
+   * there is no diary behind it, the business's own questions are what somebody
+   * is actually there to ask.
+   */
+  const { data: bookable } = await db
+    .from("artists")
+    .select("id")
+    .eq("studio_id", studio.id)
+    .eq("active", true)
+    .limit(1);
+
+  const { data: asked } = bookable?.length
+    ? { data: null }
+    : await db
+        .from("faqs")
+        .select("question")
+        .eq("studio_id", studio.id)
+        .order("sort_order")
+        .limit(3);
+
+  const openers = (asked ?? []).map((f) => f.question).filter(Boolean);
+
   return (
     <ChatWindow
       slug={studio.slug}
@@ -93,6 +119,7 @@ export default async function WidgetPage({
         studio.greeting?.trim() ||
         verticalPack(studio.vertical).greeting
       }
+      openers={openers}
       forArtistId={person?.id ?? null}
       forArtistName={person?.name ?? null}
       photoUrl={avatarUrl(person?.avatar_path) ?? null}

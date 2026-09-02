@@ -425,6 +425,23 @@ body {
   }
 }
 
+/*
+ * The mark, breathing.
+ *
+ * Two dots taking turns, slowly. Slowly matters: quicker reads as loading, and
+ * an empty inbox is not loading — it is an assistant sitting there ready, which
+ * is what the page is trying to say.
+ */
+@keyframes breathe {
+  0%, 100% { opacity: 0.25; transform: translateY(0); }
+  50%      { opacity: 1;    transform: translateY(-2px); }
+}
+
+.breathe {
+  animation: breathe 2.4s ease-in-out infinite;
+  transform-origin: center;
+}
+
 /* Messages arrive rather than appear. Small enough not to be a performance,
    and skipped entirely for anyone who has asked for no motion. */
 @keyframes rise {
