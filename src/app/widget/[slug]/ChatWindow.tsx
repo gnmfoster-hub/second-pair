@@ -193,7 +193,7 @@ export function ChatWindow({
   const [error, setError] = useState("");
   const [started, setStarted] = useState(false);
   const session = useRef<string>("");
-  const bottom = useRef<HTMLDivElement>(null);
+  const thread = useRef<HTMLDivElement>(null);
   const picker = useRef<HTMLInputElement>(null);
 
   // Who the customer thinks they are talking to. A person's own link shows
@@ -214,7 +214,21 @@ export function ChatWindow({
   }, [slug]);
 
   useEffect(() => {
-    bottom.current?.scrollIntoView({ behavior: "smooth" });
+    /*
+     * Scroll our own box, not the page around it.
+     *
+     * This was scrollIntoView, which by definition scrolls every scrollable
+     * ancestor until the element is visible — and inside an iframe those
+     * ancestors include the host page. So sending a message on a website that
+     * had embedded the widget scrolled the website, which is somebody else's
+     * page lurching under their visitor because our chat did something.
+     *
+     * Setting scrollTop moves this container and nothing else. It also cannot
+     * be smooth on its own, which is the only thing lost — and a thread that
+     * snaps to the newest message is what every messaging app does anyway.
+     */
+    const el = thread.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [lines, sending]);
 
   // Object URLs are a browser resource, not a value — they leak until revoked.
@@ -441,7 +455,7 @@ export function ChatWindow({
           )}
         </div>
 
-        <div className="h-full space-y-1 overflow-y-auto px-3.5 pb-4 pt-[4.5rem]">
+        <div ref={thread} className="h-full space-y-1 overflow-y-auto px-3.5 pb-4 pt-[4.5rem]">
           {lines.length === 0 && (
             <>
               <Bubble from="studio" first last who={who} photoUrl={photoUrl}>
@@ -558,7 +572,6 @@ export function ChatWindow({
               {error}
             </div>
           )}
-          <div ref={bottom} className="h-1" />
         </div>
 
         {/* Tells you there is more above without a scrollbar doing it. */}
