@@ -287,7 +287,21 @@ export function WeekGrid({
     const earliest = openings.length ? Math.min(...openings) : 8;
     const target = Math.min(Math.max(0, earliest - 1), 9);
 
-    if (scroller.current) scroller.current.scrollTop = target * HOUR_HEIGHT;
+    /*
+     * Land the hour below the names, not behind them.
+     *
+     * The headings are sticky, so scrolling an hour to the very top of the
+     * scroller parks it underneath them — you opened the diary and the first
+     * hour you could read was an hour later than the one it had chosen for
+     * you. Measured rather than guessed, because the row is one line on a
+     * phone and two beside an avatar.
+     */
+    const scroller_ = scroller.current;
+    if (!scroller_) return;
+
+    const headings = scroller_.querySelector<HTMLElement>("[data-diary-headings]");
+    const clearance = headings?.offsetHeight ?? 0;
+    scroller_.scrollTop = Math.max(0, target * HOUR_HEIGHT - clearance);
   }, [hours]);
 
   /*
@@ -436,6 +450,7 @@ export function WeekGrid({
       <div ref={scroller} className="max-h-[70vh] overflow-auto">
         {/* ------------------------------------------------ headings */}
         <div
+          data-diary-headings
           className="sticky top-0 z-20 flex border-b border-border bg-surface/95 backdrop-blur"
           style={{ minWidth: gridWidth }}
         >
