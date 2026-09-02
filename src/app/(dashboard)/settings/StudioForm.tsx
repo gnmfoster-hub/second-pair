@@ -75,22 +75,40 @@ export function StudioForm({ studio }: { studio: Studio }) {
 
         <div className="mt-5 space-y-2">
           {hours.map((h) => (
-            <div key={h.day} className="flex items-center gap-3">
-              <span className="w-24 shrink-0 text-sm text-muted">{DAY_NAMES[h.day]}</span>
+            /*
+             * Wraps on a phone, and the times share what is left.
+             *
+             * The day, two fixed 128px time fields and a Closed box sat in a
+             * row that could not break — a hundred and seventeen pixels wider
+             * than a 390px screen, so the close time and the Closed box were
+             * off the edge. This is the first screen a new business is sent
+             * to, from the diary, and half of it could not be reached.
+             *
+             * The fields keep a real width rather than flexing. Letting them
+             * share what was left collapsed them to fifty-seven pixels, which
+             * fits the row and shows a clock icon and no time — the measurement
+             * said it was fixed and the screen said otherwise.
+             */
+            <div key={h.day} className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              {/* Its own line on a phone, so the pair of times stays together and
+                  "to" does not dangle at the end of a wrapped row. */}
+              <span className="w-full text-sm font-medium sm:w-24 sm:shrink-0 sm:font-normal sm:text-muted">
+                {DAY_NAMES[h.day]}
+              </span>
               <input
                 type="time"
                 name={`hours_${h.day}_open`}
                 defaultValue={h.open}
-                className="input w-32"
+                className="input w-[6.75rem] shrink-0 sm:w-32"
               />
               <span className="text-muted">to</span>
               <input
                 type="time"
                 name={`hours_${h.day}_close`}
                 defaultValue={h.close}
-                className="input w-32"
+                className="input w-[6.75rem] shrink-0 sm:w-32"
               />
-              <label className="ml-2 flex items-center gap-2 text-sm text-muted">
+              <label className="flex items-center gap-2 text-sm text-muted sm:ml-2">
                 <input
                   type="checkbox"
                   name={`hours_${h.day}_closed`}
