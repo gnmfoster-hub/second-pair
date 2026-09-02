@@ -117,6 +117,18 @@ export type Studio = {
   first_refusal_minutes: number;
   /** "I've got this", with an end time. Null when it is not in force. */
   mine_until: string | null;
+
+  /*
+   * The commercial side, which belongs to Second Pair rather than to the
+   * business. Never shown to them; see the admin suite.
+   */
+  plan: string | null;
+  plan_pence: number;
+  /** Maximum active people. Null means no limit. */
+  seat_limit: number | null;
+  account_status: "trial" | "active" | "overdue" | "paused" | "closed";
+  billing_started_on: string | null;
+  account_note: string | null;
   vat_registered: boolean;
   vat_rate_percent: number;
   prices_include_vat: boolean;

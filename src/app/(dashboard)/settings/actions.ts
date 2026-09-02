@@ -176,6 +176,33 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
   const name = str(fd, "name");
   if (!name) return { error: "Artist name is required." };
 
+  /*
+   * How many people this account is entitled to.
+   *
+   * Checked only when adding somebody new — editing or deactivating an existing
+   * person must never be blocked by it, or a business that has gone over could
+   * not get back under.
+   *
+   * Null means no limit, which is what every business had before this existed,
+   * so nothing changed underneath anybody. The message says who to ask rather
+   * than just refusing: the limit is a commercial arrangement, not a fault, and
+   * somebody hitting it is somebody who wants to pay for more.
+   */
+  if (!str(fd, "id") && studio.seat_limit != null) {
+    const { count } = await supabase
+      .from("artists")
+      .select("id", { count: "exact", head: true })
+      .eq("studio_id", studio.id);
+
+    if ((count ?? 0) >= studio.seat_limit) {
+      return {
+        error:
+          `Your plan covers ${studio.seat_limit} ${studio.seat_limit === 1 ? "person" : "people"}, ` +
+          "and they are all in use. Ask us to add another and we will sort it out.",
+      };
+    }
+  }
+
   const provider = str(fd, "booking_provider") || "native";
   if (provider === "ical_link" && !str(fd, "ical_url")) {
     return { error: "A booking platform needs its calendar feed URL." };

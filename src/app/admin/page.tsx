@@ -1,0 +1,177 @@
+import { notFound } from "next/navigation";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { isPlatformAdmin, type BusinessSummary, type PlatformKpis } from "@/lib/platform";
+import { VERTICAL_LIST } from "@/lib/verticals";
+import { Console } from "./Console";
+
+export const metadata = { title: "Second Pair — every business" };
+
+/**
+ * The suite: every business on the platform, and nothing they said.
+ *
+ * This exists because nobody signs themselves up. Each business is created here
+ * by somebody who has spoken to them, which is what the product actually does
+ * and is why there is no sign-up form on the login page.
+ *
+ * What it deliberately cannot do is read a conversation. The privacy notice
+ * tells every customer of every business that nobody else on Second Pair can
+ * see what they wrote, and a screen here that could would make that sentence
+ * false for all of them at once. Counts are enough to bill somebody and enough
+ * to help them; if they need help with one conversation, they can say what it
+ * says.
+ *
+ * Hidden rather than forbidden when the variable is unset: a 404 tells a
+ * stranger nothing, where a login page would tell them there is something here.
+ */
+export default async function AdminPage() {
+  if (!(await isPlatformAdmin())) notFound();
+
+  const db = createAdminClient();
+
+  const [{ data: studios }, { data: members }, { data: users }] = await Promise.all([
+    db
+      .from("studios")
+      .select(
+        "id, name, slug, vertical, created_at, hours, plan, plan_pence, seat_limit, account_status, billing_started_on, account_note",
+      )
+      .order("created_at"),
+    db.from("studio_members").select("studio_id, user_id, role").eq("role", "owner"),
+    db.auth.admin.listUsers(),
+  ]);
+
+  const emailFor = new Map((users?.users ?? []).map((u) => [u.id, u.email ?? null]));
+
+  /*
+   * Counted per business rather than fetched.
+   *
+   * `head: true` asks Postgres for the number and no rows, so nothing anybody
+   * wrote crosses the wire — which is the whole point of this screen and worth
+   * the extra queries.
+   */
+  const summaries: BusinessSummary[] = await Promise.all(
+    (studios ?? []).map(async (s) => {
+      /*
+       * Counted, and told when it cannot be.
+       *
+       * This swallowed errors into a zero, and bookings has no studio_id — it
+       * hangs off artist_id — so every business showed nought booked however
+       * busy it was. A metric that silently reads zero is worse than no metric:
+       * it is a number somebody will believe.
+       */
+      const count = async (table: string) => {
+        const { count: n, error } = await db
+          .from(table)
+          .select("id", { count: "exact", head: true })
+          .eq("studio_id", s.id);
+        if (error) throw new Error(`${table}: ${error.message}`);
+        return n ?? 0;
+      };
+
+      /** Bookings belong to a person, and the person belongs to the business. */
+      const bookings = async () => {
+        const { count: n, error } = await db
+          .from("bookings")
+          .select("id, artists!inner(studio_id)", { count: "exact", head: true })
+          .eq("artists.studio_id", s.id)
+          .is("cancelled_at", null);
+        if (error) throw new Error(`bookings: ${error.message}`);
+        return n ?? 0;
+      };
+
+      const { data: latest } = await db
+        .from("conversations")
+        .select("last_message_at")
+        .eq("studio_id", s.id)
+        .order("last_message_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const hours = (s.hours ?? []) as { closed?: boolean }[];
+
+      return {
+        id: s.id,
+        name: s.name,
+        slug: s.slug,
+        vertical: s.vertical,
+        createdAt: s.created_at,
+        owners: (members ?? [])
+          .filter((m) => m.studio_id === s.id)
+          .map((m) => ({ userId: m.user_id, email: emailFor.get(m.user_id) ?? null })),
+        people: await count("artists"),
+        services: await count("price_bands"),
+        hasHours: hours.some((h) => !h.closed),
+        conversations: await count("conversations"),
+        bookings: await bookings(),
+        lastActivityAt: latest?.last_message_at ?? null,
+        plan: s.plan ?? null,
+        planPence: s.plan_pence ?? 0,
+        seatLimit: s.seat_limit ?? null,
+        status: (s.account_status ?? "trial") as BusinessSummary["status"],
+        billingStartedOn: s.billing_started_on ?? null,
+        note: s.account_note ?? null,
+      };
+    }),
+  );
+
+  /*
+   * The platform's own numbers.
+   *
+   * Aggregated across every business, which is the one place that is legitimate
+   * — nobody's individual conversation is read to produce them, and the totals
+   * are what make the case to the next customer.
+   *
+   * `won` is the quoted value of what the assistant booked. It is the number
+   * worth quoting, and it is deliberately the estimate rather than what was
+   * finally charged, because the second is not something this ever sees.
+   */
+  /*
+   * What it cost lives on the message that cost it, as JSON.
+   *
+   * This asked an ai_spend table for it, which does not exist — and the error
+   * became a zero, so the panel reported that running the assistant across
+   * fifty-three enquiries had cost nothing. The third time in one screen that a
+   * swallowed query became a plausible number, which is the argument for not
+   * swallowing them.
+   */
+  const [{ data: won }, { data: spend, error: spendError }] = await Promise.all([
+    db.from("enquiries").select("quote_low_pence, conversations!inner(status)"),
+    db.from("messages").select("usage").eq("role", "assistant").not("usage", "is", null),
+  ]);
+  if (spendError) throw new Error(`cost: ${spendError.message}`);
+
+  const wonPence = (won ?? [])
+    .filter((e) => (e.conversations as unknown as { status: string })?.status === "booked")
+    .reduce((sum, e) => sum + (e.quote_low_pence ?? 0), 0);
+
+  const kpis: PlatformKpis = {
+    businesses: summaries.length,
+    live: summaries.filter((b) => b.conversations > 0).length,
+    unfinished: summaries.filter((b) => !(b.people > 0 && b.services > 0 && b.hasHours)).length,
+    mrr: summaries
+      .filter((b) => b.status === "active" || b.status === "overdue")
+      .reduce((sum, b) => sum + b.planPence, 0),
+    paying: summaries.filter((b) => b.status === "active").length,
+    enquiries: summaries.reduce((sum, b) => sum + b.conversations, 0),
+    booked: summaries.reduce((sum, b) => sum + b.bookings, 0),
+    wonPence,
+    outOfHours: 0,
+    // Micros are millionths of a dollar-equivalent; a hundredth of that is a
+    // penny, which is the unit everything else on this screen is in.
+    costPence: Math.round(
+      (spend ?? []).reduce(
+        (sum, m) => sum + ((m.usage as { cost_micros?: number } | null)?.cost_micros ?? 0),
+        0,
+      ) / 10_000,
+    ),
+    seatsUsed: summaries.reduce((sum, b) => sum + b.people, 0),
+    seatsSold: summaries.reduce((sum, b) => sum + (b.seatLimit ?? b.people), 0),
+  };
+
+  return (
+    <Console
+      kpis={kpis}
+      businesses={summaries}
+      trades={VERTICAL_LIST.map((v) => ({ value: v.id, label: v.label }))}
+    />
+  );
+}

@@ -21,7 +21,11 @@ import { Logo } from "@/components/Logo";
  * which is fine here: setting a password is a page you visit once, not a
  * session you need in the browser you started in.
  */
-type Mode = "signup" | "signin" | "forgot";
+/*
+ * No "signup". Accounts are made in the admin suite by somebody who has spoken
+ * to the business — see the note where the tabs used to be.
+ */
+type Mode = "signin" | "forgot";
 
 const FRIENDLY: Record<string, string> = {
   "Invalid login credentials": "That email and password do not match an account.",
@@ -33,7 +37,6 @@ const FRIENDLY: Record<string, string> = {
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("signin");
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -53,22 +56,8 @@ export default function LoginPage() {
     setBusy(true);
     setError("");
     const supabase = createClient();
-    const redirect = `${window.location.origin}/auth/callback`;
 
-    if (mode === "signup") {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: redirect, data: { full_name: name || null } },
-      });
-      if (error) setError(say(error.message));
-      // With email confirmation on there is a user but no session yet.
-      else if (!data.session) setSent("confirm");
-      else {
-        router.refresh();
-        router.push("/");
-      }
-    } else if (mode === "signin") {
+    if (mode === "signin") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) setError(say(error.message));
       else {
@@ -128,45 +117,18 @@ export default function LoginPage() {
 
   return (
     <Shell>
-      {/* Two tabs, so it is obvious that an account is a thing you make. */}
-      <div className="mt-7 flex gap-1 rounded-lg bg-surface-2 p-1">
-        {(["signin", "signup"] as const).map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => {
-              setMode(m);
-              setError("");
-            }}
-            aria-pressed={mode === m}
-            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-              mode === m
-                ? "bg-surface text-foreground shadow-[var(--shadow-card)]"
-                : "text-muted hover:text-foreground"
-            }`}
-          >
-            {m === "signin" ? "Sign in" : "Create account"}
-          </button>
-        ))}
-      </div>
+      {/*
+        * No "Create account", because nobody creates one.
+        *
+        * There were two tabs here and the second promised a self-serve sign-up
+        * that does not exist: every business is set up by a person who has
+        * spoken to them, and the account is made in the admin suite. A door
+        * that opens onto a room nobody is allowed into is worse than no door —
+        * it collects half-finished accounts on mistyped addresses and gives
+        * anybody who wanders in the impression they have started something.
+        */}
 
       <form onSubmit={submit} className="mt-5 space-y-3.5">
-        {mode === "signup" && (
-          <div>
-            <label className="label" htmlFor="name">
-              Your name
-            </label>
-            <input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Dave Foster"
-              className="input"
-              autoComplete="name"
-            />
-          </div>
-        )}
-
         <div>
           <label className="label" htmlFor="email">
             Email
@@ -207,7 +169,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 8 characters"
                 className="input pr-12"
-                autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                autoComplete="current-password"
                 minLength={8}
               />
               <button
@@ -266,13 +228,7 @@ export default function LoginPage() {
         )}
 
         <button type="submit" className="btn-primary w-full" disabled={busy}>
-          {busy
-            ? "One moment…"
-            : mode === "signup"
-              ? "Create account"
-              : mode === "signin"
-                ? "Sign in"
-                : "Send me a reset link"}
+          {busy ? "One moment…" : mode === "signin" ? "Sign in" : "Send me a reset link"}
         </button>
       </form>
 
@@ -289,11 +245,14 @@ export default function LoginPage() {
         </button>
       )}
 
-      {mode === "signup" && (
-        <p className="hint mt-4">
-          Next you name your business and pick your trade. About a minute.
-        </p>
-      )}
+      <p className="hint mt-6 border-t border-border pt-4">
+        Not set up yet?{" "}
+        <a href="/home#ask" className="underline underline-offset-2 hover:text-foreground">
+          Ask our assistant
+        </a>{" "}
+        and somebody will get you going — we set every business up with them rather than
+        leaving them to it.
+      </p>
     </Shell>
   );
 }
