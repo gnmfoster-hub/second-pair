@@ -62,6 +62,25 @@ export default async function ReportPage({
   if (thisWeek) to.setTime(now.getTime());
 
   const report = await weeklyReport(supabase, studio, from, to);
+
+  /*
+   * Proof that an empty week is a quiet week, not a broken page.
+   *
+   * The report defaults to the last completed week, so a business that started
+   * on Monday opens it and sees nothing but zeros — which reads as the product
+   * not working, and did. Pointing at "this week so far" helped, but it still
+   * asked them to take it on trust and go and look. Counting what has arrived
+   * since answers it on the spot: nothing last week, eleven this week, so the
+   * assistant is plainly working and the page is showing the wrong seven days.
+   *
+   * Only fetched when the week really is empty, which is rare and is the one
+   * time an extra query is worth it.
+   */
+  let sinceCount = 0;
+  if (report.enquiries === 0 && !thisWeek) {
+    const since = await weeklyReport(supabase, studio, to, now);
+    sinceCount = since.enquiries;
+  }
   const pack = verticalPack(studio.vertical);
   const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
 
@@ -164,11 +183,24 @@ export default async function ReportPage({
           </p>
           {!thisWeek && (
             <p className="hint mt-2">
-              The report shows the last completed week by default.{" "}
-              <Link href="/report?weeks=-1" className="text-accent hover:underline">
-                See this week so far
-              </Link>
-              , or use the arrows to look further back.
+              {sinceCount > 0 ? (
+                <>
+                  You&rsquo;ve had {sinceCount} since — the report shows the last completed
+                  week by default, so yours are in{" "}
+                  <Link href="/report?weeks=-1" className="text-accent hover:underline">
+                    this week so far
+                  </Link>
+                  .
+                </>
+              ) : (
+                <>
+                  The report shows the last completed week by default.{" "}
+                  <Link href="/report?weeks=-1" className="text-accent hover:underline">
+                    See this week so far
+                  </Link>
+                  , or use the arrows to look further back.
+                </>
+              )}
             </p>
           )}
           {thisWeek && (
