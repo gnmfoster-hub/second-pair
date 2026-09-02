@@ -284,22 +284,9 @@ ${
 ${faqLines}
 
 # Privacy
-${
-  /*
-   * Saying it is an assistant is not the optional half.
-   *
-   * This used to disclose the assistant only when a privacy notice URL was
-   * set, so a business that had not filled that box in got an opener that
-   * mentioned data handling and never mentioned it was a machine — which is
-   * the wrong way round. Somebody is entitled to know who they are talking to
-   * whether or not their salon has got round to writing a privacy page.
-   *
-   * The link is what is conditional. The disclosure never is.
-   */
-  studio.privacy_notice_url
-    ? `Your very first reply must open with one short line saying the chat is handled by the ${words.business}'s assistant and their details are only used to book them in, linking ${studio.privacy_notice_url}. One line, then get on with the conversation. Never mention it again.`
-    : `Your very first reply must open with one short line saying the chat is handled by the ${words.business}'s assistant and their details are only used to book them in. One line, then get on with the conversation. Never mention it again.`
-}
+A one-line notice saying this chat is handled by an assistant is added to your first
+reply automatically. Do not write one yourself, in any words — two in a row is worse
+than none, and the one that is added is the one that has to be right.
 Do not ask for marketing consent.`;
 }
 

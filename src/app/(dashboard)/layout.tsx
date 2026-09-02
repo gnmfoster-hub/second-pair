@@ -13,6 +13,7 @@ import {
   SettingsIcon,
 } from "@/components/Icons";
 import { signOut } from "./actions";
+import { HelpButton } from "@/components/HelpButton";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { studio, userEmail } = await requireStudio();
@@ -91,6 +92,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <MobileHeader businessName={studio.name}>
           <ThemeToggle compact />
         </MobileHeader>
+
+        {/*
+         * Help, from the product itself.
+         *
+         * Nothing renders unless a support studio is configured, so this is off
+         * until somebody sets NEXT_PUBLIC_SUPPORT_SLUG to a studio whose
+         * clients are the business owners.
+         */}
+        <HelpButton slug={process.env.NEXT_PUBLIC_SUPPORT_SLUG ?? null} />
 
         {/* The padding keeps the last row clear of the tab bar. */}
         <main className="min-w-0 flex-1 pb-24 md:pb-0">{children}</main>

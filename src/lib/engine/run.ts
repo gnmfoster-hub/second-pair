@@ -365,11 +365,35 @@ async function generateReply(ctx: ReplyContext): Promise<string> {
   // more natural-sounding opener. Only added if it did not say it itself.
   if (isFirstReply && text) {
     const url = ctx.studio.privacy_notice_url;
-    const alreadySaid = url ? text.includes(url) : /only used to (book|get) you/i.test(text);
+
+    /*
+     * What the details are actually for.
+     *
+     * A business with nobody set up cannot book anyone, so "only used to book
+     * you in" is untrue for it — the support assistant is exactly that, and it
+     * noticed, writing its own corrected version underneath this one. Two
+     * disclosures in a row, the first of them wrong.
+     */
+    const purpose = ctx.artists.some((a) => a.active)
+      ? "only used to book you in"
+      : "only used to help with what you asked";
+
+    /*
+     * Belt and braces against saying it twice.
+     *
+     * The model is now told not to write one, but it is a model — so anything
+     * that reads like a disclosure in its opening line counts as already said.
+     * Matching only our own phrasing is what let a reworded one through.
+     */
+    const opening = text.slice(0, 240);
+    const alreadySaid = url
+      ? text.includes(url)
+      : /(handled by|answered by).{0,40}(assistant|automated)|only used to (book|help|get)/i.test(
+          opening,
+        );
+
     if (!alreadySaid) {
-      const notice = url
-        ? `Quick note: this chat is handled by ${ctx.studio.name}'s assistant, and your details are only used to book you in — ${url}`
-        : `Quick note: this chat is handled by ${ctx.studio.name}'s assistant, and your details are only used to book you in.`;
+      const notice = `Quick note: this chat is handled by ${ctx.studio.name}'s assistant, and your details are ${purpose}${url ? ` — ${url}` : "."}`;
       text = `${notice}
 
 ${text}`;
