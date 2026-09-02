@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { verticalPack } from "@/lib/verticals";
 import { avatarUrl } from "@/components/Avatar";
 import { ChatWindow } from "./ChatWindow";
@@ -95,12 +96,39 @@ export default async function WidgetPage({
     ? { data: null }
     : await db
         .from("faqs")
-        .select("question")
+        .select("question, audience")
         .eq("studio_id", studio.id)
-        .order("sort_order")
-        .limit(3);
+        .order("sort_order");
 
-  const openers = (asked ?? []).map((f) => f.question).filter(Boolean);
+  /*
+   * Different first questions for a customer and a stranger.
+   *
+   * "What does it cost?" is the right opener for somebody deciding whether to
+   * buy and a wasted tap for somebody who already pays — they want to know how
+   * to do the thing they opened the help for.
+   *
+   * Which is which is marked on the row. It was inferred from the wording at
+   * first, and inferring put "How do I sign up?" in front of somebody who had
+   * already signed up — the sort of answer that makes a product feel like it
+   * does not know you.
+   */
+  const signedIn = await (async () => {
+    try {
+      const supabase = await createClient();
+      return Boolean((await supabase.auth.getUser()).data.user);
+    } catch {
+      // Embedded on somebody else's site, cookies not sent. Treat as a visitor,
+      // which is the safer of the two answers to get wrong.
+      return false;
+    }
+  })();
+  const wanted = signedIn ? "owner" : "visitor";
+  const openers = (asked ?? [])
+    // An untagged answer suits anybody, so it is a fallback rather than a miss.
+    .filter((f) => f.audience === wanted || f.audience == null)
+    .map((f) => f.question)
+    .filter(Boolean)
+    .slice(0, 3);
 
   return (
     <ChatWindow

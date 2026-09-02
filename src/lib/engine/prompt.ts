@@ -44,6 +44,16 @@ export function studioSystemPrompt(
    * own account it is them the customer thinks they are talking to.
    */
   forArtist: Artist | null = null,
+  /**
+   * Whether this person is signed in to Second Pair.
+   *
+   * Only meaningful for the support assistant, and only ever set from a
+   * verified session on the server — never from anything the browser said.
+   * An owner asking how to do something and a stranger deciding whether to
+   * buy need opposite answers, and the assistant was left to guess which it
+   * had from the wording of the question.
+   */
+  signedIn: boolean | null = null,
 ): string {
   const active = artists.filter((a) => a.active);
   const pack = verticalPack(studio.vertical);
@@ -184,6 +194,34 @@ Travelling time is already left either side of every job, so what get_available_
         .join("\n")
     : `(No ${words.size_unit}s are set up yet. You cannot quote. Escalate any pricing question.)`;
 
+  /*
+   * Who is on the other end, when we actually know.
+   *
+   * Left out entirely for an ordinary business, where every message is from a
+   * customer and saying so would be noise. It is the support assistant that
+   * takes both kinds, and the difference matters: telling somebody to open
+   * Settings is useless if they have no account, and answering a paying owner
+   * as though they were a prospect is worse than useless.
+   */
+  const audienceSection =
+    signedIn === null
+      ? ""
+      : signedIn
+        ? `# Who you are talking to
+They are signed in to Second Pair right now, so they are a customer with an account
+open in front of them. Answer as support: tell them where to go and what to press.
+Do not pitch, do not explain what the product is, and do not ask for their details —
+we already have them, and asking reads as not knowing who they are.
+
+`
+        : `# Who you are talking to
+They are not signed in, so treat them as somebody deciding whether this is for them.
+Do not give directions around a dashboard they cannot see. Answer what they ask,
+never invent a price, and if they are interested get their name, their trade and the
+best way to reach them — one at a time, not as a form — then hand over.
+
+`;
+
   const faqLines = faqs.length
     ? faqs.map((f) => `Q: ${f.question}\nA: ${f.answer}`).join("\n\n")
     : "(None recorded. Anything factual you were not told, escalate.)";
@@ -247,7 +285,7 @@ This order, and never faster. Each step is a separate message, and you wait for 
 
 Never book a time nobody chose. Never send a payment link in the same breath as making the booking — they get to see what they have agreed to first. Never send a second link when one has already gone out; call send_deposit_link again and it returns the same one.
 
-${houseSection}${voiceSection}${travelSection}# The studio
+${audienceSection}${houseSection}${voiceSection}${travelSection}# The studio
 Opening hours (${studio.timezone}):
 ${hours}
 

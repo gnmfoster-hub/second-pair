@@ -69,6 +69,24 @@ export async function POST(request: NextRequest) {
    */
   const isTest = body.test === true ? await isOwnerOf(studio) : false;
 
+  /*
+   * Are they a customer, or somebody deciding whether to become one?
+   *
+   * The support assistant takes both, and they need opposite answers: telling
+   * a visitor to open Settings is useless because they have no account, and
+   * treating a paying owner as a prospect — pitching at them, asking for their
+   * details — is worse, because we already know exactly who they are.
+   *
+   * Read from the session rather than the request body. It is only tone and
+   * knowledge, not permission, but a widget that answered "I am a customer"
+   * from a browser would be taking the browser's word for something the server
+   * already knows for certain.
+   *
+   * Null for every ordinary business: a salon's enquiries are from customers,
+   * and telling its assistant otherwise would be noise in the prompt.
+   */
+  const signedIn = studio === process.env.NEXT_PUBLIC_SUPPORT_SLUG ? await hasSession() : null;
+
   const forArtist =
     typeof body.with === "string" &&
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.with)
@@ -102,6 +120,7 @@ export async function POST(request: NextRequest) {
       // booked.
       forArtistId: forArtist,
       isTest,
+      signedIn,
     });
 
     return NextResponse.json({
@@ -131,6 +150,22 @@ export async function POST(request: NextRequest) {
  * Uses the session client rather than the admin one, so row-level security
  * does the checking: a non-member simply sees no membership row.
  */
+/** Whether anybody is signed in to Second Pair on this request. */
+async function hasSession(): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return Boolean(user);
+  } catch {
+    // No session, an expired one, or cookies the browser would not send from a
+    // third-party frame. All of those mean "treat them as a visitor", which is
+    // the safer of the two answers to be wrong about.
+    return false;
+  }
+}
+
 async function isOwnerOf(slug: string): Promise<boolean> {
   try {
     const supabase = await createClient();

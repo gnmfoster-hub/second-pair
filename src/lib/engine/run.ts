@@ -67,6 +67,15 @@ export type TurnInput = {
    */
   forArtistId?: string | null;
   /**
+   * Whether the person messaging is signed in to Second Pair.
+   *
+   * Established from the session on the server, never from the request body:
+   * it decides how the support assistant answers, and a browser claiming to
+   * be a customer should not get a customer's answers. Null for every ordinary
+   * business, where the question does not arise.
+   */
+  signedIn?: boolean | null;
+  /**
    * The owner trying their own assistant out.
    *
    * Kept out of the inbox, the client list and every figure — "your assistant
@@ -199,6 +208,7 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     depositPence: 0,
     origin: input.origin,
     contactEmail: null,
+    signedIn: input.signedIn ?? null,
   });
 
   const { data: after } = await db
@@ -227,6 +237,8 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
 type ReplyContext = Omit<ToolContext, "db"> & {
   db: ToolContext["db"];
   faqs: Faq[];
+  /** Verified on the server; see TurnInput. Null for an ordinary business. */
+  signedIn?: boolean | null;
 };
 
 /**
@@ -307,6 +319,7 @@ async function generateReply(
     ctx.providers ?? {},
     // Whose enquiry this is, so their own voice is used where they have one.
     ctx.forArtist ?? null,
+    ctx.signedIn ?? null,
   );
 
   let text = "";

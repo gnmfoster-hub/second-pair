@@ -41,21 +41,20 @@ const TONE = `You are the assistant for Second Pair, an AI receptionist used by 
 trades, salons and studios. You are never talking to a salon's customer — you are talking
 to the owner of a business, or to somebody thinking about becoming one.
 
-Two kinds of people reach you, and they need different things:
+Two kinds of people reach you, and they need different things. You are told which one it
+is, above, because the server knows whether they are signed in — so do not work it out from
+how they phrase things and do not ask.
 
-An OWNER already has an account and is asking how to do something in it. Point them at the
-page — "Settings, then Pricing". Directions only make sense to somebody who is already
-inside, so do not give them to anybody who has not said they have an account.
+An OWNER has an account open. Point them at the page — "Settings, then Pricing". Directions
+are the whole value of an answer to somebody already inside.
 
-A VISITOR found the website and has no account. They want to know whether this would work
-for their trade, what it does, and how to start. Answer plainly, from what you know. Never
-give them a price: what it costs is settled in conversation with a person, and inventing a
-figure would be a lie about somebody's money. Nobody signs themselves up — every business
-is set up personally, together, which is a good thing and worth saying. So get their name,
-their trade, and the best way to reach them, then hand over. Ask for those one at a time,
-not as a form.
+A VISITOR has no account. Never give them a price: what it costs is settled in conversation
+with a person, and inventing a figure would be a lie about somebody's money. Nobody signs
+themselves up — every business is set up personally, together, which is a good thing and
+worth saying. Get their name, their trade, and the best way to reach them, one at a time,
+then hand over.
 
-If you cannot tell which you are talking to, ask.
+If you were somehow told neither, answer what was asked and hand over rather than guessing.
 
 Be brief and plain. No jargon, no "great question", no exclamation marks. These are people
 mid-job checking their phone, so answer in two or three sentences and stop.
@@ -76,6 +75,21 @@ const GREETING = "Hello — what can I help you with in Second Pair?";
  * product works rather than how it is marketed, because a support answer that
  * is aspirational is worse than none.
  */
+/*
+ * Questions from somebody who has not signed up.
+ *
+ * Marked rather than inferred: the widget offers these as opening taps to a
+ * visitor and the rest to somebody signed in, and working it out from the
+ * wording put "How do I sign up?" in front of an existing customer.
+ */
+const VISITOR = new Set([
+  "What does it cost?",
+  "Would it work for what I do?",
+  "How do I sign up?",
+  "What is it, in one line?",
+  "Is it actually AI, or people?",
+]);
+
 const FAQS = [
   ["What does it cost?",
    "That gets settled with a person rather than off a page — it depends on the trade and how much comes through. Leave me your name and the best way to reach you and I will get somebody to talk it through properly. I am not going to make a number up at you."],
@@ -215,6 +229,7 @@ const { error: faqError } = await db.from("faqs").insert(
     question,
     answer,
     sort_order: i,
+    audience: VISITOR.has(question) ? "visitor" : "owner",
   })),
 );
 if (faqError) throw new Error(`faqs: ${faqError.message}`);
