@@ -112,7 +112,7 @@ export default function PrivacyPage() {
       <Section title="Contact">
         <p>
           Written questions and requests to{" "}
-          <a href="mailto:privacy@secondpair.co.uk">privacy@secondpair.co.uk</a>.
+          <a href="mailto:privacy@second-pair.com">privacy@second-pair.com</a>.
         </p>
         <p className="draft">
           Before this goes live it needs the registered company name and address, the ICO
