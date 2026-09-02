@@ -7,6 +7,24 @@
  * says it cannot reach the internet.
  */
 
+/*
+ * A fetch handler that does nothing, on purpose.
+ *
+ * Chrome will not offer to install an app unless its service worker handles
+ * fetch — it is how the browser decides the thing is app-shaped rather than a
+ * page with a manifest bolted on. Without this there is no "Install" in the
+ * menu and no prompt, which is exactly what was happening.
+ *
+ * It forwards every request to the network and caches nothing. The reasoning
+ * in the comment above still stands: a diary showing yesterday's bookings
+ * because they came from a cache is worse than one saying it cannot reach the
+ * internet. This makes the app installable without making it lie.
+ */
+self.addEventListener("fetch", function () {
+  // Deliberately empty. Not calling respondWith lets the browser handle the
+  // request exactly as it would with no service worker at all.
+});
+
 self.addEventListener("push", function (event) {
   if (!event.data) return;
 

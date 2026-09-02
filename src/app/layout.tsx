@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Archivo, Public_Sans, IBM_Plex_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { themeScript } from "@/components/ThemeToggle";
+import { RegisterWorker } from "@/components/RegisterWorker";
 
 /*
  * Three faces, each with a job.
@@ -100,6 +101,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* Applies a stored theme before paint, so the page never flashes the
             wrong one on load. */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <RegisterWorker />
       </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
