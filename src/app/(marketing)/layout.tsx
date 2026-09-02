@@ -13,9 +13,11 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center gap-4 px-5 py-3.5 sm:px-8">
-          <Link href="/" aria-label="Second Pair">
-            <Logo height={30} lockup="inline" />
+        <div className="mx-auto flex max-w-5xl items-center gap-4 px-5 py-4 sm:px-8">
+          {/* Thirty pixels disappeared into the header, and this is the only
+              place most people will ever see the name. */}
+          <Link href="/" aria-label="Second Pair" className="shrink-0">
+            <Logo height={42} lockup="inline" />
           </Link>
 
           <div className="ml-auto flex items-center gap-2 sm:gap-3">

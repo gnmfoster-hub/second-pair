@@ -372,6 +372,41 @@ body {
     color: var(--bad);
     border-color: color-mix(in srgb, var(--bad) 50%, transparent);
   }
+
+  /*
+   * Light behind a hero.
+   *
+   * The page was well set and completely flat — everything on one plane, so
+   * nothing looked like it was in front of anything else. Two very soft washes
+   * fix that without decorating: the brand navy behind the words, the orange
+   * behind the conversation, so the eye lands on the product doing its job.
+   *
+   * Built from the theme tokens, so the dark theme gets the lifted blue rather
+   * than a navy smudge that reads as dirt on the screen.
+   */
+  .aura {
+    position: absolute;
+    inset: -14rem -6rem auto -6rem;
+    height: 46rem;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(
+        34rem 22rem at 74% 26%,
+        color-mix(in srgb, var(--highlight) 20%, transparent),
+        transparent 68%
+      ),
+      radial-gradient(
+        42rem 26rem at 20% 6%,
+        color-mix(in srgb, var(--accent) 15%, transparent),
+        transparent 70%
+      );
+  }
+
+  /* Arrives rather than appears. One beat, not a performance. */
+  .settle {
+    animation: rise 620ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  }
 }
 
 /* Messages arrive rather than appear. Small enough not to be a performance,

@@ -40,18 +40,29 @@ export default function HomePage() {
   return (
     <>
       {/* ─────────────────────────────────────────────────────────── hero */}
-      <section className="mx-auto max-w-5xl px-5 pb-4 pt-14 sm:px-8 sm:pt-20">
-        <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_1fr]">
+      <section className="relative overflow-hidden px-5 pb-4 pt-14 sm:px-8 sm:pt-20">
+        <div className="aura" aria-hidden />
+        <div className="relative mx-auto grid max-w-5xl items-center gap-12 lg:grid-cols-[1.05fr_1fr]">
           <div>
             <p className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs text-muted">
               <span className="size-1.5 rounded-full bg-ok" aria-hidden />
               Answering right now, for {VERTICAL_LIST.length} trades
             </p>
 
+            {/*
+             * The name is the argument, so the headline should be the name.
+             *
+             * "You lose the job because you were working" states the problem
+             * well and leaves Second Pair as a label bolted on beside it. This
+             * says the problem and what we are in one breath, and anybody who
+             * reads it understands the name for the rest of the page.
+             */}
             <h1 className="mt-5 font-display text-[2.6rem] font-bold leading-[1.03] tracking-[-0.035em] sm:text-6xl">
-              You lose the job
+              You&rsquo;ve only got
               <br />
-              <span className="text-accent">because you were working.</span>
+              one pair of hands.
+              <br />
+              <span className="text-highlight-strong">We&rsquo;re the second.</span>
             </h1>
 
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
