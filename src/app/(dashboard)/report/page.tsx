@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { requireStudio } from "@/lib/studio";
 import { weeklyReport, lastWeek } from "@/lib/report";
 import { formatPence } from "@/lib/money";
-import { verticalPack } from "@/lib/verticals";
 
 function Stat({
   value,
@@ -81,8 +80,6 @@ export default async function ReportPage({
     const since = await weeklyReport(supabase, studio, to, now);
     sinceCount = since.enquiries;
   }
-  const pack = verticalPack(studio.vertical);
-  const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
 
   const range = thisWeek
     ? `${from.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – today`
@@ -113,6 +110,24 @@ export default async function ReportPage({
           )}
         </div>
       </div>
+
+      {/*
+        * Why it is empty, before the emptiness.
+        *
+        * A business in its first week opens this and reads six zeros and two
+        * dashes before it reaches the sentence at the bottom explaining that
+        * the report covers the week before they existed. Six zeros is a
+        * verdict; it should not be delivered before the reason.
+        *
+        * Only when nothing has ever come in. Once there is history, a quiet
+        * week is a real answer and the figures are the point.
+        */}
+      {report.enquiries === 0 && sinceCount === 0 && (
+        <p className="hint mt-5 max-w-lg">
+          Nothing to report yet — this covers {range}, and the figures below fill in as
+          enquiries arrive. They are what the assistant did while you were working.
+        </p>
+      )}
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Stat
@@ -153,7 +168,7 @@ export default async function ReportPage({
           tone={report.needsHuman ? "warn" : "plain"}
           value={String(report.needsHuman)}
           label="Waiting on you"
-          detail={`Handed over for a ${words.practitioner} to answer`}
+          detail="Handed over for a person to answer"
         />
       </div>
 
@@ -176,7 +191,13 @@ export default async function ReportPage({
        * week, and their work is in this one. So it points at where the enquiries
        * actually are, when there are some.
        */}
-      {report.enquiries === 0 && (
+      {/*
+        * Only when the note at the top is not already saying it.
+        *
+        * Explaining the same emptiness above and below the figures is worse
+        * than explaining it once in the wrong place, which is what it was.
+        */}
+      {report.enquiries === 0 && sinceCount > 0 && (
         <div className="mt-6">
           <p className="hint">
             Nothing came in {thisWeek ? "yet this week" : `between ${range}`}.
