@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio } from "@/lib/studio";
-import { formatPence } from "@/lib/money";
 import { isOutOfHours } from "@/lib/report";
 import { readinessOf } from "@/lib/readiness";
 import { Readiness } from "@/components/Readiness";

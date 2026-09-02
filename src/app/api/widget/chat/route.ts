@@ -107,6 +107,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       reply: result.reply,
       paused: result.paused,
+      /*
+       * What it did, so the widget can draw it instead of asking the customer
+       * to type the answer back. Nothing here grants the browser anything: it
+       * describes decisions already written to the database, and a tapped time
+       * comes back as an ordinary message and is booked the ordinary way.
+       */
+      moments: result.moments,
     });
   } catch (error) {
     // The studio slug and any database detail stay server-side.

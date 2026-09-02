@@ -1,3 +1,4 @@
+import type { Moment } from "./moments";
 import Anthropic from "@anthropic-ai/sdk";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -80,6 +81,11 @@ export type TurnResult = {
   status: string;
   /** True when the owner has taken over and the assistant is deliberately silent. */
   paused: boolean;
+  /**
+   * What it did, structured, for a client that can draw it. See moments.ts.
+   * Always safe to ignore — the reply says all of it in words too.
+   */
+  moments: Moment[];
 };
 
 export async function runTurn(input: TurnInput): Promise<TurnResult> {
@@ -171,10 +177,11 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
       reply: null,
       status: conversation.status,
       paused: true,
+      moments: [],
     };
   }
 
-  const reply = await generateReply({
+  const { text: reply, moments } = await generateReply({
     db,
     studio: studio as Studio,
     artists: (artists ?? []) as Artist[],
@@ -213,6 +220,7 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     reply,
     status: after?.status ?? conversation.status,
     paused: Boolean(after?.ai_paused),
+    moments,
   };
 }
 
@@ -221,7 +229,17 @@ type ReplyContext = Omit<ToolContext, "db"> & {
   faqs: Faq[];
 };
 
-async function generateReply(ctx: ReplyContext): Promise<string> {
+/**
+ * The words, and what it did to arrive at them.
+ *
+ * This returned only the words. The tool calls behind them — the times it
+ * looked up, the price it worked out, the slot it took — were flattened into
+ * a sentence and thrown away, which left the widget with prose where it could
+ * have had buttons.
+ */
+async function generateReply(
+  ctx: ReplyContext,
+): Promise<{ text: string; moments: Moment[] }> {
   const client = new Anthropic();
 
   const { data: history } = await ctx.db
@@ -293,6 +311,7 @@ async function generateReply(ctx: ReplyContext): Promise<string> {
 
   let text = "";
   let escalated = false;
+  let moments: Moment[] = [];
   const spend = { input: 0, output: 0, cache_read: 0, cache_write: 0, cost_micros: 0 };
   // Kept so a surprising reply can be traced back to what the model actually called.
   const toolTrace: { name: string; input: unknown; result: string }[] = [];
@@ -327,7 +346,12 @@ async function generateReply(ctx: ReplyContext): Promise<string> {
         .from("conversations")
         .update({ status: "needs_human", ai_paused: true })
         .eq("id", ctx.conversationId);
-      return "Let me get someone from the studio to help with that — they'll come back to you shortly.";
+      // A refusal is a handover like any other, and the widget should show it
+      // as one rather than leaving the customer wondering.
+      return {
+        text: "Let me get someone from the studio to help with that — they'll come back to you shortly.",
+        moments: [{ kind: "handover", person: ctx.artists.find((a) => a.active)?.name ?? null }],
+      };
     }
 
     text = response.content
@@ -352,6 +376,18 @@ async function generateReply(ctx: ReplyContext): Promise<string> {
         ctx,
       );
       if (outcome.escalated) escalated = true;
+      /*
+       * Only the last of each kind survives.
+       *
+       * A turn can call get_available_slots twice — offer times, get told none
+       * of them suit, look again — and drawing both sets of buttons would
+       * leave the customer tapping a time the assistant has already withdrawn.
+       * What it settled on last is what it actually said.
+       */
+      if (outcome.moment) {
+        const m = outcome.moment;
+        moments = moments.filter((seen) => seen.kind !== m.kind).concat(m);
+      }
       toolTrace.push({ name: call.name, input: call.input, result: outcome.result });
       results.push({ type: "tool_result", tool_use_id: call.id, content: outcome.result });
     }
@@ -414,7 +450,7 @@ ${text}`;
     usage: spend,
   });
 
-  return text;
+  return { text, moments };
 }
 
 async function findOrCreateConversation(

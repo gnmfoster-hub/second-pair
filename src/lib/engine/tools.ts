@@ -1,5 +1,6 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Moment } from "./moments";
 import { formatPence } from "@/lib/money";
 import { notifyStudio } from "@/lib/notify";
 import { quoteForBand, quoteForStudio, depositFor, withVat } from "@/lib/quote";
@@ -250,7 +251,17 @@ export function toolDefinitions(
   ];
 }
 
-export type ToolOutcome = { result: string; escalated?: boolean };
+export type ToolOutcome = {
+  result: string;
+  escalated?: boolean;
+  /**
+   * The same decision, structured, for a client that can draw it.
+   *
+   * Purely additive: `result` is unchanged and still the only thing the model
+   * and every other channel see. See moments.ts for why.
+   */
+  moment?: Moment;
+};
 
 export async function executeTool(
   name: string,
@@ -440,6 +451,18 @@ async function quoteEstimate(
     ]
       .filter(Boolean)
       .join(" "),
+    moment: {
+      kind: "quote",
+      label: band.size_label,
+      person: named?.name ?? null,
+      lowPence: shown.low_pence,
+      highPence: shown.high_pence,
+      note: shown.note ?? null,
+      depositPence: ctx.studio.deposit_mode === "none" ? 0 : deposit,
+      hoursLow: band.hours_low,
+      hoursHigh: band.hours_high,
+      needsConsultation: Boolean(band.requires_consultation),
+    },
   };
 }
 
@@ -528,8 +551,21 @@ async function getSlots(
       `${type === "consultation" ? "Consultation" : "Session"} with ${artist.name}, ${minutes} minutes.`,
       "Offer these and no others:",
       lines,
-      "Give the times in words. Pass the exact starts_at back to create_booking.",
+      "Offer them in one short sentence, not a bulleted list — a list of four dates is hard work in a text message, and in the chat widget each one is already a button "
+        + "underneath. Pass the exact starts_at back to create_booking.",
     ].join("\n"),
+    // Exactly the times it was told to offer, so the buttons and the
+    // sentence can never disagree about what is actually free.
+    moment: {
+      kind: "slots",
+      person: artist.name,
+      minutes,
+      appointment: type === "consultation" ? "consultation" : "session",
+      slots: slots.map((sl) => ({
+        startsAt: sl.starts_at,
+        label: describeSlot(sl, ctx.studio.timezone),
+      })),
+    },
   };
 }
 
@@ -633,6 +669,14 @@ async function makeBooking(
       (takesDeposit
         ? " The slot is held for an hour while the deposit is paid."
         : " It is confirmed — there is no deposit to take, so do not mention one."),
+    moment: {
+      kind: "booked",
+      person: artist.name,
+      startsAt,
+      endsAt: new Date(when + minutes * 60_000).toISOString(),
+      label: said,
+      held: takesDeposit,
+    },
   };
 }
 
@@ -672,6 +716,7 @@ async function sendDepositLink(ctx: ToolContext): Promise<ToolOutcome> {
 ` +
       "Give them that link exactly as written, on its own line. Say the slot is held " +
       "until it is paid.",
+    moment: { kind: "deposit", amountPence: booking.deposit_amount_pence, url: link },
   };
 }
 
@@ -696,6 +741,10 @@ async function escalate(
       result:
         "The owner has been notified and is taking over. Tell the client someone from the " +
         "studio will come back to them, then stop replying.",
+      // A person is coming. The widget says so as a quiet line of its own
+      // rather than leaving it buried in a paragraph the customer may not
+      // read — waiting is much easier when you can see that you are.
+      moment: { kind: "handover", person: ctx.artists.find((a) => a.active)?.name ?? null },
       escalated: true,
     };
   }

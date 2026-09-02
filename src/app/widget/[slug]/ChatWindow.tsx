@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { initialsFor } from "@/components/Avatar";
+import { MomentCard } from "./Moments";
+import type { Moment } from "@/lib/engine/moments";
 
 const stroke = {
   fill: "none",
@@ -42,6 +44,15 @@ type Line = {
   text: string;
   /** Object URLs for anything attached, so it shows as a picture not a filename. */
   photos?: string[];
+  /**
+   * What the assistant did on this turn, drawn under the words.
+   *
+   * Attached to the line rather than held in one place, so scrolling back to an
+   * earlier price or an earlier set of times shows what was on offer then —
+   * and so a second set of times replaces the buttons rather than adding to
+   * them further down.
+   */
+  moments?: Moment[];
   at: number;
 };
 
@@ -263,7 +274,10 @@ export function ChatWindow({
       }
 
       if (data.reply) {
-        setLines((l) => [...l, { from: "studio", text: data.reply, at: Date.now() }]);
+        setLines((l) => [
+          ...l,
+          { from: "studio", text: data.reply, moments: data.moments, at: Date.now() },
+        ]);
         // Tells the launcher on the host page that something arrived, so a
         // closed widget can show an unread dot instead of sitting silent.
         window.parent?.postMessage({ secondPair: "reply" }, "*");
@@ -407,19 +421,57 @@ export function ChatWindow({
             const first = !prev || prev.from !== line.from;
             const last = !next || next.from !== line.from;
 
+            /*
+             * A card is a control, not a record.
+             *
+             * The assistant will happily look the diary up twice in one
+             * conversation, and each turn brought its own card — so the same
+             * four times sat in the transcript twice over, the earlier set
+             * dead. Worse than untidy: a customer scrolling back and tapping
+             * one would be asking for a slot that was withdrawn.
+             *
+             * So only the newest card of each kind is drawn. Nothing is lost —
+             * the words above it are still there, and they said the times, the
+             * price and the booking in full. What the card adds is the ability
+             * to act, and that only ever belongs to the latest one.
+             */
+            const live = (line.moments ?? []).filter(
+              (m) =>
+                !lines.some((l, j) => j > i && l.moments?.some((n) => retires(n.kind, m.kind))),
+            );
+
+            const paying = live.find((m) => m.kind === "deposit");
+            const shown = paying ? withoutLink(line.text, paying.url) : line.text;
+
             return (
-              <Bubble
-                key={i}
-                from={line.from}
-                first={first}
-                last={last}
-                who={who}
-                photoUrl={photoUrl}
-                at={last ? line.at : undefined}
-                photos={line.photos}
-              >
-                {line.text}
-              </Bubble>
+              <div key={i} className="contents">
+                <Bubble
+                  from={line.from}
+                  first={first}
+                  last={last}
+                  who={who}
+                  photoUrl={photoUrl}
+                  at={last ? line.at : undefined}
+                  photos={line.photos}
+                >
+                  {shown}
+                </Bubble>
+
+                {live.length ? (
+                  <div className="flex flex-col gap-2 pl-9 pt-0.5">
+                    {live.map((moment, m) => (
+                      <MomentCard
+                        key={m}
+                        moment={moment}
+                        brand={brand}
+                        onBrand={onBrand}
+                        disabled={sending}
+                        onPick={(message) => send(undefined, message)}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             );
           })}
 
@@ -545,6 +597,41 @@ export function ChatWindow({
       </form>
     </div>
   );
+}
+
+/**
+ * The words, minus what the card underneath already says better.
+ *
+ * The assistant is told to give the payment link on its own line, and it must
+ * keep doing that — a text message has no buttons, and that sentence is what
+ * gets stored and what gets sent. But in the widget it lands directly above a
+ * card with the same link on a button, so the customer is shown the same URL
+ * twice, once as raw text they are being asked to trust.
+ *
+ * Stripped only from what is drawn here. Nothing about the stored reply
+ * changes, and if the card is not rendered the link stays exactly where it was.
+ */
+function withoutLink(text: string, url: string) {
+  const bare = url.replace(/^https?:\/\//, "");
+  return text
+    .split("\n")
+    .filter((line) => line.trim() !== url && line.trim() !== bare)
+    .join("\n")
+    .replace(/(\n\s*){3,}/g, "\n\n")
+    .trim();
+}
+
+/**
+ * Which card puts which other card out of date.
+ *
+ * A later card of the same kind always replaces an earlier one — a second look
+ * at the diary withdraws the first set of times. Booking retires the times as
+ * well, and that one matters: without it four tappable slots sat under a
+ * confirmed appointment, inviting somebody who had just booked to book again.
+ */
+function retires(newer: Moment["kind"], older: Moment["kind"]) {
+  if (newer === older) return true;
+  return newer === "booked" && older === "slots";
 }
 
 /** The face beside a group of replies. */
