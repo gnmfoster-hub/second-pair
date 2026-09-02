@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Artist, Faq, PriceBand, ServiceOption, Studio } from "@/lib/types";
+import { isPlatformAdmin } from "./platform";
 
 /**
  * The studio the signed-in user belongs to. MVP assumes one studio per user;
@@ -26,7 +27,17 @@ export async function requireStudio(): Promise<{
     .limit(1)
     .maybeSingle();
 
-  if (!membership) redirect("/onboarding");
+  if (!membership) {
+    /*
+     * A platform administrator does not have a business of their own.
+     *
+     * Without this they land on the onboarding flow and are asked to name their
+     * salon and pick a trade, which is the one thing that account exists not to
+     * do. Sending them to the back office is where they were going anyway.
+     */
+    if (await isPlatformAdmin()) redirect("/admin");
+    redirect("/onboarding");
+  }
 
   const { data: studio } = await supabase
     .from("studios")
