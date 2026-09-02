@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import Link from "next/link";
 import type { BusinessSummary } from "@/lib/platform";
 import { createBusiness, resetLink, deleteBusiness, saveAccount, type Result } from "./actions";
 import { formatPence } from "@/lib/money";
@@ -27,7 +28,16 @@ export function Console({
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
-      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
+      {/*
+        * A way back, because this sits outside the app and has no navigation of
+        * its own. Somebody who came here to set a business up usually wants
+        * their own diary next.
+        */}
+      <Link href="/" className="hint inline-flex items-center gap-1.5 hover:text-foreground">
+        &larr; Your own account
+      </Link>
+
+      <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-2">
         <h1 className="page-title">Second Pair</h1>
         <span className="hint">the business behind the businesses</span>
         <button

@@ -14,6 +14,7 @@ import {
 } from "@/components/Icons";
 import { signOut } from "./actions";
 import { HelpButton } from "@/components/HelpButton";
+import { AdminLink } from "@/components/AdminLink";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { studio, userEmail } = await requireStudio();
@@ -88,6 +89,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="flex-1" />
 
         <div className="space-y-3 border-t border-border p-3">
+          {/* Only renders for a platform administrator, which is one person. */}
+          <AdminLink />
           <ThemeToggle />
           <div className="truncate px-3 text-[11px] text-muted">{userEmail}</div>
           <form action={signOut}>
