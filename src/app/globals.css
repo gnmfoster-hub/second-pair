@@ -269,15 +269,6 @@ body {
 
   /* A card you can click. Lifts a little, rather than changing colour, so a
      grid of them reads as objects rather than as buttons. */
-  .card-interactive {
-    @apply transition-[box-shadow,transform] duration-150;
-  }
-
-  .card-interactive:hover {
-    box-shadow: var(--shadow-pop);
-    transform: translateY(-1px);
-  }
-
   /*
    * A row in a list that goes somewhere.
    *
@@ -285,9 +276,16 @@ body {
    * happened to land on one. The tint is deliberately faint — a list of forty
    * clients should not flicker as the mouse crosses it.
    */
+  /*
+   * Applies to a list row that already has its own padding, so it brings the
+   * hover and the focus ring and nothing else. It used to add negative margins
+   * and its own padding, which is why it was never applied to a single list in
+   * the app: every list already had padding of its own, and the two fought.
+   */
   .row {
-    @apply -mx-2 rounded-xl px-2 transition-colors
-           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent;
+    @apply transition-colors
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset
+           focus-visible:ring-accent;
   }
 
   .row:hover {

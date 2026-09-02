@@ -228,7 +228,7 @@ export default async function ClientsPage({
                 <li key={c.id}>
                   <Link
                     href={`/clients/${c.id}`}
-                    className="flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-surface-2/60 sm:px-5"
+                    className="row flex items-center gap-3.5 px-4 py-3.5 sm:px-5"
                   >
                     {/* The same faces as the inbox, so the two lists read as
                         the same people rather than two databases. */}

@@ -227,7 +227,7 @@ export default async function InboxPage() {
                 <li key={c.id}>
                   <Link
                     href={`/conversations/${c.id}`}
-                    className="group flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-surface-2/60 sm:px-5"
+                    className="row group flex items-center gap-3.5 px-4 py-3.5 sm:px-5"
                   >
                     {/* A face, so the list scans as people rather than rows —
                         and where there is no person yet, where they came in. */}

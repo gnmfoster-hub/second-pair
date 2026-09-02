@@ -347,7 +347,16 @@ export default async function DiaryPage({
        * between them; joined, the figures are plainly a caption for the week
        * underneath, which is what they are.
        */}
-      <div className="card mt-5 overflow-hidden">
+      {/*
+        * The grid arrives rather than appearing.
+        *
+        * The front page has done this since the design pass and the diary never
+        * did, which is backwards: this is the screen an owner opens twenty times
+        * a day, and it was the one that snapped into place like a table being
+        * printed. One beat, and it stops for anybody who has asked for less
+        * motion.
+        */}
+      <div className="card settle mt-5 overflow-hidden">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-border px-4 py-2.5 text-sm">
         <Figure label="booked" value={asHours(bookedMinutes)} />
         <Figure label="worth" value={formatPence(worth)} accent={worth > 0} />
