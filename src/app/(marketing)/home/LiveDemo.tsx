@@ -1,73 +1,106 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { MomentCard } from "@/app/widget/[slug]/Moments";
+import type { Moment } from "@/lib/engine/moments";
 
 /**
  * The assistant, working, while you watch.
  *
- * This panel was the conversation printed out — six bubbles sitting there,
+ * This panel was the conversation printed out — bubbles sitting there,
  * finished, the way a screenshot sits there. But the whole claim of the product
  * is about *when* it replies: at nine at night, in under a minute, while the
  * owner's hands are full. A finished transcript cannot make that claim. It has
  * to happen in front of you.
  *
- * So it plays. The customer types, the assistant thinks for a beat and answers,
- * the clock in the header is the real one, and it loops so anybody landing
- * mid-cycle still sees it work. The pause before each reply is the point of the
- * whole thing, which is why it is timed to read as considered rather than
- * instant — an answer that appears with no gap at all reads as canned.
+ * So it plays, and it plays honestly. The customer's side is typed into the
+ * composer a character at a time and then sent, because that is what a person
+ * does. The assistant's side shows the same two dots the real widget shows and
+ * then arrives whole, because that is what the real widget does — it does not
+ * stream, and a demo that streamed would be selling something we do not ship.
  *
- * Rendered in full on the server, then rewound before the first paint, so the
+ * It is the real widget's chrome, the real bubbles and the real booking cards,
+ * imported rather than imitated. Anyone who signs up should recognise the thing
+ * they were shown.
+ *
+ * Rendered complete on the server and rewound before the first paint, so the
  * text is there for search engines and for anybody without JavaScript.
  */
 
-type Line = { readonly from: "them" | "us"; readonly text: string };
+type Beat =
+  | { who: "them"; text: string }
+  | { who: "us"; text: string; moment?: Moment }
+  | { who: "tap"; slot: number };
 
-/** useLayoutEffect on the client, useEffect on the server, without the warning. */
+type Line = { from: "them" | "us"; text: string; moment?: Moment };
+
 const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 /*
  * How long a beat lasts.
  *
- * Long enough that the reply reads as considered, short enough that somebody
- * scanning the page sees a whole exchange before they scroll past it. The
- * thinking pause is fixed; the pause after a message scales with how much there
- * is to read, because watching a long answer vanish is worse than waiting.
+ * Typing is deliberately quicker than a real thumb — a demo that took as long
+ * as genuinely typing a sentence would lose the reader before the reply. The
+ * thinking pause is the one that has to feel true, because the pause before an
+ * answer is the thing being demonstrated.
  */
-const THINKING = 1100;
-const READ_PER_CHAR = 22;
-const READ_MAX = 2600;
-const HOLD = 4200;
+const KEYSTROKE = 34;
+const BEFORE_SEND = 420;
+const THINKING = 1250;
+const READ_PER_CHAR = 21;
+const READ_MAX = 2500;
+const HOLD = 4600;
 
 export function LiveDemo({
-  conversation,
+  script,
+  brand,
+  onBrand,
+  business,
+  initials,
   supportSlug,
 }: {
-  conversation: readonly Line[];
-  /** The help assistant's own studio, if one is configured. Enables "ask ours". */
+  script: readonly Beat[];
+  /** The salon's own colour — the widget wears the business's brand, not ours. */
+  brand: string;
+  onBrand: string;
+  business: string;
+  initials: string;
+  /** Our own assistant, if one is configured. Enables "ask ours". */
   supportSlug?: string;
 }) {
+  const finished = script.filter((b): b is Extract<Beat, { who: "them" | "us" }> => b.who !== "tap");
+
   /*
-   * How many lines are showing.
+   * Everything, until the browser says otherwise.
    *
-   * Starts at all of them: this component is server-rendered, and a panel that
-   * arrives empty is a hole in the page for anybody whose JavaScript is slow,
-   * off, or a crawler. The rewind below happens before the browser paints, so
-   * nobody sees the full list flash.
+   * Server-rendered, and a panel that arrives empty is a hole in the page for a
+   * crawler or anybody whose JavaScript is slow. The rewind happens before the
+   * first paint, so nobody sees the full list flash.
    */
-  const [shown, setShown] = useState(conversation.length);
+  const [lines, setLines] = useState<Line[]>(() =>
+    finished.map((b) => ({ from: b.who, text: b.text, moment: b.who === "us" ? b.moment : undefined })),
+  );
+  const [draft, setDraft] = useState("");
   const [thinking, setThinking] = useState(false);
+  const [pressed, setPressed] = useState<number | null>(null);
   const [live, setLive] = useState(false);
   const [asking, setAsking] = useState(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const thread = useRef<HTMLDivElement>(null);
 
   useIsomorphicLayoutEffect(() => {
     // Anybody who has asked for less motion gets the transcript, complete and
     // still. It says the same thing; it just does not move.
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    setShown(0);
+    setLines([]);
     setLive(true);
   }, []);
+
+  // Follow the conversation down, the way the real thing does.
+  useEffect(() => {
+    const el = thread.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [lines, thinking, draft]);
 
   useEffect(() => {
     if (!live || asking) return;
@@ -76,28 +109,57 @@ export function LiveDemo({
       timers.current.push(setTimeout(fn, ms));
     };
 
-    let t = 400;
+    let t = 700;
+
     const play = () => {
-      conversation.forEach((line, i) => {
-        // Only the assistant thinks. The customer is typing on their own phone
-        // and we have no business pretending to know how long that took.
-        if (line.from === "us") {
+      for (const beat of script) {
+        if (beat.who === "us") {
           at(t, () => setThinking(true));
           t += THINKING;
+          at(t, () => {
+            setThinking(false);
+            setLines((l) => [...l, { from: "us", text: beat.text, moment: beat.moment }]);
+          });
+          t += Math.min(READ_MAX, 800 + beat.text.length * READ_PER_CHAR);
+          continue;
         }
+
+        if (beat.who === "tap") {
+          // The press is shown before the message appears, because a button
+          // that sends with no acknowledgement looks like a page reloading.
+          at(t, () => setPressed(beat.slot));
+          t += 500;
+          at(t, () => {
+            setPressed(null);
+            const card = lastSlots(script);
+            const label = card?.slots[beat.slot]?.label ?? "";
+            setLines((l) => [...l, { from: "them", text: `${label} please` }]);
+          });
+          t += 700;
+          continue;
+        }
+
+        // Typed a character at a time into the composer, then sent — the only
+        // half of this conversation a human is actually doing.
+        for (let i = 1; i <= beat.text.length; i++) {
+          at(t, () => setDraft(beat.text.slice(0, i)));
+          t += KEYSTROKE;
+        }
+        t += BEFORE_SEND;
         at(t, () => {
-          setThinking(false);
-          setShown(i + 1);
+          setDraft("");
+          setLines((l) => [...l, { from: "them", text: beat.text }]);
         });
-        t += Math.min(READ_MAX, 700 + line.text.length * READ_PER_CHAR);
-      });
+        t += 650;
+      }
 
       at(t + HOLD, () => {
-        setShown(0);
-        t = 400;
+        setLines([]);
+        t = 700;
         play();
       });
     };
+
     play();
 
     const running = timers.current;
@@ -105,81 +167,184 @@ export function LiveDemo({
       running.forEach(clearTimeout);
       running.length = 0;
     };
-  }, [live, asking, conversation]);
-
-  const visible = conversation.slice(0, shown);
+  }, [live, asking, script]);
 
   return (
-    <div className="card overflow-hidden p-0">
-      <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
-        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-xs font-semibold text-on-accent">
-          {asking ? "SP" : "FE"}
-        </span>
-        <div className="min-w-0">
-          <div className="truncate text-sm font-medium">
-            {asking ? "Second Pair" : "Foster Electrical"}
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted">
-            <span className="size-1.5 rounded-full bg-ok" aria-hidden />
-            {asking ? "Ours, answering you" : "Usually replies in under a minute"}
-          </div>
-        </div>
-        {!asking && <Clock />}
-      </div>
-
+    <div
+      /*
+       * The real widget's shape: a bubble pinched at the corner nearest where
+       * its launcher would sit. On the page it is a picture of the thing rather
+       * than the thing, so it has no launcher — but it should still be the
+       * shape somebody will recognise when they get one.
+       */
+      className="overflow-hidden rounded-[22px] rounded-br-md border border-border bg-background shadow-[0_16px_50px_rgba(10,12,16,0.16),0_2px_8px_rgba(10,12,16,0.06)]"
+      style={{ ["--brand" as string]: brand, ["--on-brand" as string]: onBrand }}
+    >
       {asking && supportSlug ? (
         <iframe
-          src={`/widget/${supportSlug}?embed=1`}
+          src={`/widget/${supportSlug}`}
           title="Ask Second Pair's assistant"
-          className="h-[26rem] w-full border-0"
+          className="h-[30rem] w-full border-0"
         />
       ) : (
-        <>
-          {/*
-           * A floor under the panel.
-           *
-           * Without it the card grows a line at a time and shoves the page
-           * around under the reader — on a hero, while they are still deciding
-           * whether to stay.
-           */}
+        <div className="relative h-[30rem]">
+          {/* The identity, floating on glass — the real widget's header. */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-20 p-3">
+            <div className="flex w-fit items-center gap-2.5 rounded-full border border-border bg-surface/75 py-1.5 pl-1.5 pr-4 shadow-[var(--shadow-card)] backdrop-blur-xl">
+              <span
+                className="grid size-8 shrink-0 place-items-center rounded-full text-[11px] font-semibold"
+                style={{ background: brand, color: onBrand }}
+                aria-hidden
+              >
+                {initials}
+              </span>
+              <div className="min-w-0">
+                <div className="truncate text-[0.8rem] font-semibold leading-tight">{business}</div>
+                <div className="flex items-center gap-1.5 text-[0.68rem] leading-tight text-muted">
+                  {thinking ? (
+                    <>
+                      <span className="flex gap-[3px]" aria-hidden>
+                        {[0, 1].map((d) => (
+                          <span
+                            key={d}
+                            className="breathe size-[3px] rounded-full"
+                            style={{ background: brand, animationDelay: `${d * 400}ms` }}
+                          />
+                        ))}
+                      </span>
+                      Typing
+                    </>
+                  ) : (
+                    <>
+                      <span className="size-1.5 rounded-full bg-[#22c55e]" aria-hidden />
+                      Answering now
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div
-            className="flex min-h-[19.5rem] flex-col justify-end gap-2.5 p-4"
+            ref={thread}
+            /*
+             * Clear of the composer, which floats over this rather than sitting
+             * beside it. The padding has to beat the composer's height — it was
+             * set to exactly match, which left the last card sitting flush
+             * against it with the bottom border tucked underneath.
+             */
+            className="h-full space-y-1 overflow-y-auto px-3.5 pb-[8.5rem] pt-[4.5rem]"
             aria-live="polite"
           >
-            {visible.map((line, i) => (
-              <div
-                key={i}
-                className={`max-w-[86%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                  live ? "settle" : ""
-                } ${
-                  line.from === "them"
-                    ? "ml-auto rounded-br-sm bg-accent text-on-accent"
-                    : "rounded-tl-sm bg-surface-2"
-                }`}
-              >
-                {line.text}
-              </div>
-            ))}
+            {lines.map((line, i) => {
+              const mine = line.from === "them";
+              const next = lines[i + 1];
+              const last = !next || next.from !== line.from;
+
+              // Only the newest card of a kind is live, exactly as in the real
+              // widget — see the note on `retires` there.
+              const card =
+                line.moment &&
+                !lines.some((l, j) => j > i && l.moment && retires(l.moment.kind, line.moment!.kind))
+                  ? line.moment
+                  : null;
+
+              return (
+                <div key={i} className="contents">
+                  <div className={`flex items-end gap-2 ${mine ? "flex-row-reverse" : ""}`}>
+                    {!mine &&
+                      (last ? (
+                        <span
+                          className="grid size-7 shrink-0 place-items-center rounded-full text-[10px] font-semibold"
+                          style={{ background: brand, color: onBrand }}
+                          aria-hidden
+                        >
+                          {initials}
+                        </span>
+                      ) : (
+                        <span className="size-7 shrink-0" />
+                      ))}
+                    <div
+                      className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                        live ? "motion-safe:animate-[rise_200ms_ease-out]" : ""
+                      } ${
+                        mine
+                          ? `${last ? "rounded-br-md" : ""}`
+                          : `bg-surface-2 text-foreground ${last ? "rounded-bl-md" : ""}`
+                      }`}
+                      style={mine ? { background: brand, color: onBrand } : undefined}
+                    >
+                      {line.text}
+                    </div>
+                  </div>
+
+                  {card && (
+                    <div className="flex flex-col gap-2 pl-9 pt-1">
+                      <MomentCard
+                        moment={card}
+                        brand={brand}
+                        onBrand={onBrand}
+                        disabled
+                        pressed={card.kind === "slots" ? pressed : null}
+                        onPick={() => {}}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
 
             {thinking && (
-              <div className="flex w-fit items-center gap-1.5 rounded-2xl rounded-tl-sm bg-surface-2 px-3.5 py-3">
-                <span className="sr-only">Typing</span>
-                {[0, 1, 2].map((d) => (
-                  <span
-                    key={d}
-                    className="breathe size-1.5 rounded-full bg-muted"
-                    style={{ animationDelay: `${d * 180}ms` }}
-                    aria-hidden
-                  />
-                ))}
+              <div className="flex items-end gap-2 pt-1">
+                <span
+                  className="grid size-7 shrink-0 place-items-center rounded-full text-[10px] font-semibold"
+                  style={{ background: brand, color: onBrand }}
+                  aria-hidden
+                >
+                  {initials}
+                </span>
+                <div className="rounded-2xl rounded-bl-md bg-surface-2 px-4 py-3.5">
+                  <span className="flex gap-1" role="status" aria-label="Typing">
+                    {[0, 1, 2].map((i) => (
+                      <span
+                        key={i}
+                        className="size-1.5 rounded-full bg-muted/70 motion-safe:animate-bounce"
+                        style={{ animationDelay: `${i * 140}ms`, animationDuration: "1s" }}
+                      />
+                    ))}
+                  </span>
+                </div>
               </div>
             )}
           </div>
 
-          <p className="border-t border-border px-4 py-2.5 text-center text-[11px] text-muted">
-            A real conversation shape. Nobody at Foster Electrical was awake.
-          </p>
-        </>
+          {/* The composer, with the customer's half being typed into it. */}
+          <div className="absolute inset-x-0 bottom-0 bg-background px-3.5 pb-3.5 pt-3">
+            <div className="flex items-end gap-1.5 rounded-2xl border border-border bg-surface p-1.5">
+              <span className="grid size-9 shrink-0 place-items-center rounded-xl text-muted" aria-hidden>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 11.5 12.2 19.3a4.6 4.6 0 0 1-6.5-6.5l7.8-7.8a3 3 0 1 1 4.3 4.3l-7.8 7.8a1.5 1.5 0 0 1-2.1-2.1l7.2-7.2" />
+                </svg>
+              </span>
+              <p className="flex-1 py-2 text-sm text-foreground">
+                {draft || <span className="text-muted/70">Write a message…</span>}
+                {draft && <span className="ml-px inline-block w-px animate-pulse">|</span>}
+              </p>
+              <span
+                className="grid size-11 shrink-0 place-items-center rounded-xl transition-opacity"
+                style={{ background: brand, color: onBrand, opacity: draft ? 1 : 0.35 }}
+                aria-hidden
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4.5 12h13M12 6.5 17.5 12 12 17.5" />
+                </svg>
+              </span>
+            </div>
+            <p className="mt-2 text-center text-[11px] text-muted">
+              Answered by an assistant · a human sees everything
+            </p>
+          </div>
+        </div>
       )}
 
       {supportSlug && (
@@ -195,29 +360,16 @@ export function LiveDemo({
   );
 }
 
-/**
- * The real time, because that is the argument.
- *
- * The header used to read 21:47 — a made-up hour chosen to say "look how late
- * this was". Showing whatever time it actually is for the person reading makes
- * the same point and cannot be accused of staging it.
- */
-function Clock() {
-  const [now, setNow] = useState<string | null>(null);
+/** Mirrors the widget's rule: a booking retires the times it was chosen from. */
+function retires(newer: Moment["kind"], older: Moment["kind"]) {
+  if (newer === older) return true;
+  return newer === "booked" && older === "slots";
+}
 
-  useEffect(() => {
-    const tick = () =>
-      setNow(
-        new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false }),
-      );
-    tick();
-    const id = setInterval(tick, 20_000);
-    return () => clearInterval(id);
-  }, []);
-
-  return (
-    <span className="num ml-auto shrink-0 text-[11px] text-muted" suppressHydrationWarning>
-      {now ?? "21:47"}
-    </span>
-  );
+function lastSlots(script: readonly Beat[]) {
+  for (let i = script.length - 1; i >= 0; i--) {
+    const beat = script[i];
+    if (beat.who === "us" && beat.moment?.kind === "slots") return beat.moment;
+  }
+  return null;
 }

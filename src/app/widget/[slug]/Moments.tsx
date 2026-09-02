@@ -36,6 +36,7 @@ export function MomentCard({
   onBrand,
   onPick,
   disabled,
+  pressed = null,
 }: {
   moment: Moment;
   brand: string;
@@ -43,6 +44,14 @@ export function MomentCard({
   /** Sends a message on the customer's behalf, exactly as if they had typed it. */
   onPick: (message: string) => void;
   disabled: boolean;
+  /**
+   * Which slot to draw as being pressed, for the demo on the home page.
+   *
+   * A button that sends with no acknowledgement looks like the page reloading,
+   * and the demo has no cursor to explain itself with. Nothing sets this in the
+   * widget proper, where a real finger does the job.
+   */
+  pressed?: number | null;
 }) {
   switch (moment.kind) {
     case "slots":
@@ -54,7 +63,7 @@ export function MomentCard({
               : `${moment.minutes} minutes with ${moment.person}`}
           </Label>
           <div className="mt-2.5 grid gap-1.5">
-            {moment.slots.map((slot) => (
+            {moment.slots.map((slot, i) => (
               <button
                 key={slot.startsAt}
                 type="button"
@@ -67,8 +76,16 @@ export function MomentCard({
                  * happen one-handed on a phone. Four dates in a wrapping row
                  * put two of them under a thumb at once.
                  */
-                className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-border bg-surface px-3.5 py-2.5 text-left text-sm font-medium transition-all hover:-translate-y-px active:translate-y-0 disabled:opacity-40 motion-safe:animate-[rise_240ms_ease-out_both]"
-                style={{ borderColor: undefined }}
+                className={`flex min-h-11 items-center justify-between gap-3 rounded-xl border px-3.5 py-2.5 text-left text-sm font-medium transition-all motion-safe:animate-[rise_240ms_ease-out_both] ${
+                  pressed === i
+                    ? "scale-[0.98]"
+                    : "border-border bg-surface hover:-translate-y-px active:translate-y-0 disabled:opacity-40"
+                }`}
+                style={
+                  pressed === i
+                    ? { borderColor: brand, color: brand, background: `color-mix(in srgb, ${brand} 8%, transparent)` }
+                    : undefined
+                }
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = brand;
                   e.currentTarget.style.color = brand;
@@ -236,7 +253,16 @@ function calendarHref(moment: Extract<Moment, { kind: "booked" }>) {
     "PRODID:-//Second Pair//EN",
     "BEGIN:VEVENT",
     `UID:${stamp(moment.startsAt)}-secondpair`,
-    `DTSTAMP:${stamp(new Date().toISOString())}`,
+    /*
+     * Stamped from the appointment, not from the clock.
+     *
+     * DTSTAMP wants the moment the object was made, and reading the clock at
+     * render time made the server and the browser produce different files —
+     * a hydration mismatch on the home page, where this card is rendered on
+     * both. The appointment itself is a fixed point and every calendar
+     * application is content with it.
+     */
+    `DTSTAMP:${stamp(moment.startsAt)}`,
     `DTSTART:${stamp(moment.startsAt)}`,
     `DTEND:${stamp(moment.endsAt)}`,
     `SUMMARY:${esc(`Appointment with ${moment.person}`)}`,

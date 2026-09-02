@@ -18,21 +18,96 @@ export const metadata: Metadata = {
  * conversation is the product and the calendar is the table stakes.
  */
 
+/*
+ * A salon, because that is who is reading.
+ *
+ * This was an electrician, and electricians are a good fit — but the hair and
+ * beauty trades are where most of this business is, and a colour enquiry at
+ * nine at night is the exact thing a stylist recognises. The names are made
+ * up; the shape of the conversation is not.
+ */
+const SALON = { name: "Bell Lane Hair", initials: "BL", brand: "#8A4B63", onBrand: "#ffffff" };
+
+/**
+ * The next Saturday, and the two after it, at a civilised hour.
+ *
+ * Worked out on the server so the demo shows dates that are actually ahead of
+ * whoever is reading — a hard-coded Saturday is fine for a week and then
+ * quietly starts offering appointments in the past.
+ */
+function saturdays() {
+  const day = new Date();
+  day.setHours(10, 0, 0, 0);
+  day.setDate(day.getDate() + ((6 - day.getDay() + 7) % 7 || 7));
+
+  const format = new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Europe/London",
+  });
+
+  return [0, 1, 2].map((week) => {
+    const start = new Date(day);
+    start.setDate(start.getDate() + week * 7);
+    if (week === 1) start.setHours(13, 30, 0, 0);
+    if (week === 2) start.setHours(11, 0, 0, 0);
+    const end = new Date(start.getTime() + 180 * 60_000);
+    return {
+      startsAt: start.toISOString(),
+      endsAt: end.toISOString(),
+      label: format.format(start).replace(" at ", " at ").replace(/,/g, ""),
+    };
+  });
+}
+
+const SLOTS = saturdays();
+
 const CONVERSATION = [
-  { from: "them", text: "hi, do you do fuse board upgrades? had a quote for £900 and it seems steep" },
+  { who: "them", text: "hiya do you do balayage? roughly how much" },
   {
-    from: "us",
-    text: "We do — a board upgrade with us is usually £450 to £650, around 5 hours on site. That's an estimate and Giles confirms it once he's seen the setup. Whereabouts are you?",
+    who: "us",
+    text: "We do — balayage with Nadia is usually £120 to £160 depending on your length and how much lift you're after, and it's about three hours in the chair.",
+    moment: {
+      kind: "quote",
+      label: "Balayage",
+      person: "Nadia",
+      lowPence: 12000,
+      highPence: 16000,
+      note: null,
+      depositPence: 2500,
+      hoursLow: 3,
+      hoursHigh: 3,
+      needsConsultation: false,
+    },
   },
-  { from: "them", text: "BS16. can you do next week?" },
+  { who: "them", text: "perfect. any saturdays?" },
   {
-    from: "us",
-    text: "BS16 is well within our patch. Giles has Tuesday 9am or Thursday 1pm free — either any good?",
+    who: "us",
+    text: "She's got three Saturdays going — which suits?",
+    moment: {
+      kind: "slots",
+      person: "Nadia",
+      minutes: 180,
+      appointment: "session",
+      slots: SLOTS.map((s) => ({ startsAt: s.startsAt, label: s.label })),
+    },
   },
-  { from: "them", text: "thursday please" },
+  { who: "tap", slot: 0 },
   {
-    from: "us",
-    text: "Booked in — Thursday 4 September at 1pm, and I've got your number. Anything else you need before then?",
+    who: "us",
+    text: "Lovely — you're in with Nadia. I'll text you the day before, and if you change your mind about the length just say.",
+    moment: {
+      kind: "booked",
+      person: "Nadia",
+      startsAt: SLOTS[0].startsAt,
+      endsAt: SLOTS[0].endsAt,
+      label: SLOTS[0].label,
+      held: false,
+    },
   },
 ] as const;
 
@@ -108,7 +183,11 @@ export default function HomePage() {
           {/* The product, being the product — actually doing it. */}
           <div id="see-it" className="scroll-mt-24">
             <LiveDemo
-              conversation={CONVERSATION}
+              script={CONVERSATION}
+              brand={SALON.brand}
+              onBrand={SALON.onBrand}
+              business={SALON.name}
+              initials={SALON.initials}
               supportSlug={process.env.NEXT_PUBLIC_SUPPORT_SLUG}
             />
           </div>
