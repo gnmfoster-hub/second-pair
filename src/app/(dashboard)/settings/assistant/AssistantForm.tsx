@@ -33,6 +33,80 @@ export function AssistantForm({ studio }: { studio: Studio }) {
   return (
     <div className="space-y-8">
       <form action={action} className="space-y-8">
+        {/*
+          * Who answers first, before anything about how it sounds.
+          *
+          * This is the setting people actually come here looking for — "can I
+          * do my own messages when I'm about?" — and burying it under tone of
+          * voice would send them hunting for an off switch instead. There is no
+          * off switch, and the reason is written where they will read it.
+          */}
+        <section className="card space-y-5 p-6">
+          <div>
+            <h2 className="section-title">Who answers first</h2>
+            <p className="hint mt-1">
+              None of these turn the assistant off. A business that goes quiet is the
+              thing this is here to prevent, and that never happens on purpose — it
+              happens when somebody means to switch it back on and then has a busy
+              afternoon.
+            </p>
+          </div>
+
+          <div className="space-y-2.5">
+            {[
+              {
+                value: "when_free",
+                title: "Give me first refusal while I'm free",
+                body:
+                  "A message arrives, you're told, and you get a few minutes to answer it yourself. If you don't, the assistant does. When you're shut or with a client it just answers, because your hands are full.",
+              },
+              {
+                value: "always_ask_me",
+                title: "Give me first refusal on everything",
+                body:
+                  "The same, evenings and weekends included. For when you'd rather answer your own Sunday enquiries — it still steps in if you don't, so nothing is ever left.",
+              },
+              {
+                value: "always",
+                title: "Answer everything straight away",
+                body:
+                  "Nothing ever waits on you. You can still take over any conversation, and pressing “I've got this” still stands the assistant down for a while.",
+              },
+            ].map((option) => (
+              <label
+                key={option.value}
+                className="row flex cursor-pointer items-start gap-3 rounded-xl border border-border p-3.5 transition-colors has-[:checked]:border-accent has-[:checked]:bg-surface-2/60"
+              >
+                <input
+                  type="radio"
+                  name="answering_mode"
+                  value={option.value}
+                  defaultChecked={(studio.answering_mode ?? "when_free") === option.value}
+                  className="mt-1 size-4 shrink-0 accent-[var(--accent)]"
+                />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">{option.title}</span>
+                  <span className="hint mt-0.5 block">{option.body}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+
+          <Field
+            label="How long a head start"
+            hint="Minutes, on text and social messages only. Somebody on your website always gets an answer straight away — they are sitting there watching it type."
+          >
+            <input
+              type="number"
+              name="first_refusal_minutes"
+              min={1}
+              max={60}
+              defaultValue={studio.first_refusal_minutes ?? 5}
+              className="input w-28"
+            />
+          </Field>
+        </section>
+
         <section className="card space-y-5 p-6">
           <div>
             <h2 className="section-title">Your voice</h2>

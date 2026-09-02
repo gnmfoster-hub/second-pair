@@ -7,6 +7,9 @@ import { parsePounds } from "@/lib/money";
 import { DEFAULT_HOURS, type DepositRule, type OpeningHours } from "@/lib/types";
 import { sendEmail, emailConfigured } from "@/lib/messaging/email";
 import { siteOrigin } from "@/lib/origin";
+import type { AnsweringMode } from "@/lib/answering";
+
+const ANSWERING_MODES: AnsweringMode[] = ["always", "when_free", "always_ask_me"];
 
 export type FormState = { error?: string; ok?: boolean };
 
@@ -446,6 +449,23 @@ export async function updateAssistant(_prev: FormState, fd: FormData): Promise<F
     .filter((e) => e.ask && e.reply)
     .slice(0, 6);
 
+  /*
+   * Who answers first. Validated here rather than trusted from the form.
+   *
+   * Not because a business owner would try to break their own settings, but
+   * because this decides whether a customer gets an answer — and an unknown
+   * value falling through to "never reply" is exactly the failure the whole
+   * feature is built to be incapable of.
+   */
+  const asked = str(fd, "answering_mode");
+  const mode = ANSWERING_MODES.includes(asked as AnsweringMode)
+    ? (asked as AnsweringMode)
+    : "when_free";
+
+  // Clamped to what the database will accept, so a stray value is corrected
+  // rather than rejected with an error nobody can act on.
+  const minutes = Math.min(60, Math.max(1, Number(fd.get("first_refusal_minutes")) || 5));
+
   const { error } = await supabase
     .from("studios")
     .update({
@@ -455,6 +475,8 @@ export async function updateAssistant(_prev: FormState, fd: FormData): Promise<F
       never_mention: lines("never_mention"),
       escalate_when: lines("escalate_when"),
       voice_examples: examples,
+      answering_mode: mode,
+      first_refusal_minutes: minutes,
     })
     .eq("id", studio.id);
 
@@ -689,3 +711,36 @@ export async function saveSmsNumber(
 }
 
 type ClientStateLike = { error?: string; ok?: boolean };
+
+/**
+ * "I've got this" — and when to stop having it.
+ *
+ * The one thing this deliberately cannot do is switch the assistant off. Every
+ * press carries an end time, because a business that goes quiet is the failure
+ * the whole product exists to prevent, and the way that happens in practice is
+ * never a decision — it is somebody meaning to turn it back on and then having
+ * a busy afternoon.
+ *
+ * Passing nothing hands it straight back, which is what the same button does
+ * when it is already on.
+ */
+export async function takeTheMessages(hours: number | null): Promise<FormState> {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  const until =
+    hours === null
+      ? null
+      : new Date(Date.now() + Math.min(8, Math.max(1, hours)) * 3600_000).toISOString();
+
+  const { error } = await supabase
+    .from("studios")
+    .update({ mine_until: until })
+    .eq("id", studio.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/");
+  revalidatePath("/settings/assistant");
+  return { ok: true };
+}

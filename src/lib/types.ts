@@ -108,6 +108,15 @@ export type Studio = {
   vertical: string;
   vocabulary: Record<string, string>;
   deposit_mode: "required" | "optional" | "none";
+
+  /*
+   * Who answers an enquiry first. See lib/answering.ts — none of these is off.
+   */
+  answering_mode: "always" | "when_free" | "always_ask_me";
+  /** Minutes of head start on channels where nobody is sitting watching. */
+  first_refusal_minutes: number;
+  /** "I've got this", with an end time. Null when it is not in force. */
+  mine_until: string | null;
   vat_registered: boolean;
   vat_rate_percent: number;
   prices_include_vat: boolean;
