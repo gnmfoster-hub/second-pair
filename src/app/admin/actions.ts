@@ -268,7 +268,7 @@ export async function fixSettings(_prev: Result, fd: FormData): Promise<Result> 
   if (timezone) patch.timezone = timezone;
 
   const tone = String(fd.get("tone") ?? "").trim();
-  patch.tone = tone || null;
+  patch.tone = tone;
 
   const deposit = String(fd.get("deposit_mode") ?? "").trim();
   if (["required", "optional", "none"].includes(deposit)) patch.deposit_mode = deposit;
@@ -285,9 +285,26 @@ export async function fixSettings(_prev: Result, fd: FormData): Promise<Result> 
    * the required ones, which is why they are handled separately rather than in
    * a loop.
    */
+  /*
+   * Some of these columns cannot hold null.
+   *
+   * Blanking a box wrote null into every one of them, and two — tone and the
+   * cancellation policy — are declared not-null. Postgres rejected the
+   * statement, and because an update is all-or-nothing the error came back
+   * against whatever the person had actually come to change. Somebody fixing a
+   * business's opening hours was told the hours had failed; the hours were
+   * fine, an empty box three fields away was not.
+   *
+   * So blank means the empty string where the column demands one, and null
+   * where null is the honest answer — a URL that has not been set is absent,
+   * not empty.
+   */
+  const NEVER_NULL = new Set(["tone", "cancellation_policy"]);
+
   const text = (key: string, column = key) => {
+    if (!fd.has(key)) return;
     const value = String(fd.get(key) ?? "").trim();
-    if (fd.has(key)) patch[column] = value || null;
+    patch[column] = value || (NEVER_NULL.has(column) ? "" : null);
   };
 
   const number = (key: string, column = key, least = 0, most = 100000) => {
