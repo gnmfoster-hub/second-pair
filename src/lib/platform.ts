@@ -63,6 +63,8 @@ export type BusinessSummary = {
   vertical: string;
   /** customer counts in the figures; demo is for showing people; internal is ours. */
   kind: "customer" | "demo" | "internal";
+  /** Inferred problems stay out of the attention panel until this date. */
+  snoozedUntil: string | null;
   createdAt: string;
   owners: { email: string | null; userId: string }[];
   /** For support: is it actually set up, or did they stop halfway? */

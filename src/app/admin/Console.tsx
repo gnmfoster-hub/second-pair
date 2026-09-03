@@ -12,6 +12,7 @@ import {
   fixSettings,
   answerTicket,
   setKind,
+  snoozeAttention,
   type Result,
 } from "./actions";
 import { formatPence } from "@/lib/money";
@@ -320,6 +321,9 @@ function NeedsYou({ businesses }: { businesses: BusinessSummary[] }) {
        */
       const asked = b.tickets.filter((t) => t.status === "open");
       if (b.kind !== "customer" && asked.length === 0) return null;
+      // Put down for a week, and nobody has asked anything since.
+      const resting = b.snoozedUntil != null && b.snoozedUntil > today && asked.length === 0;
+      if (resting) return null;
       /*
        * Somebody asking beats anything inferred.
        *
@@ -384,10 +388,10 @@ function NeedsYou({ businesses }: { businesses: BusinessSummary[] }) {
         */}
       <ul className="mt-2.5 divide-y divide-border">
         {rows.map(({ b, why, urgent }) => (
-          <li key={b.id} className="py-2 text-sm">
+          <li key={b.id} className="flex items-baseline gap-3 py-2 text-sm">
             <a
               href={`#b-${b.id}`}
-              className="row flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-lg"
+              className="row flex min-w-0 flex-1 flex-wrap items-baseline gap-x-3 gap-y-1 rounded-lg"
             >
               <strong>{b.name}</strong>
               <span className={urgent ? "text-foreground" : "text-muted"}>{why}</span>
@@ -396,6 +400,12 @@ function NeedsYou({ businesses }: { businesses: BusinessSummary[] }) {
                 &rarr;
               </span>
             </a>
+            {/*
+              * Only on the guesses. A request is somebody who stopped what
+              * they were doing to type it, and it is not something to put
+              * down — it is answered or it stays.
+              */}
+            {!urgent && <Snooze id={b.id} />}
           </li>
         ))}
       </ul>
@@ -511,6 +521,20 @@ function Business({ b }: { b: BusinessSummary }) {
 }
 
 /** Where the account stands, which is the first thing worth knowing. */
+/** A week's peace on something you already know about. */
+function Snooze({ id }: { id: string }) {
+  const [state, action] = useActionState<Result, FormData>(snoozeAttention, {});
+  if (state.ok) return <span className="hint shrink-0">Put down</span>;
+  return (
+    <form action={action} className="shrink-0">
+      <input type="hidden" name="id" value={id} />
+      <button className="hint underline-offset-2 hover:underline" title="Hide for a week">
+        I know
+      </button>
+    </form>
+  );
+}
+
 function StatusPill({ status }: { status: BusinessSummary["status"] }) {
   const look: Record<BusinessSummary["status"], string> = {
     trial: "bg-accent/10 text-accent",

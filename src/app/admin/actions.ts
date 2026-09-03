@@ -475,3 +475,34 @@ export async function setKind(_prev: Result, fd: FormData): Promise<Result> {
   revalidatePath("/admin");
   return { ok: true, note: kind === "customer" ? "Counted as a customer." : `Marked as ${kind}.` };
 }
+
+/**
+ * Put an inferred problem down for a week.
+ *
+ * Not a dismiss. Something genuinely broken comes back and asks again — a
+ * permanent one would let a business that cannot answer anybody vanish off the
+ * only screen that would have told you.
+ *
+ * Requests are never affected. A person who typed something is not a guess
+ * this can be wrong about.
+ */
+export async function snoozeAttention(_prev: Result, fd: FormData): Promise<Result> {
+  const denied = await guard();
+  if (denied) return denied;
+
+  const id = String(fd.get("id") ?? "");
+  if (!id) return { error: "No business." };
+
+  const until = new Date();
+  until.setDate(until.getDate() + 7);
+
+  const db = createAdminClient();
+  const { error } = await db
+    .from("studios")
+    .update({ attention_snoozed_until: until.toISOString().slice(0, 10) })
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin");
+  return { ok: true, note: "Back in a week if it is still like that." };
+}
