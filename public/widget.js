@@ -77,7 +77,38 @@
   var dot = document.createElement("span");
   var teaser = document.createElement("button");
   teaser.type = "button";
-  teaser.textContent = teaserText;
+
+  /*
+   * The nudge types itself out, the way the assistant would.
+   *
+   * Every widget on the internet pops a finished sentence into a bubble, which
+   * reads as an advert because that is what it is — nothing wrote it, it was
+   * always there. Watching a line arrive says something an advert cannot: that
+   * there is something on the other end composing an answer right now. That is
+   * the entire promise of the product, made before anybody has clicked.
+   *
+   * Two layers rather than one growing string. The remainder sits in the
+   * bubble the whole time with visibility hidden, so the shape is its final
+   * size from the first character and nothing on the page reflows underneath
+   * it. A bubble that grows character by character shoves the corner of
+   * somebody's website around for two seconds, which is the sort of thing that
+   * gets a widget removed.
+   */
+  var teaserSaid = document.createElement("span");
+  var teaserRest = document.createElement("span");
+  teaserRest.style.visibility = "hidden";
+  var teaserDots = document.createElement("span");
+  teaserDots.setAttribute("aria-hidden", "true");
+  teaser.appendChild(teaserDots);
+  teaser.appendChild(teaserSaid);
+  teaser.appendChild(teaserRest);
+
+  // Read by anything assistive as the finished sentence, never letter by
+  // letter — the animation is decoration and should not be narrated.
+  teaser.setAttribute("aria-label", teaserText);
+
+  var typing = 0;
+  var frame = 0;
 
   /*
    * Two dots in a bubble, not an outlined speech balloon.
@@ -94,6 +125,14 @@
     'fill="currentColor" opacity="0.22"/>' +
     '<circle cx="9.5" cy="10" r="2.1" fill="currentColor"/>' +
     '<circle cx="16.5" cy="10" r="2.1" fill="currentColor"/></svg>';
+
+  /* The same two dots as the mark, so the wait and the button agree. */
+  var TEASER_DOTS =
+    '<span style="display:inline-flex;gap:4px;vertical-align:middle">' +
+    '<span style="width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.35;' +
+    'animation:sp-breathe 1.1s ease-in-out infinite"></span>' +
+    '<span style="width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.35;' +
+    'animation:sp-breathe 1.1s ease-in-out .38s infinite"></span></span>';
 
   var CLOSE_ICON =
     '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
@@ -267,10 +306,109 @@
     teaser.style.pointerEvents = "auto";
     teaser.style.opacity = "1";
     teaser.style.transform = "translateY(0) scale(1)";
-    window.setTimeout(hideTeaser, 12000);
+
+    type();
+  }
+
+  /*
+   * A beat of thinking, then the line.
+   *
+   * The pause matters more than the typing does: a sentence that starts the
+   * instant the bubble lands was clearly pre-written, and the whole point is
+   * that it does not look pre-written.
+   *
+   * Twelve seconds on screen is counted from when the line finishes, not from
+   * when the bubble appears — otherwise a long nudge spends most of its life
+   * half-written.
+   */
+  function type() {
+    // Nobody asked for animation. Say the thing and stop.
+    if (still) {
+      teaserSaid.textContent = teaserText;
+      teaserRest.textContent = "";
+      typing = window.setTimeout(hideTeaser, 12000);
+      return;
+    }
+
+    teaserSaid.textContent = "";
+    teaserRest.textContent = teaserText;
+    teaserDots.innerHTML = TEASER_DOTS;
+
+    /*
+     * Driven by the clock and by frames, not by a chain of timers.
+     *
+     * The obvious way to write this is setTimeout(step, 26) calling itself.
+     * It is also wrong, and measurably so: Chrome clamps timers in a tab that
+     * is not in front to roughly one second, so a 26ms delay fires at 939ms
+     * and a fifty-character line takes forty-eight seconds instead of one and
+     * a half. Somebody opening a salon's site in a background tab would come
+     * back to a half-written sentence, and the twelve seconds it is meant to
+     * be readable for would not have started.
+     *
+     * requestAnimationFrame does not run at all in a background tab, so the
+     * nudge simply waits and plays properly when somebody is actually looking
+     * at it. And because each frame asks "how much should be showing by now?"
+     * rather than "show one more", a dropped or late frame is caught up on the
+     * next one instead of stretching the whole line.
+     */
+    var THINK = 700;
+    var schedule = [];
+    var when = 0;
+    for (var i = 0; i < teaserText.length; i++) {
+      when += 26;
+      schedule.push(when);
+      /*
+       * Slower after a comma or a full stop. Even typing is a machine typing;
+       * the pauses are most of what makes it read as somebody thinking.
+       */
+      var c = teaserText.charAt(i);
+      if (c === "." || c === "?" || c === "!") when += 260;
+      else if (c === "," || c === ";") when += 150;
+    }
+
+    var began = null;
+    frame = window.requestAnimationFrame(function step(now) {
+      if (began === null) began = now;
+      var gone = now - began;
+
+      // The beat before it starts. A sentence that arrives the instant the
+      // bubble lands was obviously pre-written, which is the one thing this is
+      // trying not to look like.
+      if (gone < THINK) {
+        frame = window.requestAnimationFrame(step);
+        return;
+      }
+      teaserDots.innerHTML = "";
+
+      var at = 0;
+      while (at < schedule.length && schedule[at] <= gone - THINK) at++;
+      teaserSaid.textContent = teaserText.slice(0, at);
+      teaserRest.textContent = teaserText.slice(at);
+
+      if (at >= teaserText.length) {
+        frame = 0;
+        typing = window.setTimeout(hideTeaser, 12000);
+        return;
+      }
+      frame = window.requestAnimationFrame(step);
+    });
   }
 
   function hideTeaser() {
+    /*
+     * Stop typing into a bubble nobody can see any more.
+     *
+     * Without this, opening the widget mid-sentence leaves a timer running
+     * that keeps writing into a hidden element for another two seconds, and
+     * the next time the bubble is shown it starts from wherever that got to.
+     */
+    window.clearTimeout(typing);
+    if (frame) window.cancelAnimationFrame(frame);
+    frame = 0;
+    teaserSaid.textContent = teaserText;
+    teaserRest.textContent = "";
+    teaserDots.innerHTML = "";
+
     teaser.style.opacity = "0";
     teaser.style.transform = "translateY(8px) scale(0.96)";
     teaser.style.pointerEvents = "none";
@@ -319,6 +457,23 @@
 
   function mount() {
     document.body.appendChild(panel);
+    /*
+     * One keyframe, and nothing else.
+     *
+     * This script has never put a stylesheet on anybody's website and it is
+     * not going to start — every other rule here is an inline style, which
+     * cannot leak. An animation is the one thing that cannot be expressed
+     * inline, so it gets a uniquely prefixed name and its own tag, added once.
+     */
+    if (!document.getElementById("sp-widget-keyframes")) {
+      var sheet = document.createElement("style");
+      sheet.id = "sp-widget-keyframes";
+      sheet.textContent =
+        "@keyframes sp-breathe{0%,100%{opacity:.28;transform:translateY(0)}" +
+        "50%{opacity:.85;transform:translateY(-1.5px)}}";
+      document.head.appendChild(sheet);
+    }
+
     document.body.appendChild(teaser);
     document.body.appendChild(button);
 
