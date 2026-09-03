@@ -36,6 +36,32 @@ const slugify = (name: string) =>
  * them choose one, which also proves the address works, so there is no separate
  * confirmation email and no account sitting unverified on a typo.
  */
+/**
+ * A link somebody can actually use.
+ *
+ * Supabase's own action_link redirects to our callback expecting the browser
+ * to finish a code exchange it never started — these links are made on the
+ * server by an administrator, so the code verifier that exchange needs exists
+ * nowhere. It fails every time and lands on the login page saying "auth",
+ * which reads as an expired link rather than an impossible one.
+ *
+ * Every link this back office hands out goes through here: the one that sets a
+ * new business up, and the one that rescues somebody who cannot get in. Both
+ * were broken in the same way, and the first of those is the only route into
+ * the product, because nobody can sign themselves up.
+ */
+function redeemable(
+  hashedToken: string | undefined,
+  origin: string,
+  next: string,
+): string | undefined {
+  if (!hashedToken) return undefined;
+  return (
+    `${origin}/auth/callback?token_hash=${encodeURIComponent(hashedToken)}` +
+    `&type=recovery&next=${encodeURIComponent(next)}`
+  );
+}
+
 export async function createBusiness(_prev: Result, fd: FormData): Promise<Result> {
   const denied = await guard();
   if (denied) return denied;
@@ -109,7 +135,7 @@ export async function createBusiness(_prev: Result, fd: FormData): Promise<Resul
     note: created
       ? `${name} is set up. Send them the link below to choose a password.`
       : `${name} is set up under an existing login, so they sign in as they already do.`,
-    link: created ? (link?.properties?.action_link ?? undefined) : undefined,
+    link: created ? redeemable(link?.properties?.hashed_token, origin, "/onboarding") : undefined,
   };
 }
 
@@ -146,13 +172,11 @@ export async function resetLink(_prev: Result, fd: FormData): Promise<Result> {
    * every single time. It landed on the login page saying "auth", which reads
    * as an expired link, which is the one thing it never was.
    */
-  const hashed = data?.properties?.hashed_token;
-  const link = hashed
-    ? `${origin}/auth/callback?token_hash=${encodeURIComponent(hashed)}` +
-      `&type=recovery&next=${encodeURIComponent("/reset-password")}`
-    : data?.properties?.action_link;
-
-  return { ok: true, note: `A link for ${email}. It works once.`, link };
+  return {
+    ok: true,
+    note: `A link for ${email}. It works once.`,
+    link: redeemable(data?.properties?.hashed_token, origin, "/reset-password"),
+  };
 }
 
 /**

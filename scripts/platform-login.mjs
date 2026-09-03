@@ -65,10 +65,24 @@ if (linkError) {
   process.exit(1);
 }
 
+/*
+ * Built from the hashed token, not from Supabase's action_link.
+ *
+ * The action link redirects to our callback expecting the browser to finish a
+ * code exchange it never started — this link is made here, on a laptop, so the
+ * verifier that exchange needs exists nowhere. It fails every time and lands
+ * on the login page saying "auth", which reads as expired rather than
+ * impossible. That is very likely why setting this account up was such a
+ * fight.
+ */
+const openThis =
+  `${site}/auth/callback?token_hash=${encodeURIComponent(link.properties.hashed_token)}` +
+  `&type=recovery&next=${encodeURIComponent("/reset-password")}`;
+
 console.log(`
 Open this once and choose a password:
 
-${link.properties.action_link}
+${openThis}
 
 Then add the address to PLATFORM_ADMIN_EMAILS — locally in .env.local and in
 Vercel, for all three environments — and redeploy. Keep a second address in
