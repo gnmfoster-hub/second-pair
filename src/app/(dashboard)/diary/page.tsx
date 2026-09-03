@@ -9,7 +9,10 @@ import { NewEntry } from "./NewEntry";
 import { ColourBy } from "./ColourBy";
 import { colourForName, type ColourMode } from "@/lib/diaryColour";
 import { formatPence } from "@/lib/money";
-import { dayShape, minutesInDay } from "@/lib/diaryGaps";
+import { dayShape, weekShape, minutesInDay } from "@/lib/diaryGaps";
+
+/** Sunday first, matching getUTCDay(). Single letters — the strips are 24px. */
+const DAY_INITIALS = ["S", "M", "T", "W", "T", "F", "S"];
 
 type RawRow = {
   id: string;
@@ -256,6 +259,27 @@ export default async function DiaryPage({
           60,
         )
       : [];
+  /*
+   * The same idea across a week: seven shapes rather than one average.
+   *
+   * A week cannot be one strip — it would say "34% full" in a different shape,
+   * and the question at this range is never how full the week is, it is which
+   * day has room in it. Monday solid and Thursday empty is a completely
+   * different week from five half-full days, and both are fifty per cent.
+   */
+  const weekBars =
+    view === "week"
+      ? weekShape(
+          entries
+            .filter((e) => e.blocks_availability !== false)
+            .map((e) => ({ startsAt: e.starts_at, endsAt: e.ends_at })),
+          Array.from({ length: 7 }, (_, i) => isoDate(addDays(start, i))),
+          studio.hours,
+          studio.timezone,
+          Math.max(1, focused ? 1 : team.length),
+        )
+      : [];
+
   const freeMinutes = Math.max(0, capacity - bookedMinutes);
   const asHours = (mins: number) => {
     const h = Math.floor(mins / 60);
@@ -432,6 +456,32 @@ export default async function DiaryPage({
                   />
                 ))}
               </div>
+            ) : weekBars.length > 0 ? (
+              /*
+                * One strip per day, in the week's own order.
+                *
+                * Read left to right it is the week at a glance: which days are
+                * solid, which have an afternoon going spare, which are shut.
+                * That is the thing somebody is looking for when they have got
+                * a customer asking to be fitted in.
+                */
+              <div className="flex items-end gap-1" title="Where each day is booked">
+                {weekBars.map((d) => (
+                  <div key={d.iso} className="flex w-6 flex-col items-center gap-1">
+                    <div className="flex h-6 w-full flex-col-reverse overflow-hidden rounded bg-surface-2">
+                      {d.shape.length === 0 ? null : (
+                        <div
+                          className="w-full bg-accent"
+                          style={{ height: `${d.busyPercent}%` }}
+                        />
+                      )}
+                    </div>
+                    <span className="text-[10px] leading-none text-muted">
+                      {DAY_INITIALS[new Date(`${d.iso}T12:00:00Z`).getUTCDay()]}
+                    </span>
+                  </div>
+                ))}
+              </div>
             ) : (
               <div className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-2">
                 <div
@@ -442,9 +492,11 @@ export default async function DiaryPage({
                 />
               </div>
             )}
-            <span className="hint num">
-              {Math.round((bookedMinutes / capacity) * 100)}% full
-            </span>
+            {weekBars.length === 0 && (
+              <span className="hint num">
+                {Math.round((bookedMinutes / capacity) * 100)}% full
+              </span>
+            )}
           </div>
         ) : (
           <Link href="/settings" className="ml-auto text-xs text-warn hover:underline">

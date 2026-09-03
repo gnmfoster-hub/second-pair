@@ -160,3 +160,117 @@ test("the runs always cover the whole day without gaps or overlaps", () => {
     assert.equal(shape[i].from, shape[i - 1].to, "runs must meet exactly");
   }
 });
+
+// ------------------------------------------------------------- the whole week
+
+import { weekShape, dayIn } from "./diaryGaps.ts";
+
+/** Nine-to-five Monday to Friday, shut at the weekend. */
+const openWeek: OpeningHours[] = [0, 1, 2, 3, 4, 5, 6].map((day) => ({
+  day,
+  open: "09:00",
+  close: "17:00",
+  closed: day === 0 || day === 6,
+}));
+
+// 2026-03-02 is a Monday. Times are UTC and the zone is London, which in early
+// March is still GMT — so the wall clock and UTC agree.
+const MON = "2026-03-02";
+const WEEK = ["2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05", "2026-03-06"];
+const on = (date: string, from: string, to: string) => ({
+  startsAt: `${date}T${from}:00.000Z`,
+  endsAt: `${date}T${to}:00.000Z`,
+});
+
+test("a week with nothing in it is seven empty days", () => {
+  const week = weekShape([], WEEK, openWeek, "Europe/London");
+  assert.equal(week.length, 5);
+  assert.deepEqual(week.map((d) => d.busyPercent), [0, 0, 0, 0, 0]);
+});
+
+test("each day is shaped from its own appointments, not the week's", () => {
+  // Monday solid, Wednesday empty. The averaged figure would call both 50%.
+  const week = weekShape(
+    [on(MON, "09:00", "17:00"), on("2026-03-03", "09:00", "13:00")],
+    WEEK,
+    openWeek,
+    "Europe/London",
+  );
+  assert.equal(week[0].busyPercent, 100);
+  assert.equal(week[1].busyPercent, 50);
+  assert.equal(week[2].busyPercent, 0);
+});
+
+test("a day is measured against its own opening hours", () => {
+  // Half day Wednesday. Four hours booked is all of it, not half of eight.
+  const hours = openWeek.map((h) => (h.day === 3 ? { ...h, close: "13:00" } : h));
+  const week = weekShape([on("2026-03-04", "09:00", "13:00")], WEEK, hours, "Europe/London");
+  assert.equal(week[2].busyPercent, 100);
+});
+
+test("a closed day has no shape and cannot be busy", () => {
+  const shut = openWeek.map((h) => (h.day === 1 ? { ...h, closed: true } : h));
+  const week = weekShape([on(MON, "09:00", "17:00")], WEEK, shut, "Europe/London");
+  assert.deepEqual(week[0].shape, []);
+  assert.equal(week[0].busyPercent, 0);
+});
+
+// ----------------------------------------- the mistake the merge nearly caused
+
+test("two people working at once is twice the work, not the same work", () => {
+  // Both booked 9–17. The strip merges them into one solid run, which is right
+  // for the strip — but measuring that strip would call a full salon 100% with
+  // one stylist and 100% with two, and it is the same page either way.
+  const both = [on(MON, "09:00", "17:00"), on(MON, "09:00", "17:00")];
+  const alone = weekShape(both, WEEK, openWeek, "Europe/London", 1);
+  const paired = weekShape(both, WEEK, openWeek, "Europe/London", 2);
+
+  assert.equal(paired[0].busyPercent, 100, "two people, both full, is a full day");
+  assert.equal(alone[0].busyPercent, 100, "capped, not 200");
+
+  // Now only one of the two is working: the same strip, half the room used.
+  const half = weekShape([on(MON, "09:00", "17:00")], WEEK, openWeek, "Europe/London", 2);
+  assert.equal(half[0].busyPercent, 50);
+  assert.equal(
+    half[0].shape.filter((s) => s.busy).length,
+    1,
+    "the strip still shows the day as worked",
+  );
+});
+
+test("the strip merges overlapping people into one run", () => {
+  const week = weekShape(
+    [on(MON, "10:00", "12:00"), on(MON, "11:00", "13:00")],
+    WEEK,
+    openWeek,
+    "Europe/London",
+    2,
+  );
+  assert.equal(week[0].shape.filter((s) => s.busy).length, 1);
+});
+
+// ------------------------------------------------------------------ timezones
+
+test("an appointment is filed under the day it is on where the business is", () => {
+  // 23:30 UTC in June is half past midnight the next day in London, and it
+  // belongs to the day the salon thinks it is.
+  assert.equal(dayIn("2026-06-01T23:30:00.000Z", "Europe/London"), "2026-06-02");
+  assert.equal(dayIn("2026-06-01T23:30:00.000Z", "UTC"), "2026-06-01");
+});
+
+test("a date is not shifted into the day before by the machine's own clock", () => {
+  // The weekday is read from the date string, so a server in New York does not
+  // decide that Monday is Sunday.
+  const week = weekShape([], ["2026-03-02"], openWeek, "Europe/London");
+  assert.equal(week[0].shape.length, 1, "Monday is a working day");
+});
+
+test("a zero-length or backwards appointment is ignored", () => {
+  const week = weekShape(
+    [on(MON, "10:00", "10:00"), on(MON, "14:00", "12:00")],
+    WEEK,
+    openWeek,
+    "Europe/London",
+  );
+  assert.equal(week[0].busyPercent, 0);
+});
