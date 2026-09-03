@@ -273,6 +273,86 @@ export async function fixSettings(_prev: Result, fd: FormData): Promise<Result> 
   const deposit = String(fd.get("deposit_mode") ?? "").trim();
   if (["required", "optional", "none"].includes(deposit)) patch.deposit_mode = deposit;
 
+  /*
+   * Everything else a business is configured by, in one place.
+   *
+   * Not because a support call needs all of it, but because the one it needs
+   * is never the one you built a field for — and talking somebody through
+   * their own settings while they are between clients is exactly what this
+   * exists to avoid.
+   *
+   * A blank string means "clear it" for the optional ones and "leave it" for
+   * the required ones, which is why they are handled separately rather than in
+   * a loop.
+   */
+  const text = (key: string, column = key) => {
+    const value = String(fd.get(key) ?? "").trim();
+    if (fd.has(key)) patch[column] = value || null;
+  };
+
+  const number = (key: string, column = key, least = 0, most = 100000) => {
+    if (!fd.has(key)) return;
+    const value = Number(String(fd.get(key) ?? "").trim());
+    if (Number.isFinite(value)) patch[column] = Math.min(most, Math.max(least, value));
+  };
+
+  const lines = (key: string, column = key) => {
+    if (!fd.has(key)) return;
+    patch[column] = String(fd.get(key) ?? "")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(0, 30);
+  };
+
+  text("greeting");
+  text("cancellation_policy");
+  text("privacy_notice_url");
+  text("terms_url");
+  text("email");
+  text("stripe_account_id");
+  text("vat_number");
+
+  lines("always_mention");
+  lines("never_mention");
+  lines("escalate_when");
+  lines("service_areas");
+
+  number("first_refusal_minutes", "first_refusal_minutes", 1, 60);
+  number("notice_hours", "notice_hours", 0, 720);
+  number("consultation_minutes", "consultation_minutes", 5, 480);
+  number("max_session_minutes", "max_session_minutes", 15, 1440);
+  number("travel_buffer_minutes", "travel_buffer_minutes", 0, 240);
+  number("vat_rate_percent", "vat_rate_percent", 0, 100);
+
+  if (fd.has("vat_registered")) patch.vat_registered = fd.get("vat_registered") === "on";
+  if (fd.has("prices_include_vat")) patch.prices_include_vat = fd.get("prices_include_vat") === "on";
+
+  const travel = String(fd.get("travel_mode") ?? "").trim();
+  if (["at_premises", "at_customer", "both"].includes(travel)) patch.travel_mode = travel;
+
+  const colour = String(fd.get("diary_colour") ?? "").trim();
+  if (["category", "client", "person"].includes(colour)) patch.diary_colour = colour;
+
+  /*
+   * The deposit rule is one column holding two different shapes, so it is
+   * rebuilt rather than patched — writing half of it would leave a rule that
+   * charges nothing or charges everything.
+   */
+  const rule = String(fd.get("deposit_rule_type") ?? "").trim();
+  if (rule === "fixed") {
+    patch.deposit_rule = {
+      type: "fixed",
+      amount_pence: Math.round(Number(fd.get("deposit_amount") ?? 0) * 100) || 0,
+    };
+  } else if (rule === "percent") {
+    patch.deposit_rule = {
+      type: "percent",
+      percent: Math.min(100, Math.max(0, Number(fd.get("deposit_percent") ?? 0))),
+      min_pence: Math.round(Number(fd.get("deposit_floor") ?? 0) * 100) || 0,
+    };
+  }
+
   const mode = String(fd.get("answering_mode") ?? "").trim();
   if (["always", "when_free", "always_ask_me"].includes(mode)) patch.answering_mode = mode;
 

@@ -117,9 +117,31 @@ export type BusinessSummary = {
   settings: {
     timezone: string;
     tone: string | null;
+    greeting: string | null;
+    email: string | null;
     depositMode: string;
+    depositRule: { type: string; amount_pence?: number; percent?: number; min_pence?: number };
+    cancellationPolicy: string;
     answeringMode: string;
+    firstRefusalMinutes: number;
     hours: { day: number; open: string; close: string; closed: boolean }[];
+    alwaysMention: string[];
+    neverMention: string[];
+    escalateWhen: string[];
+    serviceAreas: string[];
+    travelMode: string;
+    travelBufferMinutes: number;
+    noticeHours: number;
+    consultationMinutes: number;
+    maxSessionMinutes: number;
+    vatRegistered: boolean;
+    vatRatePercent: number;
+    pricesIncludeVat: boolean;
+    vatNumber: string | null;
+    privacyNoticeUrl: string | null;
+    termsUrl: string | null;
+    stripeAccountId: string | null;
+    diaryColour: string;
   };
 };
 

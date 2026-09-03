@@ -263,11 +263,26 @@ function NeedsYou({ businesses }: { businesses: BusinessSummary[] }) {
     .filter((r): r is { b: BusinessSummary; why: string; urgent: boolean } => r !== null)
     .sort((a, b) => Number(b.urgent) - Number(a.urgent));
 
+  const asked = rows.filter((r) => r.urgent).length;
+
   if (rows.length === 0) return null;
 
   return (
     <section className="card mt-6 border-warn/40 p-5">
-      <h2 className="section-title">Wants something doing</h2>
+      {/*
+        * A count in the heading, because the panel is read from across the
+        * room. "Three want something doing, two of them have asked" is the
+        * whole status of the platform in one line, and it means the number is
+        * visible without reading the rows underneath it.
+        */}
+      <h2 className="section-title">
+        {rows.length} want{rows.length === 1 ? "s" : ""} something doing
+        {asked > 0 && (
+          <span className="ml-2 pill bg-warn/10 text-warn">
+            {asked} {asked === 1 ? "has" : "have"} asked
+          </span>
+        )}
+      </h2>
       <ul className="mt-3 space-y-2">
         {rows.map(({ b, why, urgent }) => (
           <li key={b.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
@@ -739,10 +754,239 @@ function FixSettings({ b }: { b: BusinessSummary }) {
           </label>
         </div>
 
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="label">Head start (minutes)</span>
+            <input
+              name="first_refusal_minutes"
+              inputMode="numeric"
+              defaultValue={b.settings.firstRefusalMinutes}
+              className="input"
+            />
+          </label>
+          <label className="block">
+            <span className="label">Their reply-to email</span>
+            <input name="email" defaultValue={b.settings.email ?? ""} className="input" />
+          </label>
+        </div>
+
         <label className="block">
           <span className="label">Tone of voice</span>
           <textarea name="tone" defaultValue={b.settings.tone ?? ""} rows={2} className="input" />
         </label>
+
+        <label className="block">
+          <span className="label">Opening line in the chat</span>
+          <input name="greeting" defaultValue={b.settings.greeting ?? ""} className="input" />
+        </label>
+
+        {/*
+          * The three lists that shape what it will and will not say. These are
+          * what a support call is actually about when somebody rings up saying
+          * "it told a customer something it should not have".
+          */}
+        <div className="grid gap-3 sm:grid-cols-3">
+          <label className="block">
+            <span className="label">Always mention</span>
+            <textarea
+              name="always_mention"
+              rows={3}
+              defaultValue={b.settings.alwaysMention.join("\n")}
+              className="input"
+              placeholder="One per line"
+            />
+          </label>
+          <label className="block">
+            <span className="label">Never mention</span>
+            <textarea
+              name="never_mention"
+              rows={3}
+              defaultValue={b.settings.neverMention.join("\n")}
+              className="input"
+            />
+          </label>
+          <label className="block">
+            <span className="label">Always hand over when</span>
+            <textarea
+              name="escalate_when"
+              rows={3}
+              defaultValue={b.settings.escalateWhen.join("\n")}
+              className="input"
+            />
+          </label>
+        </div>
+
+        {/* Money: the rule itself, not just whether there is one. */}
+        <div className="grid gap-3 sm:grid-cols-4">
+          <label className="block">
+            <span className="label">Deposit rule</span>
+            <select
+              name="deposit_rule_type"
+              defaultValue={b.settings.depositRule.type}
+              className="input"
+            >
+              <option value="fixed">Fixed amount</option>
+              <option value="percent">Percentage</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="label">Amount (£)</span>
+            <input
+              name="deposit_amount"
+              inputMode="decimal"
+              defaultValue={((b.settings.depositRule.amount_pence ?? 0) / 100).toFixed(2)}
+              className="input"
+            />
+          </label>
+          <label className="block">
+            <span className="label">Percent</span>
+            <input
+              name="deposit_percent"
+              inputMode="numeric"
+              defaultValue={b.settings.depositRule.percent ?? 0}
+              className="input"
+            />
+          </label>
+          <label className="block">
+            <span className="label">Floor (£)</span>
+            <input
+              name="deposit_floor"
+              inputMode="decimal"
+              defaultValue={((b.settings.depositRule.min_pence ?? 0) / 100).toFixed(2)}
+              className="input"
+            />
+          </label>
+        </div>
+
+        <label className="block">
+          <span className="label">Cancellation policy</span>
+          <textarea
+            name="cancellation_policy"
+            rows={2}
+            defaultValue={b.settings.cancellationPolicy}
+            className="input"
+          />
+        </label>
+
+        {/* Timing, which is most of "it offered a stupid slot". */}
+        <div className="grid gap-3 sm:grid-cols-4">
+          <label className="block">
+            <span className="label">Notice (hours)</span>
+            <input
+              name="notice_hours"
+              inputMode="numeric"
+              defaultValue={b.settings.noticeHours}
+              className="input"
+            />
+          </label>
+          <label className="block">
+            <span className="label">Consultation (min)</span>
+            <input
+              name="consultation_minutes"
+              inputMode="numeric"
+              defaultValue={b.settings.consultationMinutes}
+              className="input"
+            />
+          </label>
+          <label className="block">
+            <span className="label">Longest session (min)</span>
+            <input
+              name="max_session_minutes"
+              inputMode="numeric"
+              defaultValue={b.settings.maxSessionMinutes}
+              className="input"
+            />
+          </label>
+          <label className="block">
+            <span className="label">Travel buffer (min)</span>
+            <input
+              name="travel_buffer_minutes"
+              inputMode="numeric"
+              defaultValue={b.settings.travelBufferMinutes}
+              className="input"
+            />
+          </label>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="label">Where the work happens</span>
+            <select name="travel_mode" defaultValue={b.settings.travelMode} className="input">
+              <option value="at_premises">They come to us</option>
+              <option value="at_customer">We go to them</option>
+              <option value="both">Both</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="label">Areas covered</span>
+            <textarea
+              name="service_areas"
+              rows={2}
+              defaultValue={b.settings.serviceAreas.join("\n")}
+              className="input"
+              placeholder="One per line"
+            />
+          </label>
+        </div>
+
+        {/* VAT changes every price the assistant says out loud. */}
+        <div className="grid gap-3 sm:grid-cols-4">
+          <label className="row flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm">
+            <input
+              type="checkbox"
+              name="vat_registered"
+              defaultChecked={b.settings.vatRegistered}
+              className="accent-[var(--accent)]"
+            />
+            VAT registered
+          </label>
+          <label className="row flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm">
+            <input
+              type="checkbox"
+              name="prices_include_vat"
+              defaultChecked={b.settings.pricesIncludeVat}
+              className="accent-[var(--accent)]"
+            />
+            Prices include it
+          </label>
+          <label className="block">
+            <span className="label">VAT rate %</span>
+            <input
+              name="vat_rate_percent"
+              inputMode="numeric"
+              defaultValue={b.settings.vatRatePercent}
+              className="input"
+            />
+          </label>
+          <label className="block">
+            <span className="label">VAT number</span>
+            <input name="vat_number" defaultValue={b.settings.vatNumber ?? ""} className="input" />
+          </label>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <label className="block">
+            <span className="label">Privacy notice URL</span>
+            <input
+              name="privacy_notice_url"
+              defaultValue={b.settings.privacyNoticeUrl ?? ""}
+              className="input"
+            />
+          </label>
+          <label className="block">
+            <span className="label">Terms URL</span>
+            <input name="terms_url" defaultValue={b.settings.termsUrl ?? ""} className="input" />
+          </label>
+          <label className="block">
+            <span className="label">Stripe account</span>
+            <input
+              name="stripe_account_id"
+              defaultValue={b.settings.stripeAccountId ?? ""}
+              className="input"
+              placeholder="acct_…"
+            />
+          </label>
+        </div>
 
         {/*
           * Opening hours, because this is the setting that breaks most often —

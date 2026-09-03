@@ -7,6 +7,19 @@ import { Console } from "./Console";
 
 export const metadata = { title: "Second Pair — every business" };
 
+/*
+ * Never cached, on purpose.
+ *
+ * This is a console showing what is happening right now — who has asked for
+ * something, who is over their seats, what came in. A cached copy of that is
+ * not a slightly stale page, it is a wrong answer: somebody presses reply, the
+ * request is dealt with, and the panel goes on saying it is waiting.
+ *
+ * It is one person's screen, so there is nothing to gain by caching it anyway.
+ */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 /**
  * The suite: every business on the platform, and nothing they said.
  *
@@ -49,7 +62,7 @@ export default async function AdminPage() {
     db
       .from("studios")
       .select(
-        "id, name, slug, vertical, created_at, hours, plan, plan_pence, seat_limit, account_status, billing_started_on, account_note, channels_allowed, owner_name, owner_phone, trial_ends_on, timezone, tone, deposit_mode, answering_mode",
+        "id, name, slug, vertical, created_at, hours, plan, plan_pence, seat_limit, account_status, billing_started_on, account_note, channels_allowed, owner_name, owner_phone, trial_ends_on, timezone, tone, greeting, email, deposit_mode, deposit_rule, cancellation_policy, answering_mode, first_refusal_minutes, always_mention, never_mention, escalate_when, service_areas, travel_mode, travel_buffer_minutes, notice_hours, consultation_minutes, max_session_minutes, vat_registered, vat_rate_percent, prices_include_vat, vat_number, privacy_notice_url, terms_url, stripe_account_id, diary_colour",
       )
       .order("created_at"),
     db.from("studio_members").select("studio_id, user_id, role").eq("role", "owner"),
@@ -168,8 +181,35 @@ export default async function AdminPage() {
         settings: {
           timezone: s.timezone ?? "Europe/London",
           tone: s.tone ?? null,
+          greeting: s.greeting ?? null,
+          email: s.email ?? null,
           depositMode: s.deposit_mode ?? "none",
+          depositRule: (s.deposit_rule ?? { type: "fixed", amount_pence: 0 }) as {
+            type: string;
+            amount_pence?: number;
+            percent?: number;
+            min_pence?: number;
+          },
+          cancellationPolicy: s.cancellation_policy ?? "",
           answeringMode: s.answering_mode ?? "when_free",
+          firstRefusalMinutes: s.first_refusal_minutes ?? 5,
+          alwaysMention: (s.always_mention ?? []) as string[],
+          neverMention: (s.never_mention ?? []) as string[],
+          escalateWhen: (s.escalate_when ?? []) as string[],
+          serviceAreas: (s.service_areas ?? []) as string[],
+          travelMode: s.travel_mode ?? "at_premises",
+          travelBufferMinutes: s.travel_buffer_minutes ?? 0,
+          noticeHours: s.notice_hours ?? 24,
+          consultationMinutes: s.consultation_minutes ?? 30,
+          maxSessionMinutes: s.max_session_minutes ?? 480,
+          vatRegistered: Boolean(s.vat_registered),
+          vatRatePercent: s.vat_rate_percent ?? 20,
+          pricesIncludeVat: Boolean(s.prices_include_vat),
+          vatNumber: s.vat_number ?? null,
+          privacyNoticeUrl: s.privacy_notice_url ?? null,
+          termsUrl: s.terms_url ?? null,
+          stripeAccountId: s.stripe_account_id ?? null,
+          diaryColour: s.diary_colour ?? "category",
           hours: hours as { day: number; open: string; close: string; closed: boolean }[],
         },
         quietDays: latest?.last_message_at
