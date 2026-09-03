@@ -102,7 +102,14 @@ export function Console({
         </span>
       </div>
 
-      <div className="mt-4 space-y-3">
+      {/*
+        * A ledger, not a stack of cards.
+        *
+        * Fifteen white boxes on a paper ground is mostly borders, and the
+        * borders are the loudest thing on a screen about businesses. Ruled
+        * rows read as a book of accounts, which is what this is.
+        */}
+      <div className="mt-2">
         {shown.length === 0 && (
           <p className="hint">
             {businesses.length === 0 ? "Nothing yet. Set the first one up." : "Nobody matches that."}
@@ -123,87 +130,119 @@ export function Console({
 }
 
 /**
- * How the whole thing is doing, in one line of cards.
+ * How the whole thing is doing.
  *
- * Two audiences in the same panel and they want different halves. The money
- * across the top is the business: what is coming in, from how many, and how
- * many are still on trial. Underneath is the case you make to the next
- * customer — what the assistant has actually won for people, and what it cost
- * to do it. That second pair is the sales argument, and it has to be true, so
- * it is counted rather than estimated.
+ * This was eight white boxes in a grid, which is what every dashboard on the
+ * internet looks like and is mostly borders. The numbers were the smallest
+ * thing on a screen that exists to show numbers.
+ *
+ * Set as a printed page instead: the figures carry it, the labels sit under
+ * them in small caps, and the only lines are the rules between columns. The
+ * brand is paper and ink, and a page of ruled figures is what a well-kept book
+ * of business actually looks like — which is more to the point than another
+ * grid of cards.
+ *
+ * Two rows, not one, because the two halves answer different questions. The
+ * first is the business: what is coming in, what it is worth, what it costs.
+ * The second is the estate: how many, how healthy, how full.
  */
 function Kpis({ k }: { k: PlatformKpis }) {
   const margin = k.wonPence > 0 && k.costPence > 0 ? Math.round(k.wonPence / k.costPence) : null;
+  const converts = k.enquiries ? Math.round((k.booked / k.enquiries) * 100) : null;
 
   return (
-    <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <Kpi
-        tone="headline"
-        value={formatPence(k.mrr)}
-        label="Coming in each month"
-        detail={`${k.paying} paying · ${k.businesses - k.paying} not yet`}
-      />
-      <Kpi
-        value={formatPence(k.wonPence)}
-        label="Work it has won them"
-        detail="Quoted value of everything the assistant booked"
-      />
-      <Kpi
-        value={String(k.enquiries)}
-        label="Enquiries answered"
-        detail={`${k.booked} of them booked in`}
-      />
-      <Kpi
-        value={formatPence(k.costPence)}
-        label="What it cost to run"
-        detail={margin ? `${margin}× that in work won` : "Across every business"}
-      />
-      <Kpi
-        value={`${k.seatsUsed}/${k.seatsSold}`}
-        label="People in use"
-        detail="Against what has been sold"
-        warn={k.seatsUsed > k.seatsSold}
-      />
-      <Kpi value={String(k.businesses)} label="Businesses" detail={`${k.live} have had an enquiry`} />
-      <Kpi
-        value={String(k.unfinished)}
-        label="Not finished setting up"
-        detail="Missing a person, a price or hours"
-        warn={k.unfinished > 0}
-      />
-      <Kpi
-        value={k.businesses ? Math.round((k.booked / Math.max(1, k.enquiries)) * 100) + "%" : "—"}
-        label="Enquiries that book"
-        detail="Across the platform"
-      />
+    <div className="mt-8 border-y border-border">
+      <Band>
+        <Figure
+          value={formatPence(k.mrr)}
+          label="Coming in each month"
+          note={`${k.paying} paying · ${k.businesses - k.paying} not yet`}
+          lead
+        />
+        <Figure
+          value={formatPence(k.wonPence)}
+          label="Work it has won them"
+          note="Quoted value of everything booked"
+        />
+        <Figure
+          value={formatPence(k.costPence)}
+          label="What it cost to run"
+          note={margin ? `${margin}× that in work won` : "Across every business"}
+        />
+      </Band>
+
+      <Band divided>
+        <Figure value={String(k.businesses)} label="Businesses" note={`${k.live} have had an enquiry`} />
+        <Figure value={String(k.enquiries)} label="Enquiries answered" note={`${k.booked} booked in`} />
+        <Figure
+          value={converts == null ? "—" : `${converts}%`}
+          label="Enquiries that book"
+          note="Across the platform"
+        />
+        <Figure
+          value={`${k.seatsUsed}/${k.seatsSold}`}
+          label="People in use"
+          note="Against what has been sold"
+          warn={k.seatsUsed > k.seatsSold}
+        />
+        <Figure
+          value={String(k.unfinished)}
+          label="Not finished"
+          note="Missing a person, a price or hours"
+          warn={k.unfinished > 0}
+        />
+      </Band>
     </div>
   );
 }
 
-function Kpi({
+/** A row of figures, ruled between rather than boxed. */
+function Band({ children, divided }: { children: React.ReactNode; divided?: boolean }) {
+  return (
+    <div
+      className={`grid gap-px bg-border sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] ${
+        divided ? "border-t border-border" : ""
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * One figure, set like print.
+ *
+ * The number first and large, the label under it in small caps, the note
+ * quieter still. Three sizes of the same information, which is what makes a
+ * page readable at a glance rather than only when studied.
+ */
+function Figure({
   value,
   label,
-  detail,
-  tone,
+  note,
+  lead,
   warn,
 }: {
   value: string;
   label: string;
-  detail?: string;
-  tone?: "headline";
+  note?: string;
+  /** The one figure the page is about. */
+  lead?: boolean;
   warn?: boolean;
 }) {
   return (
-    <div className={`card p-4 ${tone === "headline" ? "border-highlight/40" : ""}`}>
+    <div className="bg-background px-5 py-5">
       <div
-        className={`font-display text-2xl font-bold tabular-nums leading-none ${
-          warn ? "text-warn" : tone === "headline" ? "text-highlight-strong" : ""
-        }`}
+        className={`font-display font-bold tabular-nums leading-none tracking-[-0.03em] ${
+          lead ? "text-4xl" : "text-2xl"
+        } ${warn ? "text-warn" : lead ? "text-highlight-strong" : ""}`}
       >
         {value}
       </div>
-      <div className="mt-1.5 text-sm font-medium">{label}</div>
-      {detail && <div className="hint mt-0.5">{detail}</div>}
+      <div className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.09em] text-muted">
+        {label}
+      </div>
+      {note && <div className="mt-1 text-[12px] leading-snug text-muted/80">{note}</div>}
     </div>
   );
 }
@@ -268,7 +307,7 @@ function NeedsYou({ businesses }: { businesses: BusinessSummary[] }) {
   if (rows.length === 0) return null;
 
   return (
-    <section className="card mt-6 border-warn/40 p-5">
+    <section className="mt-8 border-l-2 border-warn pl-4">
       {/*
         * A count in the heading, because the panel is read from across the
         * room. "Three want something doing, two of them have asked" is the
@@ -283,9 +322,9 @@ function NeedsYou({ businesses }: { businesses: BusinessSummary[] }) {
           </span>
         )}
       </h2>
-      <ul className="mt-3 space-y-2">
+      <ul className="mt-2.5 divide-y divide-border">
         {rows.map(({ b, why, urgent }) => (
-          <li key={b.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
+          <li key={b.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2 text-sm">
             <strong>{b.name}</strong>
             <span className={urgent ? "text-foreground" : "text-muted"}>{why}</span>
             {b.ownerPhone && (
@@ -311,7 +350,7 @@ function Business({ b }: { b: BusinessSummary }) {
   const owner = b.owners[0]?.email ?? null;
 
   return (
-    <div className="card p-5">
+    <div className="border-b border-border py-5 last:border-b-0">
       <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
