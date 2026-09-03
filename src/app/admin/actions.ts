@@ -135,7 +135,22 @@ export async function createBusiness(_prev: Result, fd: FormData): Promise<Resul
     note: created
       ? `${name} is set up. Send them the link below to choose a password.`
       : `${name} is set up under an existing login, so they sign in as they already do.`,
-    link: created ? redeemable(link?.properties?.hashed_token, origin, "/onboarding") : undefined,
+    /*
+     * A password first, then their business.
+     *
+     * The account is made with no password — there is nobody to choose one at
+     * the time — so this link was the only chance to set it, and it went
+     * straight to onboarding, which never asks. An owner set their business
+     * up, closed the browser, and could never sign in again: there was no
+     * password to sign in with, and getting one needed email, which is the
+     * thing that is not switched on yet.
+     *
+     * The button has always said "send them the link below to choose a
+     * password". Now it does that.
+     */
+    link: created
+      ? redeemable(link?.properties?.hashed_token, origin, "/reset-password?next=/onboarding")
+      : undefined,
   };
 }
 

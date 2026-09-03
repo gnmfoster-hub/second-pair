@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
+import { safeNext } from "@/lib/safeNext";
 
 /**
  * Choosing a new password.
@@ -53,10 +54,18 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    // Straight in, rather than back to a sign-in form to type what they have
-    // only just chosen.
+    /*
+     * Straight in, rather than back to a sign-in form to type what they have
+     * only just chosen.
+     *
+     * Somebody arriving on a brand new account carries on to onboarding; a
+     * person who was locked out goes to their inbox. Read from the address bar
+     * rather than with useSearchParams, which would need a Suspense boundary
+     * around a page that is otherwise entirely static.
+     */
+    const asked = new URLSearchParams(window.location.search).get("next");
     router.refresh();
-    router.push("/");
+    router.push(safeNext(asked));
   }
 
   return (
