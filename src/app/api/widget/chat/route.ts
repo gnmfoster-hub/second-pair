@@ -87,6 +87,20 @@ export async function POST(request: NextRequest) {
    */
   const signedIn = studio === process.env.NEXT_PUBLIC_SUPPORT_SLUG ? await hasSession() : null;
 
+  /*
+   * Whose business is asking, so a request can be filed where they will look
+   * for it.
+   *
+   * Read from the session, never from the request. The browser saying which
+   * business it belongs to would let anybody raise requests inside somebody
+   * else's account, and the widget is on a public route.
+   *
+   * Null for an ordinary business and for a signed-out visitor, and nothing
+   * downstream depends on it — an unattributed support conversation still
+   * works exactly as it did, it just cannot open a request on its own.
+   */
+  const raisedFor = signedIn ? await studioOfCaller() : null;
+
   const forArtist =
     typeof body.with === "string" &&
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.with)
@@ -121,6 +135,7 @@ export async function POST(request: NextRequest) {
       forArtistId: forArtist,
       isTest,
       signedIn,
+      raisedFor,
     });
 
     return NextResponse.json({
@@ -163,6 +178,34 @@ async function hasSession(): Promise<boolean> {
     // third-party frame. All of those mean "treat them as a visitor", which is
     // the safer of the two answers to be wrong about.
     return false;
+  }
+}
+
+/**
+ * The business the person talking to support belongs to.
+ *
+ * Only ever from their own session — this decides which account a request
+ * lands in, and that is not something to take a browser's word for.
+ */
+async function studioOfCaller(): Promise<string | null> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data } = await supabase
+      .from("studio_members")
+      .select("studio_id")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle();
+
+    return data?.studio_id ?? null;
+  } catch {
+    // Support still works; it just cannot open a request by itself.
+    return null;
   }
 }
 

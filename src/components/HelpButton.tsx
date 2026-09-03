@@ -23,6 +23,21 @@ export function HelpButton({ slug }: { slug: string | null }) {
   const [open, setOpen] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
 
+  /*
+   * Anywhere in the app can ask for this.
+   *
+   * The help page sends people here before they write a request out by hand,
+   * and it has no way to reach this component's state — it is a floating
+   * button mounted by the layout, not something the page owns. An event is
+   * the smallest thing that works and leaves both sides ignorant of each
+   * other.
+   */
+  useEffect(() => {
+    const onAsked = () => setOpen(true);
+    window.addEventListener("second-pair:help", onAsked);
+    return () => window.removeEventListener("second-pair:help", onAsked);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
 

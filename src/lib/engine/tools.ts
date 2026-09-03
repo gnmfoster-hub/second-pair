@@ -28,6 +28,12 @@ export type ToolContext = {
   options: ServiceOption[];
   /** Current enquiry state, so a tool can pick the right band and person. */
   enquirySizeBandId: string | null;
+  /**
+   * For support conversations: the business the person asking belongs to, so
+   * an unanswerable question can be raised as a request in their own account.
+   * Null everywhere else, and nothing depends on it being set.
+   */
+  raisedFor?: string | null;
   enquiryArtistId: string | null;
   /**
    * Set when the channel itself identifies one person — Sarah's own Instagram,
@@ -768,6 +774,17 @@ async function escalate(
     };
   }
 
+  /*
+   * If this is support, the flag becomes a request in their own business.
+   *
+   * Otherwise the owner is told inside a conversation they cannot see later,
+   * on a screen built for their customers' enquiries — and the thing they
+   * asked about has nowhere to live while it is being sorted out. A request
+   * has a subject, a state, and a reply, which is what an unanswered question
+   * actually needs.
+   */
+  const filed = await fileRequest(ctx, summary);
+
   // Flag it without going silent.
   await ctx.db
     .from("conversations")
@@ -780,11 +797,66 @@ async function escalate(
     content: `Question for the owner: ${summary}`,
   });
 
+  if (filed) {
+    return {
+      result:
+        "Raised as a request with a person, and it is on their Help page where they can " +
+        "follow it. Tell them it has been raised and that somebody will come back to " +
+        "them there — then carry on helping with everything else as normal.",
+    };
+  }
+
   return {
     result:
       "Flagged for the owner. Tell them you will check that one with the studio and come " +
       "back to them — then carry on helping with everything else as normal.",
   };
+}
+
+/**
+ * Turn an unanswerable support question into a request in the asker's business.
+ *
+ * Only for support conversations from somebody signed in — an ordinary
+ * business's enquiries are from its customers, who have no account to file
+ * anything into.
+ *
+ * The subject is the assistant's own summary rather than the person's words,
+ * because the words are usually mid-conversation and make no sense as a title:
+ * "no it still does that" is not something to find again in a list next week.
+ */
+async function fileRequest(ctx: ToolContext, summary: string): Promise<boolean> {
+  if (!ctx.raisedFor || !summary) return false;
+
+  const subject = summary.length > 80 ? summary.slice(0, 77).trimEnd() + "…" : summary;
+
+  const { data, error } = await ctx.db
+    .from("support_tickets")
+    .insert({
+      studio_id: ctx.raisedFor,
+      subject,
+      status: "open",
+      from_conversation_id: ctx.conversationId,
+    })
+    .select("id")
+    .maybeSingle();
+
+  /*
+   * A duplicate is the expected outcome, not a failure.
+   *
+   * One request per conversation is a unique index, so somebody stuck on the
+   * same problem for ten minutes raises one request rather than ten. Hitting
+   * it means the request already exists, which is the state we wanted.
+   */
+  if (error) return error.code === "23505";
+  if (!data) return false;
+
+  await ctx.db.from("support_messages").insert({
+    ticket_id: data.id,
+    author: "owner",
+    body: summary,
+  });
+
+  return true;
 }
 
 /** Flips the conversation to needs_human and stops the assistant answering. */

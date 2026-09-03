@@ -78,6 +78,8 @@ export type TurnInput = {
    * business, where the question does not arise.
    */
   signedIn?: boolean | null;
+  /** For support conversations: the business the person asking belongs to. */
+  raisedFor?: string | null;
   /**
    * Set only by the sweep that releases a held conversation.
    *
@@ -330,6 +332,7 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     origin: input.origin,
     contactEmail: null,
     signedIn: input.signedIn ?? null,
+    raisedFor: input.raisedFor ?? null,
   });
 
   const { data: after } = await db

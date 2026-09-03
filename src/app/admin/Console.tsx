@@ -98,6 +98,7 @@ export function Console({
       {adding && <NewBusiness trades={trades} onDone={() => setAdding(false)} />}
 
       <NeedsYou businesses={businesses} />
+      <OpenRequests businesses={businesses} />
 
       {/*
         * Search, because fifteen businesses is a scroll and a hundred is not.
@@ -521,6 +522,74 @@ function Business({ b }: { b: BusinessSummary }) {
 }
 
 /** Where the account stands, which is the first thing worth knowing. */
+/**
+ * Every request still in play, across every business.
+ *
+ * They existed only inside the business they belonged to, folded shut, which
+ * meant the only way to know what was outstanding was to open fifteen rows and
+ * look. Support work is the one thing on this screen with somebody waiting at
+ * the other end of it, and it was the hardest thing on the screen to find.
+ *
+ * Answered ones stay listed. A reply is not the end of a request — they might
+ * come back on it, and a thread nobody has closed is one nobody has agreed is
+ * finished. It drops off when it is actually sorted.
+ */
+function OpenRequests({ businesses }: { businesses: BusinessSummary[] }) {
+  const all = businesses.flatMap((b) =>
+    b.tickets
+      .filter((t) => t.status !== "closed")
+      .map((t) => ({ t, b, last: t.messages[t.messages.length - 1] ?? null })),
+  );
+
+  if (all.length === 0) return null;
+
+  // Waiting on us first, then oldest first within each — the one that has been
+  // waiting longest is the one somebody is most fed up about.
+  const order = (x: (typeof all)[number]) => (x.t.status === "open" ? 0 : 1);
+  all.sort((a, b) => order(a) - order(b) || (a.last?.at ?? "").localeCompare(b.last?.at ?? ""));
+
+  const waiting = all.filter((x) => x.t.status === "open").length;
+
+  return (
+    <section className="card mt-8 p-5">
+      <h2 className="section-title">
+        {all.length} open {all.length === 1 ? "request" : "requests"}
+        {waiting > 0 && (
+          <span className="ml-2 pill bg-warn/10 text-warn">{waiting} waiting on you</span>
+        )}
+      </h2>
+      <ul className="mt-2.5 divide-y divide-border">
+        {all.map(({ t, b, last }) => (
+          <li key={t.id} className="py-2 text-sm">
+            <a
+              href={`#b-${b.id}`}
+              className="row flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-lg"
+            >
+              {t.status === "open" ? (
+                <span className="pill shrink-0 bg-warn/10 text-warn">Waiting</span>
+              ) : (
+                <span className="pill shrink-0 bg-ok/10 text-ok">Answered</span>
+              )}
+              <strong className="min-w-0">{t.subject}</strong>
+              <span className="text-muted">{b.name}</span>
+              {last && <span className="ml-auto shrink-0 text-muted">{since(last.at)}</span>}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** "3 days", the way somebody would say how long something has been sitting. */
+function since(iso: string): string {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 14) return `${days} days`;
+  return `${Math.floor(days / 7)} weeks`;
+}
+
 /** A week's peace on something you already know about. */
 function Snooze({ id }: { id: string }) {
   const [state, action] = useActionState<Result, FormData>(snoozeAttention, {});

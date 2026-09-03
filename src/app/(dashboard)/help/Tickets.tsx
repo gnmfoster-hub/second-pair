@@ -39,11 +39,42 @@ export function Tickets({ tickets }: { tickets: Ticket[] }) {
           <button
             type="button"
             onClick={() => setAsking(true)}
-            className="btn ml-auto bg-accent text-on-accent"
+            className="btn-ghost ml-auto"
           >
-            Ask for help
+            Write to a person
           </button>
         )}
+      </div>
+
+      {/*
+        * The assistant first, because it is faster and it is usually enough.
+        *
+        * Most of what arrives here is answerable from what the product already
+        * knows — where a setting lives, why a reminder did not send, how to
+        * charge a deposit. Waiting until tomorrow for that is a bad trade when
+        * the answer exists now, and every one of those that becomes a request
+        * is one somebody has to read and reply to by hand.
+        *
+        * It is a suggestion and not a gate. Somebody who has already tried,
+        * or who knows perfectly well they need a human, should not have to
+        * argue with a robot first to reach one.
+        */}
+      <div className="card mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 p-5">
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-medium">Try the assistant first</div>
+          <p className="hint mt-0.5">
+            It answers most things straight away, and it knows how all of this works. If
+            it cannot help, it raises a request here for you — you will not have to write
+            it out twice.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent("second-pair:help"))}
+          className="btn shrink-0 bg-accent text-on-accent"
+        >
+          Ask the assistant
+        </button>
       </div>
 
       {asking && (
