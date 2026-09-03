@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { mostlyInView } from "@/lib/inView";
 import { MomentCard } from "@/app/widget/[slug]/Moments";
 import type { Moment } from "@/lib/engine/moments";
 import { retires } from "@/lib/conversationCards";
@@ -92,8 +93,52 @@ export function LiveDemo({
     // Anybody who has asked for less motion gets the transcript, complete and
     // still. It says the same thing; it just does not move.
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    setLines([]);
-    setLive(true);
+
+    const panel = thread.current;
+    if (!panel) return;
+
+    /*
+     * It starts when somebody can see it, not when the page loads.
+     *
+     * On a desktop the panel sits beside the headline and is on screen
+     * immediately, so starting at mount looked right and was only ever right
+     * by accident. On a phone it is below the fold: the conversation played
+     * its twenty seconds to nobody while the reader was still on the first
+     * paragraph, and by the time they scrolled down it had finished and was
+     * holding — a still transcript, which is the one thing this exists not to
+     * be. It worked on a PC and not on a phone, and the difference was never
+     * the device.
+     *
+     * Measured off the element's own box on a timer rather than with an
+     * IntersectionObserver. The observer is the tidier tool and it is the
+     * wrong one here for the same reason requestAnimationFrame was: it does
+     * not run in a document that is not being painted, so it can silently
+     * never fire, and a demo that never starts is indistinguishable from a
+     * broken one. A timer always arrives, and asking a rectangle where it is
+     * costs nothing twice a second.
+     *
+     * Cleared only when it starts, for the same reason. Emptying the thread at
+     * mount would leave a blank panel sitting there through all the scrolling
+     * it takes to reach it; the finished conversation is the better thing to
+     * find, right up until it becomes the live one.
+     */
+    const enoughOfItShowing = () =>
+      mostlyInView(panel.getBoundingClientRect(), window.innerHeight);
+
+    if (enoughOfItShowing()) {
+      setLines([]);
+      setLive(true);
+      return;
+    }
+
+    const look = window.setInterval(() => {
+      if (!enoughOfItShowing()) return;
+      window.clearInterval(look);
+      setLines([]);
+      setLive(true);
+    }, 400);
+
+    return () => window.clearInterval(look);
   }, []);
 
   /*
