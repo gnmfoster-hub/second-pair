@@ -17,6 +17,7 @@ import { zonedToUtc as toUtc } from "@/lib/booking/tz";
 import { useDrag, clockOf, lengthOf, SNAP_MINUTES } from "./useDrag";
 import { Avatar } from "@/components/Avatar";
 import type { Artist, OpeningHours } from "@/lib/types";
+import { gapsFor, saidAloud } from "@/lib/diaryGaps";
 
 export type Entry = {
   id: string;
@@ -688,6 +689,29 @@ export function WeekGrid({
                   {hourList.map((h) => (
                     <div key={h} style={{ height: HOUR_HEIGHT }} className="relative">
                       <div className="absolute inset-x-0 top-0 border-t border-cal-grid" />
+                    </div>
+                  ))}
+
+                  {/*
+                    * Where the day is free, said in words.
+                    *
+                    * Drawn under the appointments and above the closed-hours
+                    * shading, so it never covers anything and never survives
+                    * into time the business is shut. It is a reading of the
+                    * column rather than a thing in it — which is why it takes
+                    * no clicks and no pointer events, and dragging a new
+                    * appointment straight across it works exactly as before.
+                    */}
+                  {gapsFor(laid, opening, HOUR_HEIGHT).map((gap) => (
+                    <div
+                      key={gap.top}
+                      className="pointer-events-none absolute inset-x-0 flex items-center justify-center"
+                      style={{ top: gap.top, height: gap.height }}
+                      aria-hidden
+                    >
+                      <span className="num rounded-full px-2 py-0.5 text-[10px] text-muted/70">
+                        {saidAloud(gap.minutes)} free
+                      </span>
                     </div>
                   ))}
 
