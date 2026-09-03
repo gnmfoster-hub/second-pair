@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "@/app/(dashboard)/actions";
 
@@ -84,6 +85,25 @@ export function MobileAccount({
           {/* Which account this is, first — it is the thing that decides
               whether you meant to press the button underneath it. */}
           <div className="truncate px-1 text-[11px] text-muted">{email}</div>
+
+          {/*
+            * Help lives here too, and for the same reason as everything else
+            * in this sheet.
+            *
+            * It is a link in the sidebar and there are only five tabs on a
+            * phone, so on mobile the only route to it was the floating
+            * assistant's "ask a person instead" — which renders nothing at all
+            * until a support studio is configured. Raising a request could
+            * therefore be impossible on the device it is most likely to be
+            * needed from: mid-day, between clients, when something is wrong.
+            *
+            * A sixth tab would have crowded the bar on a small phone for
+            * something reached once a month. This corner is where the things
+            * you look for by thinking "where are my account bits" belong.
+            */}
+          <Link href="/help" onClick={() => setOpen(false)} className="btn-ghost w-full">
+            Help
+          </Link>
 
           {children}
 
