@@ -123,6 +123,25 @@ export default async function OnboardingPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  /*
+   * Anybody who already has a business is not signing up.
+   *
+   * This page only ever checked that somebody was signed in, so an owner who
+   * arrived here with a business already made — which is now every owner,
+   * because they are all created in the back office — would be invited to make
+   * a second one. Filling it in gave them two, and the app picks the first
+   * membership it finds, so they could well end up looking at the empty one
+   * with their real business nowhere in sight.
+   */
+  const { data: already } = await supabase
+    .from("studio_members")
+    .select("studio_id")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (already) redirect("/");
+
   return (
     <div className="grid min-h-screen place-items-center px-6 py-12">
       <form action={createStudio} className="w-full max-w-lg space-y-8">

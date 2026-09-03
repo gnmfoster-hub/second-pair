@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { seedFromPack } from "@/lib/seed";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isPlatformAdmin } from "@/lib/platform";
 import { siteOrigin } from "@/lib/origin";
@@ -122,6 +123,47 @@ export async function createBusiness(_prev: Result, fd: FormData): Promise<Resul
 
   if (memberError) return { error: `Created, but could not attach the owner: ${memberError.message}` };
 
+  /*
+   * The trade's prices, and somebody to do the work.
+   *
+   * Without these a business exists and cannot answer anybody: no price bands
+   * means no quote, no person means nothing to book. Every business created
+   * here arrived in exactly that state, which is why the attention panel above
+   * has spent weeks reporting that they could not answer anybody — it was
+   * right, and the cause was this screen rather than anything the owner had
+   * failed to do.
+   *
+   * Signing up through the front door has always seeded both. There is no
+   * front door any more — sign-up is invitation-only, so this is the only way
+   * a business is ever made, and it was the half that did not do it.
+   */
+  await seedFromPack(db, studio.id, vertical);
+
+  const ownerName = String(fd.get("owner") ?? "").trim();
+  const { error: artistError } = await db.from("artists").insert({
+    studio_id: studio.id,
+    // Their own name if we were given one; otherwise the business's, which is
+    // right far more often than not for one person working alone.
+    name: ownerName || name,
+    hourly_rate_pence: 5000,
+    min_charge_pence: 3000,
+    active: true,
+    booking_provider: "native",
+  });
+
+  /*
+   * Said out loud rather than swallowed. A business with prices and no person
+   * looks completely normal on every screen and cannot book anything, and the
+   * way that surfaces is a customer being told nothing at all.
+   */
+  if (artistError) {
+    return {
+      error:
+        `${name} was created, but nobody could be added to it: ${artistError.message}. ` +
+        "Add a person in their settings before sending them the link.",
+    };
+  }
+
   const origin = await siteOrigin();
   const { data: link } = await db.auth.admin.generateLink({
     type: "recovery",
@@ -132,8 +174,14 @@ export async function createBusiness(_prev: Result, fd: FormData): Promise<Resul
   revalidatePath("/admin");
   return {
     ok: true,
+    /*
+     * What is done and what is not, because the difference decides whether
+     * the assistant can answer anybody the moment the link is opened.
+     */
     note: created
-      ? `${name} is set up. Send them the link below to choose a password.`
+      ? `${name} is set up with its trade's prices, FAQs and reminders, and ${ownerName || name} ` +
+        "added as the first person. Only the opening hours are missing — nobody but them knows " +
+        "those. Send them the link below to choose a password."
       : `${name} is set up under an existing login, so they sign in as they already do.`,
     /*
      * A password first, then their business.
@@ -149,7 +197,7 @@ export async function createBusiness(_prev: Result, fd: FormData): Promise<Resul
      * password". Now it does that.
      */
     link: created
-      ? redeemable(link?.properties?.hashed_token, origin, "/reset-password?next=/onboarding")
+      ? redeemable(link?.properties?.hashed_token, origin, "/reset-password?next=/settings/pricing")
       : undefined,
   };
 }
