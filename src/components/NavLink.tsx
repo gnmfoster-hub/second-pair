@@ -14,7 +14,11 @@ export function NavLink({
   children: React.ReactNode;
   icon?: React.ReactNode;
   /** A count worth interrupting for. Anything falsy renders nothing. */
-  badge?: number;
+  /**
+   * How many want you. Null means the count could not be read — which is not
+   * the same as nought, and must not look like it.
+   */
+  badge?: number | null;
   exact?: boolean;
 }) {
   const pathname = usePathname();
@@ -41,7 +45,15 @@ export function NavLink({
         </span>
       )}
       <span className="min-w-0 flex-1 truncate">{children}</span>
-      {badge ? (
+      {badge === null ? (
+        // Something is there or nothing is; we could not find out. A dot says
+        // "look" without claiming a number that might be wrong.
+        <span
+          className="ml-auto size-1.5 shrink-0 rounded-full bg-warn"
+          title="Could not check — open the inbox"
+          aria-label="Count unavailable"
+        />
+      ) : badge ? (
         <span className="rounded-full bg-warn/15 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-warn">
           {badge}
         </span>

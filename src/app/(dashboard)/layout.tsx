@@ -26,12 +26,23 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // The one number worth carrying across every page: conversations the
   // assistant has handed over. For a one-person business that is the whole
   // reason to look at this app between jobs.
-  const { count } = await supabase
+  /*
+   * A failed count is not nought.
+   *
+   * The error was discarded here, so a query that fell over showed a badge of
+   * nought — which on this particular number reads as "nobody is waiting on
+   * you". It is the one figure carried across every page precisely because an
+   * owner checks it between jobs instead of reading the inbox, and quietly
+   * telling them everything is fine is the worst thing it could do.
+   */
+  const { count, error: countFailed } = await supabase
     .from("conversations")
     .select("id", { count: "exact", head: true })
     .eq("studio_id", studio.id)
     .eq("is_test", false)
     .eq("status", "needs_human");
+
+  const needsYou = countFailed || count == null ? null : count;
 
   return (
     <div className="flex min-h-screen">
@@ -68,7 +79,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
 
         <nav className="space-y-0.5 px-3 pt-2">
-          <NavLink href="/" exact icon={<InboxIcon />} badge={count ?? 0}>
+          <NavLink href="/" exact icon={<InboxIcon />} badge={needsYou}>
             Inbox
           </NavLink>
           <NavLink href="/diary" icon={<DiaryIcon />}>
@@ -129,7 +140,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <main className="min-w-0 flex-1 pb-24 md:pb-0">{children}</main>
       </div>
 
-      <MobileNav needsYou={count ?? 0} />
+      <MobileNav needsYou={needsYou ?? 0} />
     </div>
   );
 }
