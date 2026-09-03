@@ -81,8 +81,21 @@ export function HelpButton({ slug }: { slug: string | null }) {
           <iframe
             src={`/widget/${slug}`}
             title="Help"
-            className="h-full w-full border-0"
+            className="h-[calc(100%-2.6rem)] w-full border-0"
           />
+
+          {/*
+            * A way to reach a person, under the assistant rather than instead
+            * of it. Most questions are answered instantly and this is for the
+            * rest — something is wrong, or something needs a human who can
+            * change things.
+            */}
+          <a
+            href="/help"
+            className="flex h-[2.6rem] items-center justify-center border-t border-border text-[12px] font-medium text-highlight-strong hover:bg-surface-2"
+          >
+            Ask a person instead &rarr;
+          </a>
         </div>
       )}
     </>

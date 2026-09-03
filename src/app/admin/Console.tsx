@@ -9,6 +9,7 @@ import {
   deleteBusiness,
   saveAccount,
   fixSettings,
+  answerTicket,
   type Result,
 } from "./actions";
 import { formatPence } from "@/lib/money";
@@ -227,24 +228,40 @@ function NeedsYou({ businesses }: { businesses: BusinessSummary[] }) {
 
   const rows = businesses
     .map((b) => {
+      /*
+       * Somebody asking beats anything inferred.
+       *
+       * The other three are guesses from the data — sensible ones, but
+       * guesses. A request is a person who has stopped what they were doing to
+       * type it, and it goes to the top.
+       */
+      const waiting = b.tickets.filter((t) => t.status === "open");
+      if (waiting.length) {
+        return {
+          b,
+          why: waiting.length === 1 ? `Asked: ${waiting[0].subject}` : `${waiting.length} requests waiting`,
+          urgent: true,
+        };
+      }
       if (!ready(b)) {
         const missing = [
           b.people === 0 ? "nobody added" : null,
           b.services === 0 ? "no prices" : null,
           !b.hasHours ? "no opening hours" : null,
         ].filter(Boolean);
-        return { b, why: `Cannot answer anybody — ${missing.join(", ")}` };
+        return { b, why: `Cannot answer anybody — ${missing.join(", ")}`, urgent: false };
       }
       if (b.seatLimit != null && b.people > b.seatLimit) {
-        return { b, why: `${b.people} people on a plan for ${b.seatLimit}` };
+        return { b, why: `${b.people} people on a plan for ${b.seatLimit}`, urgent: false };
       }
-      if (b.status === "overdue") return { b, why: "Payment overdue" };
+      if (b.status === "overdue") return { b, why: "Payment overdue", urgent: false };
       if (b.status === "trial" && b.trialEndsOn && b.trialEndsOn < today) {
-        return { b, why: "Trial has run out" };
+        return { b, why: "Trial has run out", urgent: false };
       }
       return null;
     })
-    .filter((r): r is { b: BusinessSummary; why: string } => r !== null);
+    .filter((r): r is { b: BusinessSummary; why: string; urgent: boolean } => r !== null)
+    .sort((a, b) => Number(b.urgent) - Number(a.urgent));
 
   if (rows.length === 0) return null;
 
@@ -252,10 +269,10 @@ function NeedsYou({ businesses }: { businesses: BusinessSummary[] }) {
     <section className="card mt-6 border-warn/40 p-5">
       <h2 className="section-title">Wants something doing</h2>
       <ul className="mt-3 space-y-2">
-        {rows.map(({ b, why }) => (
+        {rows.map(({ b, why, urgent }) => (
           <li key={b.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
             <strong>{b.name}</strong>
-            <span className="text-muted">{why}</span>
+            <span className={urgent ? "text-foreground" : "text-muted"}>{why}</span>
             {b.ownerPhone && (
               <a
                 href={`tel:${b.ownerPhone.replace(/\s+/g, "")}`}
@@ -551,6 +568,8 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
 
       <Handover state={reset} />
 
+      {b.tickets.length > 0 && <Requests b={b} />}
+
       <FixSettings b={b} />
 
       {/*
@@ -579,6 +598,84 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
         {gone.error && <p className="mt-2 text-sm text-warn">{gone.error}</p>}
         {gone.note && <p className="mt-2 text-sm text-ok">{gone.note}</p>}
       </details>
+    </div>
+  );
+}
+
+/**
+ * What they asked, and answering it.
+ *
+ * The reply lands in their own account rather than an email, so it is still
+ * there in six months when somebody wonders what was agreed — and nobody had to
+ * go into their business and read their customers' messages to work out what
+ * they meant.
+ */
+function Requests({ b }: { b: BusinessSummary }) {
+  return (
+    <div className="space-y-3">
+      {b.tickets.map((t) => (
+        <Request key={t.id} ticket={t} />
+      ))}
+    </div>
+  );
+}
+
+function Request({ ticket }: { ticket: BusinessSummary["tickets"][number] }) {
+  const [state, action] = useActionState<Result, FormData>(answerTicket, {});
+
+  return (
+    <div className="rounded-xl border border-border p-3.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <strong className="text-sm">{ticket.subject}</strong>
+        {ticket.status === "open" ? (
+          <span className="pill bg-warn/10 text-warn">Waiting</span>
+        ) : (
+          <span className="pill bg-ok/10 text-ok">Answered</span>
+        )}
+      </div>
+
+      <div className="mt-3 space-y-2">
+        {ticket.messages.map((m) => (
+          <p
+            key={m.id}
+            className={`whitespace-pre-wrap rounded-xl px-3 py-2 text-sm ${
+              m.author === "owner" ? "bg-surface-2" : "bg-accent/10"
+            }`}
+          >
+            <span className="mb-0.5 block text-[10px] uppercase tracking-wide text-muted">
+              {m.author === "owner" ? "Them" : "You"}
+            </span>
+            {m.body}
+          </p>
+        ))}
+      </div>
+
+      {/*
+        * Two buttons on one form: reply, or reply and be done with it.
+        *
+        * Most answers are also the end of it, and making somebody send a
+        * message and then find a separate close button is how threads stay
+        * open for weeks.
+        */}
+      <form action={action} className="mt-3 space-y-2">
+        <input type="hidden" name="ticket_id" value={ticket.id} />
+        <textarea name="body" rows={3} className="input w-full" placeholder="Answer them…" />
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="submit" className="btn bg-accent text-on-accent">
+            Send
+          </button>
+          <button
+            type="submit"
+            name="close"
+            value="true"
+            className="btn-ghost"
+          >
+            Send and mark sorted
+          </button>
+          {state.error && <span className="text-sm text-warn">{state.error}</span>}
+          {state.note && <span className="text-sm text-ok">{state.note}</span>}
+        </div>
+      </form>
     </div>
   );
 }

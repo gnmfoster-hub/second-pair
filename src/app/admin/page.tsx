@@ -56,6 +56,26 @@ export default async function AdminPage() {
     db.auth.admin.listUsers(),
   ]);
 
+  /*
+   * Every open request, in one query rather than one per business.
+   *
+   * Closed ones are left behind: this screen is about what wants doing, and a
+   * business's own help page keeps the history where they can read it.
+   */
+  const { data: tickets } = await db
+    .from("support_tickets")
+    .select("id, studio_id, subject, status, updated_at")
+    .neq("status", "closed")
+    .order("updated_at", { ascending: false });
+
+  const { data: ticketMessages } = tickets?.length
+    ? await db
+        .from("support_messages")
+        .select("id, ticket_id, author, body, created_at")
+        .in("ticket_id", tickets.map((t) => t.id))
+        .order("created_at")
+    : { data: [] };
+
   const emailFor = new Map((users?.users ?? []).map((u) => [u.id, u.email ?? null]));
 
   /*
@@ -130,6 +150,21 @@ export default async function AdminPage() {
         ownerName: s.owner_name ?? null,
         ownerPhone: s.owner_phone ?? null,
         trialEndsOn: s.trial_ends_on ?? null,
+        tickets: (tickets ?? [])
+          .filter((t) => t.studio_id === s.id)
+          .map((t) => ({
+            id: t.id,
+            subject: t.subject,
+            status: t.status as "open" | "answered" | "closed",
+            messages: (ticketMessages ?? [])
+              .filter((m) => m.ticket_id === t.id)
+              .map((m) => ({
+                id: m.id,
+                author: m.author as "owner" | "support",
+                body: m.body,
+                at: m.created_at,
+              })),
+          })),
         settings: {
           timezone: s.timezone ?? "Europe/London",
           tone: s.tone ?? null,

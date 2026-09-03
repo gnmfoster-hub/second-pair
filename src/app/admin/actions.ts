@@ -300,3 +300,53 @@ export async function fixSettings(_prev: Result, fd: FormData): Promise<Result> 
   revalidatePath("/admin");
   return { ok: true, note: "Changed. It takes effect on their next enquiry." };
 }
+
+/**
+ * Answering somebody, and saying when it is done.
+ *
+ * The reply lands in their own account rather than an email, which means it is
+ * still there in six months when they wonder what was agreed — and it means
+ * nobody had to go into their business and read their customers' messages to
+ * work out what they were talking about.
+ */
+export async function answerTicket(_prev: Result, fd: FormData): Promise<Result> {
+  const denied = await guard();
+  if (denied) return denied;
+
+  const id = String(fd.get("ticket_id") ?? "");
+  const body = String(fd.get("body") ?? "").trim();
+  const andClose = fd.get("close") === "true";
+
+  if (!id) return { error: "No request." };
+  if (!body && !andClose) return { error: "Nothing to send." };
+
+  const db = createAdminClient();
+
+  if (body) {
+    const { error } = await db
+      .from("support_messages")
+      .insert({ ticket_id: id, author: "support", body });
+    if (error) return { error: error.message };
+  }
+
+  /*
+   * Closing without a word is allowed but discouraged by the wording of the
+   * button, not by refusing it: sometimes the fix is obvious and the owner
+   * already knows, and forcing a message would only produce "done".
+   */
+  const now = new Date().toISOString();
+  const { error } = await db
+    .from("support_tickets")
+    .update({
+      status: andClose ? "closed" : "answered",
+      answered_at: body ? now : undefined,
+      closed_at: andClose ? now : null,
+      updated_at: now,
+    })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin");
+  return { ok: true, note: andClose ? "Answered and closed." : "Sent." };
+}

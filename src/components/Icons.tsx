@@ -63,3 +63,20 @@ export function SettingsIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+/**
+ * Help: a speech bubble with a question in it.
+ *
+ * Not a life ring or a lifebelt, which is what most products reach for and
+ * which says "you are drowning". Somebody opening this has a question, not a
+ * crisis, and the bubble matches the mark the rest of the product is built on.
+ */
+export function HelpIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M20.5 11.8a7.6 7.6 0 0 1-11 6.8L4.5 20l1.4-4.6a7.6 7.6 0 1 1 14.6-3.6Z" />
+      <path d="M10.1 9.6a2 2 0 1 1 2.6 2.3c-.5.2-.8.7-.8 1.2v.3" />
+      <path d="M12 16.1h.01" />
+    </svg>
+  );
+}

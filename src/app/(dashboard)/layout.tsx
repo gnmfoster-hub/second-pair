@@ -11,6 +11,7 @@ import {
   ClientsIcon,
   WeekIcon,
   SettingsIcon,
+  HelpIcon,
 } from "@/components/Icons";
 import { signOut } from "./actions";
 import { HelpButton } from "@/components/HelpButton";
@@ -80,6 +81,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </NavLink>
           <NavLink href="/settings" icon={<SettingsIcon />}>
             Settings
+          </NavLink>
+          <NavLink href="/help" icon={<HelpIcon />}>
+            Help
           </NavLink>
         </nav>
 

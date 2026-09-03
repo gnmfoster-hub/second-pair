@@ -99,6 +99,21 @@ export type BusinessSummary = {
    * The settings a support call is usually about. Configuration, not anybody's
    * personal data — see the note on fixSettings for where the line is.
    */
+  /*
+   * What they have actually asked for, in their own words.
+   *
+   * This is how a business gets helped without anybody going into their
+   * account: they say what is wrong, and the answer goes back to the same
+   * place. It is the whole reason the suite can still refuse to read a
+   * conversation.
+   */
+  tickets: {
+    id: string;
+    subject: string;
+    status: "open" | "answered" | "closed";
+    messages: { id: string; author: "owner" | "support"; body: string; at: string }[];
+  }[];
+
   settings: {
     timezone: string;
     tone: string | null;
