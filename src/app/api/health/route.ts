@@ -21,7 +21,21 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
-    return NextResponse.json({ error: "CRON_SECRET is not set" }, { status: 503 });
+    return NextResponse.json({
+    /*
+     * Which build is answering.
+     *
+     * Environment variables only reach a Vercel deployment when one is built,
+     * so "I added the key and it still says missing" is usually a deployment
+     * that predates the key rather than a key that did not save. Without this
+     * there is no way to tell those apart from the outside, and the two have
+     * completely different fixes.
+     */
+    deployment: {
+      commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
+      branch: process.env.VERCEL_GIT_COMMIT_REF ?? null,
+      environment: process.env.VERCEL_ENV ?? "not vercel",
+    }, error: "CRON_SECRET is not set" }, { status: 503 });
   }
 
   const provided =

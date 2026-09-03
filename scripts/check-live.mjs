@@ -165,6 +165,26 @@ if (!env.CRON_SECRET) {
     } else {
       const can = JSON.parse(await res.text());
 
+      /*
+       * The build first, because it changes what a missing key means.
+       *
+       * A variable added after the running deployment was built is simply not
+       * there yet, and no amount of checking the dashboard will show that.
+       */
+      if (can.deployment?.commit) {
+        const local = (await import("node:child_process"))
+          .execSync("git rev-parse --short HEAD")
+          .toString()
+          .trim();
+        if (can.deployment.commit === local)
+          pass("the live build is current", `${can.deployment.commit} on ${can.deployment.branch}`);
+        else
+          warn(
+            `the live build is ${can.deployment.commit}, yours is ${local}`,
+            "Anything added since that build — code or environment variables — is not live yet.",
+          );
+      }
+
       // Both halves are named separately, because "email does not work" sends
       // you to the wrong dashboard half the time.
       if (can.email?.sendsMail) pass("the app can send email", "key and sender address both set");
