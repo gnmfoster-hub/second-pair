@@ -219,7 +219,7 @@ export function LiveDemo({
         // Rebuild from the top rather than replaying a spent queue.
         beats.length = 0;
         next = 0;
-        began = null;
+        looped = true;
         t = 700;
         play();
       });
@@ -227,33 +227,56 @@ export function LiveDemo({
 
     play();
 
-    let frame = 0;
-    let next = 0;
-    let began: number | null = null;
 
-    const tick = (now: number) => {
-      if (began === null) began = now;
-      const gone = now - began;
-      /*
-       * Everything due by now, in order — a late or dropped frame catches up
-       * instead of stretching the conversation out.
-       *
-       * The break matters. The last beat clears the queue and rebuilds it for
-       * the next run through, and without stopping here the loop would carry
-       * straight on into that fresh queue while `gone` still holds the elapsed
-       * time of the run that just finished — firing the entire conversation in
-       * a single frame. The restart sets the clock back to null, which is the
-       * signal to leave the rest for the next frame.
-       */
+    let next = 0;
+    let looped = false;
+
+    /*
+     * Pumped by a timer, and told the time by the clock.
+     *
+     * The first version of this scheduled every beat up front as its own
+     * setTimeout at a fixed offset. That is what broke: a browser clamps
+     * timers in a tab that is not in front to about a second, so a 34ms
+     * keystroke fired at 939ms while a beat already set for eight seconds
+     * still fired at eight. The order collapsed, and leaving the tab at all
+     * made every pending timer come due at once on return.
+     *
+     * The fix was never to stop using timers — it was to stop trusting them to
+     * keep time. Each tick asks the clock how long it has actually been and
+     * plays whatever is due, so a late tick catches up rather than stretching
+     * the conversation out.
+     *
+     * Frames were the obvious pump and the wrong one. requestAnimationFrame
+     * does not run at all in a tab that is not being painted, which sounds
+     * like a feature — the demo waits for an audience — but it means the whole
+     * thing can silently never start, and from the outside that is
+     * indistinguishable from it being broken. A timer always arrives. If it
+     * arrives late the arithmetic absorbs it.
+     */
+    let origin = performance.now();
+
+    const tick = () => {
+      const gone = performance.now() - origin;
+
       while (next < beats.length && beats[next].at <= gone) {
         beats[next++].run();
-        if (began === null) break;
+        /*
+         * The last beat empties the queue and rebuilds it for the next run
+         * through. Without stopping here the loop would carry straight on into
+         * that fresh queue still holding the elapsed time of the run that just
+         * finished, and play the whole conversation in a single tick.
+         */
+        if (looped) {
+          looped = false;
+          origin = performance.now();
+          break;
+        }
       }
-      frame = requestAnimationFrame(tick);
     };
-    frame = requestAnimationFrame(tick);
 
-    return () => cancelAnimationFrame(frame);
+    const pump = window.setInterval(tick, 40);
+
+    return () => window.clearInterval(pump);
   }, [live, asking, script]);
 
   return (
