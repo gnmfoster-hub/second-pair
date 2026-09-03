@@ -571,7 +571,10 @@ export function ChatWindow({
           {sending && (
             <div className="flex items-end gap-2 pt-1">
               <Face who={who} photoUrl={photoUrl} />
-              <div className="rounded-2xl rounded-bl-md bg-surface-2 px-4 py-3.5">
+              {/* No bubble here either — the assistant has none, and a box
+                  that appears only while it is thinking would flash a
+                  container in and out on every reply. */}
+              <div className="py-2.5">
                 <span className="flex gap-1" role="status" aria-label="Typing">
                   {[0, 1, 2].map((i) => (
                     <span
@@ -741,7 +744,29 @@ function Bubble({
     <div className={`flex items-end gap-2 ${mine ? "flex-row-reverse" : ""} ${first ? "pt-2" : ""}`}>
       {!mine && (last ? <Face who={who} photoUrl={photoUrl} /> : <span className="size-7 shrink-0" />)}
 
-      <div className={`flex max-w-[80%] flex-col ${mine ? "items-end" : "items-start"}`}>
+      {/*
+        * Only the customer gets a bubble.
+        *
+        * Two columns of opposing capsules is the visual language of SMS, and
+        * it is what every chat widget on the internet uses — but this is not
+        * two people texting. It is a business talking to somebody who came to
+        * its website, and those two voices are not the same kind of thing.
+        *
+        * So the business speaks as text on the page, the way the rest of the
+        * site does, and the customer's own words arrive as objects placed on
+        * it. The asymmetry says who is speaking more clearly than two colours
+        * of bubble ever did, and it reads better: a reply about prices and
+        * times is no longer squeezed into eighty per cent of a phone.
+        *
+        * The same reasoning as the missing title bar above — the widget stops
+        * announcing itself as a widget, and the conversation is just the
+        * conversation.
+        */}
+      <div
+        className={`flex min-w-0 flex-col ${
+          mine ? "max-w-[85%] items-end" : "min-w-0 flex-1 items-start"
+        }`}
+      >
         {photos?.length ? (
           <div className={`mb-1 flex flex-wrap gap-1.5 ${mine ? "justify-end" : ""}`}>
             {photos.map((src, i) => (
@@ -758,10 +783,13 @@ function Bubble({
 
         {children ? (
           <div
-            className={`whitespace-pre-wrap px-3.5 py-2.5 text-sm leading-relaxed motion-safe:animate-[rise_200ms_ease-out] ${
+            className={`whitespace-pre-wrap break-words motion-safe:animate-[rise_200ms_ease-out] ${
               mine
-                ? "rounded-2xl text-[var(--on-brand)] " + (last ? "rounded-br-md" : "")
-                : "rounded-2xl bg-surface-2 text-foreground " + (last ? "rounded-bl-md" : "")
+                ? "rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed text-[var(--on-brand)] " +
+                  (last ? "rounded-br-md" : "")
+                : // Set as reading matter, not as a label in a box: a size up,
+                  // looser leading, and the width of the panel to breathe in.
+                  "py-1 pr-2 text-[0.9375rem] leading-[1.62] text-foreground"
             }`}
             style={mine ? { background: "var(--brand)" } : undefined}
           >
@@ -770,7 +798,11 @@ function Bubble({
         ) : null}
 
         {at != null && (
-          <div className="mt-1 flex items-center gap-1 px-1 text-[10px] text-muted">
+          <div
+            className={`mt-1 flex items-center gap-1 text-[10px] text-muted ${
+              mine ? "px-1" : ""
+            }`}
+          >
             <span className="tabular-nums">{clock(at)}</span>
             {mine && (
               <span className="text-[var(--brand)]">

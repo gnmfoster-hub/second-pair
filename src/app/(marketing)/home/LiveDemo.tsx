@@ -86,7 +86,6 @@ export function LiveDemo({
   const [pressed, setPressed] = useState<number | null>(null);
   const [live, setLive] = useState(false);
   const [asking, setAsking] = useState(false);
-  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const thread = useRef<HTMLDivElement>(null);
 
   useIsomorphicLayoutEffect(() => {
@@ -144,8 +143,31 @@ export function LiveDemo({
   useEffect(() => {
     if (!live || asking) return;
 
+    /*
+     * Written down first, played from a clock second.
+     *
+     * This used to schedule the whole script up front as a few hundred
+     * setTimeouts at increasing offsets, which fails in two ways that both
+     * look like "the demo stopped typing".
+     *
+     * A browser clamps timers in a tab that is not in front to about a second,
+     * so a 34ms keystroke fires at 1000ms — but a timer already set for eight
+     * seconds still fires at eight. The order collapses: keystrokes bunch up
+     * while later beats arrive on time, and the reply lands before the
+     * question has finished being typed.
+     *
+     * And leaving the tab at all is worse. Every pending timer comes due while
+     * away and fires the moment you return, so the conversation jumps to the
+     * end in one frame — which is exactly what somebody sees when they switch
+     * back to the homepage and find it finished instead of running.
+     *
+     * So beats are collected with their times and played by a frame loop that
+     * asks what is due by now. Frames do not run in a hidden tab, so the demo
+     * pauses where it stands and carries on when somebody is actually looking.
+     */
+    const beats: { at: number; run: () => void }[] = [];
     const at = (ms: number, fn: () => void) => {
-      timers.current.push(setTimeout(fn, ms));
+      beats.push({ at: ms, run: fn });
     };
 
     let t = 700;
@@ -194,6 +216,10 @@ export function LiveDemo({
 
       at(t + HOLD, () => {
         setLines([]);
+        // Rebuild from the top rather than replaying a spent queue.
+        beats.length = 0;
+        next = 0;
+        began = null;
         t = 700;
         play();
       });
@@ -201,11 +227,33 @@ export function LiveDemo({
 
     play();
 
-    const running = timers.current;
-    return () => {
-      running.forEach(clearTimeout);
-      running.length = 0;
+    let frame = 0;
+    let next = 0;
+    let began: number | null = null;
+
+    const tick = (now: number) => {
+      if (began === null) began = now;
+      const gone = now - began;
+      /*
+       * Everything due by now, in order — a late or dropped frame catches up
+       * instead of stretching the conversation out.
+       *
+       * The break matters. The last beat clears the queue and rebuilds it for
+       * the next run through, and without stopping here the loop would carry
+       * straight on into that fresh queue while `gone` still holds the elapsed
+       * time of the run that just finished — firing the entire conversation in
+       * a single frame. The restart sets the clock back to null, which is the
+       * signal to leave the rest for the next frame.
+       */
+      while (next < beats.length && beats[next].at <= gone) {
+        beats[next++].run();
+        if (began === null) break;
+      }
+      frame = requestAnimationFrame(tick);
     };
+    frame = requestAnimationFrame(tick);
+
+    return () => cancelAnimationFrame(frame);
   }, [live, asking, script]);
 
   return (
