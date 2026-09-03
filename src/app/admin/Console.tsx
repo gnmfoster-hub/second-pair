@@ -11,6 +11,7 @@ import {
   saveAccount,
   fixSettings,
   answerTicket,
+  setKind,
   type Result,
 } from "./actions";
 import { formatPence } from "@/lib/money";
@@ -197,7 +198,16 @@ function Kpis({ k }: { k: PlatformKpis }) {
       </Band>
 
       <Band divided>
-        <Figure value={String(k.businesses)} label="Businesses" note={`${k.live} have had an enquiry`} />
+        {/*
+          * "Paying customers", not "businesses", because that is what it is
+          * now counting. Saying "businesses" above a list of fifteen rows
+          * showing two would read as a bug rather than as the point.
+          */}
+        <Figure
+          value={String(k.businesses)}
+          label="Paying customers"
+          note={`${k.live} have had an enquiry · demos not counted`}
+        />
         <Figure value={String(k.enquiries)} label="Enquiries answered" note={`${k.booked} booked in`} />
         <Figure
           value={converts == null ? "—" : `${converts}%`}
@@ -300,6 +310,17 @@ function NeedsYou({ businesses }: { businesses: BusinessSummary[] }) {
   const rows = businesses
     .map((b) => {
       /*
+       * A demonstration cannot want anything doing.
+       *
+       * The inferences below are about a business failing its customers — a
+       * demo has none, and Second Pair's own studio deliberately has no people
+       * or prices, so it sat in the list every day saying it could not answer
+       * anybody. A request is different: if somebody has typed one it matters
+       * whoever they are.
+       */
+      const asked = b.tickets.filter((t) => t.status === "open");
+      if (b.kind !== "customer" && asked.length === 0) return null;
+      /*
        * Somebody asking beats anything inferred.
        *
        * The other three are guesses from the data — sensible ones, but
@@ -396,7 +417,15 @@ function Business({ b }: { b: BusinessSummary }) {
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-base font-semibold">{b.name}</h2>
             <StatusPill status={b.status} />
-            {!ready(b) && <span className="pill bg-warn/10 text-warn">Not finished</span>}
+            {b.kind !== "customer" && (
+              <span className="pill bg-surface-2 text-muted">
+                {b.kind === "demo" ? "Demo" : "Ours"}
+              </span>
+            )}
+            {/* A demonstration cannot be badly set up — there is nobody to fail. */}
+            {b.kind === "customer" && !ready(b) && (
+              <span className="pill bg-warn/10 text-warn">Not finished</span>
+            )}
             {b.seatLimit != null && b.people > b.seatLimit && (
               <span className="pill bg-warn/10 text-warn">Over seats</span>
             )}
@@ -510,12 +539,40 @@ function Stat({ label, value, warn }: { label: string; value: number | string; w
 }
 
 function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
+  const [kind, kindAction] = useActionState<Result, FormData>(setKind, {});
   const [reset, resetAction] = useActionState<Result, FormData>(resetLink, {});
   const [gone, deleteAction] = useActionState<Result, FormData>(deleteBusiness, {});
   const [saved, saveAction] = useActionState<Result, FormData>(saveAccount, {});
 
   return (
     <div className="mt-5 space-y-4 border-t border-border pt-4">
+      {/*
+        * What this business counts as.
+        *
+        * The figures at the top are meant to be quotable at somebody, and
+        * before this they were not: demonstrations, test junk and Second
+        * Pair's own studio were all counted as businesses alongside two real
+        * customers. This is the switch that decides.
+        */}
+      <form action={kindAction} className="flex flex-wrap items-center gap-2">
+        <input type="hidden" name="id" value={b.id} />
+        <span className="label mb-0">Counts as</span>
+        {(["customer", "demo", "internal"] as const).map((k) => (
+          <button
+            key={k}
+            name="kind"
+            value={k}
+            className={`pill ${
+              b.kind === k ? "bg-accent text-on-accent" : "bg-surface-2 text-muted"
+            }`}
+          >
+            {k === "customer" ? "Customer" : k === "demo" ? "Demonstration" : "Ours"}
+          </button>
+        ))}
+        {kind.note && <span className="hint">{kind.note}</span>}
+        {kind.error && <span className="text-sm text-warn">{kind.error}</span>}
+      </form>
+
       {/*
         * The commercial arrangement, which exists nowhere else.
         *

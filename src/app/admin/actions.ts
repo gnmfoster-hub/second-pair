@@ -430,3 +430,31 @@ export async function answerTicket(_prev: Result, fd: FormData): Promise<Result>
   revalidatePath("/admin");
   return { ok: true, note: andClose ? "Answered and closed." : "Sent." };
 }
+
+/**
+ * Whether a business counts.
+ *
+ * Everything on this screen counted demos and test junk alongside real
+ * customers, so "15 businesses" and "£1,750 won" were numbers nobody could
+ * quote at a prospect without being wrong.
+ *
+ * Three kinds rather than a delete: a demonstration is worth keeping, it is
+ * what you show somebody on a call, and removing it to tidy a total would be
+ * losing something useful to fix a counting problem.
+ */
+export async function setKind(_prev: Result, fd: FormData): Promise<Result> {
+  const denied = await guard();
+  if (denied) return denied;
+
+  const id = String(fd.get("id") ?? "");
+  const kind = String(fd.get("kind") ?? "");
+  if (!id) return { error: "No business." };
+  if (!["customer", "demo", "internal"].includes(kind)) return { error: "Unknown kind." };
+
+  const db = createAdminClient();
+  const { error } = await db.from("studios").update({ kind }).eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin");
+  return { ok: true, note: kind === "customer" ? "Counted as a customer." : `Marked as ${kind}.` };
+}

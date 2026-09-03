@@ -61,6 +61,8 @@ export type BusinessSummary = {
   name: string;
   slug: string;
   vertical: string;
+  /** customer counts in the figures; demo is for showing people; internal is ours. */
+  kind: "customer" | "demo" | "internal";
   createdAt: string;
   owners: { email: string | null; userId: string }[];
   /** For support: is it actually set up, or did they stop halfway? */

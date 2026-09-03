@@ -62,7 +62,7 @@ export default async function AdminPage() {
     db
       .from("studios")
       .select(
-        "id, name, slug, vertical, created_at, hours, plan, plan_pence, seat_limit, account_status, billing_started_on, account_note, channels_allowed, owner_name, owner_phone, trial_ends_on, timezone, tone, greeting, email, deposit_mode, deposit_rule, cancellation_policy, answering_mode, first_refusal_minutes, always_mention, never_mention, escalate_when, service_areas, travel_mode, travel_buffer_minutes, notice_hours, consultation_minutes, max_session_minutes, vat_registered, vat_rate_percent, prices_include_vat, vat_number, privacy_notice_url, terms_url, stripe_account_id, diary_colour",
+        "id, name, slug, vertical, kind, created_at, hours, plan, plan_pence, seat_limit, account_status, billing_started_on, account_note, channels_allowed, owner_name, owner_phone, trial_ends_on, timezone, tone, greeting, email, deposit_mode, deposit_rule, cancellation_policy, answering_mode, first_refusal_minutes, always_mention, never_mention, escalate_when, service_areas, travel_mode, travel_buffer_minutes, notice_hours, consultation_minutes, max_session_minutes, vat_registered, vat_rate_percent, prices_include_vat, vat_number, privacy_notice_url, terms_url, stripe_account_id, diary_colour",
       )
       .order("created_at"),
     db.from("studio_members").select("studio_id, user_id, role").eq("role", "owner"),
@@ -153,6 +153,7 @@ export default async function AdminPage() {
         name: s.name,
         slug: s.slug,
         vertical: s.vertical,
+        kind: (s.kind ?? "customer") as BusinessSummary["kind"],
         createdAt: s.created_at,
         owners: (members ?? [])
           .filter((m) => m.studio_id === s.id)
@@ -259,14 +260,28 @@ export default async function AdminPage() {
     .filter((e) => (e.conversations as unknown as { status: string })?.status === "booked")
     .reduce((sum, e) => sum + (e.quote_low_pence ?? 0), 0);
 
+  /*
+   * The figures count customers, and only customers.
+   *
+   * They counted everything: two real businesses, several demonstrations, some
+   * test junk and Second Pair's own support studio, presented as one total. A
+   * number somebody is going to quote at a prospect has to be true, and "we
+   * have fifteen businesses" was not.
+   *
+   * The money is the exception — work won and cost to run are real whoever
+   * they happened to, and excluding a demo's enquiries would understate what
+   * the assistant has actually done.
+   */
+  const counted = summaries.filter((b) => b.kind === "customer");
+
   const kpis: PlatformKpis = {
-    businesses: summaries.length,
-    live: summaries.filter((b) => b.conversations > 0).length,
-    unfinished: summaries.filter((b) => !(b.people > 0 && b.services > 0 && b.hasHours)).length,
-    mrr: summaries
+    businesses: counted.length,
+    live: counted.filter((b) => b.conversations > 0).length,
+    unfinished: counted.filter((b) => !(b.people > 0 && b.services > 0 && b.hasHours)).length,
+    mrr: counted
       .filter((b) => b.status === "active" || b.status === "overdue")
       .reduce((sum, b) => sum + b.planPence, 0),
-    paying: summaries.filter((b) => b.status === "active").length,
+    paying: counted.filter((b) => b.status === "active").length,
     enquiries: summaries.reduce((sum, b) => sum + b.conversations, 0),
     booked: summaries.reduce((sum, b) => sum + b.bookings, 0),
     wonPence,
@@ -279,8 +294,8 @@ export default async function AdminPage() {
         0,
       ) / 10_000,
     ),
-    seatsUsed: summaries.reduce((sum, b) => sum + b.people, 0),
-    seatsSold: summaries.reduce((sum, b) => sum + (b.seatLimit ?? b.people), 0),
+    seatsUsed: counted.reduce((sum, b) => sum + b.people, 0),
+    seatsSold: counted.reduce((sum, b) => sum + (b.seatLimit ?? b.people), 0),
   };
 
   /*
