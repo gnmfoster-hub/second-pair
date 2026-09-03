@@ -16,8 +16,28 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         <div className="mx-auto flex max-w-5xl items-center gap-4 px-5 py-4 sm:px-8">
           {/* Thirty pixels disappeared into the header, and this is the only
               place most people will ever see the name. */}
+          {/*
+            * Two lockups, because the wide one does not fit a phone.
+            *
+            * The inline lockup is seven and a half times wider than it is
+            * tall, so at 42px it is 317 pixels of a 390px screen. With the
+            * padding and the two buttons that put the header 91px over the
+            * edge: the document was 481px wide on a 390px phone, "Sign in"
+            * and "Get set up" were off the side of the display, and the whole
+            * page slid left and right under the thumb.
+            *
+            * Measured rather than guessed. A 320px screen leaves the logo
+            * 136px once the padding and buttons are taken out, which is an
+            * 18px-tall inline lockup — not a logo. The horizontal lockup is
+            * 4.43 wide, so 28px tall comes to 124px and fits with room over.
+            */}
           <Link href="/" aria-label="Second Pair" className="shrink-0">
-            <Logo height={42} lockup="inline" />
+            <span className="sm:hidden">
+              <Logo height={28} lockup="horizontal" />
+            </span>
+            <span className="hidden sm:block">
+              <Logo height={42} lockup="inline" />
+            </span>
           </Link>
 
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
