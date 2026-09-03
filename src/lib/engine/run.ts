@@ -121,13 +121,37 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     .maybeSingle();
   if (!studio) throw new Error(`No studio with slug "${input.studioSlug}"`);
 
-  const [{ data: artists }, { data: bands }, { data: faqs }, { data: options }] =
-    await Promise.all([
-      db.from("artists").select("*").eq("studio_id", studio.id).order("created_at"),
-      db.from("price_bands").select("*").eq("studio_id", studio.id).order("sort_order"),
-      db.from("faqs").select("*").eq("studio_id", studio.id).order("sort_order"),
-      db.from("service_options").select("*").eq("studio_id", studio.id).order("sort_order"),
-    ]);
+  const [people, priced, asked, offered] = await Promise.all([
+    db.from("artists").select("*").eq("studio_id", studio.id).order("created_at"),
+    db.from("price_bands").select("*").eq("studio_id", studio.id).order("sort_order"),
+    db.from("faqs").select("*").eq("studio_id", studio.id).order("sort_order"),
+    db.from("service_options").select("*").eq("studio_id", studio.id).order("sort_order"),
+  ]);
+
+  /*
+   * Nothing loaded is not the same as nothing there.
+   *
+   * These errors were discarded, so a query that fell over arrived as an empty
+   * list — and an empty list is a real, meaningful state here: it means the
+   * business has not set its prices up yet, and the assistant says so to the
+   * customer. A database that was briefly unreachable would therefore have it
+   * telling somebody's customer that the business has no prices and nobody to
+   * do the work, in the business's own name, while both sat safely in a table
+   * it could not read.
+   *
+   * Throwing is the honest answer. The caller turns it into "something has
+   * gone wrong, try again", which is true, rather than a confident and
+   * completely wrong statement about somebody's business.
+   */
+  const failed = [people, priced, asked, offered].find((r) => r.error);
+  if (failed) {
+    throw new Error(`Could not load ${studio.slug}: ${failed.error!.message}`);
+  }
+
+  const artists = people.data;
+  const bands = priced.data;
+  const faqs = asked.data;
+  const options = offered.data;
 
   /*
    * Which people offer which services.
