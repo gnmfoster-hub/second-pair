@@ -87,12 +87,36 @@ export function LiveDemo({
   const [pressed, setPressed] = useState<number | null>(null);
   const [live, setLive] = useState(false);
   const [asking, setAsking] = useState(false);
+  /*
+   * Somebody who has asked their phone for less motion.
+   *
+   * Kept as state rather than checked where it is needed, because it decides
+   * two different things: that nothing starts on its own, and that there is a
+   * button offering to start it.
+   */
+  const [stillPreferred, setStillPreferred] = useState(false);
   const thread = useRef<HTMLDivElement>(null);
 
   useIsomorphicLayoutEffect(() => {
     // Anybody who has asked for less motion gets the transcript, complete and
     // still. It says the same thing; it just does not move.
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    /*
+     * Reduce Motion means do not move on your own, not do not exist.
+     *
+     * This used to return here and leave a finished transcript on the page
+     * forever. That is the correct instinct — nothing should start animating
+     * at somebody who has asked their device for less of it — and it is a bad
+     * answer for the one thing on this page that is the product. On a phone
+     * with Reduce Motion switched on, which is a very ordinary setting to
+     * have, the demo simply never worked and looked broken.
+     *
+     * So it still never starts by itself. It offers instead, and a press is
+     * consent. That is the same bargain a video makes.
+     */
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      setStillPreferred(true);
+      return;
+    }
 
     const panel = thread.current;
     if (!panel) return;
@@ -379,6 +403,30 @@ export function LiveDemo({
               </div>
             </div>
           </div>
+
+          {/*
+            * Offered, never started, for anybody who asked for less motion.
+            *
+            * It sits over the finished conversation rather than replacing it,
+            * so the page still says what the product does before anybody
+            * presses anything. A press is consent — the same bargain a video
+            * makes with the same setting.
+            */}
+          {stillPreferred && !live && (
+            <button
+              type="button"
+              onClick={() => {
+                setLines([]);
+                setLive(true);
+              }}
+              className="absolute inset-x-0 bottom-4 z-20 mx-auto flex w-fit items-center gap-2 rounded-full border border-border bg-surface/95 px-4 py-2.5 text-[13px] font-medium shadow-[var(--shadow-pop)] backdrop-blur"
+            >
+              <svg width="13" height="13" viewBox="0 0 12 12" aria-hidden="true">
+                <path d="M2.5 1.5v9l8-4.5-8-4.5Z" fill="currentColor" />
+              </svg>
+              Watch it happen
+            </button>
+          )}
 
           <div
             ref={thread}
