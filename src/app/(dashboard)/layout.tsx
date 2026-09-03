@@ -14,6 +14,7 @@ import {
   HelpIcon,
 } from "@/components/Icons";
 import { signOut } from "./actions";
+import { MobileAccount } from "@/components/MobileAccount";
 import { HelpButton } from "@/components/HelpButton";
 import { AdminLink } from "@/components/AdminLink";
 
@@ -108,6 +109,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <div className="flex min-w-0 flex-1 flex-col">
         <MobileHeader businessName={studio.name}>
           <ThemeToggle compact />
+          {/* The sidebar holds all of this on a desktop, and the sidebar does
+              not exist on a phone — so there was no way to sign out at all. */}
+          <MobileAccount email={userEmail}>
+            <AdminLink />
+          </MobileAccount>
         </MobileHeader>
 
         {/*
