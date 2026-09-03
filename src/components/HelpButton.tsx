@@ -38,6 +38,27 @@ export function HelpButton({ slug }: { slug: string | null }) {
     return () => window.removeEventListener("second-pair:help", onAsked);
   }, []);
 
+  /*
+   * The widget's own close button, which had nothing listening to it.
+   *
+   * The widget cannot close itself — it is in a frame, and the frame belongs
+   * to whoever embedded it. So it asks, by posting a message out. The embed
+   * script on a customer's website has always listened for that; this frame
+   * never did, so the X in the corner did nothing at all, and the only screen
+   * where that was true was our own.
+   *
+   * Origin-checked. This frame is same-origin, and a message from anywhere
+   * else has no business steering the page.
+   */
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if ((event.data as { secondPair?: string })?.secondPair === "close") setOpen(false);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
 
