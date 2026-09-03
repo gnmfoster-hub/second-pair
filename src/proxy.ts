@@ -27,6 +27,8 @@ const PUBLIC_PATHS = [
   "/api/stripe",
   // Guarded by CRON_SECRET rather than a session, because a scheduler calls it.
   "/api/cron",
+  // Same secret, same reason: a deploy check has no session to sign in with.
+  "/api/health",
   // A calendar app cannot log in. The 64-character token in the URL is the
   // credential, and the route refuses anything that is not one.
   "/api/calendar",

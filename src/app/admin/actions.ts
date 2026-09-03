@@ -136,7 +136,23 @@ export async function resetLink(_prev: Result, fd: FormData): Promise<Result> {
   });
 
   if (error) return { error: error.message };
-  return { ok: true, note: `A link for ${email}. It works once.`, link: data?.properties?.action_link };
+
+  /*
+   * Our own address, carrying the hashed token — not Supabase's action link.
+   *
+   * The action link redirects here expecting the browser to finish a code
+   * exchange it never started: the link was made on the server by an
+   * administrator, so no code verifier exists anywhere, and the exchange fails
+   * every single time. It landed on the login page saying "auth", which reads
+   * as an expired link, which is the one thing it never was.
+   */
+  const hashed = data?.properties?.hashed_token;
+  const link = hashed
+    ? `${origin}/auth/callback?token_hash=${encodeURIComponent(hashed)}` +
+      `&type=recovery&next=${encodeURIComponent("/reset-password")}`
+    : data?.properties?.action_link;
+
+  return { ok: true, note: `A link for ${email}. It works once.`, link };
 }
 
 /**

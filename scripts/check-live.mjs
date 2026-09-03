@@ -105,6 +105,21 @@ if (!dkim?.length) warn("DKIM is not published", "Mail will be untrusted and Res
 else if (/^p=|v=DKIM/i.test(dkimValue)) pass("DKIM is published", `${dkimValue.length} characters`);
 else fail("DKIM holds the wrong value", `found "${dkimValue.slice(0, 40)}" — copy the real one from Resend`);
 
+/*
+ * DMARC, which nothing breaks without and deliverability quietly suffers over.
+ *
+ * Gmail and Yahoo have required it of anybody sending in volume since early
+ * 2024. Without it the mail is not rejected — it is scored worse, which is the
+ * hardest kind of problem to notice, because everything looks like it worked.
+ */
+const dmarc = ((await lookup(`_dmarc.${apex}`, "TXT")) ?? []).join("");
+if (/v=DMARC/i.test(dmarc)) pass("DMARC is published", dmarc.slice(0, 48));
+else
+  warn(
+    "DMARC is not published",
+    'Add a TXT record at _dmarc with "v=DMARC1; p=none; rua=mailto:info@second-pair.com".',
+  );
+
 // -------------------------------------------------------------------- the app
 heading("The application");
 
@@ -123,6 +138,59 @@ if (reachable) {
     const res = await get(path).catch(() => null);
     if (res && res.status === 200) pass(`${path} loads`);
     else fail(`${path} did not load`, res ? `status ${res.status}` : "no response");
+  }
+}
+
+/*
+ * What the running app can actually do.
+ *
+ * The records above prove the domain is ready to send. They say nothing about
+ * whether the deployment holds the keys to do it — that lives in a different
+ * dashboard, and it is the half that is usually missing. Until now the only
+ * way to find out was to do the thing and see: send a real password reset,
+ * take a real deposit. A bad way to learn that a key was pasted with a
+ * trailing space.
+ */
+heading("What the live app can do");
+
+if (!env.CRON_SECRET) {
+  warn("cannot check the keys", "CRON_SECRET is not in .env.local, so /api/health cannot be read.");
+} else {
+  try {
+    const res = await get(`/api/health?key=${encodeURIComponent(env.CRON_SECRET)}`);
+    if (res.status === 404) {
+      warn("the health endpoint is not deployed yet", "Push and redeploy, then run this again.");
+    } else if (!res.ok) {
+      fail("could not read the health endpoint", `HTTP ${res.status}`);
+    } else {
+      const can = JSON.parse(await res.text());
+
+      // Both halves are named separately, because "email does not work" sends
+      // you to the wrong dashboard half the time.
+      if (can.email?.sendsMail) pass("the app can send email", "key and sender address both set");
+      else if (can.email?.apiKey && !can.email?.from)
+        fail("EMAIL_FROM is missing", "The Resend key is set, but nothing sends without a sender address.");
+      else if (!can.email?.apiKey && can.email?.from)
+        fail("RESEND_API_KEY is missing", "The sender address is set, but there is no key to send with.");
+      else fail("the app cannot send email", "Neither RESEND_API_KEY nor EMAIL_FROM is set in Vercel.");
+
+      if (can.assistant) pass("the assistant is connected");
+      else fail("the assistant is not connected", "ANTHROPIC_API_KEY is missing.");
+
+      if (can.supportStudio) pass("the help assistant is pointed at a studio");
+      else warn("no support studio", "The floating help button will not appear at all.");
+
+      if (can.push) pass("push notifications are configured");
+      else warn("push is not configured", "Nobody is told when something needs them.");
+
+      if (can.payments) pass("Stripe is connected");
+      else warn("Stripe is not connected", "Deposits cannot be taken — expected until you set it up.");
+
+      if (can.texts) pass("Twilio is connected");
+      else warn("Twilio is not connected", "Texts and WhatsApp are off — expected until the number clears.");
+    }
+  } catch (error) {
+    fail("could not reach the health endpoint", String(error?.message ?? error));
   }
 }
 

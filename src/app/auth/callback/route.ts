@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/safeNext";
 
@@ -37,6 +38,27 @@ export async function GET(request: NextRequest) {
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) return NextResponse.redirect(`${origin}${next}`);
+  }
+
+  /*
+   * The other kind of link: one made for somebody rather than by them.
+   *
+   * A link the back office generates is created on the server, so the browser
+   * that eventually opens it never stored the code verifier that
+   * exchangeCodeForSession needs. It cannot succeed — not sometimes, ever —
+   * and every one of those links landed on the login page saying "auth", which
+   * looks exactly like a link that expired.
+   *
+   * These carry a hashed token instead, redeemed here. Same destination, and
+   * still one use only.
+   */
+  const tokenHash = searchParams.get("token_hash");
+  const type = searchParams.get("type") as EmailOtpType | null;
+
+  if (tokenHash && type) {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
     if (!error) return NextResponse.redirect(`${origin}${next}`);
   }
 
