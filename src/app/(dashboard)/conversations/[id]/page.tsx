@@ -124,18 +124,34 @@ export default async function ConversationPage({
                   );
                 }
                 const fromClient = m.role === "client";
+                /*
+                 * The business speaks as the page; the customer's words are
+                 * objects placed on it. Same asymmetry as the widget, and here
+                 * it earns its keep twice over.
+                 *
+                 * This screen is opened to read what the assistant said — to
+                 * check it quoted the right price, offered a real time, did not
+                 * promise something it should not have. That is the longest
+                 * text in the thread and it was in the worst place for reading
+                 * it: eighty-five per cent of the width, small, on a coloured
+                 * fill. The customer's messages are usually a line and are
+                 * fine, and better, as bubbles.
+                 */
                 return (
                   <div
                     key={m.id}
-                    className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm ${
+                    className={`whitespace-pre-wrap break-words ${
                       fromClient
-                        ? "rounded-tl-sm bg-surface-2"
-                        : "ml-auto rounded-br-sm bg-accent/90 text-on-accent"
+                        ? "max-w-[85%] rounded-2xl rounded-tl-sm bg-surface-2 px-3.5 py-2.5 text-sm"
+                        : "max-w-full py-1.5 text-[0.9375rem] leading-[1.62]"
                     }`}
                   >
-                    {m.role === "owner" && (
-                      <div className="mb-1 text-[10px] uppercase tracking-wide opacity-70">
-                        You
+                    {/* Which of the two of you said it — the assistant or you
+                        stepping in. Without a bubble to sit inside, this is the
+                        only thing distinguishing them. */}
+                    {!fromClient && (
+                      <div className="mb-0.5 text-[10px] uppercase tracking-[0.08em] text-muted">
+                        {m.role === "owner" ? "You" : "Your assistant"}
                       </div>
                     )}
                     {m.content}
