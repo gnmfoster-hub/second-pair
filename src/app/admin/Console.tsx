@@ -16,6 +16,7 @@ import {
   type Result,
 } from "./actions";
 import { formatPence } from "@/lib/money";
+import { Band, Figure } from "@/components/Figures";
 import type { PlatformKpis } from "@/lib/platform";
 
 /**
@@ -229,64 +230,6 @@ function Kpis({ k }: { k: PlatformKpis }) {
           warn={k.unfinished > 0}
         />
       </Band>
-    </div>
-  );
-}
-
-/** A row of figures, ruled between rather than boxed. */
-function Band({ children, divided }: { children: React.ReactNode; divided?: boolean }) {
-  return (
-    <div
-      className={`grid gap-px bg-border sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] ${
-        divided ? "border-t border-border" : ""
-      }`}
-    >
-      {children}
-    </div>
-  );
-}
-
-/**
- * One figure, set like print.
- *
- * The number first and large, the label under it in small caps, the note
- * quieter still. Three sizes of the same information, which is what makes a
- * page readable at a glance rather than only when studied.
- */
-function Figure({
-  value,
-  label,
-  note,
-  lead,
-  warn,
-}: {
-  value: string;
-  label: string;
-  note?: string;
-  /** The one figure the page is about. */
-  lead?: boolean;
-  warn?: boolean;
-}) {
-  /*
-   * Painted on the card's own surface, not the page behind it.
-   *
-   * These paint a background so the one-pixel gaps between them show as rules
-   * — but painting the paper colour put the page back on top of the card and
-   * made the card invisible. It has to be the surface the card is drawn in.
-   */
-  return (
-    <div className="bg-surface px-5 py-5">
-      <div
-        className={`font-display font-bold tabular-nums leading-none tracking-[-0.03em] ${
-          lead ? "text-4xl" : "text-2xl"
-        } ${warn ? "text-warn" : lead ? "text-highlight-strong" : ""}`}
-      >
-        {value}
-      </div>
-      <div className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.09em] text-muted">
-        {label}
-      </div>
-      {note && <div className="mt-1 text-[12px] leading-snug text-muted/80">{note}</div>}
     </div>
   );
 }

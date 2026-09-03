@@ -8,6 +8,7 @@ import { Page, PageHeader } from "@/components/PageHeader";
 import { colourForName, initialsOf } from "@/lib/diaryColour";
 import { ChannelIcon } from "@/components/ChannelIcon";
 import { Ticker } from "@/components/Ticker";
+import { Band, Figure } from "@/components/Figures";
 import { Waiting } from "@/components/Waiting";
 import {
   CHANNEL_LABELS,
@@ -142,44 +143,38 @@ export default async function InboxPage() {
        * The darker orange, not the bright one: the bright one is for a solid
        * fill behind ink, and as text on paper it does not pass contrast.
        */}
+      {/*
+       * One card, ruled inside — the same figures the back office uses.
+       *
+       * Three separate cards made each number its own object with equal
+       * weight, which is wrong for a row meant to be read left to right as one
+       * sentence: it answered this many, it won you this much, this many want
+       * you. Hairlines say those belong together; three boxes say they are
+       * three unrelated facts that happen to be adjacent.
+       *
+       * The money keeps the brand colour because it is the only figure here
+       * that answers "is this worth paying for", and a screen where everything
+       * is the same navy has no answer to that at all. The darker orange, not
+       * the bright one — the bright one is a fill to put ink on and does not
+       * pass contrast as text on paper.
+       */}
       {recent.length > 0 && (
-        <div className="mt-7 grid gap-3 sm:grid-cols-3">
-          <div className="card settle p-5">
-            <div className="stat"><Ticker value={booked.length} /></div>
-            <div className="hint mt-2">Booked in</div>
-          </div>
-
-          <div
-            className={`card settle relative overflow-hidden p-5 ${
-              recovered ? "border-highlight/40" : ""
-            }`}
-            style={{ animationDelay: "70ms" }}
-          >
-            {recovered > 0 && (
-              <span
-                className="absolute inset-y-0 left-0 w-1"
-                style={{ background: "var(--highlight)" }}
-                aria-hidden
-              />
-            )}
-            <div
-              className="stat"
-              style={recovered ? { color: "var(--highlight-strong)" } : undefined}
+        <div className="card settle mt-7 overflow-hidden p-0">
+          <Band>
+            <Figure label="Booked in">
+              <Ticker value={booked.length} />
+            </Figure>
+            <Figure
+              label="Won while you were busy"
+              accent={recovered > 0}
+              note={whileShut.length > 0 ? `${whileShut.length} came in out of hours` : undefined}
             >
               <Ticker value={recovered} money />
-            </div>
-            <div className="hint mt-2">Won while you were busy</div>
-          </div>
-
-          <div
-            className={`card settle p-5 ${waiting.length ? "border-warn/40" : ""}`}
-            style={{ animationDelay: "140ms" }}
-          >
-            <div className={`stat ${waiting.length ? "text-warn" : ""}`}>
+            </Figure>
+            <Figure label="Need you" warn={waiting.length > 0}>
               <Ticker value={waiting.length} />
-            </div>
-            <div className="hint mt-2">Need you</div>
-          </div>
+            </Figure>
+          </Band>
         </div>
       )}
 
