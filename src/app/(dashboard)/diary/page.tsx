@@ -9,6 +9,7 @@ import { NewEntry } from "./NewEntry";
 import { ColourBy } from "./ColourBy";
 import { colourForName, type ColourMode } from "@/lib/diaryColour";
 import { formatPence } from "@/lib/money";
+import { dayShape, minutesInDay } from "@/lib/diaryGaps";
 
 type RawRow = {
   id: string;
@@ -229,6 +230,32 @@ export default async function DiaryPage({
   // Multiple people multiply the room available, so the figure means something
   // in a salon as well as in a van.
   const capacity = workingMinutes * Math.max(1, focused ? 1 : team.length);
+
+  /*
+   * The shape of the day, for the strip in the bar.
+   *
+   * Day view only. Across a week it would average seven days into one line and
+   * describe none of them, which is worse than the percentage it replaces.
+   *
+   * Minutes rather than pixels here — dayShape only cares that the unit is
+   * consistent, and the page has no business knowing how tall an hour is drawn.
+   */
+  const shape =
+    view === "day"
+      ? dayShape(
+          entries
+            .filter((e) => e.blocks_availability !== false)
+            .map((e) => ({
+              top: minutesInDay(e.starts_at, studio.timezone),
+              height: Math.max(
+                0,
+                (Date.parse(e.ends_at) - Date.parse(e.starts_at)) / 60_000,
+              ),
+            })),
+          studio.hours.find((h) => h.day === focusDay.getDay()),
+          60,
+        )
+      : [];
   const freeMinutes = Math.max(0, capacity - bookedMinutes);
   const asHours = (mins: number) => {
     const h = Math.floor(mins / 60);
@@ -381,14 +408,40 @@ export default async function DiaryPage({
 
         {capacity > 0 ? (
           <div className="ml-auto flex items-center gap-2.5">
-            <div className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-2">
+            {/*
+              * The shape of the day, where the percentage used to be.
+              *
+              * "6% full" is true and answers nothing. Solid all morning and
+              * empty after two is a completely different day from four jobs
+              * scattered through it, and both are the same percentage. This is
+              * the same width and says which one you have got.
+              *
+              * Only in the day view: seven days averaged into one strip would
+              * be a shape of nothing.
+              */}
+            {shape.length > 0 ? (
               <div
-                className="h-full rounded-full bg-accent"
-                style={{
-                  width: `${Math.min(100, Math.round((bookedMinutes / capacity) * 100))}%`,
-                }}
-              />
-            </div>
+                className="flex h-2 w-32 overflow-hidden rounded-full bg-surface-2"
+                title="Where the day is booked"
+              >
+                {shape.map((run) => (
+                  <div
+                    key={run.from}
+                    className={run.busy ? "bg-accent" : ""}
+                    style={{ width: `${run.to - run.from}%` }}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-2">
+                <div
+                  className="h-full rounded-full bg-accent"
+                  style={{
+                    width: `${Math.min(100, Math.round((bookedMinutes / capacity) * 100))}%`,
+                  }}
+                />
+              </div>
+            )}
             <span className="hint num">
               {Math.round((bookedMinutes / capacity) * 100)}% full
             </span>

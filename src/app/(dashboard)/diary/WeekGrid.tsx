@@ -17,7 +17,7 @@ import { zonedToUtc as toUtc } from "@/lib/booking/tz";
 import { useDrag, clockOf, lengthOf, SNAP_MINUTES } from "./useDrag";
 import { Avatar } from "@/components/Avatar";
 import type { Artist, OpeningHours } from "@/lib/types";
-import { gapsFor, saidAloud } from "@/lib/diaryGaps";
+import { gapsFor, saidAloud, minutesInDay } from "@/lib/diaryGaps";
 
 export type Entry = {
   id: string;
@@ -62,18 +62,6 @@ const HOUR_HEIGHT = 72;
  * a narrow screen.
  */
 const MIN_COLUMN = 116;
-
-/** Local wall-clock minutes since midnight, in the studio's timezone. */
-function minutesInDay(iso: string, timezone: string): number {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: timezone,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(new Date(iso));
-  const at = Object.fromEntries(parts.map((p) => [p.type, p.value]));
-  return (Number(at.hour) % 24) * 60 + Number(at.minute);
-}
 
 function dayKey(iso: string, timezone: string): string {
   const parts = new Intl.DateTimeFormat("en-CA", {

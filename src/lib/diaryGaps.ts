@@ -89,3 +89,85 @@ export function saidAloud(minutes: number): string {
   if (rest === 0) return `${hours}h`;
   return `${hours}h ${rest}m`;
 }
+
+export type Segment = { from: number; to: number; busy: boolean };
+
+/**
+ * The shape of a day, as proportions of the working hours.
+ *
+ * "6% full" is a true number that answers nothing. The question somebody has
+ * when they glance at this is not how full the day is, it is what shape it is:
+ * solid all morning and empty after two is a completely different day from four
+ * appointments scattered through it, and the percentage is identical.
+ *
+ * Percentages of the open period rather than of the clock, because a business
+ * open ten till six does not care that it is empty at four in the morning.
+ *
+ * Returns alternating free and busy runs covering the whole day, so it can be
+ * laid out as a row of proportional blocks without any arithmetic at the other
+ * end.
+ */
+export function dayShape(
+  laid: Span[],
+  opening: OpeningHours | undefined,
+  hourHeight: number,
+): Segment[] {
+  if (!opening || opening.closed) return [];
+
+  const at = (hhmm: string) => {
+    const [h, m] = hhmm.split(":").map(Number);
+    if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+    return ((h * 60 + m) / 60) * hourHeight;
+  };
+
+  const start = at(opening.open);
+  const end = at(opening.close);
+  if (start == null || end == null || end <= start) return [];
+
+  const span = end - start;
+
+  // Merged and clipped to opening hours: an appointment that overruns closing
+  // is still only as much of the day as the day has.
+  const busy = laid
+    .filter((s) => s.height > 0)
+    .map((s) => ({ from: Math.max(start, s.top), to: Math.min(end, s.top + s.height) }))
+    .filter((s) => s.to > s.from)
+    .sort((a, b) => a.from - b.from)
+    .reduce<{ from: number; to: number }[]>((merged, s) => {
+      const last = merged[merged.length - 1];
+      if (last && s.from <= last.to) last.to = Math.max(last.to, s.to);
+      else merged.push({ ...s });
+      return merged;
+    }, []);
+
+  const pc = (px: number) => ((px - start) / span) * 100;
+  const segments: Segment[] = [];
+  let cursor = start;
+
+  for (const block of busy) {
+    if (block.from > cursor) segments.push({ from: pc(cursor), to: pc(block.from), busy: false });
+    segments.push({ from: pc(block.from), to: pc(block.to), busy: true });
+    cursor = block.to;
+  }
+  if (cursor < end) segments.push({ from: pc(cursor), to: 100, busy: false });
+
+  return segments;
+}
+
+/**
+ * Local wall-clock minutes since midnight, in the business's own timezone.
+ *
+ * Everything that positions anything in a diary needs this, and it must be the
+ * same everywhere: the grid drawing a card at ten o'clock and the bar saying
+ * the morning is busy have to agree about when ten o'clock is.
+ */
+export function minutesInDay(iso: string, timezone: string): number {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date(iso));
+  const at = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  return (Number(at.hour) % 24) * 60 + Number(at.minute);
+}

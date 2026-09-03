@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { gapsFor, saidAloud } from "./diaryGaps.ts";
+import { gapsFor, saidAloud, dayShape } from "./diaryGaps.ts";
 import type { OpeningHours } from "./types.ts";
 
 /** 72px an hour, which is what the grid uses. So 1.2px a minute. */
@@ -105,4 +105,58 @@ test("gaps are said the way somebody would say them", () => {
   assert.equal(saidAloud(60), "1h");
   assert.equal(saidAloud(135), "2h 15m");
   assert.equal(saidAloud(480), "8h");
+});
+
+// ------------------------------------------------------------ the day's shape
+
+test("an empty day is one free run, edge to edge", () => {
+  const shape = dayShape([], open, H);
+  assert.deepEqual(shape, [{ from: 0, to: 100, busy: false }]);
+});
+
+test("a full day is one busy run", () => {
+  const shape = dayShape([block(9, 17)], open, H);
+  assert.deepEqual(shape, [{ from: 0, to: 100, busy: true }]);
+});
+
+test("a morning job reads as busy first, then free", () => {
+  // 9-11 of a 9-17 day is the first quarter.
+  const shape = dayShape([block(9, 11)], open, H);
+  assert.deepEqual(shape, [
+    { from: 0, to: 25, busy: true },
+    { from: 25, to: 100, busy: false },
+  ]);
+});
+
+test("two days with the same percentage can have different shapes", () => {
+  // The whole argument for this existing: both are two hours of eight.
+  const solid = dayShape([block(9, 11)], open, H);
+  const split = dayShape([block(9, 10), block(15, 16)], open, H);
+  assert.notDeepEqual(solid, split);
+  assert.equal(solid.filter((s) => s.busy).length, 1);
+  assert.equal(split.filter((s) => s.busy).length, 2);
+});
+
+test("an appointment overrunning closing is clipped to the day", () => {
+  const shape = dayShape([block(15, 20)], open, H);
+  assert.equal(shape[shape.length - 1].to, 100);
+  assert.equal(shape[shape.length - 1].busy, true);
+});
+
+test("overlapping appointments are one run, not two", () => {
+  const shape = dayShape([block(10, 12), block(11, 13)], open, H);
+  assert.equal(shape.filter((s) => s.busy).length, 1);
+});
+
+test("a closed day has no shape at all", () => {
+  assert.deepEqual(dayShape([block(9, 11)], { ...open, closed: true }, H), []);
+});
+
+test("the runs always cover the whole day without gaps or overlaps", () => {
+  const shape = dayShape([block(10, 11), block(13, 15)], open, H);
+  assert.equal(shape[0].from, 0);
+  assert.equal(shape[shape.length - 1].to, 100);
+  for (let i = 1; i < shape.length; i++) {
+    assert.equal(shape[i].from, shape[i - 1].to, "runs must meet exactly");
+  }
 });
