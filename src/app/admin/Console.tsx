@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
+import { signOut } from "@/app/(dashboard)/actions";
 import type { BusinessSummary } from "@/lib/platform";
 import {
   createBusiness,
@@ -66,13 +67,28 @@ export function Console({
       <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-2">
         <h1 className="page-title">Second Pair</h1>
         <span className="hint">the business behind the businesses</span>
-        <button
-          type="button"
-          onClick={() => setAdding((a) => !a)}
-          className="btn ml-auto bg-highlight text-on-highlight"
-        >
-          {adding ? "Not now" : "Set one up"}
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setAdding((a) => !a)}
+            className="btn bg-highlight text-on-highlight"
+          >
+            {adding ? "Not now" : "Set one up"}
+          </button>
+          {/*
+            * A way out, because this account exists to be swapped away from.
+            *
+            * Running the platform and being a customer are two different
+            * logins on purpose, so the thing somebody does most often after
+            * finishing here is sign in as somebody else — and there was no
+            * button for it anywhere on the page.
+            */}
+          <form action={signOut}>
+            <button type="submit" className="btn-ghost">
+              Sign out
+            </button>
+          </form>
+        </div>
       </div>
 
       <Kpis k={kpis} />
@@ -109,7 +125,7 @@ export function Console({
         * borders are the loudest thing on a screen about businesses. Ruled
         * rows read as a book of accounts, which is what this is.
         */}
-      <div className="mt-2">
+      <div className="card mt-4 px-5 py-1">
         {shown.length === 0 && (
           <p className="hint">
             {businesses.length === 0 ? "Nothing yet. Set the first one up." : "Nobody matches that."}
@@ -150,8 +166,17 @@ function Kpis({ k }: { k: PlatformKpis }) {
   const margin = k.wonPence > 0 && k.costPence > 0 ? Math.round(k.wonPence / k.costPence) : null;
   const converts = k.enquiries ? Math.round((k.booked / k.enquiries) * 100) : null;
 
+  /*
+   * A card around them, ruled inside.
+   *
+   * Bare rules on the page were cleaner than eight boxes and colder than the
+   * rest of the product — the app is warm paper and soft edges, and one screen
+   * set like a spreadsheet reads as a different piece of software. The card
+   * gives it back its ground; the rules keep the figures reading as a page
+   * rather than as tiles.
+   */
   return (
-    <div className="mt-8 border-y border-border">
+    <div className="card mt-8 overflow-hidden p-0">
       <Band>
         <Figure
           value={formatPence(k.mrr)}
@@ -230,8 +255,15 @@ function Figure({
   lead?: boolean;
   warn?: boolean;
 }) {
+  /*
+   * Painted on the card's own surface, not the page behind it.
+   *
+   * These paint a background so the one-pixel gaps between them show as rules
+   * — but painting the paper colour put the page back on top of the card and
+   * made the card invisible. It has to be the surface the card is drawn in.
+   */
   return (
-    <div className="bg-background px-5 py-5">
+    <div className="bg-surface px-5 py-5">
       <div
         className={`font-display font-bold tabular-nums leading-none tracking-[-0.03em] ${
           lead ? "text-4xl" : "text-2xl"
@@ -307,7 +339,7 @@ function NeedsYou({ businesses }: { businesses: BusinessSummary[] }) {
   if (rows.length === 0) return null;
 
   return (
-    <section className="mt-8 border-l-2 border-warn pl-4">
+    <section className="card mt-8 border-l-[3px] border-l-warn p-5">
       {/*
         * A count in the heading, because the panel is read from across the
         * room. "Three want something doing, two of them have asked" is the
@@ -322,19 +354,27 @@ function NeedsYou({ businesses }: { businesses: BusinessSummary[] }) {
           </span>
         )}
       </h2>
+      {/*
+        * Each line goes to the business it is about.
+        *
+        * It was a list of problems with no way to act on any of them — you
+        * read "Foster Electrical has asked something" and then went hunting
+        * for Foster Electrical in fifteen rows underneath.
+        */}
       <ul className="mt-2.5 divide-y divide-border">
         {rows.map(({ b, why, urgent }) => (
-          <li key={b.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2 text-sm">
-            <strong>{b.name}</strong>
-            <span className={urgent ? "text-foreground" : "text-muted"}>{why}</span>
-            {b.ownerPhone && (
-              <a
-                href={`tel:${b.ownerPhone.replace(/\s+/g, "")}`}
-                className="ml-auto hover:underline"
-              >
-                {b.ownerPhone}
-              </a>
-            )}
+          <li key={b.id} className="py-2 text-sm">
+            <a
+              href={`#b-${b.id}`}
+              className="row flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-lg"
+            >
+              <strong>{b.name}</strong>
+              <span className={urgent ? "text-foreground" : "text-muted"}>{why}</span>
+              {b.ownerPhone && <span className="ml-auto text-muted">{b.ownerPhone}</span>}
+              <span aria-hidden className="text-muted">
+                &rarr;
+              </span>
+            </a>
           </li>
         ))}
       </ul>
@@ -350,7 +390,7 @@ function Business({ b }: { b: BusinessSummary }) {
   const owner = b.owners[0]?.email ?? null;
 
   return (
-    <div className="border-b border-border py-5 last:border-b-0">
+    <div id={`b-${b.id}`} className="scroll-mt-6 border-b border-border py-5 last:border-b-0">
       <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -369,6 +409,11 @@ function Business({ b }: { b: BusinessSummary }) {
                 }`}
               >
                 {new Date(b.trialEndsOn) < new Date() ? "Trial ended" : `Trial to ${new Date(b.trialEndsOn).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`}
+              </span>
+            )}
+            {b.tickets.some((t) => t.status === "open") && (
+              <span className="pill bg-warn/10 text-warn">
+                {b.tickets.filter((t) => t.status === "open").length} asking
               </span>
             )}
             {b.channels
@@ -665,11 +710,34 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
  * they meant.
  */
 function Requests({ b }: { b: BusinessSummary }) {
+  const waiting = b.tickets.filter((t) => t.status !== "closed");
+  const sorted = b.tickets.filter((t) => t.status === "closed");
+
   return (
     <div className="space-y-3">
-      {b.tickets.map((t) => (
+      {waiting.map((t) => (
         <Request key={t.id} ticket={t} />
       ))}
+
+      {/*
+        * What was asked before, kept.
+        *
+        * Folded away because it is history rather than work, but present —
+        * "we had this in March" is worth being able to check, and a support
+        * record only the customer can read is not a record.
+        */}
+      {sorted.length > 0 && (
+        <details className="rounded-xl border border-border p-3">
+          <summary className="cursor-pointer text-sm text-muted">
+            {sorted.length} sorted {sorted.length === 1 ? "request" : "requests"}
+          </summary>
+          <div className="mt-3 space-y-3">
+            {sorted.map((t) => (
+              <Request key={t.id} ticket={t} />
+            ))}
+          </div>
+        </details>
+      )}
     </div>
   );
 }

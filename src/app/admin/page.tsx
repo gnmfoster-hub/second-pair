@@ -75,10 +75,20 @@ export default async function AdminPage() {
    * Closed ones are left behind: this screen is about what wants doing, and a
    * business's own help page keeps the history where they can read it.
    */
+  /*
+   * Every request, including the ones already dealt with.
+   *
+   * Closed ones were dropped here, which meant that the moment something was
+   * answered it vanished from this end — no record of what was asked, what was
+   * said, or when. The business could still read it on their own help page and
+   * the person who answered it could not, which is the wrong way round.
+   *
+   * The attention panel still only counts the open ones; these are kept for
+   * reading back.
+   */
   const { data: tickets } = await db
     .from("support_tickets")
     .select("id, studio_id, subject, status, updated_at")
-    .neq("status", "closed")
     .order("updated_at", { ascending: false });
 
   const { data: ticketMessages } = tickets?.length
