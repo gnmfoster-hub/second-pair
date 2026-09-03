@@ -108,7 +108,13 @@
   teaser.setAttribute("aria-label", teaserText);
 
   var typing = 0;
-  var frame = 0;
+
+  /* performance.now where it exists, so the clock cannot jump backwards. */
+  function now() {
+    return window.performance && window.performance.now
+      ? window.performance.now()
+      : new Date().getTime();
+  }
 
   /*
    * Two dots in a bubble, not an outlined speech balloon.
@@ -335,7 +341,7 @@
     teaserDots.innerHTML = TEASER_DOTS;
 
     /*
-     * Driven by the clock and by frames, not by a chain of timers.
+     * Driven by the clock, not by a chain of timers.
      *
      * The obvious way to write this is setTimeout(step, 26) calling itself.
      * It is also wrong, and measurably so: Chrome clamps timers in a tab that
@@ -345,11 +351,10 @@
      * back to a half-written sentence, and the twelve seconds it is meant to
      * be readable for would not have started.
      *
-     * requestAnimationFrame does not run at all in a background tab, so the
-     * nudge simply waits and plays properly when somebody is actually looking
-     * at it. And because each frame asks "how much should be showing by now?"
-     * rather than "show one more", a dropped or late frame is caught up on the
-     * next one instead of stretching the whole line.
+     * The cure is not a different kind of timer. It is to stop trusting the
+     * timer to keep time: each tick asks how much should be showing by now
+     * rather than showing one more character, so a late tick catches up
+     * instead of stretching the line.
      */
     var THINK = 700;
     var schedule = [];
@@ -366,18 +371,29 @@
       else if (c === "," || c === ";") when += 150;
     }
 
-    var began = null;
-    frame = window.requestAnimationFrame(function step(now) {
-      if (began === null) began = now;
-      var gone = now - began;
+    /*
+     * A timer pump, told the time by the clock.
+     *
+     * This asks on every tick how much should be showing by now rather than
+     * revealing one more character, so a late tick catches up instead of
+     * stretching the line. That is the part that matters: a browser clamps
+     * timers in a tab that is not in front to about a second, and without the
+     * arithmetic a fifty-character line would take the best part of a minute.
+     *
+     * Frames were tried here and are wrong for the same reason they were wrong
+     * on the homepage demo. requestAnimationFrame does not run at all in a tab
+     * that is not being painted, and the failure is not a nudge that waits
+     * politely — it is an empty bubble sitting at its full width on somebody's
+     * website, which looks far more broken than no bubble at all.
+     */
+    var began = now();
+    typing = window.setInterval(function () {
+      var gone = now() - began;
 
       // The beat before it starts. A sentence that arrives the instant the
       // bubble lands was obviously pre-written, which is the one thing this is
       // trying not to look like.
-      if (gone < THINK) {
-        frame = window.requestAnimationFrame(step);
-        return;
-      }
+      if (gone < THINK) return;
       teaserDots.innerHTML = "";
 
       var at = 0;
@@ -386,12 +402,10 @@
       teaserRest.textContent = teaserText.slice(at);
 
       if (at >= teaserText.length) {
-        frame = 0;
+        window.clearInterval(typing);
         typing = window.setTimeout(hideTeaser, 12000);
-        return;
       }
-      frame = window.requestAnimationFrame(step);
-    });
+    }, 40);
   }
 
   function hideTeaser() {
@@ -402,9 +416,10 @@
      * that keeps writing into a hidden element for another two seconds, and
      * the next time the bubble is shown it starts from wherever that got to.
      */
+    // It may be a pump or it may be the hide timer; both live in the same
+    // handle and clearing the wrong kind is harmless.
     window.clearTimeout(typing);
-    if (frame) window.cancelAnimationFrame(frame);
-    frame = 0;
+    window.clearInterval(typing);
     teaserSaid.textContent = teaserText;
     teaserRest.textContent = "";
     teaserDots.innerHTML = "";
