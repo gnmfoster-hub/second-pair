@@ -171,7 +171,18 @@ if (!env.CRON_SECRET) {
        * A variable added after the running deployment was built is simply not
        * there yet, and no amount of checking the dashboard will show that.
        */
-      if (can.deployment?.commit) {
+      if (can.deployment && !can.deployment.commit) {
+        /*
+         * A command-line deploy has no commit for Vercel to name. Saying so is
+         * better than saying nothing, which is what this did — and silence
+         * from a check that is meant to answer "is my code live" reads as a
+         * stale build, which cost a long evening.
+         */
+        pass(
+          "deployed from the command line",
+          `${can.deployment.environment} — no commit recorded, so nothing to compare`,
+        );
+      } else if (can.deployment?.commit) {
         const local = (await import("node:child_process"))
           .execSync("git rev-parse --short HEAD")
           .toString()
