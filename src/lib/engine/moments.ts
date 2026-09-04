@@ -35,8 +35,17 @@ export type Moment =
        * costs one word.
        */
       appointment: "consultation" | "session";
-      /** What the assistant is allowed to offer, in the order it offered them. */
-      slots: { startsAt: string; label: string }[];
+      /**
+       * What the assistant is allowed to offer, in the order it offered them.
+       *
+       * Broken into parts as well as a whole sentence, so the widget can set
+       * them like a departure board — the day quiet, the time loud — without
+       * reformatting a date in the visitor's timezone and quietly offering a
+       * London salon's ten o'clock to somebody in New York as five in the
+       * morning. The parts are cut here, where the business's own timezone is
+       * known for certain.
+       */
+      slots: { startsAt: string; label: string; day: string; time: string }[];
     }
   | {
       kind: "quote";

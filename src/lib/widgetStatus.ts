@@ -80,29 +80,37 @@ export function statusFor(
     }
     // Open later today.
     if (from != null && minutes < from) {
-      return { open: false, line: `Back at ${clock(from)} — ask now` };
+      return { open: false, line: `Ask now — open at ${clock(from)}` };
     }
   }
 
   /*
-   * Shut, which is the case this exists for.
+   * Shut — and this is the line that matters most, because it is the moment
+   * the whole product exists for.
    *
-   * Naming the next opening is the difference between "come back later" and
-   * "I know when they are in, and I can still book you". Looks forward a whole
-   * week so a business closed Sunday and Monday still says something useful.
+   * The first version of this said "Closed — open tomorrow". It is true, and
+   * it is exactly wrong: it tells somebody standing at the door at ten at
+   * night to go away and come back, which is what every other widget on the
+   * internet already does. The one that read it said it put them off using it,
+   * which is the correct reaction to being told a business is shut.
+   *
+   * A closed business is not the failure case here. It is the case worth
+   * paying for. The assistant answers, quotes and books while the owner is
+   * asleep, so the line has to be an invitation — the fact that they are shut
+   * is the reason to ask now, not a reason to wait.
    */
-  for (let ahead = 1; ahead <= 7; ahead++) {
-    const day = hours.find((h) => h.day === (weekday + ahead) % 7);
-    if (!day || day.closed) continue;
-    const from = at(day.open);
-    if (from == null) continue;
-    const when = ahead === 1 ? "tomorrow" : dayName((weekday + ahead) % 7);
-    return { open: false, line: `Closed — open ${when}` };
-  }
-
-  return { open: false, line: "Ask us anything" };
+  const openAgain = nextOpening(hours, weekday);
+  return {
+    open: false,
+    line: openAgain ? `Closed — I can still book you` : "Ask us anything",
+  };
 }
 
-function dayName(day: number): string {
-  return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][day];
+/** Whether the business opens again at all in the coming week. */
+function nextOpening(hours: OpeningHours[], weekday: number): boolean {
+  for (let ahead = 1; ahead <= 7; ahead++) {
+    const day = hours.find((h) => h.day === (weekday + ahead) % 7);
+    if (day && !day.closed && at(day.open) != null) return true;
+  }
+  return false;
 }

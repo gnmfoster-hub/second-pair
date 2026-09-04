@@ -56,10 +56,29 @@ function saturdays() {
     if (week === 1) start.setHours(13, 30, 0, 0);
     if (week === 2) start.setHours(11, 0, 0, 0);
     const end = new Date(start.getTime() + 180 * 60_000);
+    /* The same two parts the real widget receives, so the demo is a picture of
+       the product rather than of an older version of it. */
+    const day_ = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/London",
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    }).format(start);
+    const time = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/London",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    })
+      .format(start)
+      .replace(/\s?([ap])m$/i, (_m, half) => `${half.toLowerCase()}m`);
+
     return {
       startsAt: start.toISOString(),
       endsAt: end.toISOString(),
       label: format.format(start).replace(" at ", " at ").replace(/,/g, ""),
+      day: day_,
+      time,
     };
   });
 }
@@ -93,7 +112,7 @@ const CONVERSATION = [
       person: "Nadia",
       minutes: 180,
       appointment: "session",
-      slots: SLOTS.map((s) => ({ startsAt: s.startsAt, label: s.label })),
+      slots: SLOTS.map((s) => ({ startsAt: s.startsAt, label: s.label, day: s.day, time: s.time })),
     },
   },
   { who: "tap", slot: 0 },

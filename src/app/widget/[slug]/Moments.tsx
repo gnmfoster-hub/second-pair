@@ -96,8 +96,31 @@ export function MomentCard({
                   e.currentTarget.style.color = "";
                 }}
               >
-                <span>{slot.label}</span>
-                <span aria-hidden className="text-muted">
+                {/*
+                  * Set like a departure board, not written like a sentence.
+                  *
+                  * "Saturday 5 September at 10:00 am" in one line of medium
+                  * grey is four near-identical rows to scan, and the thing
+                  * somebody is actually choosing between — the time — is
+                  * buried at the end of each one. The day goes quiet and small,
+                  * the time gets the weight, and three options resolve at a
+                  * glance instead of being read.
+                  *
+                  * Both halves are cut on the server in the business's own
+                  * timezone. A visitor abroad must never be shown a London
+                  * salon's ten o'clock as five in the morning.
+                  */}
+                <span className="flex min-w-0 items-baseline gap-2.5">
+                  <span className="text-[0.95rem] font-semibold tabular-nums tracking-tight">
+                    {slot.time ?? slot.label}
+                  </span>
+                  {slot.day && (
+                    <span className="truncate text-[0.78rem] font-normal text-muted">
+                      {slot.day}
+                    </span>
+                  )}
+                </span>
+                <span aria-hidden className="shrink-0 text-muted">
                   →
                 </span>
               </button>

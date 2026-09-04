@@ -589,9 +589,39 @@ async function getSlots(
       slots: slots.map((sl) => ({
         startsAt: sl.starts_at,
         label: describeSlot(sl, ctx.studio.timezone),
+        ...slotParts(sl.starts_at, ctx.studio.timezone),
       })),
     },
   };
+}
+
+/**
+ * A slot cut into the two things somebody reads.
+ *
+ * "Saturday 5 Sept" and "10:00 am", separately, so the widget can give the
+ * time the weight it deserves and let the day sit quietly beside it. Done in
+ * the business's timezone here rather than in the browser, because a visitor
+ * abroad reformatting the date themselves is how a London salon ends up
+ * offering five in the morning.
+ */
+function slotParts(startsAt: string, timezone: string): { day: string; time: string } {
+  const at = new Date(startsAt);
+  const day = new Intl.DateTimeFormat("en-GB", {
+    timeZone: timezone,
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).format(at);
+  const time = new Intl.DateTimeFormat("en-GB", {
+    timeZone: timezone,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  })
+    .format(at)
+    // "10:00 am" reads better than "10:00 AM" beside a lowercase day.
+    .replace(/\s?([ap])m$/i, (_m, half) => `${half.toLowerCase()}m`);
+  return { day, time };
 }
 
 async function makeBooking(
