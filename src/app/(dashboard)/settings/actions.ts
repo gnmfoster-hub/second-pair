@@ -270,6 +270,43 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
       }))
     : null;
 
+  /*
+   * One-off late nights, checked rather than trusted.
+   *
+   * This decides what the assistant will offer a customer at nine at night, so
+   * anything malformed is dropped rather than stored: a backwards or empty
+   * entry that reached the slot finder would either do nothing or, worse, be
+   * interpreted. Past dates go too — they are notes about a particular
+   * evening, and once it has been there is nothing to keep.
+   */
+  const today = new Date().toISOString().slice(0, 10);
+  const extraHours = (() => {
+    try {
+      const raw: unknown = JSON.parse(str(fd, "extra_hours") || "[]");
+      if (!Array.isArray(raw)) return [];
+      return raw
+        .filter((e): e is { date: string; open: string; close: string } => {
+          if (!e || typeof e !== "object") return false;
+          const { date, open, close } = e as Record<string, unknown>;
+          return (
+            typeof date === "string" &&
+            /^\d{4}-\d{2}-\d{2}$/.test(date) &&
+            date >= today &&
+            typeof open === "string" &&
+            /^\d{2}:\d{2}$/.test(open) &&
+            typeof close === "string" &&
+            /^\d{2}:\d{2}$/.test(close) &&
+            close > open
+          );
+        })
+        .slice(0, 60)
+        .sort((a, b) => a.date.localeCompare(b.date));
+    } catch {
+      // Malformed means none, never "whatever was there before".
+      return [];
+    }
+  })();
+
   const row = {
     studio_id: studio.id,
     name,
@@ -281,6 +318,7 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
     greeting: str(fd, "greeting") || null,
     tone: str(fd, "tone") || null,
     hours: ownHours,
+    extra_hours: extraHours,
     styles: fd.getAll("styles").map(String),
     hourly_rate_pence: hourly,
     min_charge_pence: minCharge,

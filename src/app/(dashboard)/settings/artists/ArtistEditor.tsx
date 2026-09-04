@@ -7,6 +7,7 @@ import { penceToInput, formatPence } from "@/lib/money";
 import { BookingSource } from "./BookingSource";
 import { Avatar } from "@/components/Avatar";
 import { OwnHours } from "./OwnHours";
+import { LateNights } from "./LateNights";
 import { RolePicker } from "./RolePicker";
 import type { Artist, OpeningHours, ServiceOption } from "@/lib/types";
 
@@ -174,6 +175,9 @@ export function ArtistEditor({
           studioHours={studioHours}
           noun={noun}
         />
+
+        {/* Straight after the working week, because it is the exception to it. */}
+        <LateNights extra={artist?.extra_hours ?? []} noun={noun} />
 
         {/*
           * Their own voice, on their own link.
