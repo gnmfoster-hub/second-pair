@@ -145,6 +145,15 @@
     'stroke-width="2.1" stroke-linecap="round" aria-hidden="true">' +
     '<path d="M6 6l12 12M18 6L6 18"/></svg>';
 
+  /*
+   * The two pieces that turn the circle into a sentence: a live dot and a
+   * line of text. Created always, shown only when there is something true to
+   * say — see the pill comment in layout().
+   */
+  var label = document.createElement("span");
+  var pulse = document.createElement("span");
+  var status = null;
+
   icon.innerHTML = CHAT_ICON;
   style(icon, { display: "grid", placeItems: "center", transition: "transform " + ease });
 
@@ -161,7 +170,39 @@
   });
 
   button.appendChild(icon);
+  button.appendChild(pulse);
+  button.appendChild(label);
   button.appendChild(dot);
+
+  /*
+   * Ask the business whether it is open, and say so.
+   *
+   * Deliberately after the button already exists and is usable. If this never
+   * answers — offline, blocked, a slow server — the launcher stays exactly the
+   * circle it has always been, and nothing about asking a question is worse
+   * than it was. A status that cannot be fetched is not a status worth
+   * blocking a chat button for.
+   */
+  function askStatus() {
+    try {
+      fetch(origin + "/api/widget/status?studio=" + encodeURIComponent(slug), {
+        credentials: "omit",
+      })
+        .then(function (r) {
+          return r.ok ? r.json() : null;
+        })
+        .then(function (got) {
+          if (!got || typeof got.line !== "string") return;
+          status = got;
+          layout();
+        })
+        .catch(function () {
+          /* the circle is a perfectly good button */
+        });
+    } catch {
+      /* older browsers, same answer */
+    }
+  }
 
   function layout() {
     var full = narrow();
@@ -204,25 +245,71 @@
       boxShadow: "0 16px 50px rgba(10, 12, 16, 0.26), 0 2px 8px rgba(10, 12, 16, 0.1)",
     });
 
+    /*
+     * Not a circle.
+     *
+     * Every chat widget on the internet is a coloured circle in the corner of
+     * a website, and they are interchangeable: the shape says "somebody bolted
+     * a chat thing on here" and nothing else. A visitor at ten at night has no
+     * reason to think this one is any different from the last five that took a
+     * message and emailed somebody in the morning.
+     *
+     * So it is a pill that says what it is doing — "Answering now", or the day
+     * they are back if they are shut. That is the whole product, stated before
+     * anybody has clicked, and it is true because it is computed from the
+     * business's own hours in its own timezone.
+     *
+     * It collapses back to a circle when there is nothing to say, which is
+     * exactly what the ordinary widget always was.
+     */
+    var wide = Boolean(status && status.line) && !open;
+
     style(button, {
       position: "fixed",
       bottom: "20px",
       right: onLeft ? "auto" : "20px",
       left: onLeft ? "20px" : "auto",
-      width: "58px",
-      height: "58px",
-      display: "grid",
-      placeItems: "center",
-      borderRadius: "50%",
+      height: "56px",
+      minWidth: "56px",
+      display: "flex",
+      alignItems: "center",
+      gap: wide ? "10px" : "0",
+      padding: wide ? "0 18px 0 12px" : "0",
+      justifyContent: "center",
+      // A pill when it is saying something, a circle when it is not.
+      borderRadius: "999px",
       border: "0",
-      padding: "0",
       background: accent,
       color: "#fff",
       cursor: "pointer",
+      font: "500 13.5px/1.2 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      letterSpacing: "0.005em",
+      whiteSpace: "nowrap",
       boxShadow: "0 8px 24px rgba(10, 12, 16, 0.3)",
       zIndex: "2147483001",
-      transition: "transform " + ease + ", box-shadow " + ease,
+      // Width animates too, so it grows into a sentence rather than appearing
+      // as one — which is the bit that catches an eye already on the page.
+      transition:
+        "transform " + ease + ", box-shadow " + ease + ", padding " + ease + ", gap " + ease,
       WebkitTapHighlightColor: "transparent",
+    });
+
+    label.textContent = wide ? status.line : "";
+    style(label, {
+      display: wide ? "block" : "none",
+      opacity: wide ? "1" : "0",
+      transition: "opacity " + ease,
+    });
+
+    // A live dot beside the words, green when somebody really is answering.
+    style(pulse, {
+      display: wide ? "block" : "none",
+      width: "7px",
+      height: "7px",
+      borderRadius: "50%",
+      flex: "none",
+      background: status && status.open ? "#4ade80" : "rgba(255,255,255,0.55)",
+      boxShadow: status && status.open ? "0 0 0 3px rgba(74,222,128,0.25)" : "none",
     });
 
     style(teaser, {
@@ -491,6 +578,15 @@
 
     document.body.appendChild(teaser);
     document.body.appendChild(button);
+
+    // Asked once the button is on the page, so a slow answer never delays it.
+    askStatus();
+    /*
+     * And again on the hour, for the tab somebody leaves open all afternoon.
+     * A launcher saying "Answering now" two hours after closing is worse than
+     * one that never said anything.
+     */
+    window.setInterval(askStatus, 15 * 60 * 1000);
 
     try {
       open = sessionStorage.getItem(STATE_KEY) === "1";
