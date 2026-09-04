@@ -15,8 +15,19 @@ import { localParts, zonedToUtc } from "./tz.ts";
 
 const SLOT_STEP_MINUTES = 30;
 
+/** One evening somebody has said they will work, on one date. */
+export type ExtraHours = { date: string; open: string; close: string };
+
 export type SlotOptions = {
   hours: OpeningHours[];
+  /**
+   * One-off hours for particular dates, widening those days for this person.
+   *
+   * Everything else here repeats weekly, so without these there is no way to
+   * say "I will stay late on Thursday" — and out of hours is exactly when the
+   * assistant is the one answering.
+   */
+  extraHours?: ExtraHours[];
   busy: BusyPeriod[];
   /** How long the appointment needs. */
   durationMinutes: number;
@@ -40,6 +51,7 @@ const minutesInto = (time: string): number => {
 export function findSlots(options: SlotOptions): Slot[] {
   const {
     hours,
+    extraHours,
     busy,
     durationMinutes,
     timezone,
@@ -65,12 +77,57 @@ export function findSlots(options: SlotOptions): Slot[] {
     const cursor = new Date(now.getTime() + dayOffset * 86400_000);
     const { year, month, day, weekday } = localParts(cursor, timezone);
 
-    const opening = hours.find((h) => h.day === weekday);
-    if (!opening || opening.closed) continue;
+    /*
+     * The day's window, and anything somebody has said about this one day.
+     *
+     * Everything else here is a weekly pattern — the business's hours, a
+     * person's own, their regular time off — so there was no way to say "I
+     * will stay until nine on Thursday". That is the most ordinary thing a
+     * small business does, and out of hours is precisely when the assistant is
+     * the one answering, so the gap turned late customers away on the owner's
+     * behalf.
+     *
+     * An extra period widens the day rather than replacing it: somebody
+     * working late still works their normal hours first. A person who is
+     * normally closed that day gets the extra period on its own, which is how
+     * "I'll come in on my day off for this one" works.
+     */
+    const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const extra = (extraHours ?? []).find((e) => e.date === date);
 
-    const opens = minutesInto(opening.open);
-    const closes = minutesInto(opening.close);
-    if (closes <= opens) continue;
+    const opening = hours.find((h) => h.day === weekday);
+    const normallyOpen = Boolean(opening && !opening.closed);
+    if (!normallyOpen && !extra) continue;
+
+    const windows: { opens: number; closes: number }[] = [];
+    if (normallyOpen && opening) {
+      windows.push({ opens: minutesInto(opening.open), closes: minutesInto(opening.close) });
+    }
+    if (extra) {
+      windows.push({ opens: minutesInto(extra.open), closes: minutesInto(extra.close) });
+    }
+
+    /*
+     * Merged, so an evening that runs on from the working day is one stretch
+     * rather than two. Without this, a nine-to-five widened to nine has a seam
+     * at five o'clock and the slot stepping restarts there — which quietly
+     * loses any appointment long enough to straddle it.
+     */
+    const merged = windows
+      .filter((w) => w.closes > w.opens)
+      .sort((a, b) => a.opens - b.opens)
+      .reduce<{ opens: number; closes: number }[]>((into, w) => {
+        const last = into[into.length - 1];
+        if (last && w.opens <= last.closes) last.closes = Math.max(last.closes, w.closes);
+        else into.push({ ...w });
+        return into;
+      }, []);
+
+    if (!merged.length) continue;
+
+    for (const window of merged) {
+      const opens = window.opens;
+      const closes = window.closes;
 
     // The last start that still finishes before closing.
     const lastStart = closes - durationMinutes;
@@ -93,6 +150,7 @@ export function findSlots(options: SlotOptions): Slot[] {
         starts_at: start.toISOString(),
         ends_at: new Date(endMs).toISOString(),
       });
+      }
     }
   }
 

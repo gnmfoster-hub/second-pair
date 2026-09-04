@@ -148,6 +148,14 @@ export async function availableSlots(search: SlotSearch): Promise<Slot[]> {
    */
   return findSlots({
     hours: artist.hours?.length ? artist.hours : studio.hours,
+    /*
+     * Whatever this person has said about particular days.
+     *
+     * Theirs alone, deliberately. One stylist staying late is not the salon
+     * opening late, and offering somebody else's evening would book a customer
+     * in with nobody there.
+     */
+    extraHours: artist.extra_hours ?? [],
     busy,
     durationMinutes,
     timezone: studio.timezone,

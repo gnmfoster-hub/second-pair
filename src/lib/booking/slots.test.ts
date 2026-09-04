@@ -238,3 +238,124 @@ test("a narrower week still offers the days it does work", () => {
     assert.equal(day, "Saturday", `offered a ${day}`);
   }
 });
+
+// ----------------------------------------- working late on one particular day
+
+/** Nine to five, Monday to Friday. 2026-03-05 is a Thursday. */
+const lateDayHours: OpeningHours[] = [0, 1, 2, 3, 4, 5, 6].map((day) => ({
+  day,
+  open: "09:00",
+  close: "17:00",
+  closed: day === 0 || day === 6,
+}));
+
+const lateBase = {
+  hours: lateDayHours,
+  busy: [],
+  durationMinutes: 60,
+  timezone: "Europe/London",
+  noticeHours: 0,
+  daysAhead: 1,
+  limit: 40,
+  now: new Date("2026-03-05T08:00:00Z"),
+};
+
+const clockTimes = (slots: { starts_at: string }[]) =>
+  slots.map((s) =>
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/London",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(new Date(s.starts_at)),
+  );
+
+test("without extra hours nothing is offered after closing", () => {
+  const times = clockTimes(findSlots(lateBase));
+  assert.ok(!times.some((t) => t >= "17:00"), `offered ${times.filter((t) => t >= "17:00")}`);
+});
+
+test("staying late on one day opens that evening", () => {
+  const times = clockTimes(
+    findSlots({ ...lateBase, extraHours: [{ date: "2026-03-05", open: "17:00", close: "21:00" }] }),
+  );
+  assert.ok(times.includes("18:00"), `expected an evening slot, got ${times}`);
+  assert.ok(times.includes("20:00"), "the last hour before nine should be offered");
+  assert.ok(!times.includes("21:00"), "nothing may start at closing");
+});
+
+test("it applies to that date only", () => {
+  // The extra evening is Thursday; Friday must be untouched.
+  const slots = findSlots({
+    ...lateBase,
+    daysAhead: 2,
+    extraHours: [{ date: "2026-03-05", open: "17:00", close: "21:00" }],
+  });
+  const friday = slots.filter((s) => s.starts_at.startsWith("2026-03-06"));
+  assert.ok(friday.length > 0, "Friday should still have its normal day");
+  assert.ok(!clockTimes(friday).some((t) => t >= "17:00"), "Friday must not inherit the late night");
+});
+
+test("coming in on a day they are normally closed", () => {
+  // Saturday, which is shut. The extra period stands on its own.
+  const times = clockTimes(
+    findSlots({
+      ...lateBase,
+      now: new Date("2026-03-07T06:00:00Z"),
+      extraHours: [{ date: "2026-03-07", open: "10:00", close: "14:00" }],
+    }),
+  );
+  assert.ok(times.includes("10:00"), `expected a Saturday morning, got ${times}`);
+  assert.ok(!times.includes("09:00"), "nothing before the extra period starts");
+});
+
+// ------------------------------------- the seam that would lose long bookings
+
+test("an evening that runs on from the working day is one stretch", () => {
+  /*
+   * Nine to five widened to nine at night is one window, not two. Treated as
+   * two, the slot stepping restarts at five and no appointment long enough to
+   * straddle it can ever be offered — so a three-hour job would silently lose
+   * the 15:00 and 16:00 starts that are perfectly available.
+   */
+  const long = findSlots({
+    ...lateBase,
+    durationMinutes: 180,
+    extraHours: [{ date: "2026-03-05", open: "17:00", close: "21:00" }],
+  });
+  const times = clockTimes(long);
+  assert.ok(times.includes("15:00"), `a three-hour job should still start at 3pm, got ${times}`);
+  assert.ok(times.includes("18:00"), "and in the evening");
+});
+
+test("a gap between the day and the extra period is respected", () => {
+  // Back at seven after a break — nothing may be offered between five and seven.
+  const times = clockTimes(
+    findSlots({ ...lateBase, extraHours: [{ date: "2026-03-05", open: "19:00", close: "21:00" }] }),
+  );
+  assert.ok(!times.includes("17:00"), "closed at five means closed at five");
+  assert.ok(!times.includes("18:00"), "still closed at six");
+  assert.ok(times.includes("19:00"), "open again at seven");
+});
+
+test("nonsense extra hours are ignored rather than obeyed", () => {
+  for (const bad of [
+    { date: "2026-03-05", open: "21:00", close: "17:00" },
+    { date: "2026-03-05", open: "", close: "" },
+  ]) {
+    const times = clockTimes(findSlots({ ...lateBase, extraHours: [bad] }));
+    assert.ok(!times.some((t) => t >= "17:00"), `${JSON.stringify(bad)} opened the evening`);
+  }
+});
+
+test("a booking already in the evening still blocks that time", () => {
+  const times = clockTimes(
+    findSlots({
+      ...lateBase,
+      extraHours: [{ date: "2026-03-05", open: "17:00", close: "21:00" }],
+      busy: [{ starts_at: "2026-03-05T18:00:00Z", ends_at: "2026-03-05T19:00:00Z" }],
+    }),
+  );
+  assert.ok(!times.includes("18:00"), "the evening is not a free-for-all");
+  assert.ok(times.includes("19:00"), "but the rest of it is still offered");
+});

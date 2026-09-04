@@ -149,6 +149,9 @@ export type Studio = {
  * Recurring by nature — a one-off belongs in the diary, where it can be moved
  * and cancelled like anything else.
  */
+/** One evening somebody has said they will work, on one date. */
+export type ExtraHours = { date: string; open: string; close: string };
+
 export type TimeOff = {
   label: string;
   /** 0-6, Sunday first, matching hours and JavaScript. */
@@ -175,6 +178,11 @@ export type Artist = {
   hours: OpeningHours[] | null;
   /** The regular gaps inside it: lunch, a school run, an early finish. */
   time_off: TimeOff[];
+  /**
+   * One-off working hours for particular dates — a late night, or coming in on
+   * a day they are normally off. Widens that day for this person only.
+   */
+  extra_hours: ExtraHours[];
   /** Their login, once they accept an invite. Null is a normal team member. */
   user_id: string | null;
   /** Secret in their own calendar subscribe URL. */
