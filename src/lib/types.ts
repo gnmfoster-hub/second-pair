@@ -85,6 +85,11 @@ export type Studio = {
   email: string | null;
   tone: string;
   hours: OpeningHours[];
+  /** Hex without the hash. Null means our own navy. */
+  widget_accent: string | null;
+  widget_position: "right" | "left";
+  /** The nudge shown a few seconds after landing. Null means the default. */
+  widget_teaser: string | null;
   deposit_rule: DepositRule;
   cancellation_policy: string;
   privacy_notice_url: string | null;

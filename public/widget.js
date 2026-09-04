@@ -27,10 +27,22 @@
   }
 
   var origin = new URL(script.src, window.location.href).origin;
-  var accent = script.getAttribute("data-accent") || "#14243F";
-  var teaserText =
-    script.getAttribute("data-teaser") || "Hi — anything I can help you with?";
-  var onLeft = script.getAttribute("data-position") === "left";
+  /*
+   * The script tag still wins, and is no longer the only way.
+   *
+   * These live in the HTML of the business's own website, so an owner who
+   * rebrands could not change their colour without editing their site. They
+   * are settings now, fetched with the status — but somebody who has
+   * deliberately written data-accent into their page should not be quietly
+   * overruled, so anything set here beats what we hold.
+   */
+  var tagAccent = script.getAttribute("data-accent") || null;
+  var tagTeaser = script.getAttribute("data-teaser") || null;
+  var tagPosition = script.getAttribute("data-position");
+
+  var accent = tagAccent || "#14243F";
+  var teaserText = tagTeaser || "Hi — anything I can help you with?";
+  var onLeft = tagPosition === "left";
 
   var STATE_KEY = "secondpair_widget_open";
   var TEASER_KEY = "secondpair_teaser_seen";
@@ -56,15 +68,35 @@
   // ---------------------------------------------------------------- elements
 
   var panel = document.createElement("iframe");
-  // The accent travels into the frame, so the whole widget wears the
-  // business's colour rather than ours. Without it a salon with a pink button
-  // gets a blue conversation, which is worse than not offering the option.
-  panel.src =
-    origin +
-    "/widget/" +
-    encodeURIComponent(slug) +
-    "?a=" +
-    encodeURIComponent(accent.replace("#", ""));
+  /*
+   * Loaded the first time somebody opens it, not on every page view.
+   *
+   * This used to point at the conversation immediately, so every visitor to
+   * every customer's site downloaded and booted a chat application they would
+   * probably never open — on somebody else's page, against somebody else's
+   * performance budget.
+   *
+   * It also had to be built before the business's own colour had arrived, so
+   * the accent could only ever come from the script tag. Waiting until it is
+   * opened means the settings are already here, and the whole conversation
+   * wears their colour rather than ours.
+   */
+  function loadPanel() {
+    if (panel.src) return;
+    panel.src =
+      origin +
+      "/widget/" +
+      encodeURIComponent(slug) +
+      "?a=" +
+      encodeURIComponent(accentNow().replace("#", ""));
+  }
+
+  /** Their setting, unless the page has deliberately overridden it. */
+  function accentNow() {
+    if (tagAccent) return tagAccent;
+    return status && status.accent ? "#" + status.accent : "#14243F";
+  }
+
   panel.title = "Chat with us";
   panel.setAttribute("aria-hidden", "true");
 
@@ -194,6 +226,15 @@
         .then(function (got) {
           if (!got || typeof got.line !== "string") return;
           status = got;
+
+          // Their look, unless the page said otherwise.
+          if (!tagAccent && got.accent) accent = "#" + got.accent;
+          if (!tagTeaser && got.teaser) {
+            teaserText = got.teaser;
+            teaser.setAttribute("aria-label", teaserText);
+          }
+          if (tagPosition == null && got.position) onLeft = got.position === "left";
+
           layout();
         })
         .catch(function () {
@@ -369,6 +410,8 @@
 
   function toggle(next) {
     open = next === undefined ? !open : next;
+    // The conversation is fetched the first time it is actually wanted.
+    if (open) loadPanel();
     try {
       sessionStorage.setItem(STATE_KEY, open ? "1" : "0");
     } catch {
@@ -598,6 +641,10 @@
     teaser.style.opacity = "0";
     teaser.style.transform = "translateY(8px) scale(0.96)";
     teaser.style.pointerEvents = "none";
+
+    // Somebody who had it open when they navigated gets it back, which means
+    // the conversation is genuinely wanted and should load now.
+    if (open) loadPanel();
 
     render();
 

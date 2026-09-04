@@ -823,3 +823,44 @@ export async function takeTheMessages(hours: number | null): Promise<FormState> 
   revalidatePath("/settings/assistant");
   return { ok: true };
 }
+
+/**
+ * How the widget looks on the business's own website.
+ *
+ * Every value here is handed to a script running on somebody else's page, so
+ * each is checked rather than stored as typed. The accent in particular ends
+ * up interpolated into a style on their site.
+ */
+export async function saveWidgetLook(_prev: FormState, fd: FormData): Promise<FormState> {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  /*
+   * Six hex digits or nothing at all.
+   *
+   * Blank clears it back to our navy rather than being an error — somebody
+   * emptying the box means "use the default", and refusing that would leave
+   * them no way to undo a colour they have changed their mind about.
+   */
+  const typed = str(fd, "widget_accent").replace(/^#/, "").trim();
+  if (typed && !/^[0-9a-f]{6}$/i.test(typed)) {
+    return { error: "That colour needs to be six characters, like #14243F." };
+  }
+
+  const position = str(fd, "widget_position") === "left" ? "left" : "right";
+  const teaser = str(fd, "widget_teaser").trim().slice(0, 140);
+
+  const { error } = await supabase
+    .from("studios")
+    .update({
+      widget_accent: typed ? typed.toLowerCase() : null,
+      widget_position: position,
+      widget_teaser: teaser || null,
+    })
+    .eq("id", studio.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/install");
+  return { ok: true };
+}

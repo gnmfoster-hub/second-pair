@@ -8,6 +8,7 @@ import { TextNumber } from "./TextNumber";
 import { smsNumberFor } from "@/lib/messaging/connections";
 import { smsConfigured } from "@/lib/messaging/sms";
 import { createClient } from "@/lib/supabase/server";
+import { Appearance } from "./Appearance";
 
 /**
  * Channels — every way the outside world can reach this business.
@@ -186,12 +187,15 @@ export default async function ChannelsPage() {
             </tbody>
           </table>
         </div>
-        <p className="hint mt-3 max-w-prose">
-          The button uses your accent colour. Add{" "}
-          <code className="font-mono">data-accent=&quot;#1d4ed8&quot;</code> with any hex code
-          to change it.
-        </p>
       </section>
+
+      {/* Was a paragraph explaining which attribute to hand-edit into their own
+          HTML. It is a setting now, because it always should have been. */}
+      <Appearance
+        accent={studio.widget_accent ?? null}
+        position={studio.widget_position ?? "right"}
+        teaser={studio.widget_teaser ?? null}
+      />
     </div>
   );
 }
