@@ -172,15 +172,19 @@ export default async function ReportPage({
         />
       </div>
 
-      <div className="card mt-6 p-5">
-        <h2 className="section-title">What it cost</h2>
-        <p className="hint mt-1">
-          The assistant ran for {formatPence(report.aiCostPence)} this week
-          {report.recoveredPence > 0 && report.aiCostPence > 0
-            ? ` — ${Math.round(report.recoveredPence / Math.max(1, report.aiCostPence))}× that in recovered work.`
-            : "."}
-        </p>
-      </div>
+      {/*
+       * What the assistant costs to run is not shown here any more.
+       *
+       * A business pays a fixed subscription. What the model happens to cost
+       * behind that is our margin, and putting it on their week report invites
+       * a question they should never have to think about — "am I being charged
+       * for asking it things?" — which is exactly the hesitation that stops
+       * somebody letting it answer everything.
+       *
+       * The figure still exists and is still worth watching. It lives in the
+       * back office, beside the money it earns, where it is a business
+       * decision rather than a customer's worry.
+       */}
 
       {/*
        * An empty week is not the same as an empty business.
