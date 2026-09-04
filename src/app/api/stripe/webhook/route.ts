@@ -47,7 +47,22 @@ export async function POST(request: NextRequest) {
       // is possible with delayed payment methods.
       if (session.payment_status !== "paid") break;
 
-      await db
+      /*
+       * Claimed once, and only once.
+       *
+       * Stripe retries a webhook whenever it does not get a clean answer
+       * quickly enough — a slow email, a cold start, a blip. Setting the
+       * booking to paid twice is harmless because it lands on the same values,
+       * but the two things after it are not: the customer would get a second
+       * confirmation with a second calendar invite, and the owner would find
+       * "Deposit paid" written into the conversation twice.
+       *
+       * So the update refuses to touch a booking that is already paid, and
+       * says whether it changed anything. Nothing was changed means somebody
+       * else has already done all of this, and there is nothing left to do but
+       * answer politely so Stripe stops asking.
+       */
+      const { data: claimed, error: claimError } = await db
         .from("bookings")
         .update({
           deposit_status: "paid",
@@ -55,7 +70,22 @@ export async function POST(request: NextRequest) {
           // The hold becomes a real booking, so it stops being swept.
           held_until: null,
         })
-        .eq("id", bookingId);
+        .eq("id", bookingId)
+        .neq("deposit_status", "paid")
+        .select("id");
+
+      /*
+       * An error is the one case worth failing on. Stripe retrying a payment
+       * we could not record is exactly what retries are for — whereas
+       * answering 200 would lose the payment silently.
+       */
+      if (claimError) {
+        console.error("[stripe] could not record payment", claimError.message);
+        return NextResponse.json({ error: "Could not record" }, { status: 500 });
+      }
+
+      // Already done by an earlier delivery of this same event.
+      if (!claimed?.length) break;
 
       if (conversationId) {
         await db
