@@ -730,6 +730,7 @@ async function makeBooking(
       startsAt,
       endsAt: new Date(when + minutes * 60_000).toISOString(),
       label: said,
+      ...slotParts(startsAt, ctx.studio.timezone),
       held: takesDeposit,
     },
   };

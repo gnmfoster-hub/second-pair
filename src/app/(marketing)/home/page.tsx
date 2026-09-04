@@ -123,6 +123,8 @@ const CONVERSATION = [
       kind: "booked",
       person: "Nadia",
       startsAt: SLOTS[0].startsAt,
+      day: SLOTS[0].day,
+      time: SLOTS[0].time,
       endsAt: SLOTS[0].endsAt,
       label: SLOTS[0].label,
       held: false,

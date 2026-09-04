@@ -144,7 +144,17 @@ export function MomentCard({
           </p>
           {moment.note && <p className="mt-1 text-[11px] text-muted">{moment.note}</p>}
 
-          <dl className="mt-3 space-y-1 text-xs">
+          {/*
+            * Ruled, like the terms under a written estimate.
+            *
+            * These were three loose lines of small text below a large number,
+            * which read as an afterthought — and one of them is the deposit,
+            * which is money somebody is about to be asked for. A hairline
+            * above them says they belong to the price rather than trailing
+            * after it, and the same rule appears on the figures in the app, so
+            * a customer and an owner are looking at the same object.
+            */}
+          <dl className="mt-3 divide-y divide-border border-t border-border text-xs">
             <Row term="How long" value={hours(moment.hoursLow, moment.hoursHigh)} />
             {moment.depositPence > 0 && (
               <Row term="Deposit" value={formatPence(moment.depositPence)} />
@@ -163,7 +173,26 @@ export function MomentCard({
       return (
         <Card accent={brand}>
           <Label>{moment.held ? "Held for you" : "Booked in"}</Label>
-          <p className="mt-1.5 text-base font-semibold leading-snug">{moment.label}</p>
+
+          {/*
+            * The moment the whole thing was for, set like the slot they chose.
+            *
+            * It was one line of ordinary bold text — the same weight as any
+            * other sentence in the conversation, for the one event a customer
+            * came here to make happen. The time now reads at a glance and in
+            * the same shape it had when it was still an option a moment ago,
+            * so choosing it and having it are visibly the same thing.
+            */}
+          {moment.time ? (
+            <>
+              <p className="mt-1.5 font-display text-[1.7rem] font-bold leading-none tracking-tight tabular-nums">
+                {moment.time}
+              </p>
+              <p className="mt-1.5 text-sm font-medium">{moment.day}</p>
+            </>
+          ) : (
+            <p className="mt-1.5 text-base font-semibold leading-snug">{moment.label}</p>
+          )}
           <p className="mt-0.5 text-xs text-muted">with {moment.person}</p>
 
           <a
@@ -250,8 +279,10 @@ const Foot = ({ children }: { children: React.ReactNode }) => (
   <p className="mt-2.5 text-[11px] leading-snug text-muted">{children}</p>
 );
 
+// Padded, because the rules between these are now drawn and text sitting on a
+// hairline reads as a mistake rather than as a table.
 const Row = ({ term, value }: { term: string; value: string }) => (
-  <div className="flex justify-between gap-3">
+  <div className="flex justify-between gap-3 py-1.5">
     <dt className="text-muted">{term}</dt>
     <dd className="font-medium tabular-nums">{value}</dd>
   </div>

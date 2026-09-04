@@ -66,6 +66,9 @@ export type Moment =
       startsAt: string;
       endsAt: string;
       label: string;
+      /** The same two parts the slots carry, cut in the business's timezone. */
+      day: string;
+      time: string;
       /** Held pending a deposit, rather than confirmed outright. */
       held: boolean;
     }
