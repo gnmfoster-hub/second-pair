@@ -44,6 +44,11 @@ function readDepositRule(fd: FormData): DepositRule | { error: string } {
 // ------------------------------------------------------------------ studio
 
 export async function updateStudio(_prev: FormState, fd: FormData): Promise<FormState> {
+  // The business's own details belongs to the business, so it belongs to its owner.
+  if (!(await isOwner())) {
+    return { error: "Only the owner can change the business's own details." };
+  }
+
   const { studio } = await requireStudio();
   const supabase = await createClient();
 
@@ -361,6 +366,11 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
 // ------------------------------------------------------------------ price bands
 
 export async function saveBand(_prev: FormState, fd: FormData): Promise<FormState> {
+  // Prices belongs to the business, so it belongs to its owner.
+  if (!(await isOwner())) {
+    return { error: "Only the owner can change prices." };
+  }
+
   const { studio } = await requireStudio();
   const supabase = await createClient();
 
@@ -456,6 +466,11 @@ export async function seedStarterBands(
   _prev: FormState,
   _fd: FormData,
 ): Promise<FormState> {
+  // Prices belongs to the business, so it belongs to its owner.
+  if (!(await isOwner())) {
+    return { error: "Only the owner can change prices." };
+  }
+
   const { studio } = await requireStudio();
   const supabase = await createClient();
 
@@ -471,6 +486,11 @@ export async function seedStarterBands(
 // ------------------------------------------------------------------ faqs
 
 export async function saveFaq(_prev: FormState, fd: FormData): Promise<FormState> {
+  // The faqs belongs to the business, so it belongs to its owner.
+  if (!(await isOwner())) {
+    return { error: "Only the owner can change the FAQs." };
+  }
+
   const { studio } = await requireStudio();
   const supabase = await createClient();
 
@@ -514,6 +534,11 @@ export async function saveFaq(_prev: FormState, fd: FormData): Promise<FormState
  * a phone than five separate inputs with add and remove buttons.
  */
 export async function updateAssistant(_prev: FormState, fd: FormData): Promise<FormState> {
+  // How the assistant behaves belongs to the business, so it belongs to its owner.
+  if (!(await isOwner())) {
+    return { error: "Only the owner can change how the assistant behaves." };
+  }
+
   const { studio } = await requireStudio();
   const supabase = await createClient();
 
@@ -579,6 +604,11 @@ export async function updateAssistant(_prev: FormState, fd: FormData): Promise<F
  * would expect and the opposite of what a full list would give.
  */
 export async function setServiceProviders(bandId: string, artistIds: string[]) {
+  // Who offers what belongs to the business, so it belongs to its owner.
+  if (!(await isOwner())) {
+    return { error: "Only the owner can change who offers what." };
+  }
+
   const { studio } = await requireStudio();
   const supabase = await createClient();
 
@@ -698,6 +728,18 @@ export async function withdrawInvite(artistId: string): Promise<{ error?: string
 }
 
 /** Whether the person signed in owns this business, rather than working in it. */
+/**
+ * Whether the person signed in owns this business.
+ *
+ * Used to be checked only on invitations. Everything else — the prices, the
+ * assistant's own instructions, the widget on the website, who it will book —
+ * could be changed by anybody with a login, so a Saturday junior could alter
+ * what the shop charges.
+ *
+ * Fails closed, and says so out loud rather than quietly: somebody who cannot
+ * be verified is not an owner, and telling them what happened is better than
+ * a form that appears to save and does not.
+ */
 async function isOwner(): Promise<boolean> {
   const supabase = await createClient();
   const {
@@ -731,6 +773,11 @@ export async function saveSmsNumber(
   _prev: ClientStateLike,
   fd: FormData,
 ): Promise<ClientStateLike> {
+  // The phone number belongs to the business, so it belongs to its owner.
+  if (!(await isOwner())) {
+    return { error: "Only the owner can change the phone number." };
+  }
+
   const { studio } = await requireStudio();
   const supabase = await createClient();
 
@@ -809,6 +856,11 @@ type ClientStateLike = { error?: string; ok?: boolean };
  * when it is already on.
  */
 export async function takeTheMessages(hours: number | null): Promise<FormState> {
+  // When the assistant answers belongs to the business, so it belongs to its owner.
+  if (!(await isOwner())) {
+    return { error: "Only the owner can change when the assistant answers." };
+  }
+
   const { studio } = await requireStudio();
   const supabase = await createClient();
 
@@ -837,6 +889,11 @@ export async function takeTheMessages(hours: number | null): Promise<FormState> 
  * up interpolated into a style on their site.
  */
 export async function saveWidgetLook(_prev: FormState, fd: FormData): Promise<FormState> {
+  // How the widget looks belongs to the business, so it belongs to its owner.
+  if (!(await isOwner())) {
+    return { error: "Only the owner can change how the widget looks." };
+  }
+
   const { studio } = await requireStudio();
   const supabase = await createClient();
 
@@ -877,6 +934,11 @@ export async function saveWidgetLook(_prev: FormState, fd: FormData): Promise<Fo
  * and is also what the engine falls back to, so the two agree.
  */
 export async function saveWhoItOffers(_prev: FormState, fd: FormData): Promise<FormState> {
+  // Who the assistant books belongs to the business, so it belongs to its owner.
+  if (!(await isOwner())) {
+    return { error: "Only the owner can change who the assistant books." };
+  }
+
   const { studio } = await requireStudio();
   const supabase = await createClient();
 
