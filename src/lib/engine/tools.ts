@@ -427,6 +427,26 @@ async function saveEnquiry(
     ctx.enquiryArtistId = artist.id;
     patch.artist_id = artist.id;
     saved.push("artist_name");
+
+    /*
+     * And on the conversation, so it lands in that person's inbox.
+     *
+     * This was recorded on the enquiry alone, and the inbox is filled from
+     * conversations — so an enquiry from the website stayed unclaimed even
+     * after it had been quoted and booked with somebody by name. Every
+     * stylist's inbox was empty and the owner's held everything, which is the
+     * opposite of who the work belongs to.
+     *
+     * Not awaited on failure: this decides which screen an enquiry appears on,
+     * and it is not worth losing the enquiry over.
+     */
+    const { error: unclaimed } = await ctx.db
+      .from("conversations")
+      .update({ artist_id: artist.id })
+      .eq("id", ctx.conversationId)
+      .is("artist_id", null);
+
+    if (unclaimed) console.error("[tools] could not assign the conversation", unclaimed.message);
   }
 
   if (saved.length === 0) return { result: "Nothing to save." };

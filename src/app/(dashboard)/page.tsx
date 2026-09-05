@@ -71,15 +71,42 @@ const ago = (iso: string) => {
 };
 
 export default async function InboxPage() {
-  const { studio } = await requireStudio();
+  const { studio, userId } = await requireStudio();
   const supabase = await createClient();
 
   const sevenDaysAgo = weekAgo();
 
-  const { data } = await supabase
+  /*
+   * The inbox is one person's, not the whole shop's.
+   *
+   * Everybody saw every enquiry in the business, which is wrong in both
+   * directions: a stylist waded through conversations that were never hers,
+   * and the one waiting on her was somewhere in the middle of them. This is
+   * the screen somebody opens between clients, and it has to be about them.
+   *
+   * The diary stays shared — anybody may need to move anybody's day around,
+   * and that is a different question from whose enquiry this is.
+   */
+  const { data: me } = await supabase
+    .from("artists")
+    .select("id")
+    .eq("studio_id", studio.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const { data: membership } = await supabase
+    .from("studio_members")
+    .select("role")
+    .eq("studio_id", studio.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const owns = membership?.role === "owner";
+
+  let inbox = supabase
     .from("conversations")
     .select(
-      "id, channel, status, created_at, last_message_at, " +
+      "id, channel, status, created_at, last_message_at, artist_id, " +
         "contacts(name, instagram_handle, phone, email, alert), " +
         "enquiries(description, quote_low_pence, bookings(cancelled_at))",
     )
@@ -89,6 +116,28 @@ export default async function InboxPage() {
     .eq("is_test", false)
     .order("last_message_at", { ascending: false })
     .limit(50);
+
+  /*
+   * Theirs, and anything nobody has claimed.
+   *
+   * An enquiry from the website may arrive before anybody has been chosen, and
+   * those belong to whoever runs the place until they are. Sending them
+   * nowhere would lose them entirely, which is the one outcome worth avoiding
+   * on this screen.
+   *
+   * Somebody with a login but no diary of their own — a manager, an
+   * administrator — sees the unclaimed ones too. They are here to answer
+   * people, and hiding everything from them would leave them an empty screen.
+   */
+  if (me?.id && !owns) {
+    inbox = inbox.eq("artist_id", me.id);
+  } else if (me?.id) {
+    inbox = inbox.or(`artist_id.eq.${me.id},artist_id.is.null`);
+  } else {
+    inbox = inbox.is("artist_id", null);
+  }
+
+  const { data } = await inbox;
 
   const conversations = (data ?? []) as unknown as Row[];
 

@@ -19,7 +19,7 @@ import { HelpButton } from "@/components/HelpButton";
 import { AdminLink } from "@/components/AdminLink";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { studio, userEmail } = await requireStudio();
+  const { studio, userEmail, userId } = await requireStudio();
   const supabase = await createClient();
   const team = (await getArtists(studio.id)).filter((a) => a.active);
 
@@ -35,12 +35,40 @@ export default async function DashboardLayout({ children }: { children: React.Re
    * owner checks it between jobs instead of reading the inbox, and quietly
    * telling them everything is fine is the worst thing it could do.
    */
-  const { count, error: countFailed } = await supabase
+  /*
+   * Counted the same way the inbox is filled, or the two disagree.
+   *
+   * The badge said three and the list showed one, because the badge counted
+   * the whole shop and the inbox is one person's. A number that does not match
+   * the screen it points at is worse than no number: it sends somebody looking
+   * for work that was never theirs.
+   */
+  const { data: me } = await supabase
+    .from("artists")
+    .select("id")
+    .eq("studio_id", studio.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const { data: membership } = await supabase
+    .from("studio_members")
+    .select("role")
+    .eq("studio_id", studio.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  let waiting = supabase
     .from("conversations")
     .select("id", { count: "exact", head: true })
     .eq("studio_id", studio.id)
     .eq("is_test", false)
     .eq("status", "needs_human");
+
+  if (me?.id && membership?.role !== "owner") waiting = waiting.eq("artist_id", me.id);
+  else if (me?.id) waiting = waiting.or(`artist_id.eq.${me.id},artist_id.is.null`);
+  else waiting = waiting.is("artist_id", null);
+
+  const { count, error: countFailed } = await waiting;
 
   const needsYou = countFailed || count == null ? null : count;
 
