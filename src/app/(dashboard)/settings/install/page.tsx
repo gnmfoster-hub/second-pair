@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import Link from "next/link";
-import { requireStudio, getArtists } from "@/lib/studio";
+import { getArtists , requireOwner } from "@/lib/studio";
 import { verticalPack } from "@/lib/verticals";
 import { Avatar } from "@/components/Avatar";
 import { Snippet } from "./Snippet";
@@ -38,7 +38,9 @@ const CHANNELS: {
 
 
 export default async function ChannelsPage() {
-  const { studio } = await requireStudio();
+  // How customers reach the business — the owner's, and the page says so
+  // rather than only the tab: hiding a link is not a permission.
+  const { studio } = await requireOwner();
   const artists = (await getArtists(studio.id)).filter((a) => a.active);
   const words = {
     ...verticalPack(studio.vertical).vocabulary,

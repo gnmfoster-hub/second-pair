@@ -105,3 +105,32 @@ export async function getFaqs(studioId: string): Promise<Faq[]> {
     .order("sort_order");
   return (data ?? []) as Faq[];
 }
+
+/**
+ * The business's own settings, for the person whose business it is.
+ *
+ * Hiding a tab is not a permission. The pages behind them stayed reachable by
+ * typing the address, and reading is deliberately open to the whole business —
+ * so a member of staff who guessed the URL saw the prices, the channels, and
+ * how every other person is set up. The buttons would have refused, and by
+ * then they had already seen it.
+ *
+ * Sent home rather than shown an error: they have not done anything wrong,
+ * they have opened a page that is not theirs.
+ */
+export async function requireOwner(): Promise<{ studio: Studio; userId: string }> {
+  const { studio, userId } = await requireStudio();
+  const supabase = await createClient();
+
+  const { data: membership } = await supabase
+    .from("studio_members")
+    .select("role")
+    .eq("studio_id", studio.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  // Anything other than a clear yes is not an owner.
+  if (membership?.role !== "owner") redirect("/settings/artists");
+
+  return { studio, userId };
+}

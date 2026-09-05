@@ -1,4 +1,4 @@
-import { requireStudio, getFaqs } from "@/lib/studio";
+import { getFaqs , requireOwner } from "@/lib/studio";
 import { FaqEditor } from "./FaqEditor";
 
 const SUGGESTED = [
@@ -11,7 +11,9 @@ const SUGGESTED = [
 ];
 
 export default async function FaqsPage() {
-  const { studio } = await requireStudio();
+  // What the assistant answers from — the owner's, and the page says so
+  // rather than only the tab: hiding a link is not a permission.
+  const { studio } = await requireOwner();
   const faqs = await getFaqs(studio.id);
 
   return (

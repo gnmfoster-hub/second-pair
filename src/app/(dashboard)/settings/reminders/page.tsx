@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
-import { requireStudio } from "@/lib/studio";
+import { requireOwner } from "@/lib/studio";
 import { ReminderEditor, type ReminderTemplateRow } from "./ReminderEditor";
 
 export default async function RemindersPage() {
-  const { studio } = await requireStudio();
+  // What customers are sent — the owner's, and the page says so
+  // rather than only the tab: hiding a link is not a permission.
+  const { studio } = await requireOwner();
   const supabase = await createClient();
 
   const { data } = await supabase

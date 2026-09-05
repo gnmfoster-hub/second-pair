@@ -116,6 +116,45 @@ export default async function ClientsPage({
     });
   }
 
+  /*
+   * Who a client is down to.
+   *
+   * Their most recent booking first, because that is somebody who has actually
+   * sat in a chair with them. Failing that, whoever their last conversation
+   * was assigned to — an enquiry that has not become work yet still belongs to
+   * whoever is handling it.
+   *
+   * Derived rather than stored. A client moving between people is an ordinary
+   * thing in a salon, and a column saying who they "belong to" would be out of
+   * date the first time it happened.
+   */
+  const nameOf = new Map(team.map((a) => [a.id, a.name.split(" ")[0]]));
+
+  const belongsTo = (c: (typeof clients)[number]): string | null => {
+    /*
+     * The same three sources the filter above uses, in the same order.
+     *
+     * They have to agree. A client who appears under Sarah when you filter by
+     * her, and is labelled somebody else in the list, is worse than no label
+     * at all — it looks like the product does not know, which is exactly what
+     * a label is for.
+     */
+    const booked = [
+      ...c.conversations.flatMap((v) => v.enquiries?.bookings ?? []),
+      ...(c.bookings ?? []),
+    ]
+      .filter((b) => !b.cancelled_at && b.artist_id)
+      .map((b) => b.artist_id as string);
+    if (booked.length) return nameOf.get(booked[booked.length - 1]) ?? null;
+
+    const asked = c.conversations
+      .map((v) => v.artist_id ?? v.enquiries?.artist_id)
+      .filter(Boolean) as string[];
+    if (asked.length) return nameOf.get(asked[asked.length - 1]) ?? null;
+
+    return null;
+  };
+
   const link = (artistId: string | null) => {
     const params = new URLSearchParams();
     if (term) params.set("q", term);
@@ -297,6 +336,26 @@ export default async function ClientsPage({
                           ? [c.phone, c.email].filter(Boolean).join(" · ") ||
                             CHANNEL_LABELS[c.channel]
                           : CHANNEL_LABELS[c.channel]}
+                        {/*
+                          * Whose client this is.
+                          *
+                          * Everybody can see everybody's, which is right —
+                          * somebody has to be able to look a customer up when
+                          * the person who usually sees them is off. What was
+                          * missing is whose they are: a list of two hundred
+                          * names with no idea which of them are yours reads as
+                          * the shop's admin rather than anybody's clients.
+                          *
+                          * It is only ever a label. It does not decide who
+                          * sees what — the inbox does that, and this list is
+                          * deliberately shared.
+                          */}
+                        {belongsTo(c) && (
+                          <>
+                            {" · "}
+                            <span className="text-muted">{belongsTo(c)}</span>
+                          </>
+                        )}
                       </div>
                     </div>
 

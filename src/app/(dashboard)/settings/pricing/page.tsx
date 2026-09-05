@@ -1,4 +1,4 @@
-import { requireStudio, getArtists, getPriceBands } from "@/lib/studio";
+import { getArtists, getPriceBands , requireOwner } from "@/lib/studio";
 import { quoteForBand, depositFor, describeDepositRule, isFixedPrice } from "@/lib/quote";
 import { formatRange, formatPence } from "@/lib/money";
 import { BandEditor } from "./BandEditor";
@@ -8,7 +8,9 @@ import { createClient } from "@/lib/supabase/server";
 import { verticalPack } from "@/lib/verticals";
 
 export default async function PricingPage() {
-  const { studio } = await requireStudio();
+  // The prices — the owner's, and the page says so
+  // rather than only the tab: hiding a link is not a permission.
+  const { studio } = await requireOwner();
   const [bands, artists] = await Promise.all([
     getPriceBands(studio.id),
     getArtists(studio.id),
