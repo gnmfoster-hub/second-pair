@@ -46,7 +46,7 @@ export default async function WidgetPage({
   const db = createAdminClient();
   const { data: studio } = await db
     .from("studios")
-    .select("id, name, slug, vertical, greeting")
+    .select("id, name, slug, vertical, greeting, privacy_notice_url")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -151,6 +151,7 @@ export default async function WidgetPage({
       forArtistId={person?.id ?? null}
       forArtistName={person?.name ?? null}
       photoUrl={avatarUrl(person?.avatar_path) ?? null}
+      privacyUrl={studio.privacy_notice_url ?? null}
       accent={accent?.fill ?? null}
       onAccent={accent?.onFill ?? null}
     />

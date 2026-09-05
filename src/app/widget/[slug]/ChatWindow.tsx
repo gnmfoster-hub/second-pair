@@ -142,6 +142,7 @@ const clock = (at: number) =>
 export function ChatWindow({
   slug,
   studioName,
+  privacyUrl,
   greeting,
   openers,
   forArtistId = null,
@@ -152,6 +153,8 @@ export function ChatWindow({
 }: {
   slug: string;
   studioName: string;
+  /** Their own notice, when they have published one. */
+  privacyUrl?: string | null;
   greeting: string;
   /** Three things worth tapping. Falls back to the customer-facing set. */
   openers?: string[];
@@ -486,6 +489,39 @@ export function ChatWindow({
                * so these do it for them — and each one starts a real
                * conversation rather than opening a menu.
                */}
+              {/*
+                * Who they are talking to, said once, before they say anything.
+                *
+                * A member of the public is about to give their name and phone
+                * number to something that answers instantly and writes like a
+                * person. They are entitled to know it is not one, and to know
+                * where to read what happens to what they type — at the moment
+                * they are deciding whether to type it, not in a footer on a
+                * different page.
+                *
+                * One quiet line rather than a banner or a box to dismiss. It
+                * is a fact about the conversation, not a warning about it, and
+                * anything that has to be dismissed teaches people to dismiss
+                * things.
+                */}
+              <p className="pl-10 pt-1.5 text-[11px] leading-relaxed text-muted">
+                You are talking to {studioName}&rsquo;s assistant, not a person. A real
+                one sees everything and can step in.
+                {privacyUrl && (
+                  <>
+                    {" "}
+                    <a
+                      href={privacyUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline underline-offset-2 hover:text-foreground"
+                    >
+                      What happens to your details
+                    </a>
+                  </>
+                )}
+              </p>
+
               <div className="flex flex-wrap gap-2 pl-10 pt-2">
                 {(openers?.length ? openers : OPENERS).map((opener, i) => (
                   <button

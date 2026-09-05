@@ -5,6 +5,7 @@ import { releaseExpiredHolds } from "@/lib/booking";
 import { releaseHeldConversations } from "@/lib/engine/release";
 import { siteOrigin } from "@/lib/origin";
 import type { Studio } from "@/lib/types";
+import { forgetOldEnquiries } from "@/lib/retention";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -54,6 +55,22 @@ export async function GET(request: NextRequest) {
 
   const { data: studios } = await db.from("studios").select("*");
 
+  /*
+   * Forgetting, on the same schedule as remembering.
+   *
+   * Only businesses that have chosen a period, and only enquiries that never
+   * became a booking. Errors are collected rather than thrown: one business
+   * whose sweep fails must not stop everybody else's reminders going out.
+   */
+  const forgotten = { conversations: 0, contacts: 0, failed: [] as string[] };
+  for (const studio of studios ?? []) {
+    if (!studio.keep_months || studio.archived_at) continue;
+    const swept = await forgetOldEnquiries(db, studio);
+    if (swept.error) forgotten.failed.push(`${studio.slug}: ${swept.error}`);
+    forgotten.conversations += swept.conversations;
+    forgotten.contacts += swept.contacts;
+  }
+
   let due = 0;
   let sent = 0;
   let waiting = 0;
@@ -80,5 +97,5 @@ export async function GET(request: NextRequest) {
    */
   const answered = await releaseHeldConversations(db, await siteOrigin());
 
-  return NextResponse.json({ released, due, sent, waiting, failures, answered });
+  return NextResponse.json({ released, due, sent, waiting, failures, answered, forgotten });
 }
