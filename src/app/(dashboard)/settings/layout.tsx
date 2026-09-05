@@ -24,6 +24,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
         <TabLink href="/settings/reminders">Reminders</TabLink>
         <TabLink href="/settings/faqs">FAQs</TabLink>
         <TabLink href="/settings/install">Channels</TabLink>
+        <TabLink href="/settings/data">Your data</TabLink>
       </nav>
 
       <div className="mt-8">{children}</div>
