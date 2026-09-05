@@ -90,7 +90,16 @@ export function ArtistEditor({
       <form action={action} className="space-y-5 border-t border-border p-5">
         {artist && <input type="hidden" name="id" value={artist.id} />}
 
-        <div className="flex flex-wrap items-end gap-5">
+        {/*
+          * Aligned at the top, not the bottom.
+          *
+          * A field's hint sits under its input, so aligning the row at the
+          * bottom lines up the hints and pushes every input that has one
+          * upwards. Name has no hint and Email does, which is why those two
+          * never sat level. Every label here is a single line, so aligning the
+          * tops puts the boxes on the same line and lets the hints hang.
+          */}
+        <div className="flex flex-wrap items-start gap-5">
           <Field label="Name">
             <input name="name" defaultValue={artist?.name ?? ""} className="input max-w-sm" required />
           </Field>
