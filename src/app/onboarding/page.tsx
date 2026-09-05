@@ -133,14 +133,23 @@ export default async function OnboardingPage() {
    * membership it finds, so they could well end up looking at the empty one
    * with their real business nowhere in sight.
    */
-  const { data: already } = await supabase
+  const { data: already, error: cannotTell } = await supabase
     .from("studio_members")
     .select("studio_id")
     .eq("user_id", user.id)
     .limit(1)
     .maybeSingle();
 
-  if (already) redirect("/");
+  /*
+   * Not being able to tell is not the same as not having one.
+   *
+   * This guard exists to stop an owner creating a second business, and it was
+   * written discarding the error — so the one moment the check matters most, a
+   * database that will not answer, was the moment it silently passed. Sending
+   * them home is the safe way to be wrong: somebody who genuinely has no
+   * business is bounced straight back here by requireStudio.
+   */
+  if (cannotTell || already) redirect("/");
 
   return (
     <div className="grid min-h-screen place-items-center px-6 py-12">

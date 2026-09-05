@@ -20,11 +20,23 @@ export async function seedFromPack(
   const seeded: string[] = [];
   const errors: string[] = [];
 
+  /*
+   * Whether this table already has something in it.
+   *
+   * Errs towards "yes, leave it alone". A failed count read as nought would
+   * make seeding run again over a business that already has its prices, and
+   * every band would be duplicated — the assistant then quotes from a list
+   * with two of everything, and somebody has to unpick it by hand.
+   *
+   * The other way round is harmless: a business that ends up unseeded shows in
+   * the attention panel as needing prices, which is visible and fixable.
+   */
   const has = async (table: string) => {
-    const { count } = await db
+    const { count, error } = await db
       .from(table)
       .select("*", { count: "exact", head: true })
       .eq("studio_id", studioId);
+    if (error) return true;
     return (count ?? 0) > 0;
   };
 

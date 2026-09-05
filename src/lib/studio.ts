@@ -20,12 +20,28 @@ export async function requireStudio(): Promise<{
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase
+  const { data: membership, error: lookupFailed } = await supabase
     .from("studio_members")
     .select("studio_id")
     .eq("user_id", user.id)
     .limit(1)
     .maybeSingle();
+
+  /*
+   * A lookup that failed is not somebody without a business.
+   *
+   * The error was discarded, so a database blip made an established owner look
+   * like a new signup — and the next thing this function does with somebody
+   * who has no business is send them to onboarding to create one. They would
+   * arrive at "name your business" while their own sat untouched, and filling
+   * it in would give them a second.
+   *
+   * Throwing shows the ordinary error page, which is true and recoverable: a
+   * reload once the database answers puts them back where they were.
+   */
+  if (lookupFailed) {
+    throw new Error(`Could not look up which business you belong to: ${lookupFailed.message}`);
+  }
 
   if (!membership) {
     /*
