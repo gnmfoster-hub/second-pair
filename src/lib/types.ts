@@ -86,6 +86,8 @@ export type Studio = {
   tone: string;
   hours: OpeningHours[];
   /** Hex without the hash. Null means our own navy. */
+  /** customer counts in the figures; demo is for showing people; internal is ours. */
+  kind: "customer" | "demo" | "internal";
   widget_accent: string | null;
   widget_position: "right" | "left";
   /** The nudge shown a few seconds after landing. Null means the default. */

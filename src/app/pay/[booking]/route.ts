@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createDepositCheckout, retrieveOpenCheckout } from "@/lib/payments/stripe";
 import { describeSlot } from "@/lib/booking";
 import type { Studio } from "@/lib/types";
+import { readyForRealMoney } from "@/lib/payments/stripe";
 
 export const runtime = "nodejs";
 
@@ -79,6 +80,23 @@ export async function GET(
   if (booking.stripe_payment_link_id) {
     const existing = await retrieveOpenCheckout(studio, booking.stripe_payment_link_id);
     if (existing) return NextResponse.redirect(existing);
+  }
+
+  /*
+   * A link is only a link if the money can reach the business.
+   *
+   * This route can be opened directly — it is a short URL sent in a message,
+   * and it will still be in somebody's chat history long after the
+   * conversation. Without a connected account the charge falls back to the
+   * platform's, so a customer paying a salon's deposit would be paying us. The
+   * booking itself is fine and stands; there is simply nothing to pay.
+   *
+   * Demonstrations are the deliberate exception, and only demonstrations: that
+   * is the one case where charging the platform account in test mode is the
+   * point rather than a mistake.
+   */
+  if (!readyForRealMoney(studio) && studio.kind !== "demo") {
+    return NextResponse.redirect(`${origin}/pay/not-needed?booking=${bookingId}`);
   }
 
   const enquiry = booking.enquiries;

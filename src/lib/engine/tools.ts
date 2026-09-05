@@ -16,6 +16,7 @@ import {
   capabilitiesFor,
 } from "@/lib/booking";
 import type { Artist, PriceBand, ServiceOption, Studio } from "@/lib/types";
+import { readyForRealMoney } from "@/lib/payments/stripe";
 
 export type ToolContext = {
   db: SupabaseClient;
@@ -691,7 +692,26 @@ async function makeBooking(
     };
   }
 
-  const takesDeposit = ctx.studio.deposit_mode !== "none";
+  /*
+   * A deposit is only taken if there is somewhere for it to go.
+   *
+   * Wanting a deposit and being able to receive one are different facts, and
+   * only one of them was checked. A business with deposits set to "required"
+   * and no Stripe account behind it would hold the slot for an hour, tell the
+   * customer to pay, and then let the hold expire — losing a real booking to a
+   * payment that was never possible.
+   *
+   * Worse if the payment did go through: with no connected account the charge
+   * falls back to the platform's, so a customer paying a salon's deposit would
+   * be paying us. readyForRealMoney has existed since the payments code was
+   * written and was never once called.
+   *
+   * Without Stripe the booking is simply confirmed outright, which is exactly
+   * what a business that does not take deposits already does. Better a firm
+   * booking than a held one nobody can release.
+   */
+  const canTakeMoney = readyForRealMoney(ctx.studio);
+  const takesDeposit = ctx.studio.deposit_mode !== "none" && canTakeMoney;
 
   const result = await createBooking({
     db: ctx.db,
@@ -754,6 +774,20 @@ async function sendDepositLink(ctx: ToolContext): Promise<ToolOutcome> {
   }
   if (booking.deposit_amount_pence <= 0) {
     return { result: "No deposit is due on this booking. Do not send a link." };
+  }
+
+  /*
+   * The same gate as the booking itself, because this tool can be reached on
+   * its own — the assistant may decide to send a link for a booking made
+   * earlier, and by then the reasoning above has been left behind.
+   */
+  if (!readyForRealMoney(ctx.studio)) {
+    return {
+      result:
+        "This business cannot take payments yet, so there is no link to send. The " +
+        "booking stands as it is — tell them they are booked in and that nothing is " +
+        "needed now.",
+    };
   }
 
   // A short link of our own rather than Stripe's, which runs to several hundred
