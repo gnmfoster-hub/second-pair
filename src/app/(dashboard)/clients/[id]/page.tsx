@@ -30,7 +30,9 @@ type ContactRow = {
     last_message_at: string;
     external_ref: string | null;
     last_inbound_at: string | null;
+    artist_id: string | null;
     enquiries: {
+      artist_id: string | null;
       description: string | null;
       quote_low_pence: number | null;
       bookings: Booking[];
@@ -66,9 +68,9 @@ export default async function ClientPage({
   const { data: contactRow } = await supabase
     .from("contacts")
     .select(
-      "*, conversations(id, channel, status, created_at, last_message_at, "
+      "*, conversations(id, channel, status, created_at, last_message_at, artist_id, "
         + "external_ref, last_inbound_at, " +
-        "enquiries(description, quote_low_pence, quote_high_pence, bookings(*)))",
+        "enquiries(artist_id, description, quote_low_pence, quote_high_pence, bookings(*)))",
     )
     .eq("id", id)
     .eq("studio_id", studio.id)
@@ -85,6 +87,30 @@ export default async function ClientPage({
     .eq("contact_id", id);
 
   const conversations = contact.conversations ?? [];
+
+  /*
+   * Who this client is down to.
+   *
+   * Their most recent appointment that was not cancelled, falling back to
+   * whoever their last enquiry was for. The same order the clients list uses,
+   * so the two never disagree about the same person.
+   */
+  const usuallyWith = (() => {
+    const byPerson = new Map(artists.map((a) => [a.id, a.name.split(" ")[0]]));
+
+    const worked = [
+      ...conversations.flatMap((c) => c.enquiries?.bookings ?? []),
+      ...(direct ?? []),
+    ]
+      .filter((b) => !b.cancelled_at && b.artist_id)
+      .sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
+    if (worked.length) return byPerson.get(worked[worked.length - 1].artist_id) ?? null;
+
+    const asked = conversations
+      .map((c) => c.artist_id ?? c.enquiries?.artist_id)
+      .filter(Boolean) as string[];
+    return asked.length ? (byPerson.get(asked[asked.length - 1]) ?? null) : null;
+  })();
 
   // Bookings reach a client two ways: through a conversation, or attached
   // directly when somebody typed them into the diary.
@@ -164,6 +190,23 @@ export default async function ClientPage({
           year: "numeric",
         })}{" "}
         · {CHANNEL_LABELS[contact.channel]}
+        {/*
+          * Whose client this is, on the page you open to pick one up.
+          *
+          * The list says it; this is where somebody actually needs it —
+          * covering for a colleague who is off, and wanting to know whose
+          * customer they are about to speak to before they do. Read from their
+          * most recent appointment, because that is somebody who has actually
+          * worked with them.
+          *
+          * A label, not a permission. Everybody can open everybody's.
+          */}
+        {usuallyWith && (
+          <>
+            {" · "}
+            usually with <span className="text-foreground">{usuallyWith}</span>
+          </>
+        )}
       </p>
 
       {contact.alert && (
