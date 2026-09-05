@@ -26,7 +26,27 @@ export function Forget({ id, name }: { id: string; name: string | null }) {
 
   return (
     <details className="mt-8 rounded-xl border border-border p-3.5">
-      <summary className="cursor-pointer text-sm text-muted">Erase {called}</summary>
+      <summary className="cursor-pointer text-sm text-muted">
+        If {called} asks about their data
+      </summary>
+
+      {/*
+        * The copy comes first, and deliberately.
+        *
+        * Both of these answer a request from the same person, and one is
+        * reversible while the other is not. Somebody who asks "what do you
+        * have on me" wants this one — putting erasure first would put the
+        * permanent action under the thumb of somebody reaching for the other.
+        */}
+      <div className="mt-3 border-b border-border pb-4">
+        <p className="hint max-w-prose">
+          Anybody can ask what a business holds about them, and you have a month to
+          send it. This is that, written as something they can read.
+        </p>
+        <a href={`/clients/${id}/copy`} className="btn-ghost mt-3 inline-flex">
+          Download everything about {called}
+        </a>
+      </div>
 
       <form action={action} className="mt-3 space-y-3">
         <input type="hidden" name="id" value={id} />
