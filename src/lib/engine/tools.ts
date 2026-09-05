@@ -178,7 +178,9 @@ export function toolDefinitions(
             name: "get_available_slots",
             description:
               "Real openings in the diary. The ONLY source of times — never invent or " +
-              "guess a date. Call it before offering any appointment.",
+              "guess a date. Call it before offering any appointment. If they have said " +
+              "when they want, pass it: asking again without their day returns the same " +
+              "soonest times and looks like there is nothing else free.",
             input_schema: {
               type: "object" as const,
               properties: {
@@ -186,6 +188,31 @@ export function toolDefinitions(
                   type: "string",
                   enum: artistNames,
                   description: `Whose diary to look at. Defaults to the first available ${who}.`,
+                },
+                /*
+                 * The parameters that were missing, and what it cost.
+                 *
+                 * The tool took only a name, so it always returned the soonest
+                 * times whatever day they fell on. A customer asking for a
+                 * Thursday was offered Monday; asking again produced the same
+                 * Monday, and the assistant concluded there was nothing else —
+                 * on an entirely empty week. It lost a real booking.
+                 */
+                weekday: {
+                  type: "string",
+                  enum: [
+                    "Sunday", "Monday", "Tuesday", "Wednesday",
+                    "Thursday", "Friday", "Saturday",
+                  ],
+                  description:
+                    "Only this day of the week, when they have named one — 'have you got " +
+                    "a Thursday'. Leave it out if they have not.",
+                },
+                on_or_after: {
+                  type: "string",
+                  description:
+                    "Earliest date to look from, as YYYY-MM-DD. Use it for 'after the " +
+                    "15th', 'not this week', or 'sometime next month'.",
                 },
               },
               additionalProperties: false,
@@ -541,6 +568,19 @@ async function getSlots(
   const type = bookingTypeFor(band);
   const minutes = durationFor(ctx.studio, band, type);
 
+  /*
+   * What they actually asked for, if they asked for anything.
+   *
+   * Checked rather than passed through: the weekday arrives as a word from the
+   * model and the date as a string, and both decide which days are searched.
+   */
+  const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const askedWeekday = typeof input.weekday === "string" ? DAYS.indexOf(input.weekday) : -1;
+  const askedFrom =
+    typeof input.on_or_after === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input.on_or_after)
+      ? input.on_or_after
+      : null;
+
   let slots;
   try {
     slots = await availableSlots({
@@ -549,6 +589,17 @@ async function getSlots(
       artist,
       durationMinutes: minutes,
       limit: 4,
+      onlyWeekday: askedWeekday >= 0 ? askedWeekday : null,
+      onOrAfter: askedFrom,
+      /*
+       * At most two from any one day.
+       *
+       * Four times on the same morning is one option presented four ways, and
+       * it was what a customer saw whenever the diary was empty. Spread over
+       * days it is four genuine choices — the difference between finding a
+       * time and deciding to ring round instead.
+       */
+      perDay: 2,
     });
   } catch (error) {
     // A diary we cannot read is not an empty diary. Say so rather than offering

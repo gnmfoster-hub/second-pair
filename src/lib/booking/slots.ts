@@ -39,6 +39,25 @@ export type SlotOptions = {
   daysAhead?: number;
   /** Cap on what is returned — a wall of times is worse than three good ones. */
   limit?: number;
+  /**
+   * Only this weekday, 0 being Sunday.
+   *
+   * Somebody asking for a Thursday means it. Without this the finder returns
+   * the soonest times whatever day they fall on, so a customer asking for
+   * Thursday was offered Monday, and asking again produced the same Monday —
+   * which reads as "there is nothing else", on a completely empty week.
+   */
+  onlyWeekday?: number | null;
+  /** Not before this date, as YYYY-MM-DD in the business's own timezone. */
+  onOrAfter?: string | null;
+  /**
+   * How many to offer from any one day.
+   *
+   * Four times on the same morning is one option presented four ways. Spread
+   * across days it is four options, which is the difference between somebody
+   * finding a time and somebody deciding to ring round.
+   */
+  perDay?: number;
   /** Injected so this is testable without waiting for tomorrow. */
   now?: Date;
 };
@@ -56,6 +75,11 @@ export function findSlots(options: SlotOptions): Slot[] {
     durationMinutes,
     timezone,
     noticeHours = 24,
+    onlyWeekday = null,
+    onOrAfter = null,
+    // No cap by default: this finds what is free, and how much of it to offer
+    // is a decision for whoever is doing the offering.
+    perDay = Infinity,
     daysAhead = 21,
     limit = 6,
     now = new Date(),
@@ -93,6 +117,11 @@ export function findSlots(options: SlotOptions): Slot[] {
      * "I'll come in on my day off for this one" works.
      */
     const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+    // What they actually asked for, before any work is done on this day.
+    if (onlyWeekday != null && weekday !== onlyWeekday) continue;
+    if (onOrAfter && date < onOrAfter) continue;
+
     const extra = (extraHours ?? []).find((e) => e.date === date);
 
     const opening = hours.find((h) => h.day === weekday);
@@ -125,7 +154,12 @@ export function findSlots(options: SlotOptions): Slot[] {
 
     if (!merged.length) continue;
 
+    let onThisDay = 0;
+
     for (const window of merged) {
+      // A day widened by a late night has two windows; the cap is for the day,
+      // not for each of them.
+      if (onThisDay >= perDay) break;
       const opens = window.opens;
       const closes = window.closes;
 
@@ -150,6 +184,8 @@ export function findSlots(options: SlotOptions): Slot[] {
         starts_at: start.toISOString(),
         ends_at: new Date(endMs).toISOString(),
       });
+      onThisDay++;
+      if (onThisDay >= perDay) break;
       }
     }
   }

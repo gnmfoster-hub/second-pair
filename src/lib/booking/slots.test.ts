@@ -359,3 +359,90 @@ test("a booking already in the evening still blocks that time", () => {
   assert.ok(!times.includes("18:00"), "the evening is not a free-for-all");
   assert.ok(times.includes("19:00"), "but the rest of it is still offered");
 });
+
+// ------------------------------------- asking for a day and being given it
+
+test("asking for a Thursday gets Thursdays", () => {
+  /*
+   * The bug this exists for. The finder returned the soonest times whatever
+   * day they fell on, so a customer asking for Thursday was offered Monday —
+   * and asking again produced the same Monday, which reads as "there is
+   * nothing else" on a completely empty week. It cost a real booking.
+   */
+  const thursday = 4;
+  const slots = findSlots({
+    ...lateBase,
+    daysAhead: 14,
+    limit: 6,
+    onlyWeekday: thursday,
+    now: new Date("2026-03-02T08:00:00Z"), // a Monday
+  });
+
+  assert.ok(slots.length > 0, "an empty fortnight has Thursdays in it");
+  for (const s of slots) {
+    const day = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/London",
+      weekday: "long",
+    }).format(new Date(s.starts_at));
+    assert.equal(day, "Thursday", `offered a ${day}`);
+  }
+});
+
+test("a day they are never open returns nothing rather than something else", () => {
+  // Sunday, which the salon is shut. Better to say so than to offer a Monday
+  // as though it answered the question.
+  const slots = findSlots({ ...lateBase, daysAhead: 14, onlyWeekday: 0 });
+  assert.deepEqual(slots, []);
+});
+
+test("not before a date they have asked for", () => {
+  const slots = findSlots({
+    ...lateBase,
+    daysAhead: 21,
+    onOrAfter: "2026-03-16",
+    now: new Date("2026-03-02T08:00:00Z"),
+  });
+  assert.ok(slots.length > 0);
+  for (const s of slots) {
+    assert.ok(s.starts_at >= "2026-03-16", `offered ${s.starts_at}`);
+  }
+});
+
+test("both together — a Thursday, but not this week", () => {
+  const slots = findSlots({
+    ...lateBase,
+    daysAhead: 21,
+    onlyWeekday: 4,
+    onOrAfter: "2026-03-09",
+    now: new Date("2026-03-02T08:00:00Z"),
+  });
+  assert.ok(slots.length > 0);
+  assert.ok(slots[0].starts_at.startsWith("2026-03-12"), `first was ${slots[0].starts_at}`);
+});
+
+// ------------------------------------------- four times on one morning is one option
+
+test("offers are spread across days rather than stacked on one", () => {
+  const slots = findSlots({ ...lateBase, daysAhead: 14, limit: 6, perDay: 2 });
+  const days = slots.map((s) => s.starts_at.slice(0, 10));
+  const mostOnOneDay = Math.max(...Object.values(
+    days.reduce<Record<string, number>>((n, d) => ({ ...n, [d]: (n[d] ?? 0) + 1 }), {}),
+  ));
+  assert.ok(mostOnOneDay <= 2, `${mostOnOneDay} on one day`);
+  assert.ok(new Set(days).size >= 3, `only ${new Set(days).size} different days offered`);
+});
+
+test("the per-day cap counts the whole day, not each window of it", () => {
+  // A day widened by a late night has two windows. Two from the morning and
+  // two more from the evening is four on one day, which is the thing the cap
+  // exists to prevent.
+  const slots = findSlots({
+    ...lateBase,
+    daysAhead: 1,
+    limit: 10,
+    perDay: 2,
+    extraHours: [{ date: "2026-03-05", open: "19:00", close: "22:00" }],
+  });
+  const onThursday = slots.filter((s) => s.starts_at.startsWith("2026-03-05"));
+  assert.ok(onThursday.length <= 2, `${onThursday.length} offered on one day`);
+});
