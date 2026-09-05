@@ -92,10 +92,23 @@ export async function releaseExpiredHolds(
   db: SupabaseClient,
   artistId?: string,
 ): Promise<number> {
+  /*
+   * Anything not paid for, whether or not a link was ever sent.
+   *
+   * This matched only "unpaid", and sending the payment link moves a booking
+   * to "link_sent" — so the common case, somebody who was sent a link and did
+   * not pay, was never released. The slot stayed blocked for good: not offered
+   * to that customer, who had gone, and not offered to anybody else either.
+   * There was one already stuck in the database when this was found.
+   *
+   * Paid and refunded are deliberately not here. A paid booking is somebody's
+   * appointment, and a refunded one is a decision a person made rather than a
+   * hold that lapsed.
+   */
   let query = db
     .from("bookings")
     .update({ cancelled_at: new Date().toISOString() })
-    .eq("deposit_status", "unpaid")
+    .in("deposit_status", ["unpaid", "link_sent"])
     .is("cancelled_at", null)
     .lt("held_until", new Date().toISOString());
 
