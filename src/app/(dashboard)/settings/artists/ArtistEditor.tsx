@@ -246,6 +246,18 @@ export function ArtistEditor({
               For their own Instagram bio, or the bottom of an email. Books them, not
               the shop.
             </p>
+            {/*
+              * What is coming, said once rather than as four rows of "not yet".
+              *
+              * Their own Instagram and their own number will be theirs to
+              * connect — the database already allows it, and nobody else can
+              * touch them. None are connectable for anybody yet, so a connect
+              * flow here would be a promise with nothing behind it.
+              */}
+            <p className="hint mt-2">
+              Their own Instagram and mobile number will connect here too, and will be
+              theirs to manage. Neither is available to anybody yet.
+            </p>
           </label>
         )}
 
