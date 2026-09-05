@@ -252,6 +252,46 @@ export async function resetLink(_prev: Result, fd: FormData): Promise<Result> {
  * The owner's login is left alone. It may belong to another business, and a
  * person is not a business.
  */
+/**
+ * Stop a business without destroying it.
+ *
+ * The only way to end a relationship was to delete the studio outright, taking
+ * every conversation, booking and client with it, permanently. Most reasons
+ * for stopping are not permanent — a salon goes quiet over winter, somebody
+ * stops paying and then pays — and none are worth losing a year of their
+ * bookings over.
+ *
+ * Archived means the assistant refuses to answer and they leave every figure
+ * and list, while everything they had stays where it is. Reversible on any
+ * day.
+ */
+export async function archiveBusiness(_prev: Result, fd: FormData): Promise<Result> {
+  const denied = await guard();
+  if (denied) return denied;
+
+  const id = String(fd.get("id") ?? "");
+  const restoring = fd.get("restore") === "1";
+  if (!id) return { error: "No business." };
+
+  const db = createAdminClient();
+  const { data: studio } = await db.from("studios").select("name").eq("id", id).maybeSingle();
+  if (!studio) return { error: "That business no longer exists." };
+
+  const { error } = await db
+    .from("studios")
+    .update({ archived_at: restoring ? null : new Date().toISOString() })
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin");
+  return {
+    ok: true,
+    note: restoring
+      ? `${studio.name} is back on. The assistant is answering for them again.`
+      : `${studio.name} is stopped. Nothing is lost, and the assistant has stopped answering — take the script off their site when you can.`,
+  };
+}
+
 export async function deleteBusiness(_prev: Result, fd: FormData): Promise<Result> {
   const denied = await guard();
   if (denied) return denied;
@@ -260,11 +300,32 @@ export async function deleteBusiness(_prev: Result, fd: FormData): Promise<Resul
   const typed = String(fd.get("confirm") ?? "").trim();
 
   const db = createAdminClient();
-  const { data: studio } = await db.from("studios").select("name").eq("id", id).maybeSingle();
+  const { data: studio } = await db
+    .from("studios")
+    .select("name, archived_at")
+    .eq("id", id)
+    .maybeSingle();
   if (!studio) return { error: "That business no longer exists." };
 
   if (typed !== studio.name) {
     return { error: `Type the name exactly — ${studio.name} — to delete it.` };
+  }
+
+  /*
+   * Only something already stopped can be deleted for good.
+   *
+   * Two deliberate acts on different days, rather than one typed name between
+   * a live business and permanent loss. Archiving does everything ending a
+   * relationship actually requires — they stop being served, they leave the
+   * figures — so there is never a reason to need both in the same minute, and
+   * a mistake made in the same minute is the one nobody recovers from.
+   */
+  if (!studio.archived_at) {
+    return {
+      error:
+        `${studio.name} is still live. Stop them first — then deleting is a separate ` +
+        "decision, and everything of theirs survives in the meantime.",
+    };
   }
 
   const { error } = await db.from("studios").delete().eq("id", id);

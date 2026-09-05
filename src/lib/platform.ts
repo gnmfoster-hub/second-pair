@@ -63,6 +63,8 @@ export type BusinessSummary = {
   vertical: string;
   /** customer counts in the figures; demo is for showing people; internal is ours. */
   kind: "customer" | "demo" | "internal";
+  /** Set when the business is stopped. Null means active. */
+  archivedAt: string | null;
   /** Inferred problems stay out of the attention panel until this date. */
   snoozedUntil: string | null;
   createdAt: string;

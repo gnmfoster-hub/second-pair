@@ -13,6 +13,7 @@ import {
   answerTicket,
   setKind,
   snoozeAttention,
+  archiveBusiness,
   type Result,
 } from "./actions";
 import { formatPence } from "@/lib/money";
@@ -265,6 +266,8 @@ function NeedsYou({ businesses }: { businesses: BusinessSummary[] }) {
        */
       const asked = b.tickets.filter((t) => t.status === "open");
       if (b.kind !== "customer" && asked.length === 0) return null;
+      // A stopped business cannot want anything doing.
+      if (b.archivedAt && asked.length === 0) return null;
       // Put down for a week, and nobody has asked anything since.
       const resting = b.snoozedUntil != null && b.snoozedUntil > today && asked.length === 0;
       if (resting) return null;
@@ -371,6 +374,7 @@ function Business({ b }: { b: BusinessSummary }) {
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-base font-semibold">{b.name}</h2>
             <StatusPill status={b.status} />
+            {b.archivedAt && <span className="pill bg-warn/10 text-warn">Stopped</span>}
             {b.kind !== "customer" && (
               <span className="pill bg-surface-2 text-muted">
                 {b.kind === "demo" ? "Demo" : "Ours"}
@@ -533,6 +537,29 @@ function since(iso: string): string {
   return `${Math.floor(days / 7)} weeks`;
 }
 
+/** Stopping a business, and starting it again. */
+function Stop({ b }: { b: BusinessSummary }) {
+  const [state, action] = useActionState<Result, FormData>(archiveBusiness, {});
+  const stopped = Boolean(b.archivedAt);
+
+  return (
+    <form action={action} className="flex flex-wrap items-center gap-3">
+      <input type="hidden" name="id" value={b.id} />
+      {stopped && <input type="hidden" name="restore" value="1" />}
+      <button className={`btn ${stopped ? "bg-accent text-on-accent" : "btn-ghost"}`}>
+        {stopped ? "Start them up again" : "Stop this business"}
+      </button>
+      <span className="hint">
+        {stopped
+          ? `Stopped ${new Date(b.archivedAt as string).toLocaleDateString("en-GB", { day: "numeric", month: "long" })}. Everything of theirs is still here.`
+          : "The assistant stops answering. Nothing is deleted, and you can start them again any time."}
+      </span>
+      {state.note && <span className="hint">{state.note}</span>}
+      {state.error && <span className="text-sm text-warn">{state.error}</span>}
+    </form>
+  );
+}
+
 /** A week's peace on something you already know about. */
 function Snooze({ id }: { id: string }) {
   const [state, action] = useActionState<Result, FormData>(snoozeAttention, {});
@@ -590,6 +617,17 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
         * Pair's own studio were all counted as businesses alongside two real
         * customers. This is the switch that decides.
         */}
+      {/*
+        * Stopping, which is what "we are done with each other" usually means.
+        *
+        * Deleting takes every conversation, booking and client with it and
+        * cannot be undone, and most reasons for stopping are not permanent — a
+        * salon goes quiet over winter, somebody stops paying and then pays. So
+        * this is the ordinary action and deletion is the rare one, taken later
+        * about something already switched off.
+        */}
+      <Stop b={b} />
+
       <form action={kindAction} className="flex flex-wrap items-center gap-2">
         <input type="hidden" name="id" value={b.id} />
         <span className="label mb-0">Counts as</span>

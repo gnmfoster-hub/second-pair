@@ -121,6 +121,23 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     .maybeSingle();
   if (!studio) throw new Error(`No studio with slug "${input.studioSlug}"`);
 
+  /*
+   * An archived business does not answer.
+   *
+   * This is the half that makes archiving mean anything. Without it a studio
+   * could be stopped in the back office, vanish from every list and figure,
+   * and carry on quoting prices and taking bookings on a website nobody had
+   * remembered to take the script off — for a business that is no longer a
+   * customer, with nobody watching the inbox.
+   *
+   * Thrown rather than answered blandly. The widget shows its "cannot reach
+   * us" state, which is true, and the alternative is an assistant improvising
+   * on behalf of somebody who is not paying us to represent them.
+   */
+  if (studio.archived_at) {
+    throw new Error(`${studio.slug} is archived and is not answering`);
+  }
+
   const [people, priced, asked, offered] = await Promise.all([
     db.from("artists").select("*").eq("studio_id", studio.id).order("created_at"),
     db.from("price_bands").select("*").eq("studio_id", studio.id).order("sort_order"),

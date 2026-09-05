@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
   const db = createAdminClient();
   const { data, error } = await db
     .from("studios")
-    .select("hours, timezone, widget_accent, widget_position, widget_teaser")
+    .select("hours, timezone, archived_at, widget_accent, widget_position, widget_teaser")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -39,6 +39,16 @@ export async function GET(request: NextRequest) {
    */
   if (error || !data) {
     return NextResponse.json({ open: false, line: "Ask us anything" });
+  }
+
+  /*
+   * A stopped business says nothing rather than "answering now".
+   *
+   * The launcher would otherwise keep promising an assistant that has been
+   * switched off, which is the one claim on the button that has to be true.
+   */
+  if (data.archived_at) {
+    return NextResponse.json({ open: false, line: "Ask us anything", accent: null, position: "right", teaser: null });
   }
 
   /*

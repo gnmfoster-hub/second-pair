@@ -62,7 +62,7 @@ export default async function AdminPage() {
     db
       .from("studios")
       .select(
-        "id, name, slug, vertical, kind, attention_snoozed_until, created_at, hours, plan, plan_pence, seat_limit, account_status, billing_started_on, account_note, channels_allowed, owner_name, owner_phone, trial_ends_on, timezone, tone, greeting, email, deposit_mode, deposit_rule, cancellation_policy, answering_mode, first_refusal_minutes, always_mention, never_mention, escalate_when, service_areas, travel_mode, travel_buffer_minutes, notice_hours, consultation_minutes, max_session_minutes, vat_registered, vat_rate_percent, prices_include_vat, vat_number, privacy_notice_url, terms_url, stripe_account_id, diary_colour",
+        "id, name, slug, vertical, kind, archived_at, attention_snoozed_until, created_at, hours, plan, plan_pence, seat_limit, account_status, billing_started_on, account_note, channels_allowed, owner_name, owner_phone, trial_ends_on, timezone, tone, greeting, email, deposit_mode, deposit_rule, cancellation_policy, answering_mode, first_refusal_minutes, always_mention, never_mention, escalate_when, service_areas, travel_mode, travel_buffer_minutes, notice_hours, consultation_minutes, max_session_minutes, vat_registered, vat_rate_percent, prices_include_vat, vat_number, privacy_notice_url, terms_url, stripe_account_id, diary_colour",
       )
       .order("created_at"),
     db.from("studio_members").select("studio_id, user_id, role").eq("role", "owner"),
@@ -154,6 +154,7 @@ export default async function AdminPage() {
         slug: s.slug,
         vertical: s.vertical,
         kind: (s.kind ?? "customer") as BusinessSummary["kind"],
+        archivedAt: s.archived_at ?? null,
         snoozedUntil: s.attention_snoozed_until ?? null,
         createdAt: s.created_at,
         owners: (members ?? [])
@@ -273,7 +274,14 @@ export default async function AdminPage() {
    * they happened to, and excluding a demo's enquiries would understate what
    * the assistant has actually done.
    */
-  const counted = summaries.filter((b) => b.kind === "customer");
+  /*
+   * Stopped businesses leave the figures entirely.
+   *
+   * They are not customers any more — counting them would overstate what the
+   * platform is earning and, worse, keep them in the attention list asking to
+   * be set up.
+   */
+  const counted = summaries.filter((b) => b.kind === "customer" && !b.archivedAt);
 
   const kpis: PlatformKpis = {
     businesses: counted.length,
