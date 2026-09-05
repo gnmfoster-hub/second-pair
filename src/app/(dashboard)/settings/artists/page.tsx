@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { siteOrigin } from "@/lib/origin";
 
 export default async function ArtistsPage() {
-  const { studio } = await requireStudio();
+  const { studio, userId } = await requireStudio();
   const [artists, options] = await Promise.all([
     getArtists(studio.id),
     getServiceOptions(studio.id),
@@ -46,6 +46,17 @@ export default async function ArtistsPage() {
     .maybeSingle();
 
   const ownerUserId = ownerRow?.user_id ?? null;
+  const owns = ownerUserId != null && ownerUserId === userId;
+
+  /*
+   * A worker sees themselves, and nobody else.
+   *
+   * The page listed everybody with an editable form for each, so a stylist
+   * could fill in a colleague's rates and only then be told she may not. A
+   * form you are offered and then refused is worse than one you were never
+   * shown — and it also suggests those details are hers to change.
+   */
+  const editable = owns ? artists : artists.filter((a) => a.user_id === userId);
 
   return (
     <div className="space-y-3">
@@ -64,21 +75,28 @@ export default async function ArtistsPage() {
             );
           })()}
         </p>
-        <p className="hint mt-2 max-w-prose">
-          Anybody you send a link to sets their own password, then fills in their own
-          hours, rates and days off. You do not have to do it for them, and they cannot
-          change anybody else&rsquo;s.
-        </p>
+        {owns ? (
+          <p className="hint mt-2 max-w-prose">
+            Anybody you send a link to sets their own password, then fills in their own
+            hours, rates and days off. You do not have to do it for them, and they cannot
+            change anybody else&rsquo;s &mdash; including yours.
+          </p>
+        ) : (
+          <p className="hint mt-2 max-w-prose">
+            Below are your own hours, rates and days off. Keep them up to date and the
+            assistant quotes and books you correctly. Nobody else can change them.
+          </p>
+        )}
       </div>
 
-      {artists.length === 0 && (
+      {editable.length === 0 && (
         <p className="hint">
           No {words.practitioners} yet. The assistant cannot quote anything until at least
           one has an hourly rate and a minimum charge.
         </p>
       )}
 
-      {artists.map((artist) => (
+      {editable.map((artist) => (
         <div key={artist.id} className="space-y-2">
           <ArtistEditor
             artist={artist}
@@ -89,8 +107,10 @@ export default async function ArtistsPage() {
             isOwner={Boolean(artist.user_id) && artist.user_id === ownerUserId}
           />
           {/* Offered once somebody exists, never as a step in creating them —
-              plenty of people here will never sign in at all. */}
-          <div className="flex justify-end px-1">
+              plenty of people here will never sign in at all. Handing out a
+              login is the owner's, which the action already enforces; showing
+              it to anybody else only offers something that will be refused. */}
+          <div className={`flex justify-end px-1 ${owns ? "" : "hidden"}`}>
             <InviteButton
               artistId={artist.id}
               name={artist.name}
@@ -102,12 +122,16 @@ export default async function ArtistsPage() {
         </div>
       ))}
 
-      <ArtistEditor
-        styles={styles}
-        studioHours={studio.hours}
-        noun={words.practitioner}
-        roles={pack.roles}
-      />
+      {/* Adding somebody to the business is the owner's, so the blank form at
+          the bottom is too. */}
+      {owns && (
+        <ArtistEditor
+          styles={styles}
+          studioHours={studio.hours}
+          noun={words.practitioner}
+          roles={pack.roles}
+        />
+      )}
     </div>
   );
 }

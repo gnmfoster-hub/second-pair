@@ -158,8 +158,45 @@ function slugify(value: string): string {
 }
 
 export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormState> {
-  const { studio } = await requireStudio();
+  const { studio, userId } = await requireStudio();
   const supabase = await createClient();
+
+  /*
+   * The owner, or the person themselves. Nobody else.
+   *
+   * Every business setting is the owner's, and this one is not quite: a
+   * stylist's hours, rates and days off are hers to keep up to date, and
+   * making her ask somebody to change them is how they stop being accurate.
+   *
+   * But it was open to anybody with a login, so one member of staff could
+   * change another's rates — or add somebody, or delete them. Adding and
+   * removing people is the owner's; changing your own details is yours.
+   */
+  const target = str(fd, "id");
+  const owns = await isOwner();
+
+  if (!owns) {
+    if (!target) {
+      return { error: "Only the owner can add somebody to the business." };
+    }
+
+    const { data: theirs } = await supabase
+      .from("artists")
+      .select("user_id")
+      .eq("id", target)
+      .eq("studio_id", studio.id)
+      .maybeSingle();
+
+    // Not being able to tell is not permission. A record that will not load is
+    // not one to let somebody edit.
+    if (!theirs || theirs.user_id !== userId) {
+      return { error: "You can only change your own details." };
+    }
+
+    if (str(fd, "intent") === "delete") {
+      return { error: "Only the owner can remove somebody from the business." };
+    }
+  }
 
   if (str(fd, "intent") === "delete") {
     const { error } = await supabase.from("artists").delete().eq("id", str(fd, "id"));
