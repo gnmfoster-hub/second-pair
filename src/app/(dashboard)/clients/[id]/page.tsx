@@ -10,6 +10,7 @@ import { MessageClient } from "./MessageClient";
 import { routesFor } from "@/lib/messaging/reach";
 import { connectedChannels } from "@/lib/messaging/connections";
 import { canMessage } from "@/lib/permissions";
+import { Forget } from "./Forget";
 
 type ContactRow = {
   id: string;
@@ -249,6 +250,10 @@ export default async function ClientPage({
           </section>
         </aside>
       </div>
+
+      {/* Last, and folded away. Rare, permanent, and the one thing on this
+          page that cannot be taken back. */}
+      <Forget id={contact.id} name={contact.name} />
     </div>
   );
 }

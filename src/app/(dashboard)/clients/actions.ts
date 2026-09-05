@@ -7,6 +7,9 @@ import { requireStudio } from "@/lib/studio";
 
 export type NewClientState = { error?: string };
 
+/** Erasing says only whether it refused; success leaves the page entirely. */
+export type ForgetState = { error?: string };
+
 const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
 
 /**
@@ -77,4 +80,89 @@ export async function addClient(
 
   revalidatePath("/clients");
   redirect(`/clients/${data.id}`);
+}
+
+/**
+ * Erase a client, and everything that was ever said to them.
+ *
+ * Somebody can ask a business to delete them and the business has to be able
+ * to do it — that is the law, not a preference, and until now there was no way
+ * at all. A salon receiving that request had nothing to offer but an apology.
+ *
+ * Their appointments are kept and stripped rather than removed. A booking is
+ * the business's own record of a day it worked: the diary would develop holes
+ * where somebody used to be, last year's takings would quietly change, and a
+ * person who was in the chair for three hours would have never existed. What
+ * has to go is who they were, not that the afternoon happened.
+ */
+export async function forgetClient(_prev: ForgetState, fd: FormData): Promise<ForgetState> {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  const id = String(fd.get("id") ?? "");
+  const typed = String(fd.get("confirm") ?? "").trim();
+  if (!id) return { error: "No client." };
+
+  const { data: contact } = await supabase
+    .from("contacts")
+    .select("id, name")
+    .eq("id", id)
+    .eq("studio_id", studio.id)
+    .maybeSingle();
+
+  if (!contact) return { error: "That client is not here any more." };
+
+  /*
+   * Their name typed out, because this cannot be undone and a misclick in a
+   * list is exactly how the wrong person gets erased.
+   *
+   * A client added from a diary entry may have no name at all, and comparing
+   * against null would make them impossible to erase — the one outcome the law
+   * does not allow. Those confirm with a word instead.
+   */
+  const mustType = contact.name?.trim() || "this client";
+  if (typed !== mustType) {
+    return { error: `Type ${mustType} exactly to erase them.` };
+  }
+
+  const { data: convs } = await supabase
+    .from("conversations")
+    .select("id")
+    .eq("studio_id", studio.id)
+    .eq("contact_id", id);
+
+  const convIds = (convs ?? []).map((c) => c.id);
+
+  if (convIds.length) {
+    /*
+     * Children first. Messages hold the actual conversation — the thing most
+     * worth erasing — and enquiries hold what was asked for.
+     */
+    const { error: msgError } = await supabase
+      .from("messages")
+      .delete()
+      .in("conversation_id", convIds);
+    if (msgError) return { error: `Could not remove their messages: ${msgError.message}` };
+
+    await supabase.from("enquiries").delete().in("conversation_id", convIds);
+    await supabase.from("conversations").delete().in("id", convIds);
+  }
+
+  /*
+   * The appointments stay, without a person attached.
+   *
+   * Anonymising rather than deleting: the diary keeps its shape, the accounts
+   * still add up, and nothing personal is left on the row.
+   */
+  const { error: bookingError } = await supabase
+    .from("bookings")
+    .update({ contact_id: null, title: "Erased at their request", notes: null })
+    .eq("contact_id", id);
+  if (bookingError) return { error: `Could not clear their appointments: ${bookingError.message}` };
+
+  const { error } = await supabase.from("contacts").delete().eq("id", id).eq("studio_id", studio.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/clients");
+  redirect("/clients?erased=1");
 }
