@@ -142,6 +142,17 @@ export async function createBusiness(_prev: Result, fd: FormData): Promise<Resul
   const ownerName = String(fd.get("owner") ?? "").trim();
   const { error: artistError } = await db.from("artists").insert({
     studio_id: studio.id,
+    /*
+     * The owner is a person in the business, not just a login.
+     *
+     * Accepting an invitation links a login to the person record it was sent
+     * for — so every member of staff is joined up, and the one who founded the
+     * business was not. Dave Bone owned Living Canvas and the system had no
+     * idea that the login and the tattooist were the same man: his own diary
+     * was somebody else's as far as the product was concerned, and nothing
+     * could say who the owner was.
+     */
+    user_id: userId,
     // Their own name if we were given one; otherwise the business's, which is
     // right far more often than not for one person working alone.
     name: ownerName || name,

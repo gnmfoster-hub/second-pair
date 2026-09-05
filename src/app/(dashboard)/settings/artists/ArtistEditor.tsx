@@ -17,6 +17,7 @@ export function ArtistEditor({
   styles,
   noun,
   roles,
+  isOwner,
 }: {
   artist?: Artist;
   /** Shown as the fallback when this person has no week of their own. */
@@ -25,6 +26,8 @@ export function ArtistEditor({
   /** What this trade calls them: artist, stylist, engineer. */
   noun: string;
   /** The roles this trade usually has. Suggestions, not a fixed list. */
+  /** The person who set the business up. They alone can change it. */
+  isOwner?: boolean;
   roles: string[];
 }) {
   const [state, action] = useActionState<FormState, FormData>(saveArtist, {});
@@ -56,6 +59,11 @@ export function ArtistEditor({
               * shown beside their name from then on.
               */}
             {artist?.name ?? "Add someone"}
+            {/* Said beside the name, because the question it answers — who can
+                change the prices — is asked while looking at the list. */}
+            {isOwner && (
+              <span className="ml-2 pill bg-accent/10 text-accent align-middle">Owner</span>
+            )}
             {artist && !artist.active && (
               <span className="ml-2 text-xs text-muted">(inactive)</span>
             )}
