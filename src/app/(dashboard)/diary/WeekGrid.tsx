@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   useCallback,
   useEffect,
@@ -177,6 +178,43 @@ export function WeekGrid({
   day: string;
   colourBy: ColourMode;
 }) {
+  const router = useRouter();
+
+  /*
+   * Swipe across to change the day.
+   *
+   * On a phone the only way to move between days was two small arrows in a
+   * header that scrolls away, so getting to tomorrow meant scrolling up,
+   * aiming at a 32-pixel target, and scrolling back down to where you were.
+   * Every calendar on a phone swipes, and an owner checking the diary between
+   * clients is doing it one-handed.
+   *
+   * Horizontal only, and only when it is clearly horizontal: a diagonal drag
+   * on a long day is somebody scrolling, and stealing that would be worse than
+   * having no gesture at all.
+   */
+  const swipe = useRef<{ x: number; y: number } | null>(null);
+
+  const swipeStart = (event: React.PointerEvent) => {
+    if (event.pointerType !== "touch" || view !== "day") return;
+    swipe.current = { x: event.clientX, y: event.clientY };
+  };
+
+  const swipeEnd = (event: React.PointerEvent) => {
+    const from = swipe.current;
+    swipe.current = null;
+    if (!from || view !== "day") return;
+
+    const across = event.clientX - from.x;
+    const down = Math.abs(event.clientY - from.y);
+
+    // Far enough to be deliberate, and more sideways than up and down.
+    if (Math.abs(across) < 60 || Math.abs(across) < down * 1.6) return;
+
+    const to = new Date(`${day}T12:00:00Z`);
+    to.setUTCDate(to.getUTCDate() + (across < 0 ? 1 : -1));
+    router.push(`/diary?view=day&day=${to.toISOString().slice(0, 10)}`);
+  };
   /*
    * Which entry is open, not a copy of it.
    *
@@ -450,7 +488,21 @@ export function WeekGrid({
         </div>
       )}
 
-      <div ref={scroller} className="max-h-[70vh] overflow-auto">
+      {/*
+        * Taller on a phone, and it swipes.
+        *
+        * 70% of the viewport left the grid in a short window with the page
+        * scrolling behind it — two scrolls fighting each other, which is most
+        * of why this was hard to use one-handed. On a phone it takes the
+        * screen it needs; on a desktop it stays a panel among others.
+        */}
+      <div
+        ref={scroller}
+        onPointerDown={swipeStart}
+        onPointerUp={swipeEnd}
+        onPointerCancel={() => (swipe.current = null)}
+        className="max-h-[calc(100dvh-13rem)] overflow-auto sm:max-h-[70vh]"
+      >
         {/* ------------------------------------------------ headings */}
         <div
           data-diary-headings
@@ -627,23 +679,80 @@ export function WeekGrid({
                     if (el) columnBoxes.current.set(col.key, el);
                     else columnBoxes.current.delete(col.key);
                   }}
+                  /*
+                   * On a phone, scrolling wins.
+                   *
+                   * This started a drag the instant a finger touched the grid,
+                   * and the column had touch-none, which switches off browser
+                   * scrolling altogether. So every attempt to scroll the day
+                   * was a drag, and every drag made an appointment: the diary
+                   * could not be read on the device it is mostly read on.
+                   *
+                   * A mouse still gets what it always had — press and drag out
+                   * a time, click to add an hour — because a mouse has no
+                   * other use for a press, and a pointer that moves is
+                   * unambiguous.
+                   *
+                   * A finger has to hold still for a moment first. A press
+                   * that turns into a scroll is a scroll; a press that stays
+                   * put is somebody choosing a time, which is the same
+                   * distinction every calendar on a phone already makes.
+                   */
                   onPointerDown={(event) => {
                     const box = event.currentTarget.getBoundingClientRect();
                     const at =
                       Math.round(
                         (((event.clientY - box.top) / HOUR_HEIGHT) * 60) / SNAP_MINUTES,
                       ) * SNAP_MINUTES;
-                    begin(event, {
-                      kind: "create",
-                      startMinutes: at,
-                      endMinutes: at + 60,
-                      columnKey: col.key,
-                    });
+
+                    const start = () =>
+                      begin(event, {
+                        kind: "create",
+                        startMinutes: at,
+                        endMinutes: at + 60,
+                        columnKey: col.key,
+                      });
+
+                    if (event.pointerType !== "touch") {
+                      start();
+                      return;
+                    }
+
+                    // Held still long enough to mean it.
+                    const from = { x: event.clientX, y: event.clientY };
+                    const held = window.setTimeout(() => {
+                      // A short buzz, where the device offers one, so it is
+                      // obvious the diary has taken over from the page.
+                      navigator.vibrate?.(8);
+                      setCreating({
+                        date: col.date,
+                        time: hhmm(at),
+                        artistId: col.artist?.id,
+                      });
+                    }, 450);
+
+                    const moved = (m: PointerEvent) => {
+                      if (Math.abs(m.clientY - from.y) > 8 || Math.abs(m.clientX - from.x) > 8) {
+                        window.clearTimeout(held);
+                        stop();
+                      }
+                    };
+                    const stop = () => {
+                      window.clearTimeout(held);
+                      window.removeEventListener("pointermove", moved);
+                      window.removeEventListener("pointerup", stop);
+                      window.removeEventListener("pointercancel", stop);
+                    };
+                    window.addEventListener("pointermove", moved);
+                    window.addEventListener("pointerup", stop);
+                    window.addEventListener("pointercancel", stop);
                   }}
                   onClick={(event) => {
                     // A plain click still adds an hour here; the drag only
-                    // takes over once the pointer has actually moved.
-                    if (drag) return;
+                    // takes over once the pointer has actually moved. Touch is
+                    // handled above — a tap must never make an appointment,
+                    // because a tap is how somebody stops a scroll.
+                    if (drag || (event.nativeEvent as PointerEvent).pointerType === "touch") return;
                     const box = event.currentTarget.getBoundingClientRect();
                     const at =
                       Math.round(
@@ -655,7 +764,7 @@ export function WeekGrid({
                       artistId: col.artist?.id,
                     });
                   }}
-                  className={`relative flex-1 cursor-copy touch-none border-r border-cal-grid last:border-r-0 ${
+                  className={`relative flex-1 cursor-copy touch-pan-y border-r border-cal-grid last:border-r-0 ${
                     isToday
                       ? "bg-accent/[0.045]"
                       : view === "week" &&
@@ -786,15 +895,59 @@ export function WeekGrid({
                     return (
                       <div
                         key={e.id}
-                        onPointerDown={(event) =>
-                          begin(event, {
-                            kind: "move",
-                            id: e.id,
-                            startMinutes,
-                            endMinutes,
-                            columnKey: col.key,
-                          })
-                        }
+                        /*
+                         * A finger on an appointment is usually a scroll.
+                         *
+                         * A busy diary is mostly cards, so blocking touch here
+                         * blocked scrolling almost everywhere — and a press
+                         * started moving somebody's booking immediately, which
+                         * is the most alarming thing this screen can do by
+                         * accident.
+                         *
+                         * Held still, it moves. Dragged, it scrolls. Tapped,
+                         * it opens — which is what a tap on an appointment
+                         * should have always meant.
+                         */
+                        onPointerDown={(event) => {
+                          const move = () =>
+                            begin(event, {
+                              kind: "move",
+                              id: e.id,
+                              startMinutes,
+                              endMinutes,
+                              columnKey: col.key,
+                            });
+
+                          if (event.pointerType !== "touch") {
+                            move();
+                            return;
+                          }
+
+                          const from = { x: event.clientX, y: event.clientY };
+                          const held = window.setTimeout(() => {
+                            navigator.vibrate?.(8);
+                            move();
+                          }, 450);
+
+                          const moved = (m: PointerEvent) => {
+                            if (
+                              Math.abs(m.clientY - from.y) > 8 ||
+                              Math.abs(m.clientX - from.x) > 8
+                            ) {
+                              window.clearTimeout(held);
+                              stop();
+                            }
+                          };
+                          const stop = () => {
+                            window.clearTimeout(held);
+                            window.removeEventListener("pointermove", moved);
+                            window.removeEventListener("pointerup", stop);
+                            window.removeEventListener("pointercancel", stop);
+                          };
+                          window.addEventListener("pointermove", moved);
+                          window.addEventListener("pointerup", stop);
+                          window.addEventListener("pointercancel", stop);
+                        }}
                         onClick={(event) => {
                           event.stopPropagation();
                           // A drag that moved is not a click to open.
@@ -809,7 +962,7 @@ export function WeekGrid({
                             setEditing(e);
                           }
                         }}
-                        className={`group absolute touch-none overflow-hidden rounded-lg px-2 py-1 text-left text-[11px] leading-tight transition-[box-shadow,opacity] hover:z-20 hover:shadow-[var(--shadow-pop)] focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                        className={`group absolute touch-pan-y overflow-hidden rounded-lg px-2 py-1 text-left text-[11px] leading-tight transition-[box-shadow,opacity] hover:z-20 hover:shadow-[var(--shadow-pop)] focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                           dragging ? "opacity-30" : "cursor-grab active:cursor-grabbing"
                         }`}
                         style={{

@@ -90,7 +90,20 @@ export function EntryDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4"
+      /*
+        * A sheet on a phone, a dialog on a desktop.
+        *
+        * Centred with padding, this floated in the middle of a small screen
+        * with its buttons somewhere under the keyboard, and 88vh is taller
+        * than a phone actually shows — vh ignores the browser chrome, so the
+        * bottom of the box, which is where Save is, sat below the fold with no
+        * way to reach it. Somebody adding a booking between clients could fill
+        * the form in and not be able to finish it.
+        *
+        * Anchored to the bottom it opens where the thumb already is, and dvh
+        * measures what the screen is really showing.
+        */
+      className="fixed inset-0 z-50 grid place-items-end bg-black/45 p-0 sm:place-items-center sm:p-4"
       onClick={onClose}
       role="presentation"
     >
@@ -100,7 +113,7 @@ export function EntryDialog({
         aria-modal="true"
         aria-label={existing ? "Edit diary entry" : "Add to the diary"}
         onClick={(e) => e.stopPropagation()}
-        className="card max-h-[88vh] w-full max-w-lg overflow-y-auto p-6"
+        className="card max-h-[88dvh] w-full max-w-lg overflow-y-auto rounded-b-none p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:rounded-2xl sm:p-6 sm:pb-6"
       >
         <div className="flex items-start justify-between gap-4">
           <h2 className="section-title">
