@@ -379,6 +379,7 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     depositPence: 0,
     origin: input.origin,
     contactEmail: null,
+    channel: input.channel,
     signedIn: input.signedIn ?? null,
     raisedFor: input.raisedFor ?? null,
   });
@@ -507,7 +508,14 @@ async function generateReply(
   ctx.contactEmail = (contact as { email?: string | null } | null)?.email ?? null;
 
   // Whose link they arrived on decides who the assistant may offer.
-  const tools = toolDefinitions(ctx.bands, ctx.artists, ctx.options, ctx.studio, ctx.forArtist);
+  const tools = toolDefinitions(
+    ctx.bands,
+    ctx.artists,
+    ctx.options,
+    ctx.studio,
+    ctx.forArtist,
+    ctx.channel,
+  );
   const system = studioSystemPrompt(
     ctx.studio,
     ctx.artists,

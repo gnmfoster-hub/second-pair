@@ -12,15 +12,28 @@ export function whoCanBeOffered(
   artists: Artist[],
   studio: { offers_artists?: string[] | null },
   forArtist?: Artist | null,
+  /**
+   * Which channel the customer arrived on.
+   *
+   * The website is the shop window — one address, and whoever the owner has
+   * decided it speaks for. Every other channel is somebody's own: a text goes
+   * to one person's number, an Instagram message to one person's account, and
+   * the person on the other end is asking that person. Offering a colleague's
+   * diary down somebody's private number would be answering a question nobody
+   * asked, on a phone that is not ours.
+   */
+  channel: string = "web",
 ): Artist[] {
   const active = artists.filter((a) => a.active);
 
   if (forArtist) {
     /*
-     * Their own link. Themselves first, always — somebody who scanned a code
-     * on one person's card is asking for that person.
+     * Their own link, or their own number. Themselves first, always —
+     * somebody who scanned a code on one person's card is asking for that
+     * person.
      */
-    const scope = forArtist.agent_scope ?? "only_me";
+    const onTheirOwnChannel = channel !== "web";
+    const scope = onTheirOwnChannel ? "only_me" : (forArtist.agent_scope ?? "only_me");
     if (scope === "only_me") return active.filter((a) => a.id === forArtist.id);
 
     const others = active.filter((a) => a.id !== forArtist.id);

@@ -88,6 +88,8 @@ export type Studio = {
   /** Hex without the hash. Null means our own navy. */
   /** customer counts in the figures; demo is for showing people; internal is ours. */
   kind: "customer" | "demo" | "internal";
+  /** Set when the business is stopped. The assistant answers nobody. */
+  archived_at: string | null;
   /** Which people the business assistant may offer. Null means everyone active. */
   offers_artists: string[] | null;
   widget_accent: string | null;

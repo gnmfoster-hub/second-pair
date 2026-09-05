@@ -31,6 +31,14 @@ export type ToolContext = {
   /** Current enquiry state, so a tool can pick the right band and person. */
   enquirySizeBandId: string | null;
   /**
+   * How the customer reached them.
+   *
+   * The website is the shop window and can speak for several people; every
+   * other channel is somebody's own number or account, and speaks only for
+   * them.
+   */
+  channel: string;
+  /**
    * For support conversations: the business the person asking belongs to, so
    * an unanswerable question can be raised as a request in their own account.
    * Null everywhere else, and nothing depends on it being set.
@@ -64,6 +72,8 @@ export function toolDefinitions(
   studio: Studio,
   /** Whose link the customer arrived on, when it was somebody's own. */
   forArtist?: Artist | null,
+  /** The website routes; a private number never does. */
+  channel: string = "web",
 ): Anthropic.Tool[] {
   const bandLabels = bands.map((b) => b.size_label);
   /*
@@ -80,7 +90,7 @@ export function toolDefinitions(
    * are happy to cover. Locked to themselves is right for most people and
    * wrong for a receptionist, or for two colleagues who cover for each other.
    */
-  const offerable = whoCanBeOffered(artists, studio, forArtist);
+  const offerable = whoCanBeOffered(artists, studio, forArtist, channel);
   const artistNames = offerable.map((a) => a.name);
   const styleValues = options.filter((o) => o.kind === "style").map((o) => o.value);
   const intentValues = options.filter((o) => o.kind === "intent").map((o) => o.value);

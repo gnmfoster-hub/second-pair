@@ -29,7 +29,7 @@ export async function releaseHeldConversations(
   const { data: due } = await db
     .from("conversations")
     .select(
-      "id, external_ref, channel, ai_paused, last_message_at, studios(slug, name), contacts(phone, email, page_scoped_id)",
+      "id, external_ref, channel, ai_paused, last_message_at, studios(slug, name, archived_at), contacts(phone, email, page_scoped_id)",
     )
     .lte("hold_until", now)
     .not("hold_until", "is", null)
@@ -42,12 +42,27 @@ export async function releaseHeldConversations(
 
   for (const conversation of due ?? []) {
     // PostgREST returns a to-one embed as an object, not an array.
-    const studio = conversation.studios as unknown as { slug: string; name: string } | null;
+    const studio = conversation.studios as unknown as {
+      slug: string;
+      name: string;
+      archived_at: string | null;
+    } | null;
     const contact = conversation.contacts as unknown as {
       phone: string | null;
       email: string | null;
       page_scoped_id: string | null;
     } | null;
+
+    /*
+     * A stopped business answers nobody.
+     *
+     * This is the assistant replying on the owner's behalf to an enquiry they
+     * did not pick up. Running it for a business that has been stopped would
+     * have it speaking in their name, to their customer, after they stopped
+     * being a customer of ours — the same fault as the widget and the
+     * reminders, in the one place nobody is watching.
+     */
+    if (studio?.archived_at) continue;
 
     if (!studio || !conversation.external_ref) {
       // Nothing we can act on. Clear it rather than looking at it every sweep.

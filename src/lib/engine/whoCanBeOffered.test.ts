@@ -92,3 +92,34 @@ test("a personal link ignores the business's own choice", () => {
 test("someone who has left is not offered even on their own link", () => {
   assert.deepEqual(names(whoCanBeOffered(everyone, {}, gone)), []);
 });
+
+// ------------------------- the website routes; a private number never does
+
+test("a text to somebody's own number only ever books them", () => {
+  /*
+   * The website is the shop window: one address, speaking for whoever the
+   * owner has chosen. Every other channel is somebody's own — a text to one
+   * person's number, an Instagram message to one person's account — and the
+   * person on the other end is asking that person.
+   *
+   * So the setting that lets somebody's *link* cover for colleagues must not
+   * follow them onto their phone. Offering a colleague's diary down a private
+   * number answers a question nobody asked.
+   */
+  const covering = person("dave", { agent_scope: "anyone" });
+
+  const onTheWeb = whoCanBeOffered(everyone, {}, covering, "web");
+  assert.ok(names(onTheWeb).length > 1, "their own web link may cover for others");
+
+  for (const channel of ["sms", "whatsapp", "instagram", "messenger", "email"]) {
+    const offered = whoCanBeOffered(everyone, {}, covering, channel);
+    assert.deepEqual(names(offered), ["dave"], `${channel} offered somebody else`);
+  }
+});
+
+test("the business widget still routes when nobody owns the channel", () => {
+  // No forArtist means the shop window, whatever the channel is called.
+  assert.deepEqual(names(whoCanBeOffered(everyone, {}, null, "web")), [
+    "dave", "nadia", "apprentice",
+  ]);
+});

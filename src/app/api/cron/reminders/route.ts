@@ -77,6 +77,20 @@ export async function GET(request: NextRequest) {
   const failures: string[] = [];
 
   for (const studio of (studios ?? []) as Studio[]) {
+    /*
+     * A stopped business does not message anybody.
+     *
+     * Stopping silences the assistant on the website, and this ran on
+     * regardless — so the night after a business was stopped, texts and emails
+     * would still go out to its customers, in its name, from a company that is
+     * no longer its supplier. Worse than the widget answering, because nobody
+     * asked for these and there is nothing on screen to explain them.
+     *
+     * The appointments themselves are untouched. If the business comes back
+     * next week, so do the reminders.
+     */
+    if (studio.archived_at) continue;
+
     try {
       const result = await sendDueReminders(db, studio);
       due += result.due;
