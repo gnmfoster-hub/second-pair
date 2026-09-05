@@ -70,7 +70,12 @@ const ago = (iso: string) => {
   return days === 1 ? "yesterday" : `${days}d ago`;
 };
 
-export default async function InboxPage() {
+export default async function InboxPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ whose?: string }>;
+}) {
+  const { whose } = await searchParams;
   const { studio, userId } = await requireStudio();
   const supabase = await createClient();
 
@@ -103,6 +108,16 @@ export default async function InboxPage() {
 
   const owns = membership?.role === "owner";
 
+  // Only the owner is offered the choice, so only they need the list.
+  const { data: team } = owns
+    ? await supabase
+        .from("artists")
+        .select("id, name")
+        .eq("studio_id", studio.id)
+        .eq("active", true)
+        .order("name")
+    : { data: [] as { id: string; name: string }[] };
+
   let inbox = supabase
     .from("conversations")
     .select(
@@ -129,12 +144,33 @@ export default async function InboxPage() {
    * administrator — sees the unclaimed ones too. They are here to answer
    * people, and hiding everything from them would leave them an empty screen.
    */
-  if (me?.id && !owns) {
-    inbox = inbox.eq("artist_id", me.id);
-  } else if (me?.id) {
-    inbox = inbox.or(`artist_id.eq.${me.id},artist_id.is.null`);
-  } else {
+  /*
+   * A worker sees their own. The owner can see anybody's.
+   *
+   * Not the same thing as the owner seeing everything by default: their own
+   * inbox is still theirs, and a shop with four stylists would otherwise bury
+   * the owner's own enquiries under everybody else's. But when something needs
+   * sorting out — somebody is off, a customer has been waiting — they can look
+   * at whoever they need to without asking.
+   *
+   * Anything nobody has claimed goes to the owner either way. A website
+   * enquiry can arrive before a person is chosen, and those belong to whoever
+   * runs the place until they are.
+   */
+  const looking = owns ? whose : null;
+
+  if (!me?.id && !owns) {
+    // A login with no diary of their own — a manager, an administrator. They
+    // are here to answer people, so they get the unclaimed rather than nothing.
     inbox = inbox.is("artist_id", null);
+  } else if (owns && looking === "everyone") {
+    // Everything, for sorting something out.
+  } else if (owns && looking) {
+    inbox = inbox.eq("artist_id", looking);
+  } else if (owns) {
+    inbox = inbox.or(`artist_id.eq.${me?.id ?? ""},artist_id.is.null`);
+  } else {
+    inbox = inbox.eq("artist_id", me!.id);
   }
 
   const { data } = await inbox;
@@ -192,6 +228,31 @@ export default async function InboxPage() {
        * The darker orange, not the bright one: the bright one is for a solid
        * fill behind ink, and as text on paper it does not pass contrast.
        */}
+      {/*
+        * Whose enquiries, for the owner only.
+        *
+        * Their own by default: a shop with four stylists would otherwise bury
+        * the owner's own work under everybody else's. The rest are a click
+        * away for when something needs sorting out.
+        */}
+      {owns && (team ?? []).length > 1 && (
+        <div className="mt-5 flex flex-wrap items-center gap-1.5">
+          <WhoseLink href="/" current={whose} match={undefined}>
+            Mine
+          </WhoseLink>
+          <WhoseLink href="/?whose=everyone" current={whose} match="everyone">
+            Everyone
+          </WhoseLink>
+          {(team ?? [])
+            .filter((a) => a.id !== me?.id)
+            .map((a) => (
+              <WhoseLink key={a.id} href={`/?whose=${a.id}`} current={whose} match={a.id}>
+                {a.name}
+              </WhoseLink>
+            ))}
+        </div>
+      )}
+
       {/*
        * One card, ruled inside — the same figures the back office uses.
        *
@@ -363,5 +424,32 @@ export default async function InboxPage() {
         )}
       </div>
     </Page>
+  );
+}
+
+/** One choice in the owner's "whose enquiries" row. */
+function WhoseLink({
+  href,
+  current,
+  match,
+  children,
+}: {
+  href: string;
+  current: string | undefined;
+  match: string | undefined;
+  children: React.ReactNode;
+}) {
+  const on = current === match;
+  return (
+    <Link
+      href={href}
+      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+        on
+          ? "border-accent bg-accent/10 text-accent"
+          : "border-border text-muted hover:text-foreground"
+      }`}
+    >
+      {children}
+    </Link>
   );
 }
