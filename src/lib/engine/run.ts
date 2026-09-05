@@ -13,6 +13,7 @@ import {
 import { toolDefinitions, executeTool, type ToolContext } from "./tools";
 import { depositFor, quoteForStudio } from "@/lib/quote";
 import type { Artist, Channel, Faq, PriceBand, ServiceOption, Studio } from "@/lib/types";
+import { NotAnswering } from "./errors";
 
 /**
  * Overridable so a cheaper model can be measured against the guardrail suite
@@ -135,7 +136,13 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
    * on behalf of somebody who is not paying us to represent them.
    */
   if (studio.archived_at) {
-    throw new Error(`${studio.slug} is archived and is not answering`);
+    throw new NotAnswering(
+      `${studio.slug} is archived and is not answering`,
+      // Said plainly, and without inviting a retry that cannot work. It does
+      // not say why — that is between us and the business, not something to
+      // explain to somebody who just wanted a haircut.
+      "This business is not taking messages here at the moment. Please contact them directly.",
+    );
   }
 
   const [people, priced, asked, offered] = await Promise.all([

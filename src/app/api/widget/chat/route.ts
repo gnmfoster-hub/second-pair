@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { runTurn } from "@/lib/engine/run";
 import { hasAnthropicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
+import { NotAnswering } from "@/lib/engine/errors";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -150,6 +151,19 @@ export async function POST(request: NextRequest) {
       moments: result.moments,
     });
   } catch (error) {
+    /*
+     * One kind of failure is worth explaining.
+     *
+     * "Try again" is right for almost everything, because trying again is
+     * genuinely what to do. It is wrong for a business that has been stopped:
+     * nothing is broken, retrying will never work, and the script is often
+     * still on a website whose owner is no longer a customer.
+     */
+    if (error instanceof NotAnswering) {
+      console.warn("[widget/chat]", error.message);
+      return NextResponse.json({ error: error.visitorMessage }, { status: 503 });
+    }
+
     // The studio slug and any database detail stay server-side.
     console.error("[widget/chat]", error);
     return NextResponse.json(
