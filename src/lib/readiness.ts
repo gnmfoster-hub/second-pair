@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Studio } from "@/lib/types";
+import { emailConfigured } from "@/lib/messaging/email";
 
 /**
  * Can this assistant actually do its job yet?
@@ -37,6 +38,21 @@ export async function readinessOf(
   db: SupabaseClient,
   studio: Studio,
 ): Promise<Capability[]> {
+  /*
+   * Whether anything can leave the building.
+   *
+   * Email is ours to configure, so it is the same answer for every business.
+   * A text number is theirs, and either one is enough — a business whose
+   * customers all arrive by text does not need email.
+   */
+  const canSendEmail = emailConfigured();
+  const { count: numbers } = await db
+    .from("channel_connections")
+    .select("id", { count: "exact", head: true })
+    .eq("studio_id", studio.id)
+    .eq("channel", "sms");
+  const hasTextNumber = (numbers ?? 0) > 0;
+
   const [{ count: people }, { count: services }, { count: faqs }, { count: hours }] =
     await Promise.all([
       db
@@ -79,6 +95,30 @@ export async function readinessOf(
       href: "/settings",
       action: "Set your hours",
       blocking: true,
+    },
+    {
+      /*
+       * Whether anything the assistant does can reach the customer afterwards.
+       *
+       * The assistant can answer, quote and book perfectly well without any of
+       * this — and then the confirmation fails, the reminder fails, and the
+       * owner's reply fails, all silently as far as the customer is concerned.
+       * Somebody books an appointment on a Tuesday evening and never hears
+       * another word, which is worse than not having been answered at all.
+       *
+       * Not blocking: a business whose customers all arrive by text is fine
+       * without email, and telling them they are broken would be wrong. It
+       * needs saying, not enforcing.
+       */
+      key: "reachable",
+      can: "Reach them after they book",
+      ready: canSendEmail || hasTextNumber,
+      otherwise:
+        "It can answer and book, but the confirmation, the reminder and your own " +
+        "replies have no way of reaching anybody.",
+      href: "/settings/install",
+      action: "Connect a way to reply",
+      blocking: false,
     },
     {
       key: "privacy",
