@@ -20,6 +20,7 @@ const artist = (over: Partial<Artist> = {}): Artist => ({
   hours: null,
   time_off: [],
   extra_hours: [],
+  agent_scope: "only_me",
   user_id: null,
   greeting: null,
   tone: null,

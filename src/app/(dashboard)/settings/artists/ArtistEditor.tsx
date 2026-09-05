@@ -188,6 +188,35 @@ export function ArtistEditor({
         <LateNights extra={artist?.extra_hours ?? []} noun={noun} />
 
         {/*
+          * What their own link does.
+          *
+          * Everybody here can be given a link of their own — on a card, in an
+          * Instagram bio — and until now it could only ever book them. That is
+          * right for most people and wrong for whoever answers the phone, or
+          * for two colleagues who cover each other.
+          *
+          * Themselves first in every case. Somebody who scanned the code on
+          * one person's card is asking for that person, and an assistant that
+          * opens by offering somebody else has misread the room.
+          */}
+        <label className="block">
+          <span className="label">Their own booking link</span>
+          <select
+            name="agent_scope"
+            defaultValue={artist?.agent_scope ?? "only_me"}
+            className="input max-w-md"
+          >
+            <option value="only_me">Books only them</option>
+            <option value="me_first">Them first, but can offer others</option>
+            <option value="anyone">Can book anybody</option>
+          </select>
+          <p className="hint mt-1.5">
+            Only affects the link with their name on it. The one on your website is set
+            under Channels.
+          </p>
+        </label>
+
+        {/*
           * Their own voice, on their own link.
           *
           * Folded away because it applies to one situation and most businesses

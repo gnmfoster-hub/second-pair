@@ -319,6 +319,11 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
     tone: str(fd, "tone") || null,
     hours: ownHours,
     extra_hours: extraHours,
+    // Checked against the three it can be, so a hand-edited form cannot widen
+    // who an assistant will book on somebody's behalf.
+    agent_scope: ["only_me", "me_first", "anyone"].includes(str(fd, "agent_scope"))
+      ? str(fd, "agent_scope")
+      : "only_me",
     styles: fd.getAll("styles").map(String),
     hourly_rate_pence: hourly,
     min_charge_pence: minCharge,
@@ -857,6 +862,45 @@ export async function saveWidgetLook(_prev: FormState, fd: FormData): Promise<Fo
       widget_position: position,
       widget_teaser: teaser || null,
     })
+    .eq("id", studio.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/install");
+  return { ok: true };
+}
+
+/**
+ * Which people the assistant on the website will offer.
+ *
+ * Nobody chosen means everybody, which is what every business has today —
+ * and is also what the engine falls back to, so the two agree.
+ */
+export async function saveWhoItOffers(_prev: FormState, fd: FormData): Promise<FormState> {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  const everyone = fd.get("everyone") === "1";
+  const picked = fd.getAll("offers").map(String).filter(Boolean);
+
+  /*
+   * Checked against their own people.
+   *
+   * These ids decide whose time is sold on a website, and they arrive from a
+   * form. An id belonging to another business would be meaningless here, but
+   * storing it would be storing somebody else's identifier in their row.
+   */
+  const { data: mine } = await supabase
+    .from("artists")
+    .select("id")
+    .eq("studio_id", studio.id);
+
+  const theirs = new Set((mine ?? []).map((a) => a.id));
+  const valid = picked.filter((id) => theirs.has(id));
+
+  const { error } = await supabase
+    .from("studios")
+    .update({ offers_artists: everyone || !valid.length ? null : valid })
     .eq("id", studio.id);
 
   if (error) return { error: error.message };

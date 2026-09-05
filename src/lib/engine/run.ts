@@ -499,7 +499,8 @@ async function generateReply(
   ctx.depositPence = quote ? depositFor(ctx.studio.deposit_rule, quote) : 0;
   ctx.contactEmail = (contact as { email?: string | null } | null)?.email ?? null;
 
-  const tools = toolDefinitions(ctx.bands, ctx.artists, ctx.options, ctx.studio);
+  // Whose link they arrived on decides who the assistant may offer.
+  const tools = toolDefinitions(ctx.bands, ctx.artists, ctx.options, ctx.studio, ctx.forArtist);
   const system = studioSystemPrompt(
     ctx.studio,
     ctx.artists,

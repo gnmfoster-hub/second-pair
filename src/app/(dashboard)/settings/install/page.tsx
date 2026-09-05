@@ -9,6 +9,7 @@ import { smsNumberFor } from "@/lib/messaging/connections";
 import { smsConfigured } from "@/lib/messaging/sms";
 import { createClient } from "@/lib/supabase/server";
 import { Appearance } from "./Appearance";
+import { WhoItOffers } from "./WhoItOffers";
 
 /**
  * Channels — every way the outside world can reach this business.
@@ -191,6 +192,14 @@ export default async function ChannelsPage() {
 
       {/* Was a paragraph explaining which attribute to hand-edit into their own
           HTML. It is a setting now, because it always should have been. */}
+      {/* Who it books comes before how it looks — one decides whether the
+          answer is right, the other decides whether it matches their sign. */}
+      <WhoItOffers
+        people={artists}
+        chosen={studio.offers_artists ?? null}
+        noun={words.practitioner}
+      />
+
       <Appearance
         accent={studio.widget_accent ?? null}
         position={studio.widget_position ?? "right"}

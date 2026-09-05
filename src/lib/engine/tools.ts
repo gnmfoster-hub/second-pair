@@ -15,6 +15,7 @@ import {
   bookingTypeFor,
   capabilitiesFor,
 } from "@/lib/booking";
+import { whoCanBeOffered } from "./offering";
 import type { Artist, PriceBand, ServiceOption, Studio } from "@/lib/types";
 import { readyForRealMoney } from "@/lib/payments/stripe";
 
@@ -61,9 +62,26 @@ export function toolDefinitions(
   artists: Artist[],
   options: ServiceOption[],
   studio: Studio,
+  /** Whose link the customer arrived on, when it was somebody's own. */
+  forArtist?: Artist | null,
 ): Anthropic.Tool[] {
   const bandLabels = bands.map((b) => b.size_label);
-  const artistNames = artists.filter((a) => a.active).map((a) => a.name);
+  /*
+   * Who this assistant is allowed to speak for.
+   *
+   * Two different questions, depending on whose link the customer came in on.
+   *
+   * On the business's own widget it is whoever the owner has chosen. It used
+   * to be everybody active — so a stylist who only takes her own regulars, or
+   * an apprentice not ready for the website, was being sold to strangers from
+   * the moment somebody added them to the diary.
+   *
+   * On a person's own link it is that person, and anybody they have said they
+   * are happy to cover. Locked to themselves is right for most people and
+   * wrong for a receptionist, or for two colleagues who cover for each other.
+   */
+  const offerable = whoCanBeOffered(artists, studio, forArtist);
+  const artistNames = offerable.map((a) => a.name);
   const styleValues = options.filter((o) => o.kind === "style").map((o) => o.value);
   const intentValues = options.filter((o) => o.kind === "intent").map((o) => o.value);
   const pack = verticalPack(studio.vertical);

@@ -88,6 +88,8 @@ export type Studio = {
   /** Hex without the hash. Null means our own navy. */
   /** customer counts in the figures; demo is for showing people; internal is ours. */
   kind: "customer" | "demo" | "internal";
+  /** Which people the business assistant may offer. Null means everyone active. */
+  offers_artists: string[] | null;
   widget_accent: string | null;
   widget_position: "right" | "left";
   /** The nudge shown a few seconds after landing. Null means the default. */
@@ -190,6 +192,8 @@ export type Artist = {
    * a day they are normally off. Widens that day for this person only.
    */
   extra_hours: ExtraHours[];
+  /** Whose diary this person's own link may offer. */
+  agent_scope: "only_me" | "me_first" | "anyone";
   /** Their login, once they accept an invite. Null is a normal team member. */
   user_id: string | null;
   /** Secret in their own calendar subscribe URL. */
