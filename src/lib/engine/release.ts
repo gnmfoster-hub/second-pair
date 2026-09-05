@@ -105,6 +105,13 @@ export async function releaseHeldConversations(
       const delivery = await deliver({
         channel: conversation.channel as Channel,
         to: to ?? null,
+        /*
+         * A cancelled slot offered to somebody who asked through the website
+         * has to leave the website. They are not sitting in the widget waiting
+         * — and this message is the whole point of the feature: a gap has
+         * appeared and somebody wanted it.
+         */
+        reachOn: { phone: contact?.phone ?? null, email: contact?.email ?? null },
         body: result.reply,
         lastInboundAt: conversation.last_message_at,
         subject: `Re: your enquiry`,

@@ -47,6 +47,7 @@ export async function deliver({
   fromName,
   replyTo,
   from,
+  reachOn,
 }: {
   channel: Channel;
   /** Phone number, page-scoped id, or the widget session — whatever the channel addresses. */
@@ -62,13 +63,56 @@ export async function deliver({
   replyTo?: string;
   /** Text messages: the business's own number, when it has one. */
   from?: string | null;
+  /**
+   * How to reach somebody who asked through the website.
+   *
+   * They are not sitting in the widget waiting — they closed the tab. This is
+   * whatever the assistant managed to collect while it was talking to them.
+   */
+  reachOn?: { phone?: string | null; email?: string | null } | null;
 }): Promise<Delivery> {
   if (!body.trim()) return { status: "failed", error: "Nothing to send." };
 
-  // The widget is a special case and the reason this returns a status rather
-  // than a boolean: there is nothing to deliver. The customer reads it in the
-  // chat window, which is already showing it.
-  if (channel === "web") return { status: "not_needed" };
+  /*
+   * A reply to a widget enquiry has to leave the widget.
+   *
+   * This returned "not needed", on the reasoning that the customer reads it in
+   * the chat window. They do not. They asked a question on a Tuesday evening,
+   * closed the tab, and are waiting to hear back — the owner types a reply the
+   * next morning, sees it appear in the thread, and it reaches nobody at all.
+   * Of every channel this is the one where the person is least likely to still
+   * be looking, and it was the only one that sent nothing.
+   *
+   * So it goes wherever they can actually be reached, cheapest first: a text
+   * costs pennies and is read, an email costs nothing and is read later. What
+   * it must never do is claim to have sent something when there is nowhere to
+   * send it.
+   */
+  if (channel === "web") {
+    if (reachOn?.phone) {
+      const texted = await sendSms({ to: reachOn.phone, body, from });
+      // Falling through to email on failure, because a customer who cannot be
+      // texted can very often still be emailed.
+      if (texted.status === "sent") return texted;
+    }
+
+    if (reachOn?.email) {
+      return sendEmail({
+        to: reachOn.email,
+        subject: subject ?? (fromName ? `Message from ${fromName}` : "A message for you"),
+        text: body,
+        fromName,
+        replyTo,
+      });
+    }
+
+    return {
+      status: "failed",
+      error:
+        "They asked through the website and left no phone number or email, so there is " +
+        "no way to reach them. It is saved here in case they come back.",
+    };
+  }
 
   if (!to) {
     return {

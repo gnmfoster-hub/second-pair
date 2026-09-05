@@ -36,7 +36,7 @@ export async function sendOwnerReply(
   // RLS would block a foreign id, but failing here gives a better message.
   const { data: conversation } = await supabase
     .from("conversations")
-    .select("id, channel, external_ref, last_inbound_at, contacts(phone)")
+    .select("id, channel, external_ref, last_inbound_at, contacts(phone, email)")
     .eq("id", id)
     .eq("studio_id", studio.id)
     .maybeSingle();
@@ -57,13 +57,26 @@ export async function sendOwnerReply(
    * channel that has to hand it to a platform. The owner saw their reply in
    * the thread and had no idea it never left.
    */
-  const contact = conversation.contacts as unknown as { phone: string | null } | null;
+  const contact = conversation.contacts as unknown as {
+    phone: string | null;
+    email: string | null;
+  } | null;
 
   const result = await deliver({
     channel: conversation.channel as Channel,
     to: conversation.channel === "sms" ? contact?.phone ?? null : conversation.external_ref,
     body: text,
     lastInboundAt: conversation.last_inbound_at,
+    /*
+     * Where to find somebody who asked through the website.
+     *
+     * They are not sitting in the widget — they asked on a Tuesday evening and
+     * closed the tab. Whatever the assistant collected while it was talking to
+     * them is the only way back to them.
+     */
+    reachOn: { phone: contact?.phone ?? null, email: contact?.email ?? null },
+    fromName: studio.name,
+    replyTo: studio.email ?? undefined,
   });
 
   if (message) await recordDelivery(supabase, message.id, result);
