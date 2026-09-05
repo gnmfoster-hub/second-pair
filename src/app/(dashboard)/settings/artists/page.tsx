@@ -105,6 +105,9 @@ export default async function ArtistsPage() {
             noun={words.practitioner}
             roles={pack.roles}
             isOwner={Boolean(artist.user_id) && artist.user_id === ownerUserId}
+            ownLink={
+              artist.handle ? `${origin}/widget/${studio.slug}?with=${artist.handle}` : null
+            }
           />
           {/* Offered once somebody exists, never as a step in creating them —
               plenty of people here will never sign in at all. Handing out a

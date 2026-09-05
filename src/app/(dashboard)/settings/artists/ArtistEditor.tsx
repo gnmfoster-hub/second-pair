@@ -10,6 +10,7 @@ import { OwnHours } from "./OwnHours";
 import { LateNights } from "./LateNights";
 import { RolePicker } from "./RolePicker";
 import type { Artist, OpeningHours, ServiceOption } from "@/lib/types";
+import { Snippet } from "../install/Snippet";
 
 export function ArtistEditor({
   artist,
@@ -18,6 +19,7 @@ export function ArtistEditor({
   noun,
   roles,
   isOwner,
+  ownLink,
 }: {
   artist?: Artist;
   /** Shown as the fallback when this person has no week of their own. */
@@ -28,6 +30,8 @@ export function ArtistEditor({
   /** The roles this trade usually has. Suggestions, not a fixed list. */
   /** The person who set the business up. They alone can change it. */
   isOwner?: boolean;
+  /** Their own booking link, when they have a handle to build one from. */
+  ownLink?: string | null;
   roles: string[];
 }) {
   const [state, action] = useActionState<FormState, FormData>(saveArtist, {});
@@ -224,6 +228,26 @@ export function ArtistEditor({
             under Channels.
           </p>
         </label>
+
+        {/*
+          * The link itself, here rather than only under Channels.
+          *
+          * Channels is the owner's page now, and this is the one thing on it
+          * that belongs to the person rather than the business — the address a
+          * stylist puts in her own Instagram bio. Hiding the page from her hid
+          * her own link with it, which is a thing she needs and nobody else
+          * can usefully hand her.
+          */}
+        {artist && ownLink && (
+          <label className="block">
+            <span className="label">Their link to share</span>
+            <Snippet value={ownLink} />
+            <p className="hint mt-1.5">
+              For their own Instagram bio, or the bottom of an email. Books them, not
+              the shop.
+            </p>
+          </label>
+        )}
 
         {/*
           * Their own voice, on their own link.
