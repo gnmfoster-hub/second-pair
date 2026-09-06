@@ -301,6 +301,18 @@ function NeedsYou({ businesses }: { businesses: BusinessSummary[] }) {
       if (b.status === "trial" && b.trialEndsOn && b.trialEndsOn < today) {
         return { b, why: "Trial has run out", urgent: false };
       }
+      /*
+       * A trial with no end date is the one that gets forgotten.
+       *
+       * The line above only fires once a date has passed, so a business put on
+       * trial and never given one sat here indefinitely, costing money to run
+       * and never once asking to be turned into a paying customer. It looked
+       * like a healthy row on the list. The first real business on the
+       * platform was in exactly that state.
+       */
+      if (b.status === "trial" && !b.trialEndsOn) {
+        return { b, why: "On trial with no end date — it will never ask", urgent: false };
+      }
       return null;
     })
     .filter((r): r is { b: BusinessSummary; why: string; urgent: boolean } => r !== null)
