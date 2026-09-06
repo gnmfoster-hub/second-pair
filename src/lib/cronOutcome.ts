@@ -23,6 +23,16 @@ export type SweepResult = {
   /** Businesses whose forgetting could not be carried out. */
   forgetting: string[];
   /**
+   * Enquiries the owner was given first refusal on, whose fallback reply then
+   * failed to send.
+   *
+   * A customer wrote in, nobody answered, the assistant stepped in to answer
+   * for them — and that failed too. They are sitting there having heard
+   * nothing at all, which is the exact outcome the whole first-refusal
+   * arrangement exists to prevent.
+   */
+  unanswered: number;
+  /**
    * Reminders with nowhere to go — no channel connected, or a messaging window
    * that has shut with no number on file.
    *
@@ -36,5 +46,7 @@ export type SweepResult = {
 };
 
 export function sweepWentWrong(result: SweepResult): boolean {
-  return result.failures.length > 0 || result.forgetting.length > 0;
+  return (
+    result.failures.length > 0 || result.forgetting.length > 0 || result.unanswered > 0
+  );
 }

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { sweepWentWrong } from "./cronOutcome.ts";
 
-const clean = { failures: [], forgetting: [], waiting: 0 };
+const clean = { failures: [], forgetting: [], unanswered: 0, waiting: 0 };
 
 test("a quiet sweep is not a failure", () => {
   assert.equal(sweepWentWrong(clean), false);
@@ -27,5 +27,18 @@ test("reminders with nowhere to go are not a failure", () => {
 });
 
 test("waiting alongside a real failure is still a failure", () => {
-  assert.equal(sweepWentWrong({ failures: ["x"], forgetting: [], waiting: 5 }), true);
+  assert.equal(
+    sweepWentWrong({ failures: ["x"], forgetting: [], unanswered: 0, waiting: 5 }),
+    true,
+  );
+});
+
+/*
+ * The one found by calling the sweep on the live site and reading what came
+ * back: this count was in the response all along, next to the others, and left
+ * out of the decision. A customer wrote in, nobody answered, the assistant
+ * stepped in on their behalf and that failed too. They have heard nothing.
+ */
+test("an enquiry nobody managed to answer is a failure", () => {
+  assert.equal(sweepWentWrong({ ...clean, unanswered: 1 }), true);
 });

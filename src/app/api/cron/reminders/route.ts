@@ -132,6 +132,7 @@ export async function GET(request: NextRequest) {
   const wrong = sweepWentWrong({
     failures: holds.error ? [...failures, `releasing holds: ${holds.error}`] : failures,
     forgetting: forgotten.failed,
+    unanswered: answered.failed,
     waiting,
   });
 
