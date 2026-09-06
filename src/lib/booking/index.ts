@@ -166,6 +166,20 @@ export async function availableSlots(search: SlotSearch): Promise<Slot[]> {
   // finder as busy rather than taught as a second concept — these are exactly
   // the times a business gets caught out on, because they are invisible until
   // somebody is booked into one.
+  /*
+   * Nothing writes artist.time_off, so this is always empty.
+   *
+   * Left in place and said out loud rather than quietly removed. Time off does
+   * work — it is done by putting an entry in the diary, which is read as busy
+   * a few lines above and is where somebody naturally goes to say they are
+   * away. This is a second way of saying the same thing that never got a
+   * screen, which is the same shape as the deleting-old-enquiries setting that
+   * sat unreachable for a week looking finished.
+   *
+   * So: if it is ever wired up, know that both apply at once and a day can be
+   * blocked twice. If it is not, this line costs nothing and the note is worth
+   * more than the deletion.
+   */
   busy = [...busy, ...timeOffAsBusy(artist.time_off ?? [], from, to, studio.timezone)];
 
   /*
