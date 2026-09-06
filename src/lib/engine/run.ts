@@ -615,10 +615,22 @@ async function generateReply(
     messages.push({ role: "user", content: results });
   }
 
-  // The privacy disclosure is a legal requirement, not a stylistic preference,
-  // so it is not left to the model — which reliably drops it in favour of a
-  // more natural-sounding opener. Only added if it did not say it itself.
-  if (isFirstReply && text) {
+  /*
+   * The privacy disclosure is a legal requirement, not a stylistic preference,
+   * so it is not left to the model — which reliably drops it in favour of a
+   * more natural-sounding opener. Only added if it did not say it itself.
+   *
+   * Not on the website, where the widget now shows it before anybody types a
+   * word. That is the better place for it — Article 13 asks for it at the
+   * point the details are collected, which is the moment somebody is deciding
+   * whether to type, not the moment they get an answer back. Saying it in both
+   * places opens every conversation by telling them the same thing twice,
+   * which is the fault this code was written to avoid.
+   *
+   * Every other channel still needs it here: a text message has no screen of
+   * ours to put a line on.
+   */
+  if (isFirstReply && text && ctx.channel !== "web") {
     const url = ctx.studio.privacy_notice_url;
 
     /*
