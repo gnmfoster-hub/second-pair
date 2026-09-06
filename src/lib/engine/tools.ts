@@ -488,9 +488,95 @@ async function saveContact(
   if (saved.length === 0) return { result: "Nothing to save." };
 
   const { error } = await ctx.db.from("contacts").update(patch).eq("id", ctx.contactId);
-  if (error) return { result: `Could not save: ${error.message}` };
+
+  if (error) {
+    /*
+     * The number is already on file, which means they have been here before.
+     *
+     * A phone number is unique per business, deliberately — it is the thing
+     * that says two enquiries are one person. But every web conversation
+     * starts a fresh blank contact, so a regular giving the same number they
+     * gave last time collided with their own record and the save failed. What
+     * the assistant did with that failure was worse than the failure: it told
+     * a customer, in a perfectly reasonable tone, that her number was "already
+     * on the system against an existing record" so it could not book her, and
+     * escalated. None of that was true. It had been handed a database error
+     * and made up a story that fitted it.
+     *
+     * A returning customer is not an error, it is the good case. The
+     * conversation joins the record already there, so the history the salon
+     * has on her — what she had done, what she paid, what Priya wrote down —
+     * is in front of them instead of scattered across a new blank.
+     */
+    const rejoined =
+      typeof patch.phone === "string" ? await rejoin(ctx, patch) : false;
+
+    if (!rejoined) return { result: `Could not save: ${error.message}` };
+
+    return {
+      result:
+        `Saved: ${saved.join(", ")}. They have been here before — this conversation is ` +
+        "now on their existing record. Do not mention any of this; just carry on.",
+    };
+  }
 
   return { result: `Saved: ${saved.join(", ")}.` };
+}
+
+/**
+ * Put this conversation on the record that already holds the number.
+ *
+ * Returns false if there is nothing to rejoin, which leaves the original
+ * error to be reported honestly rather than papered over.
+ */
+async function rejoin(
+  ctx: ToolContext,
+  patch: Record<string, unknown>,
+): Promise<boolean> {
+  const { data: existing } = await ctx.db
+    .from("contacts")
+    .select("id, name, email")
+    .eq("studio_id", ctx.studio.id)
+    .eq("phone", String(patch.phone))
+    .maybeSingle();
+
+  if (!existing || existing.id === ctx.contactId) return false;
+
+  // Anything the older record never had, it can have now. Nothing it does
+  // have is overwritten: what the salon already knows beats what a chat
+  // window has just been told.
+  const fill: Record<string, unknown> = {};
+  if (!existing.name && typeof patch.name === "string") fill.name = patch.name;
+  if (!existing.email && typeof patch.email === "string") fill.email = patch.email;
+  if (Object.keys(fill).length) {
+    await ctx.db.from("contacts").update(fill).eq("id", existing.id);
+  }
+
+  const blank = ctx.contactId;
+  const { error: moved } = await ctx.db
+    .from("conversations")
+    .update({ contact_id: existing.id })
+    .eq("id", ctx.conversationId);
+
+  if (moved) return false;
+  ctx.contactId = existing.id;
+
+  /*
+   * Tidy the blank away, but only once nothing points at it. It was made
+   * seconds ago by this conversation and should have nothing else on it —
+   * "should" is not a reason to delete somebody's client record, so it is
+   * checked rather than assumed.
+   */
+  const [{ count: stillTalking }, { count: stillBooked }] = await Promise.all([
+    ctx.db.from("conversations").select("id", { count: "exact", head: true }).eq("contact_id", blank),
+    ctx.db.from("bookings").select("id", { count: "exact", head: true }).eq("contact_id", blank),
+  ]);
+
+  if (!stillTalking && !stillBooked) {
+    await ctx.db.from("contacts").delete().eq("id", blank);
+  }
+
+  return true;
 }
 
 async function quoteEstimate(
