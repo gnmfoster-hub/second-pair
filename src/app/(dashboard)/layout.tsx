@@ -17,6 +17,7 @@ import { signOut } from "./actions";
 import { MobileAccount } from "@/components/MobileAccount";
 import { HelpButton } from "@/components/HelpButton";
 import { AdminLink } from "@/components/AdminLink";
+import { inboxScope, scopedTo } from "@/lib/inboxScope";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { studio, userEmail, userId } = await requireStudio();
@@ -64,9 +65,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .eq("is_test", false)
     .eq("status", "needs_human");
 
-  if (me?.id && membership?.role !== "owner") waiting = waiting.eq("artist_id", me.id);
-  else if (me?.id) waiting = waiting.or(`artist_id.eq.${me.id},artist_id.is.null`);
-  else waiting = waiting.is("artist_id", null);
+  // The same rule the inbox itself uses, from the same place. No `whose` here:
+  // the badge is always about the person looking at it.
+  waiting = scopedTo(
+    waiting,
+    inboxScope({ owns: membership?.role === "owner", artistId: me?.id ?? null }),
+  );
 
   const { count, error: countFailed } = await waiting;
 

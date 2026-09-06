@@ -16,6 +16,7 @@ import {
   type Channel,
   type ConvStatus,
 } from "@/lib/types";
+import { inboxScope, scopedTo } from "@/lib/inboxScope";
 
 const STATUS_STYLES: Record<ConvStatus, string> = {
   new: "bg-surface-2 text-muted",
@@ -145,33 +146,13 @@ export default async function InboxPage({
    * people, and hiding everything from them would leave them an empty screen.
    */
   /*
-   * A worker sees their own. The owner can see anybody's.
+   * Whose enquiries this person sees.
    *
-   * Not the same thing as the owner seeing everything by default: their own
-   * inbox is still theirs, and a shop with four stylists would otherwise bury
-   * the owner's own enquiries under everybody else's. But when something needs
-   * sorting out — somebody is off, a customer has been waiting — they can look
-   * at whoever they need to without asking.
-   *
-   * Anything nobody has claimed goes to the owner either way. A website
-   * enquiry can arrive before a person is chosen, and those belong to whoever
-   * runs the place until they are.
+   * The rule is in lib/inboxScope and tested there, because the badge in the
+   * sidebar asks the same question — and a badge saying three above a list
+   * showing one sends somebody looking for work that was never theirs.
    */
-  const looking = owns ? whose : null;
-
-  if (!me?.id && !owns) {
-    // A login with no diary of their own — a manager, an administrator. They
-    // are here to answer people, so they get the unclaimed rather than nothing.
-    inbox = inbox.is("artist_id", null);
-  } else if (owns && looking === "everyone") {
-    // Everything, for sorting something out.
-  } else if (owns && looking) {
-    inbox = inbox.eq("artist_id", looking);
-  } else if (owns) {
-    inbox = inbox.or(`artist_id.eq.${me?.id ?? ""},artist_id.is.null`);
-  } else {
-    inbox = inbox.eq("artist_id", me!.id);
-  }
+  inbox = scopedTo(inbox, inboxScope({ owns, artistId: me?.id ?? null, whose }));
 
   const { data } = await inbox;
 
