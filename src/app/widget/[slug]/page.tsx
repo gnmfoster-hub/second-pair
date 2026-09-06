@@ -60,15 +60,27 @@ export default async function WidgetPage({
    * people are ignored, so a stale link in an old bio falls back to the shop
    * rather than booking somebody who has left.
    */
-  const { data: person } = handle
-    ? await db
-        .from("artists")
-        .select("id, name, avatar_path, colour, greeting")
-        .eq("studio_id", studio.id)
-        .eq("active", true)
-        .ilike("handle", handle)
-        .maybeSingle()
-    : { data: null };
+  // Whose link it is, and whether there is anybody to book. Two questions about
+  // the same business that do not depend on each other, asked together — this
+  // is the page every customer loads, so a round trip saved is saved on all of
+  // them.
+  const [{ data: person }, { data: bookable }] = await Promise.all([
+    handle
+      ? db
+          .from("artists")
+          .select("id, name, avatar_path, colour, greeting")
+          .eq("studio_id", studio.id)
+          .eq("active", true)
+          .ilike("handle", handle)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    db
+      .from("artists")
+      .select("id")
+      .eq("studio_id", studio.id)
+      .eq("active", true)
+      .limit(1),
+  ]);
 
   /*
    * The accent arrives from the script tag on the business's own page, so it
@@ -85,20 +97,28 @@ export default async function WidgetPage({
    * there is no diary behind it, the business's own questions are what somebody
    * is actually there to ask.
    */
-  const { data: bookable } = await db
-    .from("artists")
-    .select("id")
-    .eq("studio_id", studio.id)
-    .eq("active", true)
-    .limit(1);
+  /*
+   * Only the help assistant gets this far.
+   *
+   * A business with somebody to book shows the three standard openers, so
+   * neither the questions nor — more to the point — who is asking them is
+   * needed. Working out whether somebody is signed in means asking Supabase to
+   * verify a cookie, which is a round trip on the one page every customer
+   * loads, and it was being paid on every single view to answer a question
+   * only the support desk ever asks.
+   */
+  const helpDesk = !bookable?.length;
 
-  const { data: asked } = bookable?.length
-    ? { data: null }
-    : await db
-        .from("faqs")
-        .select("question, audience")
-        .eq("studio_id", studio.id)
-        .order("sort_order");
+  const [{ data: asked }, signedIn] = await Promise.all([
+    helpDesk
+      ? db
+          .from("faqs")
+          .select("question, audience")
+          .eq("studio_id", studio.id)
+          .order("sort_order")
+      : Promise.resolve({ data: null }),
+    helpDesk ? whoIsAsking() : Promise.resolve(false),
+  ]);
 
   /*
    * Different first questions for a customer and a stranger.
@@ -112,16 +132,6 @@ export default async function WidgetPage({
    * already signed up — the sort of answer that makes a product feel like it
    * does not know you.
    */
-  const signedIn = await (async () => {
-    try {
-      const supabase = await createClient();
-      return Boolean((await supabase.auth.getUser()).data.user);
-    } catch {
-      // Embedded on somebody else's site, cookies not sent. Treat as a visitor,
-      // which is the safer of the two answers to get wrong.
-      return false;
-    }
-  })();
   const wanted = signedIn ? "owner" : "visitor";
   const openers = (asked ?? [])
     // An untagged answer suits anybody, so it is a fallback rather than a miss.
@@ -156,4 +166,21 @@ export default async function WidgetPage({
       onAccent={accent?.onFill ?? null}
     />
   );
+}
+
+/**
+ * Whether whoever opened this is signed in to Second Pair.
+ *
+ * Only asked on the help assistant, where it decides whether the openers are
+ * an owner's questions or a stranger's. Embedded on somebody else's site the
+ * cookies never arrive, which throws — and a visitor is the safer of the two
+ * answers to get wrong.
+ */
+async function whoIsAsking(): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    return Boolean((await supabase.auth.getUser()).data.user);
+  } catch {
+    return false;
+  }
 }

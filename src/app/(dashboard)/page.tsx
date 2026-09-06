@@ -93,19 +93,23 @@ export default async function InboxPage({
    * The diary stays shared — anybody may need to move anybody's day around,
    * and that is a different question from whose enquiry this is.
    */
-  const { data: me } = await supabase
-    .from("artists")
-    .select("id")
-    .eq("studio_id", studio.id)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  const { data: membership } = await supabase
-    .from("studio_members")
-    .select("role")
-    .eq("studio_id", studio.id)
-    .eq("user_id", userId)
-    .maybeSingle();
+  // Who this person is here, and what they are allowed to see. Two questions
+  // about the same person that do not depend on each other, so they go
+  // together rather than one waiting on the other.
+  const [{ data: me }, { data: membership }] = await Promise.all([
+    supabase
+      .from("artists")
+      .select("id")
+      .eq("studio_id", studio.id)
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase
+      .from("studio_members")
+      .select("role")
+      .eq("studio_id", studio.id)
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ]);
 
   const owns = membership?.role === "owner";
 
@@ -197,12 +201,29 @@ export default async function InboxPage({
     .eq("status", "needs_human");
   flagged = scopedTo(flagged, scope);
 
-  const { data } = await inbox;
-  const { data: weekRows } = await counted;
-  const { data: needsSomebody } = await flagged;
+  /*
+   * All three at once, not one after another.
+   *
+   * They were awaited in turn when the counting was split out, which quietly
+   * added two round trips to the slowest screen in the product — the one
+   * somebody opens between clients, on a phone, on a salon's wifi. Three
+   * questions that do not depend on each other should cost what one costs.
+   *
+   * Cast to plain promises first. Handed the query builders directly,
+   * Promise.all tries to infer a tuple of three deeply-generic Supabase types
+   * and the compiler gives up (TS2589), which is what sent this down the
+   * sequential path in the first place.
+   */
+  type Rows<T> = Promise<{ data: T[] | null }>;
 
-  const conversations = (data ?? []) as unknown as Row[];
-  const week = (weekRows ?? []) as unknown as WeekRow[];
+  const [{ data }, { data: weekRows }, { data: needsSomebody }] = await Promise.all([
+    inbox as unknown as Rows<Row>,
+    counted as unknown as Rows<WeekRow>,
+    flagged as unknown as Rows<{ id: string }>,
+  ]);
+
+  const conversations = data ?? [];
+  const week = weekRows ?? [];
 
   // Framed as what the assistant did, not as what happened — that is the thing
   // being paid for, and the reason to open this page at all.
