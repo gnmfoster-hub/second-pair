@@ -47,6 +47,9 @@ const PUBLIC_PATHS = [
    */
   "/api/sms",
   "/api/voice",
+  // Guarded by EMAIL_WEBHOOK_SECRET, and refuses everything when it is unset.
+  // A mail provider has no session either.
+  "/api/email",
 ];
 
 export async function proxy(request: NextRequest) {

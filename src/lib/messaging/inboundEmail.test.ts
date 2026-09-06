@@ -1,0 +1,118 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { judge, domainOf } from "./inboundEmail.ts";
+
+const shop = { ownDomains: ["livingcanvastattoo.ink"], ourDomain: "second-pair.com" };
+
+test("an ordinary enquiry is answered", () => {
+  const v = judge(
+    { from: "Jo Marsh <jo@gmail.com>", subject: "Tattoo quote", body: "How much for a forearm piece?" },
+    shop,
+  );
+  assert.equal(v.what, "answer");
+});
+
+/*
+ * The whole reason this exists. Everything below is something a small business
+ * receives every week, and an assistant that replied to any of it would be
+ * worse than no assistant at all.
+ */
+test("a mailing list is never answered", () => {
+  const ways: Record<string, string>[] = [
+    { "list-unsubscribe": "<https://x/unsub>" },
+    { "list-id": "news.example.com" },
+    { precedence: "bulk" },
+  ];
+  for (const headers of ways) {
+    const v = judge({ from: "news@supplier.com", subject: "October offers", headers }, shop);
+    assert.equal(v.what, "ignore", JSON.stringify(headers));
+  }
+});
+
+test("an automatic message is never answered", () => {
+  const v = judge(
+    { from: "someone@else.com", subject: "Re: your order", headers: { "auto-submitted": "auto-generated" } },
+    shop,
+  );
+  assert.equal(v.what, "ignore");
+});
+
+test("an out of office is not a customer", () => {
+  assert.equal(judge({ from: "bob@firm.com", subject: "Out of Office: re your invoice" }, shop).what, "ignore");
+  assert.equal(judge({ from: "bob@firm.com", subject: "Automatic reply: away" }, shop).what, "ignore");
+});
+
+test("a bounce is not a customer", () => {
+  assert.equal(judge({ from: "MAILER-DAEMON@mx.google.com", subject: "Undeliverable" }, shop).what, "ignore");
+  assert.equal(
+    judge({ from: "x@y.com", subject: "Delivery Status Notification (Failure)" }, shop).what,
+    "ignore",
+  );
+});
+
+test("an address that does not take replies is not written to", () => {
+  for (const from of [
+    "no-reply@stripe.com",
+    "noreply@bank.co.uk",
+    "donotreply@hmrc.gov.uk",
+    "notifications@calendar.google.com",
+    "invoices@wholesaler.com",
+  ]) {
+    assert.equal(judge({ from, subject: "Your statement" }, shop).what, "ignore", from);
+  }
+});
+
+/*
+ * A loop of our own making. The reply leaves from our domain, so one wrong
+ * forwarding rule and the assistant answers itself until somebody notices the
+ * bill.
+ */
+test("a message from the assistant itself is ignored", () => {
+  const v = judge({ from: "hello@second-pair.com", subject: "Re: your appointment" }, shop);
+  assert.equal(v.what, "ignore");
+  assert.match(v.because, /assistant/);
+});
+
+test("the business writing in is parked, not answered", () => {
+  const v = judge({ from: "dave@livingcanvastattoo.ink", subject: "fwd: a question" }, shop);
+  assert.equal(v.what, "park");
+  assert.match(v.because, /inside the business/);
+});
+
+test("an empty message is parked rather than guessed at", () => {
+  assert.equal(judge({ from: "jo@gmail.com", subject: "", body: "  " }, shop).what, "park");
+});
+
+test("no sender at all is ignored", () => {
+  assert.equal(judge({ from: "", subject: "hello" }, shop).what, "ignore");
+  assert.equal(judge({ from: "not-an-address", subject: "hello" }, shop).what, "ignore");
+});
+
+test("the address is read out of a display name", () => {
+  assert.equal(domainOf("Jo Marsh <jo@gmail.com>"), "gmail.com");
+  assert.equal(domainOf("jo@gmail.com"), "gmail.com");
+  assert.equal(domainOf("nonsense"), "");
+});
+
+/*
+ * Case and spacing come from whatever wrote the message, which is a hundred
+ * different mail clients and none of them agree.
+ */
+test("headers and addresses are matched however they are written", () => {
+  assert.equal(
+    judge({ from: "Dave <DAVE@LivingCanvasTattoo.Ink>", subject: "hello" }, shop).what,
+    "park",
+  );
+  assert.equal(
+    judge({ from: "x@y.com", subject: "hi", headers: { "Auto-Submitted": "auto-replied" } }, shop).what,
+    "ignore",
+  );
+});
+
+test("auto-submitted: no is a person, and is answered", () => {
+  const v = judge(
+    { from: "jo@gmail.com", subject: "Booking", body: "can I come in Friday?", headers: { "auto-submitted": "no" } },
+    shop,
+  );
+  assert.equal(v.what, "answer");
+});

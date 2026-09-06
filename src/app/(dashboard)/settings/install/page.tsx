@@ -92,6 +92,46 @@ export default async function ChannelsPage() {
         />
       </section>
 
+      {/* ---------------------------------------------------------- email */}
+      <section>
+        <div className="card p-5">
+          <div className="section-title">Email</div>
+          <p className="hint mt-1 max-w-prose">
+            Forward your enquiry address to the one below and the assistant answers what
+            comes in. Nothing else changes: your mailbox stays yours, we never hold a key
+            to it, and we only ever see what is sent here.
+          </p>
+
+          <code className="mt-4 block overflow-x-auto rounded-lg border border-border bg-surface-2/60 px-3 py-2 font-mono text-[11px]">
+            {studio.slug}@in.second-pair.com
+          </code>
+
+          {/*
+            * Said plainly, because it is the fear behind the question.
+            *
+            * Forwarding an enquiry address forwards the wholesaler and the
+            * newsletters with it, and an owner is right to want to know what
+            * happens to those before they turn any of this on.
+            */}
+          <div className="hint mt-4 space-y-1 border-t border-border pt-3">
+            <p>
+              <strong>It answers</strong> what reads as somebody getting in touch.
+            </p>
+            <p>
+              <strong>It puts in your inbox, unanswered,</strong> anything from a real
+              person it should not write to on its own &mdash; you, your own staff, or a
+              message with nothing in it.
+            </p>
+            <p>
+              <strong>It leaves alone entirely</strong> mailing lists, newsletters,
+              automatic replies, bounces, out-of-office notices and anything from an
+              address that does not take replies. Those never reach your inbox here and
+              are never replied to.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* ------------------------------------------------------ the business */}
       <section>
         <div className="flex items-center gap-2.5">
