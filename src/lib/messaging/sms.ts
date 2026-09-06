@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Delivery } from "./deliver";
+import { forSms } from "./plainText.ts";
 
 /**
  * Text messages, through Twilio.
@@ -45,6 +46,17 @@ export async function sendSms({
     };
   }
 
+  /*
+   * Spelled for the cheap alphabet before it goes.
+   *
+   * Done here rather than at each caller because every text leaves through
+   * this function — the assistant's replies, reminders, and the owner writing
+   * from the inbox — and the saving is worth having on all three. What is
+   * stored in the conversation keeps its proper typography; only the copy that
+   * goes down the wire is changed.
+   */
+  const text = forSms(body);
+
   try {
     const response = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
@@ -54,7 +66,7 @@ export async function sendSms({
           Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString("base64")}`,
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: new URLSearchParams({ To: to, From: sender, Body: body }),
+        body: new URLSearchParams({ To: to, From: sender, Body: text }),
       },
     );
 

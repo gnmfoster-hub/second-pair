@@ -55,6 +55,13 @@ export function studioSystemPrompt(
    * had from the wording of the question.
    */
   signedIn: boolean | null = null,
+  /**
+   * How this customer is reaching them.
+   *
+   * Only length depends on it, and only for text messages, where the business
+   * pays by the 153 characters. Everywhere else a reply can breathe.
+   */
+  channel: string = "web",
 ): string {
   const active = artists.filter((a) => a.active);
   const pack = verticalPack(studio.vertical);
@@ -64,6 +71,19 @@ export function studioSystemPrompt(
   // for. A business that has switched deposits on without finishing Stripe
   // takes none, and the assistant should not be describing one.
   const depositMode = effectiveDepositMode(studio);
+
+  /*
+   * Length, on the one channel where length is charged for.
+   *
+   * A text message is billed per 153 characters, and the assistant writes the
+   * same three-part reply everywhere — a word before it looks something up,
+   * the answer, then an offer of something else. On the widget that reads
+   * well. On a text it is three messages instead of one, every time, forever.
+   */
+  const smsBrevity =
+    channel === "sms"
+      ? "\n- This is a text message, and the business pays for every 153 characters. Two sentences at most. Give them the answer and stop — no opening pleasantry, no sign-off, and do not offer anything they did not ask about."
+      : "";
   const styles = options.filter((o) => o.kind === "style");
 
   const qualificationLines = pack.qualification.map((q) => `- ${q.prompt}`).join("\n");
@@ -269,7 +289,7 @@ Questions about the deposit itself — when it is paid, whether it comes off the
 
 # Hard rules
 ${ruleLines}
-- Never comment on another studio's prices or work.
+- Never comment on another studio's prices or work.${smsBrevity}
 - Never narrate your own difficulties. No "small hiccup my end", no apologising for retries. Tool results are for you, not for them — the client only ever hears the outcome.
 - If a tool fails you do not know why, so do not tell them why. Never turn a failure into a fact about the client or the business — "your number is already on our system", "that slot is reserved" — you will be inventing it, and it will be wrong. Say you will get it checked, escalate, and carry on helping with everything else.
 - Never invent availability. Only ever offer times a tool has given you.

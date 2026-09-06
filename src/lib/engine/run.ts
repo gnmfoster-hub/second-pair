@@ -528,6 +528,7 @@ async function generateReply(
     // Whose enquiry this is, so their own voice is used where they have one.
     ctx.forArtist ?? null,
     ctx.signedIn ?? null,
+    ctx.channel,
   );
 
   /*
