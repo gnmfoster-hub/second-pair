@@ -836,6 +836,9 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
         <p className="hint mt-2">
           Everything of theirs goes: conversations, bookings, clients, settings. Their login
           stays, because a person is not a business.
+          {b.kind === "customer"
+            ? " A customer has to be stopped before they can be deleted — two decisions, not one."
+            : " A demonstration or one of ours goes straight away; there is no relationship to end."}
         </p>
         {gone.error && <p className="mt-2 text-sm text-warn">{gone.error}</p>}
         {gone.note && <p className="mt-2 text-sm text-ok">{gone.note}</p>}

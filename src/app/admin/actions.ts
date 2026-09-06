@@ -313,7 +313,7 @@ export async function deleteBusiness(_prev: Result, fd: FormData): Promise<Resul
   const db = createAdminClient();
   const { data: studio } = await db
     .from("studios")
-    .select("name, archived_at")
+    .select("name, archived_at, kind")
     .eq("id", id)
     .maybeSingle();
   if (!studio) return { error: "That business no longer exists." };
@@ -323,20 +323,57 @@ export async function deleteBusiness(_prev: Result, fd: FormData): Promise<Resul
   }
 
   /*
-   * Only something already stopped can be deleted for good.
+   * A customer has to be stopped first. A demonstration does not.
    *
-   * Two deliberate acts on different days, rather than one typed name between
-   * a live business and permanent loss. Archiving does everything ending a
-   * relationship actually requires — they stop being served, they leave the
-   * figures — so there is never a reason to need both in the same minute, and
-   * a mistake made in the same minute is the one nobody recovers from.
+   * Two deliberate acts on different days is the right price for deleting
+   * somebody's business: archiving does everything ending a relationship
+   * actually requires — they stop being served, they leave the figures — so
+   * there is never a reason to need both in the same minute, and a mistake
+   * made in the same minute is the one nobody recovers from.
+   *
+   * None of that applies to a demo or to one of ours. There is no
+   * relationship to end and nobody to lose, and the ceremony was being paid on
+   * exactly the rows that most want clearing out: seeded twice, named "Teat
+   * business", left over from testing an invite. Making somebody stop a
+   * duplicate before they may delete it protects nothing and reads as the
+   * product refusing to tidy up after itself.
    */
-  if (!studio.archived_at) {
+  if (studio.kind === "customer" && !studio.archived_at) {
     return {
       error:
         `${studio.name} is still live. Stop them first — then deleting is a separate ` +
         "decision, and everything of theirs survives in the meantime.",
     };
+  }
+
+  /*
+   * Appointments go first, by hand.
+   *
+   * Everything else falls away with the business — every table pointing at a
+   * studio cascades. Bookings do not: they point at the artist, and that link
+   * is `on delete restrict`, deliberately, so that removing a stylist can
+   * never quietly take her diary with her. Postgres checks a restrict
+   * immediately rather than at the end of the statement, so it fires even
+   * though the same delete would have removed those bookings a moment later
+   * by another route.
+   *
+   * The result was that deleting any business anybody had ever booked into
+   * failed with a raw foreign key error from the database, which is both
+   * frightening and useless to read. Reminders hang off bookings and cascade,
+   * so they need no help.
+   */
+  const { data: people } = await db.from("artists").select("id").eq("studio_id", id);
+  const artistIds = (people ?? []).map((a) => a.id);
+
+  if (artistIds.length) {
+    const { error: bookings } = await db
+      .from("bookings")
+      .delete()
+      .in("artist_id", artistIds);
+
+    if (bookings) {
+      return { error: `Could not remove their appointments: ${bookings.message}` };
+    }
   }
 
   const { error } = await db.from("studios").delete().eq("id", id);
