@@ -6,11 +6,13 @@ import { colourForName, initialsOf } from "@/lib/diaryColour";
 import { CHANNEL_LABELS, type Channel } from "@/lib/types";
 import { ChannelIcon } from "@/components/ChannelIcon";
 import { Waiting } from "@/components/Waiting";
+import { whoseClient } from "@/lib/whoseClient";
 
 type Row = {
   bookings:
     | {
         artist_id: string;
+        starts_at: string;
         deposit_amount_pence: number;
         deposit_status: string;
         cancelled_at: string | null;
@@ -37,6 +39,7 @@ type Row = {
       quote_low_pence: number | null;
       bookings: {
         artist_id: string;
+        starts_at: string;
         deposit_amount_pence: number;
         deposit_status: string;
         cancelled_at: string | null;
@@ -60,8 +63,8 @@ export default async function ClientsPage({
     .from("contacts")
     .select(
       "id, name, phone, email, instagram_handle, channel, alert, created_at, " +
-        "bookings(artist_id, deposit_amount_pence, deposit_status, cancelled_at), " +
-        "conversations(id, last_message_at, artist_id, enquiries(artist_id, description, quote_low_pence, bookings(artist_id, deposit_amount_pence, deposit_status, cancelled_at)))",
+        "bookings(artist_id, starts_at, deposit_amount_pence, deposit_status, cancelled_at), " +
+        "conversations(id, last_message_at, artist_id, enquiries(artist_id, description, quote_low_pence, bookings(artist_id, starts_at, deposit_amount_pence, deposit_status, cancelled_at)))",
     )
     .eq("studio_id", studio.id)
     // Nameless strangers left behind by the owner testing their own
@@ -117,42 +120,21 @@ export default async function ClientsPage({
   }
 
   /*
-   * Who a client is down to.
+   * Who each client is down to.
    *
-   * Their most recent booking first, because that is somebody who has actually
-   * sat in a chair with them. Failing that, whoever their last conversation
-   * was assigned to — an enquiry that has not become work yet still belongs to
-   * whoever is handling it.
-   *
-   * Derived rather than stored. A client moving between people is an ordinary
-   * thing in a salon, and a column saying who they "belong to" would be out of
-   * date the first time it happened.
+   * The rule lives in one place and is tested there, because three screens ask
+   * this question — this list, the client's own page, and the filter above —
+   * and a label that disagrees with the filter beside it is worse than no
+   * label at all.
    */
   const nameOf = new Map(team.map((a) => [a.id, a.name.split(" ")[0]]));
 
   const belongsTo = (c: (typeof clients)[number]): string | null => {
-    /*
-     * The same three sources the filter above uses, in the same order.
-     *
-     * They have to agree. A client who appears under Sarah when you filter by
-     * her, and is labelled somebody else in the list, is worse than no label
-     * at all — it looks like the product does not know, which is exactly what
-     * a label is for.
-     */
-    const booked = [
-      ...c.conversations.flatMap((v) => v.enquiries?.bookings ?? []),
-      ...(c.bookings ?? []),
-    ]
-      .filter((b) => !b.cancelled_at && b.artist_id)
-      .map((b) => b.artist_id as string);
-    if (booked.length) return nameOf.get(booked[booked.length - 1]) ?? null;
-
-    const asked = c.conversations
-      .map((v) => v.artist_id ?? v.enquiries?.artist_id)
-      .filter(Boolean) as string[];
-    if (asked.length) return nameOf.get(asked[asked.length - 1]) ?? null;
-
-    return null;
+    const id = whoseClient(
+      [...c.conversations.flatMap((v) => v.enquiries?.bookings ?? []), ...(c.bookings ?? [])],
+      c.conversations,
+    );
+    return id ? (nameOf.get(id) ?? null) : null;
   };
 
   const link = (artistId: string | null) => {

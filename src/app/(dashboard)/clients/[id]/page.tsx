@@ -11,6 +11,7 @@ import { routesFor } from "@/lib/messaging/reach";
 import { connectedChannels } from "@/lib/messaging/connections";
 import { canMessage } from "@/lib/permissions";
 import { Forget } from "./Forget";
+import { whoseClient } from "@/lib/whoseClient";
 
 type ContactRow = {
   id: string;
@@ -89,27 +90,15 @@ export default async function ClientPage({
   const conversations = contact.conversations ?? [];
 
   /*
-   * Who this client is down to.
-   *
-   * Their most recent appointment that was not cancelled, falling back to
-   * whoever their last enquiry was for. The same order the clients list uses,
-   * so the two never disagree about the same person.
+   * Who this client is down to. Same rule as the list, from the same place —
+   * see lib/whoseClient.
    */
   const usuallyWith = (() => {
-    const byPerson = new Map(artists.map((a) => [a.id, a.name.split(" ")[0]]));
-
-    const worked = [
-      ...conversations.flatMap((c) => c.enquiries?.bookings ?? []),
-      ...(direct ?? []),
-    ]
-      .filter((b) => !b.cancelled_at && b.artist_id)
-      .sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
-    if (worked.length) return byPerson.get(worked[worked.length - 1].artist_id) ?? null;
-
-    const asked = conversations
-      .map((c) => c.artist_id ?? c.enquiries?.artist_id)
-      .filter(Boolean) as string[];
-    return asked.length ? (byPerson.get(asked[asked.length - 1]) ?? null) : null;
+    const id = whoseClient(
+      [...conversations.flatMap((c) => c.enquiries?.bookings ?? []), ...(direct ?? [])],
+      conversations,
+    );
+    return id ? (artists.find((a) => a.id === id)?.name.split(" ")[0] ?? null) : null;
   })();
 
   // Bookings reach a client two ways: through a conversation, or attached
