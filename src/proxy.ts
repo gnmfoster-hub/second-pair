@@ -32,6 +32,21 @@ const PUBLIC_PATHS = [
   // A calendar app cannot log in. The 64-character token in the URL is the
   // credential, and the route refuses anything that is not one.
   "/api/calendar",
+  /*
+   * Twilio has no session and never will. Both routes prove the request came
+   * from Twilio by its signature before they read a word of it, which is a
+   * stronger credential than a cookie and the same argument as the secret on
+   * /api/cron.
+   *
+   * Without this the whole inbound half of text messaging was unreachable:
+   * every text a customer sent was answered with a redirect to our login page,
+   * and Twilio logged an error nobody was watching. It has been that way since
+   * the SMS webhook was written and went unnoticed because no business has a
+   * number connected yet — the first one to connect would have found that
+   * texts simply vanished.
+   */
+  "/api/sms",
+  "/api/voice",
 ];
 
 export async function proxy(request: NextRequest) {
