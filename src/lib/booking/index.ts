@@ -91,7 +91,7 @@ export async function busyFor(
 export async function releaseExpiredHolds(
   db: SupabaseClient,
   artistId?: string,
-): Promise<number> {
+): Promise<{ released: number; error?: string }> {
   /*
    * Anything not paid for, whether or not a link was ever sent.
    *
@@ -115,8 +115,19 @@ export async function releaseExpiredHolds(
   if (artistId) query = query.eq("artist_id", artistId);
 
   const { data, error } = await query.select("id");
-  if (error) return 0;
-  return (data ?? []).length;
+
+  /*
+   * A failure says so rather than looking like a quiet week.
+   *
+   * This returned 0 on an error, which is the same number it returns when
+   * there was genuinely nothing to release — and that is the ordinary case, so
+   * a sweep that had stopped working entirely would have read exactly like a
+   * sweep with nothing to do. Every slot still held for a deposit nobody paid
+   * would stay blocked, and the only evidence would be a diary that slowly
+   * filled up with appointments that were never really made.
+   */
+  if (error) return { released: 0, error: error.message };
+  return { released: (data ?? []).length };
 }
 
 export type SlotSearch = {

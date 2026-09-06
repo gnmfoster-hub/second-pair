@@ -6,6 +6,7 @@ import { releaseHeldConversations } from "@/lib/engine/release";
 import { siteOrigin } from "@/lib/origin";
 import type { Studio } from "@/lib/types";
 import { forgetOldEnquiries } from "@/lib/retention";
+import { sweepWentWrong } from "@/lib/cronOutcome";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -51,7 +52,8 @@ export async function GET(request: NextRequest) {
 
   // Frees slots held for a deposit that never arrived. Also done lazily when
   // availability is read, so this is a backstop for quiet diaries.
-  const released = await releaseExpiredHolds(db);
+  const holds = await releaseExpiredHolds(db);
+  const released = holds.released;
 
   const { data: studios } = await db.from("studios").select("*");
 
@@ -111,5 +113,27 @@ export async function GET(request: NextRequest) {
    */
   const answered = await releaseHeldConversations(db, await siteOrigin());
 
-  return NextResponse.json({ released, due, sent, waiting, failures, answered, forgotten });
+  const body = { released, due, sent, waiting, failures, answered, forgotten };
+
+  /*
+   * Said out loud, because nothing downstream will say it.
+   *
+   * Everything above happens whatever the status — the work is done by the
+   * time we get here, and this only decides how it is reported. It reported
+   * 200 regardless, and the workflow that calls this every five minutes fails
+   * only on a status, so a reminder that could not be delivered came back with
+   * a green tick beside it. That reminder is gone: a failed delivery is
+   * written to the row as `failed` and never tried again. The first anybody
+   * knew was an empty chair.
+   *
+   * Reminders merely waiting for a channel to be connected stay green — see
+   * sweepWentWrong, where that distinction is spelled out and tested.
+   */
+  const wrong = sweepWentWrong({
+    failures: holds.error ? [...failures, `releasing holds: ${holds.error}`] : failures,
+    forgetting: forgotten.failed,
+    waiting,
+  });
+
+  return NextResponse.json(body, { status: wrong ? 500 : 200 });
 }
