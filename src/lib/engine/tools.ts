@@ -1102,14 +1102,16 @@ async function escalate(
       result:
         "Raised as a request with a person, and it is on their Help page where they can " +
         "follow it. Tell them it has been raised and that somebody will come back to " +
-        "them there — then carry on helping with everything else as normal.",
+        "them there — then carry on helping with everything else as normal. It is with " +
+        "them now: do not raise this same question again later in the conversation.",
     };
   }
 
   return {
     result:
       "Flagged for the owner. Tell them you will check that one with the studio and come " +
-      "back to them — then carry on helping with everything else as normal.",
+      "back to them — then carry on helping with everything else as normal. It is with " +
+      "them now: do not raise this same question again later in the conversation.",
   };
 }
 
