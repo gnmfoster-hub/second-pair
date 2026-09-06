@@ -57,7 +57,16 @@ export default async function ChannelsPage() {
 
   const solo = artists.length <= 1;
 
-  const smsNumber = await smsNumberFor(await createClient(), studio.id);
+  const supabaseForNumbers = await createClient();
+  const smsNumber = await smsNumberFor(supabaseForNumbers, studio.id);
+
+  // Where a call to that number rings before it becomes a text.
+  const { data: line } = await supabaseForNumbers
+    .from("channel_connections")
+    .select("forward_to")
+    .eq("studio_id", studio.id)
+    .eq("channel", "sms")
+    .maybeSingle();
 
   return (
     <div className="space-y-9">
@@ -76,8 +85,10 @@ export default async function ChannelsPage() {
       <section>
         <TextNumber
           number={smsNumber}
+          forwardTo={line?.forward_to ?? null}
           sendingReady={smsConfigured()}
           webhookUrl={`${origin}/api/sms/webhook`}
+          voiceWebhookUrl={`${origin}/api/voice/webhook`}
         />
       </section>
 

@@ -14,14 +14,20 @@ import { Field, SubmitButton } from "@/components/Form";
  */
 export function TextNumber({
   number,
+  forwardTo,
   sendingReady,
   webhookUrl,
+  voiceWebhookUrl,
 }: {
   number: string | null;
+  /** Where a call to it rings first. Null texts the caller straight away. */
+  forwardTo: string | null;
   /** The account keys are in the environment. Nothing sends without them. */
   sendingReady: boolean;
   /** What to paste into Twilio so replies come back here. */
   webhookUrl: string;
+  /** And so a call that nobody answers becomes a text rather than nothing. */
+  voiceWebhookUrl: string;
 }) {
   const [state, action] = useActionState<{ error?: string; ok?: boolean }, FormData>(
     saveSmsNumber,
@@ -61,6 +67,26 @@ export function TextNumber({
           />
         </Field>
 
+        {/*
+          * Missed calls, which is the same number wearing its other hat.
+          *
+          * Kept on this panel rather than given its own, because it is one
+          * phone number and splitting it into "texts" and "calls" invites
+          * somebody to set up half of it.
+          */}
+        <Field
+          label="When somebody rings it, ring me on"
+          hint="Your own mobile — customers never see it. Leave empty and a missed call is texted back straight away, without your phone going at all."
+        >
+          <input
+            name="forward_to"
+            defaultValue={forwardTo ?? ""}
+            placeholder="+447700900123"
+            className="input max-w-xs font-mono"
+            inputMode="tel"
+          />
+        </Field>
+
         <div className="flex flex-wrap items-center gap-4">
           <SubmitButton />
           {state.error && <p className="text-sm text-bad">{state.error}</p>}
@@ -88,6 +114,20 @@ export function TextNumber({
           <p className="hint mt-2">
             Without it, texts arrive at Twilio and go nowhere. Replies are checked
             against Twilio&rsquo;s signature, so nobody else can post to it.
+          </p>
+
+          <p className="hint mt-4">
+            On the same page, set <strong>A call comes in</strong> to a webhook POSTing
+            to:
+          </p>
+          <code className="mt-2 block overflow-x-auto rounded-lg border border-border bg-surface-2/60 px-3 py-2 font-mono text-[11px]">
+            {voiceWebhookUrl}
+          </code>
+          <p className="hint mt-2">
+            That is what turns a missed call into a text. The caller gets one from this
+            same number, so whatever they write back arrives as an ordinary message and
+            is answered like any other &mdash; and their number is on file either way,
+            which is the one thing a missed call in a phone log never gives you.
           </p>
         </div>
       )}

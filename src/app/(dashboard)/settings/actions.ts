@@ -820,6 +820,25 @@ export async function saveSmsNumber(
 
   const raw = String(fd.get("sms_number") ?? "").trim();
 
+  /*
+   * Where a call to that number should ring before it becomes a text.
+   *
+   * Their own mobile, which is not the number customers dial and is never
+   * shown to one. Blank is a real answer, not an unfinished one: it means do
+   * not ring me, text them straight away — which is what somebody with their
+   * hands full most of the day actually wants.
+   */
+  const forwardRaw = String(fd.get("forward_to") ?? "").trim();
+  const forwardTo = forwardRaw ? forwardRaw.replace(/[\s()-]/g, "") : null;
+
+  if (forwardTo && !/^\+[1-9]\d{7,14}$/.test(forwardTo)) {
+    return {
+      error:
+        "The number to ring needs to be in full international form too, like " +
+        "+447700900123. Leave it empty to text people straight away instead.",
+    };
+  }
+
   if (!raw) {
     await supabase
       .from("channel_connections")
@@ -862,7 +881,7 @@ export async function saveSmsNumber(
   const { error } = existing
     ? await supabase
         .from("channel_connections")
-        .update({ external_id: number, label: number, active: true })
+        .update({ external_id: number, label: number, active: true, forward_to: forwardTo })
         .eq("id", existing.id)
     : await supabase.from("channel_connections").insert({
         studio_id: studio.id,
@@ -870,6 +889,7 @@ export async function saveSmsNumber(
         external_id: number,
         label: number,
         active: true,
+        forward_to: forwardTo,
       });
 
   if (error) return { error: error.message };
