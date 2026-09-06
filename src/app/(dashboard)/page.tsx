@@ -152,19 +152,65 @@ export default async function InboxPage({
    * sidebar asks the same question — and a badge saying three above a list
    * showing one sends somebody looking for work that was never theirs.
    */
-  inbox = scopedTo(inbox, inboxScope({ owns, artistId: me?.id ?? null, whose }));
+  const scope = inboxScope({ owns, artistId: me?.id ?? null, whose });
+  inbox = scopedTo(inbox, scope);
+
+  /*
+   * The figures and the waiting list ask their own questions.
+   *
+   * Both were counted off the fifty rows above, and those fifty are a list
+   * built for looking at — most recently active first, because that is the
+   * order somebody wants to read them in. Nothing about that order suits
+   * counting.
+   *
+   * A salon taking ten enquiries a day fills fifty inside a week, so "what the
+   * assistant won you" would start undercounting at exactly the point it
+   * became worth reading, and quietly: the number stays plausible, it is just
+   * too small. That figure is the argument for paying for this at all.
+   *
+   * The waiting list was worse. Somebody marked as needing a person dropped
+   * off the bottom as soon as fifty livelier conversations sat above them —
+   * still waiting, still flagged, invisible on the one screen that exists to
+   * say so. There are never many of these, so they are asked for by name.
+   */
+  type WeekRow = {
+    created_at: string;
+    enquiries: {
+      quote_low_pence: number | null;
+      bookings: { cancelled_at: string | null }[];
+    } | null;
+  };
+
+  let counted = supabase
+    .from("conversations")
+    .select("created_at, enquiries(quote_low_pence, bookings(cancelled_at))")
+    .eq("studio_id", studio.id)
+    .eq("is_test", false)
+    .gte("created_at", sevenDaysAgo);
+  counted = scopedTo(counted, scope);
+
+  let flagged = supabase
+    .from("conversations")
+    .select("id")
+    .eq("studio_id", studio.id)
+    .eq("is_test", false)
+    .eq("status", "needs_human");
+  flagged = scopedTo(flagged, scope);
 
   const { data } = await inbox;
+  const { data: weekRows } = await counted;
+  const { data: needsSomebody } = await flagged;
 
   const conversations = (data ?? []) as unknown as Row[];
+  const week = (weekRows ?? []) as unknown as WeekRow[];
 
   // Framed as what the assistant did, not as what happened — that is the thing
   // being paid for, and the reason to open this page at all.
-  const recent = conversations.filter((c) => c.created_at >= sevenDaysAgo);
+  const recent = week;
   const whileShut = recent.filter((c) =>
     isOutOfHours(new Date(c.created_at), studio.hours, studio.timezone),
   );
-  const isBooked = (c: Row) =>
+  const isBooked = (c: WeekRow) =>
     (c.enquiries?.bookings ?? []).some((b) => !b.cancelled_at);
 
   const booked = recent.filter(isBooked);
@@ -172,7 +218,7 @@ export default async function InboxPage({
     .filter(isBooked)
     .reduce((total, c) => total + (c.enquiries?.quote_low_pence ?? 0), 0);
 
-  const waiting = conversations.filter((c) => c.status === "needs_human");
+  const waiting = needsSomebody ?? [];
 
   const capabilities = await readinessOf(supabase, studio);
 
