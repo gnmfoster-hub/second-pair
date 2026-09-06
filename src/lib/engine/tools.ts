@@ -6,6 +6,7 @@ import { notifyStudio } from "@/lib/notify";
 import { quoteForBand, quoteForStudio, depositFor, withVat } from "@/lib/quote";
 import { verticalPack } from "@/lib/verticals";
 import { coversPostcode } from "@/lib/travel";
+import { dayIn } from "@/lib/diaryGaps";
 import { stripeConfigured } from "@/lib/payments/stripe";
 import {
   availableSlots,
@@ -774,12 +775,29 @@ async function makeBooking(
   const type = bookingTypeFor(band);
   const minutes = durationFor(ctx.studio, band, type);
 
-  // Re-check against the live diary: the slot may have gone since it was offered.
+  /*
+   * Re-check against the live diary: the slot may have gone since it was offered.
+   *
+   * Anchored to the day being booked. Without the anchor this asked for the
+   * next forty free slots from today and looked for the chosen time among
+   * them — but forty slots is about two days of an open diary, so any booking
+   * further out than that was never in the list, and every one of them was
+   * refused with "that time is no longer free". The times had been offered by
+   * this same code moments earlier.
+   *
+   * It only showed up in a live walk-through because a filtered offer reaches
+   * days an unfiltered re-check cannot: ask for a Thursday and you are handed
+   * next Thursday, which is exactly the case that fails. A customer who asked
+   * for no particular day got the soonest slot, well inside forty, and booked
+   * fine.
+   */
+  const askedDay = dayIn(new Date(when).toISOString(), ctx.studio.timezone);
   const stillFree = await availableSlots({
     db: ctx.db,
     studio: ctx.studio,
     artist,
     durationMinutes: minutes,
+    onOrAfter: askedDay,
     limit: 40,
   }).catch(() => null);
 

@@ -446,3 +446,77 @@ test("the per-day cap counts the whole day, not each window of it", () => {
   const onThursday = slots.filter((s) => s.starts_at.startsWith("2026-03-05"));
   assert.ok(onThursday.length <= 2, `${onThursday.length} offered on one day`);
 });
+
+/*
+ * The re-check before booking.
+ *
+ * A time is offered, the customer picks it, and the diary is read once more
+ * before anything is written down — the slot may have gone in between. That
+ * second read has to be able to see the day the first one offered, which is
+ * not automatic: a filtered search reaches days a plain "next N free times"
+ * never gets to, and the customer's chosen time was then judged gone because
+ * it was absent from a list that could never have contained it.
+ *
+ * Forty is the real limit the re-check used, and eight slots a day is this
+ * fixture, so anything past the first week is out of its reach. A customer
+ * asking for a particular weekday lands out there routinely.
+ */
+const FAR_THURSDAY = "2026-09-17";
+
+/** The day a slot falls on, as the business sees it. */
+function dayOf(startsAt: string): string {
+  const { year, month, day } = localParts(new Date(startsAt), TZ);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+test("a plain re-check cannot see a day the offer reached", () => {
+  const chosen = findSlots({
+    ...base,
+    onlyWeekday: 4,
+    onOrAfter: FAR_THURSDAY,
+    limit: 4,
+    perDay: 2,
+  })[0];
+  assert.equal(dayOf(chosen.starts_at), FAR_THURSDAY);
+
+  const plain = findSlots({ ...base, limit: 40 });
+  assert.ok(
+    !plain.some((s) => s.starts_at === chosen.starts_at),
+    "forty slots from today is expected to stop short of that Thursday — if it now " +
+      "reaches, this test guards nothing and wants a further-out day",
+  );
+});
+
+test("anchoring the re-check to the chosen day finds it again", () => {
+  const chosen = findSlots({
+    ...base,
+    onlyWeekday: 4,
+    onOrAfter: FAR_THURSDAY,
+    limit: 4,
+    perDay: 2,
+  })[0];
+
+  const recheck = findSlots({ ...base, onOrAfter: dayOf(chosen.starts_at), limit: 40 });
+  assert.ok(
+    recheck.some((s) => s.starts_at === chosen.starts_at),
+    "a time just offered must survive its own re-check",
+  );
+});
+
+test("a slot that really has gone is still refused", () => {
+  const chosen = findSlots({
+    ...base,
+    onlyWeekday: 4,
+    onOrAfter: FAR_THURSDAY,
+    limit: 4,
+    perDay: 2,
+  })[0];
+
+  const recheck = findSlots({
+    ...base,
+    onOrAfter: dayOf(chosen.starts_at),
+    limit: 40,
+    busy: [{ starts_at: chosen.starts_at, ends_at: chosen.ends_at }],
+  });
+  assert.ok(!recheck.some((s) => s.starts_at === chosen.starts_at));
+});
