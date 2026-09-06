@@ -1,4 +1,5 @@
 import type { Moment } from "./moments";
+import { settleMoments } from "./moments";
 import { whoAnswers, type AnsweringMode } from "@/lib/answering";
 import { isOutOfHours } from "@/lib/report";
 import { notifyStudio } from "@/lib/notify";
@@ -681,7 +682,7 @@ ${text}`;
     usage: spend,
   });
 
-  return { text, moments };
+  return { text, moments: settleMoments(moments) };
 }
 
 async function findOrCreateConversation(

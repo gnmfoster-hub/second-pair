@@ -74,3 +74,21 @@ export type Moment =
     }
   | { kind: "deposit"; amountPence: number; url: string }
   | { kind: "handover"; person: string | null };
+
+/**
+ * What is still worth drawing once the turn is over.
+ *
+ * Cards are collected as the assistant works, and a single turn can both offer
+ * times and take one of them — ask for "the first Thursday at nine" and the
+ * assistant looks the day up and books it without coming back to you. Both
+ * cards were then drawn, so the confirmation arrived with a row of time
+ * buttons sitting underneath it, still tappable, offering a choice that had
+ * just been made. The obvious thing to do with a button is press it.
+ *
+ * A price is different and stays: what it costs is worth reading next to when
+ * it is, and a deposit link is the whole point of the message it comes with.
+ */
+export function settleMoments(moments: Moment[]): Moment[] {
+  const booked = moments.some((m) => m.kind === "booked");
+  return booked ? moments.filter((m) => m.kind !== "slots") : moments;
+}
