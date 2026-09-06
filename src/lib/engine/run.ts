@@ -1,5 +1,6 @@
 import type { Moment } from "./moments";
 import { settleMoments } from "./moments";
+import { joinReply } from "./reply";
 import { whoAnswers, type AnsweringMode } from "@/lib/answering";
 import { isOutOfHours } from "@/lib/report";
 import { notifyStudio } from "@/lib/notify";
@@ -529,7 +530,12 @@ async function generateReply(
     ctx.signedIn ?? null,
   );
 
-  let text = "";
+  /*
+   * Everything said this turn, not just the last of it. See joinReply — this
+   * was overwritten on each pass of the loop, which silently dropped whatever
+   * the assistant said before it reached for a tool.
+   */
+  const spoken: string[] = [];
   let escalated = false;
   let moments: Moment[] = [];
   const spend = { input: 0, output: 0, cache_read: 0, cache_write: 0, cost_micros: 0 };
@@ -574,11 +580,11 @@ async function generateReply(
       };
     }
 
-    text = response.content
-      .filter((b): b is Anthropic.TextBlock => b.type === "text")
-      .map((b) => b.text)
-      .join("\n")
-      .trim();
+    spoken.push(
+      ...response.content
+        .filter((b): b is Anthropic.TextBlock => b.type === "text")
+        .map((b) => b.text),
+    );
 
     const toolUses = response.content.filter(
       (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
@@ -615,6 +621,8 @@ async function generateReply(
     // All results for one assistant turn go back in a single user message.
     messages.push({ role: "user", content: results });
   }
+
+  let text = joinReply(spoken);
 
   /*
    * The privacy disclosure is a legal requirement, not a stylistic preference,
