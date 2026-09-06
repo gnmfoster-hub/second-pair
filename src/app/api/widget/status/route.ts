@@ -18,10 +18,21 @@ export const dynamic = "force-dynamic";
  * the HTML of the business's own website. An owner who rebrands could not
  * change their own accent colour without editing their site, which is the
  * wrong way round for something they pay us for.
+ *
+ * Which is why every answer here says any origin may read it. It went out
+ * without that and the browser refused the reply on every site but our own —
+ * so on the one page it exists for, the business's own, the launcher fell back
+ * to a plain circle, the opening line never appeared and the accent colour
+ * never applied. Nothing errored: the widget is built to shrug this off, and
+ * it shrugged silently. It only showed up by putting the script on somebody
+ * else's domain and looking at it.
  */
+const ANYWHERE = { "Access-Control-Allow-Origin": "*" };
 export async function GET(request: NextRequest) {
   const slug = request.nextUrl.searchParams.get("studio")?.trim();
-  if (!slug) return NextResponse.json({ error: "Missing studio" }, { status: 400 });
+  if (!slug) {
+    return NextResponse.json({ error: "Missing studio" }, { status: 400, headers: ANYWHERE });
+  }
 
   const db = createAdminClient();
   const { data, error } = await db
@@ -38,7 +49,7 @@ export async function GET(request: NextRequest) {
    * rather than as "this business is shut".
    */
   if (error || !data) {
-    return NextResponse.json({ open: false, line: "Ask us anything" });
+    return NextResponse.json({ open: false, line: "Ask us anything" }, { headers: ANYWHERE });
   }
 
   /*
@@ -48,7 +59,10 @@ export async function GET(request: NextRequest) {
    * switched off, which is the one claim on the button that has to be true.
    */
   if (data.archived_at) {
-    return NextResponse.json({ open: false, line: "Ask us anything", accent: null, position: "right", teaser: null });
+    return NextResponse.json(
+      { open: false, line: "Ask us anything", accent: null, position: "right", teaser: null },
+      { headers: ANYWHERE },
+    );
   }
 
   /*
@@ -78,6 +92,6 @@ export async function GET(request: NextRequest) {
   }, {
     // A minute is long enough to spare the database on a busy site and short
     // enough that "Answering now" turns over close to when it actually does.
-    headers: { "Cache-Control": "public, max-age=60, s-maxage=60" },
+    headers: { ...ANYWHERE, "Cache-Control": "public, max-age=60, s-maxage=60" },
   });
 }
