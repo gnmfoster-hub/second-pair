@@ -17,6 +17,7 @@ import {
   capabilitiesFor,
 } from "@/lib/booking";
 import { whoCanBeOffered } from "./offering";
+import { missingDetails } from "./reachable";
 import type { Artist, PriceBand, ServiceOption, Studio } from "@/lib/types";
 import { readyForRealMoney } from "@/lib/payments/stripe";
 
@@ -736,6 +737,37 @@ async function makeBooking(
   const when = Date.parse(startsAt);
   if (!Number.isFinite(when)) {
     return { result: "That is not a time from get_available_slots. Call it again." };
+  }
+
+  /*
+   * Somebody has to be bookable before they can be booked.
+   *
+   * The booking tool has always said to collect a name and a way to reach them
+   * first, and the assistant usually does. On a live walk-through it did not:
+   * the customer typed "Jo Marsh, 07700 900321", the assistant answered "got
+   * it, thanks Jo", and then booked without ever calling save_contact. What
+   * the business got was nine o'clock on Thursday with no name and no number
+   * against it — an hour given away to a stranger they cannot ring.
+   *
+   * The wording matters as much as the check. The details are usually sitting
+   * in the conversation already, unsaved, so the assistant is told to write
+   * down what it has rather than to go back and ask. Making a customer repeat
+   * something they have just typed is its own way of losing them.
+   */
+  const { data: who } = await ctx.db
+    .from("contacts")
+    .select("name, phone, email")
+    .eq("id", ctx.contactId)
+    .maybeSingle();
+
+  const missing = missingDetails(who);
+  if (missing) {
+    return {
+      result:
+        `Not booked — you do not have ${missing} yet. If they have already told you, ` +
+        "call save_contact with it now and then create_booking again, without asking " +
+        `them twice. If they have not, ask for ${missing} first.`,
+    };
   }
 
   // One live booking per enquiry. Without this, a client saying "yes" twice
