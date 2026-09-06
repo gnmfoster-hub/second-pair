@@ -58,6 +58,10 @@ export async function POST(request: NextRequest) {
     .in("channel", ["sms", "voice"])
     .eq("external_id", to)
     .eq("active", true)
+    // Limited before it is narrowed to one: two rows for the same number would
+    // otherwise come back as an error, be read as "nobody owns this", and drop
+    // a real customer's call without a word.
+    .limit(1)
     .maybeSingle();
 
   if (!connection) return empty();
