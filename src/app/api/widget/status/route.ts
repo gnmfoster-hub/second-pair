@@ -27,12 +27,22 @@ export const dynamic = "force-dynamic";
  * it shrugged silently. It only showed up by putting the script on somebody
  * else's domain and looking at it.
  */
-const ANYWHERE = { "Access-Control-Allow-Origin": "*" };
+/**
+ * Every answer from here, with the header that lets the page it is for read it.
+ *
+ * One function rather than a header remembered on each of four returns,
+ * because it was forgotten on all four and the widget lost its face on every
+ * site but ours. A fifth branch added later would have forgotten it too.
+ */
+function readableAnywhere(body: unknown, init: ResponseInit = {}) {
+  return NextResponse.json(body, {
+    ...init,
+    headers: { ...init.headers, "Access-Control-Allow-Origin": "*" },
+  });
+}
 export async function GET(request: NextRequest) {
   const slug = request.nextUrl.searchParams.get("studio")?.trim();
-  if (!slug) {
-    return NextResponse.json({ error: "Missing studio" }, { status: 400, headers: ANYWHERE });
-  }
+  if (!slug) return readableAnywhere({ error: "Missing studio" }, { status: 400 });
 
   const db = createAdminClient();
   const { data, error } = await db
@@ -49,7 +59,7 @@ export async function GET(request: NextRequest) {
    * rather than as "this business is shut".
    */
   if (error || !data) {
-    return NextResponse.json({ open: false, line: "Ask us anything" }, { headers: ANYWHERE });
+    return readableAnywhere({ open: false, line: "Ask us anything" });
   }
 
   /*
@@ -59,10 +69,13 @@ export async function GET(request: NextRequest) {
    * switched off, which is the one claim on the button that has to be true.
    */
   if (data.archived_at) {
-    return NextResponse.json(
-      { open: false, line: "Ask us anything", accent: null, position: "right", teaser: null },
-      { headers: ANYWHERE },
-    );
+    return readableAnywhere({
+      open: false,
+      line: "Ask us anything",
+      accent: null,
+      position: "right",
+      teaser: null,
+    });
   }
 
   /*
@@ -82,7 +95,7 @@ export async function GET(request: NextRequest) {
     new Date(),
   );
 
-  return NextResponse.json({
+  return readableAnywhere({
     ...status,
     accent,
     position: data.widget_position === "left" ? "left" : "right",
@@ -92,6 +105,6 @@ export async function GET(request: NextRequest) {
   }, {
     // A minute is long enough to spare the database on a busy site and short
     // enough that "Answering now" turns over close to when it actually does.
-    headers: { ...ANYWHERE, "Cache-Control": "public, max-age=60, s-maxage=60" },
+    headers: { "Cache-Control": "public, max-age=60, s-maxage=60" },
   });
 }
