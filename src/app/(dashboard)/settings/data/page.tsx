@@ -1,5 +1,6 @@
 import { requireStudio } from "@/lib/studio";
 import { verticalPack } from "@/lib/verticals";
+import { Retention } from "./Retention";
 
 export const metadata = { title: "Your data — Second Pair" };
 
@@ -56,6 +57,8 @@ export default async function DataPage() {
         If one of your {words.customer}s asks what you hold about <em>them</em>, open their
         page and there is a copy to send, written as something they can read.
       </p>
+
+      <Retention months={studio.keep_months} />
     </div>
   );
 }

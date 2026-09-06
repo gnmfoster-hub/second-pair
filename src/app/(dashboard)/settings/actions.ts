@@ -1007,3 +1007,55 @@ export async function saveWhoItOffers(_prev: FormState, fd: FormData): Promise<F
   revalidatePath("/settings/install");
   return { ok: true };
 }
+
+/**
+ * How long enquiries that came to nothing are kept.
+ *
+ * The law's phrasing is that personal data is kept no longer than is necessary
+ * for what it was collected for. Somebody who asked a price in March and never
+ * came in stops being necessary at some point, and "never" is not a defensible
+ * answer to when.
+ *
+ * The machinery to forget them has existed since the data review and has never
+ * once run, because nothing could set this. It read null for every business on
+ * the platform, null means keep everything, and so every price enquiry anybody
+ * has ever made is still there. A control nobody can reach is the same as no
+ * control at all, only harder to notice.
+ *
+ * Deliberately not defaulted to a number on everybody's behalf. Choosing to
+ * delete a business's records is the business's decision, and one made for
+ * them by a silent migration is not a decision they can be said to have taken.
+ */
+export async function setRetention(_prev: FormState, fd: FormData): Promise<FormState> {
+  // What the business keeps is the business's, so it is the owner's.
+  if (!(await isOwner())) {
+    return { error: "Only the owner can change how long enquiries are kept." };
+  }
+
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  const raw = str(fd, "keep_months");
+
+  /*
+   * An empty box means keep everything, and is stored as null rather than as
+   * a nought — nought months would mean deleting this morning's enquiries
+   * tonight, which is the opposite of what an owner clearing the field means
+   * by it.
+   */
+  const months = raw === "" ? null : Number(raw);
+
+  if (months !== null && (!Number.isInteger(months) || months < 6 || months > 120)) {
+    return { error: "Choose a number of months between 6 and 120, or leave it empty." };
+  }
+
+  const { error } = await supabase
+    .from("studios")
+    .update({ keep_months: months })
+    .eq("id", studio.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/data");
+  return { ok: true };
+}

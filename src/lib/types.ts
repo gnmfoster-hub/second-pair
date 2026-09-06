@@ -99,6 +99,13 @@ export type Studio = {
   deposit_rule: DepositRule;
   cancellation_policy: string;
   privacy_notice_url: string | null;
+  /**
+   * Months after which an enquiry that never became an appointment is deleted.
+   *
+   * Null keeps everything, which is what every business starts as. Set from
+   * Settings, then Your data.
+   */
+  keep_months: number | null;
   /** Opening line in the widget. Null falls back to the trade pack. */
   greeting: string | null;
   /** What an entry's colour means in the diary. */
