@@ -1,5 +1,6 @@
 import { formatPence } from "@/lib/money";
 import { describeDepositRule } from "@/lib/quote";
+import { effectiveDepositMode } from "@/lib/payments/stripe";
 import { DAY_NAMES, labelFor } from "@/lib/types";
 import { verticalPack } from "@/lib/verticals";
 import { bookingInstructions, type ProviderKind } from "@/lib/booking/provider";
@@ -58,6 +59,11 @@ export function studioSystemPrompt(
   const active = artists.filter((a) => a.active);
   const pack = verticalPack(studio.vertical);
   const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
+
+  // What would happen if a customer tried to pay, not what the settings ask
+  // for. A business that has switched deposits on without finishing Stripe
+  // takes none, and the assistant should not be describing one.
+  const depositMode = effectiveDepositMode(studio);
   const styles = options.filter((o) => o.kind === "style");
 
   const qualificationLines = pack.qualification.map((q) => `- ${q.prompt}`).join("\n");
@@ -276,7 +282,7 @@ ${ruleLines}
 # Booking
 ${booking}
 
-# Taking the deposit${studio.deposit_mode === "none" ? " — not applicable here, skip this section entirely" : ""}
+# Taking the deposit${depositMode === "none" ? " — not applicable here, skip this section entirely" : ""}
 This order, and never faster. Each step is a separate message, and you wait for them in between.
 
 1. They ask about times. You call get_available_slots and offer what it returns. You do not book anything.
@@ -298,9 +304,9 @@ ${words.size_unit.replace(/^./, (c) => c.toUpperCase())}s:
 ${bandLines}
 
 ${
-  studio.deposit_mode === "none"
+  depositMode === "none"
     ? "This business does not take deposits. Never mention one, never ask for payment, never send a payment link. Book them in and confirm it."
-    : studio.deposit_mode === "optional"
+    : depositMode === "optional"
       ? `Deposit: ${describeDepositRule(studio.deposit_rule)}. It is optional — offer it as a way to secure the slot, but the booking stands whether or not they pay.`
       : `Deposit: ${describeDepositRule(studio.deposit_rule)}. The slot is only held once it is paid.`
 }

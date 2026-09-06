@@ -7,7 +7,7 @@ import { quoteForBand, quoteForStudio, depositFor, withVat } from "@/lib/quote";
 import { verticalPack } from "@/lib/verticals";
 import { coversPostcode } from "@/lib/travel";
 import { dayIn } from "@/lib/diaryGaps";
-import { stripeConfigured } from "@/lib/payments/stripe";
+import { stripeConfigured, effectiveDepositMode } from "@/lib/payments/stripe";
 import {
   availableSlots,
   createBooking,
@@ -273,7 +273,13 @@ export function toolDefinitions(
           },
         ]
       : []),
-    ...(stripeConfigured() && studio.deposit_mode !== "none"
+    /*
+     * Offered only if a link could actually be produced. The platform key on
+     * its own is not enough — without the business's own Stripe account the
+     * tool refuses, so handing it over invites the assistant to promise a
+     * payment it cannot take.
+     */
+    ...(stripeConfigured() && effectiveDepositMode(studio) !== "none"
       ? [
           {
             name: "send_deposit_link",

@@ -25,8 +25,10 @@ export function stripe(): Stripe {
 
 export const stripeConfigured = () => Boolean(process.env.STRIPE_SECRET_KEY);
 
-/** True once deposits would actually reach the business rather than the platform. */
-export const readyForRealMoney = (studio: Studio) => Boolean(studio.stripe_account_id);
+// The deposit decision itself lives in its own module so it can be tested
+// without pulling Stripe in. Re-exported here because this is where callers
+// have always looked for it.
+export { readyForRealMoney, effectiveDepositMode } from "./depositMode";
 
 /** Stripe requires a session to expire between 30 minutes and 24 hours out. */
 function expiryFor(heldUntil: string | null): number {
