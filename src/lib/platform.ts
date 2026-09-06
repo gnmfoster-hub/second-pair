@@ -172,7 +172,15 @@ export type PlatformKpis = {
   booked: number;
   /** What the assistant booked, in pence, at the quoted value. */
   wonPence: number;
-  outOfHours: number;
+  /*
+   * How much of it arrived while they were shut belongs here — it is half the
+   * sentence above, and the most persuasive half. It is deliberately absent
+   * rather than present as a nought: it was declared, hardcoded to zero, and
+   * displayed nowhere, which is one render away from telling somebody that
+   * nothing at all comes in out of hours. The week page already works it out
+   * for a single business; doing it across all of them wants each
+   * conversation's arrival time against its own studio's hours.
+   */
   /** What the model cost to run, in pence. */
   costPence: number;
   seatsUsed: number;

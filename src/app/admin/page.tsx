@@ -253,13 +253,33 @@ export default async function AdminPage() {
    * swallowing them.
    */
   const [{ data: won }, { data: spend, error: spendError }] = await Promise.all([
-    db.from("enquiries").select("quote_low_pence, conversations!inner(status)"),
+    db.from("enquiries").select("quote_low_pence, conversations!inner(status, studio_id)"),
     db.from("messages").select("usage").eq("role", "assistant").not("usage", "is", null),
   ]);
   if (spendError) throw new Error(`cost: ${spendError.message}`);
 
+  /*
+   * Counted for customers, like everything else on this screen.
+   *
+   * This was the whole of it — every demonstration, every test business, and
+   * every walk-through somebody did to check a fix. "It has booked £14,000 of
+   * work for eleven businesses" is the sentence this figure exists to support,
+   * and a figure padded with a salon that does not exist cannot support it.
+   * The counting was corrected for the business totals when the three kinds
+   * were introduced and never carried through to the work.
+   */
+  const forCustomers = new Set(
+    summaries.filter((b) => b.kind === "customer" && !b.archivedAt).map((b) => b.id),
+  );
+
   const wonPence = (won ?? [])
-    .filter((e) => (e.conversations as unknown as { status: string })?.status === "booked")
+    .filter((e) => {
+      const conversation = e.conversations as unknown as {
+        status: string;
+        studio_id: string;
+      } | null;
+      return conversation?.status === "booked" && forCustomers.has(conversation.studio_id);
+    })
     .reduce((sum, e) => sum + (e.quote_low_pence ?? 0), 0);
 
   /*
@@ -281,7 +301,7 @@ export default async function AdminPage() {
    * platform is earning and, worse, keep them in the attention list asking to
    * be set up.
    */
-  const counted = summaries.filter((b) => b.kind === "customer" && !b.archivedAt);
+  const counted = summaries.filter((b) => forCustomers.has(b.id));
 
   const kpis: PlatformKpis = {
     businesses: counted.length,
@@ -291,10 +311,9 @@ export default async function AdminPage() {
       .filter((b) => b.status === "active" || b.status === "overdue")
       .reduce((sum, b) => sum + b.planPence, 0),
     paying: counted.filter((b) => b.status === "active").length,
-    enquiries: summaries.reduce((sum, b) => sum + b.conversations, 0),
-    booked: summaries.reduce((sum, b) => sum + b.bookings, 0),
+    enquiries: counted.reduce((sum, b) => sum + b.conversations, 0),
+    booked: counted.reduce((sum, b) => sum + b.bookings, 0),
     wonPence,
-    outOfHours: 0,
     // Micros are millionths of a dollar-equivalent; a hundredth of that is a
     // penny, which is the unit everything else on this screen is in.
     costPence: Math.round(
