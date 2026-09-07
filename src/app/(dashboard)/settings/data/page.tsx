@@ -1,6 +1,9 @@
 import { requireStudio } from "@/lib/studio";
 import { verticalPack } from "@/lib/verticals";
 import { Retention } from "./Retention";
+import { CalendarLinks } from "./CalendarLinks";
+import { createClient } from "@/lib/supabase/server";
+import { siteOrigin } from "@/lib/origin";
 
 export const metadata = { title: "Your data — Second Pair" };
 
@@ -17,6 +20,41 @@ export const metadata = { title: "Your data — Second Pair" };
  */
 export default async function DataPage() {
   const { studio } = await requireStudio();
+
+  /*
+   * The calendar feeds, which nothing has ever shown anybody.
+   *
+   * Read through the signed-in session rather than the service key, so the
+   * database decides what this person may see: a member of staff gets their
+   * own row and not the business's token.
+   */
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [{ data: membership }, { data: me }, { data: business }] = await Promise.all([
+    supabase
+      .from("studio_members")
+      .select("role")
+      .eq("studio_id", studio.id)
+      .eq("user_id", user?.id ?? "")
+      .maybeSingle(),
+    supabase
+      .from("artists")
+      .select("id, name, calendar_token")
+      .eq("studio_id", studio.id)
+      .eq("user_id", user?.id ?? "")
+      .maybeSingle(),
+    supabase
+      .from("studios")
+      .select("name, calendar_token")
+      .eq("id", studio.id)
+      .maybeSingle(),
+  ]);
+
+  const owns = membership?.role === "owner";
+  const origin = await siteOrigin();
   const pack = verticalPack(studio.vertical);
   const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
 
@@ -57,6 +95,13 @@ export default async function DataPage() {
         If one of your {words.customer}s asks what you hold about <em>them</em>, open their
         page and there is a copy to send, written as something they can read.
       </p>
+
+      <CalendarLinks
+        origin={origin}
+        business={business ? { name: business.name, token: business.calendar_token } : null}
+        mine={me ? { id: me.id, name: me.name, token: me.calendar_token } : null}
+        owns={owns}
+      />
 
       <Retention months={studio.keep_months} />
     </div>

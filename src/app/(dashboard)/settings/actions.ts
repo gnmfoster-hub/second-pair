@@ -1079,3 +1079,85 @@ export async function setRetention(_prev: FormState, fd: FormData): Promise<Form
   revalidatePath("/settings/data");
   return { ok: true };
 }
+
+/**
+ * A fresh calendar link, which is the only way to revoke the old one.
+ *
+ * The feed is deliberately outside the session — a calendar app cannot sign in
+ * — so the token in the URL is the whole credential, and anybody holding it
+ * sees a year of the diary: who is booked, their phone number, and whatever
+ * was written on the appointment. It is a link that gets pasted into a phone,
+ * forwarded to somebody setting it up, and lives on in a shared calendar long
+ * after it should.
+ *
+ * The route has always said the token was rotatable and that rotating it was
+ * how a lost subscription is revoked. Nothing in the product could rotate it:
+ * the column was read in one place and written nowhere, so a leaked link could
+ * not be taken back by anybody short of editing the database by hand. This is
+ * that promise, kept.
+ *
+ * Rotating is not undoable in the sense that matters — every device already
+ * subscribed goes quiet and has to be given the new link — so the button says
+ * so before it is pressed.
+ */
+export async function resetCalendarLink(
+  _prev: FormState,
+  fd: FormData,
+): Promise<FormState> {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  const whose = str(fd, "whose");
+  const artistId = str(fd, "artist_id");
+
+  /*
+   * The business's feed is the whole diary, so it is the owner's. A person's
+   * own is theirs, and the owner's too — they can hand somebody a new link
+   * without waiting for them to log in and do it themselves.
+   */
+  if (whose === "studio") {
+    if (!(await isOwner())) {
+      return { error: "Only the owner can reset the business calendar link." };
+    }
+
+    const { error } = await supabase
+      .from("studios")
+      .update({ calendar_token: freshToken() })
+      .eq("id", studio.id);
+
+    if (error) return { error: error.message };
+    revalidatePath("/settings/data");
+    return { ok: true };
+  }
+
+  if (!artistId) return { error: "No calendar to reset." };
+
+  const { data: me } = await supabase
+    .from("artists")
+    .select("id, user_id")
+    .eq("id", artistId)
+    .eq("studio_id", studio.id)
+    .maybeSingle();
+
+  if (!me) return { error: "That person is not in this business." };
+
+  const { error } = await supabase
+    .from("artists")
+    .update({ calendar_token: freshToken() })
+    .eq("id", me.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/data");
+  return { ok: true };
+}
+
+/**
+ * Sixty-four hex characters, the same shape the database default makes.
+ *
+ * Generated here rather than by asking Postgres for its default, because that
+ * takes a second round trip to produce a value this can make itself.
+ */
+function freshToken(): string {
+  return crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+}
