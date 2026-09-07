@@ -70,90 +70,46 @@ export async function POST(request: NextRequest) {
   const person = connection.artists as unknown as { name: string } | null;
   const body = missedCallText(studio?.name ?? "us", person?.name?.split(" ")[0] ?? null);
 
-  const sent = await sendSms({ to: caller, body, from: to });
-
   /*
-   * Written down whether or not it went.
+   * The thread first, because whether to say anything depends on it.
    *
    * A missed call is an enquiry — somebody wanted something enough to ring —
-   * and it belongs in the inbox even if the text failed, because that is
-   * exactly when the owner most needs to see the number and ring back
-   * themselves. The thread is keyed the way a text message is, on the caller's
-   * own number, so when they reply it lands here rather than starting again.
+   * and it belongs in the inbox whatever happens next. It is keyed the way a
+   * text message is, on the caller's own number, so their reply lands here
+   * rather than starting again.
    */
-  await recordIt(db, {
-    studioId: connection.studio_id,
-    artistId: connection.artist_id,
-    caller,
-    body,
-    delivered: sent.status === "sent" || sent.status === "delivered",
-    error: sent.error ?? null,
-  });
+  const thread = await findOrStart(db, connection.studio_id, connection.artist_id, caller);
+  if (!thread) return empty();
 
-  return empty();
-}
+  await note(db, thread.id, `Missed call from ${caller}.`);
 
-async function recordIt(
-  db: ReturnType<typeof createAdminClient>,
-  it: {
-    studioId: string;
-    artistId: string | null;
-    caller: string;
-    body: string;
-    delivered: boolean;
-    error: string | null;
-  },
-) {
-  const { data: existing } = await db
-    .from("conversations")
-    .select("id, contact_id")
-    .eq("studio_id", it.studioId)
-    .eq("channel", "sms")
-    .eq("external_ref", it.caller)
-    .maybeSingle();
-
-  let conversationId = existing?.id ?? null;
-
-  if (!conversationId) {
-    /*
-     * Their number, for free.
-     *
-     * The one thing the assistant otherwise has to ask a stranger for is on
-     * the call itself, so the business can ring back whatever happens next.
-     */
-    const { data: contact } = await db
-      .from("contacts")
-      .insert({ studio_id: it.studioId, channel: "sms", phone: it.caller })
-      .select("id")
-      .single();
-
-    const { data: made, error } = await db
-      .from("conversations")
-      .insert({
-        studio_id: it.studioId,
-        contact_id: contact?.id ?? null,
-        channel: "sms",
-        external_ref: it.caller,
-        artist_id: it.artistId,
-        status: "new",
-      })
-      .select("id")
-      .single();
-
-    if (error || !made) return;
-    conversationId = made.id;
+  /*
+   * Nothing automatic goes out on a thread somebody has taken over.
+   *
+   * The same rule the text webhook has kept from the start, and it was missing
+   * here. A customer halfway through a conversation with the owner rings, gets
+   * no answer, and receives "tell me what you need and I can help here" from
+   * the assistant — in the middle of being helped by a person. Worse than
+   * silence, and it undercuts the owner in front of their own customer.
+   *
+   * They still see the call: it is noted above and flagged below, which is the
+   * part that actually matters to somebody already typing.
+   */
+  if (thread.paused) {
+    await note(db, thread.id, "No text sent — you have taken this conversation over.");
+    await flag(db, thread.id);
+    return empty();
   }
 
-  await db.from("messages").insert({
-    conversation_id: conversationId,
-    role: "system",
-    content: `Missed call from ${it.caller}.`,
-  });
+  const sent = await sendSms({ to: caller, body, from: to });
+  const delivered = sent.status === "sent" || sent.status === "delivered";
 
   await db.from("messages").insert({
-    conversation_id: conversationId,
+    conversation_id: thread.id,
     role: "assistant",
-    content: it.delivered ? it.body : `${it.body}\n\n(Not delivered: ${it.error ?? "unknown"})`,
+    content: delivered ? body : `${body}
+
+(Not delivered: ${sent.error ?? "unknown"})`,
   });
 
   /*
@@ -164,9 +120,75 @@ async function recordIt(
    * could not be texted is a number sitting there that somebody has to ring,
    * and nothing else in the product would ever say so.
    */
-  if (!it.delivered) {
-    await db.from("conversations").update({ status: "needs_human" }).eq("id", conversationId);
-  }
+  if (!delivered) await flag(db, thread.id);
+
+  return empty();
+}
+
+/**
+ * The thread this caller belongs to, started if there is not one yet.
+ *
+ * Whether the assistant has been stood down on it is read here rather than
+ * assumed, because it decides whether anything is said at all.
+ */
+async function findOrStart(
+  db: ReturnType<typeof createAdminClient>,
+  studioId: string,
+  artistId: string | null,
+  caller: string,
+): Promise<{ id: string; paused: boolean } | null> {
+  const { data: existing } = await db
+    .from("conversations")
+    .select("id, ai_paused")
+    .eq("studio_id", studioId)
+    .eq("channel", "sms")
+    .eq("external_ref", caller)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) return { id: existing.id, paused: Boolean(existing.ai_paused) };
+
+  /*
+   * Their number, for free.
+   *
+   * The one thing the assistant otherwise has to ask a stranger for is on the
+   * call itself, so the business can ring back whatever happens next.
+   */
+  const { data: contact } = await db
+    .from("contacts")
+    .insert({ studio_id: studioId, channel: "sms", phone: caller })
+    .select("id")
+    .single();
+
+  const { data: made, error } = await db
+    .from("conversations")
+    .insert({
+      studio_id: studioId,
+      contact_id: contact?.id ?? null,
+      channel: "sms",
+      external_ref: caller,
+      artist_id: artistId,
+      status: "new",
+    })
+    .select("id")
+    .single();
+
+  if (error || !made) return null;
+  return { id: made.id, paused: false };
+}
+
+/** A line in the thread that is neither the customer nor the assistant. */
+async function note(
+  db: ReturnType<typeof createAdminClient>,
+  conversationId: string,
+  content: string,
+) {
+  await db.from("messages").insert({ conversation_id: conversationId, role: "system", content });
+}
+
+/** Somebody has to look at this one. */
+async function flag(db: ReturnType<typeof createAdminClient>, conversationId: string) {
+  await db.from("conversations").update({ status: "needs_human" }).eq("id", conversationId);
 }
 
 /** Twilio accepts an empty response as "nothing further". */
