@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { judge, domainOf } from "./inboundEmail.ts";
+import { judge, domainOf, ourRecipient, plainTextFrom } from "./inboundEmail.ts";
 
 const shop = { ownDomains: ["livingcanvastattoo.ink"], ourDomain: "second-pair.com" };
 
@@ -115,4 +115,65 @@ test("auto-submitted: no is a person, and is answered", () => {
     shop,
   );
   assert.equal(v.what, "answer");
+});
+
+/*
+ * Picking our own address out of a To line.
+ *
+ * Taking the first address and splitting on "@" gave "the fold hair <demo-fold"
+ * the moment a provider included a display name, and the enquiry was dropped as
+ * belonging to no business at all — silently, because a dropped email leaves
+ * nothing behind to notice.
+ */
+test("a display name does not become part of the business name", () => {
+  assert.equal(
+    ourRecipient("The Fold Hair <demo-fold@in.second-pair.com>", "in.second-pair.com"),
+    "demo-fold@in.second-pair.com",
+  );
+});
+
+test("ours is found among several recipients", () => {
+  assert.equal(
+    ourRecipient("jo@gmail.com, The Fold <demo-fold@in.second-pair.com>", "in.second-pair.com"),
+    "demo-fold@in.second-pair.com",
+  );
+  assert.equal(
+    ourRecipient("demo-fold@in.second-pair.com, partner@gmail.com", "in.second-pair.com"),
+    "demo-fold@in.second-pair.com",
+  );
+});
+
+test("a plain address still works", () => {
+  assert.equal(ourRecipient("demo-fold@in.second-pair.com", "in.second-pair.com"), "demo-fold@in.second-pair.com");
+});
+
+test("none of ours falls back to the first rather than dropping it", () => {
+  assert.equal(ourRecipient("someone@elsewhere.com", "in.second-pair.com"), "someone@elsewhere.com");
+  assert.equal(ourRecipient("", "in.second-pair.com"), null);
+});
+
+/*
+ * Plenty of mail has no plain-text part. Handed the markup, the assistant reads
+ * a wall of tags and can quote them back at a customer.
+ */
+test("an HTML-only message comes out as words", () => {
+  const html =
+    "<html><head><style>p{color:red}</style></head><body>" +
+    "<p>Hi &amp; hello</p><p>How much for a <b>forearm</b> piece?</p>" +
+    "<script>alert(1)</script></body></html>";
+  const text = plainTextFrom(html);
+  assert.match(text, /Hi & hello/);
+  assert.match(text, /How much for a forearm piece\?/);
+  assert.ok(!text.includes("<"), text);
+  assert.ok(!text.includes("alert"), text);
+  assert.ok(!text.includes("color:red"), text);
+});
+
+test("line breaks survive, runs of blank lines do not", () => {
+  assert.equal(plainTextFrom("<p>one</p><p>two</p>"), "one\ntwo");
+  assert.equal(plainTextFrom("a<br><br><br><br>b"), "a\n\nb");
+});
+
+test("nothing but markup comes out empty", () => {
+  assert.equal(plainTextFrom("<div><span></span></div>"), "");
 });

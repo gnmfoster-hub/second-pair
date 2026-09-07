@@ -2,7 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runTurn } from "@/lib/engine/run";
 import { sendEmail, emailConfigured } from "@/lib/messaging/email";
-import { judge, domainOf, type InboundEmail } from "@/lib/messaging/inboundEmail";
+import {
+  judge,
+  domainOf,
+  addressOf,
+  ourRecipient,
+  plainTextFrom,
+  type InboundEmail,
+} from "@/lib/messaging/inboundEmail";
 import { hasAnthropicEnv } from "@/lib/env";
 
 export const runtime = "nodejs";
@@ -55,7 +62,9 @@ export async function POST(request: NextRequest) {
    * cannot be confused with another business's and there is no second table to
    * keep in step.
    */
-  const slug = email.to.split("@")[0]?.trim().toLowerCase();
+  const ourDomain = (process.env.EMAIL_INBOUND_DOMAIN ?? "in.second-pair.com").toLowerCase();
+  const mine = ourRecipient(email.to, ourDomain);
+  const slug = mine?.split("@")[0]?.trim();
   if (!slug) return ok("no business in the address");
 
   const { data: studio } = await db
@@ -117,12 +126,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/** The address out of "Jo Marsh <jo@gmail.com>". */
-function addressOf(raw: string): string {
-  const angled = /<([^>]+)>/.exec(raw);
-  return (angled ? angled[1] : raw).trim().toLowerCase();
-}
-
 /**
  * The provider's shape, read defensively.
  *
@@ -164,9 +167,23 @@ function readEmail(payload: Record<string, unknown>): InboundEmail | null {
     from,
     to: pick("to", "recipient", "To"),
     subject: pick("subject", "Subject"),
-    body: pick("text", "body", "plain", "html"),
+    /*
+     * The words, whatever part they arrived in.
+     *
+     * A great deal of mail carries no plain-text part at all, and handing the
+     * markup straight to the assistant means it reads a wall of tags and may
+     * quote them back at a customer.
+     */
+    body: pick("text", "body", "plain") ?? flatten(pick("html")),
     headers,
   };
+}
+
+/** Markup down to words, or null if there was none. */
+function flatten(html: string | null): string | null {
+  if (!html) return null;
+  const text = plainTextFrom(html);
+  return text || null;
 }
 
 /** "Re:" once, however many times it has been round already. */

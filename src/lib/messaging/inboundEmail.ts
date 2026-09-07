@@ -47,15 +47,81 @@ const NEVER_REPLY = /^(no[-_.]?reply|do[-_.]?not[-_.]?reply|bounce|mailer-daemon
 const MACHINE_SUBJECT =
   /^(undeliverable|delivery status notification|mail delivery|returned mail|automatic reply|out of office|auto(matic)?[- ]?reply|read receipt)/i;
 
-const address = (raw: string): string => {
+/**
+ * The address out of however it was written.
+ *
+ * "Jo Marsh <jo@gmail.com>" and "jo@gmail.com" are the same person, and which
+ * one arrives depends entirely on the mail client at the other end.
+ */
+export function addressOf(raw: string): string {
   const angled = /<([^>]+)>/.exec(raw);
   return (angled ? angled[1] : raw).trim().toLowerCase();
-};
+}
 
 /** The bit after the @, or "" if there is not one. */
 export function domainOf(raw: string): string {
-  const at = address(raw).lastIndexOf("@");
-  return at === -1 ? "" : address(raw).slice(at + 1);
+  const one = addressOf(raw);
+  const at = one.lastIndexOf("@");
+  return at === -1 ? "" : one.slice(at + 1);
+}
+
+/**
+ * Which of the addresses it was sent to is ours.
+ *
+ * A To line is not one address. It is a display name wrapped round one, or
+ * several separated by commas because somebody copied in their partner, and
+ * the business's own address might be any of them. Taking the first and
+ * splitting on "@" gave "the fold hair <demo-fold" the moment a provider
+ * included a display name, and the enquiry was dropped as belonging to no
+ * business at all — silently, since a dropped email leaves nothing behind.
+ */
+export function ourRecipient(to: string, ourDomain: string): string | null {
+  const all = to
+    .split(",")
+    .map((one) => addressOf(one))
+    .filter((one) => one.includes("@"));
+
+  const domain = ourDomain.trim().toLowerCase();
+  const mine = all.find((one) => one.endsWith(`@${domain}`));
+
+  // Falling back to the first: better to try a business name we may not find
+  // than to drop the message because the domain was configured differently
+  // from what we expected.
+  return mine ?? all[0] ?? null;
+}
+
+/**
+ * Words out of an HTML-only email.
+ *
+ * Plenty of mail carries no plain-text part at all. Handed the markup, the
+ * assistant reads a wall of tags and may quote them back — so scripts and
+ * styles go entirely, tags become spaces, and the entities anybody actually
+ * types are turned back into characters.
+ */
+export function plainTextFrom(html: string): string {
+  const BREAK = "\n";
+
+  return html
+    .replace(/<(script|style)[\s\S]*?<\/(?:script|style)>/gi, " ")
+    .replace(/<br\s*\/?>/gi, BREAK)
+    .replace(/<\/(?:p|div|tr|li|h[1-6])>/gi, BREAK)
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    /*
+     * Ampersand last, so a literal "&amp;lt;" in the original comes out as
+     * "&lt;" rather than as a "<" that was never written.
+     */
+    .replace(/&amp;/gi, "&")
+    .replace(/[^\S\n]+/g, " ")
+    // A closing tag became a break and the next opening tag became a space,
+    // so every line would otherwise start with one.
+    .replace(/[^\S\n]*\n[^\S\n]*/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 /**
@@ -92,7 +158,7 @@ export function judge(
   const machine = fromAMachine(headers);
   if (machine) return { what: "ignore", because: machine };
 
-  const from = address(email.from ?? "");
+  const from = addressOf(email.from ?? "");
   if (!from || !from.includes("@")) {
     return { what: "ignore", because: "there is no sender to reply to" };
   }
