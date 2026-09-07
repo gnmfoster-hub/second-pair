@@ -13,6 +13,7 @@ const record = (over: Partial<SubjectRecord> = {}): SubjectRecord => ({
     email: "sam@example.com",
     instagram_handle: null,
     marketing_consent: false,
+    alert: null,
     notes: null,
     created_at: "2026-01-04T10:00:00Z",
   },
@@ -85,6 +86,7 @@ test("a cancelled appointment still says it happened", () => {
           type: "session",
           with: "Dave",
           cancelled_at: "2026-02-10T09:00:00Z",
+          notes: null,
         },
       ],
     }),
@@ -98,7 +100,7 @@ test("times are shown where the business is, not where the server is", () => {
   const doc = subjectAccessDocument(
     record({
       bookings: [
-        { starts_at: "2026-06-14T09:00:00Z", ends_at: "2026-06-14T10:00:00Z", type: null, with: null, cancelled_at: null },
+        { starts_at: "2026-06-14T09:00:00Z", ends_at: "2026-06-14T10:00:00Z", type: null, with: null, cancelled_at: null, notes: null },
       ],
     }),
     LDN,
@@ -114,4 +116,50 @@ test("a missing detail is left out rather than shown as empty", () => {
   );
   assert.ok(!/Email\s*$/m.test(doc), "printed an empty field");
   assert.ok(!doc.includes("null"), "showed a null to a member of the public");
+});
+
+/*
+ * The standing flag was the one part of somebody's record left out of their
+ * own copy of it — and it is shown to the business every time that person gets
+ * in touch, which makes it among the most consequential things written about
+ * them anywhere here.
+ */
+test("the note shown on every enquiry is disclosed", () => {
+  const doc = subjectAccessDocument(
+    record({
+      contact: { ...record().contact, alert: "Difficult about prices" },
+    }),
+    LDN,
+  );
+  assert.match(doc, /whenever you contact them/);
+  assert.match(doc, /Difficult about prices/);
+});
+
+test("no flag, no section about one", () => {
+  const doc = subjectAccessDocument(record(), LDN);
+  assert.ok(!doc.includes("whenever you contact them"), doc);
+});
+
+/*
+ * What the business wrote on the appointment itself is about the person as
+ * much as the time is — and in the case that prompted this, it was a note
+ * about what they are allergic to.
+ */
+test("a note on an appointment is disclosed with it", () => {
+  const doc = subjectAccessDocument(
+    record({
+      bookings: [
+        {
+          starts_at: "2026-06-14T09:00:00Z",
+          ends_at: "2026-06-14T10:00:00Z",
+          type: null,
+          with: null,
+          cancelled_at: null,
+          notes: "Allergic to green ink",
+        },
+      ],
+    }),
+    LDN,
+  );
+  assert.match(doc, /Allergic to green ink/);
 });

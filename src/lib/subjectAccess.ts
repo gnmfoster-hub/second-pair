@@ -22,6 +22,8 @@ export type SubjectRecord = {
     instagram_handle: string | null;
     marketing_consent: boolean | null;
     notes: string | null;
+    /** The standing flag the business sees on every enquiry from them. */
+    alert: string | null;
     created_at: string | null;
   };
   conversations: {
@@ -35,6 +37,8 @@ export type SubjectRecord = {
     type: string | null;
     with: string | null;
     cancelled_at: string | null;
+    /** What the business wrote on the appointment itself. */
+    notes: string | null;
   }[];
 };
 
@@ -98,6 +102,23 @@ export function subjectAccessDocument(record: SubjectRecord, timezone: string): 
     out.push("", "Notes this business has kept about you:", "", ...c.notes.split("\n").map((l) => `  ${l}`));
   }
 
+  /*
+   * The standing flag, for the same reason.
+   *
+   * It is shown to the business every time this person gets in touch, which
+   * makes it among the most consequential things anybody has written about
+   * them here — and it was the one part of their record left out of their
+   * own copy of it.
+   */
+  if (c.alert?.trim()) {
+    out.push(
+      "",
+      "A note this business sees whenever you contact them:",
+      "",
+      ...c.alert.split("\n").map((l) => `  ${l}`),
+    );
+  }
+
   out.push("", rule, "CONVERSATIONS", rule);
   if (!record.conversations.length) {
     out.push("", "There are none recorded.");
@@ -120,6 +141,10 @@ export function subjectAccessDocument(record: SubjectRecord, timezone: string): 
     const withWhom = b.with ? ` with ${b.with}` : "";
     const off = b.cancelled_at ? "  (cancelled)" : "";
     out.push("", `${when(b.starts_at, timezone)}${withWhom}${off}`);
+    // What was written on the appointment is about them as much as the time is.
+    if (b.notes?.trim()) {
+      for (const line of b.notes.split("\n")) out.push(`    ${line}`);
+    }
   }
 
   out.push("", rule, "");

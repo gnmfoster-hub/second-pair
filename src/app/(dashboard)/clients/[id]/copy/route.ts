@@ -28,7 +28,7 @@ export async function GET(
 
   const { data: contact, error } = await supabase
     .from("contacts")
-    .select("name, phone, email, instagram_handle, marketing_consent, notes, created_at")
+    .select("name, phone, email, instagram_handle, marketing_consent, notes, alert, created_at")
     .eq("id", id)
     .eq("studio_id", studio.id)
     .maybeSingle();
@@ -53,11 +53,36 @@ export async function GET(
         .order("created_at")
     : { data: [] };
 
-  const { data: bookings } = await supabase
-    .from("bookings")
-    .select("starts_at, ends_at, type, cancelled_at, artists(name)")
-    .eq("contact_id", id)
-    .order("starts_at");
+  /*
+   * Their appointments, reached both ways.
+   *
+   * An appointment typed into the diary carries the client on the row. One the
+   * assistant booked does not — it is joined up through the enquiry — so
+   * asking by contact alone found none of them, and somebody who had booked
+   * through the assistant a dozen times received a letter saying "APPOINTMENTS:
+   * there are none recorded" while the salon had every one of them in the
+   * diary. An answer to a legal request that is confidently untrue is worse
+   * than a slow one.
+   */
+  const columns = "id, starts_at, ends_at, type, cancelled_at, notes, artists(name)";
+
+  const { data: enquiries } = convIds.length
+    ? await supabase.from("enquiries").select("id").in("conversation_id", convIds)
+    : { data: [] };
+
+  const enquiryIds = (enquiries ?? []).map((e) => e.id);
+
+  const [{ data: typedIn }, { data: throughTheAssistant }] = await Promise.all([
+    supabase.from("bookings").select(columns).eq("contact_id", id),
+    enquiryIds.length
+      ? supabase.from("bookings").select(columns).in("enquiry_id", enquiryIds)
+      : Promise.resolve({ data: [] as never[] }),
+  ]);
+
+  // The same appointment can arrive down both routes.
+  const bookings = [...(typedIn ?? []), ...(throughTheAssistant ?? [])]
+    .filter((b, i, all) => all.findIndex((other) => other.id === b.id) === i)
+    .sort((a, b) => String(a.starts_at).localeCompare(String(b.starts_at)));
 
   const record: SubjectRecord = {
     business: studio.name,
@@ -70,12 +95,13 @@ export async function GET(
         .filter((m) => m.conversation_id === c.id)
         .map((m) => ({ role: m.role, content: m.content, created_at: m.created_at })),
     })),
-    bookings: (bookings ?? []).map((b) => ({
+    bookings: bookings.map((b) => ({
       starts_at: b.starts_at,
       ends_at: b.ends_at,
       type: b.type,
       with: (b.artists as unknown as { name: string } | null)?.name ?? null,
       cancelled_at: b.cancelled_at,
+      notes: b.notes,
     })),
   };
 
