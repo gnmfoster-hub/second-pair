@@ -40,6 +40,28 @@ export type Verdict = {
   because: string;
 };
 
+/**
+ * Mail the owner is waiting for, from a machine.
+ *
+ * Setting up forwarding means proving you control the address it forwards to,
+ * and every mail provider does that by sending a code to it. That code arrives
+ * here, from a no-reply sender, marked automatic — which is precisely the
+ * shape of everything this file exists to throw away. So the one message an
+ * owner is sitting there waiting for is the one most certain to be binned.
+ *
+ * It is checked before the machine rules rather than after, because it is a
+ * machine and would never survive them.
+ */
+const VERIFYING = [
+  // "Gmail Forwarding Confirmation", "Confirm forwarding to ..."
+  /forwarding[^.]{0,40}(confirmation|confirm|request)/i,
+  /(confirm|verify)[^.]{0,20}forwarding/i,
+  // "Your verification code is 123456", "confirmation code"
+  /(verification|confirmation|security)[ -]?code/i,
+  // "Verify your email address", "Please verify this address"
+  /verify (your|this|the) (email|address|e-mail)/i,
+];
+
 /** Addresses that exist to send and never to receive. */
 const NEVER_REPLY = /^(no[-_.]?reply|do[-_.]?not[-_.]?reply|bounce|mailer-daemon|postmaster|abuse|notifications?|alerts?|billing|invoices?)@/i;
 
@@ -154,6 +176,21 @@ export function judge(
   const headers = Object.fromEntries(
     Object.entries(email.headers ?? {}).map(([k, v]) => [k.toLowerCase(), v]),
   );
+
+  /*
+   * Before anything else, because it is the mail somebody is waiting for.
+   *
+   * Parked rather than answered: nobody should write back to a verification
+   * robot. But it has to reach the owner, and everything below this line would
+   * have thrown it away.
+   */
+  const opening = `${email.subject ?? ""} ${(email.body ?? "").slice(0, 400)}`;
+  if (VERIFYING.some((pattern) => pattern.test(opening))) {
+    return {
+      what: "park",
+      because: "it looks like a code for setting this address up — read it and carry on",
+    };
+  }
 
   const machine = fromAMachine(headers);
   if (machine) return { what: "ignore", because: machine };

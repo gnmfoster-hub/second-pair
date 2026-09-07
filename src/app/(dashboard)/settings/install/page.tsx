@@ -102,7 +102,24 @@ export default async function ChannelsPage() {
             to it, and we only ever see what is sent here.
           </p>
 
-          <code className="mt-4 block overflow-x-auto rounded-lg border border-border bg-surface-2/60 px-3 py-2 font-mono text-[11px]">
+          {/*
+            * Not shown as though it works, because it does not yet.
+            *
+            * This was printed as a live address before the domain behind it
+            * existed. Somebody set up forwarding to it, their mail provider
+            * sent a verification code to prove they owned it, and the code
+            * went to a domain with no mail server at all — so it bounced, and
+            * there was nothing to go and fetch. An address on a screen is a
+            * promise that something is listening at the other end.
+            */}
+          <p className="mt-4 rounded-lg bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">
+            <strong>Not switched on yet.</strong> Do not set up forwarding to this
+            address until it says otherwise here — the domain has no mail server behind
+            it, so anything sent to it bounces, including the code your provider sends
+            to verify the forward.
+          </p>
+
+          <code className="mt-3 block overflow-x-auto rounded-lg border border-border bg-surface-2/60 px-3 py-2 font-mono text-[11px] opacity-60">
             {studio.slug}@in.second-pair.com
           </code>
 

@@ -177,3 +177,53 @@ test("line breaks survive, runs of blank lines do not", () => {
 test("nothing but markup comes out empty", () => {
   assert.equal(plainTextFrom("<div><span></span></div>"), "");
 });
+
+/*
+ * The message an owner is actually waiting for.
+ *
+ * Setting up forwarding means proving you control the address it forwards to,
+ * and every provider does that by sending a code there. It arrives from a
+ * no-reply sender, marked automatic — the exact shape of everything this file
+ * throws away. So the one email somebody is sitting waiting for was the one
+ * most certain to be binned.
+ */
+test("a forwarding confirmation reaches the owner", () => {
+  const v = judge(
+    {
+      from: "forwarding-noreply@google.com",
+      subject: "(#123456) Gmail Forwarding Confirmation - Receive Mail from dave@livingcanvastattoo.ink",
+      body: "You have requested to automatically forward mail. Confirmation code: 123456",
+      headers: { "auto-submitted": "auto-generated" },
+    },
+    shop,
+  );
+  assert.equal(v.what, "park");
+  assert.match(v.because, /setting this address up/);
+});
+
+test("a verification code from anywhere reaches the owner", () => {
+  for (const subject of [
+    "Your verification code is 448122",
+    "Confirmation code for your new address",
+    "Verify your email address to continue",
+  ]) {
+    const v = judge({ from: "no-reply@example.com", subject, headers: { precedence: "bulk" } }, shop);
+    assert.equal(v.what, "park", subject);
+  }
+});
+
+/*
+ * And the other direction, which matters more: a customer using those words
+ * must still be answered rather than left sitting in the inbox.
+ */
+test("a customer who says confirm or verify is still answered", () => {
+  for (const [subject, body] of [
+    ["Appointment", "Can you confirm by email please?"],
+    ["Hi", "Just confirming my appointment on Thursday"],
+    ["Quote", "Could you verify the price you gave me?"],
+    ["Booking", "please confirm this address is right: 14 Mill Lane"],
+  ] as [string, string][]) {
+    assert.equal(judge({ from: "jo@gmail.com", subject, body }, shop).what, "answer", body);
+  }
+});
+
