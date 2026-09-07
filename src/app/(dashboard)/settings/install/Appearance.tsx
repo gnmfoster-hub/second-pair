@@ -612,17 +612,40 @@ export function Appearance({
                 Switched off. Nothing appears on your site at all.
               </div>
             )}
-            <div className={look.readable ? "text-muted" : "text-warn"}>
-              {look.readable
-                ? `Comfortable to read (${look.ratio.toFixed(1)} to 1).`
-                : `Hard to read (${look.ratio.toFixed(1)} to 1).`}
-            </div>
-            {!look.readable && (
-              <p className="hint mt-0.5 max-w-xs">
-                It is your brand and you can keep it. But 4.5 to 1 is the point
-                where most people stop having to work at it, and somebody
-                glancing at a corner of a page is not going to work at it.
-              </p>
+            {/*
+              * A number only where a number means something.
+              *
+              * Contrast is between the writing and what is behind it. On a
+              * filled button that is the fill, and we know it. On an outlined
+              * or frosted one it is the customer's own page showing through,
+              * which we have never seen — quoting the fill-against-text figure
+              * there would be a confident answer to a different question.
+              */}
+            {surface === "outline" || surface === "glass" ? (
+              <div className="text-muted">
+                {surface === "outline"
+                  ? "The writing sits on your own page, so how readable it is depends on what is behind it."
+                  : "Your page shows through, so the contrast is a little lower than it looks here."}
+                <p className="hint mt-0.5 max-w-xs">
+                  Worth looking at on the busiest part of your site &mdash; a photograph,
+                  or a dark section &mdash; rather than on a plain background.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className={look.readable ? "text-muted" : "text-warn"}>
+                  {look.readable
+                    ? `Comfortable to read (${look.ratio.toFixed(1)} to 1).`
+                    : `Hard to read (${look.ratio.toFixed(1)} to 1).`}
+                </div>
+                {!look.readable && (
+                  <p className="hint mt-0.5 max-w-xs">
+                    It is your brand and you can keep it. But 4.5 to 1 is the point
+                    where most people stop having to work at it, and somebody
+                    glancing at a corner of a page is not going to work at it.
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>
