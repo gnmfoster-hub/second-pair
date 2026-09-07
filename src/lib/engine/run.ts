@@ -756,6 +756,53 @@ async function findOrCreateConversation(
     })
     .select("*")
     .single();
+  /*
+   * Somebody else got there first, in the same instant.
+   *
+   * A session is unique per business, so two messages arriving together on a
+   * brand new one both find nothing, both insert, and the second is refused by
+   * the index. Nobody should ever see that: it is a customer double-tapping
+   * send, or a phone on a poor signal retrying — and what came back was a five
+   * hundred and "could not reach them, please try again", at the one moment
+   * they are most likely to give up and message somebody else.
+   *
+   * The throttle cannot prevent it. It lives in memory on one instance, and
+   * these two requests are by definition being handled at the same time, very
+   * possibly not by the same one.
+   */
+  if (error?.code === "23505") {
+    const { data: theirs } = await db
+      .from("conversations")
+      .select("*")
+      .eq("studio_id", studioId)
+      .eq("channel", channel)
+      .eq("external_ref", sessionKey)
+      .maybeSingle();
+
+    if (theirs) {
+      // The contact made a moment ago now has nothing pointing at it.
+      if (contact?.id) await db.from("contacts").delete().eq("id", contact.id);
+
+      const { data: already } = await db
+        .from("enquiries")
+        .select("id")
+        .eq("conversation_id", theirs.id)
+        .maybeSingle();
+
+      if (already) {
+        return { conversation: theirs, enquiryId: already.id, contactId: theirs.contact_id };
+      }
+
+      const { data: made } = await db
+        .from("enquiries")
+        .insert({ conversation_id: theirs.id, artist_id: forArtistId })
+        .select("id")
+        .single();
+
+      return { conversation: theirs, enquiryId: made!.id, contactId: theirs.contact_id };
+    }
+  }
+
   if (error) throw new Error(`Could not start conversation: ${error.message}`);
 
   const { data: enquiry } = await db
