@@ -150,10 +150,26 @@
    */
   var pulsing = null;
   var pulseStops = null;
+  /** Whether it has rung at all yet, so two routes cannot both start it. */
+  var ringing = false;
 
-  function drawAttention() {
-    if (still || !pulse) return;
+  /*
+   * Start ringing.
+   *
+   * "Ring once" hangs off the nudge, which is right: the ring is there to say
+   * something has arrived, and the nudge is the something.
+   *
+   * "Keep ringing" cannot hang off the nudge, and did. The nudge shows once per
+   * session and never again, so on the second page somebody visited there was
+   * no nudge and therefore no ring — a business had switched on a thing that
+   * only worked for a first-time visitor who waited nine seconds. This is
+   * started from the answer arriving instead, and guards against being started
+   * twice when both routes fire.
+   */
+  function startPulsing() {
+    if (still || !pulse || pulsing || ringing) return;
     addKeyframes();
+    ringing = true;
     ring();
 
     if (!pulse.every) return;
@@ -176,6 +192,7 @@
     if (pulseStops) window.clearTimeout(pulseStops);
     pulsing = null;
     pulseStops = null;
+    ringing = true;
     button.style.animation = "";
   }
 
@@ -396,7 +413,15 @@
           if (got.geometry) shape = got.geometry;
           if (got.bubble) bubbleLook = got.bubble;
           // Null is a real answer here — it means they have asked for none.
+          // Null is a real answer here — it means they have asked for none.
           if ("pulse" in got) pulse = got.pulse;
+
+          /*
+           * A repeating ring starts on its own, rather than waiting for a
+           * nudge that may never come. Four seconds is long enough for the
+           * page to have settled and short enough to still be the same glance.
+           */
+          if (pulse && pulse.every && !open) later(startPulsing, 4000);
           if (!tagTeaser && got.teaser) {
             teaserText = got.teaser;
             teaser.setAttribute("aria-label", teaserText);
@@ -584,6 +609,15 @@
     if (open) {
       unread = false;
       hideTeaser();
+      /*
+       * They opened it, so the ringing has done its job.
+       *
+       * This used to live in hideTeaser, which also runs on the timer that
+       * takes the nudge away after twelve seconds — so a business that asked
+       * for a ring every six seconds got two rings and then silence. Letting a
+       * bubble time out is not the same as a person answering.
+       */
+      stopPulsing();
     }
     dot.style.display = unread && !open ? "block" : "none";
 
@@ -627,7 +661,7 @@
     teaser.style.opacity = "1";
     teaser.style.transform = "translateY(0) scale(1)";
 
-    drawAttention();
+    startPulsing();
     type();
   }
 
@@ -725,15 +759,6 @@
 
   function hideTeaser() {
     /*
-     * The nudge going away is the visitor having answered.
-     *
-     * Whether they opened it, waved it off, or simply let it time out, they
-     * have now seen the thing the ringing was for. Carrying on is asking a
-     * question that has been answered.
-     */
-    stopPulsing();
-
-    /*
      * Stop typing into a bubble nobody can see any more.
      *
      * Without this, opening the widget mid-sentence leaves a timer running
@@ -773,6 +798,16 @@
   teaser.addEventListener("click", function () {
     hideTeaser();
     toggle(true);
+  });
+
+  /*
+   * Dismissing the nudge is an answer too, even though it is a no.
+   *
+   * Somebody who has waved it away has seen it. Ringing at them for another
+   * two minutes is arguing.
+   */
+  teaser.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") stopPulsing();
   });
 
   document.addEventListener("keydown", function (event) {
