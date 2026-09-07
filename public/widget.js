@@ -578,7 +578,20 @@
       backdropFilter: surface.blur || "",
       WebkitBackdropFilter: surface.blur || "",
       cursor: "pointer",
-      font: weight + " " + shape.font + "px/1.2 " + fontStack,
+      /*
+       * Four properties rather than the font shorthand.
+       *
+       * "Match my website" is the word `inherit`, and `inherit` is only legal
+       * as an entire property value — inside the shorthand it is not a font
+       * family, so the browser threw the whole declaration away and the button
+       * kept the system stack at the default weight. Silently: the one option
+       * most worth having was the one that did nothing, and it looked like it
+       * had simply been ignored.
+       */
+      fontFamily: fontStack,
+      fontWeight: String(weight),
+      fontSize: shape.font + "px",
+      lineHeight: "1.2",
       letterSpacing: "0.005em",
       whiteSpace: "nowrap",
       boxShadow: surface.shadow,
@@ -624,7 +637,11 @@
       color: bubbleLook.text,
       // The nudge is a sentence rather than a label, so it stays at a reading
       // weight even when the button is bold — but it is their typeface.
-      font: "400 14px/1.45 " + fontStack,
+      // Same reason as the button: `inherit` cannot live inside the shorthand.
+      fontFamily: fontStack,
+      fontWeight: "400",
+      fontSize: "14px",
+      lineHeight: "1.45",
       textAlign: "left",
       border: "0",
       borderRadius: onLeft ? "14px 14px 14px 4px" : "14px 14px 4px 14px",
