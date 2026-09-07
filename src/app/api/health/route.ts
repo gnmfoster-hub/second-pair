@@ -74,6 +74,8 @@ export async function GET(request: NextRequest) {
       keyAccepted: email.keyAccepted,
       senderDomain: email.senderDomain,
       senderVerified: email.senderVerified,
+      /** Its prefix and length, which is not the key. */
+      keyShape: email.keyShape,
       /** Why not, in words, when one of the above is false. */
       detail: email.detail,
       /** The only one of these worth reading on its own. */

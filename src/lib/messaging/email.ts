@@ -15,9 +15,23 @@ import { domainOf, senderLine } from "./address.ts";
 
 const ENDPOINT = "https://api.resend.com/emails";
 
+/**
+ * The key, without whatever came along with it.
+ *
+ * A key is copied out of one dashboard and pasted into another, and a trailing
+ * newline is invisible in both. Resend then answers "API key is invalid",
+ * which sends somebody looking for a bad key rather than for a bad paste.
+ *
+ * Real keys never have space around them, so trimming cannot break a working
+ * one. The health check says when it had to.
+ */
+function apiKey(): string {
+  return (process.env.RESEND_API_KEY ?? "").trim();
+}
+
 /** Whether email can be sent at all yet. */
 export function emailConfigured(): boolean {
-  return Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM);
+  return Boolean(apiKey() && process.env.EMAIL_FROM);
 }
 
 export type Attachment = {
@@ -47,7 +61,7 @@ export async function sendEmail({
   fromName?: string;
   attachments?: Attachment[];
 }): Promise<Delivery> {
-  const key = process.env.RESEND_API_KEY;
+  const key = apiKey();
   const from = process.env.EMAIL_FROM;
 
   if (!key || !from) {
@@ -130,12 +144,26 @@ export type EmailProbe = {
   senderDomain: string | null;
   senderVerified: boolean | null;
   detail: string | null;
+  /**
+   * What the key looks like, without being it.
+   *
+   * Its prefix and its length, which is enough to tell a Resend key from a
+   * Stripe one pasted into the wrong box, or a truncated copy from a whole
+   * one — and is not the key. Says so when there was space around it, since
+   * that is invisible in every dashboard it passes through.
+   */
+  keyShape: string | null;
 };
 
 export async function probeEmail(timeoutMs = 6000): Promise<EmailProbe> {
-  const key = process.env.RESEND_API_KEY;
+  const raw = process.env.RESEND_API_KEY ?? "";
+  const key = raw.trim();
   const from = process.env.EMAIL_FROM ?? "";
   const senderDomain = domainOf(from) || null;
+  const keyShape = key
+    ? `${key.slice(0, 3)}… ${key.length} characters` +
+      (raw === key ? "" : ", and it had space around it in the variable")
+    : null;
 
   if (!key || !senderDomain) {
     return {
@@ -143,6 +171,7 @@ export async function probeEmail(timeoutMs = 6000): Promise<EmailProbe> {
       senderDomain,
       senderVerified: null,
       detail: "Nothing to check: one of the two variables is not set.",
+      keyShape,
     };
   }
 
@@ -164,6 +193,7 @@ export async function probeEmail(timeoutMs = 6000): Promise<EmailProbe> {
         senderDomain,
         senderVerified: null,
         detail: detail ?? `Resend refused the key (${response.status}).`,
+        keyShape,
       };
     }
 
@@ -185,6 +215,7 @@ export async function probeEmail(timeoutMs = 6000): Promise<EmailProbe> {
           (domains.length
             ? ` (it has ${domains.map((d) => d.name).filter(Boolean).join(", ")}).`
             : " — the account has no domains at all."),
+      keyShape,
     };
   } catch (error) {
     // Resend being unreachable says nothing about the key, so it must not be
@@ -194,6 +225,7 @@ export async function probeEmail(timeoutMs = 6000): Promise<EmailProbe> {
       senderDomain,
       senderVerified: null,
       detail: `Could not reach Resend to check: ${(error as Error).message}`,
+      keyShape,
     };
   }
 }
