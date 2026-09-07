@@ -138,6 +138,15 @@ export async function forgetOldEnquiries(
   for (const contactId of new Set(going.map((c) => c.contact_id).filter(Boolean))) {
     const [{ count: stillTalking }, { count: stillBooked }] = await Promise.all([
       db.from("conversations").select("*", { count: "exact", head: true }).eq("contact_id", contactId),
+      /*
+       * Only finds appointments somebody typed into the diary: one the
+       * assistant booked has no contact on the row, and is reached through
+       * its enquiry instead. That is safe here only because whatToForget
+       * never deletes a conversation that became an appointment — so anybody
+       * with one still has a conversation, and the count above keeps them.
+       * If that rule ever changes, this is where somebody's client record
+       * quietly goes with it.
+       */
       db.from("bookings").select("*", { count: "exact", head: true }).eq("contact_id", contactId),
     ]);
     if ((stillTalking ?? 1) === 0 && (stillBooked ?? 1) === 0) {
