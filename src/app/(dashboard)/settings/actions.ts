@@ -10,6 +10,7 @@ import { siteOrigin } from "@/lib/origin";
 import { verticalPack } from "@/lib/verticals";
 import { stillWorthAsking } from "@/lib/askedAlready";
 import { readNumbers } from "@/lib/channels/phoneNumbers";
+import { readHex, autoText } from "@/lib/widget/colour";
 import { ticked } from "@/lib/forms";
 import type { AnsweringMode } from "@/lib/answering";
 
@@ -946,15 +947,26 @@ export async function saveWidgetLook(_prev: FormState, fd: FormData): Promise<Fo
   const supabase = await createClient();
 
   /*
-   * Six hex digits or nothing at all.
+   * A colour, or nothing at all.
    *
-   * Blank clears it back to our navy rather than being an error — somebody
+   * Blank clears it back to our own rather than being an error — somebody
    * emptying the box means "use the default", and refusing that would leave
    * them no way to undo a colour they have changed their mind about.
+   *
+   * `readHex` takes #fff as well as #ffffff, because that is how most people
+   * write white and every CSS example ever printed uses it. Being told that
+   * white "needs to be six characters" is our problem to solve, not theirs.
    */
-  const typed = str(fd, "widget_accent").replace(/^#/, "").trim();
-  if (typed && !/^[0-9a-f]{6}$/i.test(typed)) {
-    return { error: "That colour needs to be six characters, like #14243F." };
+  const accentTyped = str(fd, "widget_accent");
+  const accent = accentTyped ? readHex(accentTyped) : null;
+  if (accentTyped && !accent) {
+    return { error: "That button colour is not a colour. Try something like #14243F." };
+  }
+
+  const textTyped = str(fd, "widget_text");
+  const text = textTyped ? readHex(textTyped) : null;
+  if (textTyped && !text) {
+    return { error: "That text colour is not a colour. Try something like #FFFFFF." };
   }
 
   const position = str(fd, "widget_position") === "left" ? "left" : "right";
@@ -963,7 +975,15 @@ export async function saveWidgetLook(_prev: FormState, fd: FormData): Promise<Fo
   const { error } = await supabase
     .from("studios")
     .update({
-      widget_accent: typed ? typed.toLowerCase() : null,
+      widget_accent: accent,
+      /*
+       * Cleared when it matches what would be chosen anyway.
+       *
+       * Otherwise a business that picks white on navy is pinned to white, and
+       * later changes the button to a pale colour and keeps the white — the
+       * setting quietly outliving the reason for it.
+       */
+      widget_text: text && text !== autoText(accent ?? "14243f") ? text : null,
       widget_position: position,
       widget_teaser: teaser || null,
     })

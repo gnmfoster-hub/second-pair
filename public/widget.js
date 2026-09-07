@@ -6,6 +6,7 @@
  *
  * Optional:
  *   data-accent="#1d4ed8"   the button colour
+ *   data-text="#ffffff"     the writing on it
  *   data-teaser="..."       the nudge shown after a few seconds
  *   data-position="left"    put it in the other corner
  *
@@ -37,10 +38,12 @@
    * overruled, so anything set here beats what we hold.
    */
   var tagAccent = script.getAttribute("data-accent") || null;
+  var tagText = script.getAttribute("data-text") || null;
   var tagTeaser = script.getAttribute("data-teaser") || null;
   var tagPosition = script.getAttribute("data-position");
 
   var accent = tagAccent || "#14243F";
+  var textColour = tagText || "#ffffff";
   var teaserText = tagTeaser || "Hi — anything I can help you with?";
   var onLeft = tagPosition === "left";
 
@@ -59,6 +62,66 @@
 
   function narrow() {
     return window.innerWidth < 640;
+  }
+
+  /*
+   * Keyframes, which an inline style cannot express.
+   *
+   * One <style> of our own with names nobody else would pick, rather than
+   * anything that could collide with the business's own CSS. Skipped entirely
+   * for somebody who has asked for no motion — they get a button that is
+   * simply there, which is a complete answer and not a lesser one.
+   */
+  /** The button's ordinary drop shadow, in one place because two need it. */
+  var REST = "0 8px 24px rgba(10, 12, 16, 0.3)";
+
+  function addKeyframes() {
+    if (still || document.getElementById("secondpair-motion")) return;
+    var sheet = document.createElement("style");
+    sheet.id = "secondpair-motion";
+    sheet.textContent =
+      "@keyframes secondpair-arrive{" +
+      "0%{transform:scale(0.6) translateY(12px);opacity:0}" +
+      "60%{transform:scale(1.06) translateY(0);opacity:1}" +
+      "100%{transform:scale(1) translateY(0);opacity:1}}" +
+      // A ring that leaves the button and fades, rather than the button
+      // itself moving. Something arriving in the corner of an eye reads as a
+      // notification; the button jumping about reads as a broken page.
+      // The drop shadow is repeated in every frame. Animating box-shadow
+      // replaces the whole property, so leaving it out flattens the button
+      // against the page for the length of the animation.
+      "@keyframes secondpair-ring{" +
+      "0%{box-shadow:" + REST + ",0 0 0 0 var(--sp-ring)}" +
+      "70%{box-shadow:" + REST + ",0 0 0 14px rgba(0,0,0,0)}" +
+      "100%{box-shadow:" + REST + ",0 0 0 0 rgba(0,0,0,0)}}";
+    document.head.appendChild(sheet);
+  }
+
+  /*
+   * Two rings, once, when the nudge appears.
+   *
+   * Not a loop. A button that pulses forever is an advert, and the second time
+   * somebody sees it they resent it — this is meant to say "there is somebody
+   * here" once, at the moment there is something to read.
+   */
+  function drawAttention() {
+    if (still) return;
+    addKeyframes();
+    button.style.setProperty("--sp-ring", ringColour());
+    button.style.animation = "secondpair-ring 1.6s ease-out 2";
+    window.setTimeout(function () {
+      button.style.animation = "";
+    }, 3400);
+  }
+
+  /** The ring, in their colour, faint enough to be a glow and not a border. */
+  function ringColour() {
+    var m = /^#?([0-9a-f]{6})$/i.exec(accent || "");
+    if (!m) return "rgba(20, 36, 63, 0.45)";
+    var n = parseInt(m[1], 16);
+    return (
+      "rgba(" + ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255) + ",0.45)"
+    );
   }
 
   function style(element, styles) {
@@ -88,7 +151,9 @@
       "/widget/" +
       encodeURIComponent(slug) +
       "?a=" +
-      encodeURIComponent(accentNow().replace("#", ""));
+      encodeURIComponent(accentNow().replace("#", "")) +
+      "&t=" +
+      encodeURIComponent(textNow().replace("#", ""));
   }
 
   /** Their setting, unless the page has deliberately overridden it. */
@@ -98,32 +163,18 @@
   }
 
   /*
-   * Nudges a colour to something white text will read on.
+   * The writing on the button.
    *
-   * The same rule the panel applies to the colour we hand it, applied here to
-   * the button. Somebody is going to pick a pale yellow eventually, and until
-   * now that gave an illegible pill on their own site — and a button one colour
-   * with the panel that opened out of it a different one. The raw value still
-   * goes to the panel, which darkens it identically, so the two agree.
+   * Worked out on the server and sent already decided, rather than by a copy
+   * of the rule living here. There were three copies of that rule and they
+   * disagreed: the panel darkened a pale colour, the button did not, and the
+   * settings page described a behaviour neither of them had. A business can now
+   * set this themselves; when they have not, the server picks whichever of
+   * white and near-black reads better on their colour.
    */
-  function readable(hex) {
-    var m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
-    if (!m) return "#14243F";
-    var n = parseInt(m[1], 16);
-    var r = (n >> 16) & 255;
-    var g = (n >> 8) & 255;
-    var b = n & 255;
-
-    // Rec. 709: green carries most of the perceived brightness, so a plain
-    // average would call a bright green dark and put white on it.
-    var light = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-    if (light > 0.62) {
-      var scale = 0.62 / light;
-      r = Math.round(r * scale);
-      g = Math.round(g * scale);
-      b = Math.round(b * scale);
-    }
-    return "rgb(" + r + " " + g + " " + b + ")";
+  function textNow() {
+    if (tagText) return tagText;
+    return status && status.text ? "#" + status.text : "#ffffff";
   }
 
   panel.title = "Chat with us";
@@ -258,6 +309,7 @@
 
           // Their look, unless the page said otherwise.
           if (!tagAccent && got.accent) accent = "#" + got.accent;
+          if (!tagText && got.text) textColour = "#" + got.text;
           if (!tagTeaser && got.teaser) {
             teaserText = got.teaser;
             teaser.setAttribute("aria-label", teaserText);
@@ -349,13 +401,13 @@
       // A pill when it is saying something, a circle when it is not.
       borderRadius: "999px",
       border: "0",
-      background: readable(accent),
-      color: "#fff",
+      background: accent,
+      color: textColour,
       cursor: "pointer",
       font: "500 13.5px/1.2 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       letterSpacing: "0.005em",
       whiteSpace: "nowrap",
-      boxShadow: "0 8px 24px rgba(10, 12, 16, 0.3)",
+      boxShadow: REST,
       zIndex: "2147483001",
       // Width animates too, so it grows into a sentence rather than appearing
       // as one — which is the bit that catches an eye already on the page.
@@ -378,7 +430,8 @@
       height: "7px",
       borderRadius: "50%",
       flex: "none",
-      background: status && status.open ? "#4ade80" : "rgba(255,255,255,0.55)",
+      background: status && status.open ? "#4ade80" : textColour,
+      opacity: status && status.open ? "1" : "0.5",
       boxShadow: status && status.open ? "0 0 0 3px rgba(74,222,128,0.25)" : "none",
     });
 
@@ -472,6 +525,7 @@
     teaser.style.opacity = "1";
     teaser.style.transform = "translateY(0) scale(1)";
 
+    drawAttention();
     type();
   }
 
@@ -676,6 +730,22 @@
     if (open) loadPanel();
 
     render();
+
+    /*
+     * It grows in rather than being there.
+     *
+     * The page has usually settled by now, so a button that simply exists on
+     * the next repaint is not noticed at all — somebody who has already looked
+     * at that corner never looks again. One small arrival, once per page load,
+     * and never for anybody who has asked for no motion.
+     */
+    if (!open && !still) {
+      addKeyframes();
+      button.style.animation = "secondpair-arrive 420ms cubic-bezier(0.16, 1, 0.3, 1) both";
+      window.setTimeout(function () {
+        button.style.animation = "";
+      }, 600);
+    }
 
     // Long enough not to feel like a pop-up, early enough to catch somebody
     // still reading the page.

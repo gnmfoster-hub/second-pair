@@ -272,6 +272,7 @@ export default async function ChannelsPage() {
 
       <Appearance
         accent={studio.widget_accent ?? null}
+        text={studio.widget_text ?? null}
         position={studio.widget_position ?? "right"}
         teaser={studio.widget_teaser ?? null}
       />

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { statusFor } from "@/lib/widgetStatus";
+import { paint } from "@/lib/widget/colour";
 import type { OpeningHours } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -47,7 +48,9 @@ export async function GET(request: NextRequest) {
   const db = createAdminClient();
   const { data, error } = await db
     .from("studios")
-    .select("hours, timezone, archived_at, widget_accent, widget_position, widget_teaser")
+    .select(
+      "hours, timezone, archived_at, widget_accent, widget_text, widget_position, widget_teaser",
+    )
     .eq("slug", slug)
     .maybeSingle();
 
@@ -73,21 +76,28 @@ export async function GET(request: NextRequest) {
       open: false,
       line: "Ask us anything",
       accent: null,
+      text: null,
       position: "right",
       teaser: null,
     });
   }
 
   /*
-   * Checked before it is handed to a script on somebody else's page.
+   * Both colours, worked out once, here.
    *
-   * The accent is interpolated into a style on their site, so anything that is
-   * not plainly six hex digits is dropped rather than passed along.
+   * These are interpolated into styles on somebody else's page, so `paint`
+   * reads them strictly and falls back rather than passing anything along that
+   * is not plainly six hex digits.
+   *
+   * Sent already decided, rather than as a colour plus a rule for the script
+   * to apply: the settings page shows a preview of this, and a preview that
+   * runs a second copy of the rule is a preview that can disagree with the
+   * site it is previewing.
    */
-  const accent =
-    typeof data.widget_accent === "string" && /^[0-9a-f]{6}$/i.test(data.widget_accent)
-      ? data.widget_accent
-      : null;
+  const look = paint(
+    typeof data.widget_accent === "string" ? data.widget_accent : null,
+    typeof data.widget_text === "string" ? data.widget_text : null,
+  );
 
   const status = statusFor(
     (data.hours ?? []) as OpeningHours[],
@@ -97,14 +107,25 @@ export async function GET(request: NextRequest) {
 
   return readableAnywhere({
     ...status,
-    accent,
+    accent: look.fill,
+    text: look.text,
     position: data.widget_position === "left" ? "left" : "right",
     teaser: typeof data.widget_teaser === "string" && data.widget_teaser.trim()
       ? data.widget_teaser.trim().slice(0, 140)
       : null,
   }, {
-    // A minute is long enough to spare the database on a busy site and short
-    // enough that "Answering now" turns over close to when it actually does.
-    headers: { "Cache-Control": "public, max-age=60, s-maxage=60" },
+    /*
+     * Not cached, deliberately.
+     *
+     * This was a minute, to spare the database on a busy site. The cost of
+     * that minute is a business changing their colour, reloading their own
+     * page, seeing the old one, and concluding the product does not work —
+     * which is exactly what happened. They are not going to wait and try
+     * again; they are going to change it back and ring somebody.
+     *
+     * It is one indexed row and about two hundred bytes, fetched once per page
+     * view alongside the page itself. The saving was never worth what it cost.
+     */
+    headers: { "Cache-Control": "no-store" },
   });
 }

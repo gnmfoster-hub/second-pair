@@ -93,6 +93,8 @@ export type Studio = {
   /** Which people the business assistant may offer. Null means everyone active. */
   offers_artists: string[] | null;
   widget_accent: string | null;
+  /** The writing on the button. Null means whichever of white or ink reads better. */
+  widget_text: string | null;
   widget_position: "right" | "left";
   /** The nudge shown a few seconds after landing. Null means the default. */
   widget_teaser: string | null;
