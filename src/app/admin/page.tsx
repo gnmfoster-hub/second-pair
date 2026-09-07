@@ -99,6 +99,22 @@ export default async function AdminPage() {
         .order("created_at")
     : { data: [] };
 
+  /*
+   * What is plugged in, for every business at once.
+   *
+   * One query rather than one per business: this is a small table, and a
+   * support call is not the moment to be waiting on thirteen round trips.
+   *
+   * The person's name comes along because "belongs to somebody" is the
+   * question that actually gets asked — a number pointed at one artist behaves
+   * completely differently from the same number pointed at the shop, and there
+   * is no way to tell from the number.
+   */
+  const { data: connections } = await db
+    .from("channel_connections")
+    .select("id, studio_id, channel, label, external_id, active, forward_to, artists(name)")
+    .order("channel");
+
   const emailFor = new Map((users?.users ?? []).map((u) => [u.id, u.email ?? null]));
 
   /*
@@ -176,6 +192,28 @@ export default async function AdminPage() {
         ownerName: s.owner_name ?? null,
         ownerPhone: s.owner_phone ?? null,
         trialEndsOn: s.trial_ends_on ?? null,
+        connections: (
+          (connections ?? []) as unknown as {
+            id: string;
+            studio_id: string;
+            channel: string;
+            label: string | null;
+            external_id: string | null;
+            active: boolean;
+            forward_to: string | null;
+            artists: { name: string } | null;
+          }[]
+        )
+          .filter((c) => c.studio_id === s.id)
+          .map((c) => ({
+            id: c.id,
+            channel: c.channel,
+            label: c.label,
+            externalId: c.external_id,
+            forWho: c.artists?.name ?? null,
+            active: c.active,
+            forwardTo: c.forward_to,
+          })),
         tickets: (tickets ?? [])
           .filter((t) => t.studio_id === s.id)
           .map((t) => ({

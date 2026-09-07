@@ -120,6 +120,31 @@ export type BusinessSummary = {
     messages: { id: string; author: "owner" | "support"; body: string; at: string }[];
   }[];
 
+  /*
+   * What is actually plugged in, as against `channels` above, which is what
+   * they are allowed to use.
+   *
+   * The two are easy to confuse and mean opposite things in a support call: a
+   * business can be authorised for text messages and have no number, or have a
+   * number that was typed in the wrong format and matches no incoming webhook.
+   * Setting a channel up is the part people need talking through, so it is the
+   * part worth being able to see.
+   *
+   * Configuration, like everything else on this screen. A connection is an
+   * address and a label, never a conversation held on it.
+   */
+  connections: {
+    id: string;
+    channel: string;
+    label: string | null;
+    externalId: string | null;
+    /** Null means the whole business; set means this one person's channel. */
+    forWho: string | null;
+    active: boolean;
+    /** Where a call rings before it becomes a text. SMS only. */
+    forwardTo: string | null;
+  }[];
+
   settings: {
     timezone: string;
     tone: string | null;

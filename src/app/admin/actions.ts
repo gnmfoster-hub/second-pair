@@ -718,3 +718,117 @@ export async function snoozeAttention(_prev: Result, fd: FormData): Promise<Resu
   revalidatePath("/admin");
   return { ok: true, note: "Back in a week if it is still like that." };
 }
+
+/**
+ * Setting a business's text number up for them.
+ *
+ * The one channel that genuinely needs talking through. The widget needs
+ * nothing, and Meta's three are blocked on a review, but a phone number has to
+ * be bought from Twilio, typed in a format nobody uses in conversation, and
+ * pasted into two webhook boxes — and if any of that is a character out, texts
+ * do not arrive and nothing anywhere says so.
+ *
+ * Deliberately the same rules as the owner's own page rather than looser ones.
+ * A number typed here that a webhook will never match is worse than one typed
+ * there, because the person who typed it is not the person it fails for.
+ */
+export async function fixChannel(_prev: Result, fd: FormData): Promise<Result> {
+  const denied = await guard();
+  if (denied) return denied;
+
+  const id = String(fd.get("id") ?? "");
+  if (!id) return { error: "No business." };
+
+  const db = createAdminClient();
+
+  const tidy = (value: FormDataEntryValue | null) =>
+    String(value ?? "").trim().replace(/[\s()-]/g, "");
+
+  const number = tidy(fd.get("sms_number"));
+  const forwardRaw = tidy(fd.get("forward_to"));
+  const forwardTo = forwardRaw || null;
+
+  const INTERNATIONAL = /^\+[1-9]\d{7,14}$/;
+
+  if (forwardTo && !INTERNATIONAL.test(forwardTo)) {
+    return {
+      error:
+        "The number to ring needs full international form, like +447700900123. " +
+        "Leave it empty to text people straight away instead.",
+    };
+  }
+
+  // Clearing it is a real instruction, and the only way to hand a number back.
+  if (!number) {
+    const { error } = await db
+      .from("channel_connections")
+      .delete()
+      .eq("studio_id", id)
+      .eq("channel", "sms");
+    if (error) return { error: error.message };
+    revalidatePath("/admin");
+    return { ok: true };
+  }
+
+  if (!INTERNATIONAL.test(number)) {
+    return {
+      error:
+        "Use the full international number, starting with +. A UK mobile looks " +
+        "like +447700900123.",
+    };
+  }
+
+  if (forwardTo === number) {
+    return {
+      error:
+        "The ring-me number is the same as the business number, so a call would " +
+        "ring itself. Use their own mobile, or leave it empty.",
+    };
+  }
+
+  /*
+   * A number routes an incoming text to exactly one business, so two of them
+   * holding the same one is not a preference. Checked here as well as on their
+   * own page, because this screen can see every business and is therefore the
+   * one place the mistake is easy to make.
+   */
+  const { data: taken } = await db
+    .from("channel_connections")
+    .select("studio_id, studios(name)")
+    .eq("channel", "sms")
+    .eq("external_id", number)
+    .limit(1)
+    .maybeSingle();
+
+  if (taken && taken.studio_id !== id) {
+    const who = (taken as { studios?: { name?: string } | null }).studios?.name;
+    return { error: `That number already belongs to ${who ?? "another business"}.` };
+  }
+
+  const { data: existing } = await db
+    .from("channel_connections")
+    .select("id")
+    .eq("studio_id", id)
+    .eq("channel", "sms")
+    .limit(1)
+    .maybeSingle();
+
+  const { error } = existing
+    ? await db
+        .from("channel_connections")
+        .update({ external_id: number, label: number, active: true, forward_to: forwardTo })
+        .eq("id", existing.id)
+    : await db.from("channel_connections").insert({
+        studio_id: id,
+        channel: "sms",
+        external_id: number,
+        label: number,
+        active: true,
+        forward_to: forwardTo,
+      });
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin");
+  return { ok: true };
+}

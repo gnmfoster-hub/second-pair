@@ -10,6 +10,7 @@ import {
   deleteBusiness,
   saveAccount,
   fixSettings,
+  fixChannel,
   answerTicket,
   setKind,
   snoozeAttention,
@@ -814,6 +815,8 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
 
       <FixSettings b={b} />
 
+      <Channels b={b} />
+
       {/*
         * Deleting takes real customers' conversations with it, so it asks for
         * the name to be typed. A confirmation that can be dismissed by reflex
@@ -960,6 +963,131 @@ function Request({ ticket }: { ticket: BusinessSummary["tickets"][number] }) {
  * during a call, not something to browse. It cannot reach a conversation, a
  * customer's name or a diary.
  */
+/**
+ * What is plugged in, and the one bit of it that needs a hand.
+ *
+ * `channels_allowed` on the account panel is what a business may use.
+ * This is what they have actually got, which is a different question and the
+ * one a support call is about: somebody authorised for text messages, with no
+ * number, is not going to receive a text.
+ *
+ * Only the phone number is editable, because it is the only channel setup
+ * anybody can get wrong on their own. The widget needs nothing. Meta's three
+ * are blocked on a review, and when they are not, they will be an OAuth
+ * handshake the business does themselves rather than a value anybody types.
+ */
+function Channels({ b }: { b: BusinessSummary }) {
+  const [state, action] = useActionState<Result, FormData>(fixChannel, {});
+  const sms = b.connections.find((c) => c.channel === "sms");
+  const others = b.connections.filter((c) => c.channel !== "sms");
+
+  return (
+    <details className="rounded-xl border border-border p-3">
+      <summary className="cursor-pointer text-sm text-muted">
+        Their channels
+        <span className="ml-2 text-xs">
+          {b.connections.length === 0
+            ? "— nothing connected"
+            : `— ${b.connections.map((c) => c.channel).join(", ")}`}
+        </span>
+      </summary>
+
+      <div className="mt-4 space-y-4">
+        {/*
+          * Said before the form, because it changes what the form means: a
+          * number here does nothing at all for a business that is not
+          * authorised for texts, and that is not obvious from this panel.
+          */}
+        {!b.channels.includes("sms") && (
+          <p className="text-sm text-warn">
+            This business is not authorised for text messages. Add “sms” to their
+            channels in the account panel above, or a number here will sit unused.
+          </p>
+        )}
+
+        <form action={action} className="space-y-3">
+          <input type="hidden" name="id" value={b.id} />
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="label">Their Twilio number</span>
+              <input
+                name="sms_number"
+                defaultValue={sms?.externalId ?? ""}
+                placeholder="+447700900123"
+                className="input"
+              />
+              <span className="hint">
+                Full international form. This is how an incoming text finds them, so a
+                number in any other shape matches nothing. Empty removes it.
+              </span>
+            </label>
+
+            <label className="block">
+              <span className="label">Ring this first, for 20 seconds</span>
+              <input
+                name="forward_to"
+                defaultValue={sms?.forwardTo ?? ""}
+                placeholder="+447700900456"
+                className="input"
+              />
+              <span className="hint">
+                Their own mobile, never the number above. Empty is a real answer: text
+                the caller at once and do not ring anybody.
+              </span>
+            </label>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="submit" className="btn bg-accent text-on-accent">
+              Save their number
+            </button>
+            {state.ok && <span className="hint">Saved.</span>}
+            {state.error && <span className="text-sm text-warn">{state.error}</span>}
+          </div>
+        </form>
+
+        {/*
+          * The two addresses that have to go into Twilio by hand. Shown as
+          * text rather than a link: they are pasted into somebody else's
+          * dashboard, never followed.
+          */}
+        <div className="rounded-lg bg-surface-2 p-3">
+          <div className="label">Paste these into Twilio, on that number</div>
+          <ul className="mt-1 space-y-1 text-sm">
+            <li>
+              Messaging, a message comes in: <code>https://www.second-pair.com/api/sms/webhook</code>
+            </li>
+            <li>
+              Voice, a call comes in: <code>https://www.second-pair.com/api/voice/webhook</code>
+            </li>
+          </ul>
+          <p className="hint mt-2">
+            Both must be POST. Missing the voice one is the quiet failure: texts work,
+            and every missed call goes nowhere.
+          </p>
+        </div>
+
+        {others.length > 0 && (
+          <div>
+            <div className="label">Also connected</div>
+            <ul className="mt-1 space-y-1 text-sm text-muted">
+              {others.map((c) => (
+                <li key={c.id}>
+                  {c.channel}
+                  {c.label ? ` — ${c.label}` : ""}
+                  {c.forWho ? ` · ${c.forWho} only` : " · whole business"}
+                  {c.active ? "" : " · switched off"}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </details>
+  );
+}
+
 function FixSettings({ b }: { b: BusinessSummary }) {
   const [state, action] = useActionState<Result, FormData>(fixSettings, {});
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
