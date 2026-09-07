@@ -94,6 +94,80 @@ export function TextNumber({
         </div>
       </form>
 
+      {/*
+        * Keeping the number their customers already have.
+        *
+        * The commonest and most reasonable objection to any of this: somebody
+        * with a mobile number on their van, their card and four years of
+        * customers' phones is not going to change it, and should not be asked
+        * to. Both routes here keep it. Neither is obvious, and one of them has
+        * a trap in it worth naming out loud.
+        */}
+      <details className="mt-5 rounded-xl border border-border p-4">
+        <summary className="cursor-pointer text-sm">
+          Can I keep the number my customers already ring?
+        </summary>
+
+        <div className="mt-3 space-y-4 text-sm text-muted">
+          <p>
+            <strong className="text-foreground">Yes, and you should.</strong> Nobody is
+            asking you to change a number that is on your van and in four years of
+            customers&rsquo; phones. There are two ways, and the right one depends on
+            whether you want your own phone to ring first.
+          </p>
+
+          <div>
+            <div className="label">
+              1. Keep your number, and divert calls you don&rsquo;t answer
+            </div>
+            <p className="mt-1">
+              Your network can divert a call to another number <em>only</em> when you do
+              not pick up, are engaged, or have no signal. Point that at the number above.
+              Customers carry on ringing you exactly as they do now, your phone rings
+              normally, and the ones you miss come here and get texted back within seconds
+              &mdash; from a number that can hold the conversation afterwards.
+            </p>
+            <p className="mt-1">
+              On most UK networks it is a code dialled from the phone, or a setting in
+              your network&rsquo;s app. Ask for{" "}
+              <strong className="text-foreground">conditional call diversion</strong> or
+              &ldquo;divert when unanswered&rdquo; &mdash; not the plain kind, which sends
+              every call away and stops your phone ringing at all.
+            </p>
+            <p className="mt-2 rounded-lg bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">
+              <strong>If you do this, leave &ldquo;ring me on&rdquo; empty above.</strong>{" "}
+              Otherwise a missed call diverts to us, we ring your mobile, your mobile
+              diverts it straight back, and the two numbers pass the same call between
+              them until it gives up. Empty means we text the caller the moment they reach
+              us, which is what you want here anyway &mdash; your phone has already had its
+              twenty seconds.
+            </p>
+          </div>
+
+          <div>
+            <div className="label">2. Give out the new number as well</div>
+            <p className="mt-1">
+              Put the number above on your website, your Instagram and your booking
+              buttons, and leave your mobile for people who already have it. Set
+              &ldquo;ring me on&rdquo; to your mobile, and a call to the new number rings
+              you first anyway &mdash; so nothing is lost, and anybody arriving from the
+              website lands somewhere the assistant can answer at eleven at night.
+            </p>
+          </div>
+
+          <div>
+            <div className="label">What neither route can do</div>
+            <p className="mt-1">
+              A <em>text</em> sent to your own mobile cannot reach the assistant. Calls can
+              be diverted; texts cannot, on any UK network. So texts only work on the
+              number above. In practice that matters less than it sounds, because the
+              missed-call reply comes from that number &mdash; so the moment somebody rings
+              you and you cannot answer, the conversation moves there on its own.
+            </p>
+          </div>
+        </div>
+      </details>
+
       {/* The half that is missing, named. */}
       {!sendingReady && (
         <p className="mt-4 rounded-lg bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">

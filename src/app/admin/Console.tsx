@@ -1068,6 +1068,44 @@ function Channels({ b }: { b: BusinessSummary }) {
           </p>
         </div>
 
+        {/*
+          * The objection you will hear on every call.
+          *
+          * Somebody with a mobile number on their van is not changing it, and
+          * should not be asked to. Both answers keep it; the second has a trap
+          * in it that is easier to name here than to diagnose afterwards.
+          */}
+        <div className="rounded-lg border border-dashed border-border p-3">
+          <div className="label">&ldquo;I&rsquo;m not changing my number&rdquo;</div>
+          <p className="hint mt-1">
+            They do not have to. Two answers, and the second is the one that catches
+            people out.
+          </p>
+          <ul className="mt-2 space-y-1.5 text-sm text-muted">
+            <li>
+              <strong className="text-foreground">Give out both.</strong> The new number
+              goes on the website and Instagram; the mobile stays for people who have it.
+              Ring-me set to their mobile, so the new number rings them first anyway.
+            </li>
+            <li>
+              <strong className="text-foreground">Or divert what they miss.</strong> Their
+              network diverts unanswered calls to the number above &mdash; conditional
+              diversion, not the plain kind. Customers ring the same number they always
+              have, and the missed ones get texted back.
+              <br />
+              <strong className="text-warn">
+                Ring-me must be empty if they do this.
+              </strong>{" "}
+              Otherwise the call diverts to us, we ring their mobile, their mobile diverts
+              it back, and the two pass it between them until it gives up.
+            </li>
+          </ul>
+          <p className="hint mt-2">
+            Either way, a <em>text</em> to their own mobile cannot reach the assistant.
+            Calls divert; texts do not, on any UK network.
+          </p>
+        </div>
+
         {others.length > 0 && (
           <div>
             <div className="label">Also connected</div>
