@@ -16,6 +16,45 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * A contact goes only when nothing of theirs is left. Somebody who enquired
  * twice, booked once and drifted away is still a client of that business.
  */
+export type Ageing = {
+  id: string;
+  contact_id: string | null;
+  created_at: string;
+  last_message_at: string | null;
+};
+
+/**
+ * When anything last happened on a conversation.
+ *
+ * Not when it started, which is a different thing and was the one being used.
+ * A text conversation is keyed on the customer's phone number and reused for
+ * as long as they keep texting, so a regular of three years has a single row
+ * created three years ago carrying a message from last week. Judged on its
+ * start date, a two-year retention period would have deleted that customer's
+ * entire history including the part from last week — and taken them with it,
+ * if they are the sort who books by walking in.
+ */
+export function lastTouched(c: Ageing): string {
+  return c.last_message_at ?? c.created_at;
+}
+
+/**
+ * Which conversations go.
+ *
+ * Old by their last message rather than their first, and never one that became
+ * an appointment — that is the business's own record of a day it worked and
+ * money it took, and deleting it would put a hole in a diary and change last
+ * year's takings.
+ */
+export function whatToForget(
+  conversations: Ageing[],
+  bookedIds: Set<string>,
+  cutoff: Date,
+): Ageing[] {
+  const before = cutoff.toISOString();
+  return conversations.filter((c) => !bookedIds.has(c.id) && lastTouched(c) < before);
+}
+
 export async function forgetOldEnquiries(
   db: SupabaseClient,
   studio: { id: string; keep_months: number | null },
@@ -26,11 +65,21 @@ export async function forgetOldEnquiries(
   const cutoff = new Date(now);
   cutoff.setMonth(cutoff.getMonth() - studio.keep_months);
 
+  /*
+   * Asked on the start date and decided on the last message.
+   *
+   * A conversation cannot have been last spoken on before it began, so
+   * everything eligible is inside this — it is a superset, narrowed properly
+   * in whatToForget. Capped, because a business with years behind it would
+   * otherwise build one enormous list of ids and the next sweep can take the
+   * rest five minutes later.
+   */
   const { data: old, error: readError } = await db
     .from("conversations")
-    .select("id, contact_id")
+    .select("id, contact_id, created_at, last_message_at")
     .eq("studio_id", studio.id)
-    .lt("created_at", cutoff.toISOString());
+    .lt("created_at", cutoff.toISOString())
+    .limit(500);
 
   /*
    * A read that failed is not an empty result.
@@ -64,7 +113,7 @@ export async function forgetOldEnquiries(
       .map((e) => e.conversation_id),
   );
 
-  const going = old.filter((c) => !keep.has(c.id));
+  const going = whatToForget(old as Ageing[], keep, cutoff);
   if (!going.length) return { conversations: 0, contacts: 0 };
 
   const goingIds = going.map((c) => c.id);
