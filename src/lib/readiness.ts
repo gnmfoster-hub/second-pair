@@ -53,13 +53,12 @@ export async function readinessOf(
     .eq("channel", "sms");
   const hasTextNumber = (numbers ?? 0) > 0;
 
-  const [{ count: people }, { count: services }, { count: faqs }, { count: hours }] =
+  const [{ data: roster }, { count: services }, { count: faqs }, { count: hours }] =
     await Promise.all([
-      db
-        .from("artists")
-        .select("id", { count: "exact", head: true })
-        .eq("studio_id", studio.id)
-        .eq("active", true),
+      // Everybody, not just the active ones: a business with somebody on the
+      // books who has stopped taking bookings needs telling something different
+      // from one that has nobody at all.
+      db.from("artists").select("active").eq("studio_id", studio.id),
       db
         .from("price_bands")
         .select("id", { count: "exact", head: true })
@@ -72,19 +71,24 @@ export async function readinessOf(
       Promise.resolve({ count: studio.hours.filter((h) => !h.closed).length }),
     ]);
 
+  const people = (roster ?? []).filter((a) => a.active).length;
+  const nobodyAtAll = (roster ?? []).length === 0;
+
   const takesDeposits = studio.deposit_mode !== "none";
 
   return [
     {
       key: "quote",
       can: "Give people a price",
-      ready: (people ?? 0) > 0 && (services ?? 0) > 0,
+      ready: people > 0 && (services ?? 0) > 0,
       otherwise:
-        (people ?? 0) === 0
-          ? "Nobody has rates set, so every pricing question comes to you."
-          : "No services are set up, so it cannot put a number on anything.",
-      href: (people ?? 0) === 0 ? "/settings/artists" : "/settings/pricing",
-      action: (people ?? 0) === 0 ? "Add rates" : "Add services",
+        people > 0
+          ? "No services are set up, so it cannot put a number on anything."
+          : nobodyAtAll
+            ? "Nobody has rates set, so every pricing question comes to you."
+            : "Nobody is taking bookings, so it cannot quote or book anybody in.",
+      href: people === 0 ? "/settings/artists" : "/settings/pricing",
+      action: people === 0 ? (nobodyAtAll ? "Add rates" : "Take bookings again") : "Add services",
       blocking: true,
     },
     {
