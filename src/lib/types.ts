@@ -95,6 +95,14 @@ export type Studio = {
   widget_accent: string | null;
   /** The writing on the button. Null means whichever of white or ink reads better. */
   widget_text: string | null;
+  /** False takes the widget off their site without touching their HTML. */
+  widget_enabled: boolean;
+  /** Their own line on the button. Null means the one worked out from the hours. */
+  widget_line_open: string | null;
+  widget_line_closed: string | null;
+  widget_shape: string;
+  widget_size: string;
+  widget_bubble: string;
   widget_position: "right" | "left";
   /** The nudge shown a few seconds after landing. Null means the default. */
   widget_teaser: string | null;

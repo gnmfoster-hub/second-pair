@@ -2,6 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { statusFor } from "@/lib/widgetStatus";
 import { paint } from "@/lib/widget/colour";
+import {
+  geometry,
+  bubbleColours,
+  lineFor,
+  isShape,
+  isSize,
+  isBubble,
+} from "@/lib/widget/look";
 import type { OpeningHours } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -49,7 +57,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await db
     .from("studios")
     .select(
-      "hours, timezone, archived_at, widget_accent, widget_text, widget_position, widget_teaser",
+      "hours, timezone, archived_at, widget_accent, widget_text, widget_position, widget_teaser, widget_enabled, widget_line_open, widget_line_closed, widget_shape, widget_size, widget_bubble",
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -99,16 +107,37 @@ export async function GET(request: NextRequest) {
     typeof data.widget_text === "string" ? data.widget_text : null,
   );
 
+  /*
+   * Switched off is answered first, and answered with almost nothing.
+   *
+   * The script asks for this before it draws anything, so "off" has to arrive
+   * before there is a button to hide. Sending the colours and the line as well
+   * would be sending a description of a thing that is not going to exist.
+   */
+  if (data.widget_enabled === false) {
+    return readableAnywhere({ off: true });
+  }
+
   const status = statusFor(
     (data.hours ?? []) as OpeningHours[],
     (data.timezone as string) || "Europe/London",
     new Date(),
   );
 
+  const size = isSize(data.widget_size) ? data.widget_size : "medium";
+  const shape = isShape(data.widget_shape) ? data.widget_shape : "round";
+  const bubble = isBubble(data.widget_bubble) ? data.widget_bubble : "light";
+
   return readableAnywhere({
     ...status,
+    line: lineFor(status.line, status.open, {
+      open: typeof data.widget_line_open === "string" ? data.widget_line_open : null,
+      closed: typeof data.widget_line_closed === "string" ? data.widget_line_closed : null,
+    }),
     accent: look.fill,
     text: look.text,
+    geometry: geometry(size, shape),
+    bubble: bubbleColours(bubble),
     position: data.widget_position === "left" ? "left" : "right",
     teaser: typeof data.widget_teaser === "string" && data.widget_teaser.trim()
       ? data.widget_teaser.trim().slice(0, 140)

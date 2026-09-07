@@ -11,6 +11,7 @@ import { verticalPack } from "@/lib/verticals";
 import { stillWorthAsking } from "@/lib/askedAlready";
 import { readNumbers } from "@/lib/channels/phoneNumbers";
 import { readHex, autoText } from "@/lib/widget/colour";
+import { isShape, isSize, isBubble } from "@/lib/widget/look";
 import { ticked } from "@/lib/forms";
 import type { AnsweringMode } from "@/lib/answering";
 
@@ -972,6 +973,20 @@ export async function saveWidgetLook(_prev: FormState, fd: FormData): Promise<Fo
   const position = str(fd, "widget_position") === "left" ? "left" : "right";
   const teaser = str(fd, "widget_teaser").trim().slice(0, 140);
 
+  const shape = isShape(str(fd, "widget_shape")) ? str(fd, "widget_shape") : "round";
+  const size = isSize(str(fd, "widget_size")) ? str(fd, "widget_size") : "medium";
+  const bubble = isBubble(str(fd, "widget_bubble")) ? str(fd, "widget_bubble") : "light";
+
+  /*
+   * Their own words on the button, capped where the button runs out.
+   *
+   * 48 characters is not a rule about writing, it is the width of a 56 pixel
+   * pill next to a live dot. Cut here as well as when it is drawn, so what
+   * they see saved is what will be shown.
+   */
+  const lineOpen = str(fd, "widget_line_open").trim().slice(0, 48);
+  const lineClosed = str(fd, "widget_line_closed").trim().slice(0, 48);
+
   const { error } = await supabase
     .from("studios")
     .update({
@@ -986,6 +1001,12 @@ export async function saveWidgetLook(_prev: FormState, fd: FormData): Promise<Fo
       widget_text: text && text !== autoText(accent ?? "14243f") ? text : null,
       widget_position: position,
       widget_teaser: teaser || null,
+      widget_enabled: ticked(fd, "widget_enabled"),
+      widget_line_open: lineOpen || null,
+      widget_line_closed: lineClosed || null,
+      widget_shape: shape,
+      widget_size: size,
+      widget_bubble: bubble,
     })
     .eq("id", studio.id);
 

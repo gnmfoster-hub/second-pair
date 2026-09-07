@@ -273,6 +273,12 @@ export default async function ChannelsPage() {
       <Appearance
         accent={studio.widget_accent ?? null}
         text={studio.widget_text ?? null}
+        enabled={studio.widget_enabled !== false}
+        lineOpen={studio.widget_line_open ?? null}
+        lineClosed={studio.widget_line_closed ?? null}
+        shape={studio.widget_shape ?? "round"}
+        size={studio.widget_size ?? "medium"}
+        bubble={studio.widget_bubble ?? "light"}
         position={studio.widget_position ?? "right"}
         teaser={studio.widget_teaser ?? null}
       />

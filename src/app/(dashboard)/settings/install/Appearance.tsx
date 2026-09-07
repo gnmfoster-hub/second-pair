@@ -3,6 +3,14 @@
 import { useActionState, useEffect, useState } from "react";
 import { saveWidgetLook, type FormState } from "../actions";
 import { paint, readHex, autoText } from "@/lib/widget/colour";
+import {
+  geometry,
+  bubbleColours,
+  lineFor,
+  type Shape,
+  type Size,
+  type Bubble,
+} from "@/lib/widget/look";
 
 /**
  * How the widget looks on their own website.
@@ -16,20 +24,40 @@ import { paint, readHex, autoText } from "@/lib/widget/colour";
  * wins if somebody has deliberately written one, because being quietly
  * overruled by a setting you cannot see is worse than having two places.
  */
+export type WidgetLook = {
+  accent: string | null;
+  text: string | null;
+  position: string;
+  teaser: string | null;
+  enabled: boolean;
+  lineOpen: string | null;
+  lineClosed: string | null;
+  shape: string;
+  size: string;
+  bubble: string;
+};
+
 export function Appearance({
   accent,
   text,
   position,
   teaser,
-}: {
-  accent: string | null;
-  text: string | null;
-  position: string;
-  teaser: string | null;
-}) {
+  enabled,
+  lineOpen,
+  lineClosed,
+  shape: savedShape,
+  size: savedSize,
+  bubble: savedBubble,
+}: WidgetLook) {
   const [state, action] = useActionState<FormState, FormData>(saveWidgetLook, {});
   const [colour, setColour] = useState(accent ? `#${accent}` : "#14243F");
   const [ink, setInk] = useState(text ? `#${text}` : "");
+  const [shape, setShape] = useState<Shape>((savedShape as Shape) ?? "round");
+  const [size, setSize] = useState<Size>((savedSize as Size) ?? "medium");
+  const [bubble, setBubble] = useState<Bubble>((savedBubble as Bubble) ?? "light");
+  const [on, setOn] = useState(enabled);
+  const [openLine, setOpenLine] = useState(lineOpen ?? "");
+  const [closedLine, setClosedLine] = useState(lineClosed ?? "");
 
   /*
    * Follow the saved value back.
@@ -44,7 +72,13 @@ export function Appearance({
   useEffect(() => {
     setColour(accent ? `#${accent}` : "#14243F");
     setInk(text ? `#${text}` : "");
-  }, [accent, text]);
+    setShape((savedShape as Shape) ?? "round");
+    setSize((savedSize as Size) ?? "medium");
+    setBubble((savedBubble as Bubble) ?? "light");
+    setOn(enabled);
+    setOpenLine(lineOpen ?? "");
+    setClosedLine(lineClosed ?? "");
+  }, [accent, text, savedShape, savedSize, savedBubble, enabled, lineOpen, lineClosed]);
 
   /*
    * Exactly what the site will do, from the same function the site uses.
@@ -55,6 +89,11 @@ export function Appearance({
    */
   const look = paint(readHex(colour), ink ? readHex(ink) : null);
   const automatic = !ink || readHex(ink) === autoText(look.fill);
+  const box = geometry(size, shape);
+  const nudge = bubbleColours(bubble);
+
+  // Shown open, because that is the state a business pictures when choosing.
+  const shown = lineFor("Answering now", true, { open: openLine });
 
   return (
     <form action={action} className="card mt-4 space-y-5 p-5">
@@ -65,6 +104,31 @@ export function Appearance({
           again.
         </p>
       </div>
+
+      {/*
+        * The off switch, above everything it governs.
+        *
+        * Turning it off takes the widget off the page rather than hiding it,
+        * and leaves the script tag alone — so it comes back with one tick and
+        * nobody has to go near their website.
+        */}
+      <label className="flex items-start gap-3 rounded-xl border border-border p-4">
+        <input
+          type="checkbox"
+          name="widget_enabled"
+          checked={on}
+          onChange={(e) => setOn(e.target.checked)}
+          className="mt-0.5 accent-[var(--accent)]"
+        />
+        <span>
+          <span className="text-sm font-medium">Show it on my website</span>
+          <p className="hint mt-0.5">
+            {on
+              ? "It is on your site now. Turn this off and it disappears — the code stays where it is, so it comes back with one tick."
+              : "It is off. Nobody sees it and nothing is answering on your website. The code on your site can stay where it is."}
+          </p>
+        </span>
+      </label>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
@@ -135,6 +199,86 @@ export function Appearance({
         </label>
       </div>
 
+      <div className="grid gap-4 sm:grid-cols-3">
+        <label className="block">
+          <span className="label">Its shape</span>
+          <select
+            name="widget_shape"
+            value={shape}
+            onChange={(e) => setShape(e.target.value as Shape)}
+            className="input"
+          >
+            <option value="round">Round</option>
+            <option value="soft">Softly squared</option>
+            <option value="square">Squared</option>
+          </select>
+          <p className="hint mt-1.5">Match whatever your own buttons do.</p>
+        </label>
+
+        <label className="block">
+          <span className="label">Its size</span>
+          <select
+            name="widget_size"
+            value={size}
+            onChange={(e) => setSize(e.target.value as Size)}
+            className="input"
+          >
+            <option value="small">Small</option>
+            <option value="medium">Medium</option>
+            <option value="large">Large</option>
+          </select>
+          <p className="hint mt-1.5">Larger gets noticed. Smaller gets out of the way.</p>
+        </label>
+
+        <label className="block">
+          <span className="label">The nudge bubble</span>
+          <select
+            name="widget_bubble"
+            value={bubble}
+            onChange={(e) => setBubble(e.target.value as Bubble)}
+            className="input"
+          >
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+          <p className="hint mt-1.5">Dark, if your site is dark.</p>
+        </label>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className="label">What it says when you are open</span>
+          <input
+            name="widget_line_open"
+            value={openLine}
+            onChange={(e) => setOpenLine(e.target.value)}
+            className="input"
+            maxLength={48}
+            placeholder="Answering now"
+          />
+          <p className="hint mt-1.5">
+            Leave it empty and it says &ldquo;Answering now&rdquo;.
+          </p>
+        </label>
+
+        <label className="block">
+          <span className="label">And when you are closed</span>
+          <input
+            name="widget_line_closed"
+            value={closedLine}
+            onChange={(e) => setClosedLine(e.target.value)}
+            className="input"
+            maxLength={48}
+            placeholder="Closed — I can still book you"
+          />
+          <p className="hint mt-1.5">
+            This is the one that earns its keep. Somebody reading it at ten at night
+            is being told they can still get booked in, which is the whole point of
+            paying for this. Say it in your words if ours are not yours.
+          </p>
+        </label>
+      </div>
+
       <label className="block">
         <span className="label">The nudge</span>
         <input
@@ -159,19 +303,59 @@ export function Appearance({
         */}
       <div className="rounded-xl border border-border p-4">
         <div className="label">On your site</div>
-        <div className="mt-3 flex flex-wrap items-center gap-4">
-          <span
-            className="inline-flex h-14 items-center gap-2.5 rounded-full px-[18px] text-[13.5px] font-medium shadow-lg"
-            style={{ background: `#${look.fill}`, color: `#${look.text}` }}
-          >
+
+        {/*
+          * The real thing, at the size and shape it will be.
+          *
+          * Every number here comes from the same functions the site uses, so
+          * this cannot promise something the widget will not do. That is not
+          * theoretical: for weeks it described a darkening only the panel did.
+          */}
+        <div
+          className={`mt-3 flex flex-wrap items-end gap-4 ${on ? "" : "opacity-40 saturate-0"}`}
+        >
+          <div className="flex flex-col items-start gap-2.5">
             <span
-              className="h-[7px] w-[7px] rounded-full"
-              style={{ background: "#4ade80" }}
-            />
-            {teaser?.trim() || "Answering now"}
-          </span>
+              className="inline-flex max-w-full items-center gap-2 whitespace-nowrap"
+              style={{
+                background: nudge.fill,
+                color: nudge.text,
+                boxShadow: nudge.shadow,
+                borderRadius: shape === "square" ? "10px 10px 2px 10px" : "14px 14px 4px 14px",
+                padding: "11px 14px",
+                font: "400 14px/1.45 ui-sans-serif, system-ui, sans-serif",
+              }}
+            >
+              {teaser?.trim() || "Hi — anything I can help you with?"}
+            </span>
+
+            <span
+              className="inline-flex items-center font-medium shadow-lg"
+              style={{
+                background: `#${look.fill}`,
+                color: `#${look.text}`,
+                height: box.height,
+                minWidth: box.height,
+                borderRadius: box.radius,
+                fontSize: box.font,
+                gap: 10,
+                padding: `0 ${box.padding}px 0 ${Math.round(box.padding * 0.67)}px`,
+              }}
+            >
+              <span
+                className="rounded-full"
+                style={{ width: 7, height: 7, background: "#4ade80", flex: "none" }}
+              />
+              {shown}
+            </span>
+          </div>
 
           <div className="text-sm">
+            {!on && (
+              <div className="text-muted">
+                Switched off. Nothing appears on your site at all.
+              </div>
+            )}
             <div className={look.readable ? "text-muted" : "text-warn"}>
               {look.readable
                 ? `Comfortable to read (${look.ratio.toFixed(1)} to 1).`

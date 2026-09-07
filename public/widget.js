@@ -44,6 +44,19 @@
 
   var accent = tagAccent || "#14243F";
   var textColour = tagText || "#ffffff";
+
+  /*
+   * What the button is, before the business's own answer arrives.
+   *
+   * The middle of every choice, so the one repaint between drawing it and
+   * hearing back is the smallest it can be for the most people.
+   */
+  var shape = { height: 56, radius: "999px", icon: 24, font: 13.5, padding: 18 };
+  var bubbleLook = {
+    fill: "#ffffff",
+    text: "#16181d",
+    shadow: "0 8px 28px rgba(10, 12, 16, 0.18)",
+  };
   var teaserText = tagTeaser || "Hi — anything I can help you with?";
   var onLeft = tagPosition === "left";
 
@@ -62,6 +75,30 @@
 
   function narrow() {
     return window.innerWidth < 640;
+  }
+
+  /*
+   * Take it all off the page.
+   *
+   * For a business that has switched the widget off. Hiding is not enough: a
+   * hidden button is still in the document, still in the accessibility tree,
+   * and still somewhere a keyboard can land. Timers go too, or the nudge
+   * arrives nine seconds later looking for elements that are gone.
+   */
+  var timers = [];
+  function teardown() {
+    for (var i = 0; i < timers.length; i++) window.clearTimeout(timers[i]);
+    timers = [];
+    [button, teaser, panel].forEach(function (el) {
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+    });
+  }
+
+  /** setTimeout, remembered, so teardown can cancel it. */
+  function later(fn, ms) {
+    var id = window.setTimeout(fn, ms);
+    timers.push(id);
+    return id;
   }
 
   /*
@@ -277,7 +314,6 @@
     height: "13px",
     borderRadius: "50%",
     background: "#ef4444",
-    border: "2.5px solid #fff",
     display: "none",
   });
 
@@ -304,12 +340,33 @@
           return r.ok ? r.json() : null;
         })
         .then(function (got) {
-          if (!got || typeof got.line !== "string") return;
+          if (!got) return;
+
+          /*
+           * Switched off in their settings.
+           *
+           * Everything goes, rather than being hidden: a display:none button is
+           * still in the page, still in the accessibility tree, still something
+           * a keyboard lands on. Somebody who has turned this off has turned it
+           * off.
+           *
+           * It arrives after the button is drawn because the answer comes over
+           * the network, so this is a removal and not a decision not to draw.
+           * The button is one repaint old at worst.
+           */
+          if (got.off) {
+            teardown();
+            return;
+          }
+
+          if (typeof got.line !== "string") return;
           status = got;
 
           // Their look, unless the page said otherwise.
           if (!tagAccent && got.accent) accent = "#" + got.accent;
           if (!tagText && got.text) textColour = "#" + got.text;
+          if (got.geometry) shape = got.geometry;
+          if (got.bubble) bubbleLook = got.bubble;
           if (!tagTeaser && got.teaser) {
             teaserText = got.teaser;
             teaser.setAttribute("aria-label", teaserText);
@@ -347,7 +404,8 @@
       // 390px screen is the classic tell of a widget nobody tested on a phone.
       right: full ? "0" : onLeft ? "auto" : "20px",
       left: full ? "0" : onLeft ? "20px" : "auto",
-      bottom: full ? "0" : "94px",
+      // Clear of the button, whatever size they chose it to be.
+      bottom: full ? "0" : shape.height + 38 + "px",
       width: full ? "100%" : "384px",
       height: full ? "88%" : "min(620px, calc(100vh - 130px))",
       maxWidth: "100vw",
@@ -391,20 +449,22 @@
       bottom: "20px",
       right: onLeft ? "auto" : "20px",
       left: onLeft ? "20px" : "auto",
-      height: "56px",
-      minWidth: "56px",
+      height: shape.height + "px",
+      minWidth: shape.height + "px",
       display: "flex",
       alignItems: "center",
       gap: wide ? "10px" : "0",
-      padding: wide ? "0 18px 0 12px" : "0",
+      padding: wide ? "0 " + shape.padding + "px 0 " + Math.round(shape.padding * 0.67) + "px" : "0",
       justifyContent: "center",
-      // A pill when it is saying something, a circle when it is not.
-      borderRadius: "999px",
+      // Their shape: a pill, a rounded rectangle, or nearly a square, so it
+      // can sit next to buttons the business did not ask us to design.
+      borderRadius: shape.radius,
       border: "0",
       background: accent,
       color: textColour,
       cursor: "pointer",
-      font: "500 13.5px/1.2 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      font:
+        "500 " + shape.font + "px/1.2 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       letterSpacing: "0.005em",
       whiteSpace: "nowrap",
       boxShadow: REST,
@@ -423,6 +483,10 @@
       transition: "opacity " + ease,
     });
 
+    // The ring around the unread badge is a hole punched in the button, so it
+    // has to be the button's colour rather than white.
+    dot.style.border = "2.5px solid " + accent;
+
     // A live dot beside the words, green when somebody really is answering.
     style(pulse, {
       display: wide ? "block" : "none",
@@ -437,18 +501,18 @@
 
     style(teaser, {
       position: "fixed",
-      bottom: "88px",
+      bottom: shape.height + 32 + "px",
       right: onLeft ? "auto" : "20px",
       left: onLeft ? "20px" : "auto",
       maxWidth: "min(260px, calc(100vw - 40px))",
       padding: "11px 14px",
-      background: "#fff",
-      color: "#16181d",
+      background: bubbleLook.fill,
+      color: bubbleLook.text,
       font: "400 14px/1.45 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       textAlign: "left",
       border: "0",
       borderRadius: onLeft ? "14px 14px 14px 4px" : "14px 14px 4px 14px",
-      boxShadow: "0 8px 28px rgba(10, 12, 16, 0.18)",
+      boxShadow: bubbleLook.shadow,
       cursor: "pointer",
       zIndex: "2147483001",
       transition: "opacity " + ease + ", transform " + ease,
@@ -472,7 +536,15 @@
     panel.setAttribute("aria-hidden", open ? "false" : "true");
 
     icon.innerHTML = open ? CLOSE_ICON : CHAT_ICON;
-    icon.style.transform = open ? "rotate(90deg)" : "rotate(0deg)";
+    /*
+     * Scaled rather than redrawn.
+     *
+     * Both marks are 26px squares with the size written into the SVG, so CSS
+     * on the span around them does nothing. A transform costs no layout and
+     * the mark keeps its proportions against a button that changed size.
+     */
+    icon.style.transform =
+      (open ? "rotate(90deg)" : "rotate(0deg)") + " scale(" + shape.icon / 26 + ")";
     // The button steps back while the panel is up: it is no longer the thing
     // being offered, and a full-size button under an open panel competes.
     button.style.transform = open ? "scale(0.88)" : "scale(1)";
@@ -749,7 +821,7 @@
 
     // Long enough not to feel like a pop-up, early enough to catch somebody
     // still reading the page.
-    if (!open) window.setTimeout(showTeaser, 9000);
+    if (!open) later(showTeaser, 9000);
   }
 
   if (document.body) mount();
