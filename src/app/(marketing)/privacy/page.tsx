@@ -8,8 +8,12 @@ export const metadata: Metadata = {
 
 /*
  * A DRAFT. Gareth reads this and corrects it before it goes anywhere near a
- * real customer or a Meta reviewer — particularly the company name, address
- * and the ICO registration, which I cannot know.
+ * real customer or a Meta reviewer — particularly the company name and address,
+ * which I cannot know.
+ *
+ * The ICO registration is applied for rather than granted, and this says so
+ * with the application number. Claiming a registration that has not been issued
+ * would be worse than admitting the wait, and the wait is short.
  *
  * Meta will not review an app without a reachable privacy policy, and the AI
  * disclosure below is not optional: people are talking to an assistant and
@@ -150,10 +154,16 @@ export default function PrivacyPage() {
           Written questions and requests to{" "}
           <a href="mailto:info@second-pair.com">info@second-pair.com</a>.
         </p>
+        <p>
+          Second Pair has applied to register with the Information Commissioner&rsquo;s
+          Office as a data controller; the application reference is C2026410. The
+          registration number will be shown here as soon as it is issued.
+        </p>
         <p className="draft">
-          Two things still to add, and neither can be guessed: the name and business
-          address Second Pair trades under, and the ICO registration number. Send them and
-          they go straight in.
+          One thing still to add, and it cannot be guessed: the name and business address
+          Second Pair trades under. Send it and it goes straight in &mdash; along with the
+          ICO registration number in place of the application reference above, once that
+          comes through.
         </p>
       </Section>
     </Legal>
