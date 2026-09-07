@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readNumbers, tidyNumber } from "./phoneNumbers.ts";
+import { readNumbers, tidyNumber, shouldRing } from "./phoneNumbers.ts";
 
 function accepted(rawNumber: string, rawForward: string) {
   const r = readNumbers(rawNumber, rawForward);
@@ -44,4 +44,30 @@ test("a bad ring-me number is caught even when it is the only thing typed", () =
 
 test("a call cannot be forwarded to itself, however it is punctuated", () => {
   assert.match(refused("+447700900123", "+44 7700 900-123").error, /ring itself/);
+});
+
+const OURS = "+441626000001";
+const MOBILE = "+447700900123";
+
+test("with nobody to ring, the caller is texted at once", () => {
+  assert.equal(shouldRing(null, null, OURS), false);
+});
+
+test("an ordinary call rings the phone", () => {
+  assert.equal(shouldRing(MOBILE, null, OURS), true);
+  assert.equal(shouldRing(MOBILE, undefined, OURS), true);
+});
+
+test("a call diverted from that very phone does not ring it again", () => {
+  assert.equal(shouldRing(MOBILE, MOBILE, OURS), false);
+  // However the carrier punctuates it.
+  assert.equal(shouldRing(MOBILE, "+44 7700 900-123", OURS), false);
+});
+
+test("a call diverted from our own number is a loop, whatever else is true", () => {
+  assert.equal(shouldRing(MOBILE, OURS, OURS), false);
+});
+
+test("a divert from somewhere else is still worth ringing for", () => {
+  assert.equal(shouldRing(MOBILE, "+441626999999", OURS), true);
 });

@@ -77,3 +77,40 @@ export function readNumbers(rawNumber: string, rawForward: string): Numbers {
 
   return { ok: true, number, forwardTo };
 }
+
+/**
+ * Whether to ring the owner's own phone, or text the caller straight away.
+ *
+ * A business can keep the number its customers already have by asking its
+ * network to divert calls it does not answer to the number we hold. That is
+ * the right way to do it, and it puts this webhook one hop downstream of a
+ * phone that has already rung.
+ *
+ * Ringing that same phone again from here is at best pointless and at worst a
+ * loop: we ring their mobile, their mobile diverts it back to us, and the two
+ * numbers pass the same call between them, billed each way, until something
+ * gives up. The settings page says to leave the ring-me number empty when
+ * diverting, and people will not read it — so this notices instead.
+ *
+ * `forwardedFrom` is the number the call was diverted from, which the carrier
+ * passes on. When it is absent, nothing is known and the ordinary answer
+ * applies.
+ */
+export function shouldRing(
+  forwardTo: string | null,
+  forwardedFrom: string | null | undefined,
+  ourNumber: string,
+): boolean {
+  if (!forwardTo) return false;
+
+  const from = tidyNumber(forwardedFrom ?? "");
+  if (!from) return true;
+
+  // Diverted from the phone we were about to ring: it has already rung.
+  if (from === tidyNumber(forwardTo)) return false;
+
+  // Diverted from our own number, which can only be something looping.
+  if (from === tidyNumber(ourNumber)) return false;
+
+  return true;
+}

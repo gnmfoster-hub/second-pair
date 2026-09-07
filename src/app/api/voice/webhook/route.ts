@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { shouldRing } from "@/lib/channels/phoneNumbers";
 import { verifySignature } from "@/lib/messaging/sms";
 
 export const runtime = "nodejs";
@@ -77,7 +78,16 @@ export async function POST(request: NextRequest) {
    * one place rather than two — this branch simply arrives there without the
    * phone having rung.
    */
-  if (!connection.forward_to) {
+  /*
+   * A call that has already been to their phone.
+   *
+   * A business keeping its own number diverts unanswered calls here, which
+   * puts us one hop after a phone that has already rung. Ringing it again
+   * would send the call straight back — the two numbers passing it between
+   * them, billed each way, until something gives up. `ForwardedFrom` is what
+   * the carrier says the call was diverted from.
+   */
+  if (!shouldRing(connection.forward_to, params.ForwardedFrom, to)) {
     return twiml(
       `<Say voice="alice">Thanks for calling${studio?.name ? " " + escapeXml(studio.name) : ""}. ` +
         `We cannot take your call right now, so I will text you straight back.</Say>` +
