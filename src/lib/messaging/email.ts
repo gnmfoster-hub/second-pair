@@ -18,15 +18,31 @@ const ENDPOINT = "https://api.resend.com/emails";
 /**
  * The key, without whatever came along with it.
  *
- * A key is copied out of one dashboard and pasted into another, and a trailing
- * newline is invisible in both. Resend then answers "API key is invalid",
- * which sends somebody looking for a bad key rather than for a bad paste.
+ * A key is copied out of one dashboard and pasted into another, and neither a
+ * trailing newline nor a pair of quotes is visible in either. Resend answers
+ * "API key is invalid" to all of them, which sends somebody hunting for a bad
+ * key rather than for a bad paste.
  *
- * Real keys never have space around them, so trimming cannot break a working
- * one. The health check says when it had to.
+ * Quotes get there honestly: every example of an environment variable ever
+ * written shows KEY="value", so typing the quotes into a box that wants only
+ * the value is the obvious mistake, not a careless one.
+ *
+ * A real key is a bare token with no space and no quotes around it, so none of
+ * this can break a working one. The health check says when it had to do any of
+ * it, because a paste that needs cleaning up will need cleaning up again.
  */
+export function tidyKey(raw: string): string {
+  let key = raw.trim();
+  // One layer, matched: "re_x" and 're_x' are pastes; re_"x" is not, and
+  // stripping from that would make a broken key look plausible.
+  if (key.length > 1 && (key.at(0) === '"' || key.at(0) === "'") && key.at(-1) === key.at(0)) {
+    key = key.slice(1, -1).trim();
+  }
+  return key;
+}
+
 function apiKey(): string {
-  return (process.env.RESEND_API_KEY ?? "").trim();
+  return tidyKey(process.env.RESEND_API_KEY ?? "");
 }
 
 /** Whether email can be sent at all yet. */
@@ -157,12 +173,12 @@ export type EmailProbe = {
 
 export async function probeEmail(timeoutMs = 6000): Promise<EmailProbe> {
   const raw = process.env.RESEND_API_KEY ?? "";
-  const key = raw.trim();
+  const key = tidyKey(raw);
   const from = process.env.EMAIL_FROM ?? "";
   const senderDomain = domainOf(from) || null;
   const keyShape = key
     ? `${key.slice(0, 3)}… ${key.length} characters` +
-      (raw === key ? "" : ", and it had space around it in the variable")
+      (raw === key ? "" : ", after taking off the quotes or space it was pasted with")
     : null;
 
   if (!key || !senderDomain) {
