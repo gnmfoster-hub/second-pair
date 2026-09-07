@@ -158,10 +158,19 @@ export async function sendDueReminders(
   const result: SendResult = { due: rows.length, sent: 0, skipped: 0, failed: 0, waiting: [] };
   if (!rows.length) return result;
 
+  /*
+   * Only the ones still switched on.
+   *
+   * Scheduling filters on `enabled` too, but that happens when the booking is
+   * made. Switching a reminder off has to stop the ones already queued behind
+   * it, or an owner who turns off a reminder because it is wrong watches it go
+   * out for another three weeks to everybody already in the diary.
+   */
   const { data: templates } = await db
     .from("reminder_templates")
     .select("id, body")
-    .eq("studio_id", studio.id);
+    .eq("studio_id", studio.id)
+    .eq("enabled", true);
   const bodyFor = new Map((templates ?? []).map((t) => [t.id, t.body]));
 
   // Looked up once for the whole batch rather than per reminder.
@@ -179,6 +188,8 @@ export async function sendDueReminders(
       continue;
     }
 
+    // No body means the reminder was deleted or switched off after this one
+    // was queued. Either way it is not sent, and the row says so.
     const template = row.template_id ? bodyFor.get(row.template_id) : null;
     if (!template) {
       await db.from("reminders").update({ status: "skipped" }).eq("id", row.id);

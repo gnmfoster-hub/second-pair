@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio } from "@/lib/studio";
+import { ticked } from "@/lib/forms";
 import type { FormState } from "../actions";
 
 const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
@@ -34,7 +35,7 @@ export async function saveReminder(_prev: FormState, fd: FormData): Promise<Form
     label: str(fd, "label") || `${hours} hours before`,
     hours_before: hours,
     body,
-    enabled: fd.get("enabled") !== "off",
+    enabled: ticked(fd, "enabled"),
     sort_order: Number(str(fd, "sort_order")) || 0,
   };
 

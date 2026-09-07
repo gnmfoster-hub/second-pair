@@ -9,6 +9,7 @@ import { sendEmail, emailConfigured } from "@/lib/messaging/email";
 import { siteOrigin } from "@/lib/origin";
 import { verticalPack } from "@/lib/verticals";
 import { stillWorthAsking } from "@/lib/askedAlready";
+import { ticked } from "@/lib/forms";
 import type { AnsweringMode } from "@/lib/answering";
 
 const ANSWERING_MODES: AnsweringMode[] = ["always", "when_free", "always_ask_me"];
@@ -377,7 +378,7 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
     colour: str(fd, "colour") || null,
     ical_url: str(fd, "ical_url") || null,
     booking_url: str(fd, "booking_url") || null,
-    active: fd.get("active") !== "off",
+    active: ticked(fd, "active"),
   };
 
   const photo = fd.get("avatar");
