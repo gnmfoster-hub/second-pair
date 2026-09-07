@@ -8,6 +8,7 @@ import { verticalPack } from "@/lib/verticals";
 import { coversPostcode } from "@/lib/travel";
 import { dayIn } from "@/lib/diaryGaps";
 import { stripeConfigured, effectiveDepositMode } from "@/lib/payments/stripe";
+import { sendBookingConfirmation } from "@/lib/messaging/confirmation";
 import {
   availableSlots,
   createBooking,
@@ -968,6 +969,26 @@ async function makeBooking(
   });
 
   if (!result.ok) return { result: result.message };
+
+  /*
+   * Something in writing, for a booking that needed no deposit.
+   *
+   * The confirmation — the email carrying the appointment as a calendar file —
+   * was only ever sent from the Stripe webhook, so it arrived when a deposit
+   * was paid and at no other time. Every business takes no deposit today,
+   * by choice or because Stripe is not connected, so every customer who booked
+   * got nothing in writing at all: no confirmation, no calendar entry, nothing
+   * to look at in three weeks when they cannot remember whether it was Tuesday
+   * or Wednesday.
+   *
+   * Not awaited, and it cannot throw. A confirmation that failed to send is
+   * worth recording and never worth holding up the reply to somebody who has
+   * just booked — and it quietly does nothing at all until email is switched
+   * on.
+   */
+  if (!takesDeposit && result.bookingId) {
+    void sendBookingConfirmation(ctx.db, result.bookingId);
+  }
 
   await ctx.db
     .from("conversations")
