@@ -8,6 +8,7 @@ import { DEFAULT_HOURS, type DepositRule, type OpeningHours } from "@/lib/types"
 import { sendEmail, emailConfigured } from "@/lib/messaging/email";
 import { siteOrigin } from "@/lib/origin";
 import { verticalPack } from "@/lib/verticals";
+import { stillWorthAsking } from "@/lib/askedAlready";
 import type { AnsweringMode } from "@/lib/answering";
 
 const ANSWERING_MODES: AnsweringMode[] = ["always", "when_free", "always_ask_me"];
@@ -1217,5 +1218,65 @@ export async function seedStarterReminders(
   if (error) return { error: error.message };
 
   revalidatePath("/settings/reminders");
+  return { ok: true };
+}
+
+/**
+ * The trade's usual questions, for the ones a business has not answered.
+ *
+ * Unlike reminders, this does not refuse when some already exist. A business
+ * with one answer of its own is the common case and the one that needs this
+ * most: Living Canvas had written "Do you do Walk ins?" and had no route to
+ * the other three a tattoo studio is asked — aftercare, parking, what to
+ * bring — because seeding only ever ran on a business with none at all.
+ *
+ * What a customer asks and gets no answer to becomes an interruption for the
+ * owner, every time, forever. Three blank prompts on a screen is a ten-minute
+ * job; working out what the questions are in the first place is not.
+ *
+ * Matching is deliberately blunt — see lib/askedAlready. A near-duplicate is
+ * one click to delete; a question silently withheld is an escalation every
+ * time somebody asks it.
+ */
+export async function seedStarterFaqs(_prev: FormState, _fd: FormData): Promise<FormState> {
+  // The answers a business gives are the business's, so they are its owner's.
+  if (!(await isOwner())) {
+    return { error: "Only the owner can change the FAQs." };
+  }
+
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  const { data: have } = await supabase
+    .from("faqs")
+    .select("question, sort_order")
+    .eq("studio_id", studio.id);
+
+  const pack = verticalPack(studio.vertical);
+  const missing = stillWorthAsking(
+    pack.faqs.map((f) => f.question),
+    (have ?? []).map((f) => f.question),
+  );
+
+  if (!missing.length) {
+    return { error: "You already ask everything your trade usually does." };
+  }
+
+  const from = Math.max(0, ...(have ?? []).map((f) => f.sort_order ?? 0)) + 1;
+
+  const { error } = await supabase.from("faqs").insert(
+    missing.map((question, i) => ({
+      studio_id: studio.id,
+      question,
+      // Blank on purpose: an unanswered question is never given to the
+      // assistant, so these do nothing at all until somebody fills them in.
+      answer: "",
+      sort_order: from + i,
+    })),
+  );
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/faqs");
   return { ok: true };
 }
