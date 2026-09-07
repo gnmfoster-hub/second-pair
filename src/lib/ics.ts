@@ -73,10 +73,13 @@ export function buildCalendar({
   name,
   description,
   events,
+  /** Injectable so a test can assert on a stamp rather than on the clock. */
+  now = new Date(),
 }: {
   name: string;
   description?: string;
   events: CalendarEvent[];
+  now?: Date;
 }): string {
   const lines: string[] = [
     "BEGIN:VCALENDAR",
@@ -100,7 +103,23 @@ export function buildCalendar({
   for (const event of events) {
     lines.push("BEGIN:VEVENT");
     lines.push(`UID:${event.uid}`);
-    lines.push(`DTSTAMP:${stamp(event.updated ?? new Date(0))}`);
+    /*
+     * When this version of the entry was written.
+     *
+     * It defaulted to the epoch, which is how every calendar file we have ever
+     * attached to an email went out stamped 1 January 1970. That is not
+     * cosmetic: two objects sharing a uid are the same appointment, and a
+     * calendar decides which one wins by SEQUENCE and then by DTSTAMP. Both at
+     * 1970 gives it no way to tell the new one from the old, so the update it
+     * was sent — a moved appointment — can be quietly ignored and the customer
+     * keeps the original time in their diary.
+     *
+     * LAST-MODIFIED as well when the caller knows when the record changed,
+     * because that is the property that actually means "changed at", and some
+     * clients read it in preference.
+     */
+    lines.push(`DTSTAMP:${stamp(event.updated ?? now)}`);
+    if (event.updated) lines.push(`LAST-MODIFIED:${stamp(event.updated)}`);
 
     if (event.allDay) {
       lines.push(`DTSTART;VALUE=DATE:${dateOnly(event.starts)}`);

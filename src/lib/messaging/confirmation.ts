@@ -35,7 +35,9 @@ export async function sendBookingConfirmation(
      */
     const { data: booking } = await db
       .from("bookings")
-      .select("id, starts_at, ends_at, type, deposit_amount_pence, enquiry_id, artists(name)")
+      .select(
+        "id, starts_at, ends_at, type, deposit_amount_pence, enquiry_id, updated_at, artists(name)",
+      )
       .eq("id", bookingId)
       .maybeSingle();
 
@@ -86,6 +88,7 @@ export async function sendBookingConfirmation(
       timezone: studio.timezone ?? "Europe/London",
       cancellationPolicy: studio.cancellation_policy,
       bookingId: booking.id,
+      updatedAt: booking.updated_at ?? null,
     });
 
     const result = await sendEmail({
@@ -143,6 +146,7 @@ export function composeConfirmation({
   timezone,
   cancellationPolicy,
   bookingId,
+  updatedAt,
 }: {
   startsAt: string;
   endsAt: string;
@@ -154,6 +158,12 @@ export function composeConfirmation({
   timezone: string;
   cancellationPolicy: string | null;
   bookingId: string;
+  /**
+   * When the booking last changed, so a second copy of this file wins over the
+   * first. Without it a moved appointment can be ignored by the customer's
+   * calendar, which then still shows the old time.
+   */
+  updatedAt?: string | null;
 }): { subject: string; text: string; calendar: string } {
   const starts = new Date(startsAt);
   const ends = new Date(endsAt);
@@ -207,6 +217,7 @@ ${studioName}`;
         ends,
         summary: `${studioName}${artistName ? ` — ${artistName}` : ""}`,
         description: type === "consultation" ? "Consultation" : undefined,
+        updated: updatedAt ? new Date(updatedAt) : undefined,
       },
     ],
   });

@@ -168,3 +168,56 @@ test("a cancelled entry says so rather than vanishing", () => {
   const out = one({ cancelled: true });
   assert.match(out, /STATUS:CANCELLED/);
 });
+
+test("an entry is stamped when it was written, not in 1970", () => {
+  const body = buildCalendar({
+    name: "Living Canvas Tattoo",
+    now: new Date("2026-09-07T20:30:00Z"),
+    events: [
+      {
+        uid: "booking-1@second-pair.com",
+        starts: new Date("2026-09-16T09:00:00Z"),
+        ends: new Date("2026-09-16T10:30:00Z"),
+        summary: "Living Canvas Tattoo",
+      },
+    ],
+  });
+  assert.match(body, /DTSTAMP:20260907T203000Z/);
+  assert.doesNotMatch(body, /19700101/);
+});
+
+test("a changed booking says when it changed, so the new copy wins", () => {
+  const moved = new Date("2026-09-08T11:15:00Z");
+  const body = buildCalendar({
+    name: "Living Canvas Tattoo",
+    now: new Date("2026-09-07T20:30:00Z"),
+    events: [
+      {
+        uid: "booking-1@second-pair.com",
+        starts: new Date("2026-09-17T09:00:00Z"),
+        ends: new Date("2026-09-17T10:30:00Z"),
+        summary: "Living Canvas Tattoo",
+        updated: moved,
+      },
+    ],
+  });
+  // Both, because clients disagree about which one they read.
+  assert.match(body, /DTSTAMP:20260908T111500Z/);
+  assert.match(body, /LAST-MODIFIED:20260908T111500Z/);
+});
+
+test("an entry that has never changed carries no LAST-MODIFIED", () => {
+  const body = buildCalendar({
+    name: "Living Canvas Tattoo",
+    now: new Date("2026-09-07T20:30:00Z"),
+    events: [
+      {
+        uid: "booking-1@second-pair.com",
+        starts: new Date("2026-09-16T09:00:00Z"),
+        ends: new Date("2026-09-16T10:30:00Z"),
+        summary: "Living Canvas Tattoo",
+      },
+    ],
+  });
+  assert.doesNotMatch(body, /LAST-MODIFIED/);
+});
