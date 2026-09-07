@@ -7,13 +7,15 @@ export const metadata: Metadata = {
 };
 
 /*
- * A DRAFT. Gareth reads this and corrects it before it goes anywhere near a
- * real customer or a Meta reviewer — particularly the company name and address,
- * which I cannot know.
+ * Read this before it goes in front of a Meta reviewer.
  *
- * The ICO registration is applied for rather than granted, and this says so
- * with the application number. Claiming a registration that has not been issued
- * would be worse than admitting the wait, and the wait is short.
+ * The trading name and address are Gareth's own and were given to me; the ICO
+ * registration is applied for rather than granted, and this says so with the
+ * application number. Claiming a registration that has not been issued would be
+ * worse than admitting the wait, and the wait is short.
+ *
+ * One draft block is left, marking that one line. It goes when the number
+ * arrives.
  *
  * Meta will not review an app without a reachable privacy policy, and the AI
  * disclosure below is not optional: people are talking to an assistant and
@@ -224,8 +226,10 @@ export default function PrivacyPage() {
           controller for its own customers&rsquo; details; Second Pair processes those on
           their behalf.
         </p>
-        <p className="draft">
-          The trading name and business address go here.
+        <p>
+          Trading as <strong>second-pair.com</strong>.
+          <br />
+          13 Bugle Place, Newton Abbot, TQ12 1GZ, United Kingdom.
         </p>
       </Section>
 
@@ -240,10 +244,8 @@ export default function PrivacyPage() {
           registration number will be shown here as soon as it is issued.
         </p>
         <p className="draft">
-          One thing still to add, and it cannot be guessed: the name and business address
-          Second Pair trades under. Send it and it goes straight in &mdash; along with the
-          ICO registration number in place of the application reference above, once that
-          comes through.
+          One line still to replace: the ICO application reference above becomes the
+          registration number once it is issued.
         </p>
       </Section>
     </Legal>
