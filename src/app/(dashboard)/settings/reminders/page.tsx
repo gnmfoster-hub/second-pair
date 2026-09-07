@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireOwner } from "@/lib/studio";
 import { ReminderEditor, type ReminderTemplateRow } from "./ReminderEditor";
+import { SeedReminders } from "./SeedReminders";
+import { verticalPack } from "@/lib/verticals";
 
 export default async function RemindersPage() {
   // What customers are sent — the owner's, and the page says so
@@ -24,6 +26,14 @@ export default async function RemindersPage() {
         saying differs by trade, which is why these start from your trade and are yours to
         rewrite.
       </p>
+
+      {/*
+        * Nothing set up means nobody is being reminded, which is worth saying
+        * out loud rather than showing an empty page that looks finished.
+        */}
+      {reminders.length === 0 && (
+        <SeedReminders trade={verticalPack(studio.vertical).label} />
+      )}
 
       {reminders.map((reminder, i) => (
         <ReminderEditor key={reminder.id} reminder={reminder} index={i} />

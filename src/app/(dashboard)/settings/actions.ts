@@ -7,6 +7,7 @@ import { parsePounds } from "@/lib/money";
 import { DEFAULT_HOURS, type DepositRule, type OpeningHours } from "@/lib/types";
 import { sendEmail, emailConfigured } from "@/lib/messaging/email";
 import { siteOrigin } from "@/lib/origin";
+import { verticalPack } from "@/lib/verticals";
 import type { AnsweringMode } from "@/lib/answering";
 
 const ANSWERING_MODES: AnsweringMode[] = ["always", "when_free", "always_ask_me"];
@@ -1160,4 +1161,61 @@ export async function resetCalendarLink(
  */
 function freshToken(): string {
   return crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+}
+
+/**
+ * The trade's usual reminders, for a business that has none.
+ *
+ * Every business is given these when it is created, so most never need this.
+ * The ones that do are the ones created before that seeding existed, and any
+ * business that deletes them and later wants them back — and for those there
+ * was no way to get them except to write two of them out by hand, from
+ * nothing, guessing what a reminder ought to say.
+ *
+ * A tattoo studio's says bring photo ID, eat beforehand and go easy the night
+ * before. A groomer's asks whether the dog has been clipped recently. That is
+ * the part worth having and the part nobody wants to compose on a Tuesday, so
+ * it should be one button rather than a blank box.
+ *
+ * Refuses when there are already some, rather than quietly making a second set
+ * of everything.
+ */
+export async function seedStarterReminders(
+  _prev: FormState,
+  _fd: FormData,
+): Promise<FormState> {
+  // What customers are sent in the business's name belongs to its owner.
+  if (!(await isOwner())) {
+    return { error: "Only the owner can change reminders." };
+  }
+
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  const { count } = await supabase
+    .from("reminder_templates")
+    .select("id", { count: "exact", head: true })
+    .eq("studio_id", studio.id);
+
+  if ((count ?? 0) > 0) {
+    return { error: "You already have reminders — edit those rather than adding a second set." };
+  }
+
+  const pack = verticalPack(studio.vertical);
+
+  const { error } = await supabase.from("reminder_templates").insert(
+    pack.reminders.map((r, i) => ({
+      studio_id: studio.id,
+      label: r.label,
+      hours_before: r.hours_before,
+      body: r.body,
+      enabled: true,
+      sort_order: i,
+    })),
+  );
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/reminders");
+  return { ok: true };
 }
