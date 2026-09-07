@@ -248,8 +248,24 @@ best way to reach them — one at a time, not as a form — then hand over.
 
 `;
 
-  const faqLines = faqs.length
-    ? faqs.map((f) => `Q: ${f.question}\nA: ${f.answer}`).join("\n\n")
+  /*
+   * Only the ones that have an answer.
+   *
+   * A business is seeded with its trade's usual questions and no answers, so
+   * somebody signing up on a Tuesday has the right things to fill in rather
+   * than an empty screen. Those blanks were being written into the prompt
+   * underneath a heading that says these are the answers it is allowed to
+   * give — so the assistant was shown "Q: What is the aftercare? A:" and
+   * invited to treat nothing as the authorised answer to one of the four
+   * questions a tattoo studio is asked most.
+   *
+   * An unanswered question is not an answer. Dropped here, it escalates like
+   * anything else nobody has been told, which is the honest outcome.
+   */
+  const answered = faqs.filter((f) => f.answer?.trim());
+
+  const faqLines = answered.length
+    ? answered.map((f) => `Q: ${f.question}\nA: ${f.answer}`).join("\n\n")
     : "(None recorded. Anything factual you were not told, escalate.)";
 
   return `You are the receptionist for ${studio.name}, a ${pack.label.toLowerCase()}. You handle first contact from people enquiring, across the website, WhatsApp and Instagram.
