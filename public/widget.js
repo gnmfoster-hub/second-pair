@@ -52,6 +52,7 @@
    * hearing back is the smallest it can be for the most people.
    */
   var shape = { height: 56, radius: "999px", icon: 24, font: 13.5, padding: 18 };
+  var pulse = { rings: 2, every: 0, until: 0 };
   var bubbleLook = {
     fill: "#ffffff",
     text: "#16181d",
@@ -87,6 +88,7 @@
    */
   var timers = [];
   function teardown() {
+    stopPulsing();
     for (var i = 0; i < timers.length; i++) window.clearTimeout(timers[i]);
     timers = [];
     [button, teaser, panel].forEach(function (el) {
@@ -135,20 +137,46 @@
   }
 
   /*
-   * Two rings, once, when the nudge appears.
+   * Rings, at the moment there is something to read.
    *
-   * Not a loop. A button that pulses forever is an advert, and the second time
-   * somebody sees it they resent it — this is meant to say "there is somebody
-   * here" once, at the moment there is something to read.
+   * How many times is the business's, not ours. The default rings twice and
+   * stops; a business on a busy page can ask for it to keep going. Either way
+   * it stops the moment somebody opens the chat or waves the nudge away, and
+   * it stops on its own after a couple of minutes regardless — by then they
+   * have seen it, and repeating a thing to somebody who has already answered
+   * is how a signal turns into a nuisance.
+   *
+   * Nothing at all for anybody who has asked for no motion.
    */
+  var pulsing = null;
+  var pulseStops = null;
+
   function drawAttention() {
-    if (still) return;
+    if (still || !pulse) return;
     addKeyframes();
+    ring();
+
+    if (!pulse.every) return;
+
+    pulsing = window.setInterval(ring, pulse.every);
+    pulseStops = later(stopPulsing, pulse.until);
+  }
+
+  function ring() {
     button.style.setProperty("--sp-ring", ringColour());
-    button.style.animation = "secondpair-ring 1.6s ease-out 2";
-    window.setTimeout(function () {
-      button.style.animation = "";
-    }, 3400);
+    // Restarting the same animation needs it cleared and the element read, or
+    // the browser treats the second one as still the first and shows nothing.
+    button.style.animation = "";
+    void button.offsetWidth;
+    button.style.animation = "secondpair-ring 1.6s ease-out " + pulse.rings;
+  }
+
+  function stopPulsing() {
+    if (pulsing) window.clearInterval(pulsing);
+    if (pulseStops) window.clearTimeout(pulseStops);
+    pulsing = null;
+    pulseStops = null;
+    button.style.animation = "";
   }
 
   /** The ring, in their colour, faint enough to be a glow and not a border. */
@@ -367,6 +395,8 @@
           if (!tagText && got.text) textColour = "#" + got.text;
           if (got.geometry) shape = got.geometry;
           if (got.bubble) bubbleLook = got.bubble;
+          // Null is a real answer here — it means they have asked for none.
+          if ("pulse" in got) pulse = got.pulse;
           if (!tagTeaser && got.teaser) {
             teaserText = got.teaser;
             teaser.setAttribute("aria-label", teaserText);
@@ -694,6 +724,15 @@
   }
 
   function hideTeaser() {
+    /*
+     * The nudge going away is the visitor having answered.
+     *
+     * Whether they opened it, waved it off, or simply let it time out, they
+     * have now seen the thing the ringing was for. Carrying on is asking a
+     * question that has been answered.
+     */
+    stopPulsing();
+
     /*
      * Stop typing into a bubble nobody can see any more.
      *

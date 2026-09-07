@@ -103,6 +103,8 @@ export type Studio = {
   widget_shape: string;
   widget_size: string;
   widget_bubble: string;
+  /** off, once, or always — whether the button asks to be looked at. */
+  widget_pulse: string;
   widget_position: "right" | "left";
   /** The nudge shown a few seconds after landing. Null means the default. */
   widget_teaser: string | null;

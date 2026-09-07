@@ -14,9 +14,21 @@ export type Shape = "round" | "soft" | "square";
 export type Size = "small" | "medium" | "large";
 export type Bubble = "light" | "dark";
 
+/**
+ * Whether the button asks to be looked at.
+ *
+ * `once` rings twice as the nudge appears, at the moment there is something to
+ * read. `always` keeps going for a business who wants it noticed on a busy
+ * page — and stops on its own, because a button pulsing at somebody for the
+ * twenty minutes they spend reading is no longer a signal, it is a nuisance
+ * they will remember the business for.
+ */
+export type Pulse = "off" | "once" | "always";
+
 export const SHAPES: Shape[] = ["round", "soft", "square"];
 export const SIZES: Size[] = ["small", "medium", "large"];
 export const BUBBLES: Bubble[] = ["light", "dark"];
+export const PULSES: Pulse[] = ["off", "once", "always"];
 
 export function isShape(v: unknown): v is Shape {
   return typeof v === "string" && (SHAPES as string[]).includes(v);
@@ -26,6 +38,29 @@ export function isSize(v: unknown): v is Size {
 }
 export function isBubble(v: unknown): v is Bubble {
   return typeof v === "string" && (BUBBLES as string[]).includes(v);
+}
+export function isPulse(v: unknown): v is Pulse {
+  return typeof v === "string" && (PULSES as string[]).includes(v);
+}
+
+/**
+ * How the repeating pulse behaves, in numbers the script can just obey.
+ *
+ * `every` is deliberately long. A ring every second is a fire alarm; every six
+ * is something happening in the corner of an eye that a person can ignore
+ * while they read, and notice when they look up.
+ *
+ * `until` is the part that matters. It stops after two minutes whatever
+ * happens, and the script stops it sooner the moment somebody opens the chat
+ * or waves the nudge away — by then they have seen it, and carrying on is
+ * saying the same thing to somebody who has already answered.
+ */
+export type PulsePlan = { rings: number; every: number; until: number };
+
+export function pulsePlan(pulse: Pulse): PulsePlan | null {
+  if (pulse === "off") return null;
+  if (pulse === "once") return { rings: 2, every: 0, until: 0 };
+  return { rings: 2, every: 6000, until: 120000 };
 }
 
 export type Geometry = {

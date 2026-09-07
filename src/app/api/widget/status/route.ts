@@ -9,6 +9,8 @@ import {
   isShape,
   isSize,
   isBubble,
+  isPulse,
+  pulsePlan,
 } from "@/lib/widget/look";
 import type { OpeningHours } from "@/lib/types";
 
@@ -57,7 +59,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await db
     .from("studios")
     .select(
-      "hours, timezone, archived_at, widget_accent, widget_text, widget_position, widget_teaser, widget_enabled, widget_line_open, widget_line_closed, widget_shape, widget_size, widget_bubble",
+      "hours, timezone, archived_at, widget_accent, widget_text, widget_position, widget_teaser, widget_enabled, widget_line_open, widget_line_closed, widget_shape, widget_size, widget_bubble, widget_pulse",
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -138,6 +140,7 @@ export async function GET(request: NextRequest) {
     text: look.text,
     geometry: geometry(size, shape),
     bubble: bubbleColours(bubble),
+    pulse: pulsePlan(isPulse(data.widget_pulse) ? data.widget_pulse : "once"),
     position: data.widget_position === "left" ? "left" : "right",
     teaser: typeof data.widget_teaser === "string" && data.widget_teaser.trim()
       ? data.widget_teaser.trim().slice(0, 140)

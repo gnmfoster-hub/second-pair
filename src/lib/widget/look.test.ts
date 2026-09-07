@@ -1,6 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { geometry, bubbleColours, lineFor, isShape, isSize, isBubble } from "./look.ts";
+import {
+  geometry,
+  bubbleColours,
+  lineFor,
+  isShape,
+  isSize,
+  isBubble,
+  isPulse,
+  pulsePlan,
+} from "./look.ts";
 
 test("a bigger button carries bigger writing and a bigger mark", () => {
   const small = geometry("small", "round");
@@ -65,4 +74,26 @@ test("only the three shapes, sizes and flavours that exist", () => {
   assert.equal(isSize("enormous"), false);
   assert.equal(isBubble("dark"), true);
   assert.equal(isBubble("beige"), false);
+});
+
+test("off means no pulse at all, not a quiet one", () => {
+  assert.equal(pulsePlan("off"), null);
+});
+
+test("once does not repeat", () => {
+  assert.equal(pulsePlan("once")?.every, 0);
+  assert.equal(pulsePlan("once")?.until, 0);
+});
+
+test("always repeats, slowly, and stops by itself", () => {
+  const plan = pulsePlan("always");
+  assert.ok(plan);
+  assert.ok(plan.every >= 4000, "a ring every few seconds, not every second");
+  assert.ok(plan.until > plan.every, "it has to run more than once before stopping");
+  assert.ok(plan.until <= 300000, "and it has to stop");
+});
+
+test("only the three settings that exist", () => {
+  assert.equal(isPulse("always"), true);
+  assert.equal(isPulse("strobe"), false);
 });

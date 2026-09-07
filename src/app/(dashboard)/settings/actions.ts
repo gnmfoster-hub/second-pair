@@ -11,7 +11,7 @@ import { verticalPack } from "@/lib/verticals";
 import { stillWorthAsking } from "@/lib/askedAlready";
 import { readNumbers } from "@/lib/channels/phoneNumbers";
 import { readHex, autoText } from "@/lib/widget/colour";
-import { isShape, isSize, isBubble } from "@/lib/widget/look";
+import { isShape, isSize, isBubble, isPulse } from "@/lib/widget/look";
 import { ticked } from "@/lib/forms";
 import type { AnsweringMode } from "@/lib/answering";
 
@@ -976,6 +976,7 @@ export async function saveWidgetLook(_prev: FormState, fd: FormData): Promise<Fo
   const shape = isShape(str(fd, "widget_shape")) ? str(fd, "widget_shape") : "round";
   const size = isSize(str(fd, "widget_size")) ? str(fd, "widget_size") : "medium";
   const bubble = isBubble(str(fd, "widget_bubble")) ? str(fd, "widget_bubble") : "light";
+  const pulse = isPulse(str(fd, "widget_pulse")) ? str(fd, "widget_pulse") : "once";
 
   /*
    * Their own words on the button, capped where the button runs out.
@@ -1007,6 +1008,7 @@ export async function saveWidgetLook(_prev: FormState, fd: FormData): Promise<Fo
       widget_shape: shape,
       widget_size: size,
       widget_bubble: bubble,
+      widget_pulse: pulse,
     })
     .eq("id", studio.id);
 

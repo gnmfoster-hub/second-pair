@@ -10,6 +10,7 @@ import {
   type Shape,
   type Size,
   type Bubble,
+  type Pulse,
 } from "@/lib/widget/look";
 
 /**
@@ -35,6 +36,7 @@ export type WidgetLook = {
   shape: string;
   size: string;
   bubble: string;
+  pulse: string;
 };
 
 export function Appearance({
@@ -48,6 +50,7 @@ export function Appearance({
   shape: savedShape,
   size: savedSize,
   bubble: savedBubble,
+  pulse: savedPulse,
 }: WidgetLook) {
   const [state, action] = useActionState<FormState, FormData>(saveWidgetLook, {});
   const [colour, setColour] = useState(accent ? `#${accent}` : "#14243F");
@@ -55,6 +58,7 @@ export function Appearance({
   const [shape, setShape] = useState<Shape>((savedShape as Shape) ?? "round");
   const [size, setSize] = useState<Size>((savedSize as Size) ?? "medium");
   const [bubble, setBubble] = useState<Bubble>((savedBubble as Bubble) ?? "light");
+  const [pulse, setPulse] = useState<Pulse>((savedPulse as Pulse) ?? "once");
   const [on, setOn] = useState(enabled);
   const [openLine, setOpenLine] = useState(lineOpen ?? "");
   const [closedLine, setClosedLine] = useState(lineClosed ?? "");
@@ -75,10 +79,21 @@ export function Appearance({
     setShape((savedShape as Shape) ?? "round");
     setSize((savedSize as Size) ?? "medium");
     setBubble((savedBubble as Bubble) ?? "light");
+    setPulse((savedPulse as Pulse) ?? "once");
     setOn(enabled);
     setOpenLine(lineOpen ?? "");
     setClosedLine(lineClosed ?? "");
-  }, [accent, text, savedShape, savedSize, savedBubble, enabled, lineOpen, lineClosed]);
+  }, [
+    accent,
+    text,
+    savedShape,
+    savedSize,
+    savedBubble,
+    savedPulse,
+    enabled,
+    lineOpen,
+    lineClosed,
+  ]);
 
   /*
    * Exactly what the site will do, from the same function the site uses.
@@ -199,7 +214,7 @@ export function Appearance({
         </label>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
           <span className="label">Its shape</span>
           <select
@@ -228,6 +243,27 @@ export function Appearance({
             <option value="large">Large</option>
           </select>
           <p className="hint mt-1.5">Larger gets noticed. Smaller gets out of the way.</p>
+        </label>
+
+        <label className="block">
+          <span className="label">Catching an eye</span>
+          <select
+            name="widget_pulse"
+            value={pulse}
+            onChange={(e) => setPulse(e.target.value as Pulse)}
+            className="input"
+          >
+            <option value="off">Stay still</option>
+            <option value="once">Ring once</option>
+            <option value="always">Keep ringing</option>
+          </select>
+          <p className="hint mt-1.5">
+            {pulse === "off"
+              ? "No movement at all beyond appearing."
+              : pulse === "once"
+                ? "Two rings when the nudge appears, then it settles."
+                : "A ring every few seconds. Stops the moment somebody opens it or waves the nudge away, and after two minutes regardless."}
+          </p>
         </label>
 
         <label className="block">
@@ -329,18 +365,46 @@ export function Appearance({
               {teaser?.trim() || "Hi — anything I can help you with?"}
             </span>
 
+            {/*
+              * The ring, so the choice can be seen rather than imagined.
+              *
+              * Written here rather than in a stylesheet because the colour is
+              * the business's and changes as they pick it. "Keep ringing" is
+              * shown as a loop; on their site the same ring stops when the
+              * visitor answers it, which the text beside the box says.
+              */}
+            <style>{`
+              @keyframes sp-preview-ring {
+                0%   { box-shadow: 0 8px 24px rgba(10,12,16,0.3), 0 0 0 0 var(--sp-preview); }
+                70%  { box-shadow: 0 8px 24px rgba(10,12,16,0.3), 0 0 0 14px rgba(0,0,0,0); }
+                100% { box-shadow: 0 8px 24px rgba(10,12,16,0.3), 0 0 0 0 rgba(0,0,0,0); }
+              }
+              @media (prefers-reduced-motion: reduce) {
+                .sp-preview-button { animation: none !important; }
+              }
+            `}</style>
+
             <span
-              className="inline-flex items-center font-medium shadow-lg"
-              style={{
-                background: `#${look.fill}`,
-                color: `#${look.text}`,
-                height: box.height,
-                minWidth: box.height,
-                borderRadius: box.radius,
-                fontSize: box.font,
-                gap: 10,
-                padding: `0 ${box.padding}px 0 ${Math.round(box.padding * 0.67)}px`,
-              }}
+              className="sp-preview-button inline-flex items-center font-medium shadow-lg"
+              style={
+                {
+                  background: `#${look.fill}`,
+                  color: `#${look.text}`,
+                  height: box.height,
+                  minWidth: box.height,
+                  borderRadius: box.radius,
+                  fontSize: box.font,
+                  gap: 10,
+                  padding: `0 ${box.padding}px 0 ${Math.round(box.padding * 0.67)}px`,
+                  "--sp-preview": `#${look.fill}73`,
+                  animation:
+                    pulse === "off" || !on
+                      ? undefined
+                      : pulse === "once"
+                        ? "sp-preview-ring 1.6s ease-out 2"
+                        : "sp-preview-ring 1.6s ease-out infinite",
+                } as React.CSSProperties
+              }
             >
               <span
                 className="rounded-full"
