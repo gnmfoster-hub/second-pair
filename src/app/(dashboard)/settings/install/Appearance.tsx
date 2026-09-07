@@ -59,6 +59,26 @@ export function Appearance({
   const [size, setSize] = useState<Size>((savedSize as Size) ?? "medium");
   const [bubble, setBubble] = useState<Bubble>((savedBubble as Bubble) ?? "light");
   const [pulse, setPulse] = useState<Pulse>((savedPulse as Pulse) ?? "once");
+
+  /*
+   * Whether this browser will show any of it.
+   *
+   * Windows turns animations off for a lot of people without them ever having
+   * chosen it — battery saver does it, and so does a setting several versions
+   * of Windows have moved. Somebody in that state switches the ring on, sees
+   * nothing, and reasonably concludes the ring is broken.
+   *
+   * Read after mount rather than during render, because the server has no
+   * browser to ask and guessing produces a hydration mismatch.
+   */
+  const [motionOff, setMotionOff] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const read = () => setMotionOff(query.matches);
+    read();
+    query.addEventListener("change", read);
+    return () => query.removeEventListener("change", read);
+  }, []);
   const [on, setOn] = useState(enabled);
   const [openLine, setOpenLine] = useState(lineOpen ?? "");
   const [closedLine, setClosedLine] = useState(lineClosed ?? "");
@@ -264,6 +284,13 @@ export function Appearance({
                 ? "Two rings when the nudge appears, then it settles."
                 : "A ring every few seconds. Stops the moment somebody opens it or waves the nudge away, and after two minutes regardless."}
           </p>
+          {motionOff && pulse !== "off" && (
+            <p className="hint mt-1.5 text-warn">
+              <strong>This browser is set to reduce motion</strong>, so you will not see
+              it here or on your site &mdash; visitors without that setting will. It is
+              usually Windows&rsquo; own animation setting, or battery saver.
+            </p>
+          )}
         </label>
 
         <label className="block">

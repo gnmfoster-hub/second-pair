@@ -123,16 +123,28 @@
       "0%{transform:scale(0.6) translateY(12px);opacity:0}" +
       "60%{transform:scale(1.06) translateY(0);opacity:1}" +
       "100%{transform:scale(1) translateY(0);opacity:1}}" +
-      // A ring that leaves the button and fades, rather than the button
-      // itself moving. Something arriving in the corner of an eye reads as a
-      // notification; the button jumping about reads as a broken page.
-      // The drop shadow is repeated in every frame. Animating box-shadow
-      // replaces the whole property, so leaving it out flattens the button
-      // against the page for the length of the animation.
+      /*
+       * A ring leaving the button, and the button breathing under it.
+       *
+       * The ring alone was too quiet to notice — which is the whole job. It
+       * was a 45% shadow reaching 14 pixels, and on a light page beside a pale
+       * brand colour that is a suggestion rather than a signal. It now starts
+       * solid, reaches 22 pixels, and the button lifts about four per cent
+       * underneath it, because a glow with no movement in it does not read as
+       * something happening.
+       *
+       * Still not the button jumping about: four per cent over 1.6 seconds is
+       * a breath, and the page it is standing on stays still.
+       *
+       * The drop shadow is repeated in every frame. Animating box-shadow
+       * replaces the whole property, so leaving it out flattens the button
+       * against the page for the length of the animation.
+       */
       "@keyframes secondpair-ring{" +
-      "0%{box-shadow:" + REST + ",0 0 0 0 var(--sp-ring)}" +
-      "70%{box-shadow:" + REST + ",0 0 0 14px rgba(0,0,0,0)}" +
-      "100%{box-shadow:" + REST + ",0 0 0 0 rgba(0,0,0,0)}}";
+      "0%{box-shadow:" + REST + ",0 0 0 0 var(--sp-ring);transform:scale(1)}" +
+      "35%{transform:scale(1.045)}" +
+      "70%{box-shadow:" + REST + ",0 0 0 22px rgba(0,0,0,0)}" +
+      "100%{box-shadow:" + REST + ",0 0 0 0 rgba(0,0,0,0);transform:scale(1)}}";
     document.head.appendChild(sheet);
   }
 
@@ -196,13 +208,19 @@
     button.style.animation = "";
   }
 
-  /** The ring, in their colour, faint enough to be a glow and not a border. */
+  /**
+   * The ring, in their colour.
+   *
+   * Nearly solid where it starts, since it is a ring only for the instant
+   * before it begins expanding and fading. At 45% it started as a haze and got
+   * fainter, which on a light page is a thing nobody sees.
+   */
   function ringColour() {
     var m = /^#?([0-9a-f]{6})$/i.exec(accent || "");
-    if (!m) return "rgba(20, 36, 63, 0.45)";
+    if (!m) return "rgba(20, 36, 63, 0.85)";
     var n = parseInt(m[1], 16);
     return (
-      "rgba(" + ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255) + ",0.45)"
+      "rgba(" + ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255) + ",0.85)"
     );
   }
 
@@ -602,7 +620,17 @@
       (open ? "rotate(90deg)" : "rotate(0deg)") + " scale(" + shape.icon / 26 + ")";
     // The button steps back while the panel is up: it is no longer the thing
     // being offered, and a full-size button under an open panel competes.
-    button.style.transform = open ? "scale(0.88)" : "scale(1)";
+    /*
+     * Left alone while it is ringing.
+     *
+     * A running animation outranks an inline style, so this would not actually
+     * interrupt it — but the moment the animation ends the inline value takes
+     * over again, and writing it from three different handlers while a ring is
+     * mid-flight is asking for a jump at the end of one.
+     */
+    if (!(pulsing || ringing) || open) {
+      button.style.transform = open ? "scale(0.88)" : "scale(1)";
+    }
     button.setAttribute("aria-expanded", open ? "true" : "false");
     button.setAttribute("aria-label", open ? "Close chat" : "Chat with us");
 
