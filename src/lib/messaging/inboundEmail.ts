@@ -69,23 +69,16 @@ const NEVER_REPLY = /^(no[-_.]?reply|do[-_.]?not[-_.]?reply|bounce|mailer-daemon
 const MACHINE_SUBJECT =
   /^(undeliverable|delivery status notification|mail delivery|returned mail|automatic reply|out of office|auto(matic)?[- ]?reply|read receipt)/i;
 
-/**
- * The address out of however it was written.
+/*
+ * Reading an address, wherever it is read.
  *
  * "Jo Marsh <jo@gmail.com>" and "jo@gmail.com" are the same person, and which
- * one arrives depends entirely on the mail client at the other end.
+ * one arrives depends entirely on the mail client at the other end. Kept in one
+ * place now that the sending side needs the same answer, and re-exported here
+ * because this is where a reader of the inbound rules expects to find it.
  */
-export function addressOf(raw: string): string {
-  const angled = /<([^>]+)>/.exec(raw);
-  return (angled ? angled[1] : raw).trim().toLowerCase();
-}
-
-/** The bit after the @, or "" if there is not one. */
-export function domainOf(raw: string): string {
-  const one = addressOf(raw);
-  const at = one.lastIndexOf("@");
-  return at === -1 ? "" : one.slice(at + 1);
-}
+import { addressOf, domainOf } from "./address.ts";
+export { addressOf, domainOf };
 
 /**
  * Which of the addresses it was sent to is ours.

@@ -1,4 +1,5 @@
 import type { Delivery } from "./deliver";
+import { domainOf, senderLine } from "./address.ts";
 
 /**
  * Sending email.
@@ -65,7 +66,7 @@ export async function sendEmail({
    * own. Their name in the display line is the next best thing, and the
    * reply-to means an answer still reaches them rather than us.
    */
-  const sender = fromName ? `${fromName} <${from}>` : from;
+  const sender = senderLine(from, fromName);
 
   try {
     const response = await fetch(ENDPOINT, {
@@ -134,7 +135,7 @@ export type EmailProbe = {
 export async function probeEmail(timeoutMs = 6000): Promise<EmailProbe> {
   const key = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM ?? "";
-  const senderDomain = from.split("@")[1]?.trim().toLowerCase() || null;
+  const senderDomain = domainOf(from) || null;
 
   if (!key || !senderDomain) {
     return {
