@@ -27,6 +27,18 @@ export function Legal({
         .legal ul { margin: 0 0 1rem; padding-left: 1.25rem; line-height: 1.7; }
         .legal li { margin-bottom: 0.5rem; }
         .legal a { color: var(--accent); text-underline-offset: 2px; }
+        /* A table that a business can read on a phone. The wrapper scrolls
+           rather than the page, so a narrow screen never pushes the whole
+           notice sideways. */
+        .legal .table { overflow-x: auto; margin: 0 0 1rem; }
+        .legal table { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+        .legal th, .legal td {
+          text-align: left;
+          padding: 0.5rem 0.75rem;
+          border-bottom: 1px solid var(--border);
+          vertical-align: top;
+        }
+        .legal th { font-weight: 600; color: var(--foreground); white-space: nowrap; }
         /* Anything still needing a human decision, marked so it cannot slip
            through unnoticed into a live page. */
         .legal .draft {

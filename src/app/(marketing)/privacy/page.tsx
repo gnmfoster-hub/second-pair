@@ -107,6 +107,86 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
+      {/*
+        * The same list again, as a table.
+        *
+        * Not repetition for its own sake. A business using Second Pair has to
+        * name its own sub-processors in its own privacy notice, and cannot
+        * write that until somebody has told them who ours are, where each one
+        * processes, and on what basis anything leaves the UK. The prose above
+        * is for the customer; this is for the salon owner and their solicitor,
+        * and it is meant to be copied.
+        */}
+      <Section title="Sub-processors">
+        <p>
+          If you are a business using Second Pair, you are the controller of your own
+          customers&rsquo; details and we process them on your behalf. Your own privacy
+          notice has to name who else those details reach. This is that list, and you are
+          welcome to reproduce it.
+        </p>
+        <div className="table">
+          <table>
+            <thead>
+              <tr>
+                <th>Who</th>
+                <th>What they do</th>
+                <th>Where</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Supabase</td>
+                <td>Stores everything: conversations, appointments, client records</td>
+                <td>United Kingdom (London)</td>
+              </tr>
+              <tr>
+                <td>Vercel</td>
+                <td>Runs the software</td>
+                <td>United Kingdom (London)</td>
+              </tr>
+              <tr>
+                <td>Anthropic</td>
+                <td>Writes the assistant&rsquo;s replies. Not used to train the model</td>
+                <td>United States, under the UK&rsquo;s approved transfer terms</td>
+              </tr>
+              <tr>
+                <td>Resend</td>
+                <td>Sends email: confirmations, reminders, password resets</td>
+                <td>United States, under the same terms</td>
+              </tr>
+              <tr>
+                <td>Twilio</td>
+                <td>Sends and receives text messages and calls, where connected</td>
+                <td>United States, under the same terms</td>
+              </tr>
+              <tr>
+                <td>Stripe</td>
+                <td>Takes deposits. Card details never reach us or the business</td>
+                <td>United States, under the same terms</td>
+              </tr>
+              <tr>
+                <td>Meta</td>
+                <td>Carries Instagram, Facebook and WhatsApp messages, where connected</td>
+                <td>United States, under their own terms with you</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Everything a business and its customers write is <strong>stored</strong> in
+          London and stays in the United Kingdom. The companies above are the ones that
+          act on it — sending a text, taking a payment, composing a reply — and each
+          receives only what that job needs.
+        </p>
+        <p>
+          Two of them only apply once a business connects them. A business that has never
+          connected a phone number has no dealings with Twilio; one that takes no deposits
+          has none with Stripe. If you are writing your own notice, name the ones you
+          actually use.
+        </p>
+        <p>We will tell businesses before adding or replacing anyone on this list.</p>
+      </Section>
+
       <Section title="How long it is kept">
         <p>
           Conversations and appointment records are kept while you are a customer of that
