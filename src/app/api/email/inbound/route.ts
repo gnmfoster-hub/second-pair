@@ -11,6 +11,7 @@ import {
   type InboundEmail,
 } from "@/lib/messaging/inboundEmail";
 import { hasAnthropicEnv } from "@/lib/env";
+import { timingSafeEqual } from "node:crypto";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -47,7 +48,9 @@ export async function POST(request: NextRequest) {
     request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
     request.nextUrl.searchParams.get("key");
 
-  if (given !== secret) return new NextResponse("Not authorised", { status: 401 });
+  if (!sameSecret(given, secret)) {
+    return new NextResponse("Not authorised", { status: 401 });
+  }
 
   const payload = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!payload) return ok("unreadable");
@@ -256,4 +259,20 @@ async function park(
 
 function ok(note: string) {
   return NextResponse.json({ ok: true, note });
+}
+
+/**
+ * Compared without leaking how much of it was right.
+ *
+ * A plain !== returns as soon as two characters differ, so how long it takes
+ * says something about how close a guess was. Not a practical attack over the
+ * internet against a long secret, but the text webhook next door already does
+ * this properly and there is no reason for the two to disagree.
+ */
+function sameSecret(given: string | null, expected: string): boolean {
+  if (!given) return false;
+  const a = Buffer.from(given);
+  const b = Buffer.from(expected);
+  // timingSafeEqual throws on differing lengths, and a length is not a secret.
+  return a.length === b.length && timingSafeEqual(a, b);
 }
