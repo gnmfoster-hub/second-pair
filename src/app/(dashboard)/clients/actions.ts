@@ -135,17 +135,79 @@ export async function forgetClient(_prev: ForgetState, fd: FormData): Promise<Fo
 
   if (convIds.length) {
     /*
-     * Children first. Messages hold the actual conversation — the thing most
-     * worth erasing — and enquiries hold what was asked for.
+     * The words go. Everything holding them is emptied and kept.
+     *
+     * Deleting the conversations was the obvious thing to write and it took
+     * the appointments with it: a booking belongs to an enquiry, an enquiry to
+     * a conversation, and each of those cascades, so erasing somebody removed
+     * every job they had ever had. A £300 afternoon vanished out of the diary
+     * and out of last year's takings, silently, while the code below said the
+     * appointments stayed.
+     *
+     * So the rows survive with nothing personal in them. What is left is an
+     * appointment on a date for an amount, which is the business's record of
+     * its own work rather than anybody's personal data.
      */
+    const { data: theirs } = await supabase
+      .from("enquiries")
+      .select("id, reference_urls")
+      .in("conversation_id", convIds);
+
+    /*
+     * The photographs first, because they are the most personal thing here and
+     * the only part that does not live in this database.
+     */
+    const files = (theirs ?? []).flatMap((e) => (e.reference_urls as string[] | null) ?? []);
+    if (files.length) await supabase.storage.from("references").remove(files);
+
     const { error: msgError } = await supabase
       .from("messages")
       .delete()
       .in("conversation_id", convIds);
     if (msgError) return { error: `Could not remove their messages: ${msgError.message}` };
 
-    await supabase.from("enquiries").delete().in("conversation_id", convIds);
-    await supabase.from("conversations").delete().in("id", convIds);
+    // What they asked for, in their words. The size band and the quote stay,
+    // because those are what the appointment was worth.
+    const { error: enqError } = await supabase
+      .from("enquiries")
+      .update({
+        description: null,
+        placement: null,
+        preferred_times: null,
+        reference_urls: [],
+        job_address: null,
+        job_postcode: null,
+      })
+      .in("conversation_id", convIds);
+    if (enqError) return { error: `Could not clear their enquiries: ${enqError.message}` };
+
+    // The thread stops being anybody's. external_ref is their number or email.
+    const { error: convError } = await supabase
+      .from("conversations")
+      .update({ contact_id: null, external_ref: null, status: "lost" })
+      .in("id", convIds);
+    if (convError) return { error: `Could not clear their conversations: ${convError.message}` };
+
+    /*
+     * What the business wrote about them, on the appointments themselves.
+     *
+     * Reached through the enquiry rather than through contact_id, which is the
+     * only way to reach them: an appointment the assistant booked never has a
+     * contact on the row — it is joined up through the enquiry — so clearing
+     * by contact matched nothing at all. A note reading "allergic to green
+     * ink" survived an erasure request, and that is health data about a named
+     * person who had asked to be forgotten.
+     */
+    const enquiryIds = (theirs ?? []).map((e) => e.id);
+    if (enquiryIds.length) {
+      const { error: theirBookings } = await supabase
+        .from("bookings")
+        .update({ title: "Erased at their request", notes: null })
+        .in("enquiry_id", enquiryIds);
+      if (theirBookings) {
+        return { error: `Could not clear their appointments: ${theirBookings.message}` };
+      }
+    }
   }
 
   /*
