@@ -730,12 +730,41 @@ async function findOrCreateConversation(
       return { conversation: existing, enquiryId: enquiry.id, contactId: existing.contact_id };
     }
 
-    const { data: created } = await db
+    /*
+     * One enquiry per conversation, enforced by the database.
+     *
+     * Two messages handled at the same time both find none and both insert;
+     * the loser used to come back null and be dereferenced, which is a five
+     * hundred and no reply at all.
+     *
+     * Reachable in a way it did not used to be. A missed call leaves a
+     * conversation with no enquiry against it, and the customer's reply is the
+     * first thing to make one — and Twilio retries a webhook that takes too
+     * long, which is exactly what a slow model call looks like. So the retry
+     * and the original arrive together, on the very path that exists to catch
+     * somebody the business already missed once.
+     */
+    const { data: created, error: clash } = await db
       .from("enquiries")
       .insert({ conversation_id: existing.id })
       .select("id")
       .single();
-    return { conversation: existing, enquiryId: created!.id, contactId: existing.contact_id };
+
+    if (created) {
+      return { conversation: existing, enquiryId: created.id, contactId: existing.contact_id };
+    }
+
+    const { data: theirs } = await db
+      .from("enquiries")
+      .select("id")
+      .eq("conversation_id", existing.id)
+      .maybeSingle();
+
+    if (theirs) {
+      return { conversation: existing, enquiryId: theirs.id, contactId: existing.contact_id };
+    }
+
+    throw new Error(`Could not start enquiry: ${clash?.message ?? "unknown"}`);
   }
 
   const { data: contact } = await db

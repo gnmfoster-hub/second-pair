@@ -238,8 +238,34 @@ async function park(
       .select("id")
       .single();
 
-    if (error || !made) return;
-    id = made.id;
+    /*
+     * Somebody else started the thread while this one was being written.
+     *
+     * Two emails from the same person arriving together, or a provider
+     * retrying one it thought had failed. Returning here dropped the second
+     * message entirely — no reply, no record, nothing for the owner to notice
+     * was missing, which is the worst way for a customer's words to be lost.
+     */
+    id = made?.id ?? null;
+
+    if (!id) {
+      const { data: theirs } = await db
+        .from("conversations")
+        .select("id")
+        .eq("studio_id", studioId)
+        .eq("channel", "email")
+        .eq("external_ref", sender)
+        .limit(1)
+        .maybeSingle();
+
+      if (!theirs) return;
+
+      // The contact made a moment ago has nothing pointing at it.
+      if (contact?.id) await db.from("contacts").delete().eq("id", contact.id);
+      id = theirs.id;
+    }
+
+    if (error && !id) return;
   }
 
   await db.from("messages").insert({
