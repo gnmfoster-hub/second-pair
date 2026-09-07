@@ -103,6 +103,10 @@
     [button, teaser, panel].forEach(function (el) {
       if (el && el.parentNode) el.parentNode.removeChild(el);
     });
+    // The keyframes too. Harmless where they are, and still a stylesheet from
+    // software the business has switched off, sitting in their document.
+    var sheet = document.getElementById("secondpair-motion");
+    if (sheet && sheet.parentNode) sheet.parentNode.removeChild(sheet);
   }
 
   /** setTimeout, remembered, so teardown can cancel it. */
