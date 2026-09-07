@@ -9,6 +9,7 @@ import { sendEmail, emailConfigured } from "@/lib/messaging/email";
 import { siteOrigin } from "@/lib/origin";
 import { verticalPack } from "@/lib/verticals";
 import { stillWorthAsking } from "@/lib/askedAlready";
+import { readNumbers } from "@/lib/channels/phoneNumbers";
 import { ticked } from "@/lib/forms";
 import type { AnsweringMode } from "@/lib/answering";
 
@@ -821,28 +822,26 @@ export async function saveSmsNumber(
   const { studio } = await requireStudio();
   const supabase = await createClient();
 
-  const raw = String(fd.get("sms_number") ?? "").trim();
-
   /*
-   * Where a call to that number should ring before it becomes a text.
+   * Both numbers, and what is wrong with them, in one place.
    *
-   * Their own mobile, which is not the number customers dial and is never
-   * shown to one. Blank is a real answer, not an unfinished one: it means do
-   * not ring me, text them straight away — which is what somebody with their
-   * hands full most of the day actually wants.
+   * The second is where a call rings before it becomes a text: their own
+   * mobile, which is not the number customers dial and is never shown to one.
+   * Blank is a real answer, not an unfinished one — do not ring me, text them
+   * straight away.
+   *
+   * The rules live in lib/channels because the back office sets these up for
+   * people too, and a support screen looser than this page would let somebody
+   * be helped into a number that receives nothing.
    */
-  const forwardRaw = String(fd.get("forward_to") ?? "").trim();
-  const forwardTo = forwardRaw ? forwardRaw.replace(/[\s()-]/g, "") : null;
+  const read = readNumbers(
+    String(fd.get("sms_number") ?? ""),
+    String(fd.get("forward_to") ?? ""),
+  );
+  if (!read.ok) return { error: read.error };
+  const { number, forwardTo } = read;
 
-  if (forwardTo && !/^\+[1-9]\d{7,14}$/.test(forwardTo)) {
-    return {
-      error:
-        "The number to ring needs to be in full international form too, like " +
-        "+447700900123. Leave it empty to text people straight away instead.",
-    };
-  }
-
-  if (!raw) {
+  if (!number) {
     await supabase
       .from("channel_connections")
       .delete()
@@ -850,17 +849,6 @@ export async function saveSmsNumber(
       .eq("channel", "sms");
     revalidatePath("/settings/install");
     return { ok: true };
-  }
-
-  // Twilio addresses everything in full international form, and a number
-  // typed as 07700 900123 will simply never match an incoming webhook.
-  const number = raw.replace(/[\s()-]/g, "");
-  if (!/^\+[1-9]\d{7,14}$/.test(number)) {
-    return {
-      error:
-        "Use the full international number, starting with +. A UK mobile looks " +
-        "like +447700900123.",
-    };
   }
 
   const { data: taken } = await supabase

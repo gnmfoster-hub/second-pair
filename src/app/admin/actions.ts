@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { seedFromPack } from "@/lib/seed";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { readNumbers } from "@/lib/channels/phoneNumbers";
 import { isPlatformAdmin } from "@/lib/platform";
 import { siteOrigin } from "@/lib/origin";
 
@@ -741,22 +742,12 @@ export async function fixChannel(_prev: Result, fd: FormData): Promise<Result> {
 
   const db = createAdminClient();
 
-  const tidy = (value: FormDataEntryValue | null) =>
-    String(value ?? "").trim().replace(/[\s()-]/g, "");
-
-  const number = tidy(fd.get("sms_number"));
-  const forwardRaw = tidy(fd.get("forward_to"));
-  const forwardTo = forwardRaw || null;
-
-  const INTERNATIONAL = /^\+[1-9]\d{7,14}$/;
-
-  if (forwardTo && !INTERNATIONAL.test(forwardTo)) {
-    return {
-      error:
-        "The number to ring needs full international form, like +447700900123. " +
-        "Leave it empty to text people straight away instead.",
-    };
-  }
+  const read = readNumbers(
+    String(fd.get("sms_number") ?? ""),
+    String(fd.get("forward_to") ?? ""),
+  );
+  if (!read.ok) return { error: read.error };
+  const { number, forwardTo } = read;
 
   // Clearing it is a real instruction, and the only way to hand a number back.
   if (!number) {
@@ -768,22 +759,6 @@ export async function fixChannel(_prev: Result, fd: FormData): Promise<Result> {
     if (error) return { error: error.message };
     revalidatePath("/admin");
     return { ok: true };
-  }
-
-  if (!INTERNATIONAL.test(number)) {
-    return {
-      error:
-        "Use the full international number, starting with +. A UK mobile looks " +
-        "like +447700900123.",
-    };
-  }
-
-  if (forwardTo === number) {
-    return {
-      error:
-        "The ring-me number is the same as the business number, so a call would " +
-        "ring itself. Use their own mobile, or leave it empty.",
-    };
   }
 
   /*
