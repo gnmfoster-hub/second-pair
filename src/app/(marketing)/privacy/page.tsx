@@ -67,17 +67,21 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Anthropic</strong>, whose model writes the replies. Conversations are
-            not used to train it.
+            not used to train it. Anthropic processes them in the United States, under
+            the contractual terms the UK recognises for sending personal data abroad.
+            That is the one point at which your conversation leaves the country, and it
+            is worth saying so plainly rather than leaving it to be inferred.
           </li>
           <li>
-            <strong>Supabase</strong>, where the data is stored — in London, and it does not leave the United Kingdom.
+            <strong>Supabase</strong>, where everything is stored — in London. Nothing
+            held here leaves the United Kingdom.
           </li>
           <li>
             <strong>Stripe</strong>, if you pay a deposit. Card details go straight to
             Stripe and are never seen or held by Second Pair or by the business.
           </li>
           <li>
-            <strong>Vercel</strong>, which runs the software itself.
+            <strong>Vercel</strong>, which runs the software itself, in London.
           </li>
           <li>
             <strong>Resend</strong>, if the business emails you — a confirmation, a

@@ -3,6 +3,7 @@ import { runTurn } from "@/lib/engine/run";
 import { hasAnthropicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { NotAnswering } from "@/lib/engine/errors";
+import { Limiter } from "@/lib/askingTooMuch";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -10,19 +11,25 @@ export const maxDuration = 60;
 const MAX_MESSAGE_LENGTH = 2000;
 
 /**
- * Crude per-session throttle. In-memory, so it resets on deploy and does not
- * span instances — enough to stop a stuck client hammering the model, not a
- * substitute for a real rate limiter before this is public.
+ * What one caller may ask for. See lib/askingTooMuch.
+ *
+ * This was a gap between messages keyed on the session — and the session is a
+ * string the caller invents, so a new one each time walked straight past it.
+ * Every message costs the business money at the model and lands in an inbox
+ * somebody reads.
  */
-const lastSeen = new Map<string, number>();
-const MIN_GAP_MS = 1500;
+const limiter = new Limiter();
 
-function throttled(key: string): boolean {
-  const now = Date.now();
-  const previous = lastSeen.get(key);
-  lastSeen.set(key, now);
-  if (lastSeen.size > 5000) lastSeen.clear();
-  return previous != null && now - previous < MIN_GAP_MS;
+/**
+ * Who is asking, as far as we can tell.
+ *
+ * The first address in the forwarded chain is the client; the rest are
+ * proxies. Taken from the headers rather than the body, so it is not a thing
+ * the caller can simply change.
+ */
+function addressOf(request: NextRequest): string {
+  const forwarded = request.headers.get("x-forwarded-for") ?? "";
+  return (forwarded.split(",")[0] ?? "").trim() || (request.headers.get("x-real-ip") ?? "").trim();
 }
 
 export async function POST(request: NextRequest) {
@@ -108,7 +115,7 @@ export async function POST(request: NextRequest) {
       ? body.with
       : null;
 
-  if (throttled(`${studio}:${session}`)) {
+  if (limiter.tooMuch(`${studio}:${session}`, addressOf(request))) {
     return NextResponse.json({ error: "Slow down" }, { status: 429 });
   }
 
