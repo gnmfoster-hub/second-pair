@@ -11,7 +11,15 @@ import { verticalPack } from "@/lib/verticals";
 import { stillWorthAsking } from "@/lib/askedAlready";
 import { readNumbers } from "@/lib/channels/phoneNumbers";
 import { readHex, autoText } from "@/lib/widget/colour";
-import { isShape, isSize, isBubble, isPulse } from "@/lib/widget/look";
+import {
+  isShape,
+  isSize,
+  isBubble,
+  isPulse,
+  isFont,
+  isWeight,
+  isSurface,
+} from "@/lib/widget/look";
 import { ticked } from "@/lib/forms";
 import type { AnsweringMode } from "@/lib/answering";
 
@@ -977,6 +985,21 @@ export async function saveWidgetLook(_prev: FormState, fd: FormData): Promise<Fo
   const size = isSize(str(fd, "widget_size")) ? str(fd, "widget_size") : "medium";
   const bubble = isBubble(str(fd, "widget_bubble")) ? str(fd, "widget_bubble") : "light";
   const pulse = isPulse(str(fd, "widget_pulse")) ? str(fd, "widget_pulse") : "once";
+  const font = isFont(str(fd, "widget_font")) ? str(fd, "widget_font") : "system";
+  const weight = isWeight(str(fd, "widget_weight")) ? str(fd, "widget_weight") : "medium";
+  const surface = isSurface(str(fd, "widget_surface")) ? str(fd, "widget_surface") : "raised";
+
+  const bubbleFillTyped = str(fd, "widget_bubble_fill");
+  const bubbleFill = bubbleFillTyped ? readHex(bubbleFillTyped) : null;
+  if (bubbleFillTyped && !bubbleFill) {
+    return { error: "That nudge colour is not a colour. Try something like #FFFFFF." };
+  }
+
+  const bubbleTextTyped = str(fd, "widget_bubble_text");
+  const bubbleText = bubbleTextTyped ? readHex(bubbleTextTyped) : null;
+  if (bubbleTextTyped && !bubbleText) {
+    return { error: "That nudge text colour is not a colour." };
+  }
 
   /*
    * Their own words on the button, capped where the button runs out.
@@ -1009,6 +1032,17 @@ export async function saveWidgetLook(_prev: FormState, fd: FormData): Promise<Fo
       widget_size: size,
       widget_bubble: bubble,
       widget_pulse: pulse,
+      widget_font: font,
+      widget_weight: weight,
+      widget_surface: surface,
+      widget_bubble_fill: bubbleFill,
+      /*
+       * Cleared when it is the colour that would be chosen anyway, the same
+       * as the button's writing. A pinned value that matches the automatic one
+       * is a setting waiting to be wrong later.
+       */
+      widget_bubble_text:
+        bubbleText && bubbleText !== autoText(bubbleFill ?? "ffffff") ? bubbleText : null,
     })
     .eq("id", studio.id);
 

@@ -7,6 +7,13 @@ import {
   geometry,
   bubbleColours,
   lineFor,
+  fontStack,
+  weightValue,
+  surfaceLook,
+  painted,
+  type Font,
+  type Weight,
+  type Surface,
   type Shape,
   type Size,
   type Bubble,
@@ -37,6 +44,11 @@ export type WidgetLook = {
   size: string;
   bubble: string;
   pulse: string;
+  font: string;
+  weight: string;
+  surface: string;
+  bubbleFill: string | null;
+  bubbleText: string | null;
 };
 
 export function Appearance({
@@ -51,6 +63,11 @@ export function Appearance({
   size: savedSize,
   bubble: savedBubble,
   pulse: savedPulse,
+  font: savedFont,
+  weight: savedWeight,
+  surface: savedSurface,
+  bubbleFill,
+  bubbleText,
 }: WidgetLook) {
   const [state, action] = useActionState<FormState, FormData>(saveWidgetLook, {});
   const [colour, setColour] = useState(accent ? `#${accent}` : "#14243F");
@@ -59,6 +76,11 @@ export function Appearance({
   const [size, setSize] = useState<Size>((savedSize as Size) ?? "medium");
   const [bubble, setBubble] = useState<Bubble>((savedBubble as Bubble) ?? "light");
   const [pulse, setPulse] = useState<Pulse>((savedPulse as Pulse) ?? "once");
+  const [font, setFont] = useState<Font>((savedFont as Font) ?? "system");
+  const [weight, setWeight] = useState<Weight>((savedWeight as Weight) ?? "medium");
+  const [surface, setSurface] = useState<Surface>((savedSurface as Surface) ?? "raised");
+  const [nudgeFill, setNudgeFill] = useState(bubbleFill ? `#${bubbleFill}` : "");
+  const [nudgeInk, setNudgeInk] = useState(bubbleText ? `#${bubbleText}` : "");
 
   /*
    * Whether this browser will show any of it.
@@ -100,6 +122,11 @@ export function Appearance({
     setSize((savedSize as Size) ?? "medium");
     setBubble((savedBubble as Bubble) ?? "light");
     setPulse((savedPulse as Pulse) ?? "once");
+    setFont((savedFont as Font) ?? "system");
+    setWeight((savedWeight as Weight) ?? "medium");
+    setSurface((savedSurface as Surface) ?? "raised");
+    setNudgeFill(bubbleFill ? `#${bubbleFill}` : "");
+    setNudgeInk(bubbleText ? `#${bubbleText}` : "");
     setOn(enabled);
     setOpenLine(lineOpen ?? "");
     setClosedLine(lineClosed ?? "");
@@ -110,6 +137,11 @@ export function Appearance({
     savedSize,
     savedBubble,
     savedPulse,
+    savedFont,
+    savedWeight,
+    savedSurface,
+    bubbleFill,
+    bubbleText,
     enabled,
     lineOpen,
     lineClosed,
@@ -125,7 +157,18 @@ export function Appearance({
   const look = paint(readHex(colour), ink ? readHex(ink) : null);
   const automatic = !ink || readHex(ink) === autoText(look.fill);
   const box = geometry(size, shape);
-  const nudge = bubbleColours(bubble);
+  const preset = bubbleColours(bubble);
+  const nudgePaint =
+    nudgeFill || nudgeInk
+      ? paint(nudgeFill ? readHex(nudgeFill) : null, nudgeInk ? readHex(nudgeInk) : null)
+      : null;
+  const nudge = nudgePaint
+    ? { fill: `#${nudgePaint.fill}`, text: `#${nudgePaint.text}`, shadow: preset.shadow }
+    : preset;
+
+  const face = surfaceLook(surface, look.fill);
+  const buttonPaint = painted(surface, look.fill, look.text);
+  const stack = fontStack(font);
 
   // Shown open, because that is the state a business pictures when choosing.
   const shown = lineFor("Answering now", true, { open: openLine });
@@ -308,6 +351,119 @@ export function Appearance({
         </label>
       </div>
 
+      <div className="grid gap-4 sm:grid-cols-3">
+        <label className="block">
+          <span className="label">Its lettering</span>
+          <select
+            name="widget_font"
+            value={font}
+            onChange={(e) => setFont(e.target.value as Font)}
+            className="input"
+          >
+            <option value="site">Match my website</option>
+            <option value="system">System</option>
+            <option value="sans">Sans</option>
+            <option value="serif">Serif</option>
+            <option value="rounded">Rounded</option>
+            <option value="mono">Monospace</option>
+          </select>
+          <p className="hint mt-1.5">
+            {font === "site"
+              ? "Takes whatever your own pages are set in, webfont and all. Nothing to load and nothing to configure."
+              : "Shown here in the real face. Match my website is usually the one that makes it look like it belongs."}
+          </p>
+        </label>
+
+        <label className="block">
+          <span className="label">How heavy</span>
+          <select
+            name="widget_weight"
+            value={weight}
+            onChange={(e) => setWeight(e.target.value as Weight)}
+            className="input"
+          >
+            <option value="regular">Regular</option>
+            <option value="medium">Medium</option>
+            <option value="bold">Bold</option>
+          </select>
+          <p className="hint mt-1.5">The nudge stays at a reading weight either way.</p>
+        </label>
+
+        <label className="block">
+          <span className="label">How it sits on the page</span>
+          <select
+            name="widget_surface"
+            value={surface}
+            onChange={(e) => setSurface(e.target.value as Surface)}
+            className="input"
+          >
+            <option value="raised">Raised</option>
+            <option value="flat">Flat</option>
+            <option value="glass">Frosted</option>
+            <option value="outline">Outline</option>
+          </select>
+          <p className="hint mt-1.5">
+            {surface === "raised"
+              ? "A shadow, so it floats above your page. Reads on anything."
+              : surface === "flat"
+                ? "No shadow. Sits in the page rather than over it."
+                : surface === "glass"
+                  ? "Frosted, with your page showing through. Check it against a busy part of your site."
+                  : "An outline with your page showing through. The writing is your colour, over whatever is behind it — worth looking at on a photograph."}
+          </p>
+        </label>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className="label">The nudge, in your own colours</span>
+          <div className="mt-1 flex items-center gap-2">
+            <input
+              type="color"
+              value={nudge.fill}
+              onChange={(e) => setNudgeFill(e.target.value)}
+              className="h-10 w-12 shrink-0 cursor-pointer rounded-lg border border-border bg-surface p-1"
+              aria-label="Pick a nudge colour"
+            />
+            <input
+              name="widget_bubble_fill"
+              value={nudgeFill}
+              onChange={(e) => setNudgeFill(e.target.value)}
+              className="input font-mono"
+              placeholder={bubble === "dark" ? "Dark" : "Light"}
+              spellCheck={false}
+            />
+          </div>
+          <p className="hint mt-1.5">
+            Empty uses the light or dark you picked above.
+          </p>
+        </label>
+
+        <label className="block">
+          <span className="label">And its writing</span>
+          <div className="mt-1 flex items-center gap-2">
+            <input
+              type="color"
+              value={nudge.text}
+              onChange={(e) => setNudgeInk(e.target.value)}
+              className="h-10 w-12 shrink-0 cursor-pointer rounded-lg border border-border bg-surface p-1"
+              aria-label="Pick a nudge text colour"
+            />
+            <input
+              name="widget_bubble_text"
+              value={nudgeInk}
+              onChange={(e) => setNudgeInk(e.target.value)}
+              className="input font-mono"
+              placeholder="Chosen for you"
+              spellCheck={false}
+            />
+          </div>
+          <p className="hint mt-1.5">
+            Left empty, it picks whichever reads on the colour beside it.
+          </p>
+        </label>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
           <span className="label">What it says when you are open</span>
@@ -386,7 +542,7 @@ export function Appearance({
                 boxShadow: nudge.shadow,
                 borderRadius: shape === "square" ? "10px 10px 2px 10px" : "14px 14px 4px 14px",
                 padding: "11px 14px",
-                font: "400 14px/1.45 ui-sans-serif, system-ui, sans-serif",
+                font: `400 14px/1.45 ${stack === "inherit" ? "inherit" : stack}`,
               }}
             >
               {teaser?.trim() || "Hi — anything I can help you with?"}
@@ -402,9 +558,10 @@ export function Appearance({
               */}
             <style>{`
               @keyframes sp-preview-ring {
-                0%   { box-shadow: 0 8px 24px rgba(10,12,16,0.3), 0 0 0 0 var(--sp-preview); }
-                70%  { box-shadow: 0 8px 24px rgba(10,12,16,0.3), 0 0 0 14px rgba(0,0,0,0); }
-                100% { box-shadow: 0 8px 24px rgba(10,12,16,0.3), 0 0 0 0 rgba(0,0,0,0); }
+                0%   { box-shadow: var(--sp-rest), 0 0 0 0 var(--sp-preview); transform: scale(1); }
+                35%  { transform: scale(1.045); }
+                70%  { box-shadow: var(--sp-rest), 0 0 0 22px rgba(0,0,0,0); }
+                100% { box-shadow: var(--sp-rest), 0 0 0 0 rgba(0,0,0,0); transform: scale(1); }
               }
               @media (prefers-reduced-motion: reduce) {
                 .sp-preview-button { animation: none !important; }
@@ -412,18 +569,26 @@ export function Appearance({
             `}</style>
 
             <span
-              className="sp-preview-button inline-flex items-center font-medium shadow-lg"
+              className="sp-preview-button inline-flex items-center"
               style={
                 {
-                  background: `#${look.fill}`,
-                  color: `#${look.text}`,
+                  background: buttonPaint.background,
+                  color: buttonPaint.colour,
                   height: box.height,
                   minWidth: box.height,
                   borderRadius: box.radius,
                   fontSize: box.font,
+                  fontWeight: weightValue(weight),
+                  fontFamily: stack === "inherit" ? "inherit" : stack,
+                  boxShadow: face.shadow === "none" ? "none" : face.shadow,
+                  border: face.border === "0" ? undefined : face.border,
+                  backdropFilter: face.blur ?? undefined,
                   gap: 10,
                   padding: `0 ${box.padding}px 0 ${Math.round(box.padding * 0.67)}px`,
-                  "--sp-preview": `#${look.fill}73`,
+                  "--sp-preview": `#${look.fill}d9`,
+                  // The ring carries the resting shadow in every frame, so a
+                  // flat or outlined button must not grow one while it rings.
+                  "--sp-rest": face.shadow === "none" ? "0 0 0 0 rgba(0,0,0,0)" : face.shadow,
                   animation:
                     pulse === "off" || !on
                       ? undefined

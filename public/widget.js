@@ -53,6 +53,15 @@
    */
   var shape = { height: 56, radius: "999px", icon: 24, font: 13.5, padding: 18 };
   var pulse = { rings: 2, every: 0, until: 0 };
+  var surface = {
+    filled: true,
+    shadow: "0 8px 24px rgba(10, 12, 16, 0.3)",
+    border: "0",
+    blur: null,
+  };
+  var paint = { background: "#14243F", colour: "#ffffff" };
+  var fontStack = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+  var weight = 500;
   var bubbleLook = {
     fill: "#ffffff",
     text: "#16181d",
@@ -111,13 +120,35 @@
    * for somebody who has asked for no motion — they get a button that is
    * simply there, which is a complete answer and not a lesser one.
    */
-  /** The button's ordinary drop shadow, in one place because two need it. */
-  var REST = "0 8px 24px rgba(10, 12, 16, 0.3)";
+  /*
+   * The button's resting shadow, whatever they chose it to be.
+   *
+   * A function rather than a constant because the ring keyframes carry it in
+   * every frame, and a flat or outlined button has no shadow to carry — baking
+   * the raised one in gave those surfaces a drop shadow for the 1.6 seconds a
+   * ring was running and none the rest of the time.
+   */
+  function rest() {
+    return surface.shadow === "none" ? "0 0 0 0 rgba(0,0,0,0)" : surface.shadow;
+  }
 
   function addKeyframes() {
-    if (still || document.getElementById("secondpair-motion")) return;
-    var sheet = document.createElement("style");
-    sheet.id = "secondpair-motion";
+    if (still) return;
+    /*
+     * Written again each time rather than once.
+     *
+     * The ring carries the resting shadow in every frame, and the resting
+     * shadow depends on which surface the business chose — which arrives after
+     * the button has already been drawn and the sheet already written for the
+     * arrival. Returning early there left a flat button growing a drop shadow
+     * for the 1.6 seconds a ring was running, and losing it again after.
+     */
+    var sheet = document.getElementById("secondpair-motion");
+    if (!sheet) {
+      sheet = document.createElement("style");
+      sheet.id = "secondpair-motion";
+      document.head.appendChild(sheet);
+    }
     sheet.textContent =
       "@keyframes secondpair-arrive{" +
       "0%{transform:scale(0.6) translateY(12px);opacity:0}" +
@@ -141,11 +172,10 @@
        * against the page for the length of the animation.
        */
       "@keyframes secondpair-ring{" +
-      "0%{box-shadow:" + REST + ",0 0 0 0 var(--sp-ring);transform:scale(1)}" +
+      "0%{box-shadow:" + rest() + ",0 0 0 0 var(--sp-ring);transform:scale(1)}" +
       "35%{transform:scale(1.045)}" +
-      "70%{box-shadow:" + REST + ",0 0 0 22px rgba(0,0,0,0)}" +
-      "100%{box-shadow:" + REST + ",0 0 0 0 rgba(0,0,0,0);transform:scale(1)}}";
-    document.head.appendChild(sheet);
+      "70%{box-shadow:" + rest() + ",0 0 0 22px rgba(0,0,0,0)}" +
+      "100%{box-shadow:" + rest() + ",0 0 0 0 rgba(0,0,0,0);transform:scale(1)}}";
   }
 
   /*
@@ -430,6 +460,15 @@
           if (!tagText && got.text) textColour = "#" + got.text;
           if (got.geometry) shape = got.geometry;
           if (got.bubble) bubbleLook = got.bubble;
+          if (got.surface) {
+            surface = got.surface;
+            // The ring carries the resting shadow, so it has to be rewritten
+            // now that we know what that is.
+            addKeyframes();
+          }
+          if (got.paint) paint = got.paint;
+          if (got.font) fontStack = got.font;
+          if (got.weight) weight = got.weight;
           // Null is a real answer here — it means they have asked for none.
           // Null is a real answer here — it means they have asked for none.
           if ("pulse" in got) pulse = got.pulse;
@@ -532,15 +571,17 @@
       // Their shape: a pill, a rounded rectangle, or nearly a square, so it
       // can sit next to buttons the business did not ask us to design.
       borderRadius: shape.radius,
-      border: "0",
-      background: accent,
-      color: textColour,
+      background: paint.background,
+      color: paint.colour,
+      border: surface.border,
+      // Only where the browser will do it; elsewhere the fill alone carries.
+      backdropFilter: surface.blur || "",
+      WebkitBackdropFilter: surface.blur || "",
       cursor: "pointer",
-      font:
-        "500 " + shape.font + "px/1.2 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      font: weight + " " + shape.font + "px/1.2 " + fontStack,
       letterSpacing: "0.005em",
       whiteSpace: "nowrap",
-      boxShadow: REST,
+      boxShadow: surface.shadow,
       zIndex: "2147483001",
       // Width animates too, so it grows into a sentence rather than appearing
       // as one — which is the bit that catches an eye already on the page.
@@ -581,7 +622,9 @@
       padding: "11px 14px",
       background: bubbleLook.fill,
       color: bubbleLook.text,
-      font: "400 14px/1.45 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      // The nudge is a sentence rather than a label, so it stays at a reading
+      // weight even when the button is bold — but it is their typeface.
+      font: "400 14px/1.45 " + fontStack,
       textAlign: "left",
       border: "0",
       borderRadius: onLeft ? "14px 14px 14px 4px" : "14px 14px 4px 14px",

@@ -9,6 +9,13 @@ import {
   isBubble,
   isPulse,
   pulsePlan,
+  fontStack,
+  weightValue,
+  surfaceLook,
+  painted,
+  isFont,
+  isWeight,
+  isSurface,
 } from "./look.ts";
 
 test("a bigger button carries bigger writing and a bigger mark", () => {
@@ -96,4 +103,55 @@ test("always repeats, slowly, and stops by itself", () => {
 test("only the three settings that exist", () => {
   assert.equal(isPulse("always"), true);
   assert.equal(isPulse("strobe"), false);
+});
+
+test("matching the site means inheriting, not guessing at their font", () => {
+  assert.equal(fontStack("site"), "inherit");
+});
+
+test("every other stack ends somewhere real, so nothing falls back to Times", () => {
+  for (const font of ["system", "sans", "serif", "rounded", "mono"] as const) {
+    const stack = fontStack(font);
+    assert.match(stack, /sans-serif|serif|monospace$/, `${font}: ${stack}`);
+  }
+});
+
+test("weights are the three a person can tell apart", () => {
+  assert.equal(weightValue("regular"), 400);
+  assert.equal(weightValue("medium"), 500);
+  assert.equal(weightValue("bold"), 700);
+});
+
+test("an outlined button is not filled, and writes in the accent instead", () => {
+  const look = surfaceLook("outline", "3dbec7");
+  assert.equal(look.filled, false);
+  assert.match(look.border, /#3dbec7/);
+  assert.deepEqual(painted("outline", "3dbec7", "17150f"), {
+    background: "transparent",
+    colour: "#3dbec7",
+  });
+});
+
+test("flat means no shadow at all, not a smaller one", () => {
+  assert.equal(surfaceLook("flat", "3dbec7").shadow, "none");
+});
+
+test("raised keeps a shadow the ring animation can preserve", () => {
+  assert.match(surfaceLook("raised", "3dbec7").shadow, /rgba/);
+});
+
+test("glass lets the page through and asks the browser to frost it", () => {
+  const look = surfaceLook("glass", "3dbec7");
+  assert.ok(look.blur);
+  assert.match(painted("glass", "3dbec7", "17150f").background, /^#3dbec7/);
+  assert.notEqual(painted("glass", "3dbec7", "17150f").background, "#3dbec7");
+});
+
+test("only the fonts, weights and surfaces that exist", () => {
+  assert.equal(isFont("site"), true);
+  assert.equal(isFont("comic"), false);
+  assert.equal(isWeight("bold"), true);
+  assert.equal(isWeight("heavy"), false);
+  assert.equal(isSurface("glass"), true);
+  assert.equal(isSurface("velvet"), false);
 });

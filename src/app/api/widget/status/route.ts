@@ -11,6 +11,13 @@ import {
   isBubble,
   isPulse,
   pulsePlan,
+  isFont,
+  isWeight,
+  isSurface,
+  fontStack,
+  weightValue,
+  surfaceLook,
+  painted,
 } from "@/lib/widget/look";
 import type { OpeningHours } from "@/lib/types";
 
@@ -59,7 +66,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await db
     .from("studios")
     .select(
-      "hours, timezone, archived_at, widget_accent, widget_text, widget_position, widget_teaser, widget_enabled, widget_line_open, widget_line_closed, widget_shape, widget_size, widget_bubble, widget_pulse",
+      "hours, timezone, archived_at, widget_accent, widget_text, widget_position, widget_teaser, widget_enabled, widget_line_open, widget_line_closed, widget_shape, widget_size, widget_bubble, widget_pulse, widget_font, widget_weight, widget_surface, widget_bubble_fill, widget_bubble_text",
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -129,6 +136,31 @@ export async function GET(request: NextRequest) {
   const size = isSize(data.widget_size) ? data.widget_size : "medium";
   const shape = isShape(data.widget_shape) ? data.widget_shape : "round";
   const bubble = isBubble(data.widget_bubble) ? data.widget_bubble : "light";
+  const surface = isSurface(data.widget_surface) ? data.widget_surface : "raised";
+  const font = isFont(data.widget_font) ? data.widget_font : "system";
+  const weight = isWeight(data.widget_weight) ? data.widget_weight : "medium";
+
+  /*
+   * The nudge, in their two colours if they gave any.
+   *
+   * Read through `paint` so a half-set pair still comes back readable: a fill
+   * with no writing colour picks whichever of white and ink reads on it, the
+   * same way the button does.
+   */
+  const nudge =
+    data.widget_bubble_fill || data.widget_bubble_text
+      ? (() => {
+          const both = paint(
+            typeof data.widget_bubble_fill === "string" ? data.widget_bubble_fill : null,
+            typeof data.widget_bubble_text === "string" ? data.widget_bubble_text : null,
+          );
+          return {
+            fill: `#${both.fill}`,
+            text: `#${both.text}`,
+            shadow: bubbleColours(bubble).shadow,
+          };
+        })()
+      : bubbleColours(bubble);
 
   return readableAnywhere({
     ...status,
@@ -139,7 +171,11 @@ export async function GET(request: NextRequest) {
     accent: look.fill,
     text: look.text,
     geometry: geometry(size, shape),
-    bubble: bubbleColours(bubble),
+    bubble: nudge,
+    surface: surfaceLook(surface, look.fill),
+    paint: painted(surface, look.fill, look.text),
+    font: fontStack(font),
+    weight: weightValue(weight),
     pulse: pulsePlan(isPulse(data.widget_pulse) ? data.widget_pulse : "once"),
     position: data.widget_position === "left" ? "left" : "right",
     teaser: typeof data.widget_teaser === "string" && data.widget_teaser.trim()

@@ -280,6 +280,11 @@ export default async function ChannelsPage() {
         size={studio.widget_size ?? "medium"}
         bubble={studio.widget_bubble ?? "light"}
         pulse={studio.widget_pulse ?? "once"}
+        font={studio.widget_font ?? "system"}
+        weight={studio.widget_weight ?? "medium"}
+        surface={studio.widget_surface ?? "raised"}
+        bubbleFill={studio.widget_bubble_fill ?? null}
+        bubbleText={studio.widget_bubble_text ?? null}
         position={studio.widget_position ?? "right"}
         teaser={studio.widget_teaser ?? null}
       />
