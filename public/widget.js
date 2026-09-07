@@ -97,6 +97,35 @@
     return status && status.accent ? "#" + status.accent : "#14243F";
   }
 
+  /*
+   * Nudges a colour to something white text will read on.
+   *
+   * The same rule the panel applies to the colour we hand it, applied here to
+   * the button. Somebody is going to pick a pale yellow eventually, and until
+   * now that gave an illegible pill on their own site — and a button one colour
+   * with the panel that opened out of it a different one. The raw value still
+   * goes to the panel, which darkens it identically, so the two agree.
+   */
+  function readable(hex) {
+    var m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
+    if (!m) return "#14243F";
+    var n = parseInt(m[1], 16);
+    var r = (n >> 16) & 255;
+    var g = (n >> 8) & 255;
+    var b = n & 255;
+
+    // Rec. 709: green carries most of the perceived brightness, so a plain
+    // average would call a bright green dark and put white on it.
+    var light = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    if (light > 0.62) {
+      var scale = 0.62 / light;
+      r = Math.round(r * scale);
+      g = Math.round(g * scale);
+      b = Math.round(b * scale);
+    }
+    return "rgb(" + r + " " + g + " " + b + ")";
+  }
+
   panel.title = "Chat with us";
   panel.setAttribute("aria-hidden", "true");
 
@@ -320,7 +349,7 @@
       // A pill when it is saying something, a circle when it is not.
       borderRadius: "999px",
       border: "0",
-      background: accent,
+      background: readable(accent),
       color: "#fff",
       cursor: "pointer",
       font: "500 13.5px/1.2 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
