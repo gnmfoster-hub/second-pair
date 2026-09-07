@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { emailConfigured } from "@/lib/messaging/email";
+import { emailConfigured, probeEmail } from "@/lib/messaging/email";
 import { hasAnthropicEnv } from "@/lib/env";
 
 export const runtime = "nodejs";
@@ -32,6 +32,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Not authorised" }, { status: 401 });
   }
 
+  /*
+   * Asked of Resend, not of the environment.
+   *
+   * `sendsMail` used to be the whole answer, and it only ever meant "two
+   * variables are not empty". It said yes on the evening every send was failing
+   * with "API key is invalid" — the one moment the check existed for.
+   */
+  const email = await probeEmail();
+
   return NextResponse.json({
     /*
      * Which build is answering.
@@ -59,7 +68,17 @@ export async function GET(request: NextRequest) {
     email: {
       apiKey: Boolean(process.env.RESEND_API_KEY),
       from: Boolean(process.env.EMAIL_FROM),
-      sendsMail: emailConfigured(),
+      /** Both variables present. Necessary, and on its own not enough. */
+      configured: emailConfigured(),
+      /** Resend's own answer. Null means Resend could not be reached to ask. */
+      keyAccepted: email.keyAccepted,
+      senderDomain: email.senderDomain,
+      senderVerified: email.senderVerified,
+      /** Why not, in words, when one of the above is false. */
+      detail: email.detail,
+      /** The only one of these worth reading on its own. */
+      sendsMail:
+        emailConfigured() && email.keyAccepted === true && email.senderVerified === true,
     },
     assistant: hasAnthropicEnv(),
     payments: Boolean(process.env.STRIPE_SECRET_KEY),

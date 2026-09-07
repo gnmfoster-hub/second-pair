@@ -105,3 +105,94 @@ export async function sendEmail({
     return { status: "failed", error: `Email could not be sent: ${(error as Error).message}` };
   }
 }
+
+/**
+ * Whether mail can actually leave, rather than whether the keys are typed in.
+ *
+ * `emailConfigured` answers a question about environment variables, and the
+ * health check reported that answer as though it meant working. It did not: on
+ * the evening the keys first went onto Production the health check said email
+ * was ready, and every send was coming back "API key is invalid". A green light
+ * that can be wrong about the one thing it is for is worse than no light.
+ *
+ * So this asks Resend. Listing domains is the cheapest authenticated call they
+ * have, it sends nothing to anybody, and the answer settles both halves at once
+ * — whether the key is accepted, and whether the address in EMAIL_FROM is on a
+ * domain that has actually been verified. A key can be perfectly valid and mail
+ * still be refused because the sending domain never finished its DNS.
+ *
+ * Never throws, and never hangs: this sits behind a health check somebody
+ * reaches for when they already suspect something is wrong.
+ */
+export type EmailProbe = {
+  keyAccepted: boolean | null;
+  senderDomain: string | null;
+  senderVerified: boolean | null;
+  detail: string | null;
+};
+
+export async function probeEmail(timeoutMs = 6000): Promise<EmailProbe> {
+  const key = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM ?? "";
+  const senderDomain = from.split("@")[1]?.trim().toLowerCase() || null;
+
+  if (!key || !senderDomain) {
+    return {
+      keyAccepted: null,
+      senderDomain,
+      senderVerified: null,
+      detail: "Nothing to check: one of the two variables is not set.",
+    };
+  }
+
+  const stop = AbortSignal.timeout(timeoutMs);
+
+  try {
+    const response = await fetch("https://api.resend.com/domains", {
+      headers: { Authorization: `Bearer ${key}` },
+      signal: stop,
+    });
+
+    if (!response.ok) {
+      const detail = await response
+        .json()
+        .then((body: { message?: string }) => body?.message)
+        .catch(() => null);
+      return {
+        keyAccepted: false,
+        senderDomain,
+        senderVerified: null,
+        detail: detail ?? `Resend refused the key (${response.status}).`,
+      };
+    }
+
+    const body = (await response.json()) as {
+      data?: { name?: string; status?: string }[];
+    };
+    const domains = body.data ?? [];
+    const mine = domains.find((d) => d.name?.trim().toLowerCase() === senderDomain);
+
+    return {
+      keyAccepted: true,
+      senderDomain,
+      senderVerified: mine ? mine.status === "verified" : false,
+      detail: mine
+        ? mine.status === "verified"
+          ? null
+          : `${senderDomain} is on the account but its status is "${mine.status}".`
+        : `${senderDomain} is not one of the domains on this Resend account` +
+          (domains.length
+            ? ` (it has ${domains.map((d) => d.name).filter(Boolean).join(", ")}).`
+            : " — the account has no domains at all."),
+    };
+  } catch (error) {
+    // Resend being unreachable says nothing about the key, so it must not be
+    // reported as a failure of it.
+    return {
+      keyAccepted: null,
+      senderDomain,
+      senderVerified: null,
+      detail: `Could not reach Resend to check: ${(error as Error).message}`,
+    };
+  }
+}
