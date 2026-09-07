@@ -177,7 +177,9 @@ export async function probeEmail(timeoutMs = 6000): Promise<EmailProbe> {
   const from = process.env.EMAIL_FROM ?? "";
   const senderDomain = domainOf(from) || null;
   const keyShape = key
-    ? `${key.slice(0, 3)}… ${key.length} characters` +
+    // Plain ASCII: this is read out of a JSON response in a terminal, and a
+    // pretty ellipsis arrives there as mojibake.
+    ? `starts "${key.slice(0, 3)}", ${key.length} characters` +
       (raw === key ? "" : ", after taking off the quotes or space it was pasted with")
     : null;
 
