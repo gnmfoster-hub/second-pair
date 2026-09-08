@@ -61,13 +61,26 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 few pixels and appeared to do nothing at all. The buttons in the
                 page had already been fixed for exactly this and point at #ask,
                 which opens the assistant and only scrolls when it is genuinely
-                off screen. This one was left behind. */}
-            <Link
+                off screen. This one was left behind.
+
+                Pointing it there was still not enough, and the reason is worth
+                writing down. A plain <a> to a hash is a real navigation and
+                fires hashchange, which is what the panel listens for. A
+                next/link does the same journey through the History API, which
+                fires no such event — so the button changed the address bar and
+                nothing else happened. Same href, same page, two different
+                outcomes, and nothing in the markup to suggest it.
+
+                So this one is deliberately an anchor. It is a marketing header
+                and a full navigation costs nothing; from /home itself the
+                browser treats it as a same-document hash change and does not
+                reload at all. */}
+            <a
               href="/home#ask"
               className="btn inline-flex bg-highlight font-semibold text-on-highlight hover:brightness-95"
             >
               Get set up
-            </Link>
+            </a>
           </div>
         </div>
       </header>
