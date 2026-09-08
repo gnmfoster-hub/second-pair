@@ -193,10 +193,22 @@ export function LiveDemo({
        * whole point.
        */
       const box = thread.current?.closest("[id]");
-      if (!box) return;
-      const seen = box.getBoundingClientRect();
-      const mostlyVisible = seen.top >= 0 && seen.bottom <= window.innerHeight;
-      if (!mostlyVisible) box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      if (box) {
+        const seen = box.getBoundingClientRect();
+        const mostlyVisible = seen.top >= 0 && seen.bottom <= window.innerHeight;
+        if (!mostlyVisible) box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+
+      /*
+       * Put the address back, so the button works the second time.
+       *
+       * A link to #ask only fires hashchange when the hash actually changes.
+       * Once it was there, pressing the same button again did nothing at all —
+       * which is worse than the first version of this bug, because by then the
+       * reader has already been shown that the button is supposed to do
+       * something.
+       */
+      history.replaceState(null, "", window.location.pathname + window.location.search);
     };
     open();
     window.addEventListener("hashchange", open);

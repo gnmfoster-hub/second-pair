@@ -53,9 +53,17 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 It pointed at /login, which is a password box — a door for
                 people who already have an account, offered to people who do
                 not. Nobody self-serves onto this yet: every business is set up
-                with them. So it asks, and our own assistant does the asking. */}
+                with them. So it asks, and our own assistant does the asking.
+
+                It then pointed at #see-it, which only scrolls. On a phone that
+                is fine; on a desktop, where the demo is already beside the
+                headline, the main call to action on the site moved the page a
+                few pixels and appeared to do nothing at all. The buttons in the
+                page had already been fixed for exactly this and point at #ask,
+                which opens the assistant and only scrolls when it is genuinely
+                off screen. This one was left behind. */}
             <Link
-              href="/home#see-it"
+              href="/home#ask"
               className="btn inline-flex bg-highlight font-semibold text-on-highlight hover:brightness-95"
             >
               Get set up
