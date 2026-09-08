@@ -3,6 +3,7 @@ import type { Channel } from "@/lib/types";
 import { withinWindow as isWithinWindow, WINDOWED } from "./reach";
 import { sendEmail } from "./email";
 import { sendSms } from "./sms";
+import { sendMeta } from "./meta";
 
 /**
  * Getting a message to a customer.
@@ -47,6 +48,8 @@ export async function deliver({
   fromName,
   replyTo,
   from,
+  metaAccountId,
+  metaToken,
   reachOn,
 }: {
   channel: Channel;
@@ -63,6 +66,17 @@ export async function deliver({
   replyTo?: string;
   /** Text messages: the business's own number, when it has one. */
   from?: string | null;
+  /**
+   * Meta channels: the account the message goes out from, and the token that
+   * lets us send as it.
+   *
+   * Both come from the connection this conversation arrived on, and the token
+   * lives in a table only the server can read. Absent means the channel is not
+   * connected, which is a different answer from "it failed" and is said
+   * differently below.
+   */
+  metaAccountId?: string | null;
+  metaToken?: string | null;
   /**
    * How to reach somebody who asked through the website.
    *
@@ -135,7 +149,26 @@ export async function deliver({
     case "whatsapp":
     case "messenger":
     case "instagram":
-      return notConnected("Meta", "the app has not been through review yet");
+      /*
+       * Connected per business, not globally.
+       *
+       * One business can have WhatsApp linked while the next has not, so
+       * "connected" is a question about this conversation rather than about
+       * the platform. No token means this business has not linked it.
+       */
+      if (!metaAccountId || !metaToken) {
+        return notConnected(
+          channel === "instagram" ? "Instagram" : channel === "whatsapp" ? "WhatsApp" : "Messenger",
+          "this business has not linked their account yet",
+        );
+      }
+      return sendMeta({
+        channel,
+        accountId: metaAccountId,
+        personId: to,
+        token: metaToken,
+        body,
+      });
 
     case "sms":
       return sendSms({ to, body, from });

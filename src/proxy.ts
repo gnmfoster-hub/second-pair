@@ -50,6 +50,18 @@ const PUBLIC_PATHS = [
   // Guarded by EMAIL_WEBHOOK_SECRET, and refuses everything when it is unset.
   // A mail provider has no session either.
   "/api/email",
+  /*
+   * Meta, for WhatsApp, Messenger and Instagram. Same argument again: no
+   * session, and a stronger credential than one — every delivery is signed
+   * with the app secret and checked against the raw bytes before it is read,
+   * and nothing at all is accepted while that secret is unset.
+   *
+   * Added with the route rather than after it, because this list is exactly
+   * what made the whole inbound half of text messaging unreachable for weeks:
+   * the webhook was answered with a redirect to our login page and the error
+   * went into somebody else's logs.
+   */
+  "/api/meta",
 ];
 
 export async function proxy(request: NextRequest) {

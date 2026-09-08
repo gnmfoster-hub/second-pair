@@ -180,3 +180,94 @@ export function verificationReply(
   if (params.get("hub.verify_token") !== expectedToken) return null;
   return params.get("hub.challenge");
 }
+
+/**
+ * The Graph version everything here talks to.
+ *
+ * Pinned deliberately. Meta deprecates versions on a schedule and an unpinned
+ * call changes behaviour under you on their timetable rather than yours; when
+ * this needs moving it should be one edit and a read of their changelog.
+ */
+const GRAPH = "https://graph.facebook.com/v21.0";
+
+/**
+ * Sending a reply back through Meta.
+ *
+ * Three channels, two shapes. WhatsApp posts to the phone number's own id and
+ * names the product; Messenger and Instagram post to the page or account id
+ * with the recipient nested. Nothing here throws: the caller has already
+ * written the message down and needs to record whether it left.
+ */
+export async function sendMeta({
+  channel,
+  accountId,
+  personId,
+  token,
+  body,
+}: {
+  channel: Channel;
+  accountId: string;
+  personId: string;
+  token: string;
+  body: string;
+}): Promise<{ status: "sent" | "failed"; externalId?: string; error?: string }> {
+  if (!token) {
+    return {
+      status: "failed",
+      error: "Not connected: this channel has no access token. Reconnect it in settings.",
+    };
+  }
+
+  const payload =
+    channel === "whatsapp"
+      ? {
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: personId,
+          type: "text",
+          text: { preview_url: false, body },
+        }
+      : {
+          recipient: { id: personId },
+          message: { text: body },
+          /*
+           * A reply to something they said, which is the only kind we send.
+           *
+           * Meta treats an unsolicited message differently and will refuse one
+           * outside the window; saying plainly that this is a response is both
+           * true and what keeps it inside the rules.
+           */
+          messaging_type: "RESPONSE",
+        };
+
+  try {
+    const response = await fetch(`${GRAPH}/${encodeURIComponent(accountId)}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!response.ok) {
+      const detail = await response
+        .json()
+        .then((b: { error?: { message?: string } }) => b?.error?.message)
+        .catch(() => null);
+      return { status: "failed", error: detail ?? `Meta refused it (${response.status}).` };
+    }
+
+    const sent = (await response.json()) as {
+      message_id?: string;
+      messages?: { id?: string }[];
+    };
+    return {
+      status: "sent",
+      externalId: sent.messages?.[0]?.id ?? sent.message_id,
+    };
+  } catch (error) {
+    return { status: "failed", error: `Could not reach Meta: ${(error as Error).message}` };
+  }
+}
