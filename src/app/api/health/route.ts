@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { emailConfigured, probeEmail } from "@/lib/messaging/email";
+import { smsConfigured, probeSms } from "@/lib/messaging/sms";
 import { hasAnthropicEnv } from "@/lib/env";
 
 export const runtime = "nodejs";
@@ -40,6 +41,16 @@ export async function GET(request: NextRequest) {
    * with "API key is invalid" — the one moment the check existed for.
    */
   const email = await probeEmail();
+
+  /*
+   * Asked of Twilio, for the same reason.
+   *
+   * Two ways to be configured and broken that reading the variables cannot
+   * show: an account still on trial, which only texts numbers verified by hand
+   * and stamps a line on every message; and a from-number that does texts but
+   * not calls, or the reverse, which gives exactly half a product.
+   */
+  const sms = await probeSms();
 
   return NextResponse.json({
     /*
@@ -84,7 +95,24 @@ export async function GET(request: NextRequest) {
     },
     assistant: hasAnthropicEnv(),
     payments: Boolean(process.env.STRIPE_SECRET_KEY),
-    texts: Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
+    texts: {
+      /** All three variables present. Necessary, and on its own not enough. */
+      configured: smsConfigured(),
+      /** Twilio's own answer. Null means Twilio could not be reached to ask. */
+      credentialsAccepted: sms.credentialsAccepted,
+      /** "trial" is the one that quietly ruins everything. */
+      accountStatus: sms.accountStatus,
+      numbers: sms.numbers,
+      fromNumberOwned: sms.fromNumberOwned,
+      /** The one sentence worth reading, or null when nothing is wrong. */
+      detail: sms.detail,
+      /** The only field worth reading on its own. */
+      sends:
+        smsConfigured() &&
+        sms.credentialsAccepted === true &&
+        sms.accountStatus !== "trial" &&
+        sms.fromNumberOwned === true,
+    },
     push: Boolean(process.env.VAPID_PRIVATE_KEY && process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
     supportStudio: Boolean(process.env.NEXT_PUBLIC_SUPPORT_SLUG),
   });

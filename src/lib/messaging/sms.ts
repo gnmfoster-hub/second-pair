@@ -160,3 +160,141 @@ export function verifySignature({
   if (a.length !== b.length) return false;
   return timingSafeEqual(a, b);
 }
+
+/**
+ * Whether texts can actually be sent, rather than whether the keys are typed in.
+ *
+ * The same lesson as email, learned the expensive way: `smsConfigured` answers
+ * a question about environment variables, and a health check that reported
+ * that as readiness said yes on the evening every send was failing.
+ *
+ * Twilio has two ways to be configured and broken that no amount of reading
+ * the variables will show:
+ *
+ *   - The account is still a trial. Trial accounts can only text numbers
+ *     somebody has verified by hand, and they prepend a line about being a
+ *     trial to every message. Both are fatal here and neither is an error —
+ *     Twilio accepts the send and does something useless with it.
+ *
+ *   - The from-number does only half the job. A number that cannot receive
+ *     texts, or cannot take calls, gives exactly half a product: texts arrive
+ *     and calls vanish, or the reverse, with nothing anywhere saying so.
+ *
+ * Never throws and never hangs: this sits behind a check somebody reaches for
+ * when they already suspect something is wrong.
+ */
+export type SmsProbe = {
+  credentialsAccepted: boolean | null;
+  /** "trial" is the one that matters. Live accounts read "active". */
+  accountStatus: string | null;
+  /** Numbers on the account, and what each can actually do. */
+  numbers: { number: string; sms: boolean; voice: boolean }[];
+  /** Whether EMAIL_FROM's opposite number — TWILIO_FROM_NUMBER — is one of them. */
+  fromNumberOwned: boolean | null;
+  detail: string | null;
+};
+
+export async function probeSms(timeoutMs = 6000): Promise<SmsProbe> {
+  const sid = (process.env.TWILIO_ACCOUNT_SID ?? "").trim();
+  const token = (process.env.TWILIO_AUTH_TOKEN ?? "").trim();
+  const from = (process.env.TWILIO_FROM_NUMBER ?? "").trim();
+
+  const empty: SmsProbe = {
+    credentialsAccepted: null,
+    accountStatus: null,
+    numbers: [],
+    fromNumberOwned: null,
+    detail: null,
+  };
+
+  if (!sid || !token) {
+    return { ...empty, detail: "Nothing to check: the account keys are not set." };
+  }
+
+  const auth = "Basic " + Buffer.from(`${sid}:${token}`).toString("base64");
+  const stop = AbortSignal.timeout(timeoutMs);
+
+  try {
+    const account = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}.json`, {
+      headers: { Authorization: auth },
+      signal: stop,
+    });
+
+    if (!account.ok) {
+      const detail = await account
+        .json()
+        .then((body: { message?: string }) => body?.message)
+        .catch(() => null);
+      return {
+        ...empty,
+        credentialsAccepted: false,
+        detail: detail ?? `Twilio refused the keys (${account.status}).`,
+      };
+    }
+
+    const { status } = (await account.json()) as { status?: string };
+
+    const listed = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${sid}/IncomingPhoneNumbers.json?PageSize=50`,
+      { headers: { Authorization: auth }, signal: stop },
+    );
+
+    const numbers = listed.ok
+      ? (
+          ((await listed.json()) as {
+            incoming_phone_numbers?: {
+              phone_number?: string;
+              capabilities?: { sms?: boolean; voice?: boolean };
+            }[];
+          }).incoming_phone_numbers ?? []
+        ).map((n) => ({
+          number: n.phone_number ?? "",
+          sms: Boolean(n.capabilities?.sms),
+          voice: Boolean(n.capabilities?.voice),
+        }))
+      : [];
+
+    const owned = from ? numbers.some((n) => n.number === from) : null;
+
+    return {
+      credentialsAccepted: true,
+      accountStatus: status ?? null,
+      numbers,
+      fromNumberOwned: owned,
+      detail: describe(status, from, numbers, owned),
+    };
+  } catch (error) {
+    // Twilio being unreachable says nothing about the keys.
+    return { ...empty, detail: `Could not reach Twilio to check: ${(error as Error).message}` };
+  }
+}
+
+/** The one sentence somebody actually needs, or nothing when all is well. */
+function describe(
+  status: string | undefined,
+  from: string,
+  numbers: { number: string; sms: boolean; voice: boolean }[],
+  owned: boolean | null,
+): string | null {
+  if (status === "trial") {
+    return (
+      "This account is still a trial. Trial accounts only text numbers verified by " +
+      "hand and add a line about being a trial to every message. Add a payment " +
+      "method to upgrade it."
+    );
+  }
+  if (!numbers.length) return "The keys work, and the account has no phone numbers on it yet.";
+  if (!from) return "TWILIO_FROM_NUMBER is not set, so there is no fallback sender.";
+  if (owned === false) {
+    return `TWILIO_FROM_NUMBER (${from}) is not one of the numbers on this account.`;
+  }
+
+  const mine = numbers.find((n) => n.number === from);
+  if (mine && !(mine.sms && mine.voice)) {
+    return (
+      `${from} can ${mine.sms ? "text but not take calls" : "take calls but not text"}. ` +
+      "Missed-call-to-text needs both on the same number."
+    );
+  }
+  return null;
+}
