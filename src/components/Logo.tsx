@@ -120,15 +120,37 @@ export function Logo({
   const stacked = lockup === "stacked";
 
   /*
-   * A tagline needs room to be read.
+   * The pack's minimum widths, expressed as the heights that produce them.
    *
-   * The pack sets 180px as the minimum width for a lockup carrying one, which
-   * at these proportions is around 30px of height. Below that it is dropped
-   * rather than shrunk into decoration: an unreadable tagline is worse than no
-   * tagline, and the pack forbids the first.
+   * It sets three floors: 180px wide for a lockup carrying a tagline, 90px for
+   * the name without one, and 16px for the mark alone. Callers ask in height,
+   * so those have to be converted — and the first version of this guessed at
+   * 30px, which was wrong by twenty-four pixels and quietly put five of the
+   * eight placements under the floor, the dashboard header among them.
+   *
+   * These two numbers are measured from the rendered lockup rather than
+   * estimated: 3.5px of width per px of height with a tagline, 3.75 without.
    */
-  const showTagline =
-    (lockup === "flush-right" || lockup === "classic" || stacked) && height >= 30;
+  const TAGLINE_FROM = 54;
+  const WORDMARK_FROM = 24;
+
+  const wantsTagline = lockup === "flush-right" || lockup === "classic" || stacked;
+  const showTagline = wantsTagline && height >= TAGLINE_FROM;
+
+  /*
+   * Below the floor for the name, the mark stands on its own.
+   *
+   * Squeezing "second pair" into 78px does not make a small logo, it makes an
+   * illegible one — and the pack has an answer for this size already. A mobile
+   * bar and a footer are exactly where it applies.
+   */
+  if (height < WORDMARK_FROM) {
+    return (
+      <span className={`inline-flex items-center ${className}`} style={{ height }}>
+        <Mark className="block" sizePx={height} />
+      </span>
+    );
+  }
 
   if (stacked) {
     return (
