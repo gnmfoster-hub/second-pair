@@ -132,6 +132,30 @@ async function handle(db: Db, event: MetaEvent, origin: string) {
   }
 
   /*
+   * And rubbed out again if the work does not finish.
+   *
+   * Marking it first trades "answered twice" for "never answered", and left
+   * there that is the worse of the two: the model call failing, or a network
+   * blip, would leave the id written, Meta's retry would see a duplicate and
+   * stop, and the enquiry would go unanswered with nothing anywhere saying so.
+   * A customer waiting for a reply that is never coming is the exact failure
+   * this product exists to prevent.
+   *
+   * So the mark stands only if the turn completes. A retry after a real
+   * failure genuinely retries; a retry after a slow success still stops.
+   */
+  try {
+    await answer(db, event, origin);
+  } catch (error) {
+    if (event.messageId) {
+      await db.from("handled_messages").delete().eq("message_id", event.messageId);
+    }
+    throw error;
+  }
+}
+
+async function answer(db: Db, event: MetaEvent, origin: string) {
+  /*
    * Whose account they messaged.
    *
    * A connection with an artist_id belongs to that person — her own Instagram
