@@ -1,7 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
-import { readMetaEvents, verifyMetaSignature, verificationReply } from "./meta.ts";
+import {
+  readMetaEvents,
+  verifyMetaSignature,
+  verificationReply,
+  splitForMeta,
+} from "./meta.ts";
 
 // ------------------------------------------------------------------ WhatsApp
 
@@ -217,4 +222,50 @@ test("a handshake that is not a subscribe is refused", () => {
     "hub.challenge": "12345",
   });
   assert.equal(verificationReply(wrong, "ours"), null);
+});
+
+// ------------------------------------------------------------------ length
+
+test("a short reply is one message, untouched", () => {
+  assert.deepEqual(splitForMeta("See you Wednesday at ten.", 2000), [
+    "See you Wednesday at ten.",
+  ]);
+});
+
+test("nothing is ever dropped, which is the whole point", () => {
+  const long = Array.from({ length: 40 }, (_, i) => `Sentence number ${i} about the work.`).join(" ");
+  const parts = splitForMeta(long, 200);
+  assert.ok(parts.length > 1);
+  // Every word that went in comes out, in order. Truncating here would be the
+  // same bug as sending only the last part of a reply.
+  const rejoined = parts.join(" ").replace(/\s+/g, " ");
+  assert.equal(rejoined, long.replace(/\s+/g, " "));
+});
+
+test("no part is over the limit", () => {
+  const long = Array.from({ length: 60 }, (_, i) => `Line ${i}.`).join("\n\n");
+  for (const part of splitForMeta(long, 100)) {
+    assert.ok(part.length <= 100, `${part.length} > 100`);
+  }
+});
+
+test("it breaks at paragraphs before it breaks at sentences", () => {
+  const text = "First paragraph here.\n\nSecond paragraph here.";
+  assert.deepEqual(splitForMeta(text, 25), [
+    "First paragraph here.",
+    "Second paragraph here.",
+  ]);
+});
+
+test("somebody writing without full stops still gets their message", () => {
+  const runOn = "a".repeat(250);
+  const parts = splitForMeta(runOn, 100);
+  assert.equal(parts.join(""), runOn);
+  assert.equal(parts.length, 3);
+});
+
+test("the tight limit is Messenger's, and Instagram's is tighter still", () => {
+  // Sending over these is a refusal, not a truncation: the customer gets
+  // nothing rather than most of it.
+  assert.ok(splitForMeta("x".repeat(2500), 2000).length === 2);
 });

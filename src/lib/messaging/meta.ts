@@ -191,6 +191,62 @@ export function verificationReply(
 const GRAPH = "https://graph.facebook.com/v21.0";
 
 /**
+ * How much each of them will take in one message.
+ *
+ * Messenger is the tight one, and it is a refusal rather than a truncation:
+ * send 2001 characters and Meta rejects the whole thing, so the customer gets
+ * nothing at all rather than most of it.
+ */
+const LIMITS: Record<string, number> = {
+  whatsapp: 4096,
+  messenger: 2000,
+  instagram: 1000,
+};
+
+/**
+ * A long reply, cut where a person would cut it.
+ *
+ * Not truncated. We spent this morning fixing a bug where only the last part
+ * of a reply was sent and an appointment moved without the customer being
+ * told; dropping the end of a message here would be the same mistake wearing a
+ * different hat, and the end is where "see you Wednesday at ten" lives.
+ *
+ * Paragraphs first, then sentences, then — only if somebody has written two
+ * thousand characters without a full stop — a hard cut, because at that point
+ * an ugly break beats no message.
+ */
+export function splitForMeta(body: string, limit: number): string[] {
+  const text = body.trim();
+  if (text.length <= limit) return [text];
+
+  const parts: string[] = [];
+  let held = "";
+
+  const flush = () => {
+    if (held.trim()) parts.push(held.trim());
+    held = "";
+  };
+
+  // Paragraph, then sentence, then whatever is left.
+  const chunks = text.split(/\n{2,}/).flatMap((para) =>
+    para.length <= limit ? [para] : para.split(/(?<=[.!?])\s+/),
+  );
+
+  for (const chunk of chunks) {
+    if (chunk.length > limit) {
+      flush();
+      for (let i = 0; i < chunk.length; i += limit) parts.push(chunk.slice(i, i + limit));
+      continue;
+    }
+    if (held && held.length + chunk.length + 2 > limit) flush();
+    held = held ? [held, chunk].join("\n\n") : chunk;
+  }
+  flush();
+
+  return parts.length ? parts : [text.slice(0, limit)];
+}
+
+/**
  * Sending a reply back through Meta.
  *
  * Three channels, two shapes. WhatsApp posts to the phone number's own id and
@@ -217,6 +273,41 @@ export async function sendMeta({
       error: "Not connected: this channel has no access token. Reconnect it in settings.",
     };
   }
+
+  /*
+   * Sent in as many messages as it takes, in order.
+   *
+   * Messenger refuses anything over two thousand characters outright, so a
+   * long reply would arrive as nothing at all. Stopping at the first failure
+   * rather than carrying on: the rest would land out of order after a gap, and
+   * half a quote is worse than a failure somebody can see.
+   */
+  const parts = splitForMeta(body, LIMITS[channel] ?? 1000);
+  let last: { status: "sent" | "failed"; externalId?: string; error?: string } = {
+    status: "failed",
+    error: "Nothing to send.",
+  };
+
+  for (const part of parts) {
+    last = await sendOne({ channel, accountId, personId, token, body: part });
+    if (last.status === "failed") return last;
+  }
+  return last;
+}
+
+async function sendOne({
+  channel,
+  accountId,
+  personId,
+  token,
+  body,
+}: {
+  channel: Channel;
+  accountId: string;
+  personId: string;
+  token: string;
+  body: string;
+}): Promise<{ status: "sent" | "failed"; externalId?: string; error?: string }> {
 
   const payload =
     channel === "whatsapp"
