@@ -368,15 +368,45 @@ export function LiveDemo({
        * than the thing, so it has no launcher — but it should still be the
        * shape somebody will recognise when they get one.
        */
-      className="overflow-hidden rounded-[22px] rounded-br-md border border-border bg-background shadow-[0_16px_50px_rgba(10,12,16,0.16),0_2px_8px_rgba(10,12,16,0.06)]"
+      className={`overflow-hidden rounded-[22px] rounded-br-md border bg-background shadow-[0_16px_50px_rgba(10,12,16,0.16),0_2px_8px_rgba(10,12,16,0.06)] transition-[border-color,box-shadow] duration-500 ${
+        asking ? "border-highlight" : "border-border"
+      }`}
       style={{ ["--brand" as string]: brand, ["--on-brand" as string]: onBrand }}
     >
       {asking && supportSlug ? (
-        <iframe
-          src={`/widget/${supportSlug}`}
-          title="Ask Second Pair's assistant"
-          className="h-[30rem] w-full border-0"
-        />
+        <>
+          {/*
+            * A line saying what just happened.
+            *
+            * Pressing "Get set up" swapped a demo for a real assistant, in the
+            * same box, at the same size. It worked and it looked like nothing
+            * — the reader was told the button was broken by the only evidence
+            * they had. The panel now says what it is and what to do with it,
+            * because "there is a chat here now" is not something a person
+            * should have to infer from a frame changing.
+            */}
+          <div className="flex items-start gap-2.5 border-b border-border bg-surface-2/60 px-4 py-2.5">
+            <span
+              className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[11px] font-semibold"
+              style={{ background: brand, color: onBrand }}
+              aria-hidden
+            >
+              ↓
+            </span>
+            <p className="text-[0.8rem] leading-snug text-muted">
+              <span className="font-semibold text-foreground">
+                You&rsquo;re talking to our own assistant now
+              </span>{" "}
+              &mdash; the same one your customers would get. Tell it about your business
+              and it will take it from there, or ask it anything you like.
+            </p>
+          </div>
+          <iframe
+            src={`/widget/${supportSlug}`}
+            title="Ask Second Pair's assistant"
+            className="h-[27rem] w-full border-0"
+          />
+        </>
       ) : (
         <div className="relative h-[30rem]">
           {/* The identity, floating on glass — the real widget's header. */}
