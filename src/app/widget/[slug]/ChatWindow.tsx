@@ -150,6 +150,7 @@ export function ChatWindow({
   photoUrl = null,
   accent = null,
   onAccent = null,
+  standalone = false,
 }: {
   slug: string;
   studioName: string;
@@ -165,6 +166,16 @@ export function ChatWindow({
   /** The business's own colour, from the script tag on their site. */
   accent?: string | null;
   onAccent?: string | null;
+  /**
+   * On its own page rather than inside a frame on somebody's website.
+   *
+   * The shareable link is a real page a customer arrives at from an Instagram
+   * bio, and it wants a shape: a card of a sensible height with the business
+   * above it. Filling a desktop viewport with a chat holding three messages
+   * gives seven hundred pixels of nothing between the greeting and the box you
+   * type in.
+   */
+  standalone?: boolean;
 }) {
   const [lines, setLines] = useState<Line[]>([]);
   const [draft, setDraft] = useState("");
@@ -380,7 +391,18 @@ export function ChatWindow({
        * thing typed could not be seen. The link goes in an Instagram bio, so
        * a phone is where most people will open it.
        */
-      className="mx-auto flex h-dvh w-full max-w-2xl flex-col bg-background sm:border-x sm:border-border"
+      className={
+        standalone
+          ? /*
+             * A card, not a viewport.
+             *
+             * Tall enough for a conversation to breathe, short enough that a
+             * new one is not mostly empty. On a phone it still takes the whole
+             * screen, because there it is the only thing on it.
+             */
+            "flex h-dvh w-full flex-col overflow-hidden bg-background sm:h-[min(38rem,calc(100dvh-13rem))] sm:rounded-[22px] sm:border sm:border-border sm:shadow-[0_16px_50px_rgba(10,12,16,0.16),0_2px_8px_rgba(10,12,16,0.06)]"
+          : "mx-auto flex h-dvh w-full max-w-2xl flex-col bg-background sm:border-x sm:border-border"
+      }
       style={{ ["--brand" as string]: brand, ["--on-brand" as string]: onBrand }}
     >
       {/*
@@ -400,7 +422,21 @@ export function ChatWindow({
         */}
       {/* ──────────────────────────────────────────────────────────── thread */}
       <div className="relative flex-1 overflow-hidden">
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start gap-2 p-3">
+        {/*
+          * Hidden on its own page, where it would be the second time of
+          * asking.
+          *
+          * Embedded, this is the only thing saying whose assistant you are
+          * talking to, and it earns its space. On the shareable link the
+          * business's name and face are already at the top of the page in full
+          * size, so repeating them in a pill over the conversation is a label
+          * on a label — and it costs the top of the thread to say it.
+          */}
+        <div
+          className={`pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start gap-2 p-3 ${
+            standalone ? "hidden" : ""
+          }`}
+        >
           <div className="pointer-events-auto flex min-w-0 items-center gap-2.5 rounded-full border border-border bg-surface/75 py-1.5 pl-1.5 pr-4 shadow-[var(--shadow-card)] backdrop-blur-xl">
             <span className="relative shrink-0">
               <span
@@ -476,7 +512,17 @@ export function ChatWindow({
           )}
         </div>
 
-        <div ref={thread} className="h-full space-y-1 overflow-y-auto px-3.5 pb-4 pt-[4.5rem]">
+        {/*
+          * The top padding exists to clear the floating identity pill, so on
+          * the shareable link — where there is no pill — it is just a gap the
+          * conversation starts below.
+          */}
+        <div
+          ref={thread}
+          className={`h-full space-y-1 overflow-y-auto px-3.5 pb-4 ${
+            standalone ? "pt-4" : "pt-[4.5rem]"
+          }`}
+        >
           {lines.length === 0 && (
             <>
               <Bubble from="studio" first last who={who} photoUrl={photoUrl}>

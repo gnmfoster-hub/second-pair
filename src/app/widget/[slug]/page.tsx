@@ -3,7 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { verticalPack } from "@/lib/verticals";
 import { paint } from "@/lib/widget/colour";
-import { avatarUrl } from "@/components/Avatar";
+import { avatarUrl, initialsFor } from "@/components/Avatar";
+import { Mark } from "@/components/Logo";
 import { ChatWindow } from "./ChatWindow";
 
 
@@ -13,15 +14,30 @@ export default async function WidgetPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ with?: string; a?: string; t?: string }>;
+  searchParams: Promise<{ with?: string; a?: string; t?: string; embed?: string }>;
 }) {
   const { slug } = await params;
-  const { with: handle, a, t } = await searchParams;
+  const { with: handle, a, t, embed } = await searchParams;
+
+  /*
+   * Embedded, or a page in its own right.
+   *
+   * The script on a business's website adds embed=1 when it opens the panel,
+   * so the absence of it means somebody has followed the shareable link —
+   * from an Instagram bio, a card, a van. Those are different situations and
+   * were getting the same bare chat column, which on a desktop meant seven
+   * hundred pixels of nothing and no clue whose business it was.
+   *
+   * Decided on the server rather than by asking the browser whether it is in a
+   * frame, so the right shape is in the first paint instead of appearing a
+   * moment later.
+   */
+  const embedded = embed === "1";
 
   const db = createAdminClient();
   const { data: studio } = await db
     .from("studios")
-    .select("id, name, slug, vertical, greeting, privacy_notice_url")
+    .select("id, name, slug, vertical, greeting, privacy_notice_url, widget_accent, widget_text")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -66,7 +82,18 @@ export default async function WidgetPage({
    * Same function the launcher's colours came from, so the button somebody
    * taps and the panel it opens cannot disagree.
    */
-  const look = a || t ? paint(a ?? null, t ?? null) : null;
+  /*
+   * Their colour, whichever way the page was reached.
+   *
+   * Embedded, it arrives on the query string from the script on their site.
+   * Followed as a link it did not arrive at all, so the shareable page — the
+   * one a business with no website puts in an Instagram bio — was the one
+   * place their brand colour was quietly ignored and everybody got our navy.
+   */
+  const look =
+    a || t
+      ? paint(a ?? null, t ?? null)
+      : paint(studio.widget_accent ?? null, studio.widget_text ?? null);
 
   /*
    * An assistant with nobody to book is answering questions, not taking work.
@@ -119,8 +146,9 @@ export default async function WidgetPage({
     .filter(Boolean)
     .slice(0, 3);
 
-  return (
+  const chat = (
     <ChatWindow
+      standalone={!embedded}
       slug={studio.slug}
       studioName={studio.name}
       /*
@@ -145,7 +173,69 @@ export default async function WidgetPage({
       onAccent={look ? `#${look.text}` : null}
     />
   );
+
+  if (embedded) return chat;
+
+  /*
+   * The shareable link, as a page.
+   *
+   * Whose it is, above. What it is, below. The business's own colour on the
+   * ground so it is theirs rather than ours, and our mark small at the foot —
+   * a customer messaging a tattooist should be in no doubt they are messaging
+   * the tattooist.
+   */
+  const who = person?.name ?? studio.name;
+  const photo = avatarUrl(person?.avatar_path) ?? null;
+
+  return (
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-surface-2 px-4 py-6 sm:gap-5 sm:py-10">
+      <header className="flex w-full max-w-[34rem] flex-col items-center gap-2.5 text-center">
+        <span
+          className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl text-base font-semibold shadow-[var(--shadow-card)]"
+          style={{
+            background: look ? `#${look.fill}` : "var(--accent)",
+            color: look ? `#${look.text}` : "var(--on-accent)",
+          }}
+        >
+          {photo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photo} alt="" className="size-full object-cover" />
+          ) : (
+            initialsFor(who)
+          )}
+        </span>
+        <div>
+          <h1 className="text-lg font-semibold leading-tight sm:text-xl">{who}</h1>
+          <p className="hint mt-1">
+            {person
+              ? `Message ${person.name.split(" ")[0]} — it answers straight away, day or night.`
+              : "Message us — it answers straight away, day or night."}
+          </p>
+        </div>
+      </header>
+
+      <div className="w-full max-w-[34rem] flex-1 sm:flex-none">{chat}</div>
+
+      {/*
+        * Ours, small and at the bottom.
+        *
+        * The customer is here for the business, so the business is at the top
+        * at full size and we are a footnote. It is still worth being here: it
+        * is the only thing on the page that says what is answering.
+        */}
+      <a
+        href="https://www.second-pair.com/home"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 text-[0.7rem] text-muted transition-colors hover:text-foreground"
+      >
+        <Mark sizePx={14} className="opacity-70" />
+        Answered with Second Pair
+      </a>
+    </div>
+  );
 }
+
 
 /**
  * Whether whoever opened this is signed in to Second Pair.

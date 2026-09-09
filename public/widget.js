@@ -287,7 +287,17 @@
       "?a=" +
       encodeURIComponent(accentNow().replace("#", "")) +
       "&t=" +
-      encodeURIComponent(textNow().replace("#", ""));
+      encodeURIComponent(textNow().replace("#", "")) +
+      /*
+       * Says which of the two this is.
+       *
+       * The same page serves the panel inside somebody's website and the
+       * shareable link a customer opens from an Instagram bio. Those want
+       * different shapes — a panel filling its frame, and a page with the
+       * business's name above it — and the server can only tell them apart if
+       * we say so.
+       */
+      "&embed=1";
   }
 
   /** Their setting, unless the page has deliberately overridden it. */
