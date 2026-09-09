@@ -1,26 +1,35 @@
 {
   "name": "Second Pair",
+  "status": "locked",
   "taglines": {
     "default": "you work, we answer",
     "trades": "answers while you're on the job",
-    "leadIn": "you work, we answer"
+    "hands": "your second pair of hands"
   },
   "colour": {
     "navy": "#14243F",
     "navyDeep": "#0C1729",
     "orange": "#F07818",
     "orangeDark": "#C85D0B",
-    "paper": "#EFEEE9",
+    "cream": "#EFEEE9",
     "ink": "#17150F",
     "muted": "#5A6577",
-    "mutedDark": "#9BAAC2",
-    "hiVis": "#F5C518"
+    "mutedDark": "#9BAAC2"
   },
   "type": {
     "family": "Inter",
-    "wordmarkWeights": { "second": 400, "pair": 500 },
-    "tracking": "-0.02em",
-    "taglineRatio": 0.44
+    "fallback": "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+    "wordmarkWeights": {
+      "second": 400,
+      "pair": 500
+    },
+    "tracking": "-0.02em"
   },
-  "minWidthPx": { "lockupWithTagline": 180, "horizontal": 90, "markOnly": 16 }
+  "minimumWidthPx": {
+    "taglineLockup": 180,
+    "horizontalLogo": 90,
+    "markOnly": 16
+  },
+  "assetsBase": "/brand",
+  "version": 3
 }

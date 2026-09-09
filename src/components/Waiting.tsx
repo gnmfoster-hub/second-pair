@@ -20,16 +20,33 @@ export function Waiting({ className = "size-14" }: { className?: string }) {
       role="img"
       aria-label="Your assistant, waiting"
     >
+      {/*
+        * Three dots, not two.
+        *
+        * This was the old mark with its two dots breathing, which the V3 pack
+        * retires — and a loading state that is the logo-that-was is the one
+        * place a retired mark would keep turning up. Three dots in a bubble is
+        * the universal sign for somebody typing, which is what this actually
+        * means, and it cannot be mistaken for an identity.
+        */}
       <path
         d="M18 0h40a18 18 0 0 1 18 18v22a18 18 0 0 1-18 18H36l-20 16V58h-.5A17.5 17.5 0 0 1 0 40.5V18A18 18 0 0 1 18 0Z"
         fill="var(--logo-bubble)"
         opacity="0.16"
       />
-      <circle cx="26" cy="28" r="7" fill="var(--logo-bubble)" className="breathe" />
+      <circle cx="22" cy="29" r="5.5" fill="var(--logo-bubble)" className="breathe" />
       <circle
-        cx="50"
-        cy="28"
-        r="7"
+        cx="38"
+        cy="29"
+        r="5.5"
+        fill="var(--logo-bubble)"
+        className="breathe"
+        style={{ animationDelay: "350ms" }}
+      />
+      <circle
+        cx="54"
+        cy="29"
+        r="5.5"
         fill="var(--highlight)"
         className="breathe"
         style={{ animationDelay: "700ms" }}

@@ -306,6 +306,20 @@ const hours = (low: number, high: number) =>
 function calendarHref(moment: Extract<Moment, { kind: "booked" }>) {
   const body = buildCalendar({
     name: `Appointment with ${moment.person}`,
+    /*
+     * Stamped from the appointment, not from the clock.
+     *
+     * This is built during render on the server and again in the browser, so
+     * anything drawn from `new Date()` differs between the two and React
+     * reports the whole link as a hydration mismatch — which is exactly what
+     * it started doing when the calendar file stopped being stamped 1970.
+     *
+     * The appointment's own time is stable across both, and it behaves
+     * correctly besides: the uid is stable, so tapping again after the
+     * appointment moved produces a later stamp than the copy already in their
+     * calendar, and the new one wins.
+     */
+    now: new Date(moment.startsAt),
     events: [
       {
         // Stable, so tapping it twice updates the entry rather than making a

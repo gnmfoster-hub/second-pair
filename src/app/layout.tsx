@@ -52,17 +52,26 @@ export const metadata: Metadata = {
   description: "You work, we answer. An assistant that handles enquiries while your hands are full.",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "Second Pair", statusBarStyle: "black-translucent" },
+  /*
+   * The V3 mark is artwork rather than paths, so there is no SVG favicon to
+   * offer and no point pretending otherwise. An .ico carrying 16, 32 and 48
+   * covers every browser, and the PNG is there for the ones that prefer it.
+   *
+   * All three are the mark on brand cream rather than transparent: a
+   * transparent favicon loses the navy bubble entirely against dark browser
+   * chrome, which is most people's browser.
+   */
   icons: {
     icon: [
-      { url: "/brand/svg/favicon.svg", type: "image/svg+xml" },
-      { url: "/brand/png/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon.ico", sizes: "16x16 32x32 48x48" },
+      { url: "/brand/mark/favicon-32.png", sizes: "32x32", type: "image/png" },
     ],
     apple: [{ url: "/brand/png/app-icon-180.png", sizes: "180x180", type: "image/png" }],
   },
   openGraph: {
     title: "Second Pair",
     description: "You work, we answer.",
-    images: ["/brand/png/og-image.png"],
+    images: ["/brand/png/social-card-default.png"],
   },
 };
 

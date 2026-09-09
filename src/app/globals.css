@@ -43,8 +43,6 @@
   --bad: #b03024;
 
   --logo-bubble: #14243f;
-  --logo-dot-1: #efeee9;
-  --logo-dot-2: #f07818;
 
   --shadow-card:
     0 1px 1px rgba(20, 36, 63, 0.04),
@@ -92,8 +90,6 @@
     --bad: #ef7264;
 
     --logo-bubble: #efeee9;
-    --logo-dot-1: #14243f;
-    --logo-dot-2: #f07818;
 
     --shadow-card:
       inset 0 1px 0 rgba(255, 255, 255, 0.04),
@@ -136,8 +132,6 @@
   --bad: #ef7264;
 
   --logo-bubble: #efeee9;
-  --logo-dot-1: #14243f;
-  --logo-dot-2: #f07818;
 
   --shadow-card:
     inset 0 1px 0 rgba(255, 255, 255, 0.04),

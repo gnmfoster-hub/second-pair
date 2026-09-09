@@ -1,18 +1,46 @@
 :root {
-  --sp-navy: #14243F;
-  --sp-navy-deep: #0C1729;
-  --sp-orange: #F07818;
-  --sp-orange-dark: #C85D0B;
-  --sp-paper: #EFEEE9;
-  --sp-ink: #17150F;
-  --sp-muted: #5A6577;
-  --sp-muted-dark: #9BAAC2;
-  --sp-hi-vis: #F5C518;
-
-  --sp-font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --sp-tracking-display: -0.02em;
-
+  --sp-navy: #14243f;
+  --sp-navy-deep: #0c1729;
+  --sp-orange: #f07818;
+  --sp-orange-dark: #c85d0b;
+  --sp-cream: #efeee9;
+  --sp-ink: #17150f;
+  --sp-muted: #5a6577;
+  --sp-muted-dark: #9baac2;
+  --sp-font: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --sp-radius-sm: 8px;
-  --sp-radius: 12px;
-  --sp-radius-tile: 22%;
+  --sp-radius-md: 14px;
+  --sp-radius-lg: 22px;
+}
+
+.sp-brand-surface {
+  background: var(--sp-cream);
+  color: var(--sp-ink);
+  font-family: var(--sp-font);
+}
+
+.sp-brand-surface--dark {
+  background: var(--sp-navy-deep);
+  color: var(--sp-cream);
+}
+
+.sp-brand-button {
+  background: var(--sp-navy);
+  border: 0;
+  border-radius: var(--sp-radius-sm);
+  color: var(--sp-cream);
+}
+
+.sp-brand-button:hover {
+  background: var(--sp-navy-deep);
+}
+
+.sp-brand-button--accent {
+  background: var(--sp-orange);
+  color: var(--sp-navy-deep);
+}
+
+.sp-brand-button--accent:hover {
+  background: var(--sp-orange-dark);
+  color: white;
 }
