@@ -89,7 +89,12 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
 
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-5 py-8 text-xs text-muted sm:px-8">
-          <Logo height={22} lockup="inline" />
+          {/*
+            * 26 rather than 22: below 24 the name is dropped and the mark
+            * stands alone, which beside "Privacy" and "Terms" read as a stray
+            * icon rather than a signature.
+            */}
+          <Logo height={26} lockup="inline" />
           <Link href="/privacy" className="hover:text-foreground">
             Privacy
           </Link>

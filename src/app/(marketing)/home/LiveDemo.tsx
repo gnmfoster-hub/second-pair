@@ -478,7 +478,20 @@ export function LiveDemo({
              * set to exactly match, which left the last card sitting flush
              * against it with the bottom border tucked underneath.
              */
-            className="h-full space-y-1 overflow-y-auto px-3.5 pb-[8.5rem] pt-[4.5rem]"
+            /*
+             * The conversation sits at the bottom, and grows upward.
+             *
+             * It began at the top, which is right for a thread already full
+             * and wrong for one that starts empty: the headline beside it is
+             * the strongest thing on the page, and next to it sat a tall panel
+             * with two lines in the corner and four hundred pixels of nothing.
+             *
+             * Every messaging app a visitor has ever used puts a short
+             * conversation just above the box you type in. Doing the same
+             * removes the void without shortening the panel, and the demo
+             * fills naturally as it plays.
+             */
+            className="flex h-full flex-col justify-end space-y-1 overflow-y-auto px-3.5 pb-[8.5rem] pt-[4.5rem]"
             aria-live="polite"
           >
             {lines.map((line, i) => {
