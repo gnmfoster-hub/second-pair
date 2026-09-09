@@ -205,13 +205,48 @@ async function answer(db: Db, event: MetaEvent, origin: string) {
     .eq("connection_id", connection.id)
     .maybeSingle();
 
-  await sendMeta({
+  const sent = await sendMeta({
     channel: event.channel,
     accountId: event.accountId,
     personId: event.personId,
     token: secret?.access_token ?? "",
     body: result.reply,
   });
+
+  /*
+   * Written on the message, because otherwise it sits there looking sent.
+   *
+   * On the website the reply is delivered by being on the screen, and on a
+   * text Twilio carries it. Here we are the one doing the sending, so we are
+   * the only one who knows it failed — an expired token, or the 24-hour window
+   * having closed. Discarding that leaves a thread the owner reads as answered
+   * and a customer who got nothing, which is the worst version of this.
+   *
+   * The newest assistant line on the conversation is the one just written. A
+   * second turn landing in the same millisecond could in principle claim it;
+   * the alternative is threading an id back through the engine for a case that
+   * cannot happen while one webhook handles one message at a time.
+   */
+  const { data: line } = await db
+    .from("messages")
+    .select("id")
+    .eq("conversation_id", result.conversationId)
+    .eq("role", "assistant")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!line) return;
+
+  await db
+    .from("messages")
+    .update({
+      delivery: sent.status === "sent" ? "sent" : "failed",
+      delivered_at: sent.status === "sent" ? new Date().toISOString() : null,
+      delivery_error: sent.status === "sent" ? null : sent.error,
+      external_id: sent.externalId ?? null,
+    })
+    .eq("id", line.id);
 }
 
 /**
