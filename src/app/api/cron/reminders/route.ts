@@ -6,6 +6,7 @@ import { releaseHeldConversations } from "@/lib/engine/release";
 import { siteOrigin } from "@/lib/origin";
 import type { Studio } from "@/lib/types";
 import { forgetOldEnquiries } from "@/lib/retention";
+import { forgetHandledMessages } from "@/lib/handledMessages";
 import { sweepWentWrong } from "@/lib/cronOutcome";
 
 export const runtime = "nodejs";
@@ -54,6 +55,17 @@ export async function GET(request: NextRequest) {
   // availability is read, so this is a backstop for quiet diaries.
   const holds = await releaseExpiredHolds(db);
   const released = holds.released;
+
+  /*
+   * Message ids nothing will ask about again.
+   *
+   * They stop a webhook retry being answered twice, and Meta stops retrying
+   * long before they expire. The table was created with a comment saying this
+   * sweep clears it; until now nothing did, and it would have grown by a row
+   * per message forever — slowly enough that the first sign would have come
+   * long after anybody remembered why the table was there.
+   */
+  const tidied = await forgetHandledMessages(db);
 
   const { data: studios } = await db.from("studios").select("*");
 
@@ -113,7 +125,7 @@ export async function GET(request: NextRequest) {
    */
   const answered = await releaseHeldConversations(db, await siteOrigin());
 
-  const body = { released, due, sent, waiting, failures, answered, forgotten };
+  const body = { released, due, sent, waiting, failures, answered, forgotten, tidied };
 
   /*
    * Said out loud, because nothing downstream will say it.
@@ -131,7 +143,9 @@ export async function GET(request: NextRequest) {
    */
   const wrong = sweepWentWrong({
     failures: holds.error ? [...failures, `releasing holds: ${holds.error}`] : failures,
-    forgetting: forgotten.failed,
+    forgetting: tidied.error
+      ? [...forgotten.failed, `clearing handled messages: ${tidied.error}`]
+      : forgotten.failed,
     unanswered: answered.failed,
     waiting,
   });
