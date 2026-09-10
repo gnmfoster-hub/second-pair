@@ -237,6 +237,21 @@ export function ChatWindow({
     session.current = sessionId(slug);
   }, [slug]);
 
+  /*
+   * Tell the launcher the chat is really up.
+   *
+   * On a phone the panel is a sheet across the whole screen and the launcher
+   * hides behind it, because it otherwise sits directly on top of the send
+   * button. That is only safe while this is on screen, since the close button
+   * in the header above is then the only way out — so the launcher waits to be
+   * told, and this is the only thing that tells it. A 404 or a blocked frame
+   * says nothing, and the launcher stays where it is.
+   */
+  useEffect(() => {
+    if (!embedded) return;
+    window.parent?.postMessage({ secondPair: "ready" }, "*");
+  }, [embedded]);
+
   useEffect(() => {
     /*
      * Scroll our own box, not the page around it.

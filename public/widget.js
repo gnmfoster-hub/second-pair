@@ -294,6 +294,24 @@
   // ---------------------------------------------------------------- elements
 
   var panel = document.createElement("iframe");
+
+  /*
+   * Whether the chat itself is up, as opposed to something being up.
+   *
+   * Only used to decide whether the launcher may get out of the way on a
+   * phone, and that decision has to be safe: the panel carries the only other
+   * close button there is, so hiding the launcher in front of anything else
+   * strands somebody on a full-screen sheet with no way back to the page they
+   * were reading.
+   *
+   * The frame's own load event is not good enough, and this was written that
+   * way first. A 404 loads. An error page loads. Both fire load, neither has a
+   * close button on it, and a mistyped slug would have left a phone showing a
+   * black page it could not dismiss — which is worse than the bug being fixed
+   * here. So the chat window says so itself when it has drawn, and nothing
+   * else can say it.
+   */
+  var panelReady = false;
   /*
    * Loaded the first time somebody opens it, not on every page view.
    *
@@ -599,14 +617,35 @@
      */
     var wide = Boolean(status && status.line) && !open;
 
+    /*
+     * On a phone the launcher gets out of the way entirely.
+     *
+     * Open on a narrow screen the panel is a sheet across the bottom of the
+     * screen, and the launcher stayed pinned 20px above that bottom edge —
+     * which is exactly where the box you type in and the button you send with
+     * are. So the last thing between somebody and sending their message was a
+     * circle sitting on top of the send button. They could write the whole
+     * thing and not post it.
+     *
+     * Hidden rather than moved, because there is nowhere on a full-screen
+     * sheet for it to go: the panel has its own close button in its header,
+     * which is what a sheet is supposed to be closed by. On a desktop the
+     * panel floats clear above the launcher and nothing overlaps, so it stays.
+     *
+     * display rather than opacity: an invisible button over the send icon
+     * still swallows the tap, which would have turned a covered button into a
+     * button that closes the chat when you try to send.
+     */
+    var standDown = full && open && panelReady;
+
     style(button, {
+      display: standDown ? "none" : "flex",
       position: "fixed",
       bottom: "20px",
       right: onLeft ? "auto" : "20px",
       left: onLeft ? "20px" : "auto",
       height: shape.height + "px",
       minWidth: shape.height + "px",
-      display: "flex",
       alignItems: "center",
       gap: wide ? "10px" : "0",
       padding: wide ? "0 " + shape.padding + "px 0 " + Math.round(shape.padding * 0.67) + "px" : "0",
@@ -958,6 +997,10 @@
       render();
     }
     if (event.data.secondPair === "close") toggle(false);
+    if (event.data.secondPair === "ready" && !panelReady) {
+      panelReady = true;
+      render();
+    }
   });
 
   function mount() {
