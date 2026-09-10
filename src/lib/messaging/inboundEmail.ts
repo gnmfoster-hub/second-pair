@@ -236,3 +236,85 @@ export function judge(
 
   return { what: "answer", because: "it reads as somebody getting in touch" };
 }
+
+/**
+ * The provider's shape, read defensively.
+ *
+ * Written against Resend's inbound webhook, which nests the message under
+ * `data`. Every field is read from more than one place because this is the one
+ * piece of the system whose format belongs to somebody else — a rename at
+ * their end should come out as "we could not read it" rather than as a
+ * customer being quietly dropped.
+ */
+export function readEmail(payload: Record<string, unknown>): InboundEmail | null {
+  const data = ((payload.data as Record<string, unknown>) ?? payload) || {};
+
+  const pick = (...keys: string[]): string | null => {
+    for (const k of keys) {
+      const v = data[k] ?? payload[k];
+      if (typeof v === "string" && v.trim()) return v;
+      if (Array.isArray(v) && typeof v[0] === "string") return v[0];
+    }
+    return null;
+  };
+
+  const rawHeaders = (data.headers ?? payload.headers) as unknown;
+  const headers: Record<string, string> = {};
+
+  if (Array.isArray(rawHeaders)) {
+    for (const h of rawHeaders as { name?: string; value?: string }[]) {
+      if (h?.name) headers[h.name.toLowerCase()] = String(h.value ?? "");
+    }
+  } else if (rawHeaders && typeof rawHeaders === "object") {
+    for (const [k, v] of Object.entries(rawHeaders as Record<string, unknown>)) {
+      headers[k.toLowerCase()] = String(v ?? "");
+    }
+  }
+
+  const from = pick("from", "sender", "From");
+  if (!from) return null;
+
+  /*
+   * Every address it reached us by, not just the To line.
+   *
+   * A business forwards its own enquiry address to <slug>@in.second-pair.com,
+   * which means the To header still says hello@theirfirm.co.uk — their
+   * address, not ours. Providers put the address actually delivered to in a
+   * separate field: Resend calls it received_for. Reading only To would take
+   * "hello" for the slug, find no such business, and drop the enquiry without
+   * a word.
+   *
+   * All of them are handed over comma-separated, and ourRecipient picks the
+   * one on our own domain, which is what it was written to do.
+   */
+  const everyone = ["received_for", "recipient", "to", "To", "cc", "Cc"]
+    .flatMap((key) => {
+      const v = data[key] ?? payload[key];
+      if (typeof v === "string") return [v];
+      if (Array.isArray(v)) return v.filter((one) => typeof one === "string") as string[];
+      return [];
+    })
+    .filter((one) => one.includes("@"));
+
+  return {
+    from,
+    to: everyone.length ? everyone.join(", ") : pick("to", "recipient", "To"),
+    subject: pick("subject", "Subject"),
+    /*
+     * The words, whatever part they arrived in.
+     *
+     * A great deal of mail carries no plain-text part at all, and handing the
+     * markup straight to the assistant means it reads a wall of tags and may
+     * quote them back at a customer.
+     */
+    body: pick("text", "body", "plain") ?? flatten(pick("html")),
+    headers,
+  };
+}
+
+/** Markup down to words, or null if there was none. */
+function flatten(html: string | null): string | null {
+  if (!html) return null;
+  const text = plainTextFrom(html);
+  return text || null;
+}

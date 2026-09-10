@@ -7,7 +7,7 @@ import {
   domainOf,
   addressOf,
   ourRecipient,
-  plainTextFrom,
+  readEmail,
   type InboundEmail,
 } from "@/lib/messaging/inboundEmail";
 import { hasAnthropicEnv } from "@/lib/env";
@@ -99,6 +99,24 @@ export async function POST(request: NextRequest) {
     return ok("parked, not configured to answer");
   }
 
+  /*
+   * A subject line is not an enquiry.
+   *
+   * Resend's own payload reference says the webhook carries metadata only —
+   * "webhooks do not include the email body" — while its blog says the
+   * opposite, so which arrives is not something to find out by guessing. If
+   * the words are missing, answering anyway means replying to somebody based
+   * on nothing but "Re: quote?", which is worse than not answering: it is the
+   * business looking like it did not read the email.
+   *
+   * Parked instead. It lands in the inbox with whatever did arrive, a person
+   * sees it, and the reason is written down where it can be acted on.
+   */
+  if (!email.body?.trim()) {
+    await park(db, studio.id, sender, email, "the message body did not arrive with it");
+    return ok("parked: no body in the payload");
+  }
+
   const said = [email.subject, email.body].filter(Boolean).join("\n\n").trim();
 
   try {
@@ -129,65 +147,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * The provider's shape, read defensively.
- *
- * Written against Resend's inbound webhook, which nests the message under
- * `data`. Every field is read from more than one place because this is the one
- * piece of the system whose format belongs to somebody else — a rename at
- * their end should come out as "we could not read it" rather than as a
- * customer being quietly dropped.
- */
-function readEmail(payload: Record<string, unknown>): InboundEmail | null {
-  const data = ((payload.data as Record<string, unknown>) ?? payload) || {};
-
-  const pick = (...keys: string[]): string | null => {
-    for (const k of keys) {
-      const v = data[k] ?? payload[k];
-      if (typeof v === "string" && v.trim()) return v;
-      if (Array.isArray(v) && typeof v[0] === "string") return v[0];
-    }
-    return null;
-  };
-
-  const rawHeaders = (data.headers ?? payload.headers) as unknown;
-  const headers: Record<string, string> = {};
-
-  if (Array.isArray(rawHeaders)) {
-    for (const h of rawHeaders as { name?: string; value?: string }[]) {
-      if (h?.name) headers[h.name.toLowerCase()] = String(h.value ?? "");
-    }
-  } else if (rawHeaders && typeof rawHeaders === "object") {
-    for (const [k, v] of Object.entries(rawHeaders as Record<string, unknown>)) {
-      headers[k.toLowerCase()] = String(v ?? "");
-    }
-  }
-
-  const from = pick("from", "sender", "From");
-  if (!from) return null;
-
-  return {
-    from,
-    to: pick("to", "recipient", "To"),
-    subject: pick("subject", "Subject"),
-    /*
-     * The words, whatever part they arrived in.
-     *
-     * A great deal of mail carries no plain-text part at all, and handing the
-     * markup straight to the assistant means it reads a wall of tags and may
-     * quote them back at a customer.
-     */
-    body: pick("text", "body", "plain") ?? flatten(pick("html")),
-    headers,
-  };
-}
-
-/** Markup down to words, or null if there was none. */
-function flatten(html: string | null): string | null {
-  if (!html) return null;
-  const text = plainTextFrom(html);
-  return text || null;
-}
 
 /** "Re:" once, however many times it has been round already. */
 function replySubject(subject: string | null | undefined): string {
