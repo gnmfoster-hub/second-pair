@@ -1,5 +1,5 @@
 import type { Delivery } from "./deliver";
-import { domainOf, senderLine } from "./address.ts";
+import { domainOf, senderLine, usableAddress } from "./address.ts";
 
 /**
  * Sending email.
@@ -98,6 +98,24 @@ export async function sendEmail({
    */
   const sender = senderLine(from, fromName);
 
+  /*
+   * A reply-to nobody can use is dropped, not sent.
+   *
+   * It is the business's own address out of a settings box, and a typo in it
+   * used to take the entire message down with it: Resend refuses the send, the
+   * customer gets nothing, and the fault is a comma somebody cannot see. The
+   * answer matters more than the convenience of replying straight to the
+   * business, so a bad one is left off and the message goes.
+   *
+   * The recipient is different and is left to fail: there is no message
+   * without somebody to send it to, and pretending otherwise would report a
+   * delivery that never happened.
+   */
+  const replyAddress = usableAddress(replyTo);
+  if (replyTo && !replyAddress) {
+    console.error("[email] unusable reply-to, sending without it:", replyTo);
+  }
+
   try {
     const response = await fetch(ENDPOINT, {
       method: "POST",
@@ -111,7 +129,7 @@ export async function sendEmail({
         subject,
         text,
         ...(html ? { html } : {}),
-        ...(replyTo ? { reply_to: replyTo } : {}),
+        ...(replyAddress ? { reply_to: replyAddress } : {}),
         ...(attachments?.length ? { attachments } : {}),
       }),
     });

@@ -6,6 +6,7 @@ import { requireStudio, getArtists } from "@/lib/studio";
 import { parsePounds } from "@/lib/money";
 import { DEFAULT_HOURS, type DepositRule, type OpeningHours } from "@/lib/types";
 import { sendEmail, emailConfigured } from "@/lib/messaging/email";
+import { usableAddress } from "@/lib/messaging/address";
 import { siteOrigin } from "@/lib/origin";
 import { verticalPack } from "@/lib/verticals";
 import { stillWorthAsking } from "@/lib/askedAlready";
@@ -85,11 +86,31 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
   if (privacy && !/^https?:\/\//i.test(privacy))
     return { error: "Privacy notice URL must start with http:// or https://" };
 
+  /*
+   * Checked here, where somebody can still see what they typed.
+   *
+   * The URLs beside it have been validated since the day this was written and
+   * the address never was — and it is the field that does the most damage. A
+   * business typed info@theirfirm.co,uk, a comma where a full stop belonged
+   * and invisible at a glance, and it went through to the mail API as the
+   * reply-to on every message they sent. The provider refused every one, so
+   * not a single customer could be answered, and the only trace was a webhook
+   * response nobody was reading.
+   */
+  const contact = str(fd, "email");
+  if (contact && !usableAddress(contact)) {
+    return {
+      error:
+        "That email address does not look right. Check for a stray comma, space or " +
+        "full stop — it is where a customer's reply goes, so it has to be exact.",
+    };
+  }
+
   const { error } = await supabase
     .from("studios")
     .update({
       name,
-      email: str(fd, "email") || null,
+      email: usableAddress(contact),
       tone: str(fd, "tone"),
       // Blank means "use the trade pack's wording", not "no greeting".
       greeting: str(fd, "greeting") || null,
@@ -363,11 +384,18 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
     }
   })();
 
+  // Theirs is how they are sent their login, so a typo here locks somebody out
+  // of their own account with no message to say why.
+  const personal = str(fd, "email");
+  if (personal && !usableAddress(personal)) {
+    return { error: "That email address does not look right — check for a stray comma or space." };
+  }
+
   const row = {
     studio_id: studio.id,
     name,
     handle,
-    email: str(fd, "email") || null,
+    email: usableAddress(personal),
     role: str(fd, "role") || null,
     // Blank means "sound like the business", which is what almost everybody
     // wants — so an empty box is null rather than an empty string.
@@ -626,10 +654,19 @@ export async function updateAssistant(_prev: FormState, fd: FormData): Promise<F
   // rather than rejected with an error nobody can act on.
   const minutes = Math.min(60, Math.max(1, Number(fd.get("first_refusal_minutes")) || 5));
 
+  const replyAddress = str(fd, "email");
+  if (replyAddress && !usableAddress(replyAddress)) {
+    return {
+      error:
+        "That email address does not look right. Check for a stray comma, space or " +
+        "full stop — it is where a customer's reply goes, so it has to be exact.",
+    };
+  }
+
   const { error } = await supabase
     .from("studios")
     .update({
-      email: str(fd, "email") || null,
+      email: usableAddress(replyAddress),
       tone: str(fd, "tone"),
       always_mention: lines("always_mention"),
       never_mention: lines("never_mention"),
