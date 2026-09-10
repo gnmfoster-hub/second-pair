@@ -26,8 +26,17 @@ export function Forget({ id, name }: { id: string; name: string | null }) {
 
   return (
     <details className="mt-8 rounded-xl border border-border p-3.5">
+      {/*
+        * Named for both things it does.
+        *
+        * It read "If {called} asks about their data", which describes why you
+        * would open it and not what is inside — so somebody wanting to delete
+        * a duplicate, or a client they added by mistake, looked down the page,
+        * found nothing called delete, and concluded it could not be done. It
+        * could, behind this line.
+        */}
       <summary className="cursor-pointer text-sm text-muted">
-        If {called} asks about their data
+        Their data, or deleting {called}
       </summary>
 
       {/*

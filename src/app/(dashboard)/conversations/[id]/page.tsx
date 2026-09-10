@@ -10,6 +10,7 @@ import { verticalPack } from "@/lib/verticals";
 import { ReplyBox } from "./ReplyBox";
 import { setPaused } from "./actions";
 import { StatusPicker } from "./StatusPicker";
+import { Remove } from "./Remove";
 
 export default async function ConversationPage({
   params,
@@ -350,6 +351,10 @@ export default async function ConversationPage({
           )}
         </aside>
       </div>
+
+      {/* Last, and folded away. Permanent, and the only thing on this page
+          that cannot be taken back. */}
+      <Remove id={conversation.id} who={contact?.name ?? null} />
     </div>
   );
 }
