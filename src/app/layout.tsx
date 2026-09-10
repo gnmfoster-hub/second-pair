@@ -53,19 +53,20 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "Second Pair", statusBarStyle: "black-translucent" },
   /*
-   * The V3 mark is artwork rather than paths, so there is no SVG favicon to
-   * offer and no point pretending otherwise. An .ico carrying 16, 32 and 48
-   * covers every browser, and the PNG is there for the ones that prefer it.
+   * The tab icon is app/favicon.ico, which Next finds on its own and serves
+   * with its own cache key. Nothing is declared for it here on purpose.
    *
-   * All three are the mark on brand cream rather than transparent: a
-   * transparent favicon loses the navy bubble entirely against dark browser
-   * chrome, which is most people's browser.
+   * Declaring one as well is what hid the problem this replaced: the page
+   * carried two <link rel="icon"> tags pointing at the same path, Next's
+   * convention file quietly won, and that file was still the Next starter
+   * icon — a black circle with a white triangle. The site went through a
+   * rebrand without anybody noticing the tab had never been ours at all.
+   *
+   * It is the mark on brand cream rather than transparent, because a
+   * transparent favicon loses the navy bubble against the dark chrome most
+   * browsers wear.
    */
   icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "16x16 32x32 48x48" },
-      { url: "/brand/mark/favicon-32.png", sizes: "32x32", type: "image/png" },
-    ],
     apple: [{ url: "/brand/png/app-icon-180.png", sizes: "180x180", type: "image/png" }],
   },
   openGraph: {
