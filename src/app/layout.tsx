@@ -53,22 +53,24 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "Second Pair", statusBarStyle: "black-translucent" },
   /*
-   * The tab icon is app/favicon.ico, which Next finds on its own and serves
-   * with its own cache key. Nothing is declared for it here on purpose.
+   * No icons declared here, deliberately.
    *
-   * Declaring one as well is what hid the problem this replaced: the page
-   * carried two <link rel="icon"> tags pointing at the same path, Next's
-   * convention file quietly won, and that file was still the Next starter
-   * icon — a black circle with a white triangle. The site went through a
-   * rebrand without anybody noticing the tab had never been ours at all.
+   * They are files instead — app/icon.png for the tab, app/apple-icon.png for
+   * a home screen — which Next finds on its own and serves with its own cache
+   * key. Naming any of them in this block turns the whole convention off
+   * rather than adding to it: an earlier version listed only the Apple one
+   * here, and the tab icon silently stopped being declared at all despite the
+   * file being served perfectly well.
    *
-   * It is the mark on brand cream rather than transparent, because a
-   * transparent favicon loses the navy bubble against the dark chrome most
-   * browsers wear.
+   * That override is also what hid the original fault. The page carried two
+   * <link rel="icon"> tags pointing at the same path, Next's own file quietly
+   * won, and that file was still the starter icon a new Next project ships
+   * with — a black circle and a white triangle. The site went through an
+   * entire rebrand with somebody else's logo in the tab.
+   *
+   * The mark sits on brand cream rather than transparent: a transparent
+   * favicon loses the navy bubble against the dark chrome most browsers wear.
    */
-  icons: {
-    apple: [{ url: "/brand/png/app-icon-180.png", sizes: "180x180", type: "image/png" }],
-  },
   openGraph: {
     title: "Second Pair",
     description: "You work, we answer.",
