@@ -243,7 +243,9 @@ export function toolDefinitions(
                   type: "string",
                   description:
                     "Earliest date to look from, as YYYY-MM-DD. Use it for 'after the " +
-                    "15th', 'not this week', or 'sometime next month'.",
+                    "15th', 'not this week', or 'sometime next month'. Also how you find " +
+                    "more when they do not like what you offered: call again from the day " +
+                    "after the last time you gave them.",
                 },
               },
               additionalProperties: false,
@@ -700,6 +702,15 @@ function whoCanDo(ctx: ToolContext, bandId: string | null) {
   return ctx.artists.find((a) => a.active && allowed.includes(a.id));
 }
 
+/**
+ * How many times to offer at once.
+ *
+ * Four fits a text message and a phone screen. It is named because two things
+ * depend on it agreeing: what is asked of the diary, and whether the reply is
+ * allowed to say there is more after it.
+ */
+const SLOTS_OFFERED = 4;
+
 async function getSlots(
   input: Record<string, unknown>,
   ctx: ToolContext,
@@ -731,7 +742,7 @@ async function getSlots(
       studio: ctx.studio,
       artist,
       durationMinutes: minutes,
-      limit: 4,
+      limit: SLOTS_OFFERED,
       onlyWeekday: askedWeekday >= 0 ? askedWeekday : null,
       onOrAfter: askedFrom,
       /*
@@ -773,6 +784,29 @@ async function getSlots(
       lines,
       "Offer them in one short sentence, not a bulleted list — a list of four dates is hard work in a text message, and in the chat widget each one is already a button "
         + "underneath. Pass the exact starts_at back to create_booking.",
+      /*
+       * Saying there is more, because four looked like all there was.
+       *
+       * These are the soonest four of a three-week window, and nothing said
+       * so. A customer who wanted a different week read four dates as the
+       * whole diary and went elsewhere — the assistant had no idea it was
+       * turning work away, because from where it sat it had offered
+       * everything it had been given.
+       */
+      /*
+       * Only when the search actually stopped at the cap.
+       *
+       * Fewer than four means the window came back with everything it had, and
+       * telling the model there is more would be handing it an availability it
+       * has not been given — the one thing it is never allowed to invent.
+       */
+      slots.length >= SLOTS_OFFERED
+        ? "These are the soonest, not the whole diary — there is more free after them. End " +
+          "by saying so and inviting another day: ask what suits if none of these do. To " +
+          "find others, call this tool again with on_or_after set past the last time you " +
+          "offered, or with the weekday they name."
+        : "That is everything free in the next three weeks. Do not imply there is more. " +
+          "Ask whether any of them work, and if not, say you will get the diary checked.",
     ].join("\n"),
     // Exactly the times it was told to offer, so the buttons and the
     // sentence can never disagree about what is actually free.

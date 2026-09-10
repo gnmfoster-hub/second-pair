@@ -125,8 +125,32 @@ export function MomentCard({
                 </span>
               </button>
             ))}
+            {/*
+              * A fifth row, because four looked like all there was.
+              *
+              * This was a line of grey text under the times saying "or say
+              * when suits you better", which is true and reads as a footnote
+              * rather than as a choice. Somebody who wanted a different week
+              * saw four dates, none of them right, and no way on — the whole
+              * card said take one of these or give up.
+              *
+              * Quieter than the times, because it is not what most people
+              * want, and a real button because for the ones who do want it, it
+              * is the only thing on the card that matters.
+              */}
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => onPick("Have you got anything else? None of those work for me.")}
+              className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-dashed border-border px-3.5 py-2.5 text-left text-sm text-muted transition-colors motion-safe:animate-[rise_240ms_ease-out_both] hover:border-solid hover:text-foreground disabled:opacity-40"
+            >
+              <span>None of those &mdash; ask for other times</span>
+              <span aria-hidden className="shrink-0">
+                →
+              </span>
+            </button>
           </div>
-          <Foot>Or say when suits you better.</Foot>
+          <Foot>Or just say when suits you, and it will check.</Foot>
         </Card>
       );
 
