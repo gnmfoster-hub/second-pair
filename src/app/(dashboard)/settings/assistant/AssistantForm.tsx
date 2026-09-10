@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { updateAssistant, type FormState } from "../actions";
 import { Field, FormMessage, SubmitButton } from "@/components/Form";
 import { verticalPack } from "@/lib/verticals";
@@ -29,6 +29,33 @@ export function AssistantForm({ studio }: { studio: Studio }) {
       ? studio.voice_examples
       : [{ ask: "", reply: "" }],
   );
+
+  /*
+   * Follow the saved examples back.
+   *
+   * These start from a prop and then stop listening to it. An example that the
+   * save dropped — because only one half of it was filled in — stayed on
+   * screen looking saved, so the next visit was the first anybody knew it had
+   * gone.
+   */
+  useEffect(() => {
+    setExamples(
+      studio.voice_examples?.length ? studio.voice_examples : [{ ask: "", reply: "" }],
+    );
+  }, [studio.voice_examples]);
+
+  const edit = (i: number, part: "ask" | "reply", value: string) =>
+    setExamples((all) => all.map((e, j) => (j === i ? { ...e, [part]: value } : e)));
+
+  /*
+   * An example needs both halves to teach anything.
+   *
+   * A question with no answer shows the assistant nothing, so the save drops
+   * it — correctly, and until now silently: the page said "Saved" and the
+   * example simply was not there next time. Saying so on the box itself means
+   * it is fixed before it is lost rather than discovered afterwards.
+   */
+  const halfDone = examples.some((e) => Boolean(e.ask.trim()) !== Boolean(e.reply.trim()));
 
   return (
     <div className="space-y-8">
@@ -213,21 +240,38 @@ export function AssistantForm({ studio }: { studio: Studio }) {
                   )}
                 </div>
 
+                {/*
+                  * Controlled, not defaultValue.
+                  *
+                  * With defaultValue and an index for a key, removing the first
+                  * of two examples left React reusing the same input and
+                  * ignoring the new default — so the one that stayed showed the
+                  * text of the one that went.
+                  */}
                 <input
                   name="example_ask"
-                  defaultValue={example.ask}
+                  value={example.ask}
+                  onChange={(e) => edit(i, "ask", e.target.value)}
                   className="input"
                   placeholder={`Someone asks: how much for a ${words.service}?`}
                   maxLength={300}
                 />
                 <textarea
                   name="example_reply"
-                  defaultValue={example.reply}
+                  value={example.reply}
+                  onChange={(e) => edit(i, "reply", e.target.value)}
                   rows={3}
                   className="input mt-2"
                   placeholder="You answer: …in your own words, exactly as you'd type it"
                   maxLength={1000}
                 />
+                {Boolean(example.ask.trim()) !== Boolean(example.reply.trim()) && (
+                  <p className="mt-2 text-xs text-warn">
+                    {example.ask.trim()
+                      ? "Add the reply you would have typed, or this one will not be saved."
+                      : "Add the question somebody asked, or this one will not be saved."}
+                  </p>
+                )}
               </div>
             ))}
           </div>
@@ -241,9 +285,21 @@ export function AssistantForm({ studio }: { studio: Studio }) {
           </button>
         </section>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <SubmitButton>Save</SubmitButton>
           <FormMessage state={state} />
+          {/*
+            * Beside the button, not only on the box.
+            *
+            * Somebody who has scrolled past a half-filled example is about to
+            * lose it, and the message that would have told them is now off the
+            * top of the screen.
+            */}
+          {halfDone && (
+            <span className="text-sm text-warn">
+              One example is missing half of itself and will not be saved.
+            </span>
+          )}
         </div>
       </form>
 
