@@ -53,8 +53,13 @@ export async function readinessOf(
     .eq("channel", "sms");
   const hasTextNumber = (numbers ?? 0) > 0;
 
-  const [{ data: roster }, { count: services }, { count: faqs }, { count: hours }] =
-    await Promise.all([
+  const [
+    { data: roster },
+    { count: services },
+    { count: faqs },
+    { count: hours },
+    { count: devices },
+  ] = await Promise.all([
       // Everybody, not just the active ones: a business with somebody on the
       // books who has stopped taking bookings needs telling something different
       // from one that has nobody at all.
@@ -69,6 +74,17 @@ export async function readinessOf(
         .eq("studio_id", studio.id)
         .neq("answer", ""),
       Promise.resolve({ count: studio.hours.filter((h) => !h.closed).length }),
+      /*
+       * Devices that have asked to be buzzed.
+       *
+       * Checked on the live database and the answer was none, for anybody —
+       * which meant every notification this product had ever sent, escalations
+       * included, went precisely nowhere and nothing said so.
+       */
+      db
+        .from("push_subscriptions")
+        .select("id", { count: "exact", head: true })
+        .eq("studio_id", studio.id),
     ]);
 
   const people = (roster ?? []).filter((a) => a.active).length;
@@ -122,6 +138,30 @@ export async function readinessOf(
         "replies have no way of reaching anybody.",
       href: "/settings/install",
       action: "Connect a way to reply",
+      blocking: false,
+    },
+    {
+      /*
+       * Whether they find out that somebody booked.
+       *
+       * The assistant putting a stranger in the diary is the whole product
+       * working, and it is also the moment the business is least likely to be
+       * looking at a screen. Without an address or a device, an appointment
+       * can be made on a Tuesday evening and sit there unseen until somebody
+       * happens to open the diary — which is exactly the watching they are
+       * paying to stop doing.
+       *
+       * Either one is enough. An email is the one that keeps, a phone is the
+       * one that is quick, and most people want both.
+       */
+      key: "alerts",
+      can: "Tell you when somebody books",
+      ready: Boolean(studio.email) || (devices ?? 0) > 0,
+      otherwise:
+        "Nothing will reach you when a booking comes in — you would find out by " +
+        "opening the diary and noticing.",
+      href: "/settings",
+      action: "Add your email",
       blocking: false,
     },
     {

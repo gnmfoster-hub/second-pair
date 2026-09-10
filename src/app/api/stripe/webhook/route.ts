@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { stripe } from "@/lib/payments/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendBookingConfirmation } from "@/lib/messaging/confirmation";
+import { alertNewBooking } from "@/lib/notify";
 
 export const runtime = "nodejs";
 
@@ -108,6 +109,10 @@ export async function POST(request: NextRequest) {
        * Stripe retries a payment that has already gone through.
        */
       await sendBookingConfirmation(db, bookingId);
+
+      // The deposit landing is the moment the held slot becomes a booking, so
+      // it is the moment the business hears about it — and the only one.
+      await alertNewBooking(db, bookingId);
       break;
     }
 

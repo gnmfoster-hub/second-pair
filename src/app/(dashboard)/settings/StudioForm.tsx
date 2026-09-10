@@ -32,7 +32,7 @@ export function StudioForm({ studio }: { studio: Studio }) {
 
         <Field
           label="Email"
-          hint="Where a customer's reply goes. Email we send for you comes from our address, so without this an answer reaches nobody."
+          hint="Where a customer's reply goes, and where we tell you somebody has booked. Email we send for you comes from our address, so without this an answer reaches nobody."
         >
           <input
             name="email"

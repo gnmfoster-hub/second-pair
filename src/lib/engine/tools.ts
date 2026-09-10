@@ -2,7 +2,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Moment } from "./moments";
 import { formatPence } from "@/lib/money";
-import { notifyStudio } from "@/lib/notify";
+import { notifyStudio, alertNewBooking } from "@/lib/notify";
 import { quoteForBand, quoteForStudio, depositFor, withVat } from "@/lib/quote";
 import { verticalPack } from "@/lib/verticals";
 import { coversPostcode } from "@/lib/travel";
@@ -1022,6 +1022,22 @@ async function makeBooking(
    */
   if (!takesDeposit && result.bookingId) {
     void sendBookingConfirmation(ctx.db, result.bookingId);
+  }
+
+  /*
+   * And tell the business, which nothing did.
+   *
+   * The customer got a confirmation and a calendar file; the person whose
+   * diary it is got nothing at all, and found out by opening the dashboard and
+   * looking. For a business that is up a ladder or mid-session — which is the
+   * entire market — that is the one thing they are paying not to have to do.
+   *
+   * Only for a booking that is actually booked. A held slot waiting on a
+   * deposit is announced when the money lands, from the Stripe webhook, so
+   * nobody is told twice about one appointment.
+   */
+  if (!takesDeposit && result.bookingId) {
+    void alertNewBooking(ctx.db, result.bookingId);
   }
 
   await ctx.db
