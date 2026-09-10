@@ -139,6 +139,11 @@ export type SlotSearch = {
   onlyWeekday?: number | null;
   /** Not before this date, as YYYY-MM-DD in the business's own timezone. */
   onOrAfter?: string | null;
+  /** Only this part of the day, as minutes past midnight where they are. */
+  fromMinute?: number | null;
+  toMinute?: number | null;
+  /** Exact starts already offered, never offered a second time. */
+  exclude?: string[];
   /** How many to take from any one day, so an offer covers several. */
   perDay?: number;
   limit?: number;
@@ -193,6 +198,9 @@ export async function availableSlots(search: SlotSearch): Promise<Slot[]> {
   return findSlots({
     onlyWeekday: search.onlyWeekday ?? null,
     onOrAfter: search.onOrAfter ?? null,
+    fromMinute: search.fromMinute ?? null,
+    toMinute: search.toMinute ?? null,
+    exclude: search.exclude ?? [],
     perDay: search.perDay,
     hours: artist.hours?.length ? artist.hours : studio.hours,
     /*

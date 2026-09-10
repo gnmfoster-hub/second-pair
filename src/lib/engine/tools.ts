@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Moment } from "./moments";
 import { formatPence } from "@/lib/money";
 import { notifyStudio, alertNewBooking } from "@/lib/notify";
+import { offeredIn, type ToolTrace } from "@/lib/booking/offered";
 import { quoteForBand, quoteForStudio, depositFor, withVat } from "@/lib/quote";
 import { verticalPack } from "@/lib/verticals";
 import { coversPostcode } from "@/lib/travel";
@@ -243,9 +244,40 @@ export function toolDefinitions(
                   type: "string",
                   description:
                     "Earliest date to look from, as YYYY-MM-DD. Use it for 'after the " +
-                    "15th', 'not this week', or 'sometime next month'. Also how you find " +
-                    "more when they do not like what you offered: call again from the day " +
-                    "after the last time you gave them.",
+                    "15th', 'not this week', or 'sometime next month'.",
+                },
+                /*
+                 * The two that were missing, and what they cost.
+                 *
+                 * Every offer came back as the earliest times of the earliest
+                 * days, because that is what the finder does and nothing could
+                 * ask it for anything else. So somebody saying "later in the
+                 * day" was handed the same nine o'clock, and saying it again
+                 * got it again — the assistant looked like it was not
+                 * listening, which is the one thing it must never look like.
+                 */
+                from_time: {
+                  type: "string",
+                  description:
+                    "Earliest time of day, as HH:MM on a 24-hour clock. Use it whenever " +
+                    "they say when suits: 'afternoon' is 12:00, 'later in the day' is a " +
+                    "few hours after whatever you last offered, 'after school' is 15:30, " +
+                    "'evening' is 17:00, 'after three' is 15:00.",
+                },
+                to_time: {
+                  type: "string",
+                  description:
+                    "Latest time of day to start, as HH:MM. 'Morning' is from_time 09:00 " +
+                    "with to_time 12:00; 'before I pick the kids up' is to_time 14:30.",
+                },
+                different: {
+                  type: "boolean",
+                  description:
+                    "Set true when they have turned down what you already offered — 'none " +
+                    "of those', 'anything else?', 'have you got other times'. It leaves " +
+                    "out every time already offered in this conversation, so you cannot " +
+                    "repeat yourself. Combine it with from_time or weekday when they said " +
+                    "what they would prefer.",
                 },
               },
               additionalProperties: false,
@@ -711,6 +743,44 @@ function whoCanDo(ctx: ToolContext, bandId: string | null) {
  */
 const SLOTS_OFFERED = 4;
 
+/**
+ * "14:30" as minutes past midnight, and anything else as nothing at all.
+ *
+ * The value arrives from the model, so it is checked rather than trusted: a
+ * malformed time that quietly became 0 would silently widen the search to the
+ * whole day and hand back the same early morning they were trying to get away
+ * from.
+ */
+function minuteOfDay(raw: unknown): number | null {
+  if (typeof raw !== "string") return null;
+  const match = /^(\d{1,2}):(\d{2})$/.exec(raw.trim());
+  if (!match) return null;
+  const hours = Number(match[1]);
+  const mins = Number(match[2]);
+  if (hours > 23 || mins > 59) return null;
+  return hours * 60 + mins;
+}
+
+/**
+ * Every time already offered in this conversation.
+ *
+ * The tool trace on each assistant message records what this tool returned,
+ * and the times are written into it as `starts_at: <iso>` precisely so they
+ * can be read back. Failing to find any is not an error — it means nothing has
+ * been offered yet, which is the ordinary first call.
+ */
+async function offeredBefore(ctx: ToolContext): Promise<string[]> {
+  const { data } = await ctx.db
+    .from("messages")
+    .select("tool_calls")
+    .eq("conversation_id", ctx.conversationId)
+    .not("tool_calls", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(12);
+
+  return offeredIn((data ?? []).map((row) => row.tool_calls as ToolTrace[] | null));
+}
+
 async function getSlots(
   input: Record<string, unknown>,
   ctx: ToolContext,
@@ -735,6 +805,21 @@ async function getSlots(
       ? input.on_or_after
       : null;
 
+  const fromMinute = minuteOfDay(input.from_time);
+  const toMinute = minuteOfDay(input.to_time);
+
+  /*
+   * What has already been turned down.
+   *
+   * Read out of the conversation's own history rather than asked for, because
+   * the alternative is the model copying a list of ISO timestamps back to us
+   * and it only has to fumble one for the whole thing to silently do nothing.
+   * A boolean it cannot get wrong, and the times come from the record of what
+   * was actually offered.
+   */
+  const offeredAlready = await offeredBefore(ctx);
+  const alreadyOffered = input.different === true ? offeredAlready : [];
+
   let slots;
   try {
     slots = await availableSlots({
@@ -745,6 +830,9 @@ async function getSlots(
       limit: SLOTS_OFFERED,
       onlyWeekday: askedWeekday >= 0 ? askedWeekday : null,
       onOrAfter: askedFrom,
+      fromMinute,
+      toMinute,
+      exclude: alreadyOffered,
       /*
        * At most two from any one day.
        *
@@ -766,12 +854,55 @@ async function getSlots(
   }
 
   if (slots.length === 0) {
+    /*
+     * Which of the two "nothing" answers this is.
+     *
+     * A genuinely full diary and a request nobody can meet are the same empty
+     * list and completely different things to say. Told only the first, the
+     * assistant tells somebody who asked for a Sunday evening that there is
+     * nothing free for three weeks — which is false, and sends away a customer
+     * who would happily have taken the Tuesday.
+     */
+    const narrowed = [
+      askedWeekday >= 0 ? DAYS[askedWeekday] + "s" : null,
+      fromMinute != null || toMinute != null ? "that time of day" : null,
+      askedFrom ? "from " + askedFrom : null,
+      alreadyOffered.length ? "anything already offered" : null,
+    ].filter(Boolean);
+
+    if (narrowed.length) {
+      return {
+        result:
+          `Nothing free that matches ${narrowed.join(" and ")}. That is not a full ` +
+          "diary — it is only what they asked for. Say so, and offer to look wider: " +
+          "call this again without that restriction and offer what comes back.",
+      };
+    }
+
     return {
       result:
         `Nothing free for ${artist.name} in the next three weeks for a ${minutes}-minute ` +
         `${type}. Ask which days suit them and say the studio will be in touch.`,
     };
   }
+
+  /*
+   * The net under all of it.
+   *
+   * Everything above gives the assistant ways to ask for different times. This
+   * catches the case where it did not use them: if every time coming back has
+   * already been read out in this conversation, the customer is about to be
+   * offered the exact times they just turned down. Nothing here refuses to
+   * answer — the customer may simply have asked what those times were again —
+   * but the assistant is told, in the one place it cannot miss.
+   *
+   * Worth the extra read. Repeating yourself at somebody is the single most
+   * damaging thing this assistant can do, because it is indistinguishable from
+   * not listening, and it was live for a fortnight without anything noticing.
+   */
+  const seen = new Set(offeredAlready.map((iso) => Date.parse(iso)));
+  const allSeenBefore =
+    seen.size > 0 && slots.every((s) => seen.has(Date.parse(s.starts_at)));
 
   const lines = slots
     .map((s) => `- ${describeSlot(s, ctx.studio.timezone)}  (starts_at: ${s.starts_at})`)
@@ -782,6 +913,15 @@ async function getSlots(
       `${type === "consultation" ? "Consultation" : "Session"} with ${artist.name}, ${minutes} minutes.`,
       "Offer these and no others:",
       lines,
+      ...(allSeenBefore
+        ? [
+            "WARNING: every one of these has already been offered in this conversation. " +
+              "If they have turned them down or asked for something else, do not read " +
+              "these out again — call this tool again with different: true, plus " +
+              "from_time, to_time, weekday or on_or_after for whatever they told you. " +
+              "Only repeat them if they asked you to remind them what the times were.",
+          ]
+        : []),
       "Offer them in one short sentence, not a bulleted list — a list of four dates is hard work in a text message, and in the chat widget each one is already a button "
         + "underneath. Pass the exact starts_at back to create_booking.",
       /*
@@ -802,9 +942,12 @@ async function getSlots(
        */
       slots.length >= SLOTS_OFFERED
         ? "These are the soonest, not the whole diary — there is more free after them. End " +
-          "by saying so and inviting another day: ask what suits if none of these do. To " +
-          "find others, call this tool again with on_or_after set past the last time you " +
-          "offered, or with the weekday they name."
+          "by saying so and inviting another day: ask what suits if none of these do.\n" +
+          "If they want different times, call this tool again and CHANGE SOMETHING, or you " +
+          "will get these same times back and repeat yourself word for word. Set different: " +
+          "true to leave out everything already offered, and add whatever they told you: " +
+          "from_time for later in the day, to_time for earlier, weekday for a named day, " +
+          "on_or_after for a later week."
         : "That is everything free in the next three weeks. Do not imply there is more. " +
           "Ask whether any of them work, and if not, say you will get the diary checked.",
     ].join("\n"),

@@ -318,16 +318,29 @@ ${ruleLines}
 # Booking
 ${booking}
 
-# Taking the deposit${depositMode === "none" ? " — not applicable here, skip this section entirely" : ""}
+# Getting them booked in
 This order, and never faster. Each step is a separate message, and you wait for them in between.
 
-1. They ask about times. You call get_available_slots and offer what it returns. You do not book anything.
+1. Offer times. Do not wait to be asked — once you have given them a price and have a name and a way to reach them, that is the moment. Call get_available_slots and offer what it returns. You do not book anything yet.
 2. They name a time. Not "yes", not "sounds good" — an actual time. If it is ambiguous, ask which one.
 3. Only now call create_booking. Then confirm it back in words: the day, the date and the time.
+
+Never book a time nobody chose.
+
+If they turn down what you offered, or ask what else there is, call get_available_slots again with something changed — different: true at the very least, plus from_time, to_time, weekday or on_or_after for whatever they said they wanted. Calling it again unchanged returns the identical times, and offering somebody the same times they have just refused reads as not listening.
+${
+  depositMode === "none"
+    ? ""
+    : `
+# Taking the deposit
+Carrying straight on from step 3, and only once the booking exists.
+
 4. In that same message, tell them the deposit amount and read the cancellation policy out as written.
 5. Wait. When they are ready to pay, call send_deposit_link and give them the link exactly as it comes back, and say the slot is held until it is paid.
 
-Never book a time nobody chose. Never send a payment link in the same breath as making the booking — they get to see what they have agreed to first. Never send a second link when one has already gone out; call send_deposit_link again and it returns the same one.
+Never send a payment link in the same breath as making the booking — they get to see what they have agreed to first. Never send a second link when one has already gone out; call send_deposit_link again and it returns the same one.
+`
+}
 
 ${audienceSection}${houseSection}${voiceSection}${travelSection}# The studio
 Opening hours (${studio.timezone}):

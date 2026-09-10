@@ -51,6 +51,27 @@ export type SlotOptions = {
   /** Not before this date, as YYYY-MM-DD in the business's own timezone. */
   onOrAfter?: string | null;
   /**
+   * Only this part of the day, as minutes past midnight where the business is.
+   *
+   * The finder always started at opening time and took the first free slots it
+   * found, so every offer was the earliest times of the earliest days — and
+   * there was no way to say otherwise. Somebody asking for the afternoon, or
+   * for later, got the identical nine o'clock back, and asking again got it
+   * again, because nothing in the request had changed. It read as an assistant
+   * not listening, which is the worst thing this can look like.
+   */
+  fromMinute?: number | null;
+  toMinute?: number | null;
+  /**
+   * Times already offered, as the exact ISO starts, which are never offered
+   * again.
+   *
+   * "Have you got anything else" is a normal thing to say and it had no
+   * answer: the same parameters find the same times, so the assistant repeated
+   * itself word for word.
+   */
+  exclude?: string[];
+  /**
    * How many to offer from any one day.
    *
    * Four times on the same morning is one option presented four ways. Spread
@@ -77,6 +98,9 @@ export function findSlots(options: SlotOptions): Slot[] {
     noticeHours = 24,
     onlyWeekday = null,
     onOrAfter = null,
+    fromMinute = null,
+    toMinute = null,
+    exclude = [],
     // No cap by default: this finds what is free, and how much of it to offer
     // is a decision for whoever is doing the offering.
     perDay = Infinity,
@@ -94,6 +118,13 @@ export function findSlots(options: SlotOptions): Slot[] {
     .filter((b) => Number.isFinite(b.start) && Number.isFinite(b.end));
 
   const slots: Slot[] = [];
+
+  // Compared as exact instants rather than as strings: the same moment can be
+  // written more than one way, and an offer that came back through a database
+  // is not guaranteed to be spelt the way it went in.
+  const already = new Set(
+    exclude.map((iso) => Date.parse(iso)).filter((ms) => Number.isFinite(ms)),
+  );
 
   for (let dayOffset = 0; dayOffset <= daysAhead && slots.length < limit; dayOffset++) {
     // Step a day at a time from now, then ask what date that is where the
@@ -154,23 +185,44 @@ export function findSlots(options: SlotOptions): Slot[] {
 
     if (!merged.length) continue;
 
-    let onThisDay = 0;
+    /*
+     * Everything free on this day first, and the choosing afterwards.
+     *
+     * It used to push straight into the result and stop at perDay, which meant
+     * the offer was always the first two slots of the day — nine o'clock and
+     * half past nine, then nine o'clock and half past nine again tomorrow. A
+     * customer reads that as the same times twice and, quite reasonably, as an
+     * assistant that is not listening. Two of them half an hour apart is one
+     * option presented twice; morning and afternoon is a choice.
+     */
+    const freeToday: number[] = [];
 
     for (const window of merged) {
-      // A day widened by a late night has two windows; the cap is for the day,
-      // not for each of them.
-      if (onThisDay >= perDay) break;
       const opens = window.opens;
       const closes = window.closes;
 
-    // The last start that still finishes before closing.
-    const lastStart = closes - durationMinutes;
+    // The last start that still finishes before closing, and no later than
+    // they asked for. A window narrower than the appointment yields nothing,
+    // which is the honest answer rather than a time outside what they asked.
+    const lastStart = Math.min(
+      closes - durationMinutes,
+      toMinute == null ? Infinity : toMinute,
+    );
 
-    for (
-      let minute = opens;
-      minute <= lastStart && slots.length < limit;
-      minute += SLOT_STEP_MINUTES
-    ) {
+    /*
+     * Stepped from the top of the hour, not from the time they asked for.
+     *
+     * Starting the walk at "after 2:15" would offer 2:15, 2:45, 3:15 — times
+     * nobody books at, from a diary whose every other appointment is on the
+     * hour or the half hour. Rounding up to the next step keeps the grid the
+     * business already works to.
+     */
+    const first =
+      fromMinute == null || fromMinute <= opens
+        ? opens
+        : opens + Math.ceil((fromMinute - opens) / SLOT_STEP_MINUTES) * SLOT_STEP_MINUTES;
+
+    for (let minute = first; minute <= lastStart; minute += SLOT_STEP_MINUTES) {
       const start = zonedToUtc(year, month, day, minute, timezone);
       const startMs = start.getTime();
       const endMs = startMs + durationMinutes * 60_000;
@@ -180,17 +232,56 @@ export function findSlots(options: SlotOptions): Slot[] {
       const clashes = busyRanges.some((b) => startMs < b.end && endMs > b.start);
       if (clashes) continue;
 
-      slots.push({
-        starts_at: start.toISOString(),
-        ends_at: new Date(endMs).toISOString(),
-      });
-      onThisDay++;
-      if (onThisDay >= perDay) break;
+      if (already.has(startMs)) continue;
+
+      freeToday.push(startMs);
       }
+    }
+
+    for (const startMs of spread(freeToday, perDay)) {
+      if (slots.length >= limit) break;
+      slots.push({
+        starts_at: new Date(startMs).toISOString(),
+        ends_at: new Date(startMs + durationMinutes * 60_000).toISOString(),
+      });
     }
   }
 
   return slots;
+}
+
+/**
+ * Pick `count` from a day, spaced across it rather than taken off the front.
+ *
+ * The first is always the earliest, because somebody who wants the soonest
+ * appointment should still be offered it. The rest are spaced evenly through
+ * what is left, so a wide-open day offers a morning and an afternoon instead
+ * of two consecutive slots that are really one option.
+ *
+ * A day with barely anything free just returns what it has, in order.
+ */
+function spread(free: number[], count: number): number[] {
+  if (!Number.isFinite(count) || count >= free.length) return free;
+  if (count <= 0) return [];
+  if (count === 1) return free.slice(0, 1);
+
+  const picked: number[] = [];
+  /*
+   * Even blocks, not the two ends of the day.
+   *
+   * Spacing across count - 1 gaps puts the last pick on the very last
+   * bookable slot, so two picks became first thing and last thing — half past
+   * five for a cleaner who shuts at six. Dividing the day into count blocks
+   * and taking the start of each gives a morning and an afternoon, which is
+   * what somebody means when they ask what you have got.
+   */
+  const step = free.length / count;
+  for (let i = 0; i < count; i++) {
+    const time = free[Math.min(Math.floor(i * step), free.length - 1)];
+    // Rounding can land twice on the same slot when a day has few free times.
+    if (!picked.includes(time)) picked.push(time);
+  }
+  return picked;
 }
 
 /** "Tuesday 2 September, 2:30pm" — how a person would say it. */
