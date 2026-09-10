@@ -52,7 +52,18 @@
    * hearing back is the smallest it can be for the most people.
    */
   var shape = { height: 56, radius: "999px", icon: 24, font: 13.5, padding: 18 };
-  var pulse = { rings: 2, every: 0, until: 0 };
+  /*
+   * How the button rings, as against the live dot beside the words.
+   *
+   * Named ringPlan and not pulse, because `pulse` is already the little green
+   * dot further down this file — and when this was called pulse too, the
+   * status arriving overwrote that element with a plain object. The next
+   * redraw then tried to set a style on it and threw, which stopped the redraw
+   * halfway: the button lost its label and shrank to a circle, and the panel
+   * never got the styles that make it visible. It looked exactly like a widget
+   * that had not been configured.
+   */
+  var ringPlan = { rings: 2, every: 0, until: 0 };
   var surface = {
     filled: true,
     shadow: "0 8px 24px rgba(10, 12, 16, 0.3)",
@@ -213,15 +224,15 @@
    * twice when both routes fire.
    */
   function startPulsing() {
-    if (still || !pulse || pulsing || ringing) return;
+    if (still || !ringPlan || pulsing || ringing) return;
     addKeyframes();
     ringing = true;
     ring();
 
-    if (!pulse.every) return;
+    if (!ringPlan.every) return;
 
-    pulsing = window.setInterval(ring, pulse.every);
-    pulseStops = later(stopPulsing, pulse.until);
+    pulsing = window.setInterval(ring, ringPlan.every);
+    pulseStops = later(stopPulsing, ringPlan.until);
   }
 
   function ring() {
@@ -230,7 +241,7 @@
     // the browser treats the second one as still the first and shows nothing.
     button.style.animation = "";
     void button.offsetWidth;
-    button.style.animation = "secondpair-ring 1.6s ease-out " + pulse.rings;
+    button.style.animation = "secondpair-ring 1.6s ease-out " + ringPlan.rings;
   }
 
   function stopPulsing() {
@@ -258,7 +269,25 @@
     );
   }
 
+  /*
+   * Applying styles, and saying so when there is nothing to apply them to.
+   *
+   * This threw silently for a while and took the whole widget down with it: a
+   * variable further up the file shadowed one of these elements, so `element`
+   * arrived as a plain object, setting a style on it raised a TypeError, and
+   * the redraw stopped halfway. The button lost its label and shrank, the
+   * panel never became visible, and on a customer's website it looked for all
+   * the world like a widget that had not been set up.
+   *
+   * Nothing here is worth breaking a business's page for. A missing element is
+   * now a line in the console naming which one, and the rest of the redraw
+   * carries on.
+   */
   function style(element, styles) {
+    if (!element || !element.style) {
+      console.error("[Second Pair] Tried to style something that is not an element.");
+      return;
+    }
     for (var key in styles) element.style[key] = styles[key];
   }
 
@@ -485,14 +514,14 @@
           if (got.weight) weight = got.weight;
           // Null is a real answer here — it means they have asked for none.
           // Null is a real answer here — it means they have asked for none.
-          if ("pulse" in got) pulse = got.pulse;
+          if ("pulse" in got) ringPlan = got.pulse;
 
           /*
            * A repeating ring starts on its own, rather than waiting for a
            * nudge that may never come. Four seconds is long enough for the
            * page to have settled and short enough to still be the same glance.
            */
-          if (pulse && pulse.every && !open) later(startPulsing, 4000);
+          if (ringPlan && ringPlan.every && !open) later(startPulsing, 4000);
           if (!tagTeaser && got.teaser) {
             teaserText = got.teaser;
             teaser.setAttribute("aria-label", teaserText);
