@@ -1,13 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runTurn } from "@/lib/engine/run";
-import { sendEmail, emailConfigured } from "@/lib/messaging/email";
+import { sendEmail, emailConfigured, fetchReceivedEmail } from "@/lib/messaging/email";
 import {
   judge,
   domainOf,
   addressOf,
   ourRecipient,
   readEmail,
+  plainTextFrom,
   type InboundEmail,
 } from "@/lib/messaging/inboundEmail";
 import { hasAnthropicEnv } from "@/lib/env";
@@ -57,6 +58,28 @@ export async function POST(request: NextRequest) {
 
   const email = readEmail(payload);
   if (!email?.from || !email.to) return ok("nothing to read");
+
+  /*
+   * The envelope arrived; now go and get the letter.
+   *
+   * Resend posts metadata only and keeps the message behind an id. Everything
+   * downstream — whether this is a person or a newsletter, what they actually
+   * asked — depends on having the words, so this happens before any of it.
+   *
+   * Only when the body is genuinely absent, so a provider that does send one
+   * costs nothing, and so this keeps working unchanged if Resend starts
+   * including it.
+   */
+  const emailId = receivedId(payload);
+  if (!email.body?.trim() && emailId) {
+    const full = await fetchReceivedEmail(emailId);
+    if (full) {
+      email.body = full.text?.trim() || (full.html ? plainTextFrom(full.html) : null);
+      // Merged rather than replaced: the webhook may have carried some, and
+      // the fetched set is the more complete of the two.
+      email.headers = { ...(email.headers ?? {}), ...full.headers };
+    }
+  }
 
   const db = createAdminClient();
 
@@ -113,8 +136,8 @@ export async function POST(request: NextRequest) {
    * sees it, and the reason is written down where it can be acted on.
    */
   if (!email.body?.trim()) {
-    await park(db, studio.id, sender, email, "the message body did not arrive with it");
-    return ok("parked: no body in the payload");
+    await park(db, studio.id, sender, email, "the message itself could not be fetched");
+    return ok("parked: no body, and it could not be fetched");
   }
 
   const said = [email.subject, email.body].filter(Boolean).join("\n\n").trim();
@@ -147,6 +170,23 @@ export async function POST(request: NextRequest) {
   }
 }
 
+
+/**
+ * The id the message is stored under, so the words can be fetched.
+ *
+ * Read from several places for the same reason everything else here is: the
+ * shape belongs to Resend, and a rename at their end should come out as a
+ * parked email rather than a customer never being answered.
+ */
+function receivedId(payload: Record<string, unknown>): string | null {
+  const data = (payload.data as Record<string, unknown>) ?? payload;
+  for (const key of ["email_id", "id", "message_id"]) {
+    const v = data?.[key] ?? payload[key];
+    // A Message-ID is the mail header, not a Resend id, and cannot be fetched.
+    if (typeof v === "string" && v.trim() && !v.includes("@")) return v.trim();
+  }
+  return null;
+}
 
 /** "Re:" once, however many times it has been round already. */
 function replySubject(subject: string | null | undefined): string {

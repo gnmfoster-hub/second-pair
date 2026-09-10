@@ -247,3 +247,68 @@ export async function probeEmail(timeoutMs = 6000): Promise<EmailProbe> {
     };
   }
 }
+
+/**
+ * Fetching the words, because the webhook does not carry them.
+ *
+ * Resend's inbound webhook is an envelope: who it was from, who it was for, a
+ * subject, an id. Not a syllable of the message. Their own blog says
+ * otherwise, and the first live email settled it — the subject line arrived
+ * and nothing else, and the assistant correctly refused to answer on that
+ * alone.
+ *
+ * So the id is redeemed here for the actual email. Never throws: a customer
+ * whose message we could not fetch is parked in the inbox for a person to read,
+ * which is a slower answer and never a wrong one.
+ */
+export async function fetchReceivedEmail(
+  id: string,
+  timeoutMs = 8000,
+): Promise<{ text: string | null; html: string | null; headers: Record<string, string> } | null> {
+  const key = apiKey();
+  if (!key || !id) return null;
+
+  const stop = AbortSignal.timeout(timeoutMs);
+
+  try {
+    const response = await fetch(
+      `https://api.resend.com/emails/receiving/${encodeURIComponent(id)}`,
+      { headers: { Authorization: `Bearer ${key}` }, signal: stop },
+    );
+
+    if (!response.ok) {
+      console.error("[inbound] could not fetch", id, response.status);
+      return null;
+    }
+
+    const body = (await response.json()) as {
+      text?: string | null;
+      html?: string | null;
+      headers?: Record<string, unknown> | { name?: string; value?: string }[] | null;
+    };
+
+    /*
+     * The headers come back too, and they matter more than they look.
+     *
+     * Whether a message is answered at all is decided by them — List-Unsubscribe,
+     * Auto-Submitted, Precedence. The webhook carries none, so without this
+     * every newsletter forwarded to a business's enquiry address would read as
+     * a person getting in touch and be answered like one.
+     */
+    const headers: Record<string, string> = {};
+    if (Array.isArray(body.headers)) {
+      for (const h of body.headers as { name?: string; value?: string }[]) {
+        if (h?.name) headers[h.name.toLowerCase()] = String(h.value ?? "");
+      }
+    } else if (body.headers && typeof body.headers === "object") {
+      for (const [k, v] of Object.entries(body.headers)) {
+        headers[k.toLowerCase()] = String(v ?? "");
+      }
+    }
+
+    return { text: body.text ?? null, html: body.html ?? null, headers };
+  } catch (error) {
+    console.error("[inbound] could not fetch", id, (error as Error).message);
+    return null;
+  }
+}
