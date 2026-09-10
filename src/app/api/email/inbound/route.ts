@@ -154,13 +154,43 @@ export async function POST(request: NextRequest) {
 
     if (result.paused || !result.reply) return ok("handed over");
 
-    await sendEmail({
+    const sent = await sendEmail({
       to: sender,
       subject: replySubject(email.subject),
       text: result.reply,
       fromName: studio.name,
       replyTo: studio.email ?? undefined,
     });
+
+    /*
+     * Whether it actually went.
+     *
+     * sendEmail does not throw — it returns a failure — and this ignored what
+     * came back and reported "answered" either way. So a reply that never left
+     * the building looked identical to one that arrived: the webhook log said
+     * answered, the thread showed the assistant's message sitting there, and
+     * the customer got nothing at all. Somebody emails in, the dashboard says
+     * they were dealt with, and they are still waiting.
+     *
+     * Written on the thread, because "did they ever get an answer?" is asked
+     * days later and the only honest answer is one recorded at the time. Said
+     * in the webhook response too, since that is the one place a provider's own
+     * delivery log will show it back.
+     */
+    if (sent.status !== "sent") {
+      await db.from("messages").insert({
+        conversation_id: result.conversationId,
+        role: "system",
+        content: `The reply could not be emailed to ${sender}: ${sent.error}`,
+      });
+
+      await db
+        .from("conversations")
+        .update({ status: "needs_human" })
+        .eq("id", result.conversationId);
+
+      return ok(`answered, but the reply would not send: ${sent.error}`);
+    }
 
     return ok("answered");
   } catch {
