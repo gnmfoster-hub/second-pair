@@ -9,6 +9,7 @@ import { smsNumberFor } from "@/lib/messaging/connections";
 import { smsConfigured } from "@/lib/messaging/sms";
 import { createClient } from "@/lib/supabase/server";
 import { Appearance } from "./Appearance";
+import { MetaChannels } from "./MetaChannels";
 import { WhoItOffers } from "./WhoItOffers";
 
 /**
@@ -37,7 +38,13 @@ const CHANNELS: {
 ];
 
 
-export default async function ChannelsPage() {
+export default async function ChannelsPage({
+  searchParams,
+}: {
+  /** Carries ?meta=… when Facebook has just sent somebody back. */
+  searchParams: Promise<{ meta?: string }>;
+}) {
+  const { meta } = await searchParams;
   // How customers reach the business — the owner's, and the page says so
   // rather than only the tab: hiding a link is not a permission.
   const { studio } = await requireOwner();
@@ -56,6 +63,22 @@ export default async function ChannelsPage() {
   const embed = `<script src="${origin}/widget.js" data-studio="${studio.slug}"></script>`;
 
   const solo = artists.length <= 1;
+
+  /*
+   * What they have linked at Meta.
+   *
+   * Read through their own session rather than the service key: a connection
+   * belongs to a business, and nothing here should be able to show one that
+   * does not.
+   */
+  const supabaseForMeta = await createClient();
+  const { data: metaLinks } = await supabaseForMeta
+    .from("channel_connections")
+    .select("id, channel, label")
+    .eq("studio_id", studio.id)
+    .in("channel", ["messenger", "instagram"])
+    .eq("active", true)
+    .order("channel");
 
   const supabaseForNumbers = await createClient();
   const smsNumber = await smsNumberFor(supabaseForNumbers, studio.id);
@@ -180,10 +203,17 @@ export default async function ChannelsPage() {
             </div>
           </div>
 
-          {CHANNELS.map((channel) => (
-            <ChannelRow key={channel.key} label={channel.label} note={channel.note} />
-          ))}
+          {CHANNELS.filter((c) => c.key !== "instagram" && c.key !== "messenger").map(
+            (channel) => (
+              <ChannelRow key={channel.key} label={channel.label} note={channel.note} />
+            ),
+          )}
         </div>
+      </section>
+
+      {/* --------------------------------------------- facebook and instagram */}
+      <section>
+        <MetaChannels connections={metaLinks ?? []} outcome={meta} isOwner />
       </section>
 
       {/* ------------------------------------------------------- each person */}

@@ -1346,3 +1346,45 @@ export async function seedStarterFaqs(_prev: FormState, _fd: FormData): Promise<
   revalidatePath("/settings/faqs");
   return { ok: true };
 }
+
+/**
+ * Taking a Facebook or Instagram connection back.
+ *
+ * Ours to forget rather than Meta's to revoke: this stops us answering on
+ * their behalf and throws the token away. Their account is untouched, and the
+ * page says so — somebody who wants the permission gone at Facebook's end too
+ * can do that from their own settings, and should be told rather than left to
+ * assume we have done it for them.
+ */
+export async function disconnectMeta(_prev: FormState, fd: FormData): Promise<FormState> {
+  if (!(await isOwner())) {
+    return { error: "Only the owner can disconnect an account." };
+  }
+
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+  const id = str(fd, "id");
+  if (!id) return { error: "Nothing to disconnect." };
+
+  /*
+   * Scoped to their own business.
+   *
+   * Row-level security would refuse another business's row anyway; naming the
+   * studio as well means a wrong id comes back as "not found" rather than as a
+   * silent no-op that looks like success.
+   */
+  const { error, count } = await supabase
+    .from("channel_connections")
+    .delete({ count: "exact" })
+    .eq("id", id)
+    .eq("studio_id", studio.id)
+    .in("channel", ["messenger", "instagram"]);
+
+  if (error) return { error: error.message };
+  if (!count) return { error: "That connection has already gone." };
+
+  // The token goes with it: channel_secrets is keyed on the connection and
+  // cascades, so there is nothing left to leak.
+  revalidatePath("/settings/install");
+  return { ok: true };
+}
