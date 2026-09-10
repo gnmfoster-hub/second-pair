@@ -7,6 +7,7 @@ import type { Channel } from "@/lib/types";
 import { requireStudio } from "@/lib/studio";
 import { canMessage } from "@/lib/permissions";
 import type { ConvStatus } from "@/lib/types";
+import { replyToFor } from "@/lib/messaging/replyTo";
 
 export type ReplyState = {
   error?: string;
@@ -76,7 +77,7 @@ export async function sendOwnerReply(
      */
     reachOn: { phone: contact?.phone ?? null, email: contact?.email ?? null },
     fromName: studio.name,
-    replyTo: studio.email ?? undefined,
+    replyTo: replyToFor(studio),
   });
 
   if (message) await recordDelivery(supabase, message.id, result);

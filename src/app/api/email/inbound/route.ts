@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runTurn } from "@/lib/engine/run";
 import { sendEmail, emailConfigured, fetchReceivedEmail } from "@/lib/messaging/email";
+import { replyToFor } from "@/lib/messaging/replyTo";
 import {
   judge,
   domainOf,
@@ -159,7 +160,7 @@ export async function POST(request: NextRequest) {
       subject: replySubject(email.subject),
       text: result.reply,
       fromName: studio.name,
-      replyTo: studio.email ?? undefined,
+      replyTo: replyToFor(studio),
     });
 
     /*

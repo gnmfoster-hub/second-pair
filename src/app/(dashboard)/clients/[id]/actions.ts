@@ -8,6 +8,7 @@ import { deliver, recordDelivery } from "@/lib/messaging/deliver";
 import { routesFor } from "@/lib/messaging/reach";
 import { connectedChannels, smsNumberFor } from "@/lib/messaging/connections";
 import type { Channel } from "@/lib/types";
+import { replyToFor } from "@/lib/messaging/replyTo";
 
 export type ClientState = { error?: string; ok?: boolean };
 
@@ -147,7 +148,7 @@ export async function messageClient(
     from: route.channel === "sms" ? await smsNumberFor(supabase, studio.id) : undefined,
     subject: `Message from ${studio.name}`,
     fromName: studio.name,
-    replyTo: studio.email ?? undefined,
+    replyTo: replyToFor(studio),
   });
   if (message) await recordDelivery(supabase, message.id, result);
 

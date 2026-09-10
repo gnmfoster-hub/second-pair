@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // Relative, with extensions, so the composing half below can be loaded and
 // tested by node directly. The rest of the codebase uses the @/ alias.
 import { sendEmail, emailConfigured } from "./email.ts";
+import { replyToFor } from "./replyTo.ts";
 import { buildCalendar } from "../ics.ts";
 import { formatPence } from "../money.ts";
 
@@ -54,7 +55,7 @@ export async function sendBookingConfirmation(
     const { data: conversation } = await db
       .from("conversations")
       .select(
-        "id, contacts(name, email), studios(name, email, timezone, cancellation_policy)",
+        "id, contacts(name, email), studios(slug, name, email, timezone, cancellation_policy)",
       )
       .eq("id", enquiry.conversation_id)
       .maybeSingle();
@@ -66,6 +67,7 @@ export async function sendBookingConfirmation(
       email: string | null;
     } | null;
     const studio = conversation?.studios as unknown as {
+      slug: string;
       name: string;
       email: string | null;
       timezone: string;
@@ -96,7 +98,7 @@ export async function sendBookingConfirmation(
       subject,
       text,
       fromName: studio.name,
-      replyTo: studio.email ?? undefined,
+      replyTo: replyToFor(studio),
       attachments: [
         {
           filename: "appointment.ics",

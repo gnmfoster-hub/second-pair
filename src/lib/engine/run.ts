@@ -670,7 +670,23 @@ async function generateReply(
         );
 
     if (!alreadySaid) {
-      const notice = `Quick note: this chat is handled by ${ctx.studio.name}'s assistant, and your details are ${purpose}${url ? ` — ${url}` : "."}`;
+      /*
+       * The right word for where they are reading it.
+       *
+       * "This chat" is what it said everywhere, which is true in a chat window
+       * and plainly wrong in an email — somebody who has just emailed a
+       * cleaning firm is told they are in a chat, by something introducing
+       * itself as an assistant, which is a poor first impression at exactly
+       * the moment trust is being asked for.
+       */
+      const where =
+        ctx.channel === "email"
+          ? "this inbox"
+          : ctx.channel === "sms"
+            ? "this number"
+            : "this chat";
+
+      const notice = `Quick note: ${where} is handled by ${ctx.studio.name}'s assistant, and your details are ${purpose}${url ? ` — ${url}` : "."}`;
       text = `${notice}
 
 ${text}`;
