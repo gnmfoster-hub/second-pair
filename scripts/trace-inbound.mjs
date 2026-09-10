@@ -1,4 +1,13 @@
-// What happened to the email that just came in.
+/**
+ * What happened to an email that came in.
+ *
+ *   node scripts/trace-inbound.mjs
+ *
+ * Every email conversation started in the last three hours, with the messages
+ * on it in order. The system lines are the useful part: they say why something
+ * was parked rather than answered, which is the question actually being asked
+ * when somebody reports that they emailed in and heard nothing back.
+ */
 import fs from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 
