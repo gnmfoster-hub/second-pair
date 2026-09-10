@@ -134,6 +134,76 @@ export function AssistantForm({ studio }: { studio: Studio }) {
           </Field>
         </section>
 
+        {/*
+          * Only matters to a business forwarding email to us, which is why it
+          * sits under its own heading rather than beside the answering mode —
+          * the two sound alike and one of them is about every channel.
+          */}
+        <section className="card space-y-5 p-6">
+          <div>
+            <h2 className="section-title">Email you forward here</h2>
+            <p className="hint mt-1 max-w-prose">
+              Only about email. If you forward a single enquiry address, leave this
+              alone. If you forward everything that arrives in your mailbox, the second
+              option is the one you want &mdash; without it the assistant will answer
+              your accountant.
+            </p>
+          </div>
+
+          <div className="space-y-2.5">
+            {[
+              {
+                value: "all",
+                title: "Answer anything that looks like a customer",
+                body:
+                  "Right when what you forward is an enquiry address — hello@, info@, the one on your van. Newsletters, bounces and automatic messages are never answered whichever of these you pick.",
+              },
+              {
+                value: "listed",
+                title: "Only answer mail sent to my public addresses",
+                body:
+                  "For a mailbox where work and everything else arrive together. Name the addresses customers write to; anything sent to any other address of yours is filed here for you to read, unanswered.",
+              },
+              {
+                value: "none",
+                title: "Never answer email on its own",
+                body:
+                  "Everything is filed here, tidied and waiting, and you write every reply yourself. The assistant still answers your website, texts and social messages as normal.",
+              },
+            ].map((option) => (
+              <label
+                key={option.value}
+                className="row flex cursor-pointer items-start gap-3 rounded-xl border border-border p-3.5 transition-colors has-[:checked]:border-accent has-[:checked]:bg-surface-2/60"
+              >
+                <input
+                  type="radio"
+                  name="inbound_mode"
+                  value={option.value}
+                  defaultChecked={(studio.inbound_mode ?? "all") === option.value}
+                  className="mt-1 size-4 shrink-0 accent-[var(--accent)]"
+                />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">{option.title}</span>
+                  <span className="hint mt-0.5 block">{option.body}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+
+          <Field
+            label="Your public addresses"
+            hint="One per line, and only used by the middle option. These are the addresses on your website and your van — the ones a stranger writes to."
+          >
+            <textarea
+              name="inbound_addresses"
+              rows={3}
+              defaultValue={(studio.inbound_addresses ?? []).join("\n")}
+              placeholder={"hello@yourfirm.co.uk\nenquiries@yourfirm.co.uk"}
+              className="input font-mono text-sm"
+            />
+          </Field>
+        </section>
+
         <section className="card space-y-5 p-6">
           <div>
             <h2 className="section-title">Your voice</h2>

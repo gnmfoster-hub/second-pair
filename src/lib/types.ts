@@ -149,6 +149,10 @@ export type Studio = {
    * Who answers an enquiry first. See lib/answering.ts — none of these is off.
    */
   answering_mode: "always" | "when_free" | "always_ask_me";
+  /** How much forwarded email it may answer by itself. See InboundMode. */
+  inbound_mode: "all" | "listed" | "none";
+  /** The business's own public addresses, when inbound_mode is "listed". */
+  inbound_addresses: string[];
   /** Minutes of head start on channels where nobody is sitting watching. */
   first_refusal_minutes: number;
   /** "I've got this", with an end time. Null when it is not in force. */

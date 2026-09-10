@@ -32,6 +32,16 @@ export type InboundEmail = {
   body?: string | null;
   /** Lower-cased header names to values, as the provider gave them. */
   headers?: Record<string, string>;
+  /**
+   * The business's own addresses it was sent to, before it reached us.
+   *
+   * Kept apart from `to`, which is every address it arrived by including ours.
+   * This is the only thing that can tell the accountant's email from the
+   * customer's once a whole mailbox is being forwarded: both land at the same
+   * address of ours, and only the original recipient says which of the
+   * business's addresses somebody actually wrote to.
+   */
+  sentTo?: string[];
 };
 
 export type Verdict = {
@@ -39,6 +49,32 @@ export type Verdict = {
   /** Said in the owner's terms, for the note in the inbox. */
   because: string;
 };
+
+/**
+ * How much of a business's email the assistant may answer by itself.
+ *
+ * Written for the business with one address for everything. Forwarding a whole
+ * mailbox to an assistant that answers anything a person wrote means it
+ * replies to their accountant, their supplier and their sister, in the
+ * business's name, about cleaning — which costs almost nothing and is
+ * mortifying, and is the sort of thing that ends a customer relationship.
+ *
+ *  all    — anything that reads like somebody getting in touch. Right when a
+ *           dedicated enquiry address is being forwarded, and the default,
+ *           because it is what every business set up so far is doing.
+ *  listed — only mail written to the addresses they have named as public.
+ *           Everything else is filed for them to read. This is the one for a
+ *           forwarded mailbox.
+ *  none   — nothing is answered automatically. Everything is filed, tidied and
+ *           waiting, and a person writes every reply.
+ */
+export type InboundMode = "all" | "listed" | "none";
+
+export const INBOUND_MODES: InboundMode[] = ["all", "listed", "none"];
+
+export function readInboundMode(raw: unknown): InboundMode {
+  return INBOUND_MODES.includes(raw as InboundMode) ? (raw as InboundMode) : "all";
+}
 
 /**
  * Mail the owner is waiting for, from a machine.
@@ -164,7 +200,14 @@ function fromAMachine(headers: Record<string, string>): string | null {
 
 export function judge(
   email: InboundEmail,
-  business: { ownDomains?: string[]; ourDomain?: string } = {},
+  business: {
+    ownDomains?: string[];
+    ourDomain?: string;
+    /** How much it may answer by itself. See InboundMode. */
+    mode?: InboundMode;
+    /** Their public addresses, when the mode is "listed". */
+    answerTo?: string[];
+  } = {},
 ): Verdict {
   const headers = Object.fromEntries(
     Object.entries(email.headers ?? {}).map(([k, v]) => [k.toLowerCase(), v]),
@@ -234,6 +277,41 @@ export function judge(
     return { what: "park", because: "it arrived empty" };
   }
 
+  /*
+   * Last, and deliberately last.
+   *
+   * Everything above decides whether this is worth a human's attention at all.
+   * This decides only whether the assistant may answer it without being asked,
+   * so it must not be able to promote a newsletter into the inbox — it can
+   * only ever hold something back.
+   */
+  const mode = business.mode ?? "all";
+
+  if (mode === "none") {
+    return { what: "park", because: "this business answers its own email" };
+  }
+
+  if (mode === "listed") {
+    const public_ = (business.answerTo ?? []).map((a) => addressOf(a)).filter(Boolean);
+
+    // Nothing named means nothing is public, which would silently park every
+    // enquiry a business ever received. Treated as not yet set up.
+    if (!public_.length) {
+      return {
+        what: "park",
+        because: "no public address has been set, so nothing is answered automatically",
+      };
+    }
+
+    const wroteTo = (email.sentTo ?? []).map((a) => addressOf(a)).filter(Boolean);
+    if (!wroteTo.some((one) => public_.includes(one))) {
+      return {
+        what: "park",
+        because: "it was not sent to a public address, so it is probably not a customer",
+      };
+    }
+  }
+
   return { what: "answer", because: "it reads as somebody getting in touch" };
 }
 
@@ -296,8 +374,26 @@ export function readEmail(payload: Record<string, unknown>): InboundEmail | null
     })
     .filter((one) => one.includes("@"));
 
+  /*
+   * Who they actually wrote to, as opposed to how it reached us.
+   *
+   * received_for is the address at our end that the forwarding delivered to,
+   * so it is deliberately not in here — it is the same for every email a
+   * business forwards and says nothing about who the message was for.
+   */
+  const wroteTo = ["to", "To", "cc", "Cc"]
+    .flatMap((key) => {
+      const v = data[key] ?? payload[key];
+      if (typeof v === "string") return v.split(",");
+      if (Array.isArray(v)) return v.filter((one) => typeof one === "string") as string[];
+      return [];
+    })
+    .map((one) => addressOf(one))
+    .filter((one) => one.includes("@"));
+
   return {
     from,
+    sentTo: wroteTo,
     to: everyone.length ? everyone.join(", ") : pick("to", "recipient", "To"),
     subject: pick("subject", "Subject"),
     /*

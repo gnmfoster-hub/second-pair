@@ -9,6 +9,7 @@ import {
   addressOf,
   ourRecipient,
   readEmail,
+  readInboundMode,
   plainTextFrom,
   type InboundEmail,
 } from "@/lib/messaging/inboundEmail";
@@ -96,7 +97,7 @@ export async function POST(request: NextRequest) {
 
   const { data: studio } = await db
     .from("studios")
-    .select("id, slug, name, email, archived_at")
+    .select("id, slug, name, email, archived_at, inbound_mode, inbound_addresses")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -105,6 +106,9 @@ export async function POST(request: NextRequest) {
   const verdict = judge(email, {
     ownDomains: [studio.email ? domainOf(studio.email) : ""].filter(Boolean),
     ourDomain: (process.env.EMAIL_FROM ?? "").split("@")[1] ?? "second-pair.com",
+    // How much this business lets it answer on its own. See InboundMode.
+    mode: readInboundMode(studio.inbound_mode),
+    answerTo: (studio.inbound_addresses as string[] | null) ?? [],
   });
 
   // A machine talking. Nothing is written down, because a newsletter landing

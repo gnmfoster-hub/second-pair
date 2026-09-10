@@ -7,6 +7,7 @@ import { parsePounds } from "@/lib/money";
 import { DEFAULT_HOURS, type DepositRule, type OpeningHours } from "@/lib/types";
 import { sendEmail, emailConfigured } from "@/lib/messaging/email";
 import { usableAddress } from "@/lib/messaging/address";
+import { readInboundMode } from "@/lib/messaging/inboundEmail";
 import { siteOrigin } from "@/lib/origin";
 import { verticalPack } from "@/lib/verticals";
 import { stillWorthAsking } from "@/lib/askedAlready";
@@ -667,6 +668,17 @@ export async function updateAssistant(_prev: FormState, fd: FormData): Promise<F
     .from("studios")
     .update({
       email: usableAddress(replyAddress),
+      inbound_mode: readInboundMode(fd.get("inbound_mode")),
+      /*
+       * Only addresses that could actually be written to.
+       *
+       * A line that is not an address would never match anything, so it would
+       * silently narrow what gets answered rather than widening it — the
+       * failure would look like the assistant ignoring customers.
+       */
+      inbound_addresses: lines("inbound_addresses")
+        .map((one) => usableAddress(one))
+        .filter((one): one is string => Boolean(one)),
       tone: str(fd, "tone"),
       always_mention: lines("always_mention"),
       never_mention: lines("never_mention"),
