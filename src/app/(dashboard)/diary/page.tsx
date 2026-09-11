@@ -16,6 +16,13 @@ import { ColourBy } from "./ColourBy";
 import { colourForName, type ColourMode } from "@/lib/diaryColour";
 import { formatPence } from "@/lib/money";
 import { dayShape, weekShape, minutesInDay } from "@/lib/diaryGaps";
+import { cookies } from "next/headers";
+import {
+  DIARY_LAYOUT_COOKIE,
+  readDiaryLayout,
+  diaryLayoutClasses,
+} from "@/lib/diaryLayout";
+import { LayoutToggle } from "./LayoutToggle";
 
 /** Sunday first, matching getUTCDay(). Single letters — the strips are 24px. */
 const DAY_INITIALS = ["S", "M", "T", "W", "T", "F", "S"];
@@ -124,6 +131,16 @@ export default async function DiaryPage({
     );
     return addDays(startOfWeek(last), 7);
   })();
+
+  /*
+   * List or columns, if anybody has said.
+   *
+   * Not in the URL: see lib/diaryLayout. Absent, the width decides exactly as
+   * it did before this existed — a phone gets the list, a desk gets the grid —
+   * so nobody who has never touched it sees any change.
+   */
+  const layout = readDiaryLayout((await cookies()).get(DIARY_LAYOUT_COOKIE)?.value);
+  const panes = diaryLayoutClasses(layout);
 
   const start =
     view === "day" ? focusDay : view === "month" ? monthStart : startOfWeek(anchor);
@@ -506,6 +523,29 @@ export default async function DiaryPage({
           </div>
 
           {/*
+            * List or columns — a second control, and a different question.
+            *
+            * Day, week and month are how much time is on screen. This is what
+            * shape it is in, and the two are independent: a week can be read
+            * as an agenda and a day as columns. Kept as its own segmented
+            * control beside the first rather than added to it as a fourth
+            * button, because "Month" and "Columns" are not alternatives to
+            * each other and a control that implies they are would be a lie
+            * about how the diary works.
+            *
+            * Not in month view, which has one shape and no columns to offer.
+            *
+            * Not for a solo diary either. The grid's column-per-person is one
+            * column there, so the choice would decide nothing while taking
+            * room on a phone toolbar that has twice had to be rescued from
+            * pushing Add onto a line of its own. Both businesses running this
+            * today are solo: for them, nothing here changes at all.
+            */}
+          {view !== "month" && team.length > 1 && (
+            <LayoutToggle current={layout} />
+          )}
+
+          {/*
             * The stepper, on anything but a phone in day view.
             *
             * The week strip below replaces it there and does more: two arrows
@@ -886,14 +926,14 @@ export default async function DiaryPage({
               * was told.
               */}
             {view === "day" && todayIsEmpty && (
-              <div className="sm:hidden">
+              <div className={panes.list}>
                 <UpNext timezone={studio.timezone} team={team} className="mt-3" />
               </div>
             )}
 
             {/* Month has its own grid above; this branch is day or week. */}
             {(
-              <div className="sm:hidden">
+              <div className={panes.list}>
                 {/*
                   * Push the day sideways to change it, the way every calendar
                   * on a phone works. The arrows are at the top of the screen,
@@ -924,7 +964,7 @@ export default async function DiaryPage({
               </div>
             )}
 
-            <div className="hidden sm:block">
+            <div className={panes.grid}>
               <WeekGrid
                 weekStart={isoDate(start)}
                 day={isoDate(focusDay)}

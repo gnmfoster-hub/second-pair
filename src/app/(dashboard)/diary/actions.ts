@@ -1,12 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio, getArtists } from "@/lib/studio";
 import { zonedToUtc } from "@/lib/booking/tz";
 import { categoryFor, repeatDates, type RepeatRule } from "@/lib/calendar";
 import { dropReminders } from "@/lib/reminders";
 import { scheduleReminders } from "@/lib/reminders";
+import { DIARY_LAYOUT_COOKIE, type DiaryLayout } from "@/lib/diaryLayout";
 
 export type DiaryState = { error?: string; ok?: string };
 
@@ -314,6 +316,34 @@ export async function moveDiaryEntry(input: {
  * looking at the same diary reading it the same way, and arguing about whose
  * colours are right is not a feature.
  */
+/**
+ * List or grid, remembered.
+ *
+ * A cookie rather than the studio row, because unlike the colour setting this
+ * is one person's preference and not the business's: the owner on her phone
+ * between clients wants the agenda, and the same business at the desk wants
+ * the columns. Storing it on the studio would have them fighting over it.
+ *
+ * A year, because the alternative is setting it again every morning. Lax so it
+ * survives arriving from an emailed link, httpOnly because nothing in the
+ * browser needs to read it, and secure everywhere except a local dev server.
+ */
+export async function setDiaryLayout(layout: DiaryLayout) {
+  // Signed in, so a stranger cannot set cookies on the diary by posting to it.
+  await requireStudio();
+
+  const jar = await cookies();
+  jar.set(DIARY_LAYOUT_COOKIE, layout, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+  });
+
+  revalidatePath("/diary");
+}
+
 export async function setDiaryColour(mode: "category" | "client" | "person") {
   const { studio } = await requireStudio();
   const supabase = await createClient();
