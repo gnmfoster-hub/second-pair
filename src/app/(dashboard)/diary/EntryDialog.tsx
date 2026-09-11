@@ -139,14 +139,52 @@ export function EntryDialog({
         aria-modal="true"
         aria-label={existing ? "Edit diary entry" : "Add to the diary"}
         onClick={(e) => e.stopPropagation()}
-        className="card max-h-[88dvh] w-full max-w-lg overflow-y-auto rounded-b-none p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:rounded-2xl sm:p-6 sm:pb-6"
+        /*
+         * 82dvh, not 88.
+         *
+         * Tapping the dark outside has always closed this, but at 88dvh the
+         * outside is a twelve percent strip along the very top of the screen —
+         * the furthest point from a thumb and easy to miss, so the way out was
+         * technically there and practically was not. Six percent more backdrop
+         * is about fifty pixels of target across the full width of the phone,
+         * at the end the hand is already at.
+         */
+        className="card max-h-[82dvh] w-full max-w-lg overflow-y-auto rounded-b-none p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:max-h-[88dvh] sm:rounded-2xl sm:p-6 sm:pb-6"
       >
-        <div className="flex items-start justify-between gap-4">
+        {/* The bar every phone sheet has, which says this one lifts off rather
+            than being a page you have to finish. */}
+        <div
+          aria-hidden
+          className="mx-auto mb-3 h-1 w-9 rounded-full bg-border sm:hidden"
+        />
+
+        <div className="flex items-start justify-between gap-3">
           <h2 className="section-title">
             {existing ? "Edit" : "Add to the diary"}
           </h2>
-          <button type="button" onClick={onClose} className="hint hover:text-foreground">
-            Close
+          {/*
+            * A real target, not the word "Close" set in hint.
+            *
+            * That was twelve-pixel muted text about thirty pixels wide in the
+            * corner of a form that fills the screen — the smallest thing in
+            * the dialog doing the job people need most often, and the reason
+            * getting out of here was hard. Forty-four square is the size a
+            * thumb actually hits.
+            */}
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="-mr-1.5 -mt-1.5 grid size-11 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+          >
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M6.5 6.5l11 11M17.5 6.5l-11 11"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+              />
+            </svg>
           </button>
         </div>
 
@@ -172,7 +210,9 @@ export function EntryDialog({
           </div>
         ) : null}
 
-        <form action={action} className="mt-5 space-y-5">
+        {/* space-y-4 on a phone. Five was a fifth of the screen given to the
+            gaps between fields on a form that already had to scroll. */}
+        <form action={action} className="mt-4 space-y-4 sm:mt-5 sm:space-y-5">
           {entry && <input type="hidden" name="id" value={entry.id} />}
           <input type="hidden" name="category" value={category} />
           <input type="hidden" name="all_day" value={allDay ? "true" : "false"} />

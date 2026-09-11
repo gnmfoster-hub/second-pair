@@ -64,6 +64,17 @@ const HOUR_HEIGHT = 72;
  */
 const MIN_COLUMN = 116;
 
+/*
+ * The time rail, measured rather than eyeballed.
+ *
+ * It was 68px to hold an hour and its am or pm. Measured in the browser at the
+ * sizes it actually uses: "12" is 14px and "am" is 13, so the widest thing in
+ * it is 29px and the other 39 were empty — on a 390px phone, a tenth of the
+ * screen given to nothing, down the left of the diary the whole business is
+ * read from. 44 keeps seven pixels of air.
+ */
+const GUTTER = 44;
+
 function dayKey(iso: string, timezone: string): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: timezone,
@@ -366,7 +377,7 @@ export function WeekGrid({
    * that is wider than the screen the wrapper scrolls, which is why the gutter
    * and the headings are sticky.
    */
-  const gridWidth = 68 + columns.length * MIN_COLUMN;
+  const gridWidth = GUTTER + columns.length * MIN_COLUMN;
 
   /*
    * How much room a card has, and therefore how big its writing should be.
@@ -490,6 +501,46 @@ export function WeekGrid({
 
   const { drag, begin } = useDrag({ hourHeight: HOUR_HEIGHT, columnKeyAt, onCommit: commit });
 
+  /*
+   * Carry the grid along when a drag reaches its edge.
+   *
+   * A day of five people is 648px in a 390px phone, so under three columns are
+   * on screen at once: without this, somebody could be moved to the person
+   * beside them and to nobody further, because the column they belong in is
+   * off the side of the display and the browser will not scroll while a drag
+   * holds the gesture.
+   *
+   * Only while a drag is live, and only sideways — the vertical scroll is the
+   * time of day, which the drag is already setting by itself.
+   */
+  useEffect(() => {
+    if (!drag) return;
+
+    const EDGE = 48;
+    const STEP = 14;
+    let at = 0;
+    let frame = 0;
+
+    const onMove = (event: PointerEvent) => (at = event.clientX);
+
+    const tick = () => {
+      const box = scroller.current;
+      if (box && at) {
+        const r = box.getBoundingClientRect();
+        if (at < r.left + EDGE) box.scrollLeft -= STEP;
+        else if (at > r.right - EDGE) box.scrollLeft += STEP;
+      }
+      frame = requestAnimationFrame(tick);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    frame = requestAnimationFrame(tick);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      cancelAnimationFrame(frame);
+    };
+  }, [drag]);
+
   return (
     <>
       {/*
@@ -555,7 +606,7 @@ export function WeekGrid({
         >
           {/* Sticky left, so the times stay put while the week scrolls under
               them — a column of numbers that scrolls away is no use. */}
-          <div className="sticky left-0 z-10 w-[4.25rem] shrink-0 border-r border-border bg-surface/95 backdrop-blur" />
+          <div className="sticky left-0 z-10 w-11 shrink-0 border-r border-border bg-surface/95 backdrop-blur" />
           {columns.map((col) => {
             const isToday = view === "week" && col.date === todayKey;
             const weekday = new Date(col.date).getDay();
@@ -640,7 +691,7 @@ export function WeekGrid({
             className="flex border-b border-border bg-surface-2/40"
             style={{ minWidth: gridWidth }}
           >
-            <div className="sticky left-0 z-10 w-[4.25rem] shrink-0 border-r border-border bg-surface-2 px-2 py-1.5 text-[10px] uppercase tracking-wide text-muted">
+            <div className="sticky left-0 z-10 w-11 shrink-0 border-r border-border bg-surface-2 px-2 py-1.5 text-[10px] uppercase tracking-wide text-muted">
               All day
             </div>
             {columns.map((col) => {
@@ -688,7 +739,7 @@ export function WeekGrid({
         {/* ------------------------------------------------ time grid */}
         <div>
           <div className="flex" style={{ minWidth: gridWidth }}>
-            <div className="sticky left-0 z-10 w-[4.25rem] shrink-0 border-r border-border bg-surface">
+            <div className="sticky left-0 z-10 w-11 shrink-0 border-r border-border bg-surface">
               {hourList.map((h) => (
                 <div key={h} style={{ height: HOUR_HEIGHT }} className="relative">
                   {/*
@@ -699,7 +750,7 @@ export function WeekGrid({
                    * at a glance you are looking for "3", and the suffix only
                    * matters once you have found it.
                    */}
-                  <span className="absolute -top-2.5 right-3 flex items-baseline gap-0.5">
+                  <span className="absolute -top-2.5 right-2 flex items-baseline gap-0.5">
                     <span className="num text-[13px] font-semibold text-foreground/85">
                       {h === 0 ? "" : h % 12 === 0 ? 12 : h % 12}
                     </span>

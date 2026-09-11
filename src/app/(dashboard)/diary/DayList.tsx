@@ -43,6 +43,20 @@ function clockOf(iso: string, timezone: string) {
   }).format(new Date(iso));
 }
 
+/**
+ * The same time, split so the rail can be narrower.
+ *
+ * "11:00 am" set solid is 57px and forced a 64px column down every row. The
+ * hour is what the eye is looking for and the am or pm only matters once it
+ * has been found, so the suffix is set smaller — 33px and 15px rather than 57,
+ * which buys back eight pixels on every row of the diary.
+ */
+function splitClock(iso: string, timezone: string): [string, string] {
+  const whole = clockOf(iso, timezone);
+  const cut = whole.search(/\s*[ap]m$/i);
+  return cut < 0 ? [whole, ""] : [whole.slice(0, cut), whole.slice(cut).trim()];
+}
+
 /** "2027-03-11" where the business is, which is not where the server is. */
 function dayOf(iso: string, timezone: string) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -327,18 +341,26 @@ export function DayList({
                   * between reading a column and reading thirty separate labels.
                   */}
                 {/*
-                  * Wide enough for "11:00 am", which is the widest it gets.
+                  * Wide enough for the widest it gets, which is 11:00 am.
                   *
                   * It started at 70px against text measuring about 48, and the
                   * difference sat on the left as an empty gutter down every
                   * row. Trimming it to 56 fixed that and broke the mornings:
-                  * "11:00 am" is 62 pixels, so it wrapped onto two lines and
-                  * every hour before noon looked like a different shape from
-                  * every hour after it. 64 is the number that holds both.
+                  * set solid, "11:00 am" is 57 pixels, so it wrapped onto two
+                  * lines and every hour before noon was a different shape from
+                  * every hour after it. 64 was the number that held both.
+                  *
+                  * Splitting the suffix off is what actually makes it smaller
+                  * rather than tighter: 33px of hour and 15 of am, so 56 holds
+                  * it with room, and nowrap means a stray pixel can never put
+                  * the mornings back on two lines.
                   */}
-                <span className="w-16 shrink-0 pt-px text-right">
-                  <span className="block text-sm font-semibold tabular-nums tracking-tight">
-                    {clockOf(e.starts_at, timezone)}
+                <span className="w-14 shrink-0 pt-px text-right">
+                  <span className="block whitespace-nowrap text-sm font-semibold tabular-nums tracking-tight">
+                    {splitClock(e.starts_at, timezone)[0]}
+                    <span className="ml-0.5 text-[0.62rem] font-medium text-muted">
+                      {splitClock(e.starts_at, timezone)[1]}
+                    </span>
                   </span>
                   <span className="hint block text-[0.7rem] tabular-nums">
                     {lengthOf(ends - starts)}

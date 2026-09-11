@@ -546,8 +546,6 @@ export default async function DiaryPage({
             * pushing Add onto a line of its own. Both businesses running this
             * today are solo: for them, nothing here changes at all.
             */}
-          {view === "day" && team.length > 1 && <LayoutToggle current={layout} />}
-
           {/*
             * The stepper, on anything but a phone in day view.
             *
@@ -752,25 +750,41 @@ export default async function DiaryPage({
         * trade against a name you cannot find. Wider screens keep the chips at
         * any size, because there they wrap onto a second line and stay whole.
         */}
-      {team.length > 4 && (
-        <div data-no-swipe className="mt-3 sm:hidden">
-          <WhoPicker
-            team={team}
-            focused={focused}
-            colourByPerson={(studio.diary_colour ?? "category") === "person"}
-            view={view === "month" ? "week" : view}
-            anchor={view === "day" ? isoDate(focusDay) : isoDate(start)}
-          />
-        </div>
-      )}
-
+      {/*
+        * The people row, with the shape control on the front of it.
+        *
+        * This lived in the toolbar above and put the Add button back onto a
+        * line of its own — the third time that has happened. Measured on a
+        * 390px phone the toolbar had about fifty pixels spare and the control
+        * is seventy-nine, so something had to move, and this is the one that
+        * should: it says which people to show, and it now sits with the
+        * controls that say which people to show.
+        *
+        * No new row either. It shares the one the chips were already on, in
+        * front of the scrolling part so it cannot slide off the side.
+        */}
       {team.length > 1 && (
-        <div
-          data-no-swipe
-          className={`mt-3 flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:mt-4 sm:flex-wrap sm:overflow-visible ${
-            team.length > 4 ? "hidden sm:flex" : ""
-          }`}
-        >
+        <div data-no-swipe className="mt-3 flex items-start gap-2 sm:mt-4">
+          {view === "day" && <LayoutToggle current={layout} />}
+
+          <div className="min-w-0 flex-1">
+            {team.length > 4 && (
+              <div className="sm:hidden">
+                <WhoPicker
+                  team={team}
+                  focused={focused}
+                  colourByPerson={(studio.diary_colour ?? "category") === "person"}
+                  view={view === "month" ? "week" : view}
+                  anchor={view === "day" ? isoDate(focusDay) : isoDate(start)}
+                />
+              </div>
+            )}
+
+            <div
+              className={`flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:flex-wrap sm:overflow-visible ${
+                team.length > 4 ? "hidden sm:flex" : ""
+              }`}
+            >
           <Link
             href={
               view === "day"
@@ -817,7 +831,9 @@ export default async function DiaryPage({
               )}
               {a.name}
             </Link>
-          ))}
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

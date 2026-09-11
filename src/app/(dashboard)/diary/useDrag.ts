@@ -213,15 +213,38 @@ export function useDrag({
       setDrag(null);
     };
 
+    /*
+     * Hold the gesture, or a finger cannot drag anything.
+     *
+     * The columns deliberately do not set touch-action: none — that was tried
+     * and it switched off scrolling everywhere, so the diary could not be read
+     * on the device it is mostly read on. But with scrolling left on, the
+     * browser owns the gesture: the moment the finger moves it scrolls the
+     * grid and sends pointercancel, which lands on finish() above and throws
+     * the drag away. Dragging worked with a mouse and could not work with a
+     * finger at all.
+     *
+     * Once a drag has actually begun the ambiguity is over — the finger was
+     * held still for the best part of a second to get here — so from that
+     * point the moves are ours and the browser is told so. Non-passive, or
+     * preventDefault is ignored; and only while a drag is live, so every other
+     * touch on the page still scrolls normally.
+     */
+    const hold = (event: TouchEvent) => {
+      if (event.cancelable) event.preventDefault();
+    };
+
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", finish);
     window.addEventListener("pointercancel", finish);
     window.addEventListener("keydown", cancel);
+    window.addEventListener("touchmove", hold, { passive: false });
     return () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", finish);
       window.removeEventListener("pointercancel", finish);
       window.removeEventListener("keydown", cancel);
+      window.removeEventListener("touchmove", hold);
     };
   }, [drag, hourHeight, columnKeyAt, onCommit, snap]);
 
