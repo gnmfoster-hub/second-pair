@@ -20,7 +20,7 @@ import { cookies } from "next/headers";
 import {
   DIARY_LAYOUT_COOKIE,
   readDiaryLayout,
-  diaryLayoutClasses,
+  diaryPanes,
 } from "@/lib/diaryLayout";
 import { LayoutToggle } from "./LayoutToggle";
 
@@ -140,7 +140,8 @@ export default async function DiaryPage({
    * so nobody who has never touched it sees any change.
    */
   const layout = readDiaryLayout((await cookies()).get(DIARY_LAYOUT_COOKIE)?.value);
-  const panes = diaryLayoutClasses(layout);
+  // Day only — see diaryPanes, which carries the reason and the test.
+  const panes = diaryPanes(view, layout);
 
   const start =
     view === "day" ? focusDay : view === "month" ? monthStart : startOfWeek(anchor);
@@ -533,7 +534,11 @@ export default async function DiaryPage({
             * each other and a control that implies they are would be a lie
             * about how the diary works.
             *
-            * Not in month view, which has one shape and no columns to offer.
+            * Day only, because a day is the only view whose columns are
+            * people. A week's columns are the seven days — comparing days is
+            * what a week is for — so offering it there promised a thing it
+            * could not do: the sideways scroll ran Monday to Sunday while the
+            * person doing it was looking for a stylist.
             *
             * Not for a solo diary either. The grid's column-per-person is one
             * column there, so the choice would decide nothing while taking
@@ -541,9 +546,7 @@ export default async function DiaryPage({
             * pushing Add onto a line of its own. Both businesses running this
             * today are solo: for them, nothing here changes at all.
             */}
-          {view !== "month" && team.length > 1 && (
-            <LayoutToggle current={layout} />
-          )}
+          {view === "day" && team.length > 1 && <LayoutToggle current={layout} />}
 
           {/*
             * The stepper, on anything but a phone in day view.

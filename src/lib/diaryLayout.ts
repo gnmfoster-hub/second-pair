@@ -51,3 +51,23 @@ export function diaryLayoutClasses(layout: DiaryLayout | null): {
   if (layout === "grid") return { list: "hidden", grid: "block" };
   return { list: "sm:hidden", grid: "hidden sm:block" };
 }
+
+/**
+ * The shape to draw, given which view is open.
+ *
+ * The saved choice applies to the day and nothing else, because the day is the
+ * only view whose columns are people. A week's columns are its seven days, so
+ * carrying "people" into a week would hand a phone the seven-across grid that
+ * was rejected for being unreadable — and the control that could undo it is
+ * not offered outside the day, so somebody would have been stuck in it.
+ *
+ * Kept here rather than as a ternary at the call site so that the rule has a
+ * name and a test, because it is exactly the kind of thing that gets quietly
+ * dropped by the next edit.
+ */
+export function diaryPanes(
+  view: "day" | "week" | "month",
+  layout: DiaryLayout | null,
+): { list: string; grid: string } {
+  return diaryLayoutClasses(view === "day" ? layout : null);
+}

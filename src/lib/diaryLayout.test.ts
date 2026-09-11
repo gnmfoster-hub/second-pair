@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readDiaryLayout, diaryLayoutClasses } from "./diaryLayout.ts";
+import { readDiaryLayout, diaryLayoutClasses, diaryPanes } from "./diaryLayout.ts";
 
 test("readDiaryLayout takes the two shapes and nothing else", () => {
   assert.equal(readDiaryLayout("list"), "list");
@@ -42,6 +42,29 @@ test("exactly one shape is ever shown", () => {
         (shownEverywhere(list) && hiddenEverywhere(grid)) ||
           (hiddenEverywhere(list) && shownEverywhere(grid)),
         `both or neither shown for ${choice}`,
+      );
+    }
+  }
+});
+
+test("the saved choice applies to the day", () => {
+  assert.deepEqual(diaryPanes("day", "grid"), { list: "hidden", grid: "block" });
+  assert.deepEqual(diaryPanes("day", "list"), { list: "block", grid: "hidden" });
+});
+
+/*
+ * The trap this rule exists for: choose people-columns on a day, move to the
+ * week, and a phone would get the seven-across grid that was rejected as
+ * unreadable — with no control there to undo it, because it is only offered on
+ * the day. The week and the month must always fall back to the width.
+ */
+test("it is ignored in the week and the month, which have no people columns", () => {
+  for (const view of ["week", "month"] as const) {
+    for (const saved of ["grid", "list", null] as const) {
+      assert.deepEqual(
+        diaryPanes(view, saved),
+        { list: "sm:hidden", grid: "hidden sm:block" },
+        `${view} with ${saved} saved should follow the width`,
       );
     }
   }

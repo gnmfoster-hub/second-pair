@@ -50,7 +50,7 @@ export function LayoutToggle({ current }: { current: DiaryLayout | null }) {
     <div
       className="flex overflow-hidden rounded-xl border border-border bg-surface"
       role="group"
-      aria-label="Diary shape"
+      aria-label="Show the day as a list or a column per person"
     >
       {(
         [
@@ -74,8 +74,18 @@ export function LayoutToggle({ current }: { current: DiaryLayout | null }) {
           },
           {
             value: "grid" as const,
-            label: "Columns",
-            hint: "A column each, to drag between people",
+            /*
+             * "People", not "Columns".
+             *
+             * Columns described the shape and not the contents, and the diary
+             * has two kinds: a day's are people and a week's are the seven
+             * days. Offered in a week, the word promised the one and gave the
+             * other — the scroll ran Monday to Sunday while the person doing
+             * it was looking for a stylist. It is only offered in a day now,
+             * and it says who is in them.
+             */
+            label: "People",
+            hint: "A column each, to drag someone to another person",
             icon: (
               <>
                 <rect
