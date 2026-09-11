@@ -49,7 +49,7 @@ export function WeekStrip({
   return (
     <div
       data-no-swipe
-      className="mt-3 flex gap-1 sm:hidden"
+      className="mt-2 flex gap-1 sm:hidden"
       role="group"
       aria-label="The week"
     >
@@ -68,7 +68,7 @@ export function WeekStrip({
             key={key}
             href={`/diary?view=day&day=${key}${who ? `&who=${who}` : ""}`}
             aria-current={isFocused ? "date" : undefined}
-            className={`flex min-h-[3.4rem] flex-1 flex-col items-center justify-center gap-1 rounded-xl border py-1.5 transition-colors ${
+            className={`flex min-h-[3rem] flex-1 flex-col items-center justify-center gap-1 rounded-xl border py-1.5 transition-colors ${
               isFocused
                 ? "border-accent bg-accent/10"
                 : "border-transparent bg-surface-2/50"

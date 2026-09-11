@@ -425,7 +425,11 @@ export default async function DiaryPage({
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-4 sm:px-8 sm:py-9">
+    <div className="mx-auto max-w-6xl px-4 py-3 sm:px-8 sm:py-9">
+      {/* py-3 on a phone rather than py-4. Every row above the diary was
+          costing a few pixels more than it needed, and there are five of
+          them; WeekGrid's height cap comes down by the same amount so the
+          saving reaches the diary instead of the gap under it. */}
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
         {/*
           * The word "Diary" is worth fifty pixels on a phone and says nothing.
@@ -622,7 +626,7 @@ export default async function DiaryPage({
         * Kept at every other size, where it holds the grid it was built for.
         */}
       <div
-        className={`settle relative mt-3 overflow-hidden sm:mt-5 sm:rounded-2xl sm:border sm:border-border sm:bg-surface sm:shadow-[var(--shadow-card)] ${
+        className={`settle relative mt-2 overflow-hidden sm:mt-5 sm:rounded-2xl sm:border sm:border-border sm:bg-surface sm:shadow-[var(--shadow-card)] ${
           view !== "month" ? "" : "card"
         }`}
       >
@@ -764,7 +768,7 @@ export default async function DiaryPage({
         * front of the scrolling part so it cannot slide off the side.
         */}
       {team.length > 1 && (
-        <div data-no-swipe className="mt-3 flex items-start gap-2 sm:mt-4">
+        <div data-no-swipe className="mt-2 flex items-start gap-2 sm:mt-4">
           {view === "day" && <LayoutToggle current={layout} />}
 
           <div className="min-w-0 flex-1">
