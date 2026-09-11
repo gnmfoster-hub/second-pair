@@ -242,7 +242,16 @@ export function DayList({
               <li key={`day-${row.date}`} className="pt-3 first:pt-0">
                 <div className="flex items-baseline gap-2 border-b border-border pb-1.5">
                   <span className="text-sm font-semibold">{row.label}</span>
-                  {row.count === 0 && <span className="hint text-xs">nothing booked</span>}
+                  {/*
+                    * A count, because a week for five people is eighty rows and
+                    * the headings are what somebody scrolls past looking for
+                    * the busy day.
+                    */}
+                  <span className="hint text-xs">
+                    {row.count === 0
+                      ? "nothing booked"
+                      : `${row.count} ${row.count === 1 ? "appointment" : "appointments"}`}
+                  </span>
                 </div>
               </li>
             );
@@ -274,7 +283,19 @@ export function DayList({
                 >
                   <span className="tabular-nums">{clockOf(from, timezone)}</span>
                   <span className="h-px flex-1 bg-border" aria-hidden />
-                  <span>{lengthOf(row.to.getTime() - row.from.getTime())} free</span>
+                  {/*
+                    * Said differently when several people share the day.
+                    *
+                    * "30m free" under a five-chair salon reads as one open
+                    * slot, when what it actually means is the rarer and more
+                    * interesting thing: not one of them has anybody in. The
+                    * gap is only ever found when nothing at all overlaps it,
+                    * so the words should say so.
+                    */}
+                  <span>
+                    {lengthOf(row.to.getTime() - row.from.getTime())}
+                    {artists.length > 1 ? " — nobody booked" : " free"}
+                  </span>
                   <span aria-hidden>+</span>
                 </button>
               </li>
@@ -306,14 +327,16 @@ export function DayList({
                   * between reading a column and reading thirty separate labels.
                   */}
                 {/*
-                  * Wide enough for "12:30 pm" and not a pixel more.
+                  * Wide enough for "11:00 am", which is the widest it gets.
                   *
-                  * It was 70px against text that measures about 48, and being
-                  * right-aligned the difference sat on the left as a permanent
-                  * empty gutter down the side of every row — which reads as a
-                  * column that failed to load rather than as spacing.
+                  * It started at 70px against text measuring about 48, and the
+                  * difference sat on the left as an empty gutter down every
+                  * row. Trimming it to 56 fixed that and broke the mornings:
+                  * "11:00 am" is 62 pixels, so it wrapped onto two lines and
+                  * every hour before noon looked like a different shape from
+                  * every hour after it. 64 is the number that holds both.
                   */}
-                <span className="w-[3.5rem] shrink-0 pt-px text-right">
+                <span className="w-16 shrink-0 pt-px text-right">
                   <span className="block text-sm font-semibold tabular-nums tracking-tight">
                     {clockOf(e.starts_at, timezone)}
                   </span>
@@ -332,15 +355,26 @@ export function DayList({
                     </span>
                   )}
                   <span className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                    {/*
+                      * Whose it is, in their own colour, when there is more
+                      * than one of them.
+                      *
+                      * On a five-chair salon the name was grey text at the end
+                      * of the line after the service and before the price, and
+                      * "who is doing this" is the thing an owner scans a busy
+                      * day for. As a filled chip in that person's colour it
+                      * can be read down the page without reading any of the
+                      * words.
+                      */}
                     {artists.length > 1 && (
-                      <span className="hint inline-flex items-center gap-1.5">
-                        {colourBy === "person" && (
-                          <span
-                            className="size-2 shrink-0 rounded-full"
-                            style={{ background: colourFor(e) }}
-                            aria-hidden
-                          />
-                        )}
+                      <span
+                        className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[0.68rem] font-semibold"
+                        style={
+                          colourBy === "person"
+                            ? { background: `${colourFor(e)}22`, color: colourFor(e) }
+                            : undefined
+                        }
+                      >
                         {nameOf(e.artist_id)}
                       </span>
                     )}
