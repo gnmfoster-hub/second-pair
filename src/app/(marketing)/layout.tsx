@@ -110,7 +110,17 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           <div className="mt-3.5 grid gap-3 sm:grid-cols-2">
             <Link
               href="/family-app"
-              className="group flex items-center gap-3.5 rounded-xl border border-border p-3.5 transition-colors hover:border-accent/50"
+              /*
+                * min-w-0 on the grid item, which is the whole bug.
+                *
+                * A grid item's min-width is auto, so it refuses to shrink below
+                * its content however much the text inside it says truncate —
+                * and this row's description is a long sentence. The card came
+                * out 443px wide on a 390px screen and gave the whole page a
+                * sideways scroll: not just here, but on the homepage, which is
+                * the page that sells the thing.
+                */
+              className="group flex min-w-0 items-center gap-3.5 rounded-xl border border-border p-3.5 transition-colors hover:border-accent/50"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -120,7 +130,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 height={44}
                 className="shrink-0 rounded-[11px]"
               />
-              <span className="min-w-0">
+              <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold">Family APP!</span>
                 <span className="hint block truncate">
                   A private hub for one family — chat, photos, dates, holidays
