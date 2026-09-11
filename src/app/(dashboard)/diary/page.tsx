@@ -80,6 +80,21 @@ export default async function DiaryPage({
             ? "day"
             : "week";
 
+  /*
+   * Whether the week was chosen or merely defaulted to.
+   *
+   * A business with one person lands on the week, which is right at a desk —
+   * a solo tattooist books six weeks out and wants to see the shape of them.
+   * On a phone it is the worst view in the product: seven columns across
+   * 390px is 45 pixels each, and both of the businesses running this today
+   * have exactly one person, so this is the screen they actually get.
+   *
+   * Rather than change the default and take the week away from anybody at a
+   * desk, a phone is given the day and a wider screen the week, and the choice
+   * is undone the moment somebody presses a view button for themselves.
+   */
+  const defaultedToWeek = !viewParam && !week && view === "week";
+
   const focusDay = dayParam ? parseIsoDate(dayParam) : new Date();
   const anchor = week ? parseIsoDate(week) : focusDay;
   /*
@@ -128,7 +143,7 @@ export default async function DiaryPage({
    * month already show the week.
    */
   const weekLoad: { starts_at: string; ends_at: string; artist_id: string }[] =
-    view === "day"
+    view === "day" || defaultedToWeek
       ? ((
           await supabase
             .from("bookings")
@@ -190,6 +205,18 @@ export default async function DiaryPage({
   }
 
   const step = view === "day" ? 1 : 7;
+
+  /*
+   * A day either way, whatever the view thinks it is.
+   *
+   * The swipe moves the list on a phone, and the list is always one day — but
+   * a business with one person defaults to the week view, whose arrows step
+   * seven days at a time. Handing those to the swipe would have a flick of the
+   * thumb jump a week, which is not what pushing today sideways means anywhere
+   * else on a phone.
+   */
+  const dayBack = `/diary?view=day&day=${isoDate(addDays(focusDay, -1))}`;
+  const dayForward = `/diary?view=day&day=${isoDate(addDays(focusDay, 1))}`;
 
   // A month steps by a month, not by four weeks, or the label drifts.
   const shiftMonth = (by: number) =>
@@ -446,7 +473,7 @@ export default async function DiaryPage({
             */}
           <div
             className={`items-center overflow-hidden rounded-xl border border-border bg-surface ${
-              view === "day" ? "hidden sm:flex" : "flex"
+              view === "day" || defaultedToWeek ? "hidden sm:flex" : "flex"
             }`}
           >
             <Link
@@ -527,7 +554,7 @@ export default async function DiaryPage({
         */}
       <div
         className={`settle relative mt-3 overflow-hidden sm:mt-5 sm:rounded-2xl sm:border sm:border-border sm:bg-surface sm:shadow-[var(--shadow-card)] ${
-          view === "day" ? "" : "card"
+          view === "day" || defaultedToWeek ? "" : "card"
         }`}
       >
       {/*
@@ -637,7 +664,7 @@ export default async function DiaryPage({
         )}
       </div>
 
-      {view === "day" && (
+      {(view === "day" || defaultedToWeek) && (
         <WeekStrip focusDay={focusDay} load={strip} who={focused} today={isoDate(new Date())} />
       )}
 
@@ -733,7 +760,7 @@ export default async function DiaryPage({
       {entries.length === 0 && (
         <div
           className={`pointer-events-none absolute inset-x-0 top-1/2 z-30 flex -translate-y-1/2 justify-center px-6 ${
-            view === "day" ? "hidden sm:flex" : ""
+            view === "day" || defaultedToWeek ? "hidden sm:flex" : ""
           }`}
         >
           {/*
@@ -793,14 +820,14 @@ export default async function DiaryPage({
               * is the whole point of it, and a list of forty appointments is
               * not a week.
               */}
-            {view === "day" && (
+            {(view === "day" || defaultedToWeek) && (
               <div className="sm:hidden">
                 {/*
                   * Push the day sideways to change it, the way every calendar
                   * on a phone works. The arrows are at the top of the screen,
                   * which is the furthest point from a thumb.
                   */}
-                <SwipeDays back={back} forward={forward} />
+                <SwipeDays back={dayBack} forward={dayForward} />
                 <DayList
                   entries={entries}
                   artists={focused ? team.filter((a) => a.id === focused) : team}
@@ -812,7 +839,7 @@ export default async function DiaryPage({
               </div>
             )}
 
-            <div className={view === "day" ? "hidden sm:block" : ""}>
+            <div className={view === "day" || defaultedToWeek ? "hidden sm:block" : ""}>
               <WeekGrid
                 weekStart={isoDate(start)}
                 day={isoDate(focusDay)}

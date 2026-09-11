@@ -37,6 +37,28 @@ var OFFLINE_PAGE =
   "<div><h1>No connection</h1><p>Second Pair needs the internet to show you " +
   "today&rsquo;s diary. Nothing is lost &mdash; try again once you are back on.</p></div>";
 
+/*
+ * Take over at once, rather than waiting for every window to close.
+ *
+ * By default a new service worker installs and then sits waiting until every
+ * tab and window running the old one has gone. On a phone where the app lives
+ * on the home screen and is never actually closed, that is forever: a business
+ * could be three weeks and a dozen deploys behind and nothing would say so,
+ * and the only fix anybody could give them is "try closing it properly", which
+ * is the sort of advice that loses trust.
+ *
+ * Safe here because nothing is cached. The worker forwards navigations to the
+ * network and touches nothing else, so an old page and a new worker cannot
+ * disagree about anything.
+ */
+self.addEventListener("install", function () {
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", function (event) {
+  event.waitUntil(self.clients.claim());
+});
+
 self.addEventListener("fetch", function (event) {
   // Only pages. Scripts, images and API calls are the browser's business.
   if (event.request.mode !== "navigate") return;
