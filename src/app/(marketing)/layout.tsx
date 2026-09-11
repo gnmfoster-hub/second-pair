@@ -84,11 +84,16 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               * had just spent its remaining room: header 95px, button on two
               * lines, at exactly the width a tablet is held at in portrait.
               *
-              * md: is the first breakpoint where the wide lockup and this both
-              * fit with the button untouched. Breaking the main action in order
-              * to advertise the other product is the exact trade this was meant
-              * to avoid, and the homepage band carries Family APP! at every
-              * width below this one anyway.
+              * md: was the first breakpoint where the wide lockup and a bare
+              * "Family APP!" both fit with the button untouched — but a bare
+              * "Family APP!" is exactly what nobody could read, and the label
+              * that says what it is costs another 70px. So lg:, which is a
+              * laptop and up.
+              *
+              * Breaking the main action in order to advertise the other
+              * product is the exact trade this was meant to avoid, and the
+              * homepage band carries Family APP! at every width below this one
+              * anyway — with more room to explain it than a header row has.
               */}
             {/*
               * The name alone did not say anything.
@@ -110,7 +115,21 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               * explains it properly, so the card is an improvement for a mouse
               * and never a requirement for anybody else.
               */}
-            <div className="group relative hidden md:block">
+            <div className="group relative hidden lg:block">
+              {/*
+                * "Also by us", said in the row rather than on hover.
+                *
+                * The card underneath only ever reaches somebody who already
+                * decided the name was worth investigating, and a name nobody
+                * recognises does not earn that decision — which left the card
+                * explaining the product to the one group who did not need it.
+                * The words that do the work have to be visible without asking.
+                *
+                * So the row states the relationship and the card keeps the
+                * detail. "Also by us" is the whole point of it being here at
+                * all: not another thing to buy, evidence that the company
+                * behind the diary builds more than the diary.
+                */}
               <Link
                 href="/family-app"
                 className="flex items-center gap-1.5 whitespace-nowrap py-2 text-sm text-muted transition-colors hover:text-foreground"
@@ -123,7 +142,8 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                   height={16}
                   className="shrink-0 rounded-[4px]"
                 />
-                Family APP!
+                Also by us:{" "}
+                <span className="font-medium text-foreground/80">Family APP!</span>
               </Link>
 
               {/* Right-aligned, because it hangs off a link near the right edge
