@@ -70,6 +70,32 @@ export function EntryDialog({
     : (dragged ?? 60);
 
   const [category, setCategory] = useState(entry?.category ?? "personal");
+
+  /*
+   * The title, filled in by the category unless somebody has typed.
+   *
+   * Choosing "Holiday" and then typing the word Holiday is the machine asking
+   * you to repeat yourself, and it is most of what gets typed into this box —
+   * holiday, lunch, training, admin. The category already says it.
+   *
+   * Only ever overwrites what it wrote itself. Kept in a ref rather than
+   * compared against the label list, because somebody who types "Holiday" on
+   * purpose and then changes the category to Training should keep their word:
+   * the question is not whether the text matches a label, it is whether we are
+   * the ones who put it there.
+   */
+  const [title, setTitle] = useState(entry?.title ?? "");
+  const filledIn = useRef(entry ? null : "");
+
+  const chooseCategory = (key: string) => {
+    setCategory(key);
+
+    const label = categoryFor(key).label;
+    if (title === filledIn.current) {
+      setTitle(label);
+      filledIn.current = label;
+    }
+  };
   const [allDay, setAllDay] = useState(entry?.all_day ?? false);
   const [repeats, setRepeats] = useState("none");
   const chosen = categoryFor(category);
@@ -158,7 +184,7 @@ export function EntryDialog({
                   <button
                     key={c.key}
                     type="button"
-                    onClick={() => setCategory(c.key)}
+                    onClick={() => chooseCategory(c.key)}
                     className={`rounded-full px-3 py-1 text-xs transition-colors ${
                       category === c.key
                         ? "text-white"
@@ -230,7 +256,18 @@ export function EntryDialog({
             <Field label="Title">
               <input
                 name="title"
-                defaultValue={entry?.title ?? ""}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                /*
+                  * Selected on focus when we are the ones who filled it in, so
+                  * the first keystroke replaces it rather than landing in the
+                  * middle of a word they did not type. Somebody adding to it
+                  * just presses right first, which is what selected text is
+                  * for.
+                  */
+                onFocus={(e) => {
+                  if (title && title === filledIn.current) e.target.select();
+                }}
                 placeholder={
                   category === "supplies"
                     ? "Order ink and needles"
