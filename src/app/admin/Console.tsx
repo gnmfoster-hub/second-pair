@@ -8,6 +8,7 @@ import {
   createBusiness,
   resetLink,
   openDemo,
+  rebuildDemo,
   deleteBusiness,
   saveAccount,
   fixSettings,
@@ -618,6 +619,7 @@ function Stat({ label, value, warn }: { label: string; value: number | string; w
 function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
   const [kind, kindAction] = useActionState<Result, FormData>(setKind, {});
   const [demo, demoAction] = useActionState<Result, FormData>(openDemo, {});
+  const [rebuilt, rebuildAction] = useActionState<Result, FormData>(rebuildDemo, {});
   const [reset, resetAction] = useActionState<Result, FormData>(resetLink, {});
   const [gone, deleteAction] = useActionState<Result, FormData>(deleteBusiness, {});
   const [saved, saveAction] = useActionState<Result, FormData>(saveAccount, {});
@@ -679,6 +681,56 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
             </a>
           )}
           {demo.error && <p className="mt-2 text-sm text-warn">{demo.error}</p>}
+
+          {/*
+            * The assistant, beside the diary rather than at the bottom of the
+            * card.
+            *
+            * There has always been an "Open their assistant" link, but it sits
+            * under the notes box below every business on the page — fine for
+            * checking a customer's widget, useless for the one you reach for
+            * in front of somebody. A demonstration is the diary and the widget
+            * together: here is the message going in, here is where it lands.
+            */}
+          <a
+            href={`/widget/${b.slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 flex items-center gap-2 text-sm text-accent hover:underline"
+          >
+            Open the demo assistant
+            <span aria-hidden>&rarr;</span>
+          </a>
+        </form>
+      )}
+
+      {/*
+        * Putting it back to today.
+        *
+        * The week is built around this Monday and the inbox is timed in
+        * minutes-ago, so a fortnight on it is a salon with an empty diary
+        * whose newest enquiry is from last Tuesday. That is worse than no
+        * demo: the person being shown it reads the staleness as the product.
+        *
+        * Next to Open it, because the moment you want this is the moment
+        * before you open it.
+        */}
+      {b.kind === "demo" && (
+        <form action={rebuildAction} className="rounded-xl border border-border bg-surface-2/40 p-3.5">
+          <div className="flex flex-wrap items-center gap-3">
+            <input type="hidden" name="id" value={b.id} />
+            <div className="min-w-0">
+              <div className="text-sm font-medium">Put it back to today</div>
+              <div className="hint">
+                Rebuilds this week&rsquo;s appointments and the inbox, all dated from
+                now. Nothing else is touched, and it only ever runs on a demo.
+              </div>
+            </div>
+            <button className="btn-ghost ml-auto">Refresh the demo</button>
+          </div>
+
+          {rebuilt.note && <p className="mt-2 text-sm text-ok">{rebuilt.note}</p>}
+          {rebuilt.error && <p className="mt-2 text-sm text-warn">{rebuilt.error}</p>}
         </form>
       )}
 

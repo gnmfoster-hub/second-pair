@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { readNumbers } from "@/lib/channels/phoneNumbers";
 import { isPlatformAdmin } from "@/lib/platform";
 import { siteOrigin } from "@/lib/origin";
+import { refreshDemo } from "@/lib/demo/refresh";
 
 export type Result = { ok?: true; error?: string; note?: string; link?: string };
 
@@ -295,6 +296,41 @@ export async function resetLink(_prev: Result, fd: FormData): Promise<Result> {
  * a demo has no real customers in it — the moment it would work on a customer,
  * it is a back door into a salon's client list.
  */
+/**
+ * Put the demo back to today.
+ *
+ * Its week is built around this Monday and its inbox is timed in minutes-ago,
+ * so a fortnight later it is a salon with an empty diary whose newest enquiry
+ * is from last Tuesday — and somebody being shown that draws conclusions about
+ * the product from it. Until now the only way to fix that was a checkout, a
+ * terminal and the service key, which meant it happened when somebody was at
+ * their desk rather than before it was shown to anybody.
+ *
+ * The refusal for anything that is not a demo is inside refreshDemo, against
+ * the row it just read, rather than here: this deletes a week of appointments
+ * and every conversation, and a button is one wrong id away from doing that to
+ * a real business.
+ */
+export async function rebuildDemo(_prev: Result, fd: FormData): Promise<Result> {
+  const denied = await guard();
+  if (denied) return denied;
+
+  const id = String(fd.get("id") ?? "").trim();
+  if (!id) return { error: "No business." };
+
+  try {
+    const out = await refreshDemo(createAdminClient(), id);
+    revalidatePath("/admin");
+    return {
+      note:
+        `Rebuilt: ${out.appointments} appointments this week, ${out.conversations} ` +
+        `conversations, ${out.messages} messages. All dated from today.`,
+    };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "It would not rebuild." };
+  }
+}
+
 export async function openDemo(_prev: Result, fd: FormData): Promise<Result> {
   const denied = await guard();
   if (denied) return denied;
