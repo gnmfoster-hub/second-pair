@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Logo } from "@/components/Logo";
 import { LiveDemo } from "./LiveDemo";
 import type { Metadata } from "next";
 import { VERTICALS_BY_CATEGORY, VERTICAL_LIST } from "@/lib/verticals";
@@ -291,6 +293,82 @@ export default function HomePage() {
               <p className="mt-1.5 text-sm leading-relaxed text-muted">{body}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ────────────────────────────────────────────────────────── company */}
+      {/*
+        * Who is behind it, immediately before the last ask.
+        *
+        * The question a business has at this point in the page is not what the
+        * product does — that is the whole page above — it is whether the people
+        * behind it will still be here in a year. Somebody handing over the
+        * first thing every new customer sees wants to know they are not the
+        * only customer of a side project.
+        *
+        * So Family APP! is here as evidence, not as a second offer. The
+        * heading is the company, the claim is that it ships things people use
+        * daily, and the two products are the proof of the claim. Nothing here
+        * is a button: the only call to action on this page is the one
+        * underneath, and a second one competing with it at the closing moment
+        * is the one mistake a sales page cannot make.
+        *
+        * Placed after the entire argument and before the close, which is where
+        * proof goes — ahead of it, it is an interruption; below the close, it
+        * is never read.
+        */}
+      <section className="border-t border-border">
+        <div className="mx-auto max-w-5xl px-5 py-16 sm:px-8 sm:py-20">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+            Made by Second Pair Ltd
+          </p>
+
+          <h2 className="page-title mt-3 max-w-[24ch] text-2xl sm:text-3xl">
+            We build things people use every day, not demos
+          </h2>
+
+          <p className="mt-4 max-w-[46ch] text-base leading-relaxed text-muted">
+            A small software company in Devon. Two products, both in daily use by people
+            who are not us &mdash; which is the only test that has ever told us anything.
+          </p>
+
+          <div className="mt-9 grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2">
+            <div className="flex min-w-0 flex-col bg-background p-6">
+              <div className="flex items-center gap-2.5">
+                <Logo height={26} lockup="horizontal" />
+                <span className="pill bg-ok/10 text-ok">Live</span>
+              </div>
+              <p className="mt-3.5 flex-1 text-sm leading-relaxed text-muted">
+                This. Answering enquiries for tattooists, salons, cleaners and trades
+                &mdash; in their voice, from their prices, into their diary.
+              </p>
+            </div>
+
+            <div className="flex min-w-0 flex-col bg-background p-6">
+              <div className="flex items-center gap-2.5">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/family/icon-96.png"
+                  alt=""
+                  width={26}
+                  height={26}
+                  className="shrink-0 rounded-[7px]"
+                />
+                <span className="text-[0.95rem] font-semibold">Family APP!</span>
+                <span className="pill bg-surface-2 text-muted">Early access</span>
+              </div>
+              <p className="mt-3.5 flex-1 text-sm leading-relaxed text-muted">
+                A private hub for one family &mdash; chat, photos, a shared calendar and
+                an AI holiday planner. Built because we wanted it at home.
+              </p>
+              <Link
+                href="/family-app"
+                className="mt-4 text-sm font-medium text-foreground underline decoration-border underline-offset-4 transition-colors hover:decoration-current"
+              >
+                Have a look
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 

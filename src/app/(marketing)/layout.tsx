@@ -51,12 +51,14 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               * quietest thing on the row, present on every page, and invisible
               * to anybody who is not looking for it.
               *
-              * Hidden on a phone, where the header has a logo and two buttons
-              * and no room at all for a fourth thing.
+              * On a phone it loses the theme toggle's company rather than
+              * itself: the toggle is already hidden there, and a link to the
+              * other product earns the space more than a light-and-dark switch
+              * most people never touch.
               */}
             <Link
               href="/family-app"
-              className="hidden text-sm text-muted transition-colors hover:text-foreground md:block"
+              className="whitespace-nowrap text-xs text-muted transition-colors hover:text-foreground sm:text-sm"
             >
               Family APP!
             </Link>
