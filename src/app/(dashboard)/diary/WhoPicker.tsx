@@ -21,22 +21,38 @@ import type { Artist } from "@/lib/types";
  *
  * Links rather than state, like the chips it replaces — whose diary this is
  * belongs in the address, so it survives a reload and can be sent to somebody.
+ *
+ * It is given the pieces of the address rather than something that builds one.
+ * The first version took a hrefFor(id) callback, which is the obvious shape and
+ * is not allowed: the page rendering this is a server component, and a function
+ * cannot be serialised across that boundary. It threw on render — so the diary
+ * returned a server error for any business with more than four people, which
+ * was none of them until the demo salon existed. Nothing in the product had
+ * ever run the line.
  */
 export function WhoPicker({
   team,
   focused,
-  hrefFor,
+  view,
+  anchor,
   colourByPerson,
 }: {
   team: Artist[];
   /** The id being shown, or null for everybody. */
   focused: string | null;
-  /** Where each choice goes. Null means everyone. */
-  hrefFor: (artistId: string | null) => string;
+  /** Which view the links should stay in. */
+  view: "day" | "week";
+  /** The day or the week start, as YYYY-MM-DD. */
+  anchor: string;
   /** Whether a dot in their colour means anything here. */
   colourByPerson: boolean;
 }) {
   const [open, setOpen] = useState(false);
+
+  const hrefFor = (id: string | null) =>
+    view === "day"
+      ? `/diary?view=day&day=${anchor}${id ? `&who=${id}` : ""}`
+      : `/diary?view=week&week=${anchor}${id ? `&who=${id}` : ""}`;
 
   const person = focused ? team.find((a) => a.id === focused) : null;
   const colourOf = (a: Artist) => a.colour || colourForName(a.name);

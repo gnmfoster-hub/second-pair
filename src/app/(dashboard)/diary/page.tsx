@@ -715,11 +715,8 @@ export default async function DiaryPage({
             team={team}
             focused={focused}
             colourByPerson={(studio.diary_colour ?? "category") === "person"}
-            hrefFor={(id) =>
-              view === "day"
-                ? `/diary?view=day&day=${isoDate(focusDay)}${id ? `&who=${id}` : ""}`
-                : `/diary?view=week&week=${isoDate(start)}${id ? `&who=${id}` : ""}`
-            }
+            view={view === "month" ? "week" : view}
+            anchor={view === "day" ? isoDate(focusDay) : isoDate(start)}
           />
         </div>
       )}
