@@ -7,6 +7,7 @@ import { MonthGrid } from "./MonthGrid";
 import { DayList } from "./DayList";
 import { SwipeDays } from "./SwipeDays";
 import { WeekStrip, type DayLoad } from "./WeekStrip";
+import { Stepper } from "./Stepper";
 import { UpNext } from "@/components/UpNext";
 import { Shortcuts } from "./Shortcuts";
 import { NewEntry } from "./NewEntry";
@@ -431,6 +432,21 @@ export default async function DiaryPage({
             {asHours(bookedMinutes)} &middot; {formatPence(worth)}
           </span>
         )}
+
+        {/*
+          * The arrows, beside the date they move, on a phone.
+          *
+          * Day view has the week strip instead, which does the same job and
+          * answers "is Thursday full" as well.
+          */}
+        {view !== "day" && (
+          <Stepper
+            back={back}
+            forward={forward}
+            today={`/diary?view=${view}`}
+            className="ml-auto flex sm:hidden"
+          />
+        )}
         {awaiting > 0 && (
           <span className="rounded-full bg-warn/10 px-2.5 py-1 text-xs text-warn">
             {awaiting} waiting on a deposit
@@ -496,32 +512,18 @@ export default async function DiaryPage({
             * any other, while seven dates with a bar under each answer "is
             * Thursday full" without touching anything.
             */}
-          <div
-            className={`items-center overflow-hidden rounded-xl border border-border bg-surface ${
-              view === "day" ? "hidden sm:flex" : "flex"
-            }`}
-          >
-            <Link
-              href={back}
-              className="px-2.5 py-1.5 text-muted transition-colors hover:bg-surface-2 hover:text-foreground sm:px-3 sm:py-2"
-              aria-label="Previous"
-            >
-              ‹
-            </Link>
-            <Link
-              href={`/diary?view=${view}`}
-              className="border-x border-border px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-foreground sm:px-3.5 sm:py-2"
-            >
-              Today
-            </Link>
-            <Link
-              href={forward}
-              className="px-2.5 py-1.5 text-muted transition-colors hover:bg-surface-2 hover:text-foreground sm:px-3 sm:py-2"
-              aria-label="Next"
-            >
-              ›
-            </Link>
-          </div>
+          {/*
+            * With the other controls at every size but a phone, where it has
+            * gone up beside the date — the three rows would not fit on one
+            * otherwise. Never in day view on a phone, where the week strip
+            * replaces it and does more.
+            */}
+          <Stepper
+            back={back}
+            forward={forward}
+            today={`/diary?view=${view}`}
+            className={view === "day" ? "hidden sm:flex" : "hidden sm:flex"}
+          />
 
           <ColourBy
             current={(studio.diary_colour ?? "category") as ColourMode}
