@@ -66,8 +66,22 @@ export default async function DiaryPage({
    * view was unreachable for a salon, which is the one place it earns its
    * keep.
    *
-   * Now an explicit choice always wins, a ?week= is itself a choice, and the
-   * team-size default only applies when nobody has asked for anything.
+   * Now an explicit choice always wins, a ?week= is itself a choice, and
+   * everything else opens on the day.
+   *
+   * It used to open a one-person business on the week, on the grounds that a
+   * single column of one day is a sparse thing to look at. That was reasoning
+   * about the grid, and on a phone the day is a list now — where one person's
+   * day is exactly the right amount of information and a week is seven columns
+   * of forty-five pixels.
+   *
+   * The alternative, tried and thrown away, was to keep the week and quietly
+   * show the day on narrow screens. It worked and it read as broken: the
+   * heading said "7 Sept – 13 Sept", the figures gave the week's hours and
+   * takings, and Week was lit up in the switcher, all above a list of one
+   * Friday. Every one of those would have needed its own mobile variant to
+   * agree with the thing underneath it. Opening on the day makes all of them
+   * true without any of that.
    */
   const view: "day" | "week" | "month" =
     viewParam === "day"
@@ -76,9 +90,7 @@ export default async function DiaryPage({
         ? "month"
         : viewParam === "week" || week
           ? "week"
-          : team.length > 1
-            ? "day"
-            : "week";
+          : "day";
 
   /*
    * Whether the week was chosen or merely defaulted to.
@@ -93,8 +105,6 @@ export default async function DiaryPage({
    * desk, a phone is given the day and a wider screen the week, and the choice
    * is undone the moment somebody presses a view button for themselves.
    */
-  const defaultedToWeek = !viewParam && !week && view === "week";
-
   const focusDay = dayParam ? parseIsoDate(dayParam) : new Date();
   const anchor = week ? parseIsoDate(week) : focusDay;
   /*
@@ -143,7 +153,7 @@ export default async function DiaryPage({
    * month already show the week.
    */
   const weekLoad: { starts_at: string; ends_at: string; artist_id: string }[] =
-    view === "day" || defaultedToWeek
+    view === "day"
       ? ((
           await supabase
             .from("bookings")
@@ -473,7 +483,7 @@ export default async function DiaryPage({
             */}
           <div
             className={`items-center overflow-hidden rounded-xl border border-border bg-surface ${
-              view === "day" || defaultedToWeek ? "hidden sm:flex" : "flex"
+              view === "day" ? "hidden sm:flex" : "flex"
             }`}
           >
             <Link
@@ -554,7 +564,7 @@ export default async function DiaryPage({
         */}
       <div
         className={`settle relative mt-3 overflow-hidden sm:mt-5 sm:rounded-2xl sm:border sm:border-border sm:bg-surface sm:shadow-[var(--shadow-card)] ${
-          view === "day" || defaultedToWeek ? "" : "card"
+          view === "day" ? "" : "card"
         }`}
       >
       {/*
@@ -664,7 +674,7 @@ export default async function DiaryPage({
         )}
       </div>
 
-      {(view === "day" || defaultedToWeek) && (
+      {view === "day" && (
         <WeekStrip focusDay={focusDay} load={strip} who={focused} today={isoDate(new Date())} />
       )}
 
@@ -760,7 +770,7 @@ export default async function DiaryPage({
       {entries.length === 0 && (
         <div
           className={`pointer-events-none absolute inset-x-0 top-1/2 z-30 flex -translate-y-1/2 justify-center px-6 ${
-            view === "day" || defaultedToWeek ? "hidden sm:flex" : ""
+            view === "day" ? "hidden sm:flex" : ""
           }`}
         >
           {/*
@@ -820,7 +830,7 @@ export default async function DiaryPage({
               * is the whole point of it, and a list of forty appointments is
               * not a week.
               */}
-            {(view === "day" || defaultedToWeek) && (
+            {view === "day" && (
               <div className="sm:hidden">
                 {/*
                   * Push the day sideways to change it, the way every calendar
@@ -839,7 +849,7 @@ export default async function DiaryPage({
               </div>
             )}
 
-            <div className={view === "day" || defaultedToWeek ? "hidden sm:block" : ""}>
+            <div className={view === "day" ? "hidden sm:block" : ""}>
               <WeekGrid
                 weekStart={isoDate(start)}
                 day={isoDate(focusDay)}
