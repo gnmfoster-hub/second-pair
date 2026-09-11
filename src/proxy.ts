@@ -20,6 +20,14 @@ const PUBLIC_PATHS = [
   "/home",
   "/privacy",
   "/terms",
+  /*
+   * The second product's own sales page.
+   *
+   * Left off this list it is not a broken page — it is a sales page that
+   * bounces every visitor to a password box, which is worse, because nothing
+   * says so and the link looks like it works.
+   */
+  "/family-app",
   "/auth",
   "/widget",
   "/api/widget",

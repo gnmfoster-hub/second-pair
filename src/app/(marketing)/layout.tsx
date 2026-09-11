@@ -87,6 +87,51 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
 
       <main className="flex-1">{children}</main>
 
+      {/*
+        * The company, above the small print.
+        *
+        * Second Pair Ltd makes more than one thing now, and the domain is named
+        * after the first. Without a line like this the second product is
+        * unreachable from anywhere a visitor would look, and the company is
+        * invisible behind its own flagship.
+        *
+        * Deliberately a strip rather than a products page. With two products an
+        * index is a page nobody opens to choose between two things they can
+        * already see; at three or four it starts earning its place.
+        */}
+      <section className="border-t border-border bg-surface/40">
+        <div className="mx-auto max-w-5xl px-5 py-9 sm:px-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">
+            Also from Second Pair Ltd
+          </p>
+
+          <div className="mt-3.5 grid gap-3 sm:grid-cols-2">
+            <Link
+              href="/family-app"
+              className="group flex items-center gap-3.5 rounded-xl border border-border p-3.5 transition-colors hover:border-accent/50"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/family/icon-96.png"
+                alt=""
+                width={44}
+                height={44}
+                className="shrink-0 rounded-[11px]"
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold">Family APP!</span>
+                <span className="hint block truncate">
+                  A private hub for one family — chat, photos, dates, holidays
+                </span>
+              </span>
+              <span aria-hidden className="ml-auto shrink-0 text-muted transition-transform group-hover:translate-x-0.5">
+                →
+              </span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-5 py-8 text-xs text-muted sm:px-8">
           {/*
@@ -101,7 +146,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           <Link href="/terms" className="hover:text-foreground">
             Terms
           </Link>
-          <span className="ml-auto">Made in the UK</span>
+          <span className="ml-auto">Second Pair Ltd &middot; made in the UK</span>
         </div>
       </footer>
     </div>
