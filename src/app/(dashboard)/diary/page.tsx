@@ -6,6 +6,7 @@ import { WeekGrid, type Entry } from "./WeekGrid";
 import { MonthGrid } from "./MonthGrid";
 import { DayList } from "./DayList";
 import { SwipeDays } from "./SwipeDays";
+import { WeekStrip, type DayLoad } from "./WeekStrip";
 import { Shortcuts } from "./Shortcuts";
 import { NewEntry } from "./NewEntry";
 import { ColourBy } from "./ColourBy";
@@ -114,6 +115,30 @@ export default async function DiaryPage({
     .lt("starts_at", addDays(end, 1).toISOString())
     .gt("ends_at", addDays(start, -1).toISOString())
     .order("starts_at");
+
+  /*
+   * How busy each day of this week is, for the strip across the top of a
+   * phone.
+   *
+   * Its own query, and a deliberately thin one — starts, ends and whose it is,
+   * nothing else. The main query above fetches one day in day view, which is
+   * right for drawing that day and useless for saying anything about Thursday.
+   *
+   * Only for the day view, because only the day view has a strip. The week and
+   * month already show the week.
+   */
+  const weekLoad: { starts_at: string; ends_at: string; artist_id: string }[] =
+    view === "day"
+      ? ((
+          await supabase
+            .from("bookings")
+            .select("starts_at, ends_at, artist_id")
+            .is("cancelled_at", null)
+            .eq("blocks_availability", true)
+            .gte("starts_at", startOfWeek(focusDay).toISOString())
+            .lt("starts_at", addDays(startOfWeek(focusDay), 7).toISOString())
+        ).data ?? [])
+      : [];
 
   const focused = who && team.some((a) => a.id === who) ? who : null;
   const mine = new Set(
@@ -283,6 +308,44 @@ export default async function DiaryPage({
       : [];
 
   const freeMinutes = Math.max(0, capacity - bookedMinutes);
+
+  /*
+   * Each day of the week as a fraction of itself.
+   *
+   * Against that day's own opening hours and its own number of people, so a
+   * Saturday that is open four hours is not shown as quiet simply for being
+   * short. A day the business is shut is marked closed rather than empty —
+   * an empty track on a Sunday reads as "wide open", which is the opposite of
+   * what it means.
+   */
+  const strip: DayLoad[] = Array.from({ length: 7 }, (_, i) => {
+    const day = addDays(startOfWeek(focusDay), i);
+    const key = isoDate(day);
+    const opening = studio.hours.find((h) => h.day === day.getDay());
+    const openMinutes =
+      opening && !opening.closed
+        ? Math.max(
+            0,
+            Number(opening.close.split(":")[0]) * 60 +
+              Number(opening.close.split(":")[1]) -
+              (Number(opening.open.split(":")[0]) * 60 + Number(opening.open.split(":")[1])),
+          )
+        : 0;
+
+    const people = Math.max(1, focused ? 1 : team.length);
+    const room = openMinutes * people;
+
+    const busy = weekLoad
+      .filter((b) => (focused ? b.artist_id === focused : mine.has(b.artist_id)))
+      .filter((b) => isoDate(new Date(b.starts_at)) === key)
+      .reduce(
+        (total, b) =>
+          total + Math.max(0, (Date.parse(b.ends_at) - Date.parse(b.starts_at)) / 60_000),
+        0,
+      );
+
+    return { date: key, open: room > 0, full: room > 0 ? busy / room : 0 };
+  });
   const asHours = (mins: number) => {
     const h = Math.floor(mins / 60);
     const m = Math.round(mins % 60);
@@ -373,7 +436,19 @@ export default async function DiaryPage({
             </Link>
           </div>
 
-          <div className="flex items-center overflow-hidden rounded-xl border border-border bg-surface">
+          {/*
+            * The stepper, on anything but a phone in day view.
+            *
+            * The week strip below replaces it there and does more: two arrows
+            * and a Today button move one day at a time and say nothing about
+            * any other, while seven dates with a bar under each answer "is
+            * Thursday full" without touching anything.
+            */}
+          <div
+            className={`items-center overflow-hidden rounded-xl border border-border bg-surface ${
+              view === "day" ? "hidden sm:flex" : "flex"
+            }`}
+          >
             <Link
               href={back}
               className="px-2.5 py-1.5 text-muted transition-colors hover:bg-surface-2 hover:text-foreground sm:px-3 sm:py-2"
@@ -441,7 +516,20 @@ export default async function DiaryPage({
         * printed. One beat, and it stops for anybody who has asked for less
         * motion.
         */}
-      <div className="card settle relative mt-3 overflow-hidden sm:mt-5">
+      {/*
+        * No frame around a list.
+        *
+        * The card is what holds the grid together — a border, a background and
+        * the figures along the top. Around a list of rows that already have
+        * their own borders it is a box inside a box, costing a border, its
+        * padding and the horizontal room besides, for nothing anybody can see.
+        * Kept at every other size, where it holds the grid it was built for.
+        */}
+      <div
+        className={`settle relative mt-3 overflow-hidden sm:mt-5 sm:rounded-2xl sm:border sm:border-border sm:bg-surface sm:shadow-[var(--shadow-card)] ${
+          view === "day" ? "" : "card"
+        }`}
+      >
       {/*
         * One line on a phone, whatever it takes.
         *
@@ -548,6 +636,10 @@ export default async function DiaryPage({
           </Link>
         )}
       </div>
+
+      {view === "day" && (
+        <WeekStrip focusDay={focusDay} load={strip} who={focused} today={isoDate(new Date())} />
+      )}
 
       {team.length > 1 && (
         <div
