@@ -197,6 +197,34 @@ export function WeekGrid({
 
   const swipeStart = (event: React.PointerEvent) => {
     if (event.pointerType !== "touch" || view !== "day") return;
+
+    /*
+     * Not when the grid has somewhere to scroll sideways.
+     *
+     * This gesture was written when a day's columns always fitted, because the
+     * grid was never drawn on a phone at all — so a horizontal drag could only
+     * ever have meant "change the day". Now a day can be five people at 116px
+     * in a 390px screen, and reaching the fifth means dragging sideways. Every
+     * one of those was landing on tomorrow instead: scroll right to see Jade,
+     * arrive on Saturday.
+     *
+     * Where there is a scroll to do, the sideways gesture belongs to it. Where
+     * there is not — one person, or a tablet wide enough for the whole team —
+     * nothing changes and the swipe works as it always did.
+     */
+    const box = scroller.current;
+    if (box && box.scrollWidth > box.clientWidth + 2) return;
+
+    /*
+     * And never from an appointment, which is a move.
+     *
+     * These handlers bubble up from the cards, so dragging somebody from
+     * Sarah's column into Mo's was also a sixty-pixel horizontal gesture: the
+     * booking was reassigned and the diary then jumped to the next day, which
+     * looks exactly like the move went somewhere it should not have.
+     */
+    if ((event.target as Element | null)?.closest?.("[data-diary-entry]")) return;
+
     swipe.current = { x: event.clientX, y: event.clientY };
   };
 
@@ -895,6 +923,10 @@ export function WeekGrid({
                     return (
                       <div
                         key={e.id}
+                        /* So a gesture starting here is known to be a move and
+                           not a swipe across to another day. The resize handle
+                           sits inside, so closest() covers it too. */
+                        data-diary-entry=""
                         /*
                          * A finger on an appointment is usually a scroll.
                          *
