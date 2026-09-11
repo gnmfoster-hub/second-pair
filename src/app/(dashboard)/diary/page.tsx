@@ -8,6 +8,7 @@ import { DayList } from "./DayList";
 import { SwipeDays } from "./SwipeDays";
 import { WeekStrip, type DayLoad } from "./WeekStrip";
 import { Stepper } from "./Stepper";
+import { WhoPicker } from "./WhoPicker";
 import { UpNext } from "@/components/UpNext";
 import { Shortcuts } from "./Shortcuts";
 import { NewEntry } from "./NewEntry";
@@ -695,10 +696,40 @@ export default async function DiaryPage({
         <WeekStrip focusDay={focusDay} load={strip} who={focused} today={isoDate(new Date())} />
       )}
 
+      {/*
+        * Chips for a handful of people, a picker for a salon.
+        *
+        * A row of chips is the right control for three or four: every name on
+        * the screen, one tap to any of them, nothing to learn. Measured on a
+        * five-chair salon at 360px it stops being that — the row runs off the
+        * side, Chloe is clipped and Jade is not on the screen at all, behind a
+        * sideways scroll nobody is told about.
+        *
+        * Five is where it turns over. One tap becomes two, which is the right
+        * trade against a name you cannot find. Wider screens keep the chips at
+        * any size, because there they wrap onto a second line and stay whole.
+        */}
+      {team.length > 4 && (
+        <div data-no-swipe className="mt-3 sm:hidden">
+          <WhoPicker
+            team={team}
+            focused={focused}
+            colourByPerson={(studio.diary_colour ?? "category") === "person"}
+            hrefFor={(id) =>
+              view === "day"
+                ? `/diary?view=day&day=${isoDate(focusDay)}${id ? `&who=${id}` : ""}`
+                : `/diary?view=week&week=${isoDate(start)}${id ? `&who=${id}` : ""}`
+            }
+          />
+        </div>
+      )}
+
       {team.length > 1 && (
         <div
           data-no-swipe
-          className="mt-3 flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:mt-4 sm:flex-wrap sm:overflow-visible"
+          className={`mt-3 flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:mt-4 sm:flex-wrap sm:overflow-visible ${
+            team.length > 4 ? "hidden sm:flex" : ""
+          }`}
         >
           <Link
             href={
