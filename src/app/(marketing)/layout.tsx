@@ -102,7 +102,9 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
       <section className="border-t border-border bg-surface/40">
         <div className="mx-auto max-w-5xl px-5 py-9 sm:px-8">
           <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">
-            Also from Second Pair Ltd
+            <Link href="/company" className="hover:text-foreground">
+              Also from Second Pair Ltd
+            </Link>
           </p>
 
           <div className="mt-3.5 grid gap-3 sm:grid-cols-2">
@@ -140,6 +142,9 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             * icon rather than a signature.
             */}
           <Logo height={26} lockup="inline" />
+          <Link href="/company" className="hover:text-foreground">
+            The company
+          </Link>
           <Link href="/privacy" className="hover:text-foreground">
             Privacy
           </Link>

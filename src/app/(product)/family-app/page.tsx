@@ -332,29 +332,55 @@ export default function FamilyAppPage() {
         style={{ borderColor: "var(--fa-line)" }}
       >
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-8 gap-y-4">
-          <div className="max-w-[34rem]">
+          <div className="max-w-[36rem]">
             <span className="fa-eyebrow">Who made it</span>
             <h2 className="mt-1.5 text-[1.25rem] font-semibold">
               Built by Second Pair Ltd
             </h2>
             <p className="mt-2 text-[0.95rem] leading-[1.55]" style={{ color: "var(--fa-ink-soft)" }}>
-              The same people behind{" "}
-              <Link href="/" className="underline underline-offset-2" style={{ color: "var(--fa-teal-deep)" }}>
+              Family APP! started as something we wanted at home and kept going because it
+              got used every day.
+            </p>
+            {/*
+              * The cross-sell, in the one direction that is a funnel.
+              *
+              * A plumber who uses this with his family is exactly who the other
+              * product is for. A salon owner reading about a receptionist is
+              * not obviously in the market for a family organiser, so the same
+              * link the other way round would be noise on the page that earns
+              * the money.
+              */}
+            <p className="mt-3 text-[0.95rem] leading-[1.55]" style={{ color: "var(--fa-ink-soft)" }}>
+              We also make{" "}
+              <Link
+                href="/"
+                className="font-semibold underline underline-offset-2"
+                style={{ color: "var(--fa-teal-deep)" }}
+              >
                 Second Pair
               </Link>
-              , the assistant that answers enquiries for appointment businesses. Family
-              APP! started as a thing we needed at home and kept going because it got used
-              every day.
+              , which answers the enquiries for businesses that work by appointment
+              &mdash; tattooists, salons, cleaners, trades. If you run one, it is the
+              reason half your evenings are not your own.
             </p>
           </div>
 
-          <Link
-            href="/"
-            className="ml-auto rounded-xl px-4 py-2.5 text-[0.92rem] font-semibold"
-            style={{ background: "var(--fa-bezel)", color: "var(--fa-ink)" }}
-          >
-            See Second Pair &rarr;
-          </Link>
+          <div className="ml-auto flex flex-col gap-2">
+            <Link
+              href="/"
+              className="rounded-xl px-4 py-2.5 text-center text-[0.92rem] font-semibold"
+              style={{ background: "var(--fa-marigold)", color: "#2b2420" }}
+            >
+              I run a business &rarr;
+            </Link>
+            <Link
+              href="/company"
+              className="rounded-xl px-4 py-2.5 text-center text-[0.92rem] font-semibold"
+              style={{ background: "var(--fa-bezel)", color: "var(--fa-ink)" }}
+            >
+              About the company
+            </Link>
+          </div>
         </div>
       </section>
     </div>

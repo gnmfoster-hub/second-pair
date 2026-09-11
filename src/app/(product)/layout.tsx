@@ -22,6 +22,9 @@ export default function ProductLayout({ children }: { children: React.ReactNode 
           <Link href="/" className="font-medium hover:text-foreground">
             Second Pair Ltd
           </Link>
+          <Link href="/company" className="hover:text-foreground">
+            The company
+          </Link>
           <Link href="/privacy" className="hover:text-foreground">
             Privacy
           </Link>

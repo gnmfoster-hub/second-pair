@@ -28,6 +28,8 @@ const PUBLIC_PATHS = [
    * says so and the link looks like it works.
    */
   "/family-app",
+  // Who is behind this, which is the page a cautious buyer goes looking for.
+  "/company",
   "/auth",
   "/widget",
   "/api/widget",
