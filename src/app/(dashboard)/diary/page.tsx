@@ -140,8 +140,9 @@ export default async function DiaryPage({
    * so nobody who has never touched it sees any change.
    */
   const layout = readDiaryLayout((await cookies()).get(DIARY_LAYOUT_COOKIE)?.value);
-  // Day only — see diaryPanes, which carries the reason and the test.
+  // The month aside — see diaryPanes, which carries the reason and the test.
   const panes = diaryPanes(view, layout);
+
 
   const start =
     view === "day" ? focusDay : view === "month" ? monthStart : startOfWeek(anchor);
@@ -215,6 +216,30 @@ export default async function DiaryPage({
       quotePence: r.enquiries?.quote_low_pence ?? null,
       repeats: r.repeats,
     }));
+
+  /*
+   * A week of columns is one person's week.
+   *
+   * A day's columns are the people, so everybody fits. A week's columns are
+   * its seven days, and everybody's work goes into the same seven — which for
+   * five stylists means each day is split into five lanes about twenty-five
+   * pixels wide. Looked at on the demo: every card truncated to "9…" or a
+   * single letter, a hundred and five of them, and the whole screen reading as
+   * coloured confetti. No amount of width fixes it; five weeks drawn on top of
+   * each other is not a thing anybody can read.
+   *
+   * So the grid shows one person, defaulting to the first, and the chips above
+   * change who. The list is where everybody's week is legible — it has a
+   * heading per day and a row per appointment, and seven days of that reads
+   * perfectly well.
+   *
+   * A single-person business is unaffected: one is the first.
+   */
+  const weekOne =
+    view === "week" && team.length > 1 ? (focused ?? team[0]?.id ?? null) : focused;
+
+  const gridEntries =
+    view === "week" && weekOne ? entries.filter((e) => e.artist_id === weekOne) : entries;
 
   const label =
     view === "day"
@@ -1015,13 +1040,24 @@ export default async function DiaryPage({
             )}
 
             <div className={panes.grid}>
+              {/* Whose week it is, because the chips still say Everyone when
+                  nobody has picked and the grid cannot show everyone. */}
+              {view === "week" && weekOne && team.length > 1 && (
+                <p className="mb-2 text-sm text-muted">
+                  <span className="font-medium text-foreground">
+                    {team.find((a) => a.id === weekOne)?.name}
+                  </span>
+                  &rsquo;s week.{" "}
+                  {focused ? "" : "Pick someone above, or read everyone as a list."}
+                </p>
+              )}
               <WeekGrid
                 weekStart={isoDate(start)}
                 day={isoDate(focusDay)}
                 view={view}
                 colourBy={(studio.diary_colour ?? "category") as ColourMode}
-                entries={entries}
-                artists={focused ? team.filter((a) => a.id === focused) : team}
+                entries={gridEntries}
+                artists={weekOne ? team.filter((a) => a.id === weekOne) : team}
                 hours={studio.hours}
                 timezone={studio.timezone}
               />
