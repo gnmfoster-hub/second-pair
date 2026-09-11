@@ -44,3 +44,4 @@ next-env.d.ts
 .env*
 .demo3.mjs
 .d.mjs
+.team.mjs
