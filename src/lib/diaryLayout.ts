@@ -55,19 +55,21 @@ export function diaryLayoutClasses(layout: DiaryLayout | null): {
 /**
  * The shape to draw, given which view is open.
  *
- * The saved choice applies to the day and nothing else, because the day is the
- * only view whose columns are people. A week's columns are its seven days, so
- * carrying "people" into a week would hand a phone the seven-across grid that
- * was rejected for being unreadable — and the control that could undo it is
- * not offered outside the day, so somebody would have been stuck in it.
+ * The day and the week both have two shapes and a control to pick between
+ * them, so both honour the choice. It was the day alone for a while: the week
+ * had no control of its own, and a saved "columns" carried into it handed a
+ * phone the seven-across grid with no way back out. What made that a trap was
+ * the missing control rather than the week itself, and the week has one now.
  *
- * Kept here rather than as a ternary at the call site so that the rule has a
- * name and a test, because it is exactly the kind of thing that gets quietly
- * dropped by the next edit.
+ * The month is still ignored. It has one shape, and a stored preference for a
+ * shape it does not have should not decide anything.
+ *
+ * Kept here rather than as a ternary at the call site so the rule has a name
+ * and a test, because it is exactly the kind of thing the next edit drops.
  */
 export function diaryPanes(
   view: "day" | "week" | "month",
   layout: DiaryLayout | null,
 ): { list: string; grid: string } {
-  return diaryLayoutClasses(view === "day" ? layout : null);
+  return diaryLayoutClasses(view === "month" ? null : layout);
 }

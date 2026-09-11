@@ -538,11 +538,11 @@ export default async function DiaryPage({
             * each other and a control that implies they are would be a lie
             * about how the diary works.
             *
-            * Day only, because a day is the only view whose columns are
-            * people. A week's columns are the seven days — comparing days is
-            * what a week is for — so offering it there promised a thing it
-            * could not do: the sideways scroll ran Monday to Sunday while the
-            * person doing it was looking for a stylist.
+            * In the week as well, saying "Days" rather than "People" — a
+            * week's columns are its seven days and a day's are the people, and
+            * one word for both is what made this promise people and deliver
+            * days the first time it shipped. Not in the month, which has one
+            * shape and nothing to switch to.
             *
             * Not for a solo diary either. The grid's column-per-person is one
             * column there, so the choice would decide nothing while taking
@@ -767,9 +767,24 @@ export default async function DiaryPage({
         * No new row either. It shares the one the chips were already on, in
         * front of the scrolling part so it cannot slide off the side.
         */}
-      {team.length > 1 && (
+      {/*
+        * Shown for one person too, which the first version did not.
+        *
+        * It was gated on having a team, because a day's columns are the people
+        * and one person is one column. But a week's columns are its seven days
+        * whoever works there, and both of the businesses actually running this
+        * open on the week — so the one control that lets a phone see the week
+        * as a grid was withheld from exactly the two diaries it was for. A
+        * single column on a day is a real choice as well: a timeline against
+        * an agenda, which is not nothing.
+        *
+        * On a solo diary this row did not exist at all, so it costs one row
+        * that was not there — and the week's height cap gives back more than
+        * it takes, because the week has no strip above it.
+        */}
+      {(team.length > 1 || view !== "month") && (
         <div data-no-swipe className="mt-2 flex items-start gap-2 sm:mt-4">
-          {view === "day" && <LayoutToggle current={layout} />}
+          {view !== "month" && <LayoutToggle current={layout} view={view} />}
 
           <div className="min-w-0 flex-1">
             {team.length > 4 && (

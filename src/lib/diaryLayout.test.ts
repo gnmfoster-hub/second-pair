@@ -47,25 +47,34 @@ test("exactly one shape is ever shown", () => {
   }
 });
 
-test("the saved choice applies to the day", () => {
-  assert.deepEqual(diaryPanes("day", "grid"), { list: "hidden", grid: "block" });
-  assert.deepEqual(diaryPanes("day", "list"), { list: "block", grid: "hidden" });
+test("the saved choice applies to the day and the week, which both have two shapes", () => {
+  for (const view of ["day", "week"] as const) {
+    assert.deepEqual(diaryPanes(view, "grid"), { list: "hidden", grid: "block" });
+    assert.deepEqual(diaryPanes(view, "list"), { list: "block", grid: "hidden" });
+  }
 });
 
 /*
- * The trap this rule exists for: choose people-columns on a day, move to the
- * week, and a phone would get the seven-across grid that was rejected as
- * unreadable — with no control there to undo it, because it is only offered on
- * the day. The week and the month must always fall back to the width.
+ * The month has one shape, so a stored preference for a shape it does not have
+ * must not decide anything there.
+ *
+ * The week used to be in this list, for a real reason: it had no control of
+ * its own, so a saved "columns" carried into it handed a phone the
+ * seven-across grid with no way back out. What made that a trap was the
+ * missing control rather than the week, and the week has one now.
  */
-test("it is ignored in the week and the month, which have no people columns", () => {
-  for (const view of ["week", "month"] as const) {
-    for (const saved of ["grid", "list", null] as const) {
-      assert.deepEqual(
-        diaryPanes(view, saved),
-        { list: "sm:hidden", grid: "hidden sm:block" },
-        `${view} with ${saved} saved should follow the width`,
-      );
-    }
+test("the month always follows the width", () => {
+  for (const saved of ["grid", "list", null] as const) {
+    assert.deepEqual(
+      diaryPanes("month", saved),
+      { list: "sm:hidden", grid: "hidden sm:block" },
+      `month with ${saved} saved should follow the width`,
+    );
+  }
+});
+
+test("with nothing saved, every view still follows the width", () => {
+  for (const view of ["day", "week", "month"] as const) {
+    assert.deepEqual(diaryPanes(view, null), { list: "sm:hidden", grid: "hidden sm:block" });
   }
 });

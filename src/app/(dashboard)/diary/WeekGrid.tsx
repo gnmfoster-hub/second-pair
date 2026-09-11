@@ -597,18 +597,22 @@ export function WeekGrid({
         onPointerUp={swipeEnd}
         onPointerCancel={() => (swipe.current = null)}
         /*
-         * 11.5rem of chrome reserved, down from 13.
+         * How much room is above the diary, which is not the same in both.
          *
-         * This number is what is left for everything above the diary, and
-         * trimming those rows without trimming it would have given the saving
-         * straight back as empty space under the grid — the cap decides the
-         * height, not the content. Twenty-six pixels came off the page
-         * padding, the value bar, the week strip and the people row, so
-         * twenty-four go back to the diary. About one more appointment on
-         * screen, which on a phone is the difference between seeing the rest
-         * of the morning and scrolling for it.
+         * This number reserves space for everything over the grid, and it was
+         * one constant sized for the day view — so the week, which has no week
+         * strip above it, was holding back fifty-six pixels for a row that is
+         * not there and putting them in the gap underneath.
+         *
+         * 11.5rem for a day, down from 13: twenty-six pixels came off the page
+         * padding, the figures, the strip and the people row, and the cap has
+         * to come down by the same amount or the saving lands under the grid
+         * rather than in it. 8rem for a week, which is the same sum without
+         * the strip.
          */
-        className="max-h-[calc(100dvh-11.5rem)] overflow-auto sm:max-h-[70vh]"
+        className={`overflow-auto sm:max-h-[70vh] ${
+          view === "week" ? "max-h-[calc(100dvh-8rem)]" : "max-h-[calc(100dvh-11.5rem)]"
+        }`}
       >
         {/* ------------------------------------------------ headings */}
         <div

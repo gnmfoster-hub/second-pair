@@ -18,7 +18,21 @@ import type { DiaryLayout } from "@/lib/diaryLayout";
  * space, and the toolbar on a phone has already had to be fought for twice;
  * a control that can only ever do nothing does not get to take room from Add.
  */
-export function LayoutToggle({ current }: { current: DiaryLayout | null }) {
+export function LayoutToggle({
+  current,
+  view,
+}: {
+  current: DiaryLayout | null;
+  /*
+   * Which view, because the columns are not the same thing in both.
+   *
+   * A day's columns are the people and a week's are its seven days. One word
+   * for both is what made this promise people and deliver days the first time
+   * it shipped, so the control says which it is about to give you rather than
+   * describing the shape and leaving you to find out.
+   */
+  view: "day" | "week";
+}) {
   // Held locally so the button lights up on the tap, not on the round trip.
   const [chosen, setChosen] = useState<DiaryLayout | null>(current);
   const [, save] = useTransition();
@@ -74,18 +88,11 @@ export function LayoutToggle({ current }: { current: DiaryLayout | null }) {
           },
           {
             value: "grid" as const,
-            /*
-             * "People", not "Columns".
-             *
-             * Columns described the shape and not the contents, and the diary
-             * has two kinds: a day's are people and a week's are the seven
-             * days. Offered in a week, the word promised the one and gave the
-             * other — the scroll ran Monday to Sunday while the person doing
-             * it was looking for a stylist. It is only offered in a day now,
-             * and it says who is in them.
-             */
-            label: "People",
-            hint: "A column each, to drag someone to another person",
+            label: view === "day" ? "People" : "Days",
+            hint:
+              view === "day"
+                ? "A column each, to drag someone to another person"
+                : "The seven days side by side",
             icon: (
               <>
                 <rect
