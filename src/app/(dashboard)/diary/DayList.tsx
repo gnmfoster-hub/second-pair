@@ -8,7 +8,7 @@ import { categoryFor } from "@/lib/calendar";
 import { hueFor, type ColourMode } from "@/lib/diaryColour";
 
 /**
- * The day as a list, for a phone.
+ * A day, or a week, as a list — for a phone.
  *
  * A column per person is a desktop idea. Measured on a 390px screen, the grid
  * gave you four and three quarter hours of your day, only two of three people,
@@ -23,6 +23,12 @@ import { hueFor, type ColourMode } from "@/lib/diaryColour";
  *
  * The same dialog opens from a row as from a card, so there is one way to edit
  * an appointment and it cannot drift.
+ *
+ * The week is the same thing with day headings through it. Measured on a real
+ * business's phone, the week grid showed two days of seven at 360px and made
+ * you scroll sideways for the rest — forty-three pixels a column, which is not
+ * a week, it is a rumour of one. A list of seven days scrolls the way
+ * everything else on a phone scrolls.
  */
 
 const HOUR = 60 * 60_000;
@@ -63,6 +69,7 @@ function pence(amount: number | null) {
 }
 
 type Row =
+  | { kind: "day"; date: string; label: string; count: number }
   | { kind: "entry"; entry: Entry }
   | { kind: "gap"; from: Date; to: Date };
 
@@ -70,15 +77,18 @@ export function DayList({
   entries,
   artists,
   timezone,
-  date,
+  days,
   colourBy,
   nowIso,
 }: {
   entries: Entry[];
   artists: Artist[];
   timezone: string;
-  /** The day being shown, as YYYY-MM-DD, for adding into a gap. */
-  date: string;
+  /**
+   * The days being shown, as YYYY-MM-DD. One for the day view, seven for the
+   * week. Adding into a gap uses the day that gap belongs to.
+   */
+  days: string[];
   colourBy: ColourMode;
   /** Stamped on the server, so the first paint matches and nothing flickers. */
   nowIso: string;
@@ -99,69 +109,91 @@ export function DayList({
     );
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [creating, setCreating] = useState<{ time: string; endTime?: string } | null>(null);
+  const [creating, setCreating] = useState<{
+    date: string;
+    time: string;
+    endTime?: string;
+  } | null>(null);
 
   const rows = useMemo<Row[]>(() => {
-    /*
-     * This day only.
-     *
-     * The diary deliberately fetches a day either side, so that a holiday
-     * which began last week still appears. The grid places every entry by its
-     * date and the extras land outside the visible column; a list has no
-     * columns, so it showed all three days at once — Thursday, Friday and
-     * Saturday in one column with a sixteen-hour "free" gap between them,
-     * which is overnight presented as an opportunity.
-     *
-     * Compared as dates in the business's own timezone, and by overlap rather
-     * than by start, so something running from yesterday into today is still
-     * today's problem. Plain string comparison is safe on YYYY-MM-DD.
-     */
-    const sorted = entries
-      .filter((e) => !e.all_day)
-      .filter(
-        (e) => dayOf(e.starts_at, timezone) <= date && dayOf(e.ends_at, timezone) >= date,
-      )
-      .sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
-
     const out: Row[] = [];
+    const many = days.length > 1;
 
-    for (let i = 0; i < sorted.length; i++) {
-      out.push({ kind: "entry", entry: sorted[i] });
-
+    for (const date of days) {
       /*
-       * A gap is only worth showing if somebody could sell it.
+       * This day only.
        *
-       * Ten minutes between two appointments is how a day is supposed to look,
-       * and a row announcing it is noise on every line. Half an hour is the
-       * shortest thing most of these businesses will book.
+       * The diary deliberately fetches a day either side, so that a holiday
+       * which began last week still appears. The grid places every entry by
+       * its date and the extras land outside the visible column; a list has no
+       * columns, so without this it showed three days at once with a
+       * sixteen-hour "free" gap between them — overnight, presented as an
+       * opportunity.
        *
-       * Measured against the latest end so far, not the previous row's:
-       * appointments overlap constantly in a salon — three people working at
-       * once — and comparing with the one immediately before would invent gaps
-       * that do not exist.
+       * By overlap rather than by start, so something running from yesterday
+       * into today is still today's problem. Plain string comparison is safe
+       * on YYYY-MM-DD.
        */
-      const latestEnd = sorted
-        .slice(0, i + 1)
-        .reduce((furthest, e) => Math.max(furthest, Date.parse(e.ends_at)), 0);
+      const today = entries
+        .filter((e) => !e.all_day)
+        .filter(
+          (e) => dayOf(e.starts_at, timezone) <= date && dayOf(e.ends_at, timezone) >= date,
+        )
+        .sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
 
-      const next = sorted[i + 1];
-      if (!next) continue;
+      if (many) {
+        out.push({
+          kind: "day",
+          date,
+          label: new Intl.DateTimeFormat("en-GB", {
+            timeZone: timezone,
+            weekday: "long",
+            day: "numeric",
+            month: "short",
+          }).format(new Date(`${date}T12:00:00Z`)),
+          count: today.length,
+        });
+      }
 
-      const gap = Date.parse(next.starts_at) - latestEnd;
-      if (gap >= 30 * 60_000) {
-        out.push({ kind: "gap", from: new Date(latestEnd), to: new Date(next.starts_at) });
+      for (let i = 0; i < today.length; i++) {
+        out.push({ kind: "entry", entry: today[i] });
+
+        /*
+         * A gap is only worth showing if somebody could sell it.
+         *
+         * Ten minutes between two appointments is how a day is supposed to
+         * look, and a row announcing it is noise on every line. Half an hour is
+         * the shortest thing most of these businesses will book.
+         *
+         * Measured against the latest end so far, not the previous row's:
+         * appointments overlap constantly where several people work at once,
+         * and comparing with the one immediately before would invent gaps that
+         * do not exist.
+         */
+        const latestEnd = today
+          .slice(0, i + 1)
+          .reduce((furthest, e) => Math.max(furthest, Date.parse(e.ends_at)), 0);
+
+        const next = today[i + 1];
+        if (!next) continue;
+
+        if (Date.parse(next.starts_at) - latestEnd >= 30 * 60_000) {
+          out.push({ kind: "gap", from: new Date(latestEnd), to: new Date(next.starts_at) });
+        }
       }
     }
 
     return out;
-    // date and timezone decide what is in the list, so both belong here.
-  }, [entries, date, timezone]);
+    // days and timezone decide what is in the list, so both belong here.
+  }, [entries, days, timezone]);
 
   const allDay = entries.filter(
     (e) =>
       e.all_day &&
-      dayOf(e.starts_at, timezone) <= date &&
-      dayOf(e.ends_at, timezone) >= date,
+      days.some(
+        (date) =>
+          dayOf(e.starts_at, timezone) <= date && dayOf(e.ends_at, timezone) >= date,
+      ),
   );
   const open = editingId ? entries.find((e) => e.id === editingId) ?? null : null;
   const now = Date.parse(nowIso);
@@ -189,6 +221,24 @@ export function DayList({
 
       <ol className="mt-3 space-y-1.5 pb-24">
         {rows.map((row) => {
+          if (row.kind === "day") {
+            /*
+             * A heading per day, and a word when there is nothing under it.
+             *
+             * A week with three quiet days should show the quiet days, not
+             * close the gap and leave somebody counting dates to work out
+             * which ones are missing.
+             */
+            return (
+              <li key={`day-${row.date}`} className="pt-3 first:pt-0">
+                <div className="flex items-baseline gap-2 border-b border-border pb-1.5">
+                  <span className="text-sm font-semibold">{row.label}</span>
+                  {row.count === 0 && <span className="hint text-xs">nothing booked</span>}
+                </div>
+              </li>
+            );
+          }
+
           if (row.kind === "gap") {
             const from = row.from.toISOString();
             return (
@@ -205,6 +255,8 @@ export function DayList({
                   type="button"
                   onClick={() =>
                     setCreating({
+                      // The gap's own day, which in a week is not the first one.
+                      date: dayOf(from, timezone),
                       time: clock24(from, timezone),
                       endTime: clock24(row.to.toISOString(), timezone),
                     })
@@ -299,10 +351,14 @@ export function DayList({
           );
         })}
 
-        {rows.length === 0 && allDay.length === 0 && (
+        {rows.every((r) => r.kind === "day" && r.count === 0) && allDay.length === 0 && (
           <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center">
-            <p className="text-sm font-medium">Nothing booked today</p>
-            <p className="hint mt-1">A clear day. Tap Add to put something in it.</p>
+            <p className="text-sm font-medium">
+              Nothing booked {days.length > 1 ? "this week" : "today"}
+            </p>
+            <p className="hint mt-1">
+              A clear {days.length > 1 ? "week" : "day"}. Tap Add to put something in it.
+            </p>
           </li>
         )}
       </ol>
@@ -310,7 +366,7 @@ export function DayList({
       {(open || creating) && (
         <EntryDialog
           entry={open}
-          prefill={creating ? { date, ...creating } : null}
+          prefill={creating}
           artists={artists}
           timezone={timezone}
           onClose={() => {

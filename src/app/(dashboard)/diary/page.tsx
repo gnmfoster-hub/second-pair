@@ -579,7 +579,7 @@ export default async function DiaryPage({
         */}
       <div
         className={`settle relative mt-3 overflow-hidden sm:mt-5 sm:rounded-2xl sm:border sm:border-border sm:bg-surface sm:shadow-[var(--shadow-card)] ${
-          view === "day" ? "" : "card"
+          view !== "month" ? "" : "card"
         }`}
       >
       {/*
@@ -785,7 +785,7 @@ export default async function DiaryPage({
       {entries.length === 0 && (
         <div
           className={`pointer-events-none absolute inset-x-0 top-1/2 z-30 flex -translate-y-1/2 justify-center px-6 ${
-            view === "day" ? "hidden sm:flex" : ""
+            view !== "month" ? "hidden sm:flex" : ""
           }`}
         >
           {/*
@@ -861,26 +861,40 @@ export default async function DiaryPage({
               </div>
             )}
 
-            {view === "day" && (
+            {/* Month has its own grid above; this branch is day or week. */}
+            {(
               <div className="sm:hidden">
                 {/*
                   * Push the day sideways to change it, the way every calendar
                   * on a phone works. The arrows are at the top of the screen,
                   * which is the furthest point from a thumb.
+                  *
+                  * Day only: in a week the list already shows all seven, so a
+                  * swipe would be moving something that is already on screen.
                   */}
-                <SwipeDays back={dayBack} forward={dayForward} />
+                {view === "day" && <SwipeDays back={dayBack} forward={dayForward} />}
                 <DayList
                   entries={entries}
                   artists={focused ? team.filter((a) => a.id === focused) : team}
                   timezone={studio.timezone}
-                  date={isoDate(focusDay)}
+                  /*
+                    * One day, or the seven of the week. The same rows either
+                    * way — a week on a phone is a day list with headings
+                    * through it, because a seven-column grid at 360px shows
+                    * two of them and hides the rest behind a sideways scroll.
+                    */
+                  days={
+                    view === "day"
+                      ? [isoDate(focusDay)]
+                      : Array.from({ length: 7 }, (_, i) => isoDate(addDays(start, i)))
+                  }
                   colourBy={(studio.diary_colour ?? "category") as ColourMode}
                   nowIso={new Date().toISOString()}
                 />
               </div>
             )}
 
-            <div className={view === "day" ? "hidden sm:block" : ""}>
+            <div className="hidden sm:block">
               <WeekGrid
                 weekStart={isoDate(start)}
                 day={isoDate(focusDay)}
