@@ -95,20 +95,26 @@ export function NewEntry({ artists, timezone }: { artists: Artist[]; timezone: s
         /*
          * The word goes below 360px, the plus does not.
          *
-         * Measured across three widths: at 360 and 390 the views, the colour
-         * button and this all sit on one line, and at 320 the whole group drops
-         * to a row of its own — which on the screen with the least room to
-         * spare costs forty-four pixels to say one word everybody already
-         * knows. A plus in a coloured circle is the same button.
+         * Measured on a real business's phone rather than estimated, twice,
+         * because the first estimate was wrong. At 360 the controls need 319
+         * pixels and have 313: the three view buttons are 179, the colour
+         * button 41, this one 83, and the gaps 16. Over by six, so the whole
+         * group wraps and this lands on a line of its own — forty-four pixels
+         * of screen to say one word everybody already knows.
+         *
+         * Dropping the label saves forty-two of those six, which settles it at
+         * every phone width rather than at the one I happened to measure. The
+         * word comes back above 640px, where there is room for it and a mouse
+         * to hover with.
          */
-        className="btn inline-flex bg-highlight px-3 font-semibold text-on-highlight transition-[filter] hover:brightness-95 min-[360px]:px-4"
+        className="btn inline-flex bg-highlight px-3 font-semibold text-on-highlight transition-[filter] hover:brightness-95 sm:px-4"
         title="Add something (N)"
         aria-label="Add something"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" aria-hidden>
           <path d="M12 5v14M5 12h14" />
         </svg>
-        <span className="hidden min-[360px]:inline">Add</span>
+        <span className="hidden sm:inline">Add</span>
       </button>
 
       {open && when && (
