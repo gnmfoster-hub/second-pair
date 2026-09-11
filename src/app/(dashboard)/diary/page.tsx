@@ -4,6 +4,7 @@ import { requireStudio, getArtists } from "@/lib/studio";
 import { startOfWeek, addDays, isoDate, parseIsoDate } from "@/lib/calendar";
 import { WeekGrid, type Entry } from "./WeekGrid";
 import { MonthGrid } from "./MonthGrid";
+import { DayList } from "./DayList";
 import { Shortcuts } from "./Shortcuts";
 import { NewEntry } from "./NewEntry";
 import { ColourBy } from "./ColourBy";
@@ -288,10 +289,18 @@ export default async function DiaryPage({
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-8 py-9">
+    <div className="mx-auto max-w-6xl px-4 py-4 sm:px-8 sm:py-9">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
-        <h1 className="page-title">Diary</h1>
-        <span className="hint">{label}</span>
+        {/*
+          * The word "Diary" is worth fifty pixels on a phone and says nothing.
+          *
+          * The tab at the bottom of the screen already reads Diary and is lit
+          * up; repeating it above the date is a heading telling somebody where
+          * they just tapped. The date is the useful half and it stands on its
+          * own, bigger, where the title was.
+          */}
+        <h1 className="page-title hidden sm:block">Diary</h1>
+        <span className="text-base font-medium sm:hint sm:text-sm sm:font-normal">{label}</span>
         {awaiting > 0 && (
           <span className="rounded-full bg-warn/10 px-2.5 py-1 text-xs text-warn">
             {awaiting} waiting on a deposit
@@ -418,7 +427,16 @@ export default async function DiaryPage({
         * motion.
         */}
       <div className="card settle relative mt-5 overflow-hidden">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-border px-4 py-2.5 text-sm">
+      {/*
+        * One line on a phone, whatever it takes.
+        *
+        * Wrapping was the right call for a desktop and cost ninety pixels on a
+        * 390px screen — three figures and a bar became three stacked rows,
+        * pushing the actual diary a third of the way down a screen that had
+        * four and three quarter hours of it to show. The figures are a caption;
+        * a caption that takes a tenth of the screen is not one.
+        */}
+      <div className="flex items-center gap-x-4 overflow-x-auto whitespace-nowrap border-b border-border px-4 py-2 text-xs sm:flex-wrap sm:gap-x-6 sm:py-2.5 sm:text-sm">
         <Figure label="booked" value={asHours(bookedMinutes)} />
         <Figure label="worth" value={formatPence(worth)} accent={worth > 0} />
         {/*
@@ -428,10 +446,21 @@ export default async function DiaryPage({
           * completely empty — the opposite of the truth, on the day they are
           * setting the business up.
           */}
-        <Figure label="free" value={capacity > 0 ? asHours(freeMinutes) : "—"} />
+        {/*
+          * Two figures fit a phone; three do not.
+          *
+          * With all three the line overflowed by twenty-four pixels and grew a
+          * sideways scrollbar under a caption, which looks like a fault. Booked
+          * and worth are what somebody checks on a phone between appointments;
+          * how much room is left is a question asked while planning, at a desk,
+          * where all three still show.
+          */}
+        <span className="hidden sm:contents">
+          <Figure label="free" value={capacity > 0 ? asHours(freeMinutes) : "—"} />
+        </span>
 
         {capacity > 0 ? (
-          <div className="ml-auto flex items-center gap-2.5">
+          <div className="ml-auto hidden items-center gap-2.5 sm:flex">
             {/*
               * The shape of the day, where the percentage used to be.
               *
@@ -621,16 +650,47 @@ export default async function DiaryPage({
             colourBy={(studio.diary_colour ?? "category") as ColourMode}
           />
         ) : (
-        <WeekGrid
-          weekStart={isoDate(start)}
-          day={isoDate(focusDay)}
-          view={view}
-          colourBy={(studio.diary_colour ?? "category") as ColourMode}
-          entries={entries}
-          artists={focused ? team.filter((a) => a.id === focused) : team}
-          hours={studio.hours}
-          timezone={studio.timezone}
-        />
+          <>
+            {/*
+              * One day, two shapes.
+              *
+              * A column per person is a desktop idea, and measured on a 390px
+              * phone it gave four and three quarter hours of the day, two of
+              * three people, and a sideways scroll to reach the third — inside
+              * a vertical scroll inside a scrolling page. On a phone the
+              * question is "what am I doing next", and a list answers it in the
+              * first inch of the screen.
+              *
+              * Week keeps the grid at every size: comparing days across a week
+              * is the whole point of it, and a list of forty appointments is
+              * not a week.
+              */}
+            {view === "day" && (
+              <div className="sm:hidden">
+                <DayList
+                  entries={entries}
+                  artists={focused ? team.filter((a) => a.id === focused) : team}
+                  timezone={studio.timezone}
+                  date={isoDate(focusDay)}
+                  colourBy={(studio.diary_colour ?? "category") as ColourMode}
+                  nowIso={new Date().toISOString()}
+                />
+              </div>
+            )}
+
+            <div className={view === "day" ? "hidden sm:block" : ""}>
+              <WeekGrid
+                weekStart={isoDate(start)}
+                day={isoDate(focusDay)}
+                view={view}
+                colourBy={(studio.diary_colour ?? "category") as ColourMode}
+                entries={entries}
+                artists={focused ? team.filter((a) => a.id === focused) : team}
+                hours={studio.hours}
+                timezone={studio.timezone}
+              />
+            </div>
+          </>
         )}
       </div>
 
