@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Logo } from "@/components/Logo";
+import { Logo, Mark } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 /**
@@ -32,7 +32,25 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             * 4.43 wide, so 28px tall comes to 124px and fits with room over.
             */}
           <Link href="/" aria-label="Second Pair" className="shrink-0">
-            <span className="sm:hidden">
+            {/*
+              * Three, not two: the mark alone on the smallest phones.
+              *
+              * Measured at 320px, which is every budget Android and an SE with
+              * the text size turned up: the horizontal lockup is 108px, and
+              * with the padding, "Sign in" and "Get set up" that comes to 336
+              * on a 320px screen. Something has to give, and the thing that was
+              * giving was the call to action — "Get / set / up", three lines,
+              * 80px tall.
+              *
+              * The mark is 28px and carries the same recognition; the company
+              * name is in the page title, the footer and the first heading. A
+              * name nobody can read because the button beside it has collapsed
+              * is not doing the job the name is there for.
+              */}
+            <span className="block min-[360px]:hidden">
+              <Mark className="size-7" sizePx={28} />
+            </span>
+            <span className="hidden min-[360px]:block sm:hidden">
               <Logo height={28} lockup="horizontal" />
             </span>
             <span className="hidden sm:block">
@@ -51,21 +69,106 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               * quietest thing on the row, present on every page, and invisible
               * to anybody who is not looking for it.
               *
-              * On a phone it loses the theme toggle's company rather than
-              * itself: the toggle is already hidden there, and a link to the
-              * other product earns the space more than a light-and-dark switch
-              * most people never touch.
+              * Not until 768px, and this was tried at two narrower widths
+              * first. Both measurements are the reason for the number.
+              *
+              * At 390px the header has 350 usable pixels and the logo, sign-in
+              * and "Get set up" come to 274 of them. Adding this took it to
+              * 349 — one pixel inside, which flex resolved by wrapping the
+              * call to action onto three lines. "Get / set / up", stacked, on
+              * the button the entire page exists to get somebody to press.
+              *
+              * Moving it to sm: moved the break rather than fixing it. 640 is
+              * also where the logo swaps to the wide inline lockup and grows
+              * from 108px to 158px, so the link arrived at the one width that
+              * had just spent its remaining room: header 95px, button on two
+              * lines, at exactly the width a tablet is held at in portrait.
+              *
+              * md: is the first breakpoint where the wide lockup and this both
+              * fit with the button untouched. Breaking the main action in order
+              * to advertise the other product is the exact trade this was meant
+              * to avoid, and the homepage band carries Family APP! at every
+              * width below this one anyway.
               */}
-            <Link
-              href="/family-app"
-              className="whitespace-nowrap text-xs text-muted transition-colors hover:text-foreground sm:text-sm"
-            >
-              Family APP!
-            </Link>
+            {/*
+              * The name alone did not say anything.
+              *
+              * "Family APP!" in a header on a page about answering enquiries
+              * for tattooists reads as a stray link, not a second product —
+              * you have to already know what it is for it to mean anything,
+              * and nobody arriving here does. A label that has to be decoded
+              * is worse than no label: it spends attention and returns
+              * nothing.
+              *
+              * So the row keeps the quiet word and the explanation sits one
+              * hover away, out of everybody's path until they go looking. No
+              * JavaScript: hover opens it, and focus-within opens it for a
+              * keyboard, which also means the card cannot trap a tab stop.
+              *
+              * The whole thing is still a link. Somebody who taps rather than
+              * hovers — which is what a tablet does — lands on the page that
+              * explains it properly, so the card is an improvement for a mouse
+              * and never a requirement for anybody else.
+              */}
+            <div className="group relative hidden md:block">
+              <Link
+                href="/family-app"
+                className="flex items-center gap-1.5 whitespace-nowrap py-2 text-sm text-muted transition-colors hover:text-foreground"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/family/icon-96.png"
+                  alt=""
+                  width={16}
+                  height={16}
+                  className="shrink-0 rounded-[4px]"
+                />
+                Family APP!
+              </Link>
+
+              {/* Right-aligned, because it hangs off a link near the right edge
+                  of a max-w-5xl row and a centred card would sit off the page
+                  on a 768px screen. */}
+              <div
+                className="pointer-events-none invisible absolute right-0 top-full z-40 w-[19rem] translate-y-1 rounded-xl border border-border bg-background p-4 opacity-0 shadow-lg transition-[opacity,transform] duration-150 group-hover:pointer-events-auto group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100 motion-reduce:transition-none"
+                role="presentation"
+              >
+                <div className="flex items-center gap-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/family/icon-96.png"
+                    alt=""
+                    width={28}
+                    height={28}
+                    className="shrink-0 rounded-[7px]"
+                  />
+                  <span className="text-sm font-semibold">Family APP!</span>
+                  <span className="pill bg-surface-2 text-muted">Early access</span>
+                </div>
+
+                <p className="mt-2.5 text-sm leading-relaxed text-muted">
+                  Our other product. A private hub for one family &mdash; chat, photos, a
+                  shared calendar and an AI holiday planner. Nothing to do with your
+                  diary; we just build it too.
+                </p>
+
+                <Link
+                  href="/family-app"
+                  className="mt-3 inline-block text-sm font-medium text-foreground underline decoration-border underline-offset-4 transition-colors hover:decoration-current"
+                >
+                  Have a look &rarr;
+                </Link>
+              </div>
+            </div>
             <div className="hidden sm:block">
               <ThemeToggle compact />
             </div>
-            <Link href="/login" className="btn-ghost">
+            {/* Nowrap for the same reason as the button below it. Once the
+                button stopped being the thing flex squeezed, this became it —
+                "Sign / in" on two lines at 360px, a 62px-tall link next to a
+                44px button. Neither of the two things a visitor came here to
+                press should be allowed to fold. */}
+            <Link href="/login" className="btn-ghost whitespace-nowrap">
               Sign in
             </Link>
             {/* The pack allows amber for one call to action per screen. This
@@ -98,7 +201,11 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 reload at all. */}
             <a
               href="/home#ask"
-              className="btn inline-flex bg-highlight font-semibold text-on-highlight hover:brightness-95"
+              /* Never on two lines. Flex will happily shrink a button below
+                 its text and let the label wrap, which is how this ended up
+                 reading "Get / set / up" on a phone; the row has other things
+                 that can give, and this is not one of them. */
+              className="btn inline-flex whitespace-nowrap bg-highlight font-semibold text-on-highlight hover:brightness-95"
             >
               Get set up
             </a>
