@@ -187,6 +187,15 @@ export function DayList({
     // days and timezone decide what is in the list, so both belong here.
   }, [entries, days, timezone]);
 
+  /*
+   * A completely empty week says so once, not eight times.
+   *
+   * Seven headings each reading "nothing booked" above a panel saying nothing
+   * is booked this week is the same sentence eight times over, and it fills
+   * the screen with the one thing there is nothing to say about.
+   */
+  const nothingAtAll = rows.every((r) => r.kind === "day" && r.count === 0);
+
   const allDay = entries.filter(
     (e) =>
       e.all_day &&
@@ -220,7 +229,7 @@ export function DayList({
       )}
 
       <ol className="mt-3 space-y-1.5 pb-24">
-        {rows.map((row) => {
+        {(nothingAtAll ? [] : rows).map((row) => {
           if (row.kind === "day") {
             /*
              * A heading per day, and a word when there is nothing under it.
@@ -351,7 +360,7 @@ export function DayList({
           );
         })}
 
-        {rows.every((r) => r.kind === "day" && r.count === 0) && allDay.length === 0 && (
+        {nothingAtAll && allDay.length === 0 && (
           <li className="rounded-xl border border-dashed border-border px-4 py-8 text-center">
             <p className="text-sm font-medium">
               Nothing booked {days.length > 1 ? "this week" : "today"}
