@@ -945,7 +945,19 @@ export default async function DiaryPage({
                   * Day only: in a week the list already shows all seven, so a
                   * swipe would be moving something that is already on screen.
                   */}
-                {view === "day" && <SwipeDays back={dayBack} forward={dayForward} />}
+                {/*
+                  * Only while the list is really the thing on screen.
+                  *
+                  * Both shapes are always rendered and CSS hides one, but this
+                  * listens on the window and returns null — so hiding its pane
+                  * leaves it armed over a grid it knows nothing about. The
+                  * grid opts out with data-no-swipe, which is the fix; not
+                  * mounting it at all is the belt to that brace, and stops the
+                  * gesture firing on the page around the grid too.
+                  */}
+                {view === "day" && panes.list !== "hidden" && (
+                  <SwipeDays back={dayBack} forward={dayForward} />
+                )}
                 <DayList
                   entries={entries}
                   artists={focused ? team.filter((a) => a.id === focused) : team}
