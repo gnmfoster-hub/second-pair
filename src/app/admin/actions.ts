@@ -277,6 +277,89 @@ export async function resetLink(_prev: Result, fd: FormData): Promise<Result> {
  * and list, while everything they had stays where it is. Reversible on any
  * day.
  */
+/**
+ * Open the demo business, signed in, in one click.
+ *
+ * Judging a screen means looking at the same screen as whoever is describing
+ * it, and until now that meant building a business, reading a password out,
+ * and deleting it afterwards — so every design conversation started with two
+ * people looking at different things.
+ *
+ * A magic link rather than a password reset: it signs you in and changes
+ * nothing, and it is spent the moment it is used. Nothing here becomes a
+ * standing way into an account.
+ *
+ * Refused for anything that is not marked as a demo, checked here in the
+ * action rather than trusted from the page that called it. This is a signed-in
+ * session for somebody else's account, and the whole reason it is safe is that
+ * a demo has no real customers in it — the moment it would work on a customer,
+ * it is a back door into a salon's client list.
+ */
+export async function openDemo(_prev: Result, fd: FormData): Promise<Result> {
+  const denied = await guard();
+  if (denied) return denied;
+
+  const id = String(fd.get("id") ?? "").trim();
+  if (!id) return { error: "No business." };
+
+  const db = createAdminClient();
+
+  const { data: studio } = await db
+    .from("studios")
+    .select("id, name, kind")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!studio) return { error: "That business is not here any more." };
+
+  if (studio.kind !== "demo") {
+    return {
+      error:
+        `${studio.name} is not a demo. This only ever opens a demo, because it signs ` +
+        "you in as somebody else and a real business has real customers in it.",
+    };
+  }
+
+  /*
+   * Whoever owns it. A demo has exactly one owner and it is ours, but the
+   * owner is read rather than assumed — a hard-coded address here would break
+   * silently the first time the demo was rebuilt under another one.
+   */
+  const { data: member } = await db
+    .from("studio_members")
+    .select("user_id")
+    .eq("studio_id", studio.id)
+    .eq("role", "owner")
+    .limit(1)
+    .maybeSingle();
+
+  if (!member) return { error: "That demo has no owner to sign in as." };
+
+  const { data: user } = await db.auth.admin.getUserById(member.user_id);
+  const email = user?.user?.email;
+  if (!email) return { error: "That demo's owner has no email." };
+
+  const origin = await siteOrigin();
+  const { data, error } = await db.auth.admin.generateLink({
+    type: "magiclink",
+    email,
+    options: { redirectTo: `${origin}/auth/callback?next=/diary` },
+  });
+
+  if (error) return { error: error.message };
+
+  const hashed = data?.properties?.hashed_token;
+  if (!hashed) return { error: "No link came back." };
+
+  return {
+    ok: true,
+    note: `Opens ${studio.name} signed in, on the diary. Works once.`,
+    link:
+      `${origin}/auth/callback?token_hash=${encodeURIComponent(hashed)}` +
+      `&type=magiclink&next=${encodeURIComponent("/diary")}`,
+  };
+}
+
 export async function archiveBusiness(_prev: Result, fd: FormData): Promise<Result> {
   const denied = await guard();
   if (denied) return denied;

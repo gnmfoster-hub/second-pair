@@ -7,6 +7,7 @@ import type { BusinessSummary } from "@/lib/platform";
 import {
   createBusiness,
   resetLink,
+  openDemo,
   deleteBusiness,
   saveAccount,
   fixSettings,
@@ -616,6 +617,7 @@ function Stat({ label, value, warn }: { label: string; value: number | string; w
 
 function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
   const [kind, kindAction] = useActionState<Result, FormData>(setKind, {});
+  const [demo, demoAction] = useActionState<Result, FormData>(openDemo, {});
   const [reset, resetAction] = useActionState<Result, FormData>(resetLink, {});
   const [gone, deleteAction] = useActionState<Result, FormData>(deleteBusiness, {});
   const [saved, saveAction] = useActionState<Result, FormData>(saveAccount, {});
@@ -640,6 +642,45 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
         * about something already switched off.
         */}
       <Stop b={b} />
+
+      {/*
+        * One click into the demo, which is the only thing this can open.
+        *
+        * Judging a screen means looking at the same screen as whoever is
+        * describing it, and that used to mean building a business, reading a
+        * password out and deleting it afterwards — so every conversation about
+        * how something looked started with two people looking at different
+        * things.
+        *
+        * Offered only on a demo, and refused again in the action: this signs
+        * you in as somebody else, and the entire reason it is safe is that a
+        * demo has no real customers in it.
+        */}
+      {b.kind === "demo" && (
+        <form action={demoAction} className="rounded-xl border border-border bg-surface-2/40 p-3.5">
+          <div className="flex flex-wrap items-center gap-3">
+            <input type="hidden" name="id" value={b.id} />
+            <div className="min-w-0">
+              <div className="text-sm font-medium">Open it</div>
+              <div className="hint">
+                Signed in, straight to the diary. No password, and the link is spent
+                once it is used.
+              </div>
+            </div>
+            <button className="btn ml-auto bg-accent text-on-accent">Open the demo</button>
+          </div>
+
+          {demo.link && (
+            <a
+              href={demo.link}
+              className="mt-3 block break-all rounded-lg bg-surface px-3 py-2 text-sm text-accent underline"
+            >
+              {demo.note ?? "Open"}
+            </a>
+          )}
+          {demo.error && <p className="mt-2 text-sm text-warn">{demo.error}</p>}
+        </form>
+      )}
 
       <form action={kindAction} className="flex flex-wrap items-center gap-2">
         <input type="hidden" name="id" value={b.id} />
