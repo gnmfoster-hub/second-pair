@@ -48,13 +48,28 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               * is not doing the job the name is there for.
               */}
             <span className="block min-[360px]:hidden">
-              <Mark className="size-7" sizePx={28} />
+              <Mark className="size-8" sizePx={32} />
             </span>
             <span className="hidden min-[360px]:block sm:hidden">
-              <Logo height={28} lockup="horizontal" />
+              <Logo height={32} lockup="horizontal" />
             </span>
+            {/*
+              * The tagline, which the pack had all along.
+              *
+              * flush-right is the pack's own default lockup and it carries
+              * "you work, we answer" — but only from 54px up, because the line
+              * is a fifth of the height and below that it stops being a
+              * tagline and becomes grey specks. The header was asking for 42,
+              * which is why it never appeared: not a missing feature, a
+              * request under the floor.
+              *
+              * 54 is therefore the smallest height that shows it at all, and
+              * it is also as large as the row can carry — measured at 640,
+              * where the lockup is 189px of the 576 available and the buttons
+              * want 303 of the rest.
+              */}
             <span className="hidden sm:block">
-              <Logo height={42} lockup="inline" />
+              <Logo height={54} lockup="flush-right" />
             </span>
           </Link>
 
