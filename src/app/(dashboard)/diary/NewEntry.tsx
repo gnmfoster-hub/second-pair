@@ -44,6 +44,26 @@ export function NewEntry({ artists, timezone }: { artists: Artist[]; timezone: s
     setOpen(true);
   };
 
+  /*
+   * Opened straight away when the home screen shortcut was used.
+   *
+   * Long-pressing the app icon offers "Add an appointment", and a shortcut
+   * that lands on the diary and leaves you to find the button is not a
+   * shortcut — it is a link with a promise on it. The parameter is taken out
+   * of the address afterwards so that a refresh, or going back, does not open
+   * the dialog a second time.
+   */
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("add") !== "1") return;
+
+    url.searchParams.delete("add");
+    window.history.replaceState({}, "", url.pathname + url.search);
+    start();
+    // Once, on arrival. Deliberately not re-run when anything changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // N adds something, in the same idiom as the other single-key shortcuts.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {

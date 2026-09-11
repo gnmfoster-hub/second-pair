@@ -14,7 +14,33 @@
     { "src": "/brand/png/app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "Diary", "url": "/diary" },
-    { "name": "Clients", "url": "/clients" }
+    {
+      "name": "Today",
+      "short_name": "Today",
+      "description": "Today's appointments, in order",
+      "url": "/diary?view=day",
+      "icons": [{ "src": "/brand/png/app-icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Add an appointment",
+      "short_name": "Add",
+      "description": "Put something in the diary",
+      "url": "/diary?view=day&add=1",
+      "icons": [{ "src": "/brand/png/app-icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Who needs you",
+      "short_name": "Waiting",
+      "description": "Conversations waiting on a person",
+      "url": "/",
+      "icons": [{ "src": "/brand/png/app-icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Clients",
+      "short_name": "Clients",
+      "description": "Look somebody up",
+      "url": "/clients",
+      "icons": [{ "src": "/brand/png/app-icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
   ]
 }

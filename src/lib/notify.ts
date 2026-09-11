@@ -87,11 +87,26 @@ export async function notifyStudio(
 
   if (!subscriptions?.length) return { sent: 0, removed: 0, emailed };
 
+  /*
+   * How many are waiting, sent with the notification.
+   *
+   * The app icon can carry a number, and the only moment it can be updated
+   * while the app is shut is when a push arrives — which is exactly when it
+   * has changed. Without this the icon stays on whatever it said the last time
+   * somebody opened the app, which is worse than no badge: a stale number is
+   * still read as a current one.
+   *
+   * Studio-wide rather than per-person: a push goes to every device the
+   * business has registered, and there is one icon on each.
+   */
+  const waiting = await countWaiting(db, studioId);
+
   const payload = JSON.stringify({
     title: message.title,
     body: message.body,
     url: message.url ?? "/",
     tag: message.tag,
+    waiting,
   });
 
   let sent = 0;
@@ -132,6 +147,28 @@ export async function notifyStudio(
   }
 
   return { sent, removed: dead.length, emailed };
+}
+
+/**
+ * Conversations that need a person, for the number on the icon.
+ *
+ * Never throws and never blocks the notification: an icon without a number is
+ * a small loss, and a notification that failed to send because of a count is a
+ * customer nobody answered.
+ */
+async function countWaiting(db: SupabaseClient, studioId: string): Promise<number | null> {
+  try {
+    const { count, error } = await db
+      .from("conversations")
+      .select("id", { count: "exact", head: true })
+      .eq("studio_id", studioId)
+      .eq("is_test", false)
+      .eq("status", "needs_human");
+
+    return error ? null : count ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /**

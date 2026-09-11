@@ -3,6 +3,7 @@ import { requireStudio, getArtists } from "@/lib/studio";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { MobileNav, MobileHeader } from "@/components/MobileNav";
+import { AppBadge } from "@/components/AppBadge";
 import { Logo } from "@/components/Logo";
 import { UpNext } from "@/components/UpNext";
 import {
@@ -172,6 +173,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <main className="min-w-0 flex-1 pb-24 md:pb-0">{children}</main>
       </div>
 
+      {/*
+        * The same number, on the home screen icon.
+        *
+        * Rendered from here rather than from its own fetch so it cannot
+        * disagree with the tab beside it — one count, two places it appears.
+        */}
+      <AppBadge count={needsYou ?? 0} />
       <MobileNav needsYou={needsYou ?? 0} />
     </div>
   );

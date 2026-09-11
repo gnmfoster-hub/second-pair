@@ -5,6 +5,7 @@ import { updateAssistant, type FormState } from "../actions";
 import { Field, FormMessage, SubmitButton } from "@/components/Form";
 import { verticalPack } from "@/lib/verticals";
 import { Notifications } from "@/components/Notifications";
+import { OnYourPhone } from "@/components/OnYourPhone";
 import { TryIt } from "./TryIt";
 import type { Studio } from "@/lib/types";
 
@@ -378,6 +379,14 @@ export function AssistantForm({ studio }: { studio: Studio }) {
       <TryIt slug={studio.slug} />
 
       <Notifications />
+
+      {/*
+        * Directly under notifications, because on an iPhone one is the gate in
+        * front of the other: Apple will not deliver a notification to a page in
+        * Safari at all, so somebody turning them on there and hearing nothing
+        * needs the next panel to be the reason why.
+        */}
+      <OnYourPhone />
     </div>
   );
 }

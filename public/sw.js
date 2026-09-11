@@ -62,6 +62,28 @@ self.addEventListener("push", function (event) {
     message = { title: "Second Pair", body: event.data.text() };
   }
 
+  /*
+   * The number on the icon, while the app is shut.
+   *
+   * This is the only moment it can be updated without the app being open, and
+   * it is the moment it has changed. An owner glances at their phone, sees a
+   * 3, and knows — without opening anything, which is the whole point.
+   *
+   * Guarded rather than assumed: the badge exists on Android and on iOS 16.4
+   * and later, and nowhere else. A missing function must not take the
+   * notification down with it.
+   */
+  try {
+    if (typeof message.waiting === "number" && self.navigator && self.navigator.setAppBadge) {
+      if (message.waiting > 0) self.navigator.setAppBadge(message.waiting);
+      // Cleared rather than set to zero: a zero badge shows as a plain dot in
+      // some launchers, which reads as "something is waiting".
+      else if (self.navigator.clearAppBadge) self.navigator.clearAppBadge();
+    }
+  } catch {
+    // Nothing to do. The notification itself still matters.
+  }
+
   event.waitUntil(
     self.registration.showNotification(message.title || "Second Pair", {
       body: message.body || "",
