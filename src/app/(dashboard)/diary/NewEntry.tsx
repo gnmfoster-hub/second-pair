@@ -92,13 +92,23 @@ export function NewEntry({ artists, timezone }: { artists: Artist[]; timezone: s
       <button
         type="button"
         onClick={start}
-        className="btn inline-flex bg-highlight px-4 font-semibold text-on-highlight transition-[filter] hover:brightness-95"
+        /*
+         * The word goes below 360px, the plus does not.
+         *
+         * Measured across three widths: at 360 and 390 the views, the colour
+         * button and this all sit on one line, and at 320 the whole group drops
+         * to a row of its own — which on the screen with the least room to
+         * spare costs forty-four pixels to say one word everybody already
+         * knows. A plus in a coloured circle is the same button.
+         */
+        className="btn inline-flex bg-highlight px-3 font-semibold text-on-highlight transition-[filter] hover:brightness-95 min-[360px]:px-4"
         title="Add something (N)"
+        aria-label="Add something"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" aria-hidden>
           <path d="M12 5v14M5 12h14" />
         </svg>
-        Add
+        <span className="hidden min-[360px]:inline">Add</span>
       </button>
 
       {open && when && (

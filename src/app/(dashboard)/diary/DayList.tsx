@@ -244,7 +244,15 @@ export function DayList({
                   * on the same edge and the digits line up — the difference
                   * between reading a column and reading thirty separate labels.
                   */}
-                <span className="w-[4.4rem] shrink-0 pt-px text-right">
+                {/*
+                  * Wide enough for "12:30 pm" and not a pixel more.
+                  *
+                  * It was 70px against text that measures about 48, and being
+                  * right-aligned the difference sat on the left as a permanent
+                  * empty gutter down the side of every row — which reads as a
+                  * column that failed to load rather than as spacing.
+                  */}
+                <span className="w-[3.5rem] shrink-0 pt-px text-right">
                   <span className="block text-sm font-semibold tabular-nums tracking-tight">
                     {clockOf(e.starts_at, timezone)}
                   </span>
