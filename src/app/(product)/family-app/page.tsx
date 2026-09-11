@@ -42,6 +42,28 @@ export const metadata: Metadata = {
   title: "Family APP! — the anti-generic family organiser",
   description:
     "A private family hub: chat, photos, a shared calendar, meal plans, an AI holiday planner and 26 themes. Built by Second Pair Ltd.",
+  /*
+   * Its own card, because the root layout's is Second Pair's.
+   *
+   * Without this every shared link to this page rendered under a receptionist's
+   * artwork and the words "you work, we answer" — which is the wrong product
+   * described to the wrong person. A link that somebody pastes into a group
+   * chat is the main way a family app travels, and it was the one place the
+   * product had no say in how it looked.
+   */
+  openGraph: {
+    type: "website",
+    title: "Family APP!",
+    description:
+      "Chat, photos, dates, meal plans and an AI holiday planner — a private hub for one family.",
+    images: [{ url: "/family/social-card.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Family APP!",
+    description: "The anti-generic family organiser. Built by Second Pair Ltd.",
+    images: ["/family/social-card.png"],
+  },
 };
 
 /** The seven modules, as the app itself groups them. */

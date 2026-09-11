@@ -30,6 +30,15 @@ const PUBLIC_PATHS = [
   "/family-app",
   // Who is behind this, which is the page a cautious buyer goes looking for.
   "/company",
+  /*
+   * The map and the rules, which a crawler fetches before anything else.
+   *
+   * Behind the session check they answer with a redirect to a sign-in page,
+   * and a search engine reads that as a site with no sitemap at all — which is
+   * the state this was in until now.
+   */
+  "/sitemap.xml",
+  "/robots.txt",
   "/auth",
   "/widget",
   "/api/widget",
