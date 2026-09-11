@@ -16,10 +16,18 @@ import type { Artist } from "@/lib/types";
 export async function UpNext({
   timezone,
   team,
+  className = "mx-3 mt-6",
 }: {
   timezone: string;
   /** Already scoped to this business, which is what keeps the query scoped. */
   team: Artist[];
+  /**
+   * Where it is being put. The sidebar's own margins are the default.
+   *
+   * It exists a second time on a phone, under an empty diary, where the
+   * sidebar it was written for is not on the screen at all.
+   */
+  className?: string;
 }) {
   const supabase = await createClient();
   const now = new Date();
@@ -59,7 +67,7 @@ export async function UpNext({
 
   if (!row) {
     return (
-      <div className="mx-3 mt-6 rounded-xl border border-dashed border-border px-3.5 py-4">
+      <div className={`rounded-xl border border-dashed border-border px-3.5 py-4 ${className}`}>
         <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
           Up next
         </div>
@@ -96,7 +104,7 @@ export async function UpNext({
   return (
     <Link
       href="/diary"
-      className="group mx-3 mt-6 block rounded-xl border border-border bg-surface-2/50 px-3.5 py-3.5 transition-colors hover:border-accent/40 hover:bg-surface-2"
+      className={`group block rounded-xl border border-border bg-surface-2/50 px-3.5 py-3.5 transition-colors hover:border-accent/40 hover:bg-surface-2 ${className}`}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">

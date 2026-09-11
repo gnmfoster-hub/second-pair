@@ -7,6 +7,7 @@ import { MonthGrid } from "./MonthGrid";
 import { DayList } from "./DayList";
 import { SwipeDays } from "./SwipeDays";
 import { WeekStrip, type DayLoad } from "./WeekStrip";
+import { UpNext } from "@/components/UpNext";
 import { Shortcuts } from "./Shortcuts";
 import { NewEntry } from "./NewEntry";
 import { ColourBy } from "./ColourBy";
@@ -343,6 +344,20 @@ export default async function DiaryPage({
           Math.max(1, focused ? 1 : team.length),
         )
       : [];
+
+  /*
+   * Whether this particular day has anything on it.
+   *
+   * The same overlap rule the list uses, because the two must agree: the list
+   * deciding it is empty while the page thinks otherwise would put "up next"
+   * above a day full of appointments.
+   */
+  const onThisDay = (iso: string) =>
+    new Intl.DateTimeFormat("en-CA", { timeZone: studio.timezone }).format(new Date(iso));
+  const dayKey = isoDate(focusDay);
+  const todayIsEmpty = !entries.some(
+    (e) => onThisDay(e.starts_at) <= dayKey && onThisDay(e.ends_at) >= dayKey,
+  );
 
   const freeMinutes = Math.max(0, capacity - bookedMinutes);
 
@@ -830,6 +845,22 @@ export default async function DiaryPage({
               * is the whole point of it, and a list of forty appointments is
               * not a week.
               */}
+            {/*
+              * On an empty day, say what is next.
+              *
+              * Looking at a real business's phone: "Nothing booked today" and
+              * then three hundred pixels of nothing, while the app knew
+              * perfectly well that her next job was Tuesday at two and was
+              * showing it in a sidebar that a phone never draws. The one thing
+              * worth saying on an empty day was the one thing only a desktop
+              * was told.
+              */}
+            {view === "day" && todayIsEmpty && (
+              <div className="sm:hidden">
+                <UpNext timezone={studio.timezone} team={team} className="mt-3" />
+              </div>
+            )}
+
             {view === "day" && (
               <div className="sm:hidden">
                 {/*
