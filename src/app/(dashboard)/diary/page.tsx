@@ -5,6 +5,7 @@ import { startOfWeek, addDays, isoDate, parseIsoDate } from "@/lib/calendar";
 import { WeekGrid, type Entry } from "./WeekGrid";
 import { MonthGrid } from "./MonthGrid";
 import { DayList } from "./DayList";
+import { SwipeDays } from "./SwipeDays";
 import { Shortcuts } from "./Shortcuts";
 import { NewEntry } from "./NewEntry";
 import { ColourBy } from "./ColourBy";
@@ -301,6 +302,20 @@ export default async function DiaryPage({
           */}
         <h1 className="page-title hidden sm:block">Diary</h1>
         <span className="text-base font-medium sm:hint sm:text-sm sm:font-normal">{label}</span>
+        {/*
+          * The day's figures, on the date's own line, on a phone only.
+          *
+          * They had a strip of their own inside the card — a whole row, a
+          * border and its padding, thirty-five pixels to say two numbers that
+          * fit comfortably on the end of the line above. The strip earns its
+          * place on a desktop where it carries a fourth figure and the shape of
+          * the day; on a phone it was furniture.
+          */}
+        {bookedMinutes > 0 && (
+          <span className="hint text-xs tabular-nums sm:hidden">
+            {asHours(bookedMinutes)} &middot; {formatPence(worth)}
+          </span>
+        )}
         {awaiting > 0 && (
           <span className="rounded-full bg-warn/10 px-2.5 py-1 text-xs text-warn">
             {awaiting} waiting on a deposit
@@ -323,7 +338,7 @@ export default async function DiaryPage({
           <div className="flex overflow-hidden rounded-xl border border-border bg-surface">
             <Link
               href={`/diary?view=day&day=${isoDate(focusDay)}`}
-              className={`px-3.5 py-2 text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
                 view === "day"
                   ? "bg-surface-2 text-foreground"
                   : "text-muted hover:text-foreground"
@@ -333,7 +348,7 @@ export default async function DiaryPage({
             </Link>
             <Link
               href={`/diary?view=week&week=${isoDate(view === "month" ? focusDay : start)}`}
-              className={`border-l border-border px-3.5 py-2 text-sm font-medium transition-colors ${
+              className={`border-l border-border px-3 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
                 view === "week"
                   ? "bg-surface-2 text-foreground"
                   : "text-muted hover:text-foreground"
@@ -348,7 +363,7 @@ export default async function DiaryPage({
              */}
             <Link
               href={`/diary?view=month&week=${isoDate(anchor)}`}
-              className={`border-l border-border px-3.5 py-2 text-sm font-medium transition-colors ${
+              className={`border-l border-border px-3 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
                 view === "month"
                   ? "bg-surface-2 text-foreground"
                   : "text-muted hover:text-foreground"
@@ -361,20 +376,20 @@ export default async function DiaryPage({
           <div className="flex items-center overflow-hidden rounded-xl border border-border bg-surface">
             <Link
               href={back}
-              className="px-3 py-2 text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+              className="px-2.5 py-1.5 text-muted transition-colors hover:bg-surface-2 hover:text-foreground sm:px-3 sm:py-2"
               aria-label="Previous"
             >
               ‹
             </Link>
             <Link
               href={`/diary?view=${view}`}
-              className="border-x border-border px-3.5 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+              className="border-x border-border px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-foreground sm:px-3.5 sm:py-2"
             >
               Today
             </Link>
             <Link
               href={forward}
-              className="px-3 py-2 text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+              className="px-2.5 py-1.5 text-muted transition-colors hover:bg-surface-2 hover:text-foreground sm:px-3 sm:py-2"
               aria-label="Next"
             >
               ›
@@ -426,7 +441,7 @@ export default async function DiaryPage({
         * printed. One beat, and it stops for anybody who has asked for less
         * motion.
         */}
-      <div className="card settle relative mt-5 overflow-hidden">
+      <div className="card settle relative mt-3 overflow-hidden sm:mt-5">
       {/*
         * One line on a phone, whatever it takes.
         *
@@ -436,7 +451,7 @@ export default async function DiaryPage({
         * four and three quarter hours of it to show. The figures are a caption;
         * a caption that takes a tenth of the screen is not one.
         */}
-      <div className="flex items-center gap-x-4 overflow-x-auto whitespace-nowrap border-b border-border px-4 py-2 text-xs sm:flex-wrap sm:gap-x-6 sm:py-2.5 sm:text-sm">
+      <div className="hidden items-center gap-x-4 overflow-x-auto whitespace-nowrap border-b border-border px-4 py-2 text-xs sm:flex sm:flex-wrap sm:gap-x-6 sm:py-2.5 sm:text-sm">
         <Figure label="booked" value={asHours(bookedMinutes)} />
         <Figure label="worth" value={formatPence(worth)} accent={worth > 0} />
         {/*
@@ -535,7 +550,10 @@ export default async function DiaryPage({
       </div>
 
       {team.length > 1 && (
-        <div className="mt-4 flex flex-wrap items-center gap-1.5">
+        <div
+          data-no-swipe
+          className="mt-3 flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:mt-4 sm:flex-wrap sm:overflow-visible"
+        >
           <Link
             href={
               view === "day"
@@ -606,8 +624,26 @@ export default async function DiaryPage({
         * only useful thing to say is how to put something in it — which was
         * documented under the ? key, where nobody looks on their first morning.
         */}
+      {/*
+        * Above the clock, and only where there is a grid to be empty.
+        *
+        * Two faults in one box. It sat at z-10, which is exactly what the
+        * sticky time column uses — and the column comes later in the document,
+        * so it painted straight over the left-hand end of the message. The
+        * first thing a business sees on its first morning was cut in half by
+        * its own diary.
+        *
+        * And on a phone the day is a list now, which says "nothing booked
+        * today" itself. Both were rendering, one on top of the other. So this
+        * follows the grid exactly: hidden on a phone in day view, where the
+        * list has it covered, and shown everywhere the grid is.
+        */}
       {entries.length === 0 && (
-        <div className="pointer-events-none absolute inset-x-0 top-1/2 z-10 flex -translate-y-1/2 justify-center px-6">
+        <div
+          className={`pointer-events-none absolute inset-x-0 top-1/2 z-30 flex -translate-y-1/2 justify-center px-6 ${
+            view === "day" ? "hidden sm:flex" : ""
+          }`}
+        >
           {/*
             * On a surface of its own, because grid lines run underneath it.
             *
@@ -667,6 +703,12 @@ export default async function DiaryPage({
               */}
             {view === "day" && (
               <div className="sm:hidden">
+                {/*
+                  * Push the day sideways to change it, the way every calendar
+                  * on a phone works. The arrows are at the top of the screen,
+                  * which is the furthest point from a thumb.
+                  */}
+                <SwipeDays back={back} forward={forward} />
                 <DayList
                   entries={entries}
                   artists={focused ? team.filter((a) => a.id === focused) : team}
