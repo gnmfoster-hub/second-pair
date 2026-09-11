@@ -97,15 +97,24 @@ export function WeekStrip({
               * reads as "wide open, come on in", which is the opposite of
               * shut.
               */}
+            {/*
+              * Wider and taller than the first attempt, which was four pixels
+              * by twenty and read as a speck rather than a measure — the whole
+              * point is comparing seven of them at a glance, and you cannot
+              * compare specks. It now fills the width of the date above it.
+              */}
             {on?.open ? (
-              <span className="h-1 w-5 overflow-hidden rounded-full bg-border" aria-hidden>
+              <span
+                className="h-1.5 w-full max-w-[1.75rem] overflow-hidden rounded-full bg-border/70"
+                aria-hidden
+              >
                 <span
                   className="block h-full rounded-full bg-accent"
-                  style={{ width: `${Math.round(Math.min(1, on.full) * 100)}%` }}
+                  style={{ width: `${Math.max(on.full > 0 ? 14 : 0, Math.round(Math.min(1, on.full) * 100))}%` }}
                 />
               </span>
             ) : (
-              <span className="h-1 w-5" aria-hidden />
+              <span className="h-1.5 w-full max-w-[1.75rem]" aria-hidden />
             )}
           </Link>
         );

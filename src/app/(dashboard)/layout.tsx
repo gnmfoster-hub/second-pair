@@ -77,6 +77,37 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const needsYou = countFailed || count == null ? null : count;
 
+  /*
+   * Only offer help if there is a studio behind it.
+   *
+   * The variable was set to "help" and no studio of that name had ever been
+   * created, so the button appeared on every screen for every business and
+   * every press of it opened a 404. A dead help button is worse than none at
+   * all: it is the one thing somebody reaches for when they are already stuck,
+   * and it tells them the company cannot keep its own website working.
+   *
+   * Checked rather than trusted, because the failure is invisible from in
+   * here — the name is a string in an environment variable, nothing validates
+   * it, and the page it points at is somebody else's route.
+   */
+  const wanted = process.env.NEXT_PUBLIC_SUPPORT_SLUG?.trim() || null;
+  const supportSlug = wanted
+    ? (
+        await supabase
+          .from("studios")
+          .select("slug")
+          .eq("slug", wanted)
+          .is("archived_at", null)
+          .maybeSingle()
+      ).data?.slug ?? null
+    : null;
+
+  if (wanted && !supportSlug) {
+    // Worth saying out loud: it is a setting pointing at nothing, and the only
+    // symptom is a button that does nothing useful.
+    console.error(`[help] NEXT_PUBLIC_SUPPORT_SLUG is "${wanted}" and no such studio exists.`);
+  }
+
   return (
     <div className="flex min-h-screen">
       {/* Desktop: a sidebar. Phone: a top bar and a bottom tab bar, below. */}
@@ -167,7 +198,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
          * until somebody sets NEXT_PUBLIC_SUPPORT_SLUG to a studio whose
          * clients are the business owners.
          */}
-        <HelpButton slug={process.env.NEXT_PUBLIC_SUPPORT_SLUG ?? null} />
+        <HelpButton slug={supportSlug} />
 
         {/* The padding keeps the last row clear of the tab bar. */}
         <main className="min-w-0 flex-1 pb-24 md:pb-0">{children}</main>

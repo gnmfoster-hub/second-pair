@@ -69,6 +69,49 @@ export function HelpButton({ slug }: { slug: string | null }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
+  /*
+   * Out of the way while somebody is reading down a page.
+   *
+   * It floats over the bottom right of every screen, which on a phone is over
+   * the diary — the one screen an owner scrolls through twenty times a day.
+   * The standard answer, and the right one, is that a floating button steps
+   * aside when you scroll down and comes back the moment you scroll up or
+   * stop: it is there when you reach for it and not sitting on the thing you
+   * are trying to read.
+   *
+   * Never hidden while the panel is open, or it would take the chat with it.
+   */
+  const [tucked, setTucked] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setTucked(false);
+      return;
+    }
+
+    let last = window.scrollY;
+    let idle: ReturnType<typeof setTimeout> | null = null;
+
+    const onScroll = () => {
+      const now = window.scrollY;
+      // A little slack, so a jittery finger does not flap it on and off.
+      if (now > last + 12 && now > 120) setTucked(true);
+      else if (now < last - 12) setTucked(false);
+      last = now;
+
+      // Back after a moment's stillness: somebody who stopped scrolling has
+      // arrived at what they wanted, which is when help gets asked for.
+      if (idle) clearTimeout(idle);
+      idle = setTimeout(() => setTucked(false), 900);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (idle) clearTimeout(idle);
+    };
+  }, [open]);
+
   if (!slug) return null;
 
   return (
@@ -83,7 +126,9 @@ export function HelpButton({ slug }: { slug: string | null }) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={open ? "Close help" : "Get help"}
-        className="fixed bottom-[5.5rem] right-4 z-40 grid size-12 place-items-center rounded-full border border-border bg-surface text-foreground shadow-[var(--shadow-pop)] transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent md:bottom-5"
+        className={`fixed bottom-[5.5rem] right-4 z-40 grid size-12 place-items-center rounded-full border border-border bg-surface text-foreground shadow-[var(--shadow-pop)] transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent md:bottom-5 ${
+              tucked ? "pointer-events-none translate-y-24 opacity-0 md:translate-y-0 md:opacity-100 md:pointer-events-auto" : ""
+            }`}
         style={{ marginBottom: "env(safe-area-inset-bottom)" }}
       >
         {open ? (

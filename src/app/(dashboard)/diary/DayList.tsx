@@ -37,6 +37,16 @@ function clockOf(iso: string, timezone: string) {
   }).format(new Date(iso));
 }
 
+/** "2027-03-11" where the business is, which is not where the server is. */
+function dayOf(iso: string, timezone: string) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(iso));
+}
+
 /** "1h 30m", "45m" — how a person says a length. */
 function lengthOf(ms: number) {
   const mins = Math.round(ms / 60_000);
@@ -92,8 +102,25 @@ export function DayList({
   const [creating, setCreating] = useState<{ time: string; endTime?: string } | null>(null);
 
   const rows = useMemo<Row[]>(() => {
-    const sorted = [...entries]
+    /*
+     * This day only.
+     *
+     * The diary deliberately fetches a day either side, so that a holiday
+     * which began last week still appears. The grid places every entry by its
+     * date and the extras land outside the visible column; a list has no
+     * columns, so it showed all three days at once — Thursday, Friday and
+     * Saturday in one column with a sixteen-hour "free" gap between them,
+     * which is overnight presented as an opportunity.
+     *
+     * Compared as dates in the business's own timezone, and by overlap rather
+     * than by start, so something running from yesterday into today is still
+     * today's problem. Plain string comparison is safe on YYYY-MM-DD.
+     */
+    const sorted = entries
       .filter((e) => !e.all_day)
+      .filter(
+        (e) => dayOf(e.starts_at, timezone) <= date && dayOf(e.ends_at, timezone) >= date,
+      )
       .sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
 
     const out: Row[] = [];
@@ -127,9 +154,15 @@ export function DayList({
     }
 
     return out;
-  }, [entries]);
+    // date and timezone decide what is in the list, so both belong here.
+  }, [entries, date, timezone]);
 
-  const allDay = entries.filter((e) => e.all_day);
+  const allDay = entries.filter(
+    (e) =>
+      e.all_day &&
+      dayOf(e.starts_at, timezone) <= date &&
+      dayOf(e.ends_at, timezone) >= date,
+  );
   const open = editingId ? entries.find((e) => e.id === editingId) ?? null : null;
   const now = Date.parse(nowIso);
 
