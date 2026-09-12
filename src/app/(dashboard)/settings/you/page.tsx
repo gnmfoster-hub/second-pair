@@ -7,6 +7,9 @@ import { OnYourPhone } from "@/components/OnYourPhone";
 import { ArtistEditor } from "../artists/ArtistEditor";
 import { CalendarLinks } from "../data/CalendarLinks";
 import { PersonalCalendar } from "./PersonalCalendar";
+import { YourPrices } from "./YourPrices";
+import { byPerson } from "@/lib/servicePrices";
+import type { Service, ServicePerson } from "@/lib/types";
 
 export const metadata = { title: "You — Second Pair" };
 
@@ -50,6 +53,35 @@ export default async function YouPage() {
     .maybeSingle();
 
   const owns = ownerRow?.user_id != null && ownerRow.user_id === userId;
+
+  /*
+   * The price list, and what this person charges against it.
+   *
+   * Only for a business that prices by a named thing. A tattooist prices by
+   * the size of the piece and the hours it sits, and their rate is already on
+   * the editor below — showing them an empty salon price list would be one
+   * more screen to work out they can ignore.
+   *
+   * Read after `me`, because with nobody signed in as a person there is
+   * nothing to price and no reason to ask.
+   */
+  const pricesByList = studio.pricing_model === "services" && me != null;
+
+  const [{ data: serviceRows }, { data: mineRows }] = pricesByList
+    ? await Promise.all([
+        supabase
+          .from("services")
+          .select("*")
+          .eq("studio_id", studio.id)
+          .eq("active", true)
+          .eq("kind", "service")
+          .order("sort_order"),
+        supabase.from("service_people").select("*").eq("artist_id", me.id),
+      ])
+    : [{ data: null }, { data: null }];
+
+  const services = (serviceRows ?? []) as Service[];
+  const myPrices = byPerson((mineRows ?? []) as ServicePerson[]);
 
   const pack = verticalPack(studio.vertical);
   const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
@@ -106,6 +138,15 @@ export default async function YouPage() {
             isOwner={owns}
             ownLink={me.handle ? `${origin}/widget/${studio.slug}?with=${me.handle}` : null}
           />
+
+          {/* Their prices against the list, where the business keeps one. */}
+          {pricesByList && (
+            <YourPrices
+              services={services}
+              mine={myPrices}
+              firstName={me.name.split(" ")[0]}
+            />
+          )}
         </>
       ) : (
         /*
