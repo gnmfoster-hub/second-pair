@@ -42,6 +42,7 @@ type RawRow = {
   deposit_amount_pence: number;
   price_pence: number | null;
   repeats: string;
+  attended: boolean | null;
   contacts: { id: string; name: string | null; phone: string | null } | null;
   enquiries: {
     description: string | null;
@@ -177,7 +178,7 @@ export default async function DiaryPage({
     .from("bookings")
     .select(
       "id, artist_id, starts_at, ends_at, all_day, category, blocks_availability, source, " +
-        "title, notes, deposit_status, deposit_amount_pence, price_pence, repeats, " +
+        "title, notes, deposit_status, deposit_amount_pence, price_pence, repeats, attended, " +
         "contacts(id, name, phone), " +
         "enquiries(description, quote_low_pence, conversation_id, conversations(contacts(name, phone)))",
     )
@@ -238,6 +239,7 @@ export default async function DiaryPage({
       conversationId: r.enquiries?.conversation_id ?? null,
       quotePence: r.enquiries?.quote_low_pence ?? null,
       repeats: r.repeats,
+      attended: r.attended,
     }));
 
   /*

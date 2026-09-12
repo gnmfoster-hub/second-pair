@@ -3,7 +3,13 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { ClientPicker } from "./ClientPicker";
 import Link from "next/link";
-import { saveDiaryEntry, cancelDiaryEntry, cancelSeries, type DiaryState } from "./actions";
+import {
+  saveDiaryEntry,
+  cancelDiaryEntry,
+  cancelSeries,
+  closeBooking,
+  type DiaryState,
+} from "./actions";
 import { Field, SubmitButton } from "@/components/Form";
 import { formatPence } from "@/lib/money";
 import { CATEGORIES, OWNER_CATEGORIES, categoryFor, REPEATS } from "@/lib/calendar";
@@ -46,6 +52,16 @@ export function EntryDialog({
 
   const existing = Boolean(entry);
   const fromClient = entry?.source === "assistant";
+
+  /*
+   * The clock, read once when the sheet opens.
+   *
+   * Only used to decide whether an appointment has finished, so a value from
+   * the moment it was opened is the right one — and reading it in the body of
+   * a render would give a different answer on every re-render for something
+   * that should not change while somebody is looking at it.
+   */
+  const [openedAt] = useState(() => Date.now());
 
   const startFields = entry
     ? localFields(entry.starts_at, timezone)
@@ -206,6 +222,18 @@ export function EntryDialog({
               >
                 Open the conversation →
               </Link>
+            )}
+
+            {/*
+              * Only once it has actually finished.
+              *
+              * Asking whether somebody turned up to Thursday's appointment on
+              * Tuesday is noise on every booking in the diary, and noise on
+              * every booking is how a control gets ignored on the one that
+              * matters.
+              */}
+            {entry && Date.parse(entry.ends_at) < openedAt && (
+              <CloseOff id={entry.id} attended={entry.attended} />
             )}
           </div>
         ) : null}
@@ -466,5 +494,64 @@ export function EntryDialog({
         </form>
       </div>
     </div>
+  );
+}
+
+/**
+ * Did they turn up?
+ *
+ * Two buttons and a way back, rather than a form with a Save. Closing off a
+ * booking happens with somebody's coat half on and the next client waiting; a
+ * control that needs a second press to commit is one that gets abandoned
+ * halfway, and a half-closed booking is indistinguishable from an unasked one.
+ *
+ * The answer already given is shown as the pressed state, so the panel says
+ * what is recorded rather than asking a question that has been answered.
+ */
+function CloseOff({ id, attended }: { id: string; attended: boolean | null }) {
+  return (
+    <form action={closeBooking} className="mt-3 border-t border-border pt-3">
+      <input type="hidden" name="id" value={id} />
+      <div className="label">How did it go?</div>
+
+      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+        <button
+          name="attended"
+          value="yes"
+          className={`btn-ghost text-sm ${
+            attended === true ? "bg-ok/10 text-ok" : ""
+          }`}
+        >
+          They came
+        </button>
+        <button
+          name="attended"
+          value="no"
+          className={`btn-ghost text-sm ${
+            attended === false ? "bg-warn/10 text-warn" : ""
+          }`}
+        >
+          No-show
+        </button>
+
+        {/*
+          * The way back from a mis-tap. Without it the only correction for
+          * "no-show" pressed on the wrong appointment is to claim they turned
+          * up, which puts a wrong number in the report rather than no number.
+          */}
+        {attended !== null && (
+          <button name="attended" value="clear" className="text-sm text-muted hover:text-foreground">
+            Neither, yet
+          </button>
+        )}
+      </div>
+
+      {attended === false && (
+        <p className="hint mt-2">
+          Counted on their record and in the report. Nothing happens to the deposit on
+          its own &mdash; keeping it or returning it stays your call.
+        </p>
+      )}
+    </form>
   );
 }

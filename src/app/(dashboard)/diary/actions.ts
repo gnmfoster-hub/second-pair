@@ -249,6 +249,41 @@ export async function cancelDiaryEntry(fd: FormData) {
 }
 
 /**
+ * Closing a booking off: did they turn up?
+ *
+ * The column has existed since the first migration, labelled "metric: no-show
+ * rate", and four places in the product read it — the client record counts
+ * them, the timeline marks them, the export has a column for them, and the
+ * report has a no-show figure. Nothing has ever written it. So every one of
+ * those numbers has been a confident zero since the day it shipped, which is
+ * worse than not having the figure at all.
+ *
+ * Three states, not two. Null is "nobody has said", and it has to stay
+ * reachable: somebody who taps "no-show" on the wrong appointment needs a way
+ * back that is not claiming they turned up.
+ */
+export async function closeBooking(fd: FormData) {
+  const supabase = await createClient();
+
+  const said = str(fd, "attended");
+  const attended = said === "yes" ? true : said === "no" ? false : null;
+
+  /*
+   * Tenancy is the row-level policy's job here, as it is for cancelling: the
+   * signed-in client cannot see a booking that is not theirs, so it cannot
+   * update one either.
+   */
+  await supabase
+    .from("bookings")
+    .update({ attended, updated_at: new Date().toISOString() })
+    .eq("id", str(fd, "id"));
+
+  revalidatePath("/diary");
+  revalidatePath("/clients");
+  revalidatePath("/report");
+}
+
+/**
  * Moving or resizing an entry by dragging it.
  *
  * Kept separate from saveDiaryEntry because it is a different kind of edit: no

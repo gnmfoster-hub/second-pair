@@ -43,6 +43,8 @@ export type Entry = {
   price_pence: number | null;
   /** What the enquiry was quoted, for the week's worth. */
   quotePence: number | null;
+  /** Whether they turned up. Null until somebody closes the booking off. */
+  attended: boolean | null;
   repeats: string;
 };
 
