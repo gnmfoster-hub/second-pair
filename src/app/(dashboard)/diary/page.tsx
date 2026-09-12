@@ -53,6 +53,29 @@ type RawRow = {
   } | null;
 };
 
+/**
+ * "7 – 13 Sept 2026", not "7 Sept – 13 Sept 2026".
+ *
+ * Measured off a 1080px phone: the long form is 146 of the 380 usable pixels on
+ * the line it shares with the figures, the shape control and the person, and
+ * those four together came to more than the line holds — so one of them wrapped
+ * and a row of mostly empty space appeared under it.
+ *
+ * The month only needs saying twice when the week crosses one, which is a fifth
+ * of them. Saying it twice the rest of the time cost forty pixels every week of
+ * the year to be right about ten of them.
+ */
+function weekLabel(from: Date, to: Date): string {
+  const day = (d: Date) => d.toLocaleDateString("en-GB", { day: "numeric" });
+  const monthYear = (d: Date) =>
+    d.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+  const dayMonth = (d: Date) => d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+
+  return from.getMonth() === to.getMonth()
+    ? `${day(from)} – ${day(to)} ${monthYear(to)}`
+    : `${dayMonth(from)} – ${dayMonth(to)} ${to.toLocaleDateString("en-GB", { year: "numeric" })}`;
+}
+
 export default async function DiaryPage({
   searchParams,
 }: {
@@ -258,12 +281,10 @@ export default async function DiaryPage({
         })
       : view === "month"
         ? anchor.toLocaleDateString("en-GB", { month: "long", year: "numeric" })
-        : `${start.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${addDays(
-            start,
-            6,
-          ).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
+        : weekLabel(start, addDays(start, 6));
 
   const monthWeeks: string[][] = [];
+
   for (let cursor = new Date(monthStart); cursor < monthEnd; cursor = addDays(cursor, 7)) {
     monthWeeks.push(Array.from({ length: 7 }, (_, i) => isoDate(addDays(cursor, i))));
   }
@@ -502,6 +523,30 @@ export default async function DiaryPage({
           * room, it drops to the next line, which is exactly where it was
           * before — so the change can win and cannot lose.
           */}
+        {/*
+          * Whose diary, on the date's line.
+          *
+          * A five-chair salon had this on a row of its own holding one chip
+          * eighty-four pixels wide, with three hundred empty beside it. The
+          * date line has the room now the week label is shorter: 106 for the
+          * date, 72 for the figures, 74 for the shape control and 84 for this
+          * comes to 360 of 380.
+          *
+          * Only the picker, which is one control. The chips for a smaller team
+          * are a scrolling row of names and belong on their own line.
+          */}
+        {team.length > 4 && (
+          <div data-no-swipe className="order-last sm:order-none">
+            <WhoPicker
+              team={team}
+              focused={focused}
+              colourByPerson={(studio.diary_colour ?? "category") === "person"}
+              view={view === "month" ? "week" : view}
+              anchor={view === "day" ? isoDate(focusDay) : isoDate(start)}
+            />
+          </div>
+        )}
+
         {view !== "month" && (
           <LayoutToggle
             current={layout}
@@ -516,20 +561,7 @@ export default async function DiaryPage({
           />
         )}
 
-        {/*
-          * The arrows, beside the date they move, on a phone.
-          *
-          * Day view has the week strip instead, which does the same job and
-          * answers "is Thursday full" as well.
-          */}
-        {view !== "day" && (
-          <Stepper
-            back={back}
-            forward={forward}
-            today={`/diary?view=${view}`}
-            className="ml-auto flex sm:hidden"
-          />
-        )}
+
         {awaiting > 0 && (
           <span className="rounded-full bg-warn/10 px-2.5 py-1 text-xs text-warn">
             {awaiting} waiting on a deposit
@@ -624,11 +656,24 @@ export default async function DiaryPage({
             * otherwise. Never in day view on a phone, where the week strip
             * replaces it and does more.
             */}
+          {/*
+            * With the view buttons, not on a line of its own.
+            *
+            * On a phone it had ml-auto in the row above, which pushed it to the
+            * right edge and left the whole left half of that line empty — one
+            * of four control rows above the diary, each about half used.
+            * Measured on a 1080px phone: the view buttons, these arrows, the
+            * colour picker and Add come to 364 of the 380 usable pixels, so
+            * they fit on one line together and the empty row goes.
+            *
+            * Still not in day view on a phone, where the week strip below
+            * replaces it and answers "is Thursday full" as well.
+            */}
           <Stepper
             back={back}
             forward={forward}
             today={`/diary?view=${view}`}
-            className={view === "day" ? "hidden sm:flex" : "hidden sm:flex"}
+            className={view === "day" ? "hidden sm:flex" : "flex"}
           />
 
           <ColourBy
@@ -828,20 +873,16 @@ export default async function DiaryPage({
         * front of the scrolling part so it cannot slide off the side.
         */}
       {team.length > 1 && (
-        <div data-no-swipe className="mt-2 flex items-start gap-2 sm:mt-4">
+        <div
+          data-no-swipe
+          /* The chips are a scrolling row of names and keep their own line. On
+             a phone a big team uses the picker upstairs instead, so this row
+             has nothing in it and must not leave its margin behind. */
+          className={`mt-2 items-start gap-2 sm:mt-4 sm:flex ${
+            team.length > 4 ? "hidden" : "flex"
+          }`}
+        >
           <div className="min-w-0 flex-1">
-            {team.length > 4 && (
-              <div className="sm:hidden">
-                <WhoPicker
-                  team={team}
-                  focused={focused}
-                  colourByPerson={(studio.diary_colour ?? "category") === "person"}
-                  view={view === "month" ? "week" : view}
-                  anchor={view === "day" ? isoDate(focusDay) : isoDate(start)}
-                />
-              </div>
-            )}
-
             <div
               className={`flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:flex-wrap sm:overflow-visible ${
                 team.length > 4 ? "hidden sm:flex" : ""
