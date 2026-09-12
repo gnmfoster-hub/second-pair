@@ -2,6 +2,7 @@ import { requireStudio, getArtists, getServiceOptions } from "@/lib/studio";
 import { verticalPack } from "@/lib/verticals";
 import { ArtistEditor } from "./ArtistEditor";
 import { InviteButton } from "./InviteButton";
+import { InviteStaff } from "./InviteStaff";
 import { createClient } from "@/lib/supabase/server";
 import { siteOrigin } from "@/lib/origin";
 
@@ -135,6 +136,11 @@ export default async function ArtistsPage() {
           roles={pack.roles}
         />
       )}
+
+      {/* And somebody who works here without being in the diary, which until
+          now could not be expressed at all: every login went through adding
+          them as somebody who does the work. */}
+      {owns && <InviteStaff origin={origin} />}
     </div>
   );
 }

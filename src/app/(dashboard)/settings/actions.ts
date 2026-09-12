@@ -878,6 +878,57 @@ export async function setServiceProviders(bandId: string, artistIds: string[]) {
  * Re-inviting replaces rather than accumulates — a unique index on the pending
  * invite enforces it, so a second link cannot quietly exist alongside a first.
  */
+/**
+ * A login for somebody who is not in the diary.
+ *
+ * A receptionist, a manager, an apprentice who answers the phone. They need
+ * the inbox, the clients and a view of everybody's day; they do not need
+ * hours, rates, a column, or to be offered to a customer as somebody who can
+ * cut hair.
+ *
+ * So they get no artist row at all, rather than an artist row with a flag on
+ * it. A flag would have to be honoured in the ten places that ask whether
+ * somebody is active — the diary, the client list, pricing, readiness, and
+ * every inbound channel — and the first one missed would put a receptionist in
+ * the diary, or offer her to a customer as a stylist. Nothing to filter is
+ * nothing to forget.
+ *
+ * Staff, never owner. Handing over the business is a different decision from
+ * handing somebody a login, and it is not made from this button.
+ */
+export async function inviteStaff(
+  _prev: { token?: string; error?: string; emailedTo?: string },
+  fd: FormData,
+): Promise<{ token?: string; error?: string; emailedTo?: string }> {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  if (!(await isOwner())) {
+    return { error: "Only the owner can give somebody a login." };
+  }
+
+  const email = str(fd, "email").toLowerCase();
+  if (email && !usableAddress(email)) {
+    return { error: "That does not look like an email address." };
+  }
+
+  const { data, error } = await supabase
+    .from("team_invites")
+    .insert({
+      studio_id: studio.id,
+      artist_id: null,
+      role: "staff",
+      email: email || null,
+    })
+    .select("token")
+    .single();
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/artists");
+  return { token: data.token, emailedTo: email || undefined };
+}
+
 export async function inviteToTeam(
   artistId: string,
 ): Promise<{ token?: string; error?: string; emailedTo?: string; emailError?: string }> {
