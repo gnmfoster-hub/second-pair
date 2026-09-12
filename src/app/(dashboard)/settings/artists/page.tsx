@@ -3,6 +3,7 @@ import { verticalPack } from "@/lib/verticals";
 import { ArtistEditor } from "./ArtistEditor";
 import { InviteButton } from "./InviteButton";
 import { InviteStaff } from "./InviteStaff";
+import { TeamCalendar } from "./TeamCalendar";
 import { createClient } from "@/lib/supabase/server";
 import { siteOrigin } from "@/lib/origin";
 
@@ -110,6 +111,26 @@ export default async function ArtistsPage() {
               artist.handle ? `${origin}/widget/${studio.slug}?with=${artist.handle}` : null
             }
           />
+          {/*
+            * Their calendar link, for the owner to hand over.
+            *
+            * Everybody has had one since the feature was built and only the
+            * person signed in could see it — which in a salon is the owner and
+            * almost nobody else, because a stylist does not need a login to
+            * cut hair. Their own appointments in their own phone were
+            * unreachable to them and to the person who could have helped.
+            */}
+          {owns && (
+            <div className="px-1">
+              <TeamCalendar
+                origin={origin}
+                artistId={artist.id}
+                name={artist.name}
+                token={artist.calendar_token}
+              />
+            </div>
+          )}
+
           {/* Offered once somebody exists, never as a step in creating them —
               plenty of people here will never sign in at all. Handing out a
               login is the owner's, which the action already enforces; showing
