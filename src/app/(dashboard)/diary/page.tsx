@@ -742,6 +742,7 @@ export default async function DiaryPage({
           <Stepper
             back={back}
             forward={forward}
+            view={view}
             today={keepWho(`/diary?view=${view}`)}
             className={view === "day" ? "hidden sm:flex" : "flex"}
           />
