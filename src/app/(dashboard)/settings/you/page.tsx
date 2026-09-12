@@ -117,7 +117,27 @@ export default async function YouPage() {
           {/* Their life, coming in — the other direction from the feed above,
               and the one that stops the assistant booking over the school
               run. */}
-          <PersonalCalendar artist={me} />
+          <PersonalCalendar
+            artist={me}
+            /*
+             * Formatted here, in the studio's own zone.
+             *
+             * The panel is a client component, and a date turned into words in
+             * the browser is a date the server rendered differently — which
+             * React reports as a hydration error and the reader sees as the
+             * page flickering.
+             */
+            lastRead={
+              me.personal_calendar_read_at
+                ? new Intl.DateTimeFormat("en-GB", {
+                    timeZone: studio.timezone,
+                    weekday: "short",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  }).format(new Date(me.personal_calendar_read_at))
+                : null
+            }
+          />
 
           <div className="card p-5">
             <div className="section-title">Your hours and rates</div>

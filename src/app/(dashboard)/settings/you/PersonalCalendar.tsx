@@ -19,7 +19,14 @@ import type { Artist } from "@/lib/types";
  * Outlook all do it, with no sign-in, no app review and nothing we can change
  * at their end.
  */
-export function PersonalCalendar({ artist }: { artist: Artist }) {
+export function PersonalCalendar({
+  artist,
+  lastRead,
+}: {
+  artist: Artist;
+  /** When it was last read, already in words. Null means never. */
+  lastRead: string | null;
+}) {
   const [state, action] = useActionState<FormState, FormData>(savePersonalCalendar, {});
   const [offState, takeOff] = useActionState<FormState, FormData>(
     disconnectPersonalCalendar,
@@ -132,6 +139,22 @@ export function PersonalCalendar({ artist }: { artist: Artist }) {
             </label>
           </Field>
         </>
+      )}
+
+      {/*
+        * Proof it is working, which the product recorded and never showed.
+        *
+        * Without it there is no difference on screen between a calendar being
+        * read every few minutes and one that has not been touched since the
+        * day it was pasted in — so the only way to find out was to add an
+        * appointment and wait to see whether anything happened.
+        */}
+      {linked && !artist.personal_calendar_error && (
+        <p className="hint">
+          {lastRead
+            ? `Last read ${lastRead}, and nothing went wrong.`
+            : "Not read yet. It is picked up within a few minutes."}
+        </p>
       )}
 
       {artist.personal_calendar_error && (
