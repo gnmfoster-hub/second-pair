@@ -51,7 +51,9 @@ let { data: studio } = await db.from("studios").select("id").eq("slug", SLUG).ma
 const settings = {
   name: NAME,
   slug: SLUG,
-  vertical: "hair",
+  // The salon pack's own id. "hair" is one of its aliases and the id of
+  // nothing, so storing that fell through to the general pack.
+  vertical: "salon",
   kind: "demo",
   timezone: "Europe/London",
   deposit_mode: "none",

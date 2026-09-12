@@ -1448,7 +1448,27 @@ export const VERTICALS_BY_CATEGORY: { category: TradeCategory; trades: VerticalP
  * A business whose trade was renamed should still be able to log in.
  */
 export function verticalPack(id: string | null | undefined): VerticalPack {
-  return VERTICALS[id ?? ""] ?? VERTICALS[DEFAULT_VERTICAL];
+  const key = (id ?? "").trim().toLowerCase();
+  if (VERTICALS[key]) return VERTICALS[key];
+
+  /*
+   * Then the aliases, before giving up.
+   *
+   * The hair salon's id is "salon" and "hair" is one of its aliases — so a
+   * studio stored as "hair" matched nothing and fell all the way through to
+   * the general pack, which calls everybody a team member. Silently: there is
+   * no error for a trade that does not exist, just a business quietly losing
+   * the words, the questions and the services its trade came with.
+   *
+   * The aliases are already the list of words meaning this trade, because the
+   * signup picker searches them. Reading them here as well costs nothing and
+   * closes a gap between "what somebody typed" and "what got stored".
+   */
+  const byAlias = VERTICAL_LIST.find((pack) =>
+    pack.aliases.some((alias) => alias.toLowerCase() === key),
+  );
+
+  return byAlias ?? VERTICALS[DEFAULT_VERTICAL];
 }
 
 /** Free-text search over label, blurb and aliases, for the signup picker. */

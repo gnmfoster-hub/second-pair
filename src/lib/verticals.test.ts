@@ -167,3 +167,21 @@ test("searching finds a trade by what people actually call it", () => {
 test("searching for nonsense returns nothing rather than everything", () => {
   assert.equal(searchTrades("qzxwv").length, 0);
 });
+
+/*
+ * The demo was stored as "hair", which is an alias of the salon pack and the
+ * id of nothing. It matched no trade and fell through to the general pack, so
+ * a hair salon called its stylists "team members" and lost the questions and
+ * services its trade came with — with no error anywhere, because a vertical
+ * that does not exist is not a failure, it is just a default.
+ */
+test("a trade is found by the words people actually use for it", () => {
+  assert.equal(verticalPack("hair").id, "salon", "hair is an alias of salon");
+  assert.equal(verticalPack("hairdresser").id, "salon");
+  assert.equal(verticalPack("HAIR").id, "salon", "case should not decide a trade");
+});
+
+test("and an alias match brings the trade's own wording with it", () => {
+  assert.equal(verticalPack("hair").vocabulary.practitioner, "stylist");
+  assert.equal(verticalPack("hair").vocabulary.business, "salon");
+});
