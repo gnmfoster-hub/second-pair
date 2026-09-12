@@ -12,6 +12,8 @@ import { connectedChannels } from "@/lib/messaging/connections";
 import { canMessage } from "@/lib/permissions";
 import { Forget } from "./Forget";
 import { whoseClient } from "@/lib/whoseClient";
+import { Timings, type ClientTiming } from "./Timings";
+import type { Service } from "@/lib/types";
 
 type ContactRow = {
   id: string;
@@ -86,6 +88,33 @@ export default async function ClientPage({
     .from("bookings")
     .select("*")
     .eq("contact_id", id);
+
+  /*
+   * What this person takes as against the book, and the list it is measured
+   * against. Only where the business prices by a named thing — bands describe
+   * a piece of work rather than a service somebody is booked for, so there is
+   * nothing for a per-client difference to attach to.
+   */
+  const pricesByList = studio.pricing_model === "services";
+
+  const [{ data: serviceRows }, { data: timingRows }] = pricesByList
+    ? await Promise.all([
+        supabase
+          .from("services")
+          .select("*")
+          .eq("studio_id", studio.id)
+          .eq("active", true)
+          .eq("kind", "service")
+          .order("sort_order"),
+        supabase
+          .from("client_service_times")
+          .select("service_id, minutes_delta, chargeable, note")
+          .eq("contact_id", id),
+      ])
+    : [{ data: null }, { data: null }];
+
+  const services = (serviceRows ?? []) as Service[];
+  const timings = (timingRows ?? []) as ClientTiming[];
 
   const conversations = contact.conversations ?? [];
 
@@ -243,6 +272,15 @@ export default async function ClientPage({
             routes={routes}
             allowed={mayMessage}
           />
+
+          {pricesByList && (
+            <Timings
+              contactId={contact.id}
+              firstName={(contact.name ?? "they").split(" ")[0]}
+              services={services}
+              timings={timings}
+            />
+          )}
 
           <section className="card p-5">
             <h2 className="section-title mb-4 text-sm">History</h2>
