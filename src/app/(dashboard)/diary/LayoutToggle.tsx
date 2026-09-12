@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { setDiaryLayout } from "./actions";
 import type { DiaryLayout } from "@/lib/diaryLayout";
 
@@ -21,6 +22,7 @@ import type { DiaryLayout } from "@/lib/diaryLayout";
 export function LayoutToggle({
   current,
   view,
+  pickHref,
 }: {
   current: DiaryLayout | null;
   /*
@@ -32,6 +34,20 @@ export function LayoutToggle({
    * describing the shape and leaving you to find out.
    */
   view: "day" | "week";
+  /*
+   * Where to go if columns need somebody chosen first.
+   *
+   * A week of columns can only show one person, so with Everyone selected
+   * there is nobody for them to be about. Pressing Days did nothing visible
+   * and read as a broken button: the diary stayed a list and the only sign was
+   * a line of explanation above it.
+   *
+   * Given this, the button picks the first person as well as the shape — and
+   * does it by navigating, so the chips light up with the name and the screen
+   * agrees with itself. Absent when somebody is already chosen, or on a day,
+   * where the columns are the people and no choice is needed.
+   */
+  pickHref?: string;
 }) {
   // Held locally so the button lights up on the tap, not on the round trip.
   const [chosen, setChosen] = useState<DiaryLayout | null>(current);
@@ -52,12 +68,15 @@ export function LayoutToggle({
     grid: "text-muted hover:text-foreground sm:bg-surface-2 sm:text-foreground",
   };
 
+  const router = useRouter();
+
   const pick = (layout: DiaryLayout) => {
-    if (layout === chosen) return;
+    if (layout === chosen && !(layout === "grid" && pickHref)) return;
     setChosen(layout);
     save(() => {
       void setDiaryLayout(layout);
     });
+    if (layout === "grid" && pickHref) router.push(pickHref);
   };
 
   return (

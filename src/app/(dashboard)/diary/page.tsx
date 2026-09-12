@@ -502,7 +502,19 @@ export default async function DiaryPage({
           * room, it drops to the next line, which is exactly where it was
           * before — so the change can win and cannot lose.
           */}
-        {view !== "month" && <LayoutToggle current={layout} view={view} />}
+        {view !== "month" && (
+          <LayoutToggle
+            current={layout}
+            view={view}
+            /* Columns in a week are one person's; if nobody is chosen, the
+               button chooses the first rather than appearing to do nothing. */
+            pickHref={
+              weekEveryone
+                ? `/diary?view=week&week=${isoDate(start)}&who=${team[0]?.id}`
+                : undefined
+            }
+          />
+        )}
 
         {/*
           * The arrows, beside the date they move, on a phone.
