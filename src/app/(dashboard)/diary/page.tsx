@@ -920,8 +920,32 @@ export default async function DiaryPage({
         )}
       </div>
 
+      {/*
+        * The strip is a week, so pushing it moves a week.
+        *
+        * Everywhere else a swipe moves what the view is showing — a day in the
+        * day view — which means seven of them to reach next Tuesday. The strip
+        * is the one thing on the screen that is a week at a time, so it is the
+        * natural place to ask for the next one, and it rolls to show it.
+        *
+        * It keeps its own drag so the swipe around it does not also fire:
+        * two handlers agreeing to navigate would move eight days for one
+        * gesture.
+        */}
       {view === "day" && (
-        <WeekStrip focusDay={focusDay} load={strip} who={focused} today={isoDate(new Date())} />
+        <div data-keeps-its-drag>
+          <SwipeDates
+            back={keepWho(`/diary?view=day&day=${isoDate(addDays(focusDay, -7))}`)}
+            forward={keepWho(`/diary?view=day&day=${isoDate(addDays(focusDay, 7))}`)}
+          >
+            <WeekStrip
+              focusDay={focusDay}
+              load={strip}
+              who={focused}
+              today={isoDate(new Date())}
+            />
+          </SwipeDates>
+        </div>
       )}
 
       {/*
