@@ -490,6 +490,21 @@ export default async function DiaryPage({
         )}
 
         {/*
+          * The shape control, in the space next to the date.
+          *
+          * It had a row of its own, and on a one-person diary that row held
+          * nothing else — forty-four pixels of phone screen for one control,
+          * above a diary that wants every pixel. This line already had the gap
+          * for it: ml-auto pushes the arrows to the right edge and leaves the
+          * middle empty.
+          *
+          * Safe because the line wraps. If a long date and the arrows leave no
+          * room, it drops to the next line, which is exactly where it was
+          * before — so the change can win and cannot lose.
+          */}
+        {view !== "month" && <LayoutToggle current={layout} view={view} />}
+
+        {/*
           * The arrows, beside the date they move, on a phone.
           *
           * Day view has the week strip instead, which does the same job and
@@ -800,25 +815,8 @@ export default async function DiaryPage({
         * No new row either. It shares the one the chips were already on, in
         * front of the scrolling part so it cannot slide off the side.
         */}
-      {/*
-        * Shown for one person too, which the first version did not.
-        *
-        * It was gated on having a team, because a day's columns are the people
-        * and one person is one column. But a week's columns are its seven days
-        * whoever works there, and both of the businesses actually running this
-        * open on the week — so the one control that lets a phone see the week
-        * as a grid was withheld from exactly the two diaries it was for. A
-        * single column on a day is a real choice as well: a timeline against
-        * an agenda, which is not nothing.
-        *
-        * On a solo diary this row did not exist at all, so it costs one row
-        * that was not there — and the week's height cap gives back more than
-        * it takes, because the week has no strip above it.
-        */}
-      {(team.length > 1 || view !== "month") && (
+      {team.length > 1 && (
         <div data-no-swipe className="mt-2 flex items-start gap-2 sm:mt-4">
-          {view !== "month" && <LayoutToggle current={layout} view={view} />}
-
           <div className="min-w-0 flex-1">
             {team.length > 4 && (
               <div className="sm:hidden">
