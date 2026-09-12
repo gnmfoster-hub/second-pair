@@ -107,11 +107,39 @@ export function NewEntry({ artists, timezone }: { artists: Artist[]; timezone: s
          * word comes back above 640px, where there is room for it and a mouse
          * to hover with.
          */
-        className="btn inline-flex bg-highlight px-3 font-semibold text-on-highlight transition-[filter] hover:brightness-95 sm:px-4"
+        /*
+         * A floating button on a phone, and a toolbar button above that.
+         *
+         * Even at its smallest this was thirty-six pixels plus a gap in a row
+         * that had about fifteen to spare, so it kept landing on a line of its
+         * own — a whole row of screen for one button, above a diary that wants
+         * every pixel. Taking it out of the row entirely is what actually
+         * settles it, rather than shaving another two pixels off its
+         * neighbours and hoping.
+         *
+         * Bottom centre, above the tab bar rather than on it: the bar is
+         * fixed at z-40 and its height varies with the home indicator, so this
+         * clears it with the same safe-area inset plus the bar's own 3.25rem.
+         * z-30 keeps it under the bar and well under the dialog at z-50, so it
+         * cannot cover the thing it opens.
+         *
+         * Round and larger than it was — fifty-six pixels is the size a thumb
+         * hits without aiming, and the diary is a screen people poke at while
+         * holding a hairdryer.
+         */
+        className="btn fixed bottom-[calc(3.25rem+env(safe-area-inset-bottom)+0.75rem)] left-1/2 z-30 size-14 -translate-x-1/2 justify-center rounded-full bg-highlight p-0 font-semibold text-on-highlight shadow-[var(--shadow-pop)] transition-[filter] hover:brightness-95 sm:static sm:size-auto sm:translate-x-0 sm:rounded-xl sm:px-4 sm:py-2 sm:shadow-none"
         title="Add something (N)"
         aria-label="Add something"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" aria-hidden>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2.4}
+          strokeLinecap="round"
+          aria-hidden
+          className="size-6 sm:size-4"
+        >
           <path d="M12 5v14M5 12h14" />
         </svg>
         <span className="hidden sm:inline">Add</span>
