@@ -51,6 +51,28 @@ export function LayoutToggle({
 }) {
   // Held locally so the button lights up on the tap, not on the round trip.
   const [chosen, setChosen] = useState<DiaryLayout | null>(current);
+
+  /*
+   * Follow the prop when the page changes underneath us.
+   *
+   * useState reads its argument once, on the first mount — and moving from the
+   * day to the week does not remount this, it re-renders it. So the local
+   * value stayed on whatever was last pressed while the page told it
+   * otherwise, and the control went on showing Days over a week that was
+   * plainly a list. Pressing List and then Days was the only way through,
+   * which is exactly the report.
+   *
+   * This is React's own answer to a value that has to track a prop without
+   * losing its own edits in between: compare against the last prop seen and
+   * adjust during the render, rather than an effect that paints the wrong
+   * thing first and corrects it a frame later.
+   */
+  const [lastSeen, setLastSeen] = useState<DiaryLayout | null>(current);
+  if (current !== lastSeen) {
+    setLastSeen(current);
+    setChosen(current);
+  }
+
   const [, save] = useTransition();
 
   /*
