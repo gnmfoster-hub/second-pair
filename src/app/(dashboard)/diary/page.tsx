@@ -22,6 +22,7 @@ import {
   diaryPanes,
 } from "@/lib/diaryLayout";
 import { LayoutToggle } from "./LayoutToggle";
+import { FullDiary } from "./FullDiary";
 
 /** Sunday first, matching getUTCDay(). Single letters — the strips are 24px. */
 const DAY_INITIALS = ["S", "M", "T", "W", "T", "F", "S"];
@@ -495,11 +496,15 @@ export default async function DiaryPage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-3 sm:px-8 sm:py-9">
+      {/* Outside every data-chrome block on purpose: it is the way back, and a
+          way back that hides with everything else is a trap. */}
+      <FullDiary />
+
       {/* py-3 on a phone rather than py-4. Every row above the diary was
           costing a few pixels more than it needed, and there are five of
           them; WeekGrid's height cap comes down by the same amount so the
           saving reaches the diary instead of the gap under it. */}
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2 sm:gap-x-4">
+      <div data-chrome className="flex flex-wrap items-baseline gap-x-3 gap-y-2 sm:gap-x-4">
         {/*
           * The word "Diary" is worth fifty pixels on a phone and says nothing.
           *
@@ -945,6 +950,7 @@ export default async function DiaryPage({
         */}
       {team.length > 1 && (
         <div
+          data-chrome
           data-no-swipe
           /* The chips are a scrolling row of names and keep their own line. On
              a phone a big team uses the picker upstairs instead, so this row

@@ -592,6 +592,7 @@ export function WeekGrid({
         */}
       <div
         ref={scroller}
+        data-diary-scroll
         data-no-swipe
         onPointerDown={swipeStart}
         onPointerUp={swipeEnd}

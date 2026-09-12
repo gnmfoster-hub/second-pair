@@ -129,7 +129,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
        * and it scrolls internally on a short screen so the sign-out at the
        * bottom is always reachable.
        */}
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-background md:sticky md:top-0 md:flex md:h-dvh md:overflow-y-auto">
+      <aside
+        data-chrome
+        className="hidden w-60 shrink-0 flex-col border-r border-border bg-background md:sticky md:top-0 md:flex md:h-dvh md:overflow-y-auto"
+      >
         <div className="px-4 pb-3 pt-4">
           {/*
            * The full lockup, tagline and all. The pack wants 180px of width for

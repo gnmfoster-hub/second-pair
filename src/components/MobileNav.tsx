@@ -34,6 +34,7 @@ export function MobileNav({ needsYou = 0 }: { needsYou?: number }) {
 
   return (
     <nav
+      data-chrome
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 backdrop-blur md:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       aria-label="Sections"
@@ -83,6 +84,7 @@ export function MobileHeader({
 }) {
   return (
     <header
+      data-chrome
       className="sticky top-0 z-30 flex items-center gap-2.5 border-b border-border bg-surface/95 px-4 py-3 backdrop-blur md:hidden"
       style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
     >
