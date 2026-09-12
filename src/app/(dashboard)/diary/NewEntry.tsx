@@ -127,7 +127,20 @@ export function NewEntry({ artists, timezone }: { artists: Artist[]; timezone: s
          * hits without aiming, and the diary is a screen people poke at while
          * holding a hairdryer.
          */
-        className="btn fixed bottom-[calc(3.25rem+env(safe-area-inset-bottom)+0.75rem)] left-1/2 z-30 size-14 -translate-x-1/2 justify-center rounded-full bg-highlight p-0 font-semibold text-on-highlight shadow-[var(--shadow-pop)] transition-[filter] hover:brightness-95 sm:static sm:size-auto sm:translate-x-0 sm:rounded-xl sm:px-4 sm:py-2 sm:shadow-none"
+        /*
+         * Raised, not pasted on.
+         *
+         * Flat on a flat page it read as a sticker lying on the diary rather
+         * than a button hovering over it. Three shadows do the work: a wide
+         * soft one for the distance it floats, a tight dark one directly under
+         * it for contact, and an inset white line along the top edge, which is
+         * the light catching the near side of something round. Pressing it
+         * drops it two pixels and pulls the shadows in, so the depth is real
+         * rather than drawn.
+         *
+         * None of this on a desktop, where it is a normal button in a row.
+         */
+        className="btn fixed bottom-[calc(3.25rem+env(safe-area-inset-bottom)+0.75rem)] left-1/2 z-30 size-14 -translate-x-1/2 justify-center rounded-full bg-highlight p-0 font-semibold text-on-highlight shadow-[0_10px_22px_-6px_rgb(0_0_0/0.45),0_4px_8px_-2px_rgb(0_0_0/0.3),inset_0_1.5px_0_rgb(255_255_255/0.45),inset_0_-3px_6px_rgb(0_0_0/0.16)] transition-[transform,box-shadow,filter] duration-100 hover:brightness-95 active:translate-y-0.5 active:shadow-[0_4px_10px_-4px_rgb(0_0_0/0.4),0_1px_3px_rgb(0_0_0/0.3),inset_0_1px_0_rgb(255_255_255/0.3),inset_0_-1px_3px_rgb(0_0_0/0.2)] motion-reduce:transition-none sm:static sm:size-auto sm:translate-x-0 sm:rounded-xl sm:px-4 sm:py-2 sm:shadow-none sm:active:translate-y-0 sm:active:shadow-none"
         title="Add something (N)"
         aria-label="Add something"
       >

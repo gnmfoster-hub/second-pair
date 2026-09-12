@@ -137,7 +137,7 @@ export function LayoutToggle({
              diary is following the screen, not a choice. */
           aria-pressed={chosen === shape.value}
           title={shape.hint}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
+          className={`flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
             i > 0 ? "border-l border-border" : ""
           } ${
             chosen === null

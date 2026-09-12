@@ -566,20 +566,6 @@ export default async function DiaryPage({
           </div>
         )}
 
-        {view !== "month" && (
-          <LayoutToggle
-            current={layout}
-            view={view}
-            /* Columns in a week are one person's; if nobody is chosen, the
-               button chooses the first rather than appearing to do nothing. */
-            pickHref={
-              weekEveryone
-                ? `/diary?view=week&week=${isoDate(start)}&who=${team[0]?.id}`
-                : undefined
-            }
-          />
-        )}
-
 
         {awaiting > 0 && (
           <span className="rounded-full bg-warn/10 px-2.5 py-1 text-xs text-warn">
@@ -609,7 +595,7 @@ export default async function DiaryPage({
           <div className="flex overflow-hidden rounded-xl border border-border bg-surface">
             <Link
               href={`/diary?view=day&day=${isoDate(focusDay)}`}
-              className={`px-2.5 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
+              className={`px-2 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
                 view === "day"
                   ? "bg-surface-2 text-foreground"
                   : "text-muted hover:text-foreground"
@@ -619,7 +605,7 @@ export default async function DiaryPage({
             </Link>
             <Link
               href={`/diary?view=week&week=${isoDate(view === "month" ? focusDay : start)}`}
-              className={`border-l border-border px-2.5 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
+              className={`border-l border-border px-2 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
                 view === "week"
                   ? "bg-surface-2 text-foreground"
                   : "text-muted hover:text-foreground"
@@ -634,7 +620,7 @@ export default async function DiaryPage({
              */}
             <Link
               href={`/diary?view=month&week=${isoDate(anchor)}`}
-              className={`border-l border-border px-2.5 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
+              className={`border-l border-border px-2 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
                 view === "month"
                   ? "bg-surface-2 text-foreground"
                   : "text-muted hover:text-foreground"
@@ -681,6 +667,33 @@ export default async function DiaryPage({
             * otherwise. Never in day view on a phone, where the week strip
             * replaces it and does more.
             */}
+          {/*
+            * With the view buttons, because on the date's line it wrapped.
+            *
+            * The figures grow with the business: a quiet week reads "36h ·
+            * £1,565" and a full one "125h 30m · £5,494", which is thirty
+            * pixels wider. On the busy week the date, the figures, the person
+            * and this came to more than the line holds, so this dropped onto
+            * a row of its own with three hundred empty pixels beside it —
+            * sized against the quiet week and broken by the real one.
+            *
+            * Here it sits with the other controls that change what is drawn,
+            * which is where it belonged anyway.
+            */}
+          {view !== "month" && (
+            <LayoutToggle
+              current={layout}
+              view={view}
+              /* Columns in a week are one person's; if nobody is chosen, the
+                 button chooses the first rather than appearing to do nothing. */
+              pickHref={
+                weekEveryone
+                  ? `/diary?view=week&week=${isoDate(start)}&who=${team[0]?.id}`
+                  : undefined
+              }
+            />
+          )}
+
           {/*
             * With the view buttons, not on a line of its own.
             *
@@ -1087,9 +1100,8 @@ export default async function DiaryPage({
               * that reads Everyone.
               */}
             {weekEveryone && layout === "grid" && (
-              <p className="mb-2 text-sm text-muted">
-                Everyone&rsquo;s week reads as a list &mdash; seven days of columns can
-                only show one person. Pick somebody above for the columns.
+              <p className="mb-1.5 text-xs text-muted sm:text-sm">
+                Everyone&rsquo;s week is a list. Columns show one person.
               </p>
             )}
 
