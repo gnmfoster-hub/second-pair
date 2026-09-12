@@ -128,6 +128,14 @@ export type Studio = {
   greeting: string | null;
   /** What an entry's colour means in the diary. */
   diary_colour: "category" | "client" | "person";
+  /**
+   * How this business describes what it sells.
+   *
+   * bands: a size and an hours range against a person's hourly rate, as a
+   * tattooist prices. services: a named thing at a fixed price, as a salon
+   * does. A business wants one or the other, never both on screen at once.
+   */
+  pricing_model: "bands" | "services";
   /** Secret in the subscribe URL for the whole business. */
   calendar_token: string;
   /** Facts to work in where relevant. Not a script. */
@@ -198,6 +206,39 @@ export type TimeOff = {
   days: number[];
   from: string;
   to: string;
+};
+
+/**
+ * A thing a business sells.
+ *
+ * Services take time and go in the diary; products take none and are simply
+ * sold. One type for both, because they differ in that single respect and
+ * share a name, a price, an order and whether they are still offered.
+ */
+export type Service = {
+  id: string;
+  studio_id: string;
+  name: string;
+  kind: "service" | "product";
+  /** Null for a product, which takes no time. */
+  minutes: number | null;
+  /** Null means the price comes from the person's hourly rate instead. */
+  price_pence: number | null;
+  /** The top of a range, for work that honestly varies. */
+  price_to_pence: number | null;
+  requires_consultation: boolean;
+  /** On the price list, but not offered to strangers by the assistant. */
+  bookable_online: boolean;
+  active: boolean;
+  sort_order: number;
+};
+
+/** What one person charges, and how long they take, where it differs. */
+export type ServicePerson = {
+  service_id: string;
+  artist_id: string;
+  minutes: number | null;
+  price_pence: number | null;
 };
 
 export type Artist = {

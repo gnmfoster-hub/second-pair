@@ -4,6 +4,9 @@ import { formatRange, formatPence } from "@/lib/money";
 import { BandEditor } from "./BandEditor";
 import { SeedBands } from "./SeedBands";
 import { WhoDoesThis } from "./WhoDoesThis";
+import { ServiceList } from "./ServiceList";
+import { PricingModel } from "./PricingModel";
+import type { Service } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 import { verticalPack } from "@/lib/verticals";
 
@@ -31,9 +34,35 @@ export default async function PricingPage() {
   for (const row of providerRows ?? []) {
     (providers[row.band_id] ??= []).push(row.artist_id);
   }
+  /*
+   * The other way of describing what you sell.
+   *
+   * Read whichever way the business prices, because a tattooist's bands and a
+   * salon's price list answer the same question and nobody wants both on one
+   * screen working out which half to ignore.
+   */
+  const { data: serviceRows } = await supabase
+    .from("services")
+    .select("*")
+    .eq("studio_id", studio.id)
+    .eq("active", true)
+    .order("kind")
+    .order("sort_order");
+
+  const services = (serviceRows ?? []) as Service[];
+
   const pack = verticalPack(studio.vertical);
   const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
   const title = (word: string) => word.replace(/^./, (c) => c.toUpperCase());
+
+  if (studio.pricing_model === "services") {
+    return (
+      <div className="space-y-8">
+        <ServiceList services={services} words={{ customer: words.customer }} />
+        <PricingModel current="services" bandCount={bands.length} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
