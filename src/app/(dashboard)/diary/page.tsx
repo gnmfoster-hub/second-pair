@@ -484,7 +484,7 @@ export default async function DiaryPage({
           costing a few pixels more than it needed, and there are five of
           them; WeekGrid's height cap comes down by the same amount so the
           saving reaches the diary instead of the gap under it. */}
-      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2 sm:gap-x-4">
         {/*
           * The word "Diary" is worth fifty pixels on a phone and says nothing.
           *
@@ -494,7 +494,17 @@ export default async function DiaryPage({
           * own, bigger, where the title was.
           */}
         <h1 className="page-title hidden sm:block">Diary</h1>
-        <span className="text-base font-medium sm:hint sm:text-sm sm:font-normal">{label}</span>
+        {/*
+          * Text-sm on a phone, not text-base.
+          *
+          * Measured off a screenshot at 1080px: the date was 146 of the 380
+          * usable pixels on its line, which is more than a third of the row
+          * for something the person reading it already knows — they tapped
+          * Week to get here. Fourteen point brings it to about 128 and is the
+          * difference between the person picker sharing this line and being
+          * given a row of its own with three hundred empty pixels beside it.
+          */}
+        <span className="text-sm font-semibold sm:hint sm:text-sm sm:font-normal">{label}</span>
         {/*
           * The day's figures, on the date's own line, on a phone only.
           *
@@ -536,7 +546,16 @@ export default async function DiaryPage({
           * are a scrolling row of names and belong on their own line.
           */}
         {team.length > 4 && (
-          <div data-no-swipe className="order-last sm:order-none">
+          /*
+           * Not order-last, which is what put it on the floor.
+           *
+           * order-last moved it after every sibling — including the toolbar,
+           * which is itself a block that wraps — so instead of sharing the
+           * date's line it landed under the whole lot on a row of its own,
+           * eighty-four pixels of chip with three hundred empty beside it.
+           * In source order it sits where it was meant to, beside the figures.
+           */
+          <div data-no-swipe>
             <WhoPicker
               team={team}
               focused={focused}
@@ -580,11 +599,17 @@ export default async function DiaryPage({
          */}
         <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
           {/* One segmented control rather than five loose buttons: the view and
-              the date are the same decision, and they belong together. */}
+              the date are the same decision, and they belong together.
+
+              px-2.5 on a phone, which is twelve pixels across the three of
+              them. Measured off a screenshot: this row came to about fifteen
+              pixels short of holding Add, so Add sat alone on a row of its own
+              with three hundred and forty empty pixels beside it. Twelve here
+              and ten off the shape control is the difference. */}
           <div className="flex overflow-hidden rounded-xl border border-border bg-surface">
             <Link
               href={`/diary?view=day&day=${isoDate(focusDay)}`}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
+              className={`px-2.5 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
                 view === "day"
                   ? "bg-surface-2 text-foreground"
                   : "text-muted hover:text-foreground"
@@ -594,7 +619,7 @@ export default async function DiaryPage({
             </Link>
             <Link
               href={`/diary?view=week&week=${isoDate(view === "month" ? focusDay : start)}`}
-              className={`border-l border-border px-3 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
+              className={`border-l border-border px-2.5 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
                 view === "week"
                   ? "bg-surface-2 text-foreground"
                   : "text-muted hover:text-foreground"
@@ -609,7 +634,7 @@ export default async function DiaryPage({
              */}
             <Link
               href={`/diary?view=month&week=${isoDate(anchor)}`}
-              className={`border-l border-border px-3 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
+              className={`border-l border-border px-2.5 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
                 view === "month"
                   ? "bg-surface-2 text-foreground"
                   : "text-muted hover:text-foreground"
