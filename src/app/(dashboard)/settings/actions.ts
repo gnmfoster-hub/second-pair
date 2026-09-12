@@ -97,6 +97,50 @@ function readVocabulary(
  * Theirs alone. It is found from the signed-in user rather than an id in the
  * form, so nobody can point somebody else's diary at a calendar they control.
  */
+/**
+ * Taking your calendar back off Second Pair.
+ *
+ * This was always possible and nobody could find it: clearing the address box
+ * and pressing Save disconnects, which is a thing you have to be told. A
+ * setting you can turn on and cannot obviously turn off is not a setting
+ * somebody trusts with their own calendar, and this one asks for the address
+ * of the calendar they live by.
+ *
+ * Only the link is dropped. Nothing is deleted at their end, nothing they
+ * booked here moves, and reconnecting is pasting the address again.
+ */
+export async function disconnectPersonalCalendar(
+  _prev: FormState,
+  _fd: FormData,
+): Promise<FormState> {
+  const { studio, userId } = await requireStudio();
+  const supabase = await createClient();
+
+  const { data: me } = await supabase
+    .from("artists")
+    .select("id")
+    .eq("studio_id", studio.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!me) return { error: "You are not one of the people in this diary." };
+
+  const { error } = await supabase
+    .from("artists")
+    .update({
+      personal_ical_url: null,
+      personal_calendar_error: null,
+      personal_calendar_read_at: null,
+    })
+    .eq("id", me.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/you");
+  revalidatePath("/diary");
+  return { ok: true };
+}
+
 export async function savePersonalCalendar(
   _prev: FormState,
   fd: FormData,

@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { Field, FormMessage, SubmitButton } from "@/components/Form";
-import { savePersonalCalendar, type FormState } from "../actions";
+import { savePersonalCalendar, disconnectPersonalCalendar, type FormState } from "../actions";
 import type { Artist } from "@/lib/types";
 
 /**
@@ -21,6 +21,10 @@ import type { Artist } from "@/lib/types";
  */
 export function PersonalCalendar({ artist }: { artist: Artist }) {
   const [state, action] = useActionState<FormState, FormData>(savePersonalCalendar, {});
+  const [offState, takeOff] = useActionState<FormState, FormData>(
+    disconnectPersonalCalendar,
+    {},
+  );
   const linked = Boolean(artist.personal_ical_url);
 
   return (
@@ -36,7 +40,7 @@ export function PersonalCalendar({ artist }: { artist: Artist }) {
 
       <Field
         label="Calendar address"
-        hint="Ends in .ics. Leave it empty to disconnect."
+        hint="Ends in .ics."
       >
         <input
           name="personal_ical_url"
@@ -80,8 +84,8 @@ export function PersonalCalendar({ artist }: { artist: Artist }) {
           <p className="text-xs">
             Anybody holding that address can read that calendar, which is why it is worth
             pointing this at the calendar you keep appointments in rather than one holding
-            anything private. Clear the box here to disconnect, and change it at their end
-            to revoke it everywhere.
+            anything private. Take it off here whenever you like, and change it at their
+            end to stop it working anywhere.
           </p>
         </div>
       </details>
@@ -134,13 +138,44 @@ export function PersonalCalendar({ artist }: { artist: Artist }) {
         </p>
       )}
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <SubmitButton />
         <FormMessage state={state} />
         <span className="hint">
           Read every few minutes, so a change there takes a moment to arrive here.
         </span>
       </div>
+
+      {/*
+        * Taking it off again.
+        *
+        * It was always possible and nobody could find it: clearing the address
+        * and pressing Save disconnects, which is a thing you have to be told.
+        * A setting somebody can obviously turn on and cannot obviously turn
+        * off is not one they will trust with the calendar they live by — and
+        * this asks for exactly that.
+        *
+        * Its own button with formAction, not a second form: a form inside a
+        * form is invalid HTML and the browser silently unnests it, which is
+        * how a button ends up submitting the wrong thing.
+        */}
+      {linked && (
+        <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+          <button
+            type="submit"
+            formAction={takeOff}
+            formNoValidate
+            className="btn-ghost text-sm"
+          >
+            Take it off Second Pair
+          </button>
+          <span className="hint">
+            Stops it blocking your time here. Nothing in your own calendar changes, and
+            pasting the address again puts it back.
+          </span>
+          <FormMessage state={offState} />
+        </div>
+      )}
     </form>
   );
 }
