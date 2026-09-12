@@ -23,6 +23,7 @@ import {
 } from "@/lib/diaryLayout";
 import { LayoutToggle } from "./LayoutToggle";
 import { FullDiary } from "./FullDiary";
+import { SwipeDates } from "./SwipeDates";
 
 /** Sunday first, matching getUTCDay(). Single letters — the strips are 24px. */
 const DAY_INITIALS = ["S", "M", "T", "W", "T", "F", "S"];
@@ -504,6 +505,14 @@ export default async function DiaryPage({
           costing a few pixels more than it needed, and there are five of
           them; WeekGrid's height cap comes down by the same amount so the
           saving reaches the diary instead of the gap under it. */}
+      {/*
+        * The date bar moves the date when you push it.
+        *
+        * It wraps rather than replaces the row, so nothing inside changes: the
+        * buttons are still buttons and a tap is still a tap, because a tap
+        * travels nought pixels and this wants sixty.
+        */}
+      <SwipeDates back={back} forward={forward}>
       <div data-chrome className="flex flex-wrap items-baseline gap-x-3 gap-y-2 sm:gap-x-4">
         {/*
           * The word "Diary" is worth fifty pixels on a phone and says nothing.
@@ -773,6 +782,7 @@ export default async function DiaryPage({
           <NewEntry artists={team} timezone={studio.timezone} />
         </div>
       </div>
+      </SwipeDates>
 
       {/*
        * What this period is worth, and how much room is left.
@@ -918,8 +928,16 @@ export default async function DiaryPage({
         )}
       </div>
 
+      {/*
+        * The strip is a date bar too, and the only one left in full-diary
+        * mode — the row above is hidden there, so without this the gesture
+        * would stop working exactly where the screen has fewest other ways to
+        * move.
+        */}
       {view === "day" && (
-        <WeekStrip focusDay={focusDay} load={strip} who={focused} today={isoDate(new Date())} />
+        <SwipeDates back={back} forward={forward}>
+          <WeekStrip focusDay={focusDay} load={strip} who={focused} today={isoDate(new Date())} />
+        </SwipeDates>
       )}
 
       {/*
