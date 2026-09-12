@@ -48,9 +48,22 @@ export default async function SettingsLayout({ children }: { children: React.Rea
       </PageHeader>
 
       <nav className="mt-6 flex flex-wrap gap-6 border-b border-border">
+        {/*
+          * First, and for everybody.
+          *
+          * Six of the eight tabs are the owner's. Somebody who is not the owner
+          * arrived at a list of their colleagues and a page about exporting
+          * data, with nothing on the row that was theirs — and the two things
+          * they most needed, notifications and the app on their phone, were
+          * behind one of the six they could not open.
+          */}
+        <TabLink href="/settings/you">You</TabLink>
         {owns && <TabLink href="/settings">{title(words.business)}</TabLink>}
         {owns && <TabLink href="/settings/assistant">Assistant</TabLink>}
-        <TabLink href="/settings/artists">{title(words.practitioners)}</TabLink>
+        {/* The team, which is the owner's view of everybody. A worker sees
+            themselves on You instead, where it is not sat under a heading
+            naming the whole salon. */}
+        {owns && <TabLink href="/settings/artists">{title(words.practitioners)}</TabLink>}
         {owns && <TabLink href="/settings/pricing">Pricing</TabLink>}
         {owns && <TabLink href="/settings/reminders">Reminders</TabLink>}
         {owns && <TabLink href="/settings/faqs">FAQs</TabLink>}

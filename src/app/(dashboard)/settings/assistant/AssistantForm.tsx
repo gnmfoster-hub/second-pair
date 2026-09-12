@@ -4,8 +4,6 @@ import { useActionState, useEffect, useState } from "react";
 import { updateAssistant, type FormState } from "../actions";
 import { Field, FormMessage, SubmitButton } from "@/components/Form";
 import { verticalPack } from "@/lib/verticals";
-import { Notifications } from "@/components/Notifications";
-import { OnYourPhone } from "@/components/OnYourPhone";
 import { TryIt } from "./TryIt";
 import type { Studio } from "@/lib/types";
 
@@ -378,7 +376,10 @@ export function AssistantForm({ studio }: { studio: Studio }) {
           everything above this worth filling in. */}
       <TryIt slug={studio.slug} />
 
-      <Notifications />
+      {/* Notifications and the phone panel moved to Settings → You.
+          They are about this device and this person, not about how the
+          assistant behaves — and being here made them owner-only, so no
+          member of staff could ever turn a notification on. */}
 
       {/*
         * Directly under notifications, because on an iPhone one is the gate in
@@ -386,7 +387,6 @@ export function AssistantForm({ studio }: { studio: Studio }) {
         * Safari at all, so somebody turning them on there and hearing nothing
         * needs the next panel to be the reason why.
         */}
-      <OnYourPhone />
     </div>
   );
 }
