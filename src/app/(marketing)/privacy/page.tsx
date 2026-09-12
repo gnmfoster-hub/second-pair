@@ -9,13 +9,20 @@ export const metadata: Metadata = {
 /*
  * Read this before it goes in front of a Meta reviewer.
  *
- * The trading name and address are Gareth's own and were given to me; the ICO
- * registration is applied for rather than granted, and this says so with the
- * application number. Claiming a registration that has not been issued would be
- * worse than admitting the wait, and the wait is short.
+ * The trading name and address are the owner's own and were given to me. The
+ * ICO registration is now granted — ZC241583, from 7 September 2026 — and the
+ * page says so plainly; until it was, this said "applied for" and gave the
+ * application reference, because claiming a registration that has not been
+ * issued is worse than admitting a short wait.
  *
- * One draft block is left, marking that one line. It goes when the number
- * arrives.
+ * The renewal is 6 September 2027. A lapsed entry is an offence to keep
+ * processing under, and nothing here will notice it expiring.
+ *
+ * One thing still to settle, and it is not mine to decide: this says sole
+ * trader, while the rest of the site says Second Pair Ltd, and the ICO entry
+ * names Mr Giles Foster as the controller with Second Pair LTD as an other
+ * name. Those can all be true at once during incorporation, but the notice
+ * should end up naming whichever of the two actually holds the data.
  *
  * Meta will not review an app without a reachable privacy policy, and the AI
  * disclosure below is not optional: people are talking to an assistant and
@@ -239,13 +246,17 @@ export default function PrivacyPage() {
           <a href="mailto:info@second-pair.com">info@second-pair.com</a>.
         </p>
         <p>
-          Second Pair has applied to register with the Information Commissioner&rsquo;s
-          Office as a data controller; the application reference is C2026410. The
-          registration number will be shown here as soon as it is issued.
-        </p>
-        <p className="draft">
-          One line still to replace: the ICO application reference above becomes the
-          registration number once it is issued.
+          Registered with the Information Commissioner&rsquo;s Office as a data
+          controller, reference <strong>ZC241583</strong>, from 7 September 2026.
+          The entry is renewed annually and is public on the{" "}
+          <a
+            href="https://ico.org.uk/ESDWebPages/Search"
+            target="_blank"
+            rel="noreferrer"
+          >
+            ICO register
+          </a>
+          .
         </p>
       </Section>
     </Legal>
