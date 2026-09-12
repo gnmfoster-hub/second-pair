@@ -92,6 +92,10 @@ export function PersonalCalendar({ artist }: { artist: Artist }) {
 
       {linked && (
         <>
+          {/* Says the two switches below were on the form. Without it an
+              unticked box and a box that was never drawn look identical. */}
+          <input type="hidden" name="personal_calendar_asked" value="1" />
+
           <Field label="Show it in the diary">
             <label className="flex items-start gap-2.5 text-sm">
               <input

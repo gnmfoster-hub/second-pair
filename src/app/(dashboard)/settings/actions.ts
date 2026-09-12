@@ -199,8 +199,25 @@ export async function savePersonalCalendar(
     .from("artists")
     .update({
       personal_ical_url: url,
-      personal_calendar_show: fd.get("personal_calendar_show") === "on",
-      personal_calendar_titles: fd.get("personal_calendar_titles") === "on",
+      /*
+       * Both switches only exist on the form once a calendar is linked, and an
+       * unticked checkbox is not submitted at all — so on the very first save
+       * they are indistinguishable from switches somebody deliberately turned
+       * off. Read straight, that made "show it in the diary" false for every
+       * calendar ever connected, on the one save where nobody could have said
+       * otherwise. Somebody connects their calendar, the panel tells them it
+       * will appear in their column, and it is saved hidden.
+       *
+       * The sentinel is rendered beside the switches, so its absence means the
+       * question was never put and the defaults stand: show it, and do not
+       * show what it says.
+       */
+      ...(fd.get("personal_calendar_asked") === "1"
+        ? {
+            personal_calendar_show: fd.get("personal_calendar_show") === "on",
+            personal_calendar_titles: fd.get("personal_calendar_titles") === "on",
+          }
+        : { personal_calendar_show: true, personal_calendar_titles: false }),
       personal_calendar_error: null,
       personal_calendar_read_at: new Date().toISOString(),
     })
