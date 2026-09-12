@@ -31,6 +31,21 @@ export function wasMissed(dialStatus: string | null | undefined): boolean {
 }
 
 /**
+ * The one word somebody can send back to be rung.
+ *
+ * Exported because the text below promises it and the assistant has to honour
+ * it, and those were two separate facts that could drift apart. They did: the
+ * word appeared exactly once in the whole product — in the sentence promising
+ * it — and nothing anywhere handled it. Whether a bare "CALL" got a callback
+ * depended on the model reading one word as a request for a human.
+ *
+ * A shorthand is the right thing to offer here. Somebody who has just failed
+ * to reach a business by phone is not in a position to type a paragraph, and
+ * one word is the least they can send.
+ */
+export const CALLBACK_WORD = "CALL";
+
+/**
  * The text that goes back.
  *
  * Deliberately not written by the assistant. There is nothing to reply to yet,
@@ -46,6 +61,6 @@ export function missedCallText(business: string, person?: string | null): string
   const who = person?.trim() ? `${person.trim()} at ${business}` : business;
   return (
     `Sorry we missed your call — this is ${who}. ` +
-    "Tell me what you need and I can help here, or say CALL and we'll ring you back."
+    `Tell me what you need and I can help here, or say ${CALLBACK_WORD} and we'll ring you back.`
   );
 }

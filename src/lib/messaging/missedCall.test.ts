@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { wasMissed, missedCallText } from "./missedCall.ts";
+import { wasMissed, missedCallText, CALLBACK_WORD } from "./missedCall.ts";
 
 test("a call somebody answered is not missed", () => {
   assert.equal(wasMissed("completed"), false);
@@ -43,4 +43,36 @@ test("a number belonging to one person says so", () => {
 test("a blank name is the business, not a dangling 'at'", () => {
   assert.match(missedCallText("Muddy Paws", "  "), /^Sorry we missed your call — this is Muddy Paws\./);
   assert.match(missedCallText("Muddy Paws", null), /this is Muddy Paws\./);
+});
+
+/*
+ * The promise and the handling used to be two separate facts. The word
+ * appeared exactly once in the product — in the sentence offering it — and
+ * nothing handled it, so whether a bare "CALL" produced a callback came down
+ * to the model reading one word as a request for a human.
+ */
+test("the text offers the same word the assistant is told to honour", () => {
+  assert.match(missedCallText("Neat & Tidy"), new RegExp(CALLBACK_WORD));
+});
+
+test("it says who it is, so a stranger is not reading an unsigned text", () => {
+  assert.match(missedCallText("Neat & Tidy"), /Neat & Tidy/);
+});
+
+test("a named person is who it comes from, because they are who was rung", () => {
+  const text = missedCallText("Neat & Tidy", "Karen");
+  assert.match(text, /Karen at Neat & Tidy/);
+});
+
+/* A blank name must not produce "  at Neat & Tidy". */
+test("an empty name falls back to the business rather than leaving a gap", () => {
+  assert.equal(missedCallText("Neat & Tidy", "   "), missedCallText("Neat & Tidy"));
+});
+
+/*
+ * It has to ask something. A text that only apologises invites no answer, and
+ * the point is to start a conversation rather than be polite about missing one.
+ */
+test("it asks for something rather than only apologising", () => {
+  assert.match(missedCallText("Neat & Tidy"), /Tell me what you need/);
 });
