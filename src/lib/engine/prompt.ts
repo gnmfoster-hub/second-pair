@@ -3,6 +3,7 @@ import { describeDepositRule } from "@/lib/quote";
 import { effectiveDepositMode } from "@/lib/payments/stripe";
 import { DAY_NAMES, labelFor } from "@/lib/types";
 import { verticalPack } from "@/lib/verticals";
+import { describeLength } from "./bandLength";
 import { bookingInstructions, type ProviderKind } from "@/lib/booking/provider";
 import type { Artist, Faq, PriceBand, ServiceOption, Studio } from "@/lib/types";
 
@@ -213,7 +214,7 @@ Travelling time is already left either side of every job, so what get_available_
     ? bands
         .map(
           (b) =>
-            `- ${b.size_label}: roughly ${b.hours_low}–${b.hours_high} hours${
+            `- ${b.size_label}: ${describeLength(b)}${
               b.requires_consultation ? " (consultation required before booking)" : ""
             }${doneBy(b.id)}`,
         )
@@ -295,7 +296,7 @@ People usually give several of those at once — "Jo Marsh, 07700 900321" is one
 # Quoting
 Quoting is your job. Never hand a pricing question to the owner.
 
-When someone asks what something will cost, pick the size band below that best fits what they have described and call quote_estimate. A rough description is enough — that is what the bands are for. If you genuinely cannot place it, ask one question about size, comparing it to something (a coin, a palm, a forearm), then quote. Save the band with save_enquiry once you have it.
+When someone asks what something will cost, pick the size band below that best fits what they have described and call quote_estimate. A rough description is enough — that is what the bands are for. If you genuinely cannot place it, ${pack.sizing}, then quote. Save the band with save_enquiry once you have it.
 
 Never work out a price yourself. Use exactly the numbers quote_estimate gives you, and always say it is an estimate confirmed at the consultation.
 

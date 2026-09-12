@@ -89,6 +89,19 @@ export type VerticalPack = {
   greeting: string;
   vocabulary: Vocabulary;
   /**
+   * The one question that places a job in a band, in this trade's own terms.
+   *
+   * The prompt used to carry a single hardcoded sentence — "ask one question
+   * about size, comparing it to something (a coin, a palm, a forearm)" — which
+   * is exactly right for a tattoo and absurd everywhere else. A cleaning
+   * company's assistant was asking people to compare their house to a coin.
+   *
+   * Same reasoning as the greeting above it, which is trade-specific for the
+   * same reason: the question a customer is asked should sound like it came
+   * from the business they contacted.
+   */
+  sizing: string;
+  /**
    * The jobs people actually do inside this kind of business.
    *
    * A tattoo studio has a piercer; a salon has a nail technician; a garage
@@ -142,6 +155,8 @@ type TradeInput = {
   deposits?: VerticalPack["deposits"];
   location?: VerticalPack["location"];
   pricing?: VerticalPack["pricing"];
+  /** How to ask the one question that places a job. See VerticalPack.sizing. */
+  sizing?: string;
   roles?: string[];
   rules?: string[];
   styles?: { value: string; label: string }[];
@@ -223,6 +238,21 @@ function trade(input: TradeInput): VerticalPack {
     aliases: input.aliases ?? [],
     greeting: input.greeting,
     vocabulary: words,
+    /*
+     * Derived from where the work happens, which is what decides the shape of
+     * the question. Work at a customer's address is placed by what the job
+     * involves and how big the place is; work at the shop is placed by picking
+     * the thing off a list, because the list is on the wall behind them.
+     *
+     * A trade with a better question than either says so itself.
+     */
+    sizing:
+      input.sizing ??
+      (travels
+        ? `ask one short question about the job — what it involves, and roughly how big the ${
+            location === "at_customer" ? "place" : "job"
+          } is`
+        : `ask which ${words.size_unit} they mean, naming two or three from the list`),
     // Most trades are one job, done by everybody in the shop.
     roles: input.roles ?? [],
     ageCheck: input.ageCheck ?? false,
@@ -589,6 +619,8 @@ const HOME: VerticalPack[] = [
     blurb: "Domestic, deep and end-of-tenancy cleaning.",
     aliases: ["cleaning", "housekeeping", "end of tenancy", "deep clean", "domestic"],
     greeting: "Hi — is this a regular clean or a one-off?",
+  sizing:
+    "ask how many bedrooms and bathrooms, and whether it is regular or a one-off",
     words: {
       practitioner: "cleaner",
       practitioners: "cleaners",
@@ -618,6 +650,10 @@ const TATTOO = trade({
   blurb: "Tattooing and piercing, priced by the hour.",
   aliases: ["tattooist", "ink", "piercing", "body art", "cover up"],
   greeting: "Hi — what were you thinking of getting done?",
+  // The sentence the prompt used to send to everybody. It belongs here.
+  sizing:
+    "ask one question about size, comparing it to something on the body " +
+    "(a coin, a palm, a forearm)",
   roles: ["Tattoo artist", "Piercer", "Apprentice", "Guest artist"],
   words: {
     practitioner: "artist",

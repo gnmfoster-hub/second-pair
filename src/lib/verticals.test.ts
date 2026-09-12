@@ -185,3 +185,36 @@ test("and an alias match brings the trade's own wording with it", () => {
   assert.equal(verticalPack("hair").vocabulary.practitioner, "stylist");
   assert.equal(verticalPack("hair").vocabulary.business, "salon");
 });
+
+/*
+ * The sentence that went to every trade.
+ *
+ * "ask one question about size, comparing it to something (a coin, a palm, a
+ * forearm)" was hardcoded in the prompt, so a cleaning company's assistant was
+ * told to ask people to compare their house to a coin.
+ */
+test("the sizing question is the trade's own, not the tattooist's", () => {
+  assert.match(verticalPack("tattoo").sizing, /coin/);
+  assert.doesNotMatch(verticalPack("cleaner").sizing, /coin|palm|forearm/);
+  assert.doesNotMatch(verticalPack("electrician").sizing, /coin|palm|forearm/);
+  assert.doesNotMatch(verticalPack("hair_salon").sizing, /coin|palm|forearm/);
+});
+
+test("a cleaner is asked what a cleaner would ask", () => {
+  assert.match(verticalPack("cleaner").sizing, /bedrooms/);
+});
+
+test("every trade has one, so the prompt can never fall back to nothing", () => {
+  for (const pack of VERTICAL_LIST) {
+    assert.ok(pack.sizing.length > 10, `${pack.id} has no sizing question`);
+  }
+});
+
+/*
+ * Work at somebody's address is placed by what the job involves; work at the
+ * shop is placed by picking the thing off the list on the wall behind them.
+ */
+test("where the work happens decides the shape of the question", () => {
+  assert.match(verticalPack("electrician").sizing, /how big/);
+  assert.match(verticalPack("barber").sizing, /which/);
+});
