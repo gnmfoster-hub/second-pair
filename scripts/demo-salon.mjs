@@ -296,6 +296,20 @@ await db.from("studio_members").upsert({
   role: "owner",
 });
 
+/*
+ * The demo login is Sarah, not a disembodied owner.
+ *
+ * Without this the account is a member of the business and nobody in the
+ * diary, so Settings → You correctly says "you are not in the diary" and hides
+ * everything that belongs to a person — their hours, their rates, their own
+ * calendar. Which is right for a receptionist and wrong for a demonstration:
+ * the whole of the per-person half of the product was invisible in it.
+ *
+ * The senior stylist, because in a five-chair salon the owner usually still
+ * cuts hair, and because she is the one with a full column to look at.
+ */
+await db.from("artists").update({ user_id: userId }).eq("id", team[0].id);
+
 console.log(`${NAME}`);
 console.log(`  ${team.length} people, ${clients.length} clients, ${made} entries this week`);
 console.log(`  kind: demo — kept out of the customer figures`);
