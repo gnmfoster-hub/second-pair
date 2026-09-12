@@ -120,12 +120,32 @@ create policy service_people_read on service_people for select
     select 1 from services s where s.id = service_people.service_id and is_studio_member(s.studio_id)
   ));
 
+-- The owner sets anybody's, and a person sets their own.
+--
+-- This started owner-only and that was wrong. A stylist already sets her own
+-- hourly rate and her own minimum on her own settings page — what she charges
+-- for a blow dry is the same kind of fact, and a salon where the owner has to
+-- retype five people's prices is a salon that keeps them on a wall instead.
+--
+-- The row is the person's, so the check is whether the artist row it names is
+-- theirs. A person cannot set somebody else's price by pointing the row at
+-- them, which is the only way this could be abused.
 create policy service_people_owner on service_people for all
   using (exists (
     select 1 from services s where s.id = service_people.service_id and is_studio_owner(s.studio_id)
   ))
   with check (exists (
     select 1 from services s where s.id = service_people.service_id and is_studio_owner(s.studio_id)
+  ));
+
+create policy service_people_own on service_people for all
+  using (exists (
+    select 1 from artists a
+    where a.id = service_people.artist_id and a.user_id = auth.uid()
+  ))
+  with check (exists (
+    select 1 from artists a
+    where a.id = service_people.artist_id and a.user_id = auth.uid()
   ));
 
 -- And these are different: anybody in the business may write one.
@@ -150,3 +170,19 @@ create policy client_times_write on client_service_times for all
     select 1 from contacts c
     where c.id = client_service_times.contact_id and is_studio_member(c.studio_id)
   ));
+
+-- Which way this business describes what it sells.
+--
+-- Two ways now exist and a business only ever wants one: a tattooist prices by
+-- the size of the piece and the hours it sits, a salon by the named thing on
+-- the price list. Left implicit, both screens would show for everybody and
+-- every business would have to work out which half to ignore.
+--
+-- Existing businesses keep bands, which is what they are set up with. Nothing
+-- moves until somebody chooses to.
+alter table studios
+  add column if not exists pricing_model text not null default 'bands'
+    check (pricing_model in ('bands', 'services'));
+
+comment on column studios.pricing_model is
+  'bands = size and hours against an hourly rate, as a tattooist prices. services = a named thing at a fixed price, as a salon does.';
