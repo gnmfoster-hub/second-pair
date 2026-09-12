@@ -69,11 +69,29 @@ export function initialsOf(name: string): string {
  */
 export function hueFor(
   mode: ColourMode,
-  entry: { clientName?: string | null; artistName?: string | null },
+  entry: {
+    clientName?: string | null;
+    artistName?: string | null;
+    /** What the business actually chose for this person, if they chose. */
+    artistColour?: string | null;
+  },
   categoryHue: string,
 ): string {
   if (mode === "client" && entry.clientName) return colourForName(entry.clientName);
-  if (mode === "person" && entry.artistName) return colourForName(entry.artistName);
+  if (mode === "person") {
+    /*
+     * Their own colour first, and the name only as a fallback.
+     *
+     * A person can be given a colour in Settings, and the filter chips have
+     * always drawn their dot from it — but the appointments were coloured from
+     * a hash of the name instead, so Jade's dot was the orange somebody picked
+     * and Jade's bookings were whatever the letters of "Jade" happened to
+     * produce. Two colours for one person on one screen, and the legend at the
+     * top pointing at the wrong ones.
+     */
+    if (entry.artistColour) return entry.artistColour;
+    if (entry.artistName) return colourForName(entry.artistName);
+  }
   return categoryHue;
 }
 

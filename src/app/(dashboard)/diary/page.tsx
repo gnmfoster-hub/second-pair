@@ -681,7 +681,17 @@ export default async function DiaryPage({
             */}
           {view !== "month" && (
             <LayoutToggle
-              current={layout}
+              /*
+               * What is on the screen, not what is saved.
+               *
+               * Coming from a day with columns chosen, the week is a list —
+               * everyone's week has to be — but the control went on showing
+               * Days as the live one, so it described something nobody could
+               * see. Pressing List and then Days was the only way out, and it
+               * worked by accident: Days carries a person with it, which is
+               * what the week needed all along.
+               */
+              current={weekEveryone ? "list" : layout}
               view={view}
               /* Columns in a week are one person's; if nobody is chosen, the
                  button chooses the first rather than appearing to do nothing. */

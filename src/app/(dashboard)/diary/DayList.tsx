@@ -115,12 +115,14 @@ export function DayList({
    * this rule would drift, leaving one appointment one colour on a phone and
    * another on a laptop.
    */
-  const colourFor = (e: Entry) =>
-    hueFor(
+  const colourFor = (e: Entry) => {
+    const who = artists.find((a) => a.id === e.artist_id);
+    return hueFor(
       colourBy,
-      { clientName: e.clientName, artistName: artists.find((a) => a.id === e.artist_id)?.name },
+      { clientName: e.clientName, artistName: who?.name, artistColour: who?.colour },
       categoryFor(e.category).hue,
     );
+  };
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [creating, setCreating] = useState<{

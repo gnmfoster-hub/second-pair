@@ -975,7 +975,11 @@ export function WeekGrid({
                     // What this entry's colour means is the owner's choice.
                     const hue = hueFor(
                       colourBy,
-                      { clientName: e.clientName, artistName: artist?.name },
+                      {
+                        clientName: e.clientName,
+                        artistName: artist?.name,
+                        artistColour: artist?.colour,
+                      },
                       cat.hue,
                     );
 
@@ -1108,7 +1112,7 @@ export function WeekGrid({
                           {showWho && (
                             <span
                               className="grid size-4 shrink-0 place-items-center rounded-full text-[8px] font-bold text-white"
-                              style={{ background: colourForName(artist.name) }}
+                              style={{ background: artist.colour || colourForName(artist.name) }}
                               title={artist.name}
                             >
                               {initialsOf(artist.name)}
