@@ -28,7 +28,11 @@ export type Entry = {
   all_day: boolean;
   category: string;
   blocks_availability: boolean;
-  source: "assistant" | "manual" | "block";
+  /**
+   * Where it came from. "personal" is somebody's own calendar, read from a
+   * feed we do not own — it can be looked at and nothing else.
+   */
+  source: "assistant" | "manual" | "block" | "personal";
   title: string | null;
   notes: string | null;
   deposit_status: string;
@@ -1066,6 +1070,10 @@ export function WeekGrid({
                          * should have always meant.
                          */
                         onPointerDown={(event) => {
+                          // Read from somebody's own calendar. It can be
+                          // looked at; it cannot be moved, because the feed is
+                          // not ours to write to.
+                          if (e.source === "personal") return;
                           const move = () =>
                             begin(event, {
                               kind: "move",
@@ -1198,15 +1206,16 @@ export function WeekGrid({
                             Invisible until hovered, so it does not clutter a
                             full week, but always eight pixels of target. */}
                         <span
-                          onPointerDown={(event) =>
+                          onPointerDown={(event) => {
+                            if (e.source === "personal") return;
                             begin(event, {
                               kind: "resize",
                               id: e.id,
                               startMinutes,
                               endMinutes,
                               columnKey: col.key,
-                            })
-                          }
+                            });
+                          }}
                           className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize opacity-0 transition-opacity group-hover:opacity-100"
                           style={{ background: `color-mix(in srgb, ${cat.hue} 45%, transparent)` }}
                           aria-hidden

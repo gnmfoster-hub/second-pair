@@ -53,7 +53,7 @@ function parseDate(value: string, params: string): Date | null {
   return null;
 }
 
-type RawEvent = { start: Date; end: Date; rrule?: string };
+type RawEvent = { start: Date; end: Date; rrule?: string; title?: string };
 
 function parseEvents(ics: string): RawEvent[] {
   const lines = unfold(ics);
@@ -64,19 +64,20 @@ function parseEvents(ics: string): RawEvent[] {
   let end: Date | null = null;
   let rrule: string | undefined;
   let status: string | undefined;
+  let title: string | undefined;
 
   for (const line of lines) {
     if (line.startsWith("BEGIN:VEVENT")) {
       inEvent = true;
       start = end = null;
-      rrule = status = undefined;
+      rrule = status = title = undefined;
       continue;
     }
 
     if (line.startsWith("END:VEVENT")) {
       // A cancelled appointment is not a busy period.
       if (inEvent && start && end && status !== "CANCELLED") {
-        events.push({ start, end, rrule });
+        events.push({ start, end, rrule, title });
       }
       inEvent = false;
       continue;
@@ -95,6 +96,20 @@ function parseEvents(ics: string): RawEvent[] {
     else if (key === "DTEND") end = parseDate(value, params.join(";"));
     else if (key === "RRULE") rrule = value;
     else if (key === "STATUS") status = value.trim().toUpperCase();
+    /*
+     * The name of the thing, unescaped.
+     *
+     * iCalendar escapes commas, semicolons and newlines inside a text value,
+     * so "Dentist, 2pm" arrives as "Dentist\, 2pm" and would be shown with
+     * the backslash still in it.
+     */
+    else if (key === "SUMMARY") {
+      const text = value
+        .replace(/\\n/gi, " ")
+        .replace(/\\([,;\\])/g, "$1")
+        .trim();
+      title = text || undefined;
+    }
   }
 
   return events;
@@ -111,6 +126,7 @@ function expand(event: RawEvent, from: Date, to: Date): BusyPeriod[] {
       occurrences.push({
         starts_at: startsAt.toISOString(),
         ends_at: endsAt.toISOString(),
+        title: event.title,
       });
     }
   };

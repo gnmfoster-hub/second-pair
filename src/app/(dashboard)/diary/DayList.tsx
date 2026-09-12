@@ -282,8 +282,11 @@ export function DayList({
             <button
               key={e.id}
               type="button"
+              // Somebody's own calendar: shown, never edited. The feed is not
+              // ours and nothing typed here could reach it.
+              disabled={e.source === "personal"}
               onClick={() => setEditingId(e.id)}
-              className="flex w-full items-center gap-2.5 rounded-xl border border-border px-3.5 py-2.5 text-left"
+              className="flex w-full items-center gap-2.5 rounded-xl border border-border px-3.5 py-2.5 text-left disabled:cursor-default"
               style={{ borderLeft: `3px solid ${colourFor(e)}` }}
             >
               <span className="text-sm font-medium">{e.title || "All day"}</span>
@@ -389,10 +392,13 @@ export function DayList({
             <li key={e.id} data-row {...(isNext ? { "data-next": "" } : {})}>
               <button
                 type="button"
+                disabled={e.source === "personal"}
                 onClick={() => setEditingId(e.id)}
-                className={`flex w-full gap-3 rounded-xl border border-border bg-surface px-3.5 py-3 text-left transition-colors ${
+                className={`flex w-full gap-3 rounded-xl border border-border bg-surface px-3.5 py-3 text-left transition-colors disabled:cursor-default ${
                   past ? "opacity-55" : ""
-                } ${running ? "ring-2 ring-accent/40" : ""}`}
+                } ${running ? "ring-2 ring-accent/40" : ""} ${
+                  e.source === "personal" ? "border-dashed bg-surface-2/40" : ""
+                }`}
                 style={{ borderLeft: `3px solid ${colourFor(e)}` }}
               >
                 {/*

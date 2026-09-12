@@ -23,6 +23,7 @@ import {
 import { LayoutToggle } from "./LayoutToggle";
 import { FullDiary } from "./FullDiary";
 import { SwipeDates } from "./SwipeDates";
+import { busyFromIcal } from "@/lib/booking/ical";
 
 /** Sunday first, matching getUTCDay(). Single letters — the strips are 24px. */
 const DAY_INITIALS = ["S", "M", "T", "W", "T", "F", "S"];
@@ -35,7 +36,7 @@ type RawRow = {
   all_day: boolean;
   category: string;
   blocks_availability: boolean;
-  source: "assistant" | "manual" | "block";
+  source: "assistant" | "manual" | "block" | "personal";
   title: string | null;
   notes: string | null;
   deposit_status: string;
@@ -241,6 +242,66 @@ export default async function DiaryPage({
       repeats: r.repeats,
       attended: r.attended,
     }));
+
+  /*
+   * Everybody's own life, drawn beside their work.
+   *
+   * The personal calendar has blocked the assistant from booking over a
+   * dentist appointment since it was built, and it has never been drawn in the
+   * diary — so the one person who could see the effect could not see the
+   * cause. The switch for it, personal_calendar_show, was saved by the form
+   * and read by nothing at all.
+   *
+   * Read from a feed we do not own, so it is shown and never edited: nothing
+   * here can be dragged, resized, or opened. Whatever it says, the calendar it
+   * came from is the only place it can be changed.
+   *
+   * A feed that fails is silence rather than an error, deliberately. Somebody
+   * looking at Thursday does not need a network problem explained to them, and
+   * the settings page already reports a feed it cannot read.
+   */
+  const personal = await Promise.all(
+    artists
+      .filter((a) => mine.has(a.id) && a.personal_ical_url && a.personal_calendar_show)
+      .map(async (a): Promise<Entry[]> => {
+        try {
+          const busy = await busyFromIcal(
+            a.personal_ical_url as string,
+            addDays(start, -1),
+            addDays(end, 1),
+          );
+          return busy.map((b, i) => ({
+            id: `personal:${a.id}:${i}`,
+            artist_id: a.id,
+            starts_at: b.starts_at,
+            ends_at: b.ends_at,
+            all_day: false,
+            category: "personal",
+            blocks_availability: true,
+            source: "personal" as const,
+            // Their own calendar, and only they can see it — but the name of a
+            // thing is still theirs to withhold, and the switch exists.
+            title: a.personal_calendar_titles ? (b.title ?? "Busy") : "Busy",
+            notes: null,
+            deposit_status: "unpaid",
+            deposit_amount_pence: 0,
+            clientName: null,
+            clientPhone: null,
+            contactId: null,
+            description: null,
+            conversationId: null,
+            price_pence: null,
+            quotePence: null,
+            repeats: "none",
+            attended: null,
+          }));
+        } catch {
+          return [];
+        }
+      }),
+  );
+
+  entries.push(...personal.flat());
 
   /*
    * A week of columns is one person's week, and Everyone means everyone.

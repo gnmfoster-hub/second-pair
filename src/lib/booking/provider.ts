@@ -18,7 +18,18 @@
 
 export type Slot = { starts_at: string; ends_at: string };
 
-export type BusyPeriod = { starts_at: string; ends_at: string };
+export type BusyPeriod = {
+  starts_at: string;
+  ends_at: string;
+  /**
+   * What the entry is called, where the feed said and somebody asked to see it.
+   *
+   * Availability never needs this — an hour is taken whatever it is called —
+   * but the diary does: "Busy" five times down a Tuesday tells its owner
+   * nothing, and they are the only person who ever sees it.
+   */
+  title?: string;
+};
 
 export type ProviderCapabilities = {
   readsAvailability: boolean;
