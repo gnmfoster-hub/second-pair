@@ -217,8 +217,21 @@ if (!env.CRON_SECRET) {
       if (can.payments) pass("Stripe is connected");
       else warn("Stripe is not connected", "Deposits cannot be taken — expected until you set it up.");
 
-      if (can.texts) pass("Twilio is connected");
-      else warn("Twilio is not connected", "Texts and WhatsApp are off — expected until the number clears.");
+      /*
+       * can.texts is an object, and an object is always truthy.
+       *
+       * So this said "Twilio is connected" from the day texts stopped being a
+       * boolean — on every run, for every account, including ones with no
+       * Twilio keys at all. A check that cannot fail is worse than no check:
+       * it was read aloud as proof, and the thing it was proving was never
+       * true.
+       */
+      if (can.texts?.sends) pass("Twilio is connected", can.texts.accountStatus ?? "");
+      else if (can.texts?.configured) {
+        warn("Twilio keys are set but not working", can.texts.detail ?? "Twilio refused them.");
+      } else {
+        warn("Twilio is not connected", can.texts?.detail ?? "The account keys are not set.");
+      }
     }
   } catch (error) {
     fail("could not reach the health endpoint", String(error?.message ?? error));
