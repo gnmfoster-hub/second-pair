@@ -338,11 +338,27 @@ export function WeekGrid({
   }, [timezone]);
 
   /*
-   * Open somewhere useful rather than at midnight.
+   * Open where the reader is, which on today means now.
+   *
+   * It opened at the hour the business unlocks the door, every time — so at a
+   * quarter to four you opened the diary and were shown eight in the morning,
+   * with the rest of your afternoon below the fold. The one thing somebody
+   * wants when they glance at today is what is happening now and what is
+   * coming, and that was the one thing they had to scroll for.
+   *
+   * Only when today is on screen. Step to another date and it opens at the
+   * start of business, which is right: there is no "now" on Thursday week, and
+   * jumping to the current time while somebody is moving around the diary
+   * looking for a slot would fight them.
+   *
+   * An hour above the current time rather than exactly on it, so the
+   * appointment happening right now is visible with its start, along with what
+   * has just finished. Landing precisely on now would put the thing in
+   * progress half off the top.
    *
    * Math.min of an empty list is Infinity, so a business that has not set its
    * hours yet — every business on its first day — got a diary scrolled to one
-   * in the morning. Seven is the fallback, and it never scrolls past nine.
+   * in the morning. Eight is the fallback, and it never scrolls past nine.
    */
   useLayoutEffect(() => {
     const openings = hours
@@ -351,7 +367,23 @@ export function WeekGrid({
       .filter((n) => Number.isFinite(n));
 
     const earliest = openings.length ? Math.min(...openings) : 8;
-    const target = Math.min(Math.max(0, earliest - 1), 9);
+    const opening = Math.min(Math.max(0, earliest - 1), 9);
+
+    const now = new Date();
+    const today = isoDate(now);
+    const showingToday =
+      view === "day"
+        ? day === today
+        : columns.some((c) => c.date === today);
+
+    /*
+     * Never above the opening hour: at eight in the morning "an hour ago" is
+     * seven, and a screen of closed-for-the-night is not an improvement on
+     * starting where the work does.
+     */
+    const target = showingToday
+      ? Math.max(opening, now.getHours() - 1)
+      : opening;
 
     /*
      * Land the hour below the names, not behind them.
@@ -368,7 +400,13 @@ export function WeekGrid({
     const headings = scroller_.querySelector<HTMLElement>("[data-diary-headings]");
     const clearance = headings?.offsetHeight ?? 0;
     scroller_.scrollTop = Math.max(0, target * HOUR_HEIGHT - clearance);
-  }, [hours]);
+    /*
+     * Runs when the diary is opened and when the date changes, not on every
+     * render — these are props and a memo, so they hold still while somebody
+     * scrolls, opens an appointment or drags one. An effect that re-ran on
+     * render would yank the view back under them mid-gesture.
+     */
+  }, [hours, view, day, columns]);
 
   /*
    * How wide the grid needs to be for every column to stay readable.
