@@ -18,7 +18,7 @@ import { INSTALL_CHANGED, askToInstall } from "@/lib/install";
  * anything" is a reason.
  */
 
-type Where = "unknown" | "installed" | "ios" | "android" | "desktop";
+type Where = "unknown" | "installed" | "ios" | "ipad" | "android" | "desktop";
 
 function whereAmI(): Where {
   if (typeof window === "undefined") return "unknown";
@@ -31,7 +31,23 @@ function whereAmI(): Where {
   if (standalone) return "installed";
 
   const ua = navigator.userAgent;
-  if (/iPhone|iPad|iPod/.test(ua)) return "ios";
+  if (/iPhone|iPod/.test(ua)) return "ios";
+
+  /*
+   * An iPad says it is a Mac, and has done since iPadOS 13.
+   *
+   * Safari on an iPad sends a desktop user agent by default — "Macintosh",
+   * with no mention of iPad anywhere in it — so the check above missed every
+   * one of them and this panel offered "open it on your phone instead" to
+   * somebody holding the device it was talking about. On the one platform
+   * where adding to the home screen is not optional, because Apple will not
+   * deliver a notification to a page in Safari at all.
+   *
+   * A Mac with a touchscreen is the giveaway, since Apple has never made one.
+   */
+  const pretendingToBeAMac = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+  if (/iPad/.test(ua) || pretendingToBeAMac) return "ipad";
+
   if (/Android/.test(ua)) return "android";
   return "desktop";
 }
@@ -103,7 +119,7 @@ export function OnYourPhone() {
             <span className="hint">
               Today, add an appointment, who needs you, clients &mdash; straight there,
               without going through the app.{" "}
-              {where === "ios" || where === "installed" ? (
+              {where === "ios" || where === "ipad" || where === "installed" ? (
                 <em className="not-italic">Android only; iPhones do not offer these yet.</em>
               ) : null}
             </span>
@@ -153,12 +169,15 @@ export function OnYourPhone() {
 
       {where !== "installed" && (
         <div className="note mt-4 rounded-lg bg-surface-2 px-3.5 py-3 text-sm text-muted">
-          {where === "ios" && (
+          {(where === "ios" || where === "ipad") && (
             <>
-              <strong className="text-foreground">On this iPhone:</strong> the share button
-              at the bottom of Safari, then <strong className="text-foreground">Add to
-              Home Screen</strong>. It has to be Safari &mdash; Chrome on an iPhone cannot
-              do it.
+              <strong className="text-foreground">
+                On this {where === "ipad" ? "iPad" : "iPhone"}:
+              </strong>{" "}
+              the share button in Safari &mdash;{" "}
+              {where === "ipad" ? "top right" : "at the bottom"} &mdash; then{" "}
+              <strong className="text-foreground">Add to Home Screen</strong>. It has to be
+              Safari; Chrome on an {where === "ipad" ? "iPad" : "iPhone"} cannot do it.
             </>
           )}
           {where === "android" && (
