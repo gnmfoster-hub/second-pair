@@ -7,6 +7,7 @@ import { parsePounds } from "@/lib/money";
 import { DEFAULT_HOURS, type DepositRule, type OpeningHours } from "@/lib/types";
 import { sendEmail, emailConfigured } from "@/lib/messaging/email";
 import { usableAddress } from "@/lib/messaging/address";
+import { mergeVocabulary } from "@/lib/vocabulary";
 import { readInboundMode } from "@/lib/messaging/inboundEmail";
 import { siteOrigin } from "@/lib/origin";
 import { verticalPack } from "@/lib/verticals";
@@ -68,28 +69,20 @@ function readDepositRule(fd: FormData): DepositRule | { error: string } {
  * would keep the old one, having "chosen" it by pressing Save. Only a genuine
  * difference is kept.
  */
+/** The four this form offers, of the seven the column holds. */
+const FORM_WORDS = ["practitioner", "practitioners", "customer", "business"] as const;
+
 function readVocabulary(
   fd: FormData,
   pack: Record<string, string>,
+  stored: Record<string, string>,
 ): Record<string, string> {
-  const keys = ["practitioner", "practitioners", "customer", "business"] as const;
-  const kept: Record<string, string> = {};
-
-  for (const key of keys) {
-    const typed = str(fd, `word_${key}`).trim();
-    if (typed && typed.toLowerCase() !== (pack[key] ?? "").toLowerCase()) kept[key] = typed;
-  }
-
-  /*
-   * An empty object, never null.
-   *
-   * The column is not null with a default of {}, which the database said the
-   * first time this was asked to clear one — so returning null here would have
-   * failed every save on this form, not merely the clearing of a word. The
-   * absence of an override is an empty set of overrides, which is also the
-   * truer description.
-   */
-  return kept;
+  return mergeVocabulary({
+    typed: Object.fromEntries(FORM_WORDS.map((k) => [k, str(fd, `word_${k}`)])),
+    owned: FORM_WORDS,
+    pack,
+    stored,
+  });
 }
 
 /**
@@ -246,7 +239,11 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
        * wording: "artists", doing "tattoos". Nothing could fix that, because
        * nothing could edit it.
        */
-      vocabulary: readVocabulary(fd, verticalPack(studio.vertical).vocabulary),
+      vocabulary: readVocabulary(
+        fd,
+        verticalPack(studio.vertical).vocabulary,
+        studio.vocabulary ?? {},
+      ),
       ...(deposit === studioDepositUnchanged ? {} : { deposit_rule: deposit }),
       deposit_mode: depositMode,
       vat_registered: fd.get("vat_registered") === "on",
