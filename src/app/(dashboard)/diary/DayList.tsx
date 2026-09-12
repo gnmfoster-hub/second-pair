@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EntryDialog } from "./EntryDialog";
 import type { Entry } from "./WeekGrid";
 import type { Artist } from "@/lib/types";
-import { categoryFor } from "@/lib/calendar";
+import { categoryFor, isoDate } from "@/lib/calendar";
 import { hueFor, type ColourMode } from "@/lib/diaryColour";
 
 /**
@@ -223,6 +223,44 @@ export function DayList({
   const open = editingId ? entries.find((e) => e.id === editingId) ?? null : null;
   const now = Date.parse(nowIso);
 
+  /*
+   * Reset each render, because the marker is assigned while rendering the
+   * rows and there is exactly one of it per pass.
+   */
+  const markedNext = useRef(false);
+  markedNext.current = false;
+
+  /*
+   * Land on now, when today is one of the days being shown.
+   *
+   * The list opened at the start of the day, every time. On a phone — where
+   * the list is what the diary is — that meant a stylist glancing at a busy
+   * Tuesday at four in the afternoon was shown nine in the morning and had to
+   * scroll past everything already finished to find out what was next.
+   *
+   * Only for today, and only once per day shown: stepping to another date
+   * leaves the page at the top, which is right, because there is no "now" on
+   * Thursday week and yanking the page while somebody is looking for a free
+   * slot would fight them.
+   *
+   * A little above it, so the thing in progress keeps its heading and what has
+   * just finished is still visible. Instant rather than smooth: this happens
+   * as the screen appears, and a page that slides on arrival reads as a fault.
+   */
+  const landedOn = useRef<string | null>(null);
+
+  useEffect(() => {
+    const today = days.find((d) => d === isoDate(new Date()));
+    if (!today || landedOn.current === today) return;
+    landedOn.current = today;
+
+    const next = document.querySelector<HTMLElement>("[data-next]");
+    if (!next) return;
+
+    const top = next.getBoundingClientRect().top + window.scrollY - 96;
+    if (top > 0) window.scrollTo({ top, behavior: "instant" as ScrollBehavior });
+  }, [days, entries]);
+
   const nameOf = (id: string) => artists.find((a) => a.id === id)?.name ?? "";
 
   return (
@@ -325,8 +363,19 @@ export function DayList({
           const running = starts <= now && ends > now;
           const cost = pence(e.price_pence ?? null);
 
+          /*
+           * The first thing that has not finished yet.
+           *
+           * Marked rather than measured: the rows are different heights — a
+           * name, a service, a person, a price, any of which may be missing —
+           * so working out where "now" falls from the top would be arithmetic
+           * over a layout that changes. The browser already knows where this
+           * element is.
+           */
+          const isNext = !past && !markedNext.current && (markedNext.current = true);
+
           return (
-            <li key={e.id}>
+            <li key={e.id} {...(isNext ? { "data-next": "" } : {})}>
               <button
                 type="button"
                 onClick={() => setEditingId(e.id)}
