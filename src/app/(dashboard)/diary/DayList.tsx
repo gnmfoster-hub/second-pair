@@ -254,10 +254,21 @@ export function DayList({
     if (!today || landedOn.current === today) return;
     landedOn.current = today;
 
-    const next = document.querySelector<HTMLElement>("[data-next]");
-    if (!next) return;
+    /*
+     * The next thing, or the last thing when the day is over.
+     *
+     * Checked on the live diary at six in the evening: every appointment had
+     * finished, so nothing was marked as next and the page sat at nine in the
+     * morning — which is the exact complaint this was meant to fix, at the
+     * time of day somebody is most likely to glance at it. A finished day
+     * should open at its end, not its beginning.
+     */
+    const rows = document.querySelectorAll<HTMLElement>("[data-row]");
+    const anchor =
+      document.querySelector<HTMLElement>("[data-next]") ?? rows[rows.length - 1] ?? null;
+    if (!anchor) return;
 
-    const top = next.getBoundingClientRect().top + window.scrollY - 96;
+    const top = anchor.getBoundingClientRect().top + window.scrollY - 96;
     if (top > 0) window.scrollTo({ top, behavior: "instant" as ScrollBehavior });
   }, [days, entries]);
 
@@ -375,7 +386,7 @@ export function DayList({
           const isNext = !past && !markedNext.current && (markedNext.current = true);
 
           return (
-            <li key={e.id} {...(isNext ? { "data-next": "" } : {})}>
+            <li key={e.id} data-row {...(isNext ? { "data-next": "" } : {})}>
               <button
                 type="button"
                 onClick={() => setEditingId(e.id)}
