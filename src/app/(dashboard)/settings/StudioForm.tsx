@@ -450,6 +450,84 @@ export function StudioForm({ studio }: { studio: Studio }) {
       </section>
 
       {/*
+        * What this business calls things.
+        *
+        * The trade pack supplies a starting point and it is right most of the
+        * time, but "most of the time" is doing a lot of work: the demo is a
+        * hair salon whose people were called artists, doing tattoos, because
+        * it was set up from the wrong pack and nothing could correct it.
+        *
+        * Only the collective nouns are offered, not every word the pack holds.
+        * What a business calls its people and its customers is said on every
+        * screen and in every message; the rest is internal and changing it
+        * would be four more boxes for no visible gain.
+        *
+        * The pack's own word is the placeholder, so an empty box is not a
+        * missing answer — it means "whatever my trade normally says", which is
+        * also what gets stored: blank saves nothing and keeps following the
+        * pack as it improves.
+        */}
+      <section className="card space-y-4 p-6">
+        <div>
+          <h2 className="section-title">What you call things</h2>
+          <p className="hint mt-1">
+            Used everywhere &mdash; the tabs, the diary, and what the assistant says to
+            your {words.customer}s. Leave a box empty to use the normal word for your
+            trade.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="One of your people" hint="Stylist, therapist, technician, fitter.">
+            <input
+              name="word_practitioner"
+              defaultValue={studio.vocabulary?.practitioner ?? ""}
+              placeholder={pack.vocabulary.practitioner}
+              className="input"
+              maxLength={24}
+            />
+          </Field>
+
+          <Field label="More than one" hint="Shown on the tab and above the diary.">
+            <input
+              name="word_practitioners"
+              defaultValue={studio.vocabulary?.practitioners ?? ""}
+              placeholder={pack.vocabulary.practitioners}
+              className="input"
+              maxLength={24}
+            />
+          </Field>
+
+          <Field label="Someone who books" hint="Client, customer, patient, guest.">
+            <input
+              name="word_customer"
+              defaultValue={studio.vocabulary?.customer ?? ""}
+              placeholder={pack.vocabulary.customer}
+              className="input"
+              maxLength={24}
+            />
+          </Field>
+
+          <Field label="The place itself" hint="Salon, studio, shop, practice.">
+            <input
+              name="word_business"
+              defaultValue={studio.vocabulary?.business ?? ""}
+              placeholder={pack.vocabulary.business}
+              className="input"
+              maxLength={24}
+            />
+          </Field>
+        </div>
+
+        <p className="hint">
+          If your people do different jobs &mdash; a stylist and a nail technician in the
+          same {studio.vocabulary?.business ?? pack.vocabulary.business} &mdash; pick the
+          word that covers all of them here, and give each person their own job title on
+          their own settings.
+        </p>
+      </section>
+
+      {/*
         * The diary's colours, which used to live in the diary's toolbar.
         *
         * On a phone that toolbar could not hold it: measured on a 1080px

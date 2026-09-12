@@ -59,6 +59,38 @@ function readDepositRule(fd: FormData): DepositRule | { error: string } {
 
 // ------------------------------------------------------------------ studio
 
+/**
+ * The words a business uses, keeping only what it has actually changed.
+ *
+ * Storing every field would freeze today's pack into the row: improve the
+ * wording for salons next year and every salon that ever opened this page
+ * would keep the old one, having "chosen" it by pressing Save. Only a genuine
+ * difference is kept.
+ */
+function readVocabulary(
+  fd: FormData,
+  pack: Record<string, string>,
+): Record<string, string> {
+  const keys = ["practitioner", "practitioners", "customer", "business"] as const;
+  const kept: Record<string, string> = {};
+
+  for (const key of keys) {
+    const typed = str(fd, `word_${key}`).trim();
+    if (typed && typed.toLowerCase() !== (pack[key] ?? "").toLowerCase()) kept[key] = typed;
+  }
+
+  /*
+   * An empty object, never null.
+   *
+   * The column is not null with a default of {}, which the database said the
+   * first time this was asked to clear one — so returning null here would have
+   * failed every save on this form, not merely the clearing of a word. The
+   * absence of an override is an empty set of overrides, which is also the
+   * truer description.
+   */
+  return kept;
+}
+
 export async function updateStudio(_prev: FormState, fd: FormData): Promise<FormState> {
   // The business's own details belongs to the business, so it belongs to its owner.
   if (!(await isOwner())) {
@@ -116,6 +148,20 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
       // Blank means "use the trade pack's wording", not "no greeting".
       greeting: str(fd, "greeting") || null,
       hours: readHours(fd),
+      /*
+       * What this business calls things, where it differs from its trade.
+       *
+       * The pack supplies a starting point — a salon gets stylists, a garage
+       * gets mechanics — and this is the override for anywhere that is not
+       * quite right. A word left blank is removed rather than stored empty, so
+       * it falls back to the pack instead of putting nothing where a noun
+       * should be.
+       *
+       * Found by the demo, which is a hair salon carrying the tattoo pack's
+       * wording: "artists", doing "tattoos". Nothing could fix that, because
+       * nothing could edit it.
+       */
+      vocabulary: readVocabulary(fd, verticalPack(studio.vertical).vocabulary),
       ...(deposit === studioDepositUnchanged ? {} : { deposit_rule: deposit }),
       deposit_mode: depositMode,
       vat_registered: fd.get("vat_registered") === "on",
