@@ -175,6 +175,26 @@ export async function readinessOf(
       blocking: false,
     },
     {
+      /*
+       * Deposits switched on with nowhere of their own for the money to land.
+       *
+       * Blocking, and it is the only money question on this list. Without a
+       * connected account a deposit cannot be taken at all — the charge is
+       * refused rather than quietly routed into the platform's own Stripe,
+       * which is what used to happen. So this is not a warning about tidiness:
+       * it is the difference between the assistant being able to hold a slot
+       * and not.
+       */
+      key: "stripe",
+      can: "Take a deposit",
+      ready: !takesDeposits || Boolean(studio.stripe_account_id),
+      otherwise:
+        "You take deposits but your own Stripe account is not connected, so nobody can pay one.",
+      href: "/settings",
+      action: "Connect Stripe",
+      blocking: true,
+    },
+    {
       key: "policy",
       can: "Answer questions about cancelling",
       ready: !takesDeposits || studio.cancellation_policy.trim().length > 0,

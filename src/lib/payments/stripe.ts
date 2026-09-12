@@ -41,7 +41,13 @@ function expiryFor(heldUntil: string | null): number {
 export type DepositCheckout = {
   url: string;
   sessionId: string;
-  /** True when the money would land in the platform account, not the studio's. */
+  /**
+   * Always false now, and kept so callers do not have to change.
+   *
+   * It used to mean "this money is landing in our account rather than
+   * theirs" — a state nothing checked. That state is refused above instead of
+   * described here.
+   */
   platformHeld: boolean;
 };
 
@@ -69,6 +75,28 @@ export async function createDepositCheckout(args: {
   if (amountPence <= 0) throw new Error("Deposit amount must be greater than zero.");
 
   const connected = studio.stripe_account_id;
+
+  /*
+   * No connected account, no charge.
+   *
+   * Without one this fell back to the platform's own Stripe, so a business
+   * that switched deposits on before connecting would have had its customers'
+   * money land in ours. Nothing said so: the return value carried a
+   * platformHeld flag that no caller has ever read.
+   *
+   * That is the one failure here worth being loud about. Money arriving in the
+   * wrong account is not a bug you notice in a log — it is somebody else's
+   * deposit sitting in a balance that is not theirs, with a refund, a
+   * reconciliation and an awkward conversation attached. Refusing to take it
+   * costs a business one booking and tells them exactly what to fix; taking it
+   * costs everyone a great deal more.
+   */
+  if (!connected) {
+    throw new Error(
+      "This business has not connected its own Stripe account yet, so a deposit " +
+        "cannot be taken. Connect one in Settings, or turn deposits off.",
+    );
+  }
 
   const params: Stripe.Checkout.SessionCreateParams = {
     mode: "payment",
@@ -107,7 +135,7 @@ export async function createDepositCheckout(args: {
 
   if (!session.url) throw new Error("Stripe did not return a checkout URL.");
 
-  return { url: session.url, sessionId: session.id, platformHeld: !connected };
+  return { url: session.url, sessionId: session.id, platformHeld: false };
 }
 
 /** The URL of a checkout session, if it is still open and payable. */
