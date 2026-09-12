@@ -276,16 +276,45 @@ export function StudioForm({ studio }: { studio: Studio }) {
           />
         </Field>
 
-        <Field
-          label="Stripe account ID"
-          hint="From Stripe Connect. Deposits are paid directly to you."
-        >
-          <input
-            name="stripe_account_id"
-            defaultValue={studio.stripe_account_id ?? ""}
-            placeholder="acct_…"
-            className="input max-w-md font-mono text-xs"
-          />
+        {/*
+          * A button, not a box to paste an account id into.
+          *
+          * This asked for "acct_…" from Stripe Connect, which assumes somebody
+          * who knows what Connect is and where to find an account id inside
+          * it. Nobody running a salon does, so in practice nobody connected —
+          * and a business with no connected account cannot take a deposit at
+          * all, because the charge is refused rather than routed into our own
+          * Stripe.
+          *
+          * The money never passes through us either way. This is a Standard
+          * connected account: they keep their own Stripe dashboard, their
+          * customers pay them directly, and refunds and disputes are theirs to
+          * settle. Saying so here matters more than the button does — it is
+          * the question every owner asks before typing a card number into
+          * anything.
+          */}
+        <Field label="Taking the money">
+          {studio.stripe_account_id ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="pill bg-ok/10 text-ok">Stripe connected</span>
+              <span className="hint font-mono text-xs">{studio.stripe_account_id}</span>
+              <a href="/api/stripe/connect/start" className="btn-ghost">
+                Connect a different account
+              </a>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              <a href="/api/stripe/connect/start" className="btn inline-flex bg-accent text-on-accent">
+                Connect Stripe
+              </a>
+              <p className="hint max-w-prose">
+                You will be taken to Stripe to sign in, or to open an account if you have
+                not got one. Your customers then pay <strong>you</strong> directly &mdash;
+                the money never passes through Second Pair, and refunds and disputes stay
+                in your own Stripe account.
+              </p>
+            </div>
+          )}
         </Field>
         </>
         )}

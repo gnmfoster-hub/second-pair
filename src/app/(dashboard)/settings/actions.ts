@@ -265,7 +265,9 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
       cancellation_policy: str(fd, "cancellation_policy"),
       privacy_notice_url: privacy || null,
       terms_url: terms || null,
-      stripe_account_id: str(fd, "stripe_account_id") || null,
+      /* Not from this form any more: it is set by the Connect callback,
+         and a text box that could blank it would be a way to lose a
+         connection by saving an unrelated setting. */
       timezone: str(fd, "timezone") || "Europe/London",
       notice_hours: Math.min(720, Math.max(0, Number(str(fd, "notice_hours")) || 0)),
       consultation_minutes: Math.min(
