@@ -64,14 +64,22 @@ export function FullDiary() {
       title={full ? "Show everything else again" : "Just the diary"}
       aria-label={full ? "Show everything else again" : "Just the diary"}
       /*
-       * Bottom left, because Add is bottom centre and this is the other thing
-       * a thumb reaches for without looking. Small and quiet: it is a comfort,
-       * not a call to action, and the orange on this screen is spoken for.
+       * Bottom left on a phone, because Add is bottom centre and this is the
+       * other thing a thumb reaches for without looking. Small and quiet: it
+       * is a comfort, not a call to action, and the orange here is spoken for.
+       *
+       * Bottom right from md up, where the left of the screen is the sidebar
+       * and a button floating over it would look like part of it.
+       *
+       * Not hidden on a tablet, which was the first version and was wrong: a
+       * tablet is where this earns most. The sidebar alone is two hundred and
+       * forty pixels, and it is the device somebody props on the desk and
+       * reads the week off all day.
        *
        * z-40 so it survives its own mode — the tab bar it sits above is hidden
        * by then, and this is the only way back.
        */
-      className="btn fixed bottom-[calc(3.25rem+env(safe-area-inset-bottom)+0.75rem)] left-4 z-40 size-11 justify-center rounded-full border border-border bg-surface p-0 text-muted shadow-[0_6px_16px_-6px_rgb(0_0_0/0.35)] transition-[transform,box-shadow] duration-100 hover:text-foreground active:translate-y-0.5 motion-reduce:transition-none md:hidden"
+      className="btn fixed bottom-[calc(3.25rem+env(safe-area-inset-bottom)+0.75rem)] left-4 z-40 size-11 justify-center rounded-full border border-border bg-surface p-0 text-muted shadow-[0_6px_16px_-6px_rgb(0_0_0/0.35)] transition-[transform,box-shadow] duration-100 hover:text-foreground active:translate-y-0.5 motion-reduce:transition-none md:bottom-4 md:left-auto md:right-4"
       style={full ? { bottom: "calc(0.75rem + env(safe-area-inset-bottom))" } : undefined}
     >
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>

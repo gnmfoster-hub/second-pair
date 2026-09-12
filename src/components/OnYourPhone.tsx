@@ -168,31 +168,85 @@ export function OnYourPhone() {
       )}
 
       {where !== "installed" && (
+        /*
+         * Step by step, with the words that are actually on the buttons.
+         *
+         * "Use the share menu" is only instructions to somebody who already
+         * knows where it is. These name the icon, say where on the screen it
+         * lives, and say what the list looks like when you get there —
+         * because the person doing this is doing it once, on a device they may
+         * not use much, and every unnamed step is a place to give up.
+         */
         <div className="note mt-4 rounded-lg bg-surface-2 px-3.5 py-3 text-sm text-muted">
           {(where === "ios" || where === "ipad") && (
             <>
               <strong className="text-foreground">
-                On this {where === "ipad" ? "iPad" : "iPhone"}:
-              </strong>{" "}
-              the share button in Safari &mdash;{" "}
-              {where === "ipad" ? "top right" : "at the bottom"} &mdash; then{" "}
-              <strong className="text-foreground">Add to Home Screen</strong>. It has to be
-              Safari; Chrome on an {where === "ipad" ? "iPad" : "iPhone"} cannot do it.
+                On this {where === "ipad" ? "iPad" : "iPhone"}, in Safari:
+              </strong>
+              <ol className="mt-2 list-decimal space-y-1.5 pl-5">
+                <li>
+                  Tap the <strong className="text-foreground">share</strong> button &mdash;
+                  a square with an arrow coming out of the top. It is{" "}
+                  {where === "ipad"
+                    ? "in the row of buttons along the top, to the right of the address bar"
+                    : "in the bar at the bottom of the screen, in the middle"}
+                  .
+                </li>
+                <li>
+                  The menu that opens has a list of grey rows. Scroll down it until you
+                  find <strong className="text-foreground">Add to Home Screen</strong>{" "}
+                  &mdash; a square with a plus in it. It is usually below Add Bookmark.
+                </li>
+                <li>
+                  It offers <strong className="text-foreground">Second Pair</strong> as the
+                  name. Leave it, and tap <strong className="text-foreground">Add</strong>{" "}
+                  at the top right.
+                </li>
+                <li>
+                  Close Safari and open it from the icon instead. That icon is the app
+                  &mdash; the same screens, without the address bar, and the only version
+                  that can send you a notification.
+                </li>
+              </ol>
+              <p className="mt-2.5">
+                It has to be Safari. Chrome and Firefox on an{" "}
+                {where === "ipad" ? "iPad" : "iPhone"} have no Add to Home Screen at all
+                &mdash; Apple does not give it to them.
+              </p>
             </>
           )}
           {where === "android" && (
             <>
-              <strong className="text-foreground">On this phone:</strong> the three dots in
-              Chrome, then <strong className="text-foreground">Add to Home screen</strong>{" "}
-              or <strong className="text-foreground">Install app</strong>.
+              <strong className="text-foreground">On this phone, in Chrome:</strong>
+              <ol className="mt-2 list-decimal space-y-1.5 pl-5">
+                <li>
+                  Tap the <strong className="text-foreground">three dots</strong> at the
+                  top right of Chrome.
+                </li>
+                <li>
+                  Look for <strong className="text-foreground">Install app</strong>, or{" "}
+                  <strong className="text-foreground">Add to Home screen</strong> if it
+                  does not say Install. Either is the right one.
+                </li>
+                <li>
+                  Confirm the name, then tap{" "}
+                  <strong className="text-foreground">Install</strong> or{" "}
+                  <strong className="text-foreground">Add</strong>. Some phones then ask
+                  you to drag it onto the home screen, others put it there for you.
+                </li>
+                <li>
+                  Open it from that icon from now on. It is the same screens without the
+                  address bar, and notifications arrive there.
+                </li>
+              </ol>
             </>
           )}
           {where === "desktop" && (
             <>
-              This one is for a phone. Open{" "}
+              This one is for a phone or a tablet. Open{" "}
               <strong className="text-foreground">second-pair.com</strong> on it, sign in,
-              and come back to this page &mdash; it will tell you which buttons to press
-              on that phone.
+              and come back to this page &mdash; it will name the buttons for whichever
+              device you are holding.
             </>
           )}
         </div>
