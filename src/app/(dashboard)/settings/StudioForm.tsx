@@ -6,6 +6,8 @@ import { Field, FormMessage, SubmitButton } from "@/components/Form";
 import { penceToInput } from "@/lib/money";
 import { DAY_NAMES, DEFAULT_HOURS, type Studio } from "@/lib/types";
 import { verticalPack } from "@/lib/verticals";
+import { ColourBy } from "@/app/(dashboard)/diary/ColourBy";
+import type { ColourMode } from "@/lib/diaryColour";
 
 export function StudioForm({ studio }: { studio: Studio }) {
   const [state, action] = useActionState<FormState, FormData>(updateStudio, {});
@@ -445,6 +447,36 @@ export function StudioForm({ studio }: { studio: Studio }) {
             className="input max-w-md"
           />
         </Field>
+      </section>
+
+      {/*
+        * The diary's colours, which used to live in the diary's toolbar.
+        *
+        * On a phone that toolbar could not hold it: measured on a 1080px
+        * screen it wrapped onto a row entirely of its own, one small round
+        * button with three hundred and forty empty pixels beside it, above a
+        * diary that wants every pixel.
+        *
+        * It belongs here anyway. It is a preference set once and then left —
+        * which is exactly what this page is for, and unlike the view buttons
+        * beside it, nobody changes it while reading their day.
+        *
+        * It saves itself the moment it is picked rather than waiting for the
+        * button below, because it always did and changing that would be a
+        * worse surprise than the inconsistency.
+        */}
+      <section className="card space-y-4 p-6">
+        <div>
+          <h2 className="section-title">Diary</h2>
+          <p className="hint mt-1">
+            What the colours on your appointments mean. Saved as soon as you pick one.
+          </p>
+        </div>
+
+        <ColourBy
+          current={(studio.diary_colour ?? "category") as ColourMode}
+          hasTeam
+        />
       </section>
 
       <div className="flex items-center gap-4">

@@ -12,7 +12,6 @@ import { WhoPicker } from "./WhoPicker";
 import { UpNext } from "@/components/UpNext";
 import { Shortcuts } from "./Shortcuts";
 import { NewEntry } from "./NewEntry";
-import { ColourBy } from "./ColourBy";
 import { colourForName, type ColourMode } from "@/lib/diaryColour";
 import { formatPence } from "@/lib/money";
 import { dayShape, weekShape, minutesInDay } from "@/lib/diaryGaps";
@@ -714,11 +713,19 @@ export default async function DiaryPage({
             className={view === "day" ? "hidden sm:flex" : "flex"}
           />
 
-          <ColourBy
-            current={(studio.diary_colour ?? "category") as ColourMode}
-            hasTeam={team.length > 1}
-          />
-
+          {/*
+            * The colour picker has moved to Settings.
+            *
+            * It was the last thing on this row and there was not room for it:
+            * measured on a 1080px phone it wrapped onto a row entirely of its
+            * own — one small round button, three hundred and forty empty
+            * pixels beside it, and forty-eight pixels of diary gone to hold
+            * it.
+            *
+            * Settings is where it belonged. It is a preference set once and
+            * left, and unlike the view buttons it shares this row with, nobody
+            * changes it while reading their day.
+            */}
           <Shortcuts
             back={back}
             forward={forward}
