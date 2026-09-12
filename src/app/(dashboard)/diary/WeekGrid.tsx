@@ -593,7 +593,10 @@ export function WeekGrid({
       <div
         ref={scroller}
         data-diary-scroll
-        data-no-swipe
+        /* The columns run off the side of a phone, and an appointment is
+           dragged sideways to move it to another person. Both are this
+           element's own gestures; the page-turn swipe must not take them. */
+        data-keeps-its-drag
         onPointerDown={swipeStart}
         onPointerUp={swipeEnd}
         onPointerCancel={() => (swipe.current = null)}

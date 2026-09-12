@@ -4,19 +4,27 @@ import { useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 /**
- * Push the date bar sideways to change the date.
+ * Push the diary sideways to change the date.
  *
- * The arrows are small, and on a phone they sit at the top of the screen,
- * which is the furthest point from a thumb. Dragging the dates themselves is
- * what every calendar on a phone does, and it works in whatever view is open
- * because it follows the same links the arrows do — a day in the day view, a
- * week in the week, a month in the month.
+ * The arrows are small and sit at the top of the screen, which on a phone is
+ * the furthest point from a thumb. Dragging is what every calendar does, and
+ * this follows the same links the arrows do — a day in the day view, a week in
+ * the week, a month in the month, keeping whoever is being looked at.
  *
- * On its own element rather than on the window, which matters. There is
- * already a window-level swipe for the day list, and two listeners both
- * deciding to navigate would push twice and land two days away; this one only
- * ever hears what happens inside the bar, and the bar opts out of the other
- * with data-no-swipe.
+ * It covers the whole diary, not the strip of date at the top. That was the
+ * first version and it did not work in any way somebody would find: the date
+ * row is forty pixels of a screen, and a gesture has to begin inside the thing
+ * that is listening. Nobody aims at a header to turn a page — they push the
+ * page.
+ *
+ * Two things inside keep their own drag, marked data-keeps-its-drag: the grid,
+ * whose columns run off the side of a phone, and the row of person chips.
+ * Stealing from either would make it unusable, and dragging a booking to
+ * another stylist would turn into next week.
+ *
+ * On its own element rather than on the window, so there is exactly one thing
+ * on this page deciding to navigate. Two listeners both doing it would push
+ * twice and land two days out.
  *
  * Deliberately touch only. A trackpad's sideways scroll would fire this
  * constantly, and a mouse has the arrows.
@@ -43,10 +51,27 @@ export function SwipeDates({
       data-no-swipe
       onTouchStart={(event) => {
         // One finger. A pinch or a two-fingered scroll is not a page turn.
-        from.current =
-          event.touches.length === 1
-            ? { x: event.touches[0].clientX, y: event.touches[0].clientY }
-            : null;
+        if (event.touches.length !== 1) {
+          from.current = null;
+          return;
+        }
+
+        /*
+         * Not if the finger landed on something that scrolls sideways itself.
+         *
+         * This covers the whole diary now rather than the thin strip of date
+         * at the top, which is the only way it is findable — but inside it are
+         * two things that own a sideways drag: the grid, where the columns run
+         * off the side of a phone, and the row of person chips. Taking their
+         * gesture would make both unusable, and moving a booking to another
+         * stylist would turn into next week.
+         */
+        if ((event.target as Element | null)?.closest?.("[data-keeps-its-drag]")) {
+          from.current = null;
+          return;
+        }
+
+        from.current = { x: event.touches[0].clientX, y: event.touches[0].clientY };
       }}
       onTouchEnd={(event) => {
         const started = from.current;

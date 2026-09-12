@@ -496,7 +496,8 @@ export default async function DiaryPage({
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-3 sm:px-8 sm:py-9">
+    <SwipeDates back={back} forward={forward}>
+      <div className="mx-auto max-w-6xl px-4 py-3 sm:px-8 sm:py-9">
       {/* Outside every data-chrome block on purpose: it is the way back, and a
           way back that hides with everything else is a trap. */}
       <FullDiary />
@@ -505,14 +506,6 @@ export default async function DiaryPage({
           costing a few pixels more than it needed, and there are five of
           them; WeekGrid's height cap comes down by the same amount so the
           saving reaches the diary instead of the gap under it. */}
-      {/*
-        * The date bar moves the date when you push it.
-        *
-        * It wraps rather than replaces the row, so nothing inside changes: the
-        * buttons are still buttons and a tap is still a tap, because a tap
-        * travels nought pixels and this wants sixty.
-        */}
-      <SwipeDates back={back} forward={forward}>
       <div data-chrome className="flex flex-wrap items-baseline gap-x-3 gap-y-2 sm:gap-x-4">
         {/*
           * The word "Diary" is worth fifty pixels on a phone and says nothing.
@@ -782,7 +775,6 @@ export default async function DiaryPage({
           <NewEntry artists={team} timezone={studio.timezone} />
         </div>
       </div>
-      </SwipeDates>
 
       {/*
        * What this period is worth, and how much room is left.
@@ -928,16 +920,8 @@ export default async function DiaryPage({
         )}
       </div>
 
-      {/*
-        * The strip is a date bar too, and the only one left in full-diary
-        * mode — the row above is hidden there, so without this the gesture
-        * would stop working exactly where the screen has fewest other ways to
-        * move.
-        */}
       {view === "day" && (
-        <SwipeDates back={back} forward={forward}>
-          <WeekStrip focusDay={focusDay} load={strip} who={focused} today={isoDate(new Date())} />
-        </SwipeDates>
+        <WeekStrip focusDay={focusDay} load={strip} who={focused} today={isoDate(new Date())} />
       )}
 
       {/*
@@ -969,7 +953,7 @@ export default async function DiaryPage({
       {team.length > 1 && (
         <div
           data-chrome
-          data-no-swipe
+          data-keeps-its-drag
           /* The chips are a scrolling row of names and keep their own line. On
              a phone a big team uses the picker upstairs instead, so this row
              has nothing in it and must not leave its margin behind. */
@@ -1183,9 +1167,7 @@ export default async function DiaryPage({
                   * mounting it at all is the belt to that brace, and stops the
                   * gesture firing on the page around the grid too.
                   */}
-                {view === "day" && panes.list !== "hidden" && (
-                  <SwipeDays back={dayBack} forward={dayForward} />
-                )}
+
                 <DayList
                   entries={entries}
                   artists={focused ? team.filter((a) => a.id === focused) : team}
@@ -1224,6 +1206,7 @@ export default async function DiaryPage({
       </div>
 
     </div>
+    </SwipeDates>
   );
 }
 
