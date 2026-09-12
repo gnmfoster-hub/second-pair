@@ -36,6 +36,11 @@ const artist = (over: Partial<Artist> = {}): Artist => ({
   booking_url: null,
   avatar_path: null,
   colour: null,
+  personal_ical_url: null,
+  personal_calendar_show: true,
+  personal_calendar_titles: false,
+  personal_calendar_error: null,
+  personal_calendar_read_at: null,
   ...over,
 });
 

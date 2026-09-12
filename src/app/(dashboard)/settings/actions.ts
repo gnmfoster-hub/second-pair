@@ -10,6 +10,7 @@ import { usableAddress } from "@/lib/messaging/address";
 import { readInboundMode } from "@/lib/messaging/inboundEmail";
 import { siteOrigin } from "@/lib/origin";
 import { verticalPack } from "@/lib/verticals";
+import { busyFromIcal } from "@/lib/booking/ical";
 import { stillWorthAsking } from "@/lib/askedAlready";
 import { readNumbers } from "@/lib/channels/phoneNumbers";
 import { readHex, autoText } from "@/lib/widget/colour";
@@ -89,6 +90,90 @@ function readVocabulary(
    * truer description.
    */
   return kept;
+}
+
+/**
+ * Connecting somebody's own calendar, and checking it before trusting it.
+ *
+ * The address is read once here rather than only at booking time, because a
+ * typo that silently fails is the worst outcome available: the person believes
+ * their life is protected, nothing blocks anything, and they find out when
+ * somebody is booked over the school run. Better to refuse a bad address while
+ * they are looking at the box.
+ *
+ * Theirs alone. It is found from the signed-in user rather than an id in the
+ * form, so nobody can point somebody else's diary at a calendar they control.
+ */
+export async function savePersonalCalendar(
+  _prev: FormState,
+  fd: FormData,
+): Promise<FormState> {
+  const { studio, userId } = await requireStudio();
+  const supabase = await createClient();
+
+  const { data: me } = await supabase
+    .from("artists")
+    .select("id")
+    .eq("studio_id", studio.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!me) return { error: "You are not one of the people in this diary." };
+
+  const url = str(fd, "personal_ical_url").trim();
+
+  if (!url) {
+    await supabase
+      .from("artists")
+      .update({
+        personal_ical_url: null,
+        personal_calendar_error: null,
+        personal_calendar_read_at: null,
+      })
+      .eq("id", me.id);
+    revalidatePath("/settings/you");
+    revalidatePath("/diary");
+    return { ok: true };
+  }
+
+  if (!/^(https?|webcal):\/\//i.test(url)) {
+    return { error: "That should start with https:// or webcal://." };
+  }
+
+  /*
+   * Read it now, over a fortnight, which is enough to prove it is a calendar
+   * without waiting for a year of somebody's life to download.
+   */
+  const from = new Date();
+  const to = new Date(from.getTime() + 14 * 86400000);
+
+  try {
+    await busyFromIcal(url, from, to);
+  } catch (e) {
+    return {
+      error:
+        e instanceof Error
+          ? `That address did not work: ${e.message}`
+          : "That address did not return a calendar.",
+    };
+  }
+
+  const { error } = await supabase
+    .from("artists")
+    .update({
+      personal_ical_url: url,
+      personal_calendar_show: fd.get("personal_calendar_show") === "on",
+      personal_calendar_titles: fd.get("personal_calendar_titles") === "on",
+      personal_calendar_error: null,
+      personal_calendar_read_at: new Date().toISOString(),
+    })
+    .eq("id", me.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/you");
+  revalidatePath("/diary");
+  return { ok: true };
 }
 
 export async function updateStudio(_prev: FormState, fd: FormData): Promise<FormState> {

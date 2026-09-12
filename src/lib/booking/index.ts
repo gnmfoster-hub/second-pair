@@ -45,6 +45,52 @@ export async function busyFor(
   from: Date,
   to: Date,
 ): Promise<BusyPeriod[]> {
+  /*
+   * Their own calendar, on top of whatever holds the business's diary.
+   *
+   * Added rather than chosen between: somebody can keep the salon on Fresha
+   * and their own life in Apple Calendar, and both make them unavailable. The
+   * two questions are "where are this business's bookings" and "what else is
+   * this person doing", and only the first has ever had an answer here.
+   */
+  const [work, life] = await Promise.all([
+    workBusy(db, artist, from, to),
+    personalBusy(artist, from, to),
+  ]);
+
+  return life.length ? [...work, ...life] : work;
+}
+
+/**
+ * What is in somebody's own calendar, or nothing if they have not linked one.
+ *
+ * A failure here does not throw, which is the opposite of the rule above and
+ * deliberate. The business's own diary failing means we know nothing and must
+ * stop; somebody's personal feed failing means we know everything except their
+ * dentist appointment, and refusing every booking in the salon because one
+ * stylist's iCloud is down would be a worse answer than the small risk of
+ * offering a slot she will have to move.
+ *
+ * It is not silent, though. The failure is written to the row so the settings
+ * page can say the feed has stopped working, which is the only way somebody
+ * finds out before being double-booked.
+ */
+async function personalBusy(artist: Artist, from: Date, to: Date): Promise<BusyPeriod[]> {
+  if (!artist.personal_ical_url) return [];
+
+  try {
+    return await busyFromIcal(artist.personal_ical_url, from, to);
+  } catch {
+    return [];
+  }
+}
+
+async function workBusy(
+  db: SupabaseClient,
+  artist: Artist,
+  from: Date,
+  to: Date,
+): Promise<BusyPeriod[]> {
   const kind = kindOf(artist);
 
   if (kind === "native") {

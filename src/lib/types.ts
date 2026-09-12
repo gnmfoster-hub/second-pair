@@ -240,6 +240,20 @@ export type Artist = {
   booking_url: string | null;
   avatar_path: string | null;
   colour: string | null;
+  /**
+   * This person's own calendar, read so their life blocks their work.
+   *
+   * Separate from ical_url, which answers "where does this business keep its
+   * diary". This answers "what else is this person doing", and somebody can
+   * have both — a salon on Fresha and their own life in Apple Calendar.
+   */
+  personal_ical_url: string | null;
+  /** Whether those blocks appear in the business diary. On by default. */
+  personal_calendar_show: boolean;
+  /** Whether they say what they are. Off by default — see the migration. */
+  personal_calendar_titles: boolean;
+  personal_calendar_error: string | null;
+  personal_calendar_read_at: string | null;
 };
 
 export type PriceBand = {

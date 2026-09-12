@@ -6,6 +6,7 @@ import { Notifications } from "@/components/Notifications";
 import { OnYourPhone } from "@/components/OnYourPhone";
 import { ArtistEditor } from "../artists/ArtistEditor";
 import { CalendarLinks } from "../data/CalendarLinks";
+import { PersonalCalendar } from "./PersonalCalendar";
 
 export const metadata = { title: "You — Second Pair" };
 
@@ -81,6 +82,11 @@ export default async function YouPage() {
 
       {me ? (
         <>
+          {/* Their life, coming in — the other direction from the feed above,
+              and the one that stops the assistant booking over the school
+              run. */}
+          <PersonalCalendar artist={me} />
+
           <div className="card p-5">
             <div className="section-title">Your hours and rates</div>
             <p className="hint mt-1.5 max-w-prose">
