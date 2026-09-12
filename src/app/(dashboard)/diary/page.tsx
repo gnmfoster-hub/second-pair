@@ -299,25 +299,41 @@ export default async function DiaryPage({
    * thumb jump a week, which is not what pushing today sideways means anywhere
    * else on a phone.
    */
-  const dayBack = `/diary?view=day&day=${isoDate(addDays(focusDay, -1))}`;
-  const dayForward = `/diary?view=day&day=${isoDate(addDays(focusDay, 1))}`;
+  /*
+   * Whoever is being looked at, carried through every arrow and button.
+   *
+   * None of these links held it, so stepping forward a week dropped the person
+   * and the diary fell back to Everyone — which in a week means the list, so
+   * the arrow appeared to change the view. It was the person being lost, not
+   * the view being changed.
+   *
+   * This is the third time a diary link has quietly dropped a parameter and
+   * the second time it has been the same symptom, so it is a function rather
+   * than five more template literals to keep in step by hand.
+   */
+  const keepWho = (href: string) => (focused ? `${href}&who=${focused}` : href);
+
+  const dayBack = keepWho(`/diary?view=day&day=${isoDate(addDays(focusDay, -1))}`);
+  const dayForward = keepWho(`/diary?view=day&day=${isoDate(addDays(focusDay, 1))}`);
 
   // A month steps by a month, not by four weeks, or the label drifts.
   const shiftMonth = (by: number) =>
     isoDate(new Date(Date.UTC(anchor.getFullYear(), anchor.getMonth() + by, 1, 12)));
 
-  const back =
+  const back = keepWho(
     view === "day"
       ? `/diary?view=day&day=${isoDate(addDays(focusDay, -step))}`
       : view === "month"
         ? `/diary?view=month&week=${shiftMonth(-1)}`
-        : `/diary?view=week&week=${isoDate(addDays(start, -step))}`;
-  const forward =
+        : `/diary?view=week&week=${isoDate(addDays(start, -step))}`,
+  );
+  const forward = keepWho(
     view === "day"
       ? `/diary?view=day&day=${isoDate(addDays(focusDay, step))}`
       : view === "month"
         ? `/diary?view=month&week=${shiftMonth(1)}`
-        : `/diary?view=week&week=${isoDate(addDays(start, step))}`;
+        : `/diary?view=week&week=${isoDate(addDays(start, step))}`,
+  );
 
   const awaiting = entries.filter(
     (e) => e.deposit_amount_pence > 0 && e.deposit_status !== "paid",
@@ -593,7 +609,7 @@ export default async function DiaryPage({
               and ten off the shape control is the difference. */}
           <div className="flex overflow-hidden rounded-xl border border-border bg-surface">
             <Link
-              href={`/diary?view=day&day=${isoDate(focusDay)}`}
+              href={keepWho(`/diary?view=day&day=${isoDate(focusDay)}`)}
               className={`px-2 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
                 view === "day"
                   ? "bg-surface-2 text-foreground"
@@ -603,7 +619,7 @@ export default async function DiaryPage({
               Day
             </Link>
             <Link
-              href={`/diary?view=week&week=${isoDate(view === "month" ? focusDay : start)}`}
+              href={keepWho(`/diary?view=week&week=${isoDate(view === "month" ? focusDay : start)}`)}
               className={`border-l border-border px-2 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
                 view === "week"
                   ? "bg-surface-2 text-foreground"
@@ -618,7 +634,7 @@ export default async function DiaryPage({
              * weeks are thin before deciding to run an offer.
              */}
             <Link
-              href={`/diary?view=month&week=${isoDate(anchor)}`}
+              href={keepWho(`/diary?view=month&week=${isoDate(anchor)}`)}
               className={`border-l border-border px-2 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
                 view === "month"
                   ? "bg-surface-2 text-foreground"
@@ -719,7 +735,7 @@ export default async function DiaryPage({
           <Stepper
             back={back}
             forward={forward}
-            today={`/diary?view=${view}`}
+            today={keepWho(`/diary?view=${view}`)}
             className={view === "day" ? "hidden sm:flex" : "flex"}
           />
 
@@ -739,9 +755,9 @@ export default async function DiaryPage({
           <Shortcuts
             back={back}
             forward={forward}
-            today={`/diary?view=${view}`}
-            dayHref={`/diary?view=day&day=${isoDate(focusDay)}`}
-            weekHref={`/diary?view=week&week=${isoDate(start)}`}
+            today={keepWho(`/diary?view=${view}`)}
+            dayHref={keepWho(`/diary?view=day&day=${isoDate(focusDay)}`)}
+            weekHref={keepWho(`/diary?view=week&week=${isoDate(start)}`)}
           />
 
           {/*

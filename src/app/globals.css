@@ -449,3 +449,37 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ------------------------------------------------------------ full diary */
+/*
+ * Everything except the diary, out of the way.
+ *
+ * The chrome around it is all useful and all costs room: a top bar naming the
+ * business, a tab bar, two rows of controls, and the padding that keeps the
+ * last appointment clear of the tabs. On a phone that is most of a screen, and
+ * somebody reading their day does not need any of it — they need Tuesday.
+ *
+ * Done as one class on the body rather than a prop threaded through five
+ * components, because the things being hidden live in three different layouts
+ * and none of them knows the diary exists.
+ */
+body.diary-focus [data-chrome] {
+  display: none !important;
+}
+
+/* The tab bar is gone, so the room kept clear for it goes too. */
+body.diary-focus main {
+  padding-bottom: 0 !important;
+}
+
+/*
+ * And the diary takes what that leaves.
+ *
+ * The grid caps itself against the chrome it expects above and below. With
+ * none of it there the cap is the only thing still holding the old shape, so
+ * it is lifted to the whole viewport bar a thumb's width for the button that
+ * gets you out.
+ */
+body.diary-focus [data-diary-scroll] {
+  max-height: calc(100dvh - 3.5rem) !important;
+}
