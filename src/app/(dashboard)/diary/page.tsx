@@ -5,7 +5,6 @@ import { startOfWeek, addDays, isoDate, parseIsoDate } from "@/lib/calendar";
 import { WeekGrid, type Entry } from "./WeekGrid";
 import { MonthGrid } from "./MonthGrid";
 import { DayList } from "./DayList";
-import { SwipeDays } from "./SwipeDays";
 import { WeekStrip, type DayLoad } from "./WeekStrip";
 import { Stepper } from "./Stepper";
 import { WhoPicker } from "./WhoPicker";
@@ -315,8 +314,6 @@ export default async function DiaryPage({
    */
   const keepWho = (href: string) => (focused ? `${href}&who=${focused}` : href);
 
-  const dayBack = keepWho(`/diary?view=day&day=${isoDate(addDays(focusDay, -1))}`);
-  const dayForward = keepWho(`/diary?view=day&day=${isoDate(addDays(focusDay, 1))}`);
 
   // A month steps by a month, not by four weeks, or the label drifts.
   const shiftMonth = (by: number) =>

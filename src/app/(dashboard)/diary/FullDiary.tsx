@@ -46,6 +46,26 @@ export function FullDiary() {
    */
   useEffect(() => () => document.body.classList.remove(CLASS), []);
 
+  /*
+   * Escape gets out too.
+   *
+   * Full-diary hides the tab bar and the sidebar, so one small round button is
+   * the only way back to the rest of the app. That is fine until it is not:
+   * anything that stops it rendering — a stylesheet that failed, a browser
+   * extension, a mistake in a later change to this file — leaves somebody on a
+   * screen with no navigation and no obvious way off it.
+   *
+   * A second way out costs four lines and removes that entirely.
+   */
+  useEffect(() => {
+    if (!full) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") set(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   const set = (want: boolean) => {
     setFull(want);
     document.body.classList.toggle(CLASS, want);

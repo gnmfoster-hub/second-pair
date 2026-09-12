@@ -614,19 +614,13 @@ export function WeekGrid({
         * screen it needs; on a desktop it stays a panel among others.
         */}
       {/*
-        * data-no-swipe, because this scrolls sideways itself.
+        * This scrolls sideways itself, so the page-turn swipe leaves it alone.
         *
-        * SwipeDays listens on the window and renders nothing, so hiding its
-        * pane with CSS does not disarm it — it stays live while the grid is
-        * the thing on screen. A day of five people is 648px in a 390px phone,
-        * so reaching the fifth means dragging sideways, and every one of those
-        * was a 60px horizontal gesture on the window: scroll right to see
-        * Jade, arrive on Saturday.
-        *
-        * The opt-out is the one SwipeDays already documents for the person
-        * chips and anything wide inside an entry. The grid is the largest
-        * sideways-scrolling thing on the page and was the one that never
-        * claimed it.
+        * A day of five people is 648px on a 390px phone, so reaching the fifth
+        * means dragging sideways — and an appointment is dragged sideways to
+        * move it to somebody else. Both belong to this element. Before it
+        * claimed them, every one of those drags was read as "next day":
+        * scroll right to see Jade, arrive on Saturday.
         */}
       <div
         ref={scroller}
