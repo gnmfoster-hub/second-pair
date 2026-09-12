@@ -483,3 +483,25 @@ body.diary-focus main {
 body.diary-focus [data-diary-scroll] {
   max-height: calc(100dvh - 3.5rem) !important;
 }
+
+/* ------------------------------------------------- the bar above the diary */
+/*
+ * How far down the screen a sticky thing has to start.
+ *
+ * On a phone the business name sits in a sticky bar of its own at the top, so
+ * anything else that sticks has to begin below it or slide underneath and
+ * vanish. On a desktop there is no such bar — the sidebar is beside, not above
+ * — so the offset is nothing.
+ *
+ * A variable rather than a number written into a component, because the two
+ * have to agree and they live in different files. The extra term covers an
+ * iPhone's status bar: the bar pads itself by the safe area when that is
+ * bigger than its own padding, and grows by the difference.
+ */
+:root {
+  --app-bar: calc(3.5rem + max(0rem, env(safe-area-inset-top) - 0.75rem));
+}
+
+@media (min-width: 768px) {
+  :root { --app-bar: 0px; }
+}

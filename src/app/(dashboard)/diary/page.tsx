@@ -506,7 +506,27 @@ export default async function DiaryPage({
           costing a few pixels more than it needed, and there are five of
           them; WeekGrid's height cap comes down by the same amount so the
           saving reaches the diary instead of the gap under it. */}
-      <div data-chrome className="flex flex-wrap items-baseline gap-x-3 gap-y-2 sm:gap-x-4">
+      {/*
+        * Stays put while the list scrolls.
+        *
+        * The list is the page rather than a panel with its own scrollbar, so
+        * the controls went up and away with it — and now the list opens partway
+        * down at the current time, somebody reaching for Week at four in the
+        * afternoon had to scroll past the whole morning to find it.
+        *
+        * The grid never had this problem, which is why it never showed up: it
+        * scrolls inside itself and the controls stay where they are. This is
+        * the list's version of the same thing.
+        *
+        * Below the business-name bar on a phone, and at the very top on a
+        * desktop where there is no such bar — see --app-bar. The background is
+        * painted or the appointments would read through it while they pass
+        * underneath.
+        */}
+      <div
+        data-chrome
+        className="sticky top-[var(--app-bar)] z-20 -mx-4 flex flex-wrap items-baseline gap-x-3 gap-y-2 bg-background px-4 pb-2 pt-1 sm:-mx-8 sm:gap-x-4 sm:px-8"
+      >
         {/*
           * The word "Diary" is worth fifty pixels on a phone and says nothing.
           *
