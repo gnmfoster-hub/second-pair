@@ -96,15 +96,25 @@ export async function POST(request: NextRequest) {
   }
 
   /*
-   * Twenty seconds, and their own number shown as the caller.
+   * Fifteen seconds, because the real competition is their voicemail.
    *
-   * Long enough to get to a ringing phone, short enough that somebody who
-   * cannot answer is texted while they are still thinking about the business
-   * rather than four rings later. callerId is the number they dialled, so the
-   * business sees its own line calling and knows to answer it as work.
+   * Twilio cannot tell a person from an answerphone: voicemail picking up is
+   * reported as "completed", which reads as answered, so no text is sent and
+   * the caller leaves a message nobody listens to. That is the exact outcome
+   * this feature exists to prevent, and at twenty seconds it was a race
+   * against a UK mobile's voicemail — which usually starts between fifteen and
+   * twenty.
+   *
+   * Fifteen is still three or four rings, which is long enough to reach a
+   * phone in a pocket and short enough to get there first. Anybody who wants
+   * no ring at all clears the ring-me number instead, and the text goes out
+   * immediately.
+   *
+   * callerId is the number they dialled, so the business sees its own line
+   * calling and knows to answer it as work.
    */
   return twiml(
-    `<Dial timeout="20" callerId="${escapeXml(to)}" ` +
+    `<Dial timeout="15" callerId="${escapeXml(to)}" ` +
       `action="/api/voice/missed?to=${encodeURIComponent(to)}" method="POST">` +
       `<Number>${escapeXml(connection.forward_to)}</Number>` +
       `</Dial>`,
