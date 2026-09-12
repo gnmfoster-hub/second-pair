@@ -1050,78 +1050,56 @@ async function isOwner(): Promise<boolean> {
  * number would both have a claim on every reply, so it is unique across all of
  * them and saving a duplicate is refused rather than quietly stealing it.
  */
-export async function saveSmsNumber(
+/**
+ * Where a call to the business number rings before it becomes a text.
+ *
+ * This used to save the business number as well, and that was wrong twice
+ * over. Nobody buys their own number — it is provisioned for them in the back
+ * office, along with the routing that makes it work — so the box invited a
+ * business to type a number that would receive nothing, or to type somebody
+ * else's. And a blank box saved a blank number, which deleted the connection
+ * and silently took a working business off texts and missed calls entirely.
+ *
+ * So the number is not editable here any more, and this touches one column.
+ * Which one is genuinely theirs: it is their own mobile, it is never shown to
+ * a customer, and whether their phone rings at all is a decision about their
+ * day that they should not have to ring anybody to change.
+ */
+export async function saveCallForwarding(
   _prev: ClientStateLike,
   fd: FormData,
 ): Promise<ClientStateLike> {
-  // The phone number belongs to the business, so it belongs to its owner.
+  // Where the phone rings belongs to the business, so it belongs to its owner.
   if (!(await isOwner())) {
-    return { error: "Only the owner can change the phone number." };
+    return { error: "Only the owner can change where calls ring." };
   }
 
   const { studio } = await requireStudio();
   const supabase = await createClient();
 
-  /*
-   * Both numbers, and what is wrong with them, in one place.
-   *
-   * The second is where a call rings before it becomes a text: their own
-   * mobile, which is not the number customers dial and is never shown to one.
-   * Blank is a real answer, not an unfinished one — do not ring me, text them
-   * straight away.
-   *
-   * The rules live in lib/channels because the back office sets these up for
-   * people too, and a support screen looser than this page would let somebody
-   * be helped into a number that receives nothing.
-   */
-  const read = readNumbers(
-    String(fd.get("sms_number") ?? ""),
-    String(fd.get("forward_to") ?? ""),
-  );
-  if (!read.ok) return { error: read.error };
-  const { number, forwardTo } = read;
-
-  if (!number) {
-    await supabase
-      .from("channel_connections")
-      .delete()
-      .eq("studio_id", studio.id)
-      .eq("channel", "sms");
-    revalidatePath("/settings/install");
-    return { ok: true };
-  }
-
-  const { data: taken } = await supabase
-    .from("channel_connections")
-    .select("studio_id")
-    .eq("channel", "sms")
-    .eq("external_id", number)
-    .maybeSingle();
-
-  if (taken && taken.studio_id !== studio.id) {
-    return { error: "That number is already in use by another business." };
-  }
-
   const { data: existing } = await supabase
     .from("channel_connections")
-    .select("id")
+    .select("id, external_id")
     .eq("studio_id", studio.id)
     .eq("channel", "sms")
     .maybeSingle();
 
-  const { error } = existing
-    ? await supabase
-        .from("channel_connections")
-        .update({ external_id: number, label: number, active: true, forward_to: forwardTo })
-        .eq("id", existing.id)
-    : await supabase.from("channel_connections").insert({
-        studio_id: studio.id,
-        channel: "sms",
-        external_id: number,
-        label: number,
-        active: true,
-        forward_to: forwardTo,
-      });
+  /*
+   * No number, nothing to route. Said rather than silently saved, because a
+   * setting that appears to save and does nothing is how somebody ends up
+   * believing their phone will ring.
+   */
+  if (!existing) {
+    return { error: "There is no number on this business yet. We will set one up for you." };
+  }
+
+  const read = readNumbers(existing.external_id ?? "", String(fd.get("forward_to") ?? ""));
+  if (!read.ok) return { error: read.error };
+
+  const { error } = await supabase
+    .from("channel_connections")
+    .update({ forward_to: read.forwardTo })
+    .eq("id", existing.id);
 
   if (error) return { error: error.message };
 

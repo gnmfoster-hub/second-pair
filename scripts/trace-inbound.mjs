@@ -28,7 +28,7 @@ const { data: convs } = await db
 
 if (!convs?.length) {
   console.log("No email conversation created in the last three hours.");
-  console.log("That means the webhook arrived but we did not get as far as writing anything down.");
+  console.log("Nothing was written down. That does not say where it stopped — the forward may not have fired, the mail may still be in flight, or it arrived and was rejected before a row was made. The provider dashboard is the next place to look.");
 }
 
 for (const c of convs ?? []) {

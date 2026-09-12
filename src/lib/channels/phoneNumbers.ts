@@ -114,3 +114,31 @@ export function shouldRing(
 
   return true;
 }
+
+/**
+ * A number as somebody would read it out, rather than as a line stores it.
+ *
+ * Everything internal is full international form, because that is the only
+ * shape that routes. It is also the shape nobody recognises as their own
+ * number: +447460076593 has to be decoded before a person can check it against
+ * the one on their van, and a number a business cannot check at a glance is a
+ * number they will not confidently put on their website.
+ *
+ * Only UK numbers are reshaped, since those are the only ones whose grouping
+ * is worth asserting. Anything else is handed back untouched, which is correct
+ * rather than lazy: a wrongly grouped foreign number reads as a typo.
+ */
+export function readableNumber(raw: string): string {
+  const n = tidyNumber(raw);
+
+  // UK mobile: +447xxx xxxxxx, said as 07xxx xxxxxx.
+  const mobile = /^\+447(\d{3})(\d{6})$/.exec(n);
+  if (mobile) return `07${mobile[1]} ${mobile[2]}`;
+
+  // UK landline, as one group after the leading zero. Area codes vary in
+  // length and guessing the split wrongly is worse than not splitting.
+  const uk = /^\+44(\d{9,10})$/.exec(n);
+  if (uk) return `0${uk[1]}`;
+
+  return n || raw;
+}

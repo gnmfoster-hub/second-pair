@@ -110,8 +110,6 @@ export default async function ChannelsPage({
           number={smsNumber}
           forwardTo={line?.forward_to ?? null}
           sendingReady={smsConfigured()}
-          webhookUrl={`${origin}/api/sms/webhook`}
-          voiceWebhookUrl={`${origin}/api/voice/webhook`}
         />
       </section>
 
