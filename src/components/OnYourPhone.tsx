@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { INSTALL_CHANGED, askToInstall } from "@/lib/install";
 
 /**
  * Telling people the phone app exists, and what it does once it is there.
@@ -38,9 +39,32 @@ function whereAmI(): Where {
 export function OnYourPhone() {
   const [where, setWhere] = useState<Where>("unknown");
 
+  /*
+   * Whether the browser has an install waiting for us to ask.
+   *
+   * It is caught on every page by RegisterWorker and parked on the window,
+   * because it fires once and early and this panel is three taps into
+   * Settings. Here we only ask whether one is there.
+   */
+  const [canInstall, setCanInstall] = useState(false);
+  const [outcome, setOutcome] = useState<"dismissed" | null>(null);
+
   // After mount, because none of this exists on the server and guessing would
   // mean the panel changing under somebody as the page settles.
   useEffect(() => setWhere(whereAmI()), []);
+
+  useEffect(() => {
+    const look = () => setCanInstall(Boolean(window.__spInstall));
+    look();
+    window.addEventListener(INSTALL_CHANGED, look);
+    return () => window.removeEventListener(INSTALL_CHANGED, look);
+  }, []);
+
+  const install = async () => {
+    const result = await askToInstall();
+    if (result === "accepted") setWhere("installed");
+    if (result === "dismissed") setOutcome("dismissed");
+  };
 
   if (where === "unknown") return null;
 
@@ -96,6 +120,36 @@ export function OnYourPhone() {
           </span>
         </li>
       </ul>
+
+      {/*
+        * A button, when the browser has an offer for us to make.
+        *
+        * Chrome decides on its own when to offer this and buries it in a menu;
+        * dismissed once, it may never come back. Asking on our own button puts
+        * it where somebody is already reading about why they want it.
+        *
+        * The written directions stay underneath regardless. They are the only
+        * route on an iPhone, which never makes this offer at all, and the only
+        * route on an Android where the offer has already been used up.
+        */}
+      {where !== "installed" && canInstall && (
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={install}
+            className="btn inline-flex bg-accent text-on-accent"
+          >
+            Add it to this phone
+          </button>
+          <span className="hint">One tap. It asks you to confirm.</span>
+        </div>
+      )}
+
+      {outcome === "dismissed" && (
+        <p className="hint mt-3">
+          Not added. You can still do it by hand below, or press the button again.
+        </p>
+      )}
 
       {where !== "installed" && (
         <div className="note mt-4 rounded-lg bg-surface-2 px-3.5 py-3 text-sm text-muted">

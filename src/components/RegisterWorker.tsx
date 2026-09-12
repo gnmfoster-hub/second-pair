@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { watchForInstallOffer } from "@/lib/install";
 
 /**
  * Registers the service worker, and makes sure a new version actually arrives.
@@ -20,6 +21,20 @@ import { useEffect } from "react";
  * here is an enhancement, and the app works without any of it.
  */
 export function RegisterWorker() {
+  /*
+   * Catch the install offer here, on every page, because it fires once and
+   * early and cannot be asked for again.
+   *
+   * Chrome makes the offer when it feels like it — usually moments after a
+   * page loads — and the screen that wants it is three taps into Settings. By
+   * the time somebody opens that screen the moment has long passed, so it is
+   * caught wherever they happen to be and parked for when they go looking.
+   *
+   * Its own effect, because it has nothing to do with the worker below and
+   * must not be skipped by the browser that has no serviceWorker in it.
+   */
+  useEffect(() => watchForInstallOffer(), []);
+
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
 
