@@ -6,6 +6,9 @@ import { SeedBands } from "./SeedBands";
 import { WhoDoesThis } from "./WhoDoesThis";
 import { ServiceList } from "./ServiceList";
 import { PricingModel } from "./PricingModel";
+import { WhoChargesWhat } from "./WhoChargesWhat";
+import { PeoplePrices } from "./PeoplePrices";
+import type { ServicePerson } from "@/lib/types";
 import type { Service } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 import { verticalPack } from "@/lib/verticals";
@@ -51,6 +54,19 @@ export default async function PricingPage() {
 
   const services = (serviceRows ?? []) as Service[];
 
+  /*
+   * Everybody's own prices, in one read. Usually a short list — an override is
+   * the exception and most rows on most price lists have none.
+   */
+  const { data: peopleRows } = services.length
+    ? await supabase
+        .from("service_people")
+        .select("*")
+        .in("service_id", services.map((s) => s.id))
+    : { data: null };
+
+  const peoplePrices = (peopleRows ?? []) as ServicePerson[];
+
   const pack = verticalPack(studio.vertical);
   const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
   const title = (word: string) => word.replace(/^./, (c) => c.toUpperCase());
@@ -59,6 +75,15 @@ export default async function PricingPage() {
     return (
       <div className="space-y-8">
         <ServiceList services={services} words={{ customer: words.customer }} />
+
+        {/* What each person charges for what is on the list above. */}
+        <PeoplePrices
+          artists={activeArtists}
+          services={services}
+          rows={peoplePrices}
+          words={{ practitioner: words.practitioner, practitioners: words.practitioners }}
+        />
+
         <PricingModel current="services" bandCount={bands.length} />
       </div>
     );
@@ -174,6 +199,12 @@ export default async function PricingPage() {
           </div>
         )}
       </section>
+
+      {/* Why the columns above differ, and where to change it. */}
+      <WhoChargesWhat
+        artists={activeArtists}
+        words={{ practitioner: words.practitioner, practitioners: words.practitioners }}
+      />
     </div>
   );
 }

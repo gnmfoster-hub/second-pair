@@ -52,6 +52,11 @@ type Booking = {
   deposit_status: string;
   cancelled_at: string | null;
   attended: boolean | null;
+  /** Set only where somebody said, which is a minority of bookings. */
+  actual_minutes: number | null;
+  outcome_note: string | null;
+  /** Needed to say an overrun as an overrun rather than a bare number. */
+  ends_at: string;
 };
 
 export default async function ClientPage({
@@ -285,7 +290,12 @@ export default async function ClientPage({
           <section className="card p-5">
             <h2 className="section-title mb-4 text-sm">History</h2>
             <Timeline
-              bookings={bookings}
+              bookings={bookings.map((b) => ({
+                ...b,
+                booked_minutes: Math.round(
+                  (Date.parse(b.ends_at) - Date.parse(b.starts_at)) / 60000,
+                ),
+              }))}
               reminders={(reminders ?? []) as TimelineReminder[]}
               artists={artists}
               timezone={studio.timezone}

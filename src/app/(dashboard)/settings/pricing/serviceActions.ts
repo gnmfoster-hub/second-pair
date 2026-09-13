@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireStudio } from "@/lib/studio";
+import { requireStudio, requireOwner } from "@/lib/studio";
 import { createClient } from "@/lib/supabase/server";
 import { parsePounds } from "@/lib/money";
 
@@ -123,5 +123,85 @@ export async function setPricingModel(_prev: ServiceState, fd: FormData): Promis
   if (error) return { error: error.message };
 
   revalidatePath("/settings/pricing");
+  return { ok: true };
+}
+
+export type TeamPriceState = { error?: string; ok?: boolean };
+
+/**
+ * What one person charges, set by the owner.
+ *
+ * The mirror of saveMyPrices on Settings → You, and it exists for the case
+ * that one cannot cover: an owner setting a salon up cannot wait for five
+ * people to sign in and fill a form in, and half of a typical team has no
+ * login at all. The row-level policy has allowed the owner to write these
+ * since the table was created — there was simply no screen that did.
+ *
+ * The owner's, so requireOwner rather than requireStudio. Which person is
+ * being priced does come from the form here, because that is the whole point,
+ * and it is checked against this business before anything is written.
+ */
+export async function saveTeamPrices(
+  _prev: TeamPriceState,
+  fd: FormData,
+): Promise<TeamPriceState> {
+  const { studio } = await requireOwner();
+  const supabase = await createClient();
+
+  const artistId = str(fd, "artist_id");
+  if (!artistId) return { error: "Pick somebody first." };
+
+  const { data: artist } = await supabase
+    .from("artists")
+    .select("id")
+    .eq("id", artistId)
+    .eq("studio_id", studio.id)
+    .maybeSingle();
+
+  if (!artist) return { error: "That person is not on this business." };
+
+  const { data: services } = await supabase
+    .from("services")
+    .select("id")
+    .eq("studio_id", studio.id)
+    .eq("active", true);
+
+  const upserts: {
+    service_id: string;
+    artist_id: string;
+    minutes: number | null;
+    price_pence: number | null;
+  }[] = [];
+  const clears: string[] = [];
+
+  for (const { id } of services ?? []) {
+    const price = parsePounds(fd.get(`price_${id}`));
+    const raw = String(fd.get(`minutes_${id}`) ?? "").trim();
+    const n = Number(raw);
+    const minutes = raw !== "" && Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+
+    // Both empty means the shop's price, which is expressed by no row at all.
+    if (price === null && minutes === null) clears.push(id);
+    else upserts.push({ service_id: id, artist_id: artistId, minutes, price_pence: price });
+  }
+
+  if (clears.length) {
+    const { error } = await supabase
+      .from("service_people")
+      .delete()
+      .eq("artist_id", artistId)
+      .in("service_id", clears);
+    if (error) return { error: error.message };
+  }
+
+  if (upserts.length) {
+    const { error } = await supabase
+      .from("service_people")
+      .upsert(upserts, { onConflict: "service_id,artist_id" });
+    if (error) return { error: error.message };
+  }
+
+  revalidatePath("/settings/pricing");
+  revalidatePath("/settings/you");
   return { ok: true };
 }

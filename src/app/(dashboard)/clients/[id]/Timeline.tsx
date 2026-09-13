@@ -22,6 +22,12 @@ export type TimelineBooking = {
   attended: boolean | null;
   deposit_amount_pence: number;
   deposit_status: string;
+  /** Minutes it ran, where somebody said. Null for most of them. */
+  actual_minutes: number | null;
+  /** What happened, in the business's own words. Never shown to the client. */
+  outcome_note: string | null;
+  /** What it was booked for, so an overrun can be said as an overrun. */
+  booked_minutes: number | null;
 };
 
 export type TimelineReminder = {
@@ -34,6 +40,23 @@ export type TimelineReminder = {
   body: string | null;
   error: string | null;
 };
+
+/**
+ * How long it ran, said only when it is worth saying.
+ *
+ * Silence when nobody recorded it, which is most of them, and silence when it
+ * took exactly what it was booked for — a line reading "60 minutes, booked for
+ * 60" is noise on every row that went normally, and noise on every row is how
+ * the interesting ones stop being noticed.
+ */
+function ranFor(b: TimelineBooking): string {
+  if (b.actual_minutes == null) return "";
+  if (b.booked_minutes == null) return ` · ran ${b.actual_minutes} min`;
+
+  const over = b.actual_minutes - b.booked_minutes;
+  if (over === 0) return "";
+  return over > 0 ? ` · ran ${over} min over` : ` · ${-over} min under`;
+}
 
 type Item =
   | { kind: "booking"; at: string; booking: TimelineBooking }
@@ -134,7 +157,20 @@ export function Timeline({
               {b.deposit_amount_pence
                 ? ` · ${formatPence(b.deposit_amount_pence)} ${b.deposit_status}`
                 : ""}
+              {ranFor(b)}
             </div>
+
+            {/*
+              * The note from whoever closed it off.
+              *
+              * This is the screen the promise was made to: the diary says a
+              * note is "for you and whoever has them next", and whoever has
+              * them next is looking at this page. Without it the note was
+              * written into a column nobody could read.
+              */}
+            {b.outcome_note && (
+              <div className="hint mt-0.5 italic">{b.outcome_note}</div>
+            )}
           </li>
         );
       })}
