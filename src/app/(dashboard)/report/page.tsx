@@ -2,6 +2,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio } from "@/lib/studio";
 import { weeklyReport, lastWeek } from "@/lib/report";
+import { takingsFor, takingsByService } from "@/lib/takings";
+import { Takings } from "./Takings";
 import { formatPence } from "@/lib/money";
 
 function Stat({
@@ -61,6 +63,22 @@ export default async function ReportPage({
   if (thisWeek) to.setTime(now.getTime());
 
   const report = await weeklyReport(supabase, studio, from, to);
+
+  /*
+   * What the week was worth, asked of the diary rather than of the
+   * conversations.
+   *
+   * The report above measures what the assistant did, which is the right
+   * question for "was this worth paying for" and the wrong one for "what did
+   * we take" — a booking typed in by hand has no conversation, so none of it
+   * counted. On the demo that is 105 of 111 bookings and five thousand pounds.
+   */
+  const [takings, byService] = await Promise.all([
+    takingsFor(supabase, studio.id, from, to),
+    studio.pricing_model === "services"
+      ? takingsByService(supabase, studio.id, from, to)
+      : Promise.resolve([]),
+  ]);
 
   /*
    * Proof that an empty week is a quiet week, not a broken page.
@@ -196,6 +214,9 @@ export default async function ReportPage({
           />
         )}
       </div>
+
+      {/* What the week came to, from the diary rather than the conversations. */}
+      <Takings figures={takings} byService={byService} />
 
       {/*
        * What the assistant costs to run is not shown here any more.
