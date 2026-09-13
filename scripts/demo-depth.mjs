@@ -370,4 +370,6 @@ say("  A client record        the timings the salon knows and never mentions");
 say("  Aisha                  her own list, her own reminders, and an assistant called Immy");
 say("  Saturday morning       a wedding party of four, tied together across three diaries");
 say("");
-say("Sign in as demo@second-pair.com to see it as Sarah.");
+say("Sign in as demo@second-pair.com to see it as Sarah, the owner.");
+say("Then run demo-logins.mjs for Aisha's and Jade's views — renting a chair,");
+say("and employed. Between them they are the whole permission model.");
