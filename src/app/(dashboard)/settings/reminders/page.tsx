@@ -3,6 +3,9 @@ import { requireOwner } from "@/lib/studio";
 import { ReminderEditor, type ReminderTemplateRow } from "./ReminderEditor";
 import { SeedReminders } from "./SeedReminders";
 import { verticalPack } from "@/lib/verticals";
+import { smsNumberFor } from "@/lib/messaging/connections";
+import { smsConfigured } from "@/lib/messaging/sms";
+import { readableNumber } from "@/lib/channels/phoneNumbers";
 
 export default async function RemindersPage() {
   // What customers are sent — the owner's, and the page says so
@@ -17,6 +20,22 @@ export default async function RemindersPage() {
     .order("hours_before", { ascending: false });
 
   const reminders = (data ?? []) as ReminderTemplateRow[];
+
+  /*
+   * Who these arrive from.
+   *
+   * The question every business asks about reminders, and the one this page
+   * could not answer: a text at half past eight from a number nobody
+   * recognises, telling somebody where to be tomorrow, gets ignored or
+   * reported. The real answer is a good one — it comes from their own number,
+   * the one on their van — and it was written down nowhere.
+   */
+  const number = await smsNumberFor(supabase, studio.id);
+  const sender = {
+    number: number ? readableNumber(number) : null,
+    business: studio.name,
+    ready: smsConfigured(),
+  };
 
   return (
     <div className="space-y-3">
@@ -36,10 +55,10 @@ export default async function RemindersPage() {
       )}
 
       {reminders.map((reminder, i) => (
-        <ReminderEditor key={reminder.id} reminder={reminder} index={i} />
+        <ReminderEditor key={reminder.id} reminder={reminder} index={i} sender={sender} />
       ))}
 
-      <ReminderEditor index={reminders.length} />
+      <ReminderEditor index={reminders.length} sender={sender} />
     </div>
   );
 }

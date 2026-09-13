@@ -2,6 +2,9 @@ import { requireStudio, getArtists, getServiceOptions } from "@/lib/studio";
 import { verticalPack } from "@/lib/verticals";
 import { createClient } from "@/lib/supabase/server";
 import { siteOrigin } from "@/lib/origin";
+import { smsNumberFor } from "@/lib/messaging/connections";
+import { smsConfigured } from "@/lib/messaging/sms";
+import { readableNumber } from "@/lib/channels/phoneNumbers";
 import { Notifications } from "@/components/Notifications";
 import { OnYourPhone } from "@/components/OnYourPhone";
 import { ArtistEditor } from "../artists/ArtistEditor";
@@ -50,6 +53,19 @@ export default async function YouPage() {
   const me = artists.find((a) => a.user_id === userId) ?? null;
 
   const supabase = await createClient();
+
+  /*
+   * Who a reminder arrives from. The same answer as the business's own page,
+   * because it is the same number — one line of the business, not one per
+   * person, and saying so here is what stops somebody assuming otherwise.
+   */
+  const smsNumber = await smsNumberFor(supabase, studio.id);
+  const sender = {
+    number: smsNumber ? readableNumber(smsNumber) : null,
+    business: studio.name,
+    ready: smsConfigured(),
+  };
+
   const { data: ownerRow } = await supabase
     .from("studio_members")
     .select("user_id")
@@ -184,6 +200,7 @@ export default async function YouPage() {
             mine={myReminders}
             businessCount={shopReminders.length}
             firstName={me.name.split(" ")[0]}
+            sender={sender}
           />}
 
           {/* Their life, coming in — the other direction from the feed above,

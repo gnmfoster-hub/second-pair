@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { setRemindersOwn, type FormState } from "../actions";
 import { ReminderEditor } from "../reminders/ReminderEditor";
-import type { ReminderTemplateRow } from "../reminders/ReminderEditor";
+import type { ReminderTemplateRow, Sender } from "../reminders/ReminderEditor";
 
 /**
  * Whose reminders this person's clients get.
@@ -26,6 +26,7 @@ export function MyReminders({
   mine,
   businessCount,
   firstName,
+  sender,
 }: {
   on: boolean;
   /** This person's own templates. Usually none. */
@@ -33,6 +34,8 @@ export function MyReminders({
   /** How many the business has, so the alternative is a number not a promise. */
   businessCount: number;
   firstName: string;
+  /** Who these arrive from, shown under the preview. */
+  sender: Sender;
 }) {
   const [state, action] = useActionState<FormState, FormData>(setRemindersOwn, {});
 
@@ -89,9 +92,9 @@ export function MyReminders({
       {on && (
         <div className="mt-4 space-y-3">
           {mine.map((r, i) => (
-            <ReminderEditor key={r.id} reminder={r} index={i} mine />
+            <ReminderEditor key={r.id} reminder={r} index={i} mine sender={sender} />
           ))}
-          <ReminderEditor index={mine.length} mine />
+          <ReminderEditor index={mine.length} mine sender={sender} />
         </div>
       )}
     </section>
