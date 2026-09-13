@@ -49,6 +49,8 @@ type RawRow = {
   outcome_note: string | null;
   contacts: { id: string; name: string | null; phone: string | null } | null;
   enquiries: {
+    /** What they were booked for, where the business prices by a named list. */
+    service_id: string | null;
     description: string | null;
     job_address: string | null;
     job_postcode: string | null;
@@ -197,7 +199,7 @@ export default async function DiaryPage({
      */
     .select(
       "*, contacts(id, name, phone), " +
-        "enquiries(description, job_address, job_postcode, quote_low_pence, conversation_id, conversations(contacts(name, phone)))",
+        "enquiries(service_id, description, job_address, job_postcode, quote_low_pence, conversation_id, conversations(contacts(name, phone)))",
     )
     .is("cancelled_at", null)
     .lt("starts_at", addDays(end, 1).toISOString())
@@ -304,6 +306,7 @@ export default async function DiaryPage({
       clientName: r.enquiries?.conversations?.contacts?.name ?? r.contacts?.name ?? null,
       clientPhone: r.enquiries?.conversations?.contacts?.phone ?? r.contacts?.phone ?? null,
       contactId: r.contacts?.id ?? null,
+      serviceId: r.enquiries?.service_id ?? null,
       description: r.enquiries?.description ?? null,
       job_address: r.enquiries?.job_address ?? null,
       job_postcode: r.enquiries?.job_postcode ?? null,
@@ -377,6 +380,8 @@ export default async function DiaryPage({
             job_postcode: null,
             // Nothing in somebody's own calendar belongs to an arrangement.
             group: null,
+            // Nor is a dentist appointment a thing the business sells.
+            serviceId: null,
             // Nothing in somebody's own calendar is a booking to close off.
             attended: null,
             actual_minutes: null,

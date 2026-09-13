@@ -340,6 +340,8 @@ export function EntryDialog({
                 )}
                 actualMinutes={entry.actual_minutes}
                 note={entry.outcome_note}
+                canRemember={Boolean(entry.contactId && entry.serviceId)}
+                firstName={(entry.clientName ?? "them").split(" ")[0]}
               />
             )}
           </div>
@@ -675,6 +677,8 @@ function CloseOff({
   booked,
   actualMinutes,
   note,
+  canRemember,
+  firstName,
 }: {
   id: string;
   attended: boolean | null;
@@ -682,6 +686,13 @@ function CloseOff({
   booked: number;
   actualMinutes: number | null;
   note: string | null;
+  /**
+   * Whether there is somewhere to keep the real time: a named client, and a
+   * named service they had. Without both there is no record to write it on.
+   */
+  canRemember: boolean;
+  /** What to call them in the offer, so it reads as being about a person. */
+  firstName: string;
 }) {
   return (
     <form action={closeBooking} className="mt-3 border-t border-border pt-3">
@@ -763,6 +774,34 @@ function CloseOff({
                 </span>
               </div>
             </label>
+
+            {/*
+              * The thing that makes typing the real time worth the trouble.
+              *
+              * A number on one old appointment changes nothing. The same
+              * number kept against this client and this service changes every
+              * booking they make afterwards: the right length is set aside and
+              * the times offered fit it, and they are never told why — nobody
+              * wants to be the appointment that needs extra time.
+              *
+              * Offered only where both halves are known, because the record is
+              * this client for this service and there is nowhere else to put
+              * it. Never ticked by default: one long afternoon is not yet a
+              * fact about somebody, and whoever was stood there is the only
+              * person who knows which of the two this was.
+              */}
+            {canRemember && (
+              <label className="flex items-start gap-2.5 rounded-lg bg-surface-2 p-3 text-sm">
+                <input type="checkbox" name="remember_time" className="mt-0.5" />
+                <span>
+                  Always allow this long for {firstName}
+                  <span className="hint block">
+                    Kept against them for this service, so every booking they make from
+                    now on is the right length. They are never told.
+                  </span>
+                </span>
+              </label>
+            )}
 
             <label className="block">
               <span className="label">Anything worth remembering</span>

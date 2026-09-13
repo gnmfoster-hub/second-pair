@@ -41,6 +41,12 @@ export type Entry = {
   clientPhone: string | null;
   /** Set when a manual entry was attached to somebody. */
   contactId: string | null;
+  /**
+   * What they were booked for, where the business prices by a named list.
+   * Null for a business that prices by the hour, and for anything typed
+   * straight into the diary without a service behind it.
+   */
+  serviceId: string | null;
   description: string | null;
   conversationId: string | null;
   /** What this booking comes to. Set by hand; falls back to the quote. */

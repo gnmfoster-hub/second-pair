@@ -290,9 +290,91 @@ export async function closeBooking(fd: FormData) {
    */
   await supabase.from("bookings").update(patch).eq("id", str(fd, "id"));
 
+  /*
+   * And, where somebody asked for it, remember it about the client.
+   *
+   * This is what the actual-time box was always for. On its own it is a number
+   * on one finished appointment that nothing will read again. Kept here, it is
+   * the reason her next colour is booked for two hours rather than ninety
+   * minutes, and the reason the assistant stops offering her a slot that was
+   * never long enough.
+   *
+   * Only ever when asked, and only from this button. Nothing infers it from a
+   * single overrun, because one bad afternoon is not a fact about somebody.
+   */
+  if (fd.get("remember_time") && typeof patch.actual_minutes === "number") {
+    await rememberTiming(supabase, str(fd, "id"), patch.actual_minutes);
+  }
+
   revalidatePath("/diary");
   revalidatePath("/clients");
   revalidatePath("/report");
+}
+
+/**
+ * Keep how long this client really takes over this service.
+ *
+ * Stored as a difference rather than a length, because the business's own
+ * timing moves — a salon that takes its colour from ninety minutes to two
+ * hours should not leave every regular pinned to a number set against the old
+ * one. "Twenty minutes more than whatever it is" stays true when the book
+ * changes underneath it.
+ */
+async function rememberTiming(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  bookingId: string,
+  actualMinutes: number,
+): Promise<void> {
+  const { data } = await supabase
+    .from("bookings")
+    .select("starts_at, ends_at, contact_id, enquiries(service_id)")
+    .eq("id", bookingId)
+    .maybeSingle();
+
+  if (!data) return;
+
+  const row = data as unknown as {
+    starts_at: string;
+    ends_at: string;
+    contact_id: string | null;
+    enquiries: { service_id: string | null } | null;
+  };
+
+  const serviceId = row.enquiries?.service_id ?? null;
+  // Both halves, or nowhere to put it: the record is this client, this service.
+  if (!row.contact_id || !serviceId) return;
+
+  const booked = Math.round((Date.parse(row.ends_at) - Date.parse(row.starts_at)) / 60000);
+  const delta = actualMinutes - booked;
+
+  /*
+   * The same sanity the client's own timing screen applies.
+   *
+   * More than four hours out is a typo far more often than it is a person —
+   * 600 in a box meant for 60 — and this path has no way to ask. Writing it
+   * would quietly make every future booking for that client four hours longer
+   * and nobody would connect the two. So it is dropped, and the actual time is
+   * still saved on the booking itself where somebody can see it.
+   */
+  if (Math.abs(delta) > 240) return;
+
+  /*
+   * Exactly as booked is worth writing as a zero rather than skipping.
+   *
+   * It records that somebody checked, which is not the same as nobody having
+   * looked — and it clears an older difference that has stopped being true,
+   * which is the only way somebody who has had her hair cut short gets back to
+   * a normal-length appointment.
+   */
+  await supabase.from("client_service_times").upsert(
+    {
+      contact_id: row.contact_id,
+      service_id: serviceId,
+      minutes_delta: delta,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "contact_id,service_id" },
+  );
 }
 
 /**

@@ -4,7 +4,23 @@ Two lists. Yours is first — accounts, DNS, decisions, things only you can do.
 Mine is at the bottom. They are separate on purpose: the last version mixed them
 up and it was impossible to tell what was blocking what.
 
-Last updated: 1 September 2026.
+Last updated: 14 September 2026.
+
+---
+
+# Run this next
+
+One migration is waiting. Open the Supabase SQL editor, paste the contents of
+`supabase/migrations/20260914180000_sales.sql`, and run it.
+
+It does two things: makes the table that holds what was in a sale, and lets a
+member of staff record a sale rather than only you. Until it is run, selling
+something still works and still lands in the takings and on the client's
+record — the itemised breakdown simply is not kept, and only the owner can ring
+one up.
+
+Everything before it is run, including this morning's, which is what put the
+saved-at timestamp on the phone numbers.
 
 ---
 
