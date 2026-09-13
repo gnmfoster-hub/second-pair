@@ -39,6 +39,7 @@ export function Readiness({ capabilities }: { capabilities: Capability[] }) {
   const settingUp = missing.length > capabilities.length / 2;
   const next = missing[0];
   const after = missing.slice(1);
+  const done = capabilities.filter((c) => c.ready);
 
   return (
     <div
@@ -99,6 +100,41 @@ export function Readiness({ capabilities }: { capabilities: Capability[] }) {
                 <Link href={capability.href} className="shrink-0 text-xs text-muted hover:text-foreground">
                   {capability.action}
                 </Link>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
+      {/*
+        * And what is already done, ticked off.
+        *
+        * This panel only ever showed what was missing, which is the right
+        * emphasis and the wrong feeling. Setting a business up is eight or
+        * nine jobs across a couple of evenings, and a screen that shows only
+        * what is left never once says "you have done five of these". It was
+        * asked for as a tick-off list, and the ticks were the missing half.
+        *
+        * Folded away, because what you have finished is not what you came to
+        * the screen for. The count above is the part read at a glance; this is
+        * for the evening somebody comes back and cannot remember whether they
+        * did the opening hours.
+        */}
+      {settingUp && done.length > 0 && (
+        <details className="mx-5 mt-3">
+          <summary className="cursor-pointer text-sm text-muted">
+            {done.length} already done
+          </summary>
+          <ul className="mt-2 space-y-1.5">
+            {done.map((capability) => (
+              <li
+                key={capability.key}
+                className="flex items-baseline gap-2 text-sm text-muted"
+              >
+                <span aria-hidden className="text-ok">
+                  ✓
+                </span>
+                <span className="min-w-0 flex-1">{capability.can}</span>
               </li>
             ))}
           </ul>
