@@ -48,6 +48,9 @@ export function ServicePick({
 }) {
   const [chosen, setChosen] = useState<string>("");
 
+  /** Narrowing a long price list. Only shown once there is a long one. */
+  const [find, setFind] = useState("");
+
   /*
    * Following what was picked outside, tracked rather than watched.
    *
@@ -121,25 +124,100 @@ export function ServicePick({
 
   const service = offerable.find((s) => s.id === chosen);
 
+  const needle = find.trim().toLowerCase();
+  const shown = needle
+    ? offerable.filter((s) => s.name.toLowerCase().includes(needle))
+    : offerable;
+
+  /*
+   * The shop's list and this person's own, kept apart.
+   *
+   * Run together, a stylist's own colour sits between two of the shop's with
+   * nothing to say which is which, and "why is that one a different price"
+   * becomes a question the screen cannot answer.
+   */
+  const shopList = shown.filter((s) => s.artist_id == null);
+  const ownList = shown.filter((s) => s.artist_id != null);
+
   return (
     <div>
-      <label className="label" htmlFor="service-pick">
-        What are they having
-      </label>
-      <select
-        id="service-pick"
-        value={chosen}
-        onChange={(e) => setChosen(e.target.value)}
-        className="input"
-      >
-        <option value="">Choose, or fill the length in yourself</option>
-        {offerable.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.name} — {s.minutes} min
-            {s.price_pence != null ? ` · ${formatPence(s.price_pence)}` : ""}
-          </option>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <span className="label">What are they having</span>
+        {chosen && (
+          <button
+            type="button"
+            onClick={() => setChosen("")}
+            className="text-xs text-muted underline hover:text-foreground"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      {/*
+        * A search box only once the list is long enough to need one.
+        *
+        * Under a dozen, scanning beats typing and a search box is one more
+        * thing in the way. Over it, a salon's full price list is thirty lines
+        * and hunting for "root touch-up" by eye on a phone is the slow part of
+        * taking a booking.
+        */}
+      {offerable.length > 12 && (
+        <input
+          value={find}
+          onChange={(e) => setFind(e.target.value)}
+          placeholder="Find a service"
+          className="input mt-1.5"
+          autoComplete="off"
+        />
+      )}
+
+      {/*
+        * Tappable rows rather than a dropdown.
+        *
+        * This was a native select with everything crushed onto one line —
+        * "Cut and blow dry — 45 min · £42.00" — which on a phone opens as a
+        * spinning wheel of truncated strings and on a desktop is a list
+        * nobody can scan, because the name, the length and the price run
+        * together in one weight.
+        *
+        * They are three different questions, so they get three places on the
+        * row: what it is on the left, how long and how much on the right,
+        * lined up so the eye can run down either column. Which is what a price
+        * list on a wall looks like, and this is the same information.
+        */}
+      <div className="mt-1.5 max-h-72 space-y-1 overflow-y-auto pr-0.5">
+        {shown.length === 0 && (
+          <p className="hint px-1 py-2">Nothing matches &ldquo;{find}&rdquo;.</p>
+        )}
+
+        {shopList.map((s) => (
+          <ServiceRow
+            key={s.id}
+            service={s}
+            chosen={chosen === s.id}
+            onChoose={() => setChosen(s.id)}
+          />
         ))}
-      </select>
+
+        {ownList.length > 0 && (
+          <>
+            <div className="px-1 pb-0.5 pt-2 text-[11px] font-semibold uppercase tracking-wider text-muted">
+              Theirs alone
+            </div>
+            {ownList.map((s) => (
+              <ServiceRow
+                key={s.id}
+                service={s}
+                chosen={chosen === s.id}
+                onChoose={() => setChosen(s.id)}
+              />
+            ))}
+          </>
+        )}
+      </div>
+
+      <p className="hint mt-1.5">Or leave it, and fill the length in yourself.</p>
 
       {/*
        * Why the number moved, in the words of whoever wrote it down.
@@ -161,5 +239,50 @@ export function ServicePick({
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * One thing the business sells, as a row you can hit with a thumb.
+ *
+ * Name on the left, length and price on the right in figures that line up
+ * down the column. Forty-four pixels tall, because this is tapped standing up
+ * with a client waiting.
+ */
+function ServiceRow({
+  service,
+  chosen,
+  onChoose,
+}: {
+  service: Bookable;
+  chosen: boolean;
+  onChoose: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onChoose}
+      aria-pressed={chosen}
+      className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors ${
+        chosen
+          ? "border-accent bg-accent/10"
+          : "border-border bg-surface-2/30 hover:border-accent/40"
+      }`}
+    >
+      <span className="min-w-0 flex-1 truncate text-sm font-medium">{service.name}</span>
+
+      <span className="shrink-0 text-right text-xs tabular-nums text-muted">
+        {service.minutes} min
+      </span>
+
+      {/*
+        * Fixed width, so the prices line up even where one is £8 and the next
+        * is £120. A column of money that does not line up reads as a list of
+        * unrelated numbers.
+        */}
+      <span className="w-16 shrink-0 text-right text-sm tabular-nums">
+        {service.price_pence != null ? formatPence(service.price_pence) : "—"}
+      </span>
+    </button>
   );
 }

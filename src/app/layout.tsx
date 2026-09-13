@@ -93,6 +93,21 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  /*
+   * The keyboard takes room away from the page instead of sitting on top of it.
+   *
+   * Without this a phone keyboard overlays the viewport and changes nothing
+   * about it: dvh still reports the whole screen, so a sheet sized to 82dvh
+   * puts its bottom third — the part with the times and the Save button in
+   * it — underneath the keyboard, and there is no way to scroll to it, because
+   * as far as the layout is concerned nothing is out of view.
+   *
+   * That is most of "the box is cut off and won't scroll", and it is worst on
+   * exactly the form that needs typing: adding something to the diary.
+   * Resizing the content shrinks the sheet to the room actually left, and its
+   * own scroll does the rest.
+   */
+  interactiveWidget: "resizes-content",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#efeee9" },
     { media: "(prefers-color-scheme: dark)", color: "#0a0f1a" },

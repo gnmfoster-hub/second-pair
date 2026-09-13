@@ -574,6 +574,21 @@ export default async function DiaryPage({
   const capacity = workingMinutes * Math.max(1, showing.length);
 
   /*
+   * Whether this business has ever said when it is open.
+   *
+   * Not the same question as "is there any room in the days on screen", and
+   * conflating the two told a tattoo studio that had carefully set Wednesday
+   * to Saturday that it had no opening hours — because it was looking at a
+   * Sunday, when it is shut. The one thing on the page in warning orange, on
+   * the screen they had just finished setting up, and it was untrue.
+   *
+   * Being closed on a Sunday is not a problem to be fixed. Having never said
+   * when you are open is, because the assistant cannot offer a time without
+   * it and nothing can ever be booked.
+   */
+  const hoursAreSet = studio.hours.some((h) => !h.closed);
+
+  /*
    * The shape of the day, for the strip in the bar.
    *
    * Day view only. Across a week it would average seven days into one line and
@@ -1117,6 +1132,14 @@ export default async function DiaryPage({
               </span>
             )}
           </div>
+        ) : hoursAreSet ? (
+          /*
+           * Shut, which is an answer rather than a fault. No orange, no link
+           * to go and fix something that is not broken.
+           */
+          <span className="ml-auto text-xs text-muted">
+            {view === "day" ? "Closed today" : "Closed all week"}
+          </span>
         ) : (
           <Link href="/settings" className="ml-auto text-xs text-warn hover:underline">
             No opening hours set — add them
@@ -1310,7 +1333,7 @@ export default async function DiaryPage({
             * particular disappeared into the eleven o'clock line.
             */}
           <div className="max-w-xs rounded-2xl border border-border bg-surface/95 px-5 py-4 text-center shadow-[var(--shadow-pop)] backdrop-blur-sm">
-            {capacity === 0 ? (
+            {capacity === 0 && !hoursAreSet ? (
               <>
                 <p className="text-sm font-medium">Your hours aren&rsquo;t set yet</p>
                 <p className="hint mt-1.5">
@@ -1324,6 +1347,12 @@ export default async function DiaryPage({
                   Set your opening hours
                 </Link>
               </>
+            ) : capacity === 0 ? (
+              /* Shut, and saying so, rather than claiming a setting is missing. */
+              <p className="hint">
+                You are closed {view === "day" ? "today" : "all week"}. Anything booked in
+                would still show here.
+              </p>
             ) : (
               <p className="hint">
                 Nothing booked{view === "day" ? " today" : " yet"}. Drag down a column to

@@ -131,8 +131,26 @@ export function ClientPicker({
         </p>
       )}
 
+      {/*
+        * In the flow of the form, not floating over it.
+        *
+        * This was an absolutely positioned dropdown, which is the ordinary way
+        * to build one and is the wrong way here. The form it sits in is a
+        * sheet with `overflow-y-auto`, and a scroll container clips whatever
+        * is absolutely positioned inside it — so on a phone, where the client
+        * search sits halfway down a sheet that is already full, the matches
+        * were cut off at the edge of the box with no way to scroll to them.
+        * The one control you need in order to book somebody who has been
+        * before, unreachable on the device the diary is mostly used on.
+        *
+        * Taking up room instead means the sheet grows and scrolls the way
+        * everything else in it does. It pushes the fields below down while it
+        * is open, which is a much smaller price than a list you cannot read.
+        * Its own scroll caps it, so eight matches cannot shove Save off the
+        * bottom.
+        */}
       {open && query.trim().length >= 2 && (
-        <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-xl border border-border bg-surface shadow-[var(--shadow-pop)]">
+        <div className="mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-border bg-surface shadow-[var(--shadow-pop)]">
           {matches.map((match) => (
             <button
               key={match.id}

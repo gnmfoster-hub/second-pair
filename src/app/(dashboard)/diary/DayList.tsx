@@ -6,6 +6,7 @@ import type { Entry } from "./WeekGrid";
 import type { Artist } from "@/lib/types";
 import { categoryFor, isoDate } from "@/lib/calendar";
 import { hueFor, type ColourMode } from "@/lib/diaryColour";
+import { depositPaid } from "@/lib/deposit";
 
 /**
  * A day, or a week, as a list — for a phone.
@@ -474,7 +475,7 @@ export function DayList({
                         Booked for you
                       </span>
                     )}
-                    {e.deposit_status === "paid" && (
+                    {depositPaid(e) && (
                       <span className="pill bg-ok/10 text-[0.62rem] text-ok">Deposit paid</span>
                     )}
                   </span>

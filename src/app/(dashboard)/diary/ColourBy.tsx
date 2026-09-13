@@ -60,6 +60,24 @@ export function ColourBy({ current, hasTeam }: { current: ColourMode; hasTeam: b
             <div className="border-b border-border px-3.5 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted">
               Colour by
             </div>
+
+            {/*
+              * Said where the answer is, for the salon that has not found it.
+              *
+              * A shop with five chairs opens on "What it is", and since nearly
+              * everything in a diary is an appointment, the whole screen comes
+              * out one colour. That reads as the colours being broken rather
+              * than as a setting sitting on the wrong option — which is
+              * exactly how it was reported.
+              */}
+            {hasTeam && chosen === "category" && (
+              <p className="border-b border-border bg-accent/5 px-3.5 py-2 text-[11px] leading-relaxed text-muted">
+                Everything one colour? Nearly every entry in a diary is an appointment, so
+                &ldquo;what it is&rdquo; cannot tell them apart.{" "}
+                <strong className="text-foreground">Whose it is</strong> gives each person
+                their own.
+              </p>
+            )}
             {COLOUR_MODES.map((mode) => {
               // Nothing to distinguish in a one-person business.
               const useless = mode.value === "person" && !hasTeam;

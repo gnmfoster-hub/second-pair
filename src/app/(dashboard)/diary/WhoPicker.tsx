@@ -159,15 +159,23 @@ export function WhoPicker({
                 aria-checked={chosen.includes(a.id)}
               >
                 {/*
-                  * Always a dot here, even when the diary is coloured by
-                  * something else. In a list of ten names it is what the eye
-                  * finds, and it is the same colour their column carries.
+                  * Only when the colour means the person.
+                  *
+                  * This used to draw a dot always, on the reasoning that in a
+                  * list of ten names a colour is what the eye finds. It reads
+                  * as a legend, and when the diary is coloured by category it
+                  * is a legend for a code the diary is not using: five people
+                  * with five different dots above a day of appointments that
+                  * are all the same colour. The dot promised a thing the
+                  * screen underneath it was not doing.
                   */}
-                <span
-                  className="size-2.5 shrink-0 rounded-full"
-                  style={{ background: colourOf(a) }}
-                  aria-hidden
-                />
+                {colourByPerson && (
+                  <span
+                    className="size-2.5 shrink-0 rounded-full"
+                    style={{ background: colourOf(a) }}
+                    aria-hidden
+                  />
+                )}
                 <span className="min-w-0 truncate">{a.name}</span>
                 {chosen.includes(a.id) && (
                   <span aria-hidden className="ml-auto text-accent">

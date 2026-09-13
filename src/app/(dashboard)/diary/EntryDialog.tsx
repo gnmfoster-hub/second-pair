@@ -15,6 +15,7 @@ import {
 } from "./actions";
 import { Field, SubmitButton } from "@/components/Form";
 import { formatPence } from "@/lib/money";
+import { depositPaid, hasDeposit } from "@/lib/deposit";
 import { CATEGORIES, OWNER_CATEGORIES, categoryFor, REPEATS } from "@/lib/calendar";
 import type { Artist } from "@/lib/types";
 import type { Entry } from "./WeekGrid";
@@ -310,10 +311,22 @@ export function EntryDialog({
                 </a>
               </div>
             )}
-            <div className="hint">
-              Deposit {formatPence(entry?.deposit_amount_pence ?? 0)} —{" "}
-              {entry?.deposit_status === "paid" ? "paid" : "not paid"}
-            </div>
+            {/*
+              * Only where there is a deposit to speak of.
+              *
+              * This read "Deposit £0.00 — paid" on everything typed into the
+              * diary by hand, because those are stored as nothing-marked-paid
+              * to keep the unpaid-hold sweep from cancelling them. Most
+              * entries in most diaries carry no deposit at all, so the
+              * commonest thing this line did was make a false statement about
+              * money — in a studio that had not even connected Stripe.
+              */}
+            {hasDeposit(entry ?? {}) && (
+              <div className="hint">
+                Deposit {formatPence(entry?.deposit_amount_pence ?? 0)} —{" "}
+                {depositPaid(entry ?? {}) ? "paid" : "not paid"}
+              </div>
+            )}
             {entry?.conversationId && (
               <Link
                 href={`/conversations/${entry.conversationId}`}
