@@ -10,11 +10,15 @@ Last updated: 14 September 2026.
 
 # Migrations
 
-All run, up to and including `20260914180000_sales.sql`. Nothing is waiting.
+**One waiting:** `supabase/migrations/20260915090000_stock.sql`. Paste it into
+the Supabase SQL editor and run it.
 
-When one is, it will be named here, and until it is run the product keeps
-working without it — everything new is written so the deploy and the migration
-can happen in either order.
+It adds two optional columns to the price list: what a product cost you, and
+how many are left. Until it runs nothing breaks — the two boxes appear and are
+simply not saved, and everything else on that screen carries on — so it can
+wait until it suits you.
+
+Everything before it is run.
 
 ---
 
