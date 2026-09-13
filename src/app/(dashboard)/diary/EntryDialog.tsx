@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { ClientPicker } from "./ClientPicker";
 import { ServicePick, type Bookable } from "./ServicePick";
+import { ClientSummary } from "./ClientSummary";
 import Link from "next/link";
 import { cancelBookingGroup, type GroupState } from "./groupActions";
 import {
@@ -79,6 +80,9 @@ export function EntryDialog({
    * form can do while both live only in uncontrolled fields.
    */
   const [contactId, setContactId] = useState<string | null>(entry?.contactId ?? null);
+
+  /** What "the usual" put in the service box, relayed from their history. */
+  const [usual, setUsual] = useState<string | null>(null);
   const [whoseColumn, setWhoseColumn] = useState<string>(
     entry?.artist_id ?? prefill?.artistId ?? artists[0]?.id ?? "",
   );
@@ -407,11 +411,23 @@ export function EntryDialog({
            * pricing by size and hours never sees this and nothing changes for
            * them.
            */}
+          {/*
+            * Who they are, once they have been picked.
+            *
+            * Above the service, because what they usually have is the fastest
+            * way to fill it in and the history is what somebody on the phone
+            * is about to mention.
+            */}
+          {!fromClient && isClientWork && (
+            <ClientSummary contactId={contactId} onUsual={setUsual} />
+          )}
+
           {!fromClient && isClientWork && services.length > 0 && (
             <ServicePick
               services={services}
               artistId={whoseColumn}
               contactId={contactId}
+              pick={usual}
               onPick={(mins, pence) => {
                 setLength(mins);
                 if (pence != null) setPrice((pence / 100).toFixed(2));

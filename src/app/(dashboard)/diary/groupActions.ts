@@ -13,6 +13,8 @@ const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
 /** One person in the party, as the form describes them. */
 type Row = {
   who: string;
+  /** Their existing record, where the search matched one. */
+  contactId: string | null;
   artistId: string;
   time: string;
   minutes: number;
@@ -37,6 +39,7 @@ function readRows(fd: FormData): Row[] {
     if (!who || !artistId) continue;
     rows.push({
       who,
+      contactId: str(fd, `contact_${i}`) || null,
       artistId,
       time: str(fd, `time_${i}`),
       minutes: Number(str(fd, `minutes_${i}`)) || 0,
@@ -105,6 +108,27 @@ export async function createBookingGroup(
   const skipped: string[] = [];
 
   for (const row of rows) {
+    /*
+     * Somebody new still gets a record.
+     *
+     * A wedding party is half regulars and half people who have never been in,
+     * and the ordinary form makes a client out of a typed name — so this does
+     * too. Without it the bridesmaids exist only as words on a booking, have no
+     * history, and cannot be found next time they ring.
+     *
+     * Failure here is not fatal: the appointment matters more than the record,
+     * and a booking with a name on it beats no booking at all.
+     */
+    let contactId = row.contactId;
+    if (!contactId) {
+      const { data: made } = await supabase
+        .from("contacts")
+        .insert({ studio_id: studio.id, name: row.who, channel: "web" })
+        .select("id")
+        .maybeSingle();
+      contactId = made?.id ?? null;
+    }
+
     const starts = instantFrom(date, row.time, studio.timezone)!;
     const ends = new Date(starts.getTime() + row.minutes * 60_000);
 
@@ -118,7 +142,14 @@ export async function createBookingGroup(
       .from("bookings")
       .insert({
         enquiry_id: null,
-        contact_id: null,
+        /*
+         * Their own record where the search found one.
+         *
+         * A wedding party is half regulars, and a bridesmaid typed in as a
+         * bare name gets a second record — losing what the salon knows about
+         * her, and putting this appointment somewhere her history is not.
+         */
+        contact_id: contactId,
         artist_id: row.artistId,
         group_id: group.id,
         source: "manual",

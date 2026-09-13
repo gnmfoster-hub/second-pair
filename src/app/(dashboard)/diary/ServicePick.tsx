@@ -30,6 +30,7 @@ export function ServicePick({
   artistId,
   contactId,
   onPick,
+  pick,
 }: {
   services: Bookable[];
   /** Whose column this is going in, so only their own extras are offered. */
@@ -37,8 +38,28 @@ export function ServicePick({
   /** The client, when one has been chosen. Null for a walk-in. */
   contactId: string | null;
   onPick: (minutes: number, pricePence: number | null, name: string) => void;
+  /**
+   * A service chosen elsewhere — "the usual", off the client's history.
+   *
+   * Taken as a value rather than a callback so tapping it twice still lands:
+   * the summary sets it, this follows, and both stay in step.
+   */
+  pick?: string | null;
 }) {
   const [chosen, setChosen] = useState<string>("");
+
+  /*
+   * Following what was picked outside, tracked rather than watched.
+   *
+   * Adjusted during render the way React says to derive state from a prop —
+   * an effect would set it after painting, so the length would show the old
+   * service for a frame after somebody taps the usual.
+   */
+  const [lastPick, setLastPick] = useState(pick ?? null);
+  if (pick !== lastPick) {
+    setLastPick(pick ?? null);
+    if (pick) setChosen(pick);
+  }
 
   /*
    * What was found, and what it was found for.

@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio, getArtists } from "@/lib/studio";
 import { instantFrom } from "@/lib/booking/tz";
+import { samePhone } from "@/lib/channels/phoneNumbers";
 import { categoryFor, repeatDates, type RepeatRule } from "@/lib/calendar";
 import { dropReminders } from "@/lib/reminders";
 import { scheduleReminders } from "@/lib/reminders";
@@ -459,6 +460,101 @@ export async function bookableServices() {
  * moved, and it is the difference between a form that seems to guess and one
  * that is obviously repeating something a colleague wrote down.
  */
+/**
+ * What this client normally has, and when they were last in.
+ *
+ * Most bookings in a salon are a regular having the thing they always have, so
+ * the fastest possible booking is one tap on what they had last time. Typing
+ * it out again is the product asking somebody to look up what it already
+ * knows.
+ *
+ * The summary is as much the point as the shortcut. Somebody on the phone
+ * wants to say "you were in six weeks ago with Priya" without opening another
+ * screen, and a no-show two visits ago is worth knowing before offering a
+ * Saturday morning.
+ */
+export async function clientSummary(contactId: string) {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  if (!contactId) return null;
+
+  const { data: contact } = await supabase
+    .from("contacts")
+    .select("id, name, alert")
+    .eq("id", contactId)
+    .eq("studio_id", studio.id)
+    .maybeSingle();
+
+  if (!contact) return null;
+
+  /*
+   * Both ways a booking reaches a client: through a conversation the assistant
+   * had, or attached directly when somebody typed it in. Reading only the
+   * first would show an empty history for a regular who has only ever rung up,
+   * which is most regulars.
+   */
+  const { data: direct } = await supabase
+    .from("bookings")
+    .select("id, starts_at, price_pence, attended, artist_id, artists(name), enquiry_id")
+    .eq("contact_id", contactId)
+    .is("cancelled_at", null)
+    .order("starts_at", { ascending: false })
+    .limit(20);
+
+  const enquiryIds = (direct ?? []).map((b) => b.enquiry_id).filter(Boolean) as string[];
+
+  const { data: enquiries } = enquiryIds.length
+    ? await supabase.from("enquiries").select("id, service_id").in("id", enquiryIds)
+    : { data: null };
+
+  const serviceOf = new Map(
+    (enquiries ?? []).map((e) => [e.id as string, (e.service_id as string | null) ?? null]),
+  );
+
+  const serviceIds = [...new Set([...serviceOf.values()].filter(Boolean))] as string[];
+  const { data: services } = serviceIds.length
+    ? await supabase.from("services").select("id, name").in("id", serviceIds)
+    : { data: null };
+
+  const names = new Map((services ?? []).map((s) => [s.id as string, s.name as string]));
+
+  const visits = (direct ?? []).map((b) => ({
+    at: b.starts_at as string,
+    with: (b.artists as unknown as { name: string } | null)?.name ?? null,
+    what: serviceOf.get(b.enquiry_id as string)
+      ? (names.get(serviceOf.get(b.enquiry_id as string)!) ?? null)
+      : null,
+    serviceId: serviceOf.get(b.enquiry_id as string) ?? null,
+    pence: (b.price_pence as number | null) ?? null,
+    attended: (b.attended as boolean | null) ?? null,
+  }));
+
+  /*
+   * What they usually have: the thing they have had most often, and only if
+   * they have actually had it more than once. Offering "the usual" off a
+   * single visit is a guess wearing a shortcut's clothes.
+   */
+  const counts = new Map<string, { id: string; name: string; times: number }>();
+  for (const v of visits) {
+    if (!v.serviceId || !v.what) continue;
+    const seen = counts.get(v.serviceId) ?? { id: v.serviceId, name: v.what, times: 0 };
+    seen.times += 1;
+    counts.set(v.serviceId, seen);
+  }
+
+  const usual = [...counts.values()].sort((a, b) => b.times - a.times)[0] ?? null;
+
+  return {
+    name: contact.name as string | null,
+    alert: (contact.alert as string | null) ?? null,
+    visits: visits.slice(0, 4),
+    total: visits.length,
+    noShows: visits.filter((v) => v.attended === false).length,
+    usual: usual && usual.times > 1 ? usual : null,
+  };
+}
+
 export async function clientTiming(contactId: string, serviceId: string) {
   const { studio } = await requireStudio();
   const supabase = await createClient();
@@ -489,11 +585,28 @@ export async function findClients(query: string) {
   const { studio } = await requireStudio();
   const supabase = await createClient();
 
+  /*
+   * Name, number or email, and the number in either shape.
+   *
+   * Numbers are stored in full international form, so somebody typing 07700 —
+   * which is how everybody types their own number — matched nothing at all.
+   * That arrived this morning with the fix that stopped the same customer
+   * being saved twice, and would have looked like the search being broken.
+   *
+   * Both forms are tried because either can be typed: a number copied off a
+   * text arrives as +44, one read off a card arrives as 07.
+   */
+  const term = query.trim();
+  const asDialled = samePhone(term);
+
+  const clauses = [`name.ilike.%${term}%`, `email.ilike.%${term}%`, `phone.ilike.%${term}%`];
+  if (asDialled && asDialled !== term) clauses.push(`phone.ilike.%${asDialled}%`);
+
   const { data } = await supabase
     .from("contacts")
-    .select("id, name, phone, alert")
+    .select("id, name, phone, email, alert")
     .eq("studio_id", studio.id)
-    .or(`name.ilike.%${query}%,phone.ilike.%${query}%`)
+    .or(clauses.join(","))
     .order("name")
     .limit(8);
 

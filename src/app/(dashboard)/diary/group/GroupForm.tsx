@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { createBookingGroup, type GroupState } from "../groupActions";
+import { ClientPicker } from "../ClientPicker";
 import type { Artist } from "@/lib/types";
 
 /** One person in the party, as the form holds them before it is submitted. */
@@ -142,16 +143,25 @@ export function GroupForm({ artists, today }: { artists: Artist[]; today: string
               key={i}
               className="grid gap-2 rounded-xl border border-border bg-surface-2/40 p-3 sm:grid-cols-[1fr_auto_auto_auto]"
             >
-              <label className="min-w-0">
+              {/*
+                * The same search as anywhere else a client is picked.
+                *
+                * A wedding party is half regulars and half people who have
+                * never been in, and typing a regular's name as a bare string
+                * gives her a second record and loses everything the salon
+                * knows about her. Typing a name that matches nobody is still
+                * fine — it makes them a client, which is what it does on the
+                * ordinary form too.
+                */}
+              <div className="min-w-0 sm:col-span-1">
                 <span className="sr-only">Who, line {i + 1}</span>
-                <input
+                <ClientPicker
                   name={`who_${i}`}
-                  value={row.who}
-                  onChange={(e) => set(i, { who: e.target.value })}
-                  placeholder={i === 0 ? "The bride" : "Bridesmaid"}
-                  className="input"
+                  idName={`contact_${i}`}
+                  placeholder={i === 0 ? "The bride" : "Search, or type a name"}
+                  onChosen={() => undefined}
                 />
-              </label>
+              </div>
 
               <label>
                 <span className="sr-only">With, line {i + 1}</span>

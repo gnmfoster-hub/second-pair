@@ -26,8 +26,21 @@ type Match = { id: string; name: string | null; phone: string | null; alert: str
 export function ClientPicker({
   defaultValue,
   onChosen,
+  name = "contact_name",
+  idName = "contact_id",
+  placeholder = "Search, or type a new name",
 }: {
   defaultValue?: { id: string | null; name: string | null } | null;
+  /**
+   * What the two hidden fields are called.
+   *
+   * Defaulted to the names the diary form has always used, so that one is
+   * untouched. The group form needs a picker per row and cannot have five
+   * fields all called contact_name.
+   */
+  name?: string;
+  idName?: string;
+  placeholder?: string;
   /**
    * Told when somebody is picked, so the form can look up what this client
    * takes over the thing they are having. The hidden fields below stay the
@@ -86,8 +99,8 @@ export function ClientPicker({
   return (
     <div ref={box} className="relative">
       {/* What the form actually submits. */}
-      <input type="hidden" name="contact_id" value={chosen?.id ?? ""} />
-      <input type="hidden" name="contact_name" value={chosen?.name ?? ""} />
+      <input type="hidden" name={idName} value={chosen?.id ?? ""} />
+      <input type="hidden" name={name} value={chosen?.name ?? ""} />
 
       <input
         value={query}
@@ -97,7 +110,7 @@ export function ClientPicker({
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
-        placeholder="Search, or type a new name"
+        placeholder={placeholder}
         className="input"
         autoComplete="off"
       />
