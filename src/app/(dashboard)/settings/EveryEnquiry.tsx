@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { setNotifyEveryEnquiry, type FormState } from "../actions";
+import { setNotifyEveryEnquiry, type FormState } from "./actions";
 
 /**
  * Hearing about every enquiry, not only the ones that need you.
@@ -12,11 +12,14 @@ import { setNotifyEveryEnquiry, type FormState } from "../actions";
  * the whole point is that it did not need anybody.
  *
  * That is right for most people and wrong for some, and being unable to ask
- * reads as the product hiding its work. It sits under the notifications button
- * rather than with the business settings because this is where somebody looking
- * for "why did nobody tell me" will come.
+ * reads as the product hiding its work.
  *
- * The owner's, since it is the business that gets told.
+ * The business's, so it lives with the business settings. It spent an hour on
+ * Settings → You, which was wrong and made a real confusion worse: that page is
+ * meant to hold what belongs to whoever is signed in, and an owner is both a
+ * person and the business, so anything of the business's sitting there teaches
+ * everybody that the page is a mixture. What each person is told about their
+ * own appointments is the thing that belongs on their own page.
  */
 export function EveryEnquiry({ on }: { on: boolean }) {
   const [state, action] = useActionState<FormState, FormData>(setNotifyEveryEnquiry, {});

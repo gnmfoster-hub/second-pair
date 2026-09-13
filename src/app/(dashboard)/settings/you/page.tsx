@@ -8,7 +8,7 @@ import { ArtistEditor } from "../artists/ArtistEditor";
 import { CalendarLinks } from "../data/CalendarLinks";
 import { PersonalCalendar } from "./PersonalCalendar";
 import { YourPrices } from "./YourPrices";
-import { EveryEnquiry } from "./EveryEnquiry";
+import { MyBookings } from "./MyBookings";
 import { byPerson } from "@/lib/servicePrices";
 import type { Service, ServicePerson } from "@/lib/types";
 
@@ -100,16 +100,12 @@ export default async function YouPage() {
       <Notifications />
 
       {/*
-       * What the business is told about, which is the owner's to decide.
+       * What this person is told about, which is theirs and nobody else's.
        *
-       * Hidden until the column exists, so the deploy and the migration can
-       * happen in either order. Undefined means the migration has not run, and
-       * offering a switch that errors when pressed is worse than not offering
-       * it yet — it appears on its own the moment the column is there.
+       * Only for somebody who is actually in the diary: a receptionist has no
+       * appointments of their own to be told about.
        */}
-      {owns && studio.notify_every_enquiry !== undefined && (
-        <EveryEnquiry on={studio.notify_every_enquiry} />
-      )}
+      {me && <MyBookings artist={me} />}
 
       {/*
        * Their own diary elsewhere.

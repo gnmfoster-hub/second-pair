@@ -116,6 +116,40 @@ function readVocabulary(
  * because it is one fact and nobody wants to press a button to confirm a
  * checkbox.
  */
+/**
+ * Whether this person is told about their own appointments.
+ *
+ * Theirs, so it is read off the session rather than taken from the form —
+ * otherwise the page could be edited to switch somebody else's notifications
+ * off, which is a quiet way to make a colleague miss their day.
+ */
+export async function setNotifyOwnBookings(
+  _prev: FormState,
+  fd: FormData,
+): Promise<FormState> {
+  const { studio, userId } = await requireStudio();
+  const supabase = await createClient();
+
+  const { data: me } = await supabase
+    .from("artists")
+    .select("id")
+    .eq("studio_id", studio.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!me) return { error: "You are not one of the people in this diary." };
+
+  const { error } = await supabase
+    .from("artists")
+    .update({ notify_own_bookings: fd.get("on") === "on" })
+    .eq("id", me.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/you");
+  return { ok: true };
+}
+
 export async function setNotifyEveryEnquiry(
   _prev: FormState,
   fd: FormData,

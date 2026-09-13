@@ -311,6 +311,13 @@ export type Artist = {
    * diary". This answers "what else is this person doing", and somebody can
    * have both — a salon on Fresha and their own life in Apple Calendar.
    */
+  /**
+   * Whether this person is told when somebody books in with them.
+   *
+   * Their own devices and their own address, never the business's. On by
+   * default: it is the reason a person turns notifications on at all.
+   */
+  notify_own_bookings: boolean;
   personal_ical_url: string | null;
   /** Whether those blocks appear in the business diary. On by default. */
   personal_calendar_show: boolean;

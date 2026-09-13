@@ -160,7 +160,7 @@ export async function gatherBookingAlert(
   bookingId: string,
   siteUrl: string,
 ): Promise<
-  | (BookingAlert & { studioId: string; conversationId: string })
+  | (BookingAlert & { studioId: string; conversationId: string; artistId: string | null })
   | null
 > {
   const { data: booking } = await db
@@ -177,7 +177,7 @@ export async function gatherBookingAlert(
      * without ever logging a word.
      */
     .select(
-      "id, starts_at, ends_at, type, deposit_amount_pence, deposit_status, enquiry_id, cancelled_at, artists(name)",
+      "id, starts_at, ends_at, type, deposit_amount_pence, deposit_status, enquiry_id, cancelled_at, artist_id, artists(name)",
     )
     .eq("id", bookingId)
     .maybeSingle();
@@ -239,5 +239,7 @@ export async function gatherBookingAlert(
     ...alert,
     studioId: conversation.studio_id as string,
     conversationId: enquiry.conversation_id,
+    // Whose diary it goes in, so the person can be told as well as the shop.
+    artistId: (booking.artist_id as string | null) ?? null,
   };
 }

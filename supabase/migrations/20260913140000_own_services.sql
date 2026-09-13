@@ -29,6 +29,7 @@ create index if not exists services_artist_idx on services (artist_id);
 -- The check is on artist_id pointing at their own row, in both directions —
 -- using and with check — so a person cannot hand one of their services to
 -- somebody else, or take one of the shop's by writing their own id onto it.
+drop policy if exists services_own on services;
 create policy services_own on services for all
   using (
     artist_id is not null
@@ -65,3 +66,22 @@ alter table studios
 
 comment on column studios.notify_every_enquiry is
   'Tell the business about every enquiry the assistant answered, not only the ones needing a person. Off by default: an alert for everything is an alert for nothing.';
+
+
+-- Telling the person whose diary it is.
+--
+-- Every notification this product sends goes to the business: the email goes
+-- to the one address on file, and the push goes to every device anybody has
+-- registered against it. So a stylist who subscribes her own phone is buzzed
+-- about everybody's bookings and everybody's escalations, and the one thing
+-- she actually wants — somebody has booked in with me — does not exist at all.
+--
+-- On by default. Being told about your own appointments is the reason a person
+-- would turn notifications on in the first place, and a default of off would
+-- mean every member of staff has to find a setting before the feature does
+-- anything for them.
+alter table artists
+  add column if not exists notify_own_bookings boolean not null default true;
+
+comment on column artists.notify_own_bookings is
+  'Tell this person when somebody books with them. Their own devices and their own address, not the business''s.';

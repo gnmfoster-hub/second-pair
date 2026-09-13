@@ -41,6 +41,7 @@ const artist = (over: Partial<Artist> = {}): Artist => ({
   personal_calendar_titles: false,
   personal_calendar_error: null,
   personal_calendar_read_at: null,
+  notify_own_bookings: true,
   ...over,
 });
 
