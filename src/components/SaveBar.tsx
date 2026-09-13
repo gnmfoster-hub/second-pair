@@ -56,10 +56,20 @@ export function SaveBar({
     };
   }, []);
 
-  // A save that went through is a clean form again.
-  useEffect(() => {
+  /*
+   * A save that went through is a clean form again.
+   *
+   * Adjusted during render rather than in an effect. An effect would set state
+   * after painting, so the bar would show "Not saved yet" for one frame after a
+   * successful save — the exact moment somebody is looking at it for
+   * reassurance. Tracking the last value seen is how React itself says to
+   * derive state from a prop.
+   */
+  const [lastOk, setLastOk] = useState(state.ok);
+  if (state.ok !== lastOk) {
+    setLastOk(state.ok);
     if (state.ok) setDirty(false);
-  }, [state.ok]);
+  }
 
   return (
     <div ref={anchor}>
