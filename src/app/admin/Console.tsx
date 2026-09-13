@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { signOut } from "@/app/(dashboard)/actions";
 import type { BusinessSummary } from "@/lib/platform";
+import { Team } from "./Team";
 import {
   createBusiness,
   resetLink,
@@ -909,6 +910,9 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
       <FixSettings b={b} />
 
       <Channels b={b} />
+
+      {/* One level down: the settings a support call is usually about. */}
+      <Team b={b} />
 
       {/*
         * Deleting takes real customers' conversations with it, so it asks for

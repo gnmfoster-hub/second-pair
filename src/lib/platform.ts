@@ -71,6 +71,29 @@ export type BusinessSummary = {
   owners: { email: string | null; userId: string }[];
   /** For support: is it actually set up, or did they stop halfway? */
   people: number;
+  /**
+   * Everybody in the diary, so support can fix one person's settings.
+   *
+   * Settings only, and never anything they said. This console has never been
+   * able to read a conversation and still cannot — configuration is a
+   * different thing, and helping with it is what support is for.
+   */
+  team: {
+    id: string;
+    name: string;
+    role: string | null;
+    email: string | null;
+    active: boolean;
+    hourlyRatePence: number;
+    minChargePence: number;
+    ownerManaged: boolean;
+    notifyOwnBookings: boolean;
+    remindersOwn: boolean;
+    travelBufferMinutes: number | null;
+    personalIcalUrl: string | null;
+    personalCalendarError: string | null;
+    hasLogin: boolean;
+  }[];
   services: number;
   hasHours: boolean;
   /** For billing and for knowing whether it is being used at all. */

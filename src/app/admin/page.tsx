@@ -177,6 +177,28 @@ export default async function AdminPage() {
           .filter((m) => m.studio_id === s.id)
           .map((m) => ({ userId: m.user_id, email: emailFor.get(m.user_id) ?? null })),
         people: await count("artists"),
+        team: (
+          await db
+            .from("artists")
+            .select("*")
+            .eq("studio_id", s.id)
+            .order("created_at")
+        ).data?.map((a) => ({
+          id: a.id as string,
+          name: a.name as string,
+          role: (a.role as string | null) ?? null,
+          email: (a.email as string | null) ?? null,
+          active: a.active as boolean,
+          hourlyRatePence: (a.hourly_rate_pence as number) ?? 0,
+          minChargePence: (a.min_charge_pence as number) ?? 0,
+          ownerManaged: (a.owner_managed as boolean) ?? false,
+          notifyOwnBookings: (a.notify_own_bookings as boolean) ?? true,
+          remindersOwn: (a.reminders_own as boolean) ?? false,
+          travelBufferMinutes: (a.travel_buffer_minutes as number | null) ?? null,
+          personalIcalUrl: (a.personal_ical_url as string | null) ?? null,
+          personalCalendarError: (a.personal_calendar_error as string | null) ?? null,
+          hasLogin: Boolean(a.user_id),
+        })) ?? [],
         services: await count("price_bands"),
         hasHours: hours.some((h) => !h.closed),
         conversations: await count("conversations"),

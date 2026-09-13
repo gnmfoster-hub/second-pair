@@ -584,6 +584,98 @@ export async function saveAccount(_prev: Result, fd: FormData): Promise<Result> 
  * else reads what they wrote. A business's opening hours are the business's own
  * configuration; their customer's message is somebody else's.
  */
+/**
+ * Fixing one person's settings, from the back office.
+ *
+ * The console could reach a business's own settings and its channels, and
+ * nothing at all below that. So a support call about a stylist — her rate is
+ * wrong, her calendar will not connect, her reminders are going out as the
+ * shop's — meant talking an owner through screens rather than fixing it, which
+ * is slower and worse for exactly the people least likely to find the screen.
+ *
+ * Settings only, and that line is deliberate. This console has never been able
+ * to read a conversation and still cannot: the privacy notice tells every
+ * customer of every business that nobody else on Second Pair can see what they
+ * wrote, and a support screen that could would make that sentence false for all
+ * of them at once. Configuration is a different thing, and helping with it is
+ * what support is.
+ */
+export async function fixPerson(_prev: Result, fd: FormData): Promise<Result> {
+  const denied = await guard();
+  if (denied) return denied;
+
+  const id = String(fd.get("artist_id") ?? "").trim();
+  if (!id) return { error: "No person." };
+
+  const db = createAdminClient();
+
+  const { data: person } = await db
+    .from("artists")
+    .select("id, studio_id, name")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!person) return { error: "No such person." };
+
+  const patch: Record<string, unknown> = {};
+
+  const text = (key: string, column = key) => {
+    const value = String(fd.get(key) ?? "").trim();
+    if (value) patch[column] = value;
+  };
+
+  const money = (key: string, column = key) => {
+    const raw = String(fd.get(key) ?? "").trim();
+    if (raw === "") return;
+    const pounds = Number(raw.replace(/[£,\s]/g, ""));
+    if (Number.isFinite(pounds) && pounds >= 0) patch[column] = Math.round(pounds * 100);
+  };
+
+  text("name");
+  text("role");
+  text("email");
+  money("hourly_rate", "hourly_rate_pence");
+  money("min_charge", "min_charge_pence");
+
+  /*
+   * The switches, read as present-or-absent rather than on-or-off.
+   *
+   * A checkbox that is off is simply not submitted, so reading them straight
+   * would turn every unticked box into a deliberate false — and a support form
+   * that silently switches somebody's notifications off while fixing their rate
+   * is worse than no support form.
+   */
+  if (fd.get("touch_switches") === "1") {
+    patch.active = fd.get("active") === "on";
+    patch.owner_managed = fd.get("owner_managed") === "on";
+    patch.notify_own_bookings = fd.get("notify_own_bookings") === "on";
+    patch.reminders_own = fd.get("reminders_own") === "on";
+  }
+
+  const travel = String(fd.get("travel_buffer_minutes") ?? "").trim();
+  if (travel !== "") {
+    const n = Number(travel);
+    if (Number.isFinite(n) && n >= 0 && n <= 240) patch.travel_buffer_minutes = Math.round(n);
+  }
+
+  const ical = String(fd.get("personal_ical_url") ?? "").trim();
+  if (fd.get("touch_calendar") === "1") {
+    patch.personal_ical_url = ical || null;
+    if (!ical) {
+      patch.personal_calendar_error = null;
+      patch.personal_calendar_read_at = null;
+    }
+  }
+
+  if (Object.keys(patch).length === 0) return { error: "Nothing to change." };
+
+  const { error } = await db.from("artists").update(patch).eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin");
+  return { ok: true, note: `${person.name} updated.` };
+}
+
 export async function fixSettings(_prev: Result, fd: FormData): Promise<Result> {
   const denied = await guard();
   if (denied) return denied;
