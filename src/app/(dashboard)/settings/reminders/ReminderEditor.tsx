@@ -25,15 +25,23 @@ const TOKENS = [
 export function ReminderEditor({
   reminder,
   index,
+  /**
+   * Whose it is. True writes it against the signed-in person rather than the
+   * business — which person that is gets decided by the action, from the
+   * session, and never from this page.
+   */
+  mine = false,
 }: {
   reminder?: ReminderTemplateRow;
   index: number;
+  mine?: boolean;
 }) {
   const [state, action] = useActionState<FormState, FormData>(saveReminder, {});
 
   return (
     <form action={action} className="card space-y-4 p-5">
       {reminder && <input type="hidden" name="id" value={reminder.id} />}
+      {mine && <input type="hidden" name="mine" value="1" />}
       <input type="hidden" name="sort_order" value={reminder?.sort_order ?? index} />
 
       <div className="grid gap-4 sm:grid-cols-[1fr_auto]">

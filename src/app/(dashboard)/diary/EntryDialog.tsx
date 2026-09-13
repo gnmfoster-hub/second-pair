@@ -211,6 +211,33 @@ export function EntryDialog({
             <div className="font-medium">{entry?.clientName ?? "Client booking"}</div>
             {entry?.description && <div className="hint">{entry.description}</div>}
             {entry?.clientPhone && <div className="hint tabular-nums">{entry.clientPhone}</div>}
+
+            {/*
+              * Where the job is, for the person driving to it.
+              *
+              * Deliberately here and not on the row: a day's list is read at a
+              * glance and an address on every line makes it unreadable. This
+              * is what somebody needs once they have opened the one they are
+              * about to set off for — which is the moment they are standing by
+              * a van with a phone in their hand.
+              *
+              * A map link rather than an address to copy out, because that is
+              * what happens to it next either way.
+              */}
+            {(entry?.job_address || entry?.job_postcode) && (
+              <div className="mt-1.5">
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                    [entry.job_address, entry.job_postcode].filter(Boolean).join(", "),
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-accent hover:underline"
+                >
+                  {[entry.job_address, entry.job_postcode].filter(Boolean).join(", ")}
+                </a>
+              </div>
+            )}
             <div className="hint">
               Deposit {formatPence(entry?.deposit_amount_pence ?? 0)} —{" "}
               {entry?.deposit_status === "paid" ? "paid" : "not paid"}

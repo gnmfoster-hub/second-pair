@@ -37,6 +37,42 @@ export type PendingReminder = {
  */
 export { renderReminder } from "@/lib/reminderText";
 
+/** A template as it comes back, with only the parts this file reads. */
+type Template = { id: string; hours_before: number; artist_id?: string | null };
+
+/**
+ * Whose reminders this booking gets.
+ *
+ * The business's, unless the person it is with keeps their own — a mobile
+ * hairdresser reminding people the night before is not the same business as a
+ * tattooist reminding them a week out about aftercare.
+ *
+ * Somebody who has asked for their own and written none gets none, and that is
+ * deliberate rather than an oversight: falling back to the business's would
+ * mean a person who turned this on to stop a message going out would watch it
+ * go out anyway, which is worse than silence and much harder to explain.
+ */
+async function pickTemplates(
+  db: SupabaseClient,
+  all: Template[],
+  artistId?: string | null,
+): Promise<Template[]> {
+  const shop = all.filter((t) => t.artist_id == null);
+  if (!artistId) return shop;
+
+  const { data: artist } = await db
+    .from("artists")
+    .select("*")
+    .eq("id", artistId)
+    .maybeSingle();
+
+  // Undefined before the migration runs, which reads as "the business's".
+  const own = (artist as { reminders_own?: boolean } | null)?.reminders_own === true;
+  if (!own) return shop;
+
+  return all.filter((t) => t.artist_id === artistId);
+}
+
 /**
  * Schedules a booking's reminders.
  *
@@ -48,12 +84,29 @@ export async function scheduleReminders(
   studioId: string,
   bookingId: string,
   startsAt: string,
+  /**
+   * Whose booking it is, so their own reminders can be used instead.
+   *
+   * Optional because plenty of callers do not have it and the business's are
+   * the right answer for almost everybody.
+   */
+  artistId?: string | null,
 ): Promise<number> {
-  const { data: templates } = await db
+  /*
+   * Everything the business has, read whole.
+   *
+   * select("*") rather than naming artist_id, so this keeps working before the
+   * migration that adds the column as well as after — PostgREST rejects an
+   * entire query for one column it does not know, and the thing that would
+   * stop working here is every reminder for every business.
+   */
+  const { data: all } = await db
     .from("reminder_templates")
-    .select("id, hours_before")
+    .select("*")
     .eq("studio_id", studioId)
     .eq("enabled", true);
+
+  const templates = await pickTemplates(db, all ?? [], artistId);
 
   if (!templates?.length) return 0;
 

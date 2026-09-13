@@ -9,16 +9,41 @@ import type { FormState } from "../actions";
 const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
 
 export async function saveReminder(_prev: FormState, fd: FormData): Promise<FormState> {
-  const { studio } = await requireStudio();
+  const { studio, userId } = await requireStudio();
   const supabase = await createClient();
 
+  /*
+   * Whose reminder this is.
+   *
+   * The form says "mine" and nothing more — which person that means is read
+   * off the session, never taken from the page. A field naming the artist
+   * would let somebody rewrite a colleague's reminders, which go out to that
+   * colleague's clients under their name.
+   */
+  const mine = str(fd, "mine") === "1";
+  let artistId: string | null = null;
+
+  if (mine) {
+    const { data: me } = await supabase
+      .from("artists")
+      .select("id")
+      .eq("studio_id", studio.id)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (!me) return { error: "Your sign-in is not linked to anybody in the diary." };
+    artistId = me.id;
+  }
+
+  const where = mine ? "/settings/you" : "/settings/reminders";
+
   if (str(fd, "intent") === "delete") {
-    const { error } = await supabase
-      .from("reminder_templates")
-      .delete()
-      .eq("id", str(fd, "id"));
+    let q = supabase.from("reminder_templates").delete().eq("id", str(fd, "id"));
+    // Scoped as well as policed, so a mistyped id cannot reach the shop's.
+    if (artistId) q = q.eq("artist_id", artistId);
+    const { error } = await q;
     if (error) return { error: error.message };
-    revalidatePath("/settings/reminders");
+    revalidatePath(where);
     return { ok: true };
   }
 
@@ -32,6 +57,7 @@ export async function saveReminder(_prev: FormState, fd: FormData): Promise<Form
 
   const row = {
     studio_id: studio.id,
+    artist_id: artistId,
     label: str(fd, "label") || `${hours} hours before`,
     hours_before: hours,
     body,
@@ -53,6 +79,6 @@ export async function saveReminder(_prev: FormState, fd: FormData): Promise<Form
     };
   }
 
-  revalidatePath("/settings/reminders");
+  revalidatePath(where);
   return { ok: true };
 }

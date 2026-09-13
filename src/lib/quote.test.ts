@@ -42,6 +42,8 @@ const artist = (over: Partial<Artist> = {}): Artist => ({
   personal_calendar_error: null,
   personal_calendar_read_at: null,
   notify_own_bookings: true,
+  travel_buffer_minutes: null,
+  reminders_own: false,
   ...over,
 });
 

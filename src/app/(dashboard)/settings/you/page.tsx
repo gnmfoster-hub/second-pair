@@ -10,6 +10,9 @@ import { PersonalCalendar } from "./PersonalCalendar";
 import { YourPrices } from "./YourPrices";
 import { MyBookings } from "./MyBookings";
 import { MyServices } from "./MyServices";
+import { MyTravel } from "./MyTravel";
+import { MyReminders } from "./MyReminders";
+import type { ReminderTemplateRow } from "../reminders/ReminderEditor";
 import { byPerson } from "@/lib/servicePrices";
 import type { Service, ServicePerson } from "@/lib/types";
 
@@ -94,6 +97,25 @@ export default async function YouPage() {
   const mineOnly = all.filter((s) => s.artist_id === me?.id);
   const myPrices = byPerson((mineRows ?? []) as ServicePerson[]);
 
+  /*
+   * Reminder templates, read whole and split here.
+   *
+   * select("*") rather than naming artist_id, so the page keeps working before
+   * the migration that adds the column as well as after — PostgREST rejects an
+   * entire query for one column it does not know.
+   */
+  const { data: templateRows } = await supabase
+    .from("reminder_templates")
+    .select("*")
+    .eq("studio_id", studio.id)
+    .order("sort_order");
+
+  const templates = (templateRows ?? []) as (ReminderTemplateRow & {
+    artist_id?: string | null;
+  })[];
+  const shopReminders = templates.filter((t) => t.artist_id == null);
+  const myReminders = me ? templates.filter((t) => t.artist_id === me.id) : [];
+
   const pack = verticalPack(studio.vertical);
   const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
   const styles = options.filter((o) => o.kind === "style");
@@ -133,6 +155,27 @@ export default async function YouPage() {
 
       {me ? (
         <>
+          {/*
+           * How long they need to get between jobs, where the business travels
+           * at all. On a salon's settings this would be a box about driving
+           * nobody does.
+           */}
+          {studio.travel_mode !== "at_premises" && (
+            <MyTravel
+              mine={me.travel_buffer_minutes ?? null}
+              business={studio.travel_buffer_minutes}
+              firstName={me.name.split(" ")[0]}
+            />
+          )}
+
+          {/* Whose reminders their clients get. */}
+          <MyReminders
+            on={me.reminders_own === true}
+            mine={myReminders}
+            businessCount={shopReminders.length}
+            firstName={me.name.split(" ")[0]}
+          />
+
           {/* Their life, coming in — the other direction from the feed above,
               and the one that stops the assistant booking over the school
               run. */}

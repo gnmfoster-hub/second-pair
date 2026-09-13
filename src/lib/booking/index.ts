@@ -207,10 +207,18 @@ export async function availableSlots(search: SlotSearch): Promise<Slot[]> {
 
   let busy = await busyFor(db, artist, from, to);
 
-  // Work at the customer's address needs getting to. Padding what counts as
-  // busy is what stops two jobs being booked back to back across a city.
+  /*
+   * Work at the customer's address needs getting to. Padding what counts as
+   * busy is what stops two jobs being booked back to back across a city.
+   *
+   * This person's own gap where they have set one, and the business's
+   * otherwise. A cleaning firm with somebody in a van and somebody on a bike
+   * does not have one number — and zero is a real answer, distinct from not
+   * having said, which is why it is a null check rather than a falsy one.
+   */
   if (studio.travel_mode !== "at_premises") {
-    busy = withTravelTime(busy, studio.travel_buffer_minutes);
+    const gap = artist.travel_buffer_minutes ?? studio.travel_buffer_minutes;
+    busy = withTravelTime(busy, gap);
   }
 
   // Lunch, the school run, an early finish on Fridays. Handed to the slot
@@ -356,7 +364,7 @@ export async function createBooking(args: {
   // Scheduled here rather than by the caller, so every route into a booking —
   // the assistant, the diary, a future import — gets reminders without having
   // to remember to ask for them.
-  await scheduleReminders(db, artist.studio_id, data.id, slot.starts_at);
+  await scheduleReminders(db, artist.studio_id, data.id, slot.starts_at, artist.id);
 
   return { ok: true, bookingId: data.id, calendarEventId: null };
 }

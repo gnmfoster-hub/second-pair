@@ -49,6 +49,8 @@ type RawRow = {
   contacts: { id: string; name: string | null; phone: string | null } | null;
   enquiries: {
     description: string | null;
+    job_address: string | null;
+    job_postcode: string | null;
     quote_low_pence: number | null;
     conversation_id: string;
     conversations: {
@@ -184,7 +186,7 @@ export default async function DiaryPage({
         "title, notes, deposit_status, deposit_amount_pence, price_pence, repeats, attended, " +
         "actual_minutes, outcome_note, " +
         "contacts(id, name, phone), " +
-        "enquiries(description, quote_low_pence, conversation_id, conversations(contacts(name, phone)))",
+        "enquiries(description, job_address, job_postcode, quote_low_pence, conversation_id, conversations(contacts(name, phone)))",
     )
     .is("cancelled_at", null)
     .lt("starts_at", addDays(end, 1).toISOString())
@@ -240,6 +242,8 @@ export default async function DiaryPage({
       clientPhone: r.enquiries?.conversations?.contacts?.phone ?? r.contacts?.phone ?? null,
       contactId: r.contacts?.id ?? null,
       description: r.enquiries?.description ?? null,
+      job_address: r.enquiries?.job_address ?? null,
+      job_postcode: r.enquiries?.job_postcode ?? null,
       conversationId: r.enquiries?.conversation_id ?? null,
       quotePence: r.enquiries?.quote_low_pence ?? null,
       repeats: r.repeats,
@@ -298,6 +302,8 @@ export default async function DiaryPage({
             price_pence: null,
             quotePence: null,
             repeats: "none",
+            job_address: null,
+            job_postcode: null,
             // Nothing in somebody's own calendar is a booking to close off.
             attended: null,
             actual_minutes: null,

@@ -123,6 +123,81 @@ function readVocabulary(
  * otherwise the page could be edited to switch somebody else's notifications
  * off, which is a quiet way to make a colleague miss their day.
  */
+/**
+ * Whether this person's clients get their reminders or the business's.
+ *
+ * Theirs, read off the session. Turning it on with no templates written means
+ * their clients get nothing — which is deliberate, and which the screen says
+ * out loud before and after the switch is pressed.
+ */
+export async function setRemindersOwn(
+  _prev: FormState,
+  fd: FormData,
+): Promise<FormState> {
+  const { studio, userId } = await requireStudio();
+  const supabase = await createClient();
+
+  const { data: me } = await supabase
+    .from("artists")
+    .select("id")
+    .eq("studio_id", studio.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!me) return { error: "You are not one of the people in this diary." };
+
+  const { error } = await supabase
+    .from("artists")
+    .update({ reminders_own: fd.get("on") === "on" })
+    .eq("id", me.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/you");
+  return { ok: true };
+}
+
+/**
+ * How long this person needs between jobs.
+ *
+ * Blank means the business's, which is what nearly everybody stays on. Zero is
+ * a different answer and a real one — somebody working out of one building
+ * needs no gap — so it is stored rather than treated as "not said".
+ */
+export async function setTravelBuffer(
+  _prev: FormState,
+  fd: FormData,
+): Promise<FormState> {
+  const { studio, userId } = await requireStudio();
+  const supabase = await createClient();
+
+  const { data: me } = await supabase
+    .from("artists")
+    .select("id")
+    .eq("studio_id", studio.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!me) return { error: "You are not one of the people in this diary." };
+
+  const raw = String(fd.get("travel_buffer_minutes") ?? "").trim();
+  const n = Number(raw);
+
+  if (raw !== "" && (!Number.isFinite(n) || n < 0 || n > 240)) {
+    return { error: "Give it between 0 and 240 minutes, or leave it blank." };
+  }
+
+  const { error } = await supabase
+    .from("artists")
+    .update({ travel_buffer_minutes: raw === "" ? null : Math.round(n) })
+    .eq("id", me.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/you");
+  return { ok: true };
+}
+
 export async function setNotifyOwnBookings(
   _prev: FormState,
   fd: FormData,

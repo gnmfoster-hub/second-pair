@@ -45,6 +45,15 @@ export type Entry = {
   conversationId: string | null;
   /** What this booking comes to. Set by hand; falls back to the quote. */
   price_pence: number | null;
+  /**
+   * What the client told the assistant, for the person turning up.
+   *
+   * Not on the row — a list of appointments is read at a glance and an address
+   * on every line makes it unreadable. It is what somebody needs once they have
+   * opened the one they are about to drive to.
+   */
+  job_address: string | null;
+  job_postcode: string | null;
   /** What the enquiry was quoted, for the week's worth. */
   quotePence: number | null;
   /** Whether they turned up. Null until somebody closes the booking off. */

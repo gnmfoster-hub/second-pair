@@ -108,8 +108,9 @@ export async function saveDiaryEntry(
     const { error } = await supabase.from("bookings").update(patch).eq("id", id);
     if (error) return { error: clashMessage(error.code, error.message) };
 
-    // A moved appointment needs its reminders moved with it.
-    await scheduleReminders(supabase, studio.id, id, starts.toISOString());
+    // A moved appointment needs its reminders moved with it, and whose it is
+    // decides whose reminders they are.
+    await scheduleReminders(supabase, studio.id, id, starts.toISOString(), artistId);
 
     revalidatePath("/diary");
     return { ok: "Saved." };
@@ -361,7 +362,17 @@ export async function moveDiaryEntry(input: {
 
   // The reminder said "Tuesday at two". It is not Tuesday at two any more.
   await dropReminders(supabase, input.id);
-  await scheduleReminders(supabase, studio.id, input.id, starts.toISOString());
+  /*
+   * Moved to somebody else's column, so it is their reminders now. The old
+   * ones were dropped above rather than edited, which is what makes that safe.
+   */
+  await scheduleReminders(
+    supabase,
+    studio.id,
+    input.id,
+    starts.toISOString(),
+    input.artistId,
+  );
 
   revalidatePath("/diary");
   revalidatePath("/");

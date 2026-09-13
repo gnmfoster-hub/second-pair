@@ -318,6 +318,15 @@ export type Artist = {
    * default: it is the reason a person turns notifications on at all.
    */
   notify_own_bookings: boolean;
+  /**
+   * Minutes left either side of this person's jobs.
+   *
+   * Null uses the business's. Zero is a different answer and a real one: this
+   * person needs no gap at all.
+   */
+  travel_buffer_minutes: number | null;
+  /** True means this person's clients get their reminders, not the shop's. */
+  reminders_own: boolean;
   personal_ical_url: string | null;
   /** Whether those blocks appear in the business diary. On by default. */
   personal_calendar_show: boolean;
