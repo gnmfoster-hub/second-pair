@@ -337,14 +337,23 @@ export function EntryDialog({
             )}
 
             {/*
-              * Only once it has actually finished.
+              * From the moment it starts, not from the moment it was due to
+              * end.
               *
-              * Asking whether somebody turned up to Thursday's appointment on
-              * Tuesday is noise on every booking in the diary, and noise on
-              * every booking is how a control gets ignored on the one that
-              * matters.
+              * Asking on Tuesday whether somebody turned up to Thursday is
+              * noise on every booking in the diary, and noise on every booking
+              * is how a control gets ignored on the one that matters. That
+              * part was right. Waiting for the booked end time was not: a
+              * forty-five minute cut that took half an hour is finished, the
+              * client has gone, and the person closing it off is stood there
+              * with fifteen minutes to spare — which is exactly when this gets
+              * done, and exactly when it was not there.
+              *
+              * It was reported as there being no complete button at all, twice,
+              * which is what a control that appears an hour after you look for
+              * it amounts to.
               */}
-            {entry && Date.parse(entry.ends_at) < openedAt && (
+            {entry && Date.parse(entry.starts_at) <= openedAt && (
               <CloseOff
                 id={entry.id}
                 attended={entry.attended}
@@ -764,7 +773,16 @@ function CloseOff({
         * somebody bothers. Every one of them makes the next estimate better.
         */}
       {attended === true && (
-        <details className="mt-3">
+        /*
+         * Open the first time, folded away once it has been answered.
+         *
+         * Marking somebody as having come and then having to find a second
+         * control to say how long it took is two steps where the whole point
+         * is that this happens in the ten seconds after a client leaves. Once
+         * there is a time or a note on it, it folds back up — the question has
+         * been answered and the entry does not need to keep asking.
+         */
+        <details className="mt-3" open={actualMinutes == null && !note}>
           <summary className="cursor-pointer text-sm text-muted">
             {actualMinutes != null || note ? "What happened" : "Add what it really took"}
           </summary>

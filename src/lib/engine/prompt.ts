@@ -7,6 +7,7 @@ import { describeLength } from "./bandLength";
 import { assistantName } from "@/lib/assistantName";
 import { CALLBACK_WORD } from "@/lib/messaging/missedCall";
 import { bookingInstructions, type ProviderKind } from "@/lib/booking/provider";
+import { howToSendPhotos } from "./photos";
 import type { Artist, Faq, PriceBand, ServiceOption, Studio } from "@/lib/types";
 
 export type EnquiryState = {
@@ -87,6 +88,8 @@ export function studioSystemPrompt(
     channel === "sms"
       ? "\n- This is a text message, and the business pays for every 153 characters. Two sentences at most. Give them the answer and stop — no opening pleasantry, no sign-off, and do not offer anything they did not ask about."
       : "";
+  const photoLine = howToSendPhotos(channel);
+
   const styles = options.filter((o) => o.kind === "style");
 
   const qualificationLines = pack.qualification.map((q) => `- ${q.prompt}`).join("\n");
@@ -295,7 +298,7 @@ Get their first name early — ask for it in your first or second message, and u
 Work out, over the course of the conversation:
 - Their name, and a phone number or email
 ${qualificationLines}${locationLine}
-- Reference images — there is a paperclip in the chat window they can attach photos with, so point them at it
+${photoLine}
 ${teamLine}${ageLine}
 - Which days and times suit them
 
