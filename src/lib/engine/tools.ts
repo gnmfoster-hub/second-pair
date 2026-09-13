@@ -8,6 +8,7 @@ import { quoteForBand, quoteForStudio, depositFor, withVat } from "@/lib/quote";
 import { verticalPack } from "@/lib/verticals";
 import { coversPostcode } from "@/lib/travel";
 import { dayIn } from "@/lib/diaryGaps";
+import { samePhone } from "@/lib/channels/phoneNumbers";
 import { minutesForClient } from "@/lib/serviceBands";
 import { stripeConfigured, effectiveDepositMode } from "@/lib/payments/stripe";
 import { sendBookingConfirmation } from "@/lib/messaging/confirmation";
@@ -522,7 +523,19 @@ async function saveContact(
   for (const key of ["name", "phone", "email"] as const) {
     const value = input[key];
     if (typeof value === "string" && value.trim()) {
-      patch[key] = value.trim();
+      /*
+       * One shape for a number, so the same person is the same person.
+       *
+       * She types 07700 900312; the number she arrived on by text is stored as
+       * +447700900312. Compared literally those are two different people, and
+       * the salon ends up with two records for one regular — her history
+       * split, and the twenty minutes her colour needs attached to the half of
+       * her nobody is booking.
+       *
+       * Found on the demo the first time a whole conversation was run through
+       * it, which produced a second Leila Osman within a minute.
+       */
+      patch[key] = key === "phone" ? samePhone(value) : value.trim();
       saved.push(key);
     }
   }
@@ -579,7 +592,7 @@ async function rejoin(
     .from("contacts")
     .select("id, name, email")
     .eq("studio_id", ctx.studio.id)
-    .eq("phone", String(patch.phone))
+    .eq("phone", samePhone(String(patch.phone)))
     .maybeSingle();
 
   if (!existing || existing.id === ctx.contactId) return false;

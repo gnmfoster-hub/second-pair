@@ -142,3 +142,37 @@ export function readableNumber(raw: string): string {
 
   return n || raw;
 }
+
+/**
+ * One shape for a number, so the same person is the same person.
+ *
+ * A customer types 07700 900312. The number the same customer arrived on by
+ * text is stored as +447700900312. Compared literally those are two different
+ * people, so the salon ends up with two records for one regular — her history
+ * split, her "usually with" wrong, and anything recorded against her, like the
+ * twenty minutes extra her colour needs, attached to the half of her that is
+ * not being booked.
+ *
+ * That is not hypothetical. It happened on the demo the first time a real
+ * conversation was run through it, and it would have happened to every
+ * business with every customer who types their number the way people do.
+ *
+ * UK only, deliberately. A leading zero means a national number and the
+ * country is knowable; anything already international is left exactly as it
+ * is, and anything else is tidied and no more, because guessing a country code
+ * is how you merge two people who are not the same person at all.
+ */
+export function samePhone(raw: string | null | undefined): string {
+  const tidy = tidyNumber(String(raw ?? ""));
+  if (!tidy) return "";
+
+  if (tidy.startsWith("+")) return tidy;
+
+  // 07700900312 → +447700900312
+  if (/^0\d{9,10}$/.test(tidy)) return `+44${tidy.slice(1)}`;
+
+  // 447700900312, as some providers hand it over.
+  if (/^44\d{9,10}$/.test(tidy)) return `+${tidy}`;
+
+  return tidy;
+}
