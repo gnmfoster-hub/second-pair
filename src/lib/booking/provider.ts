@@ -66,7 +66,17 @@ export const PROVIDERS: Record<ProviderKind, ProviderCapabilities> = {
   native: { readsAvailability: true, writesBookings: true, handsOverLink: false },
 
   // Full two-way. For businesses with no booking platform of their own.
-  google: { readsAvailability: true, writesBookings: true, handsOverLink: false },
+  /*
+   * Not built. The OAuth flow does not exist, busyFor throws rather than
+   * pretend the diary is empty, and nothing has ever written an event or
+   * stored the id to change one later — calendar_event_id has sat unwritten
+   * since the first migration.
+   *
+   * Described as what it can actually do, so a business set to it hands over a
+   * link rather than being told a booking was made somewhere it was not. This
+   * row said it both read and wrote, which is two claims and no code.
+   */
+  google: { readsAvailability: false, writesBookings: false, handsOverLink: true },
 
   // Fresha, Booksy, Treatwell, Square, Vagaro. They publish an iCal export of
   // the diary and a public booking page, but no write API — so we read

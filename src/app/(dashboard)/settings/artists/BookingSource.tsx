@@ -12,7 +12,8 @@ const BLURB: Record<ProviderKind, string> = {
     "Second Pair keeps the diary. Nothing to connect, and the assistant books straight into it.",
   ical_link:
     "Already on Fresha, Booksy, Treatwell or Square? Second Pair reads what's free from their calendar feed and sends people to your own booking page, so your system stays in charge.",
-  google: "Availability read from a Google Calendar, and bookings written back to it.",
+  google:
+    "Not built yet. It will read a Google Calendar and write bookings back to it; today it can do neither, so it cannot be chosen.",
   link_only: "No diary access. The assistant qualifies and quotes, then hands over your link.",
   manual: "No diary at all. The assistant takes preferred days and you confirm.",
 };
@@ -32,9 +33,19 @@ export function BookingSource({ artist }: { artist?: Artist }) {
           onChange={(e) => setKind(e.target.value as ProviderKind)}
           className="input max-w-md"
         >
+          {/*
+           * Google is shown and cannot be picked.
+           *
+           * It used to sit in this list described as working, one selection
+           * away from a business whose diary silently did neither half of what
+           * it promised. Hiding it would be tidier and worse: somebody asks
+           * whether Google is supported, and "it is on the list, greyed out"
+           * answers that honestly where an absence does not.
+           */}
           {ORDER.map((k) => (
-            <option key={k} value={k}>
+            <option key={k} value={k} disabled={k === "google" && kind !== "google"}>
               {PROVIDER_LABELS[k]}
+              {k === "google" ? " — not built yet" : ""}
             </option>
           ))}
         </select>
