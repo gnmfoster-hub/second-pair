@@ -31,13 +31,41 @@ export default async function SettingsLayout({ children }: { children: React.Rea
   // rather than more.
   const owns = membership?.role === "owner";
 
+  /*
+   * The tab carries their name rather than saying "You".
+   *
+   * "Who is 'You'?" was a fair question, and it came from the owner — who is
+   * exactly the person it is worst for. They are the only one who sees this
+   * tab and the whole business sitting beside it, so "You" and "Willow & Co"
+   * appear together with nothing to say that the first means Sarah the
+   * stylist and not Sarah the owner. Everybody else sees one tab and never has
+   * cause to wonder.
+   *
+   * Their own name settles it in a word, and says the same thing about the
+   * page underneath: this is one person's, and every person here has their own.
+   */
+  const { data: me } = await supabase
+    .from("artists")
+    .select("name")
+    .eq("studio_id", studio.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  // Somebody with a login and no place in the diary — a receptionist, an
+  // office manager — has no name to use here, and "You" is right for them.
+  const mine = (me?.name as string | undefined)?.trim().split(/\s+/)[0] || "You";
+
   return (
     <Page>
       <PageHeader title="Settings">
         {owns ? (
           <>
             How your {words.business} works, and what the assistant knows. Change
-            something and the next conversation uses it.
+            something and the next conversation uses it. The first tab is yours alone
+            &mdash; your own hours, rates and days off &mdash; and everybody on the team
+            has the same one of their own. Theirs is on{" "}
+            <span className="text-foreground">{title(words.practitioners)}</span>, where
+            you can fill it in for them.
           </>
         ) : (
           <>
@@ -57,7 +85,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
           * they most needed, notifications and the app on their phone, were
           * behind one of the six they could not open.
           */}
-        <TabLink href="/settings/you">You</TabLink>
+        <TabLink href="/settings/you">{mine}</TabLink>
         {owns && <TabLink href="/settings">{title(words.business)}</TabLink>}
         {owns && <TabLink href="/settings/assistant">Assistant</TabLink>}
         {/* The team, which is the owner's view of everybody. A worker sees
