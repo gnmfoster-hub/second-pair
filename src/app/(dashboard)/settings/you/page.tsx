@@ -12,6 +12,7 @@ import { MyBookings } from "./MyBookings";
 import { MyServices } from "./MyServices";
 import { MyTravel } from "./MyTravel";
 import { MyReminders } from "./MyReminders";
+import { Managed } from "./Managed";
 import type { ReminderTemplateRow } from "../reminders/ReminderEditor";
 import { byPerson } from "@/lib/servicePrices";
 import type { Service, ServicePerson } from "@/lib/types";
@@ -116,6 +117,15 @@ export default async function YouPage() {
   const shopReminders = templates.filter((t) => t.artist_id == null);
   const myReminders = me ? templates.filter((t) => t.artist_id === me.id) : [];
 
+  /*
+   * Whether this person sets their own settings, or the business does.
+   *
+   * An employee has a diary and a wage, and everything a customer sees is the
+   * shop's. A chair renter is a business inside a business. Read once here so
+   * the page cannot half-apply it and leave one panel editable.
+   */
+  const managed = me?.owner_managed === true;
+
   const pack = verticalPack(studio.vertical);
   const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
   const styles = options.filter((o) => o.kind === "style");
@@ -160,7 +170,7 @@ export default async function YouPage() {
            * at all. On a salon's settings this would be a box about driving
            * nobody does.
            */}
-          {studio.travel_mode !== "at_premises" && (
+          {!managed && studio.travel_mode !== "at_premises" && (
             <MyTravel
               mine={me.travel_buffer_minutes ?? null}
               business={studio.travel_buffer_minutes}
@@ -168,13 +178,13 @@ export default async function YouPage() {
             />
           )}
 
-          {/* Whose reminders their clients get. */}
-          <MyReminders
+          {/* Whose reminders their clients get. The business's, when managed. */}
+          {!managed && <MyReminders
             on={me.reminders_own === true}
             mine={myReminders}
             businessCount={shopReminders.length}
             firstName={me.name.split(" ")[0]}
-          />
+          />}
 
           {/* Their life, coming in — the other direction from the feed above,
               and the one that stops the assistant booking over the school
@@ -201,31 +211,45 @@ export default async function YouPage() {
             }
           />
 
-          <div className="card p-5">
-            <div className="section-title">Your hours and rates</div>
-            <p className="hint mt-1.5 max-w-prose">
-              What the assistant quotes and books on your behalf. Keep it right and it
-              answers for you correctly; leave it wrong and it answers for you
-              incorrectly, which is worse than not answering at all. Nobody else can
-              change this.
-            </p>
-          </div>
+          {managed ? (
+            /*
+             * What the business looks after, said rather than left blank.
+             *
+             * An employee opening a nearly empty page would reasonably think
+             * the product was broken or that they were in the wrong account.
+             */
+            <Managed words={{ business: words.business }} />
+          ) : (
+            <>
+              <div className="card p-5">
+                <div className="section-title">Your hours and rates</div>
+                <p className="hint mt-1.5 max-w-prose">
+                  What the assistant quotes and books on your behalf. Keep it right and it
+                  answers for you correctly; leave it wrong and it answers for you
+                  incorrectly, which is worse than not answering at all. Nobody else can
+                  change this.
+                </p>
+              </div>
 
-          <ArtistEditor
-            artist={me}
-            styles={styles}
-            studioHours={studio.hours}
-            noun={words.practitioner}
-            roles={pack.roles}
-            isOwner={owns}
-            ownLink={me.handle ? `${origin}/widget/${studio.slug}?with=${me.handle}` : null}
-          />
+              <ArtistEditor
+                artist={me}
+                styles={styles}
+                studioHours={studio.hours}
+                noun={words.practitioner}
+                roles={pack.roles}
+                isOwner={owns}
+                ownLink={
+                  me.handle ? `${origin}/widget/${studio.slug}?with=${me.handle}` : null
+                }
+              />
+            </>
+          )}
 
           {/* Work and products that are theirs rather than the shop's. */}
-          {pricesByList && <MyServices services={mineOnly} firstName={me.name.split(" ")[0]} />}
+          {!managed && pricesByList && <MyServices services={mineOnly} firstName={me.name.split(" ")[0]} />}
 
           {/* Their prices against the list, where the business keeps one. */}
-          {pricesByList && (
+          {!managed && pricesByList && (
             <YourPrices
               services={services}
               mine={myPrices}

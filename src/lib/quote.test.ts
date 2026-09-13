@@ -44,6 +44,7 @@ const artist = (over: Partial<Artist> = {}): Artist => ({
   notify_own_bookings: true,
   travel_buffer_minutes: null,
   reminders_own: false,
+  owner_managed: false,
   assistant_name: null,
   ...over,
 });

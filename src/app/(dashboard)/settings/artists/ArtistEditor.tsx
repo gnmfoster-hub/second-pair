@@ -333,6 +333,38 @@ export function ArtistEditor({
           Taking bookings
         </label>
 
+        {/*
+          * Employed, or renting a chair.
+          *
+          * Two kinds of person work in the same salon and the product was
+          * treating them as one. A chair renter is a business inside a
+          * business — her prices, her reminders, her own wording. An employee
+          * has a diary and a wage, and everything a customer sees is the
+          * shop's.
+          *
+          * The owner's to set, so it is here rather than on their own page. A
+          * person who could switch off being managed is not managed.
+          */}
+        {isOwner && (
+          <label className="flex items-start gap-2.5 text-sm">
+            <input
+              type="checkbox"
+              name="owner_managed"
+              defaultChecked={artist?.owner_managed ?? false}
+              className="mt-0.5 accent-[var(--accent)]"
+            />
+            <span>
+              You look after their settings
+              <span className="hint block">
+                For somebody employed rather than renting a chair. Their prices, hours,
+                reminders and wording become yours to set, and they stop being able to
+                change them. Their phone and their own calendar stay theirs &mdash;
+                nobody can press a notification button on somebody else&rsquo;s phone.
+              </span>
+            </span>
+          </label>
+        )}
+
         <div className="flex items-center gap-4 pt-1">
           <SubmitButton>{isNew ? "Add them" : "Save"}</SubmitButton>
           <FormMessage state={state} />

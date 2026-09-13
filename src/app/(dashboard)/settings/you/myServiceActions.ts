@@ -34,12 +34,26 @@ export async function saveMyService(
 
   const { data: me } = await supabase
     .from("artists")
-    .select("id")
+    .select("id, owner_managed")
     .eq("studio_id", studio.id)
     .eq("user_id", userId)
     .maybeSingle();
 
   if (!me) return { error: "Your sign-in is not linked to anybody in the diary." };
+  /*
+   * A person the business looks after does not set this.
+   *
+   * The row-level policy refuses the write too, for the three tables that have
+   * one — this is the sentence somebody can read instead of a policy error,
+   * and the only guard at all for the two that write to their own artist row.
+   */
+  if (me.owner_managed === true) {
+    return {
+      error:
+        "The business sets this. Ask whoever runs it and they can change it in a minute.",
+    };
+  }
+
 
   const name = str(fd, "name");
   if (!name) return { error: "Give it a name." };
@@ -107,12 +121,26 @@ export async function retireMyService(
 
   const { data: me } = await supabase
     .from("artists")
-    .select("id")
+    .select("id, owner_managed")
     .eq("studio_id", studio.id)
     .eq("user_id", userId)
     .maybeSingle();
 
   if (!me) return { error: "Your sign-in is not linked to anybody in the diary." };
+  /*
+   * A person the business looks after does not set this.
+   *
+   * The row-level policy refuses the write too, for the three tables that have
+   * one — this is the sentence somebody can read instead of a policy error,
+   * and the only guard at all for the two that write to their own artist row.
+   */
+  if (me.owner_managed === true) {
+    return {
+      error:
+        "The business sets this. Ask whoever runs it and they can change it in a minute.",
+    };
+  }
+
 
   const id = str(fd, "id");
   if (!id) return { error: "Nothing to remove." };

@@ -330,6 +330,18 @@ export type Artist = {
   /** True means this person's clients get their reminders, not the shop's. */
   reminders_own: boolean;
   /**
+   * Whether the business sets this person's settings rather than the person.
+   *
+   * A chair renter is a business inside a business and runs her own prices,
+   * reminders and wording. An employee has a diary and a wage, and everything
+   * a customer sees is the shop's.
+   *
+   * Their phone and their own calendar stay theirs either way — nobody can
+   * press a notification button on somebody else's phone, and a personal
+   * calendar address is not the owner's to hold.
+   */
+  owner_managed: boolean;
+  /**
    * What the assistant calls itself on this person's own enquiries.
    *
    * Null uses the business's, which uses the default. Two falls, one meaning:

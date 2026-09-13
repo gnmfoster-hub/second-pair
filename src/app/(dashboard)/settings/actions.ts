@@ -139,12 +139,26 @@ export async function setRemindersOwn(
 
   const { data: me } = await supabase
     .from("artists")
-    .select("id")
+    .select("id, owner_managed")
     .eq("studio_id", studio.id)
     .eq("user_id", userId)
     .maybeSingle();
 
   if (!me) return { error: "You are not one of the people in this diary." };
+  /*
+   * A person the business looks after does not set this.
+   *
+   * The row-level policy refuses the write too, for the three tables that have
+   * one — this is the sentence somebody can read instead of a policy error,
+   * and the only guard at all for the two that write to their own artist row.
+   */
+  if (me.owner_managed === true) {
+    return {
+      error:
+        "The business sets this. Ask whoever runs it and they can change it in a minute.",
+    };
+  }
+
 
   const { error } = await supabase
     .from("artists")
@@ -173,12 +187,26 @@ export async function setTravelBuffer(
 
   const { data: me } = await supabase
     .from("artists")
-    .select("id")
+    .select("id, owner_managed")
     .eq("studio_id", studio.id)
     .eq("user_id", userId)
     .maybeSingle();
 
   if (!me) return { error: "You are not one of the people in this diary." };
+  /*
+   * A person the business looks after does not set this.
+   *
+   * The row-level policy refuses the write too, for the three tables that have
+   * one — this is the sentence somebody can read instead of a policy error,
+   * and the only guard at all for the two that write to their own artist row.
+   */
+  if (me.owner_managed === true) {
+    return {
+      error:
+        "The business sets this. Ask whoever runs it and they can change it in a minute.",
+    };
+  }
+
 
   const raw = String(fd.get("travel_buffer_minutes") ?? "").trim();
   const n = Number(raw);
@@ -207,7 +235,7 @@ export async function setNotifyOwnBookings(
 
   const { data: me } = await supabase
     .from("artists")
-    .select("id")
+    .select("id, owner_managed")
     .eq("studio_id", studio.id)
     .eq("user_id", userId)
     .maybeSingle();
@@ -252,7 +280,7 @@ export async function disconnectPersonalCalendar(
 
   const { data: me } = await supabase
     .from("artists")
-    .select("id")
+    .select("id, owner_managed")
     .eq("studio_id", studio.id)
     .eq("user_id", userId)
     .maybeSingle();
@@ -284,7 +312,7 @@ export async function savePersonalCalendar(
 
   const { data: me } = await supabase
     .from("artists")
-    .select("id")
+    .select("id, owner_managed")
     .eq("studio_id", studio.id)
     .eq("user_id", userId)
     .maybeSingle();
@@ -545,7 +573,7 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
 
     const { data: theirs } = await supabase
       .from("artists")
-      .select("user_id")
+      .select("user_id, owner_managed")
       .eq("id", target)
       .eq("studio_id", studio.id)
       .maybeSingle();
@@ -554,6 +582,22 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
     // not one to let somebody edit.
     if (!theirs || theirs.user_id !== userId) {
       return { error: "You can only change your own details." };
+    }
+
+    /*
+     * And a person the business looks after does not change their own.
+     *
+     * The screen hides the form, which is not a permission — a hidden form is
+     * still a form somebody can post. Without this, an employee could set
+     * their own rates, and could clear owner_managed and stop being managed at
+     * all, which would make the setting decorative.
+     */
+    if (theirs.owner_managed === true) {
+      return {
+        error:
+          "Your hours and rates are set by the business. Ask whoever runs it and they " +
+          "can change them in a minute.",
+      };
     }
 
     if (str(fd, "intent") === "delete") {
@@ -728,6 +772,14 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
     // Blank means "sound like the business", which is what almost everybody
     // wants — so an empty box is null rather than an empty string.
     greeting: str(fd, "greeting") || null,
+    /*
+     * Only the owner decides who is managed.
+     *
+     * Left out of the row entirely for anybody else, rather than read and
+     * ignored — a field that is read and discarded is one somebody later
+     * wires up by accident.
+     */
+    ...(owns ? { owner_managed: fd.get("owner_managed") === "on" } : {}),
     // Blank uses the business's, which uses the default.
     assistant_name: str(fd, "assistant_name") || null,
     tone: str(fd, "tone") || null,

@@ -26,12 +26,21 @@ export async function saveReminder(_prev: FormState, fd: FormData): Promise<Form
   if (mine) {
     const { data: me } = await supabase
       .from("artists")
-      .select("id")
+      .select("id, owner_managed")
       .eq("studio_id", studio.id)
       .eq("user_id", userId)
       .maybeSingle();
 
     if (!me) return { error: "Your sign-in is not linked to anybody in the diary." };
+
+    // A person the business looks after does not write their own reminders.
+    // The policy on the table refuses it as well; this is the readable half.
+    if (me.owner_managed === true) {
+      return {
+        error: "The business sets the reminders. Ask whoever runs it and they can change them.",
+      };
+    }
+
     artistId = me.id;
   }
 
