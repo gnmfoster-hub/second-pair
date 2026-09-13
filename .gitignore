@@ -45,3 +45,9 @@ next-env.d.ts
 .demo3.mjs
 .d.mjs
 .team.mjs
+
+# Backups are every client's name and number for every business. Never in git,
+# encrypted or not — an encrypted file in a repository is a file somebody will
+# eventually decrypt on a laptop and leave there.
+backups/
+*.enc
