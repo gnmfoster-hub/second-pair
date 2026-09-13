@@ -16,6 +16,7 @@ const service = (over: Partial<Service> = {}): Service => ({
   bookable_online: true,
   active: true,
   sort_order: 0,
+  artist_id: null,
   ...over,
 });
 

@@ -801,6 +801,33 @@ ${text}`;
     usage: spend,
   });
 
+  /*
+   * Somebody got in touch, for a business that wants to hear about all of them.
+   *
+   * Off for most people and deliberately so — an alert for every enquiry is the
+   * fastest way to teach somebody to ignore all of them, including the one that
+   * mattered. But an owner who has just started trusting this wants to see every
+   * one until they believe it, and being unable to ask reads as the product
+   * hiding its work.
+   *
+   * On the first reply only. Every message would mean ten notifications for one
+   * conversation, and by the fourth nobody is reading them.
+   *
+   * Last, and after the reply is saved, because it is the least important thing
+   * that happens here. notifyStudio never throws, but the ordering says what is
+   * true anyway: the customer being answered comes first.
+   */
+  if (isFirstReply && ctx.studio.notify_every_enquiry) {
+    await notifyStudio(ctx.db, ctx.studio.id, {
+      title: `A new enquiry on ${ctx.channel}`,
+      body: text.slice(0, 140),
+      url: `/conversations/${ctx.conversationId}`,
+      // One per conversation. A reply on the same one replaces rather than
+      // stacks, which is how the escalation notification already behaves.
+      tag: `enquiry-${ctx.conversationId}`,
+    });
+  }
+
   return { text, moments: settleMoments(moments) };
 }
 

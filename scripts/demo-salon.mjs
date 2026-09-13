@@ -77,16 +77,29 @@ if (studio) {
 
 // ------------------------------------------------------------------- team
 
+/*
+ * Rates follow the roles, because a salon's do.
+ *
+ * These were all £45 an hour, which made the demo quietly useless for the one
+ * thing an owner asks about first: an apprentice does not charge what a senior
+ * charges, and a table of five identical columns looks like a product that
+ * cannot tell people apart. Now the quote table shows a spread the moment it
+ * is opened, and the roles beside the names explain it without anybody having
+ * to say so.
+ *
+ * A colourist above a stylist is deliberate and true of most salons: colour is
+ * the specialist work and the longest chair time.
+ */
 const TEAM = [
-  ["Sarah", "#e0507a", "Senior stylist"],
-  ["Mo", "#2f8fd6", "Stylist"],
-  ["Priya", "#5aa84f", "Colourist"],
-  ["Chloe", "#b07acc", "Stylist"],
-  ["Jade", "#e0913a", "Apprentice"],
+  ["Sarah", "#e0507a", "Senior stylist", 6200, 3800],
+  ["Priya", "#5aa84f", "Colourist", 5500, 3500],
+  ["Mo", "#2f8fd6", "Stylist", 4800, 2800],
+  ["Chloe", "#b07acc", "Stylist", 4500, 2600],
+  ["Jade", "#e0913a", "Apprentice", 3000, 1800],
 ];
 
 const team = [];
-for (const [name, colour, role] of TEAM) {
+for (const [name, colour, role, rate, minimum] of TEAM) {
   const { data: already } = await db
     .from("artists")
     .select("id")
@@ -101,8 +114,8 @@ for (const [name, colour, role] of TEAM) {
     role,
     active: true,
     booking_provider: "native",
-    hourly_rate_pence: 4500,
-    min_charge_pence: 2500,
+    hourly_rate_pence: rate,
+    min_charge_pence: minimum,
   };
 
   if (already) {

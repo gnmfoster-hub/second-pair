@@ -69,12 +69,23 @@ export function bandFromService(
 export function bandsFromServices(
   services: Service[],
   mine?: Map<string, ServicePerson> | null,
+  /**
+   * Who is being quoted for, when the conversation belongs to one person.
+   *
+   * Null means nobody has been asked for yet, and then only the shop's own
+   * list may be offered. Somebody asking a salon about a haircut must not be
+   * read a nail technician's twenty gel colours — they are not the salon's
+   * work and nobody but her does them.
+   */
+  forArtistId?: string | null,
 ): PriceBand[] {
   return services
     .filter((s) => s.kind === "service")
     .filter((s) => s.bookable_online)
     .filter((s) => s.active)
     .filter((s) => s.minutes != null)
+    // The business's, or this person's own. Never somebody else's.
+    .filter((s) => s.artist_id == null || s.artist_id === forArtistId)
     .map((s) => bandFromService(s, mine?.get(s.id)))
     .filter((b) => b.price_low_pence != null)
     .sort((a, b) => a.sort_order - b.sort_order);

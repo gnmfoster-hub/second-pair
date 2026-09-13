@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireStudio, getArtists } from "@/lib/studio";
+import { requireStudio, requireOwner, getArtists } from "@/lib/studio";
 import { parsePounds } from "@/lib/money";
 import { DEFAULT_HOURS, type DepositRule, type OpeningHours } from "@/lib/types";
 import { sendEmail, emailConfigured } from "@/lib/messaging/email";
@@ -109,6 +109,31 @@ function readVocabulary(
  * Only the link is dropped. Nothing is deleted at their end, nothing they
  * booked here moves, and reconnecting is pasting the address again.
  */
+/**
+ * Whether this business hears about every enquiry.
+ *
+ * The business's, so the owner's. A toggle rather than a form with a Save,
+ * because it is one fact and nobody wants to press a button to confirm a
+ * checkbox.
+ */
+export async function setNotifyEveryEnquiry(
+  _prev: FormState,
+  fd: FormData,
+): Promise<FormState> {
+  const { studio } = await requireOwner();
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("studios")
+    .update({ notify_every_enquiry: fd.get("on") === "on" })
+    .eq("id", studio.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/you");
+  return { ok: true };
+}
+
 export async function disconnectPersonalCalendar(
   _prev: FormState,
   _fd: FormData,

@@ -136,6 +136,13 @@ export type Studio = {
    * does. A business wants one or the other, never both on screen at once.
    */
   pricing_model: "bands" | "services";
+  /**
+   * Tell them about every enquiry, not only the ones needing a person.
+   *
+   * Off by default. An alert for everything is an alert for nothing — but an
+   * owner still learning to trust this wants to see each one until they do.
+   */
+  notify_every_enquiry: boolean;
   /** Secret in the subscribe URL for the whole business. */
   calendar_token: string;
   /** Facts to work in where relevant. Not a script. */
@@ -231,6 +238,14 @@ export type Service = {
   bookable_online: boolean;
   active: boolean;
   sort_order: number;
+  /**
+   * Whose it is.
+   *
+   * Null is the business's, and everybody offers it — which is nearly every
+   * row. Set means only that person does: a nail technician's gel colours are
+   * hers, and no stylist in the salon does any of it.
+   */
+  artist_id: string | null;
 };
 
 /** What one person charges, and how long they take, where it differs. */
