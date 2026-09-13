@@ -358,6 +358,100 @@ try {
     Boolean(foreignDeleteError) && stillThere.length === 1,
   );
 
+  // ------------------------------------------------- managed by the owner
+
+  console.log("\nA person the business looks after");
+
+  /*
+   * The switch that decides whether somebody sets their own prices exists in
+   * three places: the screen hides the form, the action returns a sentence,
+   * and the policy refuses the write. Only the third is a permission — the
+   * other two are politeness — and the policy is the one nothing else could
+   * check, because migrations only prove columns exist.
+   *
+   * It has to be a member of staff and not the owner, which the first version
+   * of this test got wrong. Policies are OR'd, so an owner who is also managed
+   * still passes the owner's own policy and writes anything in their studio —
+   * which is correct behaviour and a useless test. An owner managing
+   * themselves is nonsense; the case that matters is an employee.
+   */
+  const c = await makeUser("c");
+  await admin.from("studio_members").insert({ studio_id: studioB, user_id: c.id, role: "staff" });
+
+  const { data: employed } = await admin
+    .from("artists")
+    .insert({
+      studio_id: studioB,
+      name: "Employed stylist",
+      user_id: c.id,
+      owner_managed: true,
+      hourly_rate_pence: 4000,
+      min_charge_pence: 2000,
+    })
+    .select("id")
+    .single();
+
+  const { data: shopService } = await admin
+    .from("services")
+    .insert({
+      studio_id: studioB,
+      name: "Cut",
+      kind: "service",
+      minutes: 30,
+      price_pence: 3000,
+    })
+    .select("id")
+    .single();
+
+  const { error: priceError } = await c.client
+    .from("service_people")
+    .insert({ service_id: shopService.id, artist_id: employed.id, price_pence: 9999 });
+  check("a managed person cannot set their own price", Boolean(priceError), "the write was accepted");
+
+  const { error: ownServiceError } = await c.client.from("services").insert({
+    studio_id: studioB,
+    artist_id: employed.id,
+    name: "Something only I do",
+    kind: "service",
+    minutes: 30,
+    price_pence: 1000,
+  });
+  check("a managed person cannot add their own service", Boolean(ownServiceError),
+    "the write was accepted");
+
+  const { error: ownReminderError } = await c.client.from("reminder_templates").insert({
+    studio_id: studioB,
+    artist_id: employed.id,
+    label: "Mine",
+    hours_before: 24,
+    body: "see you tomorrow",
+  });
+  check("a managed person cannot write their own reminders", Boolean(ownReminderError),
+    "the write was accepted");
+
+  /*
+   * And the other half, which matters just as much: switching it off has to
+   * give the settings back. A permission that cannot be undone is a trap.
+   */
+  await admin.from("artists").update({ owner_managed: false }).eq("id", employed.id);
+
+  const { error: nowAllowed } = await c.client
+    .from("service_people")
+    .insert({ service_id: shopService.id, artist_id: employed.id, price_pence: 4500 });
+  check("switching it off gives their own prices back", !nowAllowed, nowAllowed?.message);
+
+  /* And they still cannot touch a colleague's, managed or not. */
+  const { data: colleague } = await admin
+    .from("artists")
+    .insert({ studio_id: studioB, name: "Somebody else", hourly_rate_pence: 5000, min_charge_pence: 2000 })
+    .select("id")
+    .single();
+
+  const { error: colleagueError } = await c.client
+    .from("service_people")
+    .insert({ service_id: shopService.id, artist_id: colleague.id, price_pence: 1 });
+  check("a person cannot set a colleague's price", Boolean(colleagueError), "the write was accepted");
+
   // Studio B has a booking, which is what made a plain cascade delete fail.
   const { error: selfDeleteError } = await b.client.rpc("delete_studio", { target: studioB });
   check("owner B can erase their own studio despite a booking", !selfDeleteError,
