@@ -18,6 +18,54 @@ can happen in either order.
 
 ---
 
+# Waiting on you
+
+Everything here is something I cannot do from this side. Roughly in the order
+it is holding something up.
+
+### 1. Connect Stripe for Living Canvas
+
+Nothing can be charged until there is an account for the money to land in — no
+deposits, and none of the payment links that now sit on the appointment, the
+client's record, the conversation and the till. Those controls say so rather
+than failing, but they say it instead of working.
+
+Settings → the business → connect Stripe. It is Stripe's own onboarding: their
+ID, their bank details, ten minutes.
+
+### 2. Living Canvas has no price list
+
+It prices by the hour against size bands, which is right for tattooing and is
+why there are seven bands and no services. Two things read from a named list
+rather than from bands, and both are quietly empty because of it: picking what
+somebody is having when you add a booking, and anything per-person.
+
+Nothing is broken. It is a choice about whether a tattoo studio wants named
+things as well — a piercing, a touch-up, a consultation — sitting alongside the
+bands. Tell me and I will set it up either way.
+
+### 3. Nobody has a phone signed up for notifications
+
+Not one device on the whole platform, which means every "you have a new
+enquiry" has been going nowhere. It needs doing on the phone itself, by each
+person, from their own settings tab — the one now named after them.
+
+### 4. The Neat & Tidy number
+
+Send it to Chris, and put it on the Facebook page, the Google listing and
+anything else with the old one on.
+
+### 5. Check the forward on info@neatandtidysolutions.co.uk
+
+You sent a test to it. Confirm it arrived at the Second Pair address.
+
+### 6. The slow ones, unchanged
+
+Meta verification, the ICO registration, and `EMAIL_FROM` / `INTEREST_EMAIL` on
+Vercel. All still outstanding and none of them blocks anything today.
+
+---
+
 # Yours
 
 ## The order, and why
