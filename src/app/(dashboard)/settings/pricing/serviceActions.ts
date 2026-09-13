@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireStudio, requireOwner } from "@/lib/studio";
 import { createClient } from "@/lib/supabase/server";
 import { parsePounds } from "@/lib/money";
+import { hasColumn } from "@/lib/db/hasColumn";
 
 export type ServiceState = { error?: string; ok?: boolean };
 
@@ -53,6 +54,34 @@ export async function saveService(_prev: ServiceState, fd: FormData): Promise<Se
     return { error: "The top of the range is less than the bottom." };
   }
 
+  /*
+   * What it cost and how many are left, once those columns exist.
+   *
+   * Guarded, because PostgREST rejects an entire statement over one column it
+   * has not heard of — so without this a deploy landing before its migration
+   * would stop anybody saving a price at all. A shop that cannot edit its
+   * price list is a far worse morning than one that cannot yet record what a
+   * bottle cost.
+   *
+   * Both read blank as "not said" rather than as nought. A nought cost reports
+   * every sale as pure profit; a nought stock says the shelf is bare.
+   */
+  const counts: { cost_pence?: number | null; stock?: number | null } = (await hasColumn(
+    supabase,
+    "services",
+    "stock",
+  ))
+    ? {
+        cost_pence: parsePounds(fd.get("cost")),
+        stock: (() => {
+          const raw = str(fd, "stock");
+          if (!raw) return null;
+          const n = Number(raw);
+          return Number.isInteger(n) && n >= 0 ? n : null;
+        })(),
+      }
+    : {};
+
   const row = {
     studio_id: studio.id,
     name,
@@ -64,6 +93,7 @@ export async function saveService(_prev: ServiceState, fd: FormData): Promise<Se
     bookable_online: fd.get("bookable_online") !== "off",
     sort_order: Number(str(fd, "sort_order")) || 0,
     updated_at: new Date().toISOString(),
+    ...counts,
   };
 
   const { error } = id

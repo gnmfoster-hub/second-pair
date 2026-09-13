@@ -227,6 +227,53 @@ function ServiceForm({
             />
           </label>
         )}
+
+        {/*
+          * What it cost, and how many are left.
+          *
+          * Two questions a shop asks about its own shelf that nothing could
+          * answer: what did we make on that, and have we got any. Both
+          * optional, and both empty by default — most of these businesses sell
+          * four things off a shelf and count them by looking, and being made
+          * to keep a stock figure accurate is how a feature becomes a chore
+          * and then a lie.
+          *
+          * Empty is not zero on either. A nought cost would report every
+          * bottle as pure profit; a nought stock would say the shelf is bare.
+          */}
+        {kind === "product" && (
+          <>
+            <label>
+              <span className="label">What it cost you</span>
+              <input
+                name="cost"
+                inputMode="decimal"
+                defaultValue={penceToInput(service?.cost_pence)}
+                placeholder="Optional"
+                className="input"
+              />
+              <span className="hint">
+                So a month can say what the shelf made, not only what it took.
+              </span>
+            </label>
+
+            <label>
+              <span className="label">How many left</span>
+              <input
+                name="stock"
+                type="number"
+                min={0}
+                step={1}
+                defaultValue={service?.stock ?? ""}
+                placeholder="Leave empty to not count"
+                className="input"
+              />
+              <span className="hint">
+                Counts down as they sell. Empty means you are not counting these.
+              </span>
+            </label>
+          </>
+        )}
       </div>
 
       {kind === "service" && (

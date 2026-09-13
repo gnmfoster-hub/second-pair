@@ -12,6 +12,8 @@ type Product = {
   name: string;
   kind: "service" | "product";
   pricePence: number | null;
+  /** How many are left, where the shop counts them. Null is not counting. */
+  stock: number | null;
 };
 
 type Line = {
@@ -167,6 +169,21 @@ export function SellForm({
                 <div className="text-sm font-medium">{p.name}</div>
                 <div className="hint tabular-nums">
                   {p.pricePence == null ? "no price set" : formatPence(p.pricePence)}
+                  {/*
+                    * What is left, where the shop counts them.
+                    *
+                    * Null is not counting and says nothing, which is most
+                    * businesses. Nought says so plainly rather than hiding the
+                    * button: somebody selling the last one they thought they
+                    * had is a conversation with a customer, and finding out at
+                    * the till beats finding out at the shelf.
+                    */}
+                  {p.stock != null && (
+                    <span className={p.stock === 0 ? " text-warn" : ""}>
+                      {" · "}
+                      {p.stock === 0 ? "none left" : `${p.stock} left`}
+                    </span>
+                  )}
                 </div>
               </button>
             ))}

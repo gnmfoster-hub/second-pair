@@ -37,6 +37,7 @@ export default async function SellPage() {
     name: s.name as string,
     kind: (s.kind as "service" | "product") ?? "service",
     pricePence: (s.price_pence as number | null) ?? null,
+    stock: (s.stock as number | null) ?? null,
   }));
 
   const people = (await getArtists(studio.id))

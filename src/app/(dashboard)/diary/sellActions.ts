@@ -178,8 +178,47 @@ export async function recordSale(_prev: SellState, fd: FormData): Promise<SellSt
     }
   }
 
+  /*
+   * And the shelf goes down by what left it.
+   *
+   * Only for things the shop is actually counting — a null stock means "not
+   * counting these", and turning that into a number the first time one sells
+   * would invent a count nobody asked for and then be wrong about it forever.
+   *
+   * One at a time, and never below nought. A shop that sells its last two
+   * bottles in one go and finds minus one on the shelf has learned that the
+   * number cannot be trusted, and from then on it is furniture. Getting to
+   * nought and stopping is the honest version of the same event.
+   *
+   * Deliberately after the sale is recorded and deliberately unable to undo
+   * it: the money changing hands is the thing that happened, and a stock count
+   * that fails to update is a smaller problem than a sale that vanishes.
+   */
+  if (await hasColumn(supabase, "services", "stock")) {
+    for (const line of sale.lines) {
+      if (!line.serviceId) continue;
+
+      const { data: item } = await supabase
+        .from("services")
+        .select("stock")
+        .eq("id", line.serviceId)
+        .eq("studio_id", studio.id)
+        .maybeSingle();
+
+      const left = item?.stock as number | null | undefined;
+      if (left == null) continue;
+
+      await supabase
+        .from("services")
+        .update({ stock: Math.max(0, left - line.quantity) })
+        .eq("id", line.serviceId)
+        .eq("studio_id", studio.id);
+    }
+  }
+
   revalidatePath("/diary");
   revalidatePath("/clients");
+  revalidatePath("/settings/pricing");
   if (contactId) revalidatePath(`/clients/${contactId}`);
 
   return { ok: true, total: sale.totalPence };
