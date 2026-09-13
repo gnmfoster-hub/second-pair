@@ -271,6 +271,109 @@ export async function setNotifyEveryEnquiry(
   return { ok: true };
 }
 
+/**
+ * A team member's own calendar, connected by the owner.
+ *
+ * The other direction from the link beside it, and the half that was missing.
+ * Everybody could be handed a feed of their diary going out; nobody but the
+ * person signed in could connect the calendar they live by coming in — and in
+ * a salon that is the owner and almost nobody else, because a stylist does not
+ * need a login to cut hair.
+ *
+ * So the person most likely to be booked over their own dentist appointment
+ * was the person with no way to prevent it, and no way to ask anybody to.
+ *
+ * The owner's, because it is the owner doing it on somebody's behalf. The
+ * person can still change or remove it themselves if they have a login, and
+ * their switches for showing it are untouched here.
+ */
+export async function saveTeamCalendar(
+  _prev: FormState,
+  fd: FormData,
+): Promise<FormState> {
+  const { studio } = await requireOwner();
+  const supabase = await createClient();
+
+  const artistId = str(fd, "artist_id");
+  if (!artistId) return { error: "Which person is this for?" };
+
+  const { data: artist } = await supabase
+    .from("artists")
+    .select("id")
+    .eq("id", artistId)
+    .eq("studio_id", studio.id)
+    .maybeSingle();
+
+  if (!artist) return { error: "That person is not on this business." };
+
+  const url = str(fd, "personal_ical_url");
+
+  // Clearing it is a real instruction, and the only way to take one off for
+  // somebody who cannot sign in to do it themselves.
+  if (!url) {
+    const { error } = await supabase
+      .from("artists")
+      .update({
+        personal_ical_url: null,
+        personal_calendar_error: null,
+        personal_calendar_read_at: null,
+      })
+      .eq("id", artistId);
+    if (error) return { error: error.message };
+    revalidatePath("/settings/artists");
+    revalidatePath("/diary");
+    return { ok: true };
+  }
+
+  if (!/^(https?|webcal):\/\//i.test(url)) {
+    return { error: "That should start with https:// or webcal://." };
+  }
+
+  /*
+   * Read it now, over a fortnight. Long enough to prove it is a calendar,
+   * short enough not to download a year of somebody's life — and doing it here
+   * means a wrong address is refused while the owner is still looking at it,
+   * rather than silently blocking nothing for a week.
+   */
+  const from = new Date();
+  const to = new Date(from.getTime() + 14 * 86400000);
+
+  try {
+    await busyFromIcal(url, from, to);
+  } catch (e) {
+    return {
+      error:
+        e instanceof Error
+          ? `That address did not work: ${e.message}`
+          : "That address did not return a calendar.",
+    };
+  }
+
+  const { error } = await supabase
+    .from("artists")
+    .update({
+      personal_ical_url: url,
+      /*
+       * Shown in their column, and without the names of things.
+       *
+       * The default for somebody else connecting it on their behalf has to be
+       * the private one: the owner pasting an address is not the same as the
+       * person choosing what the rest of the shop can read off the diary.
+       */
+      personal_calendar_show: true,
+      personal_calendar_titles: false,
+      personal_calendar_error: null,
+      personal_calendar_read_at: new Date().toISOString(),
+    })
+    .eq("id", artistId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/artists");
+  revalidatePath("/diary");
+  return { ok: true };
+}
+
 export async function disconnectPersonalCalendar(
   _prev: FormState,
   _fd: FormData,

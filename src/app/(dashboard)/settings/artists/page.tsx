@@ -4,6 +4,7 @@ import { ArtistEditor } from "./ArtistEditor";
 import { InviteButton } from "./InviteButton";
 import { InviteStaff } from "./InviteStaff";
 import { TeamCalendar } from "./TeamCalendar";
+import { TheirCalendar } from "./TheirCalendar";
 import { createClient } from "@/lib/supabase/server";
 import { siteOrigin } from "@/lib/origin";
 
@@ -121,13 +122,20 @@ export default async function ArtistsPage() {
             * unreachable to them and to the person who could have helped.
             */}
           {owns && (
-            <div className="px-1">
+            <div className="space-y-2 px-1">
               <TeamCalendar
                 origin={origin}
                 artistId={artist.id}
                 name={artist.name}
                 token={artist.calendar_token}
               />
+
+              {/*
+                * And the other direction, which was the half nobody could do.
+                * A person with no login could never connect the calendar they
+                * live by, and nobody could do it for them.
+                */}
+              <TheirCalendar artist={artist} />
             </div>
           )}
 
