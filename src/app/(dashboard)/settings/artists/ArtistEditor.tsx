@@ -172,6 +172,71 @@ export function ArtistEditor({
           </Field>
         </div>
 
+        {/*
+          * Whether this person takes money, and which kind.
+          *
+          * Both switches have existed in the database since payments were
+          * built, and the code that decides who may charge a card has read
+          * them the whole time. Nothing could set them — so everybody has had
+          * the default, and the per-person half of "switches per business and
+          * per person" was a pair of values nobody could reach.
+          *
+          * Two questions rather than one, because they are genuinely
+          * different: a tattooist takes a deposit and invoices the rest, a
+          * stylist takes the lot on the day and holds nothing. The business
+          * has to allow it as well — both switches have to agree — so ticking
+          * one here does not override a shop that takes no payments at all.
+          */}
+        <fieldset className="rounded-xl border border-border p-4">
+          <legend className="label px-1">Taking money</legend>
+          <input type="hidden" name="touch_money" value="1" />
+
+          <label className="flex items-start gap-2.5 text-sm">
+            <input
+              type="checkbox"
+              name="takes_deposits"
+              defaultChecked={artist?.takes_deposits !== false}
+              className="mt-0.5 accent-[var(--accent)]"
+            />
+            <span>
+              Can take a deposit
+              <span className="hint block">
+                For holding an appointment. The business has to be taking them too.
+              </span>
+            </span>
+          </label>
+
+          <label className="mt-3 flex items-start gap-2.5 text-sm">
+            <input
+              type="checkbox"
+              name="takes_payments"
+              defaultChecked={artist?.takes_payments !== false}
+              className="mt-0.5 accent-[var(--accent)]"
+            />
+            <span>
+              Can take the full amount
+              <span className="hint block">
+                Payment links, and anything charged in full. Separate from deposits,
+                because plenty of trades do one and not the other.
+              </span>
+            </span>
+          </label>
+
+          {/*
+            * Where their money goes, said rather than left to be discovered.
+            *
+            * On the per-person model this is the difference between a payment
+            * working and being refused, and no switch on this screen can fix
+            * it — it is Stripe's own onboarding, with their ID and their bank
+            * details.
+            */}
+          <p className="hint mt-3">
+            {artist?.stripe_account_id
+              ? "They have their own Stripe account, so their money can go straight to them."
+              : "They have no Stripe account of their own. Where a business pays each person directly, theirs cannot be taken until they connect one."}
+          </p>
+        </fieldset>
+
         <Field label="Styles" hint="Used to route enquiries to the right person.">
           <div className="flex flex-wrap gap-x-5 gap-y-2 pt-1">
             {styles.map((s) => (

@@ -943,6 +943,28 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
     ical_url: str(fd, "ical_url") || null,
     booking_url: str(fd, "booking_url") || null,
     active: ticked(fd, "active"),
+
+    /*
+     * Whether this person takes money, and which kind.
+     *
+     * Both columns have existed since payments were built and whoTakes has
+     * read them from the day it was written — and nothing anywhere could set
+     * them. So every person in every business has had the default, and the
+     * per-person half of "switches per business and per person" was a pair of
+     * values nobody could reach.
+     *
+     * Written only when the form says it carried them. An unticked checkbox
+     * and an absent one are indistinguishable in a submission, so without this
+     * sentinel a save from any screen that does not show them — or from an
+     * older page still open in a tab — would read as "switch both off" and
+     * quietly stop somebody taking a deposit.
+     */
+    ...(fd.get("touch_money")
+      ? {
+          takes_deposits: fd.get("takes_deposits") === "on",
+          takes_payments: fd.get("takes_payments") === "on",
+        }
+      : {}),
   };
 
   const photo = fd.get("avatar");

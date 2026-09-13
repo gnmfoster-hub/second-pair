@@ -357,6 +357,22 @@ export type Artist = {
    */
   owner_managed: boolean;
   /**
+   * Whether this person may take a deposit, and whether they may take the full
+   * amount. Two questions, because a tattooist takes a deposit and invoices
+   * the rest while a stylist takes the lot on the day and holds nothing.
+   *
+   * The business's own switches have to agree as well — see whoTakes, which is
+   * where both halves are decided together.
+   */
+  takes_deposits?: boolean;
+  takes_payments?: boolean;
+  /**
+   * Their own connected Stripe account, where a business pays each person
+   * directly rather than into one account for the shop. Null means their money
+   * has nowhere of its own to land yet.
+   */
+  stripe_account_id?: string | null;
+  /**
    * What the assistant calls itself on this person's own enquiries.
    *
    * Null uses the business's, which uses the default. Two falls, one meaning:
