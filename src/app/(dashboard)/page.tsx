@@ -4,6 +4,7 @@ import { requireStudio } from "@/lib/studio";
 import { isOutOfHours } from "@/lib/report";
 import { readinessOf } from "@/lib/readiness";
 import { Readiness } from "@/components/Readiness";
+import { DemoReset } from "@/components/DemoReset";
 import { Page, PageHeader } from "@/components/PageHeader";
 import { colourForName, initialsOf } from "@/lib/diaryColour";
 import { ChannelIcon } from "@/components/ChannelIcon";
@@ -337,6 +338,17 @@ export default async function InboxPage({
       )}
 
       <Readiness capabilities={capabilities} />
+
+      {/*
+        * Only on the demo, where a demonstration leaves marks.
+        *
+        * Somebody books a client in to show how it works, cancels one to show
+        * what happens, types a reply in the inbox — and the next person shown
+        * it opens a salon with a half-finished conversation in it. The button
+        * belongs where the mess is, rather than in a back office nobody is
+        * looking at afterwards.
+        */}
+      {studio.kind === "demo" && <DemoReset />}
 
       <div className="card mt-4 overflow-hidden">
         {conversations.length === 0 ? (
