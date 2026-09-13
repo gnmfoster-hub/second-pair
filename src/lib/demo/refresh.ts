@@ -26,7 +26,43 @@ export type DemoRefresh = {
   appointments: number;
   conversations: number;
   messages: number;
+  /** Past visits built behind this week, so the salon has a memory. */
+  history: number;
+  /** Things sold over the counter, so the till has something in it. */
+  sales: number;
 };
+
+/**
+ * How often each regular comes, in days.
+ *
+ * Spread on purpose, because a good deal of the product is about the
+ * difference between them. A demo where everybody comes every four weeks
+ * cannot show a "who hasn't been back" list worth anything — that list is
+ * measured against each person's own rhythm, and with one rhythm there is
+ * nothing to measure. So: a fringe trim every three weeks, a colour every six,
+ * a cut before Christmas and again before the summer.
+ */
+const RHYTHMS = [21, 28, 35, 42, 56, 70, 84, 120, 180];
+
+/** What a regular usually has, so "the usual" has something to be. */
+const USUAL: [string, number, number][] = [
+  ["Cut and blow dry", 45, 4200],
+  ["Colour and cut", 120, 9500],
+  ["Roots", 75, 6500],
+  ["Highlights", 150, 12000],
+  ["Fringe trim", 15, 1000],
+  ["Blow dry", 30, 2800],
+  ["Balayage", 180, 15000],
+];
+
+/** What the shelf sells, for the counter sales. */
+const SHELF: [string, number][] = [
+  ["Shampoo, 250ml", 1450],
+  ["Conditioner, 250ml", 1450],
+  ["Heat protect spray", 1800],
+  ["Gift voucher", 5000],
+  ["Sea salt spray", 1600],
+];
 
 /*
  * Seven services and five answered questions.
@@ -368,11 +404,36 @@ export async function refreshDemo(db: Db, studioId: string): Promise<DemoRefresh
   // -------------------------------------------------------- the regulars
   const { data: regulars } = await db
     .from("contacts")
-    .select("id")
+    .select("id, name")
     .eq("studio_id", studio.id)
     .limit(40);
 
-  const clients = regulars ?? [];
+  /*
+   * Named people only.
+   *
+   * The demo accumulates contacts with no name — somebody opening the widget
+   * on the live site and typing nothing is a real contact row with a null
+   * name, and there are five of them. Given a year of history and a place on
+   * the "who hasn't been back" list they turn into "Somebody, last in four
+   * months ago", which reads as a bug in a screen whose whole job is to be
+   * read as trustworthy.
+   */
+  const clients = (regulars ?? []).filter((c) => (c.name ?? "").trim().length > 0);
+
+  /*
+   * Who has stopped coming, settled before anything is built.
+   *
+   * A lapsed client is an absence, and an absence has to be arranged for: it
+   * is not enough to leave them out of the history, they also have to be left
+   * out of this week, or their last visit is Tuesday and they are not lapsed
+   * at all. That is exactly how the first version of this produced a "who
+   * hasn't been back" list with nobody on it — the history said gone four
+   * months, the week said in on Tuesday, and the week was right.
+   *
+   * Decided here, once, so the two halves cannot disagree.
+   */
+  const lapsedIds = new Set(clients.filter((_, i) => i % 7 === 3).map((c) => c.id));
+  const stillComing = clients.filter((c) => !lapsedIds.has(c.id));
 
   // ---------------------------------------------------------- the week
   /*
@@ -419,20 +480,48 @@ export async function refreshDemo(db: Db, studioId: string): Promise<DemoRefresh
         if (minute + mins > 17 * 60 + 30) break;
 
         const starts = at(day, Math.floor(minute / 60), minute % 60);
-        await db.from("bookings").insert({
+        /*
+         * The error is read, which it was not before.
+         *
+         * Every insert in this loop was fired and forgotten, and `appointments`
+         * counted the attempt rather than the row. So a quarter of them were
+         * being refused by a check constraint while the back office reported a
+         * successful rebuild with a number in it — the one kind of failure
+         * nobody goes looking for, because the screen says it worked.
+         */
+        const { error: bookingError } = await db.from("bookings").insert({
           artist_id: stylist.id,
-          contact_id: clients.length ? clients[n % clients.length].id : null,
+          // Anybody marked as having stopped coming is not in this week.
+          contact_id: stillComing.length ? stillComing[n % stillComing.length].id : null,
           starts_at: starts.toISOString(),
           ends_at: new Date(starts.getTime() + mins * 60_000).toISOString(),
           type: "session",
           title,
-          // A quarter look like the assistant's work, which is the point of the
-          // product and should be visible in the demo.
-          source: n % 4 === 0 ? "assistant" : "manual",
+          /*
+           * Every one of these is typed in by hand, and that is not a
+           * compromise — it is the truth about a salon's week and it is what
+           * makes the takings figure mean anything.
+           *
+           * This line used to make every fourth one 'assistant', to show the
+           * product's own work in the diary. It never once worked: an
+           * assistant booking must carry the enquiry that made it, the
+           * constraint says so, and none of these had one — so a quarter of
+           * the demo's week was rejected by the database on every rebuild,
+           * counted as inserted anyway because nothing checked, and reported
+           * back as a number that had never been true.
+           *
+           * The assistant's own bookings are further down, made out of the
+           * conversations in the inbox, which is where they can be real.
+           */
+          source: "manual",
           price_pence: price,
           deposit_amount_pence: 0,
           blocks_availability: true,
         });
+
+        if (bookingError) {
+          throw new Error(`Could not build the demo's week: ${bookingError.message}`);
+        }
         appointments++;
 
         /*
@@ -482,6 +571,9 @@ export async function refreshDemo(db: Db, studioId: string): Promise<DemoRefresh
     });
     appointments++;
   }
+
+  // ------------------------------------------------------- the memory
+  const { history, sales } = await buildHistory(db, studio.id, clients, lapsedIds, roster, monday);
 
   // --------------------------------------------------------- the inbox
   const contacts: Record<string, string> = {};
@@ -626,5 +718,244 @@ export async function refreshDemo(db: Db, studioId: string): Promise<DemoRefresh
     conversations++;
   }
 
-  return { appointments, conversations, messages };
+  return { appointments, conversations, messages, history, sales };
+}
+
+/**
+ * Ten months of the salon's past, behind this week.
+ *
+ * The demo had exactly one week in it, and a week is not a business. Everything
+ * the product knows about a person is built out of their history — who they
+ * usually see, what they usually have, how long they really take, whether they
+ * have quietly stopped coming — so with seven days of appointments every one of
+ * those screens was empty or said "first visit", and the demo could not show
+ * the half of the product that is worth the most.
+ *
+ * Each regular gets a rhythm, a usual, and a usual stylist, and then comes in
+ * on that rhythm all the way back. Which means the client record has a real
+ * history on it, "usually with" has an answer, and the takings have something
+ * behind them.
+ *
+ * Three of them are stopped early, deliberately. A demo of "who hasn't been
+ * back" with nobody on the list demonstrates nothing at all, and lapsed
+ * clients are not a thing you can add later — they are an absence, and an
+ * absence has to be built in.
+ */
+async function buildHistory(
+  db: Db,
+  studioId: string,
+  clients: { id: string }[],
+  /** Who has stopped coming. Decided by the caller, so this week agrees. */
+  lapsedIds: Set<string>,
+  roster: { id: string; name: string }[],
+  monday: Date,
+): Promise<{ history: number; sales: number }> {
+  if (clients.length === 0 || roster.length === 0) return { history: 0, sales: 0 };
+
+  const DAY = 86_400_000;
+
+  /*
+   * Which day each visit falls on, before any time is decided.
+   *
+   * The two halves are separate on purpose. The day comes from the client's
+   * rhythm, which is the thing being modelled; the time comes from what else
+   * that stylist already has on, which is a constraint rather than a choice.
+   * Deciding both at once is what produced two customers in one chair at half
+   * past two — the database refused it, correctly, and the whole rebuild
+   * failed.
+   */
+  type Planned = {
+    artistId: string;
+    contactId: string;
+    /** Midnight on the day, local. */
+    day: number;
+    title: string;
+    mins: number;
+    price: number;
+    attended: boolean;
+  };
+
+  const planned: Planned[] = [];
+
+  clients.forEach((client, i) => {
+    const rhythm = RHYTHMS[i % RHYTHMS.length];
+    const [title, mins, price] = USUAL[i % USUAL.length];
+    // Their usual stylist, so "usually with" is a real answer rather than
+    // whoever happened to be free the day the demo was built.
+    const stylist = roster[i % roster.length];
+
+    /*
+     * Some of them stopped coming, chosen by the caller so that this week and
+     * this history tell the same story. Spread across different rhythms, so
+     * the lapsed list is not simply "the ones who come least often" — the
+     * thing being demonstrated is that a five-week client gone three months
+     * outranks a twice-a-year client gone seven.
+     */
+    const stoppedDaysAgo = lapsedIds.has(client.id) ? rhythm * 3 : 0;
+
+    for (let visit = 1; visit <= 12; visit++) {
+      const daysBack = stoppedDaysAgo + visit * rhythm;
+      if (daysBack > 300) break;
+
+      /*
+       * A little scatter, because nobody comes back on exactly the same
+       * interval, and a median taken from identical gaps is a suspiciously
+       * tidy number on a screen meant to look like a real salon.
+       */
+      const jitter = ((i * 7 + visit * 13) % 7) - 3;
+      const when = new Date(monday.getTime() - (daysBack + jitter) * DAY);
+      when.setHours(0, 0, 0, 0);
+
+      // Nobody comes in on a Sunday.
+      if (when.getDay() === 0) when.setDate(when.getDate() - 1);
+
+      planned.push({
+        artistId: stylist.id,
+        contactId: client.id,
+        day: when.getTime(),
+        title,
+        mins,
+        price,
+        /*
+         * Closed off, which is what an appointment from March looks like.
+         * Left null they would all sit in the diary as unanswered "did they
+         * come?" prompts stretching back ten months.
+         */
+        attended: (i + visit) % 11 !== 0,
+      });
+    }
+  });
+
+  /*
+   * Now the times, one stylist's day at a time.
+   *
+   * Laid out end to end from nine with a quarter of an hour between, which is
+   * how a chair actually fills up, and guarantees the thing the database
+   * insists on: no two appointments in one person's diary at once.
+   */
+  const rows: Record<string, unknown>[] = [];
+  const days = new Map<string, Planned[]>();
+
+  for (const p of planned) {
+    const key = `${p.artistId}:${p.day}`;
+    days.set(key, [...(days.get(key) ?? []), p]);
+  }
+
+  for (const sameDay of days.values()) {
+    let minute = 9 * 60;
+
+    for (const p of sameDay) {
+      // A chair that is full is full. Anybody left over simply did not come
+      // that day, which is more honest than stacking them on top of a colleague.
+      if (minute + p.mins > 18 * 60) break;
+
+      const starts = new Date(p.day);
+      starts.setHours(Math.floor(minute / 60), minute % 60, 0, 0);
+
+      rows.push({
+        artist_id: p.artistId,
+        contact_id: p.contactId,
+        starts_at: starts.toISOString(),
+        ends_at: new Date(starts.getTime() + p.mins * 60_000).toISOString(),
+        type: "session",
+        title: p.title,
+        // Manual, necessarily: an assistant booking has to carry the enquiry
+        // that made it, and a visit from March has no conversation behind it.
+        source: "manual",
+        price_pence: p.price,
+        deposit_amount_pence: 0,
+        blocks_availability: true,
+        attended: p.attended,
+      });
+
+      minute = Math.ceil((minute + p.mins + 15) / 15) * 15;
+    }
+  }
+
+  // One statement rather than three hundred round trips.
+  const { error } = await db.from("bookings").insert(rows);
+  if (error) throw new Error(`Could not build the demo's history: ${error.message}`);
+
+  return { history: rows.length, sales: await buildSales(db, studioId, clients, roster, monday) };
+}
+
+/**
+ * A few weeks of things sold over the counter.
+ *
+ * Without these the till, the counter line in the report and the Bought
+ * section on a client's record are all empty — three screens that look broken
+ * rather than new. A salon sells a bottle most days, so the demo should too.
+ *
+ * Guarded rather than allowed to fail the whole refresh: this is the newest
+ * table in the product and a demo rebuild is not the place to discover that a
+ * migration has not been run somewhere.
+ */
+async function buildSales(
+  db: Db,
+  studioId: string,
+  clients: { id: string }[],
+  roster: { id: string; name: string }[],
+  monday: Date,
+): Promise<number> {
+  const DAY = 86_400_000;
+
+  try {
+    await db.from("payments").delete().eq("studio_id", studioId).eq("kind", "product");
+
+    const made: { id: string; lines: { name: string; pence: number; qty: number }[] }[] = [];
+
+    for (let i = 0; i < 18; i++) {
+      const when = new Date(monday.getTime() - (i * 2 + 1) * DAY);
+      when.setHours(11 + (i % 6), (i % 4) * 15, 0, 0);
+
+      // Two things in the sale now and then, which is what a sale looks like.
+      const lines = [
+        { ...shelfItem(i), qty: i % 5 === 0 ? 2 : 1 },
+        ...(i % 3 === 0 ? [{ ...shelfItem(i + 2), qty: 1 }] : []),
+      ];
+      const total = lines.reduce((sum, l) => sum + l.pence * l.qty, 0);
+
+      const { data } = await db
+        .from("payments")
+        .insert({
+          studio_id: studioId,
+          artist_id: roster[i % roster.length].id,
+          contact_id: clients[i % clients.length]?.id ?? null,
+          kind: "product",
+          gross_pence: total,
+          status: "paid",
+          method: i % 3 === 0 ? "cash" : "card",
+          description: lines
+            .map((l) => (l.qty > 1 ? `${l.qty} × ${l.name}` : l.name))
+            .join(", "),
+          paid_at: when.toISOString(),
+        })
+        .select("id")
+        .single();
+
+      if (data) made.push({ id: data.id, lines });
+    }
+
+    const items = made.flatMap((sale) =>
+      sale.lines.map((l, order) => ({
+        payment_id: sale.id,
+        name: l.name,
+        quantity: l.qty,
+        unit_pence: l.pence,
+        sort_order: order,
+      })),
+    );
+
+    if (items.length) await db.from("payment_items").insert(items);
+
+    return made.length;
+  } catch {
+    // A demo without a till is still a demo. Nothing else here depends on it.
+    return 0;
+  }
+}
+
+function shelfItem(i: number): { name: string; pence: number } {
+  const [name, pence] = SHELF[i % SHELF.length];
+  return { name, pence };
 }

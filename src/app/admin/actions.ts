@@ -324,8 +324,9 @@ export async function rebuildDemo(_prev: Result, fd: FormData): Promise<Result> 
     revalidatePath("/admin");
     return {
       note:
-        `Rebuilt: ${out.appointments} appointments this week, ${out.conversations} ` +
-        `conversations, ${out.messages} messages. All dated from today.`,
+        `Rebuilt: ${out.appointments} appointments this week, ${out.history} behind it, ` +
+        `${out.sales} counter sales, ${out.conversations} conversations, ${out.messages} ` +
+        `messages. All dated from today.`,
     };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "It would not rebuild." };

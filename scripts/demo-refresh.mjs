@@ -45,5 +45,6 @@ if (!studio) {
 
 const out = await refreshDemo(db, studio.id);
 console.log(
-  `${out.appointments} appointments, ${out.conversations} conversations and ${out.messages} messages for ${SLUG}.`,
+  `${out.appointments} appointments this week, ${out.history} behind it, ${out.sales} counter sales, ` +
+    `${out.conversations} conversations and ${out.messages} messages for ${SLUG}.`,
 );

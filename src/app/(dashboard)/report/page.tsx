@@ -5,6 +5,8 @@ import { weeklyReport, lastWeek } from "@/lib/report";
 import { takingsFor, takingsByService } from "@/lib/takings";
 import { Takings } from "./Takings";
 import { formatPence } from "@/lib/money";
+import { whoHasNotBeenBack } from "@/lib/lapsed";
+import { NotBeenBack } from "./NotBeenBack";
 
 function Stat({
   value,
@@ -79,6 +81,54 @@ export default async function ReportPage({
       ? takingsByService(supabase, studio.id, from, to)
       : Promise.resolve([]),
   ]);
+
+  /*
+   * Who has quietly stopped coming.
+   *
+   * Not about the week on screen. This is a standing question with the same
+   * answer whichever week you happen to be looking at, and it sits at the
+   * bottom because it is the part of this page somebody actually acts on.
+   *
+   * Two years of history, because the yardstick is each person's own rhythm
+   * and somebody who comes twice a year needs several visits before there is a
+   * rhythm to measure at all.
+   */
+  const twoYearsBack = new Date(now.getTime() - 730 * 86_400_000);
+  const { data: visitRows } = await supabase
+    .from("bookings")
+    .select("contact_id, starts_at, price_pence, artists!inner(studio_id), contacts(name)")
+    .eq("artists.studio_id", studio.id)
+    .not("contact_id", "is", null)
+    .is("cancelled_at", null)
+    .eq("blocks_availability", true)
+    .gte("starts_at", twoYearsBack.toISOString());
+
+  const visits = (visitRows ?? []) as unknown as {
+    contact_id: string;
+    starts_at: string;
+    price_pence: number | null;
+    contacts: { name: string | null } | null;
+  }[];
+
+  const notBeenBack = whoHasNotBeenBack(
+    visits.map((v) => ({
+      contactId: v.contact_id,
+      name: v.contacts?.name ?? null,
+      at: v.starts_at,
+      pence: v.price_pence,
+    })),
+    now,
+    {
+      /*
+       * Anybody with something in the diary ahead is already coming back, and
+       * a list that says to chase somebody booked in on Thursday is one
+       * nobody reads twice.
+       */
+      booked: visits
+        .filter((v) => Date.parse(v.starts_at) > now.getTime())
+        .map((v) => v.contact_id),
+    },
+  );
 
   /*
    * Proof that an empty week is a quiet week, not a broken page.
@@ -217,6 +267,8 @@ export default async function ReportPage({
 
       {/* What the week came to, from the diary rather than the conversations. */}
       <Takings figures={takings} byService={byService} />
+
+      <NotBeenBack people={notBeenBack} />
 
       {/*
        * What the assistant costs to run is not shown here any more.
