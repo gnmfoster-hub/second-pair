@@ -14,6 +14,7 @@ import { verticalPack } from "@/lib/verticals";
 import { busyFromIcal } from "@/lib/booking/ical";
 import { stillWorthAsking } from "@/lib/askedAlready";
 import { readNumbers } from "@/lib/channels/phoneNumbers";
+import { hasColumn } from "@/lib/db/hasColumn";
 import { readHex, autoText } from "@/lib/widget/colour";
 import {
   isShape,
@@ -1489,9 +1490,13 @@ export async function saveCallForwarding(
   const read = readNumbers(existing.external_id ?? "", String(fd.get("forward_to") ?? ""));
   if (!read.ok) return { error: read.error };
 
+  const stamped = (await hasColumn(supabase, "channel_connections", "updated_at"))
+    ? { updated_at: new Date().toISOString() }
+    : {};
+
   const { error } = await supabase
     .from("channel_connections")
-    .update({ forward_to: read.forwardTo })
+    .update({ forward_to: read.forwardTo, ...stamped })
     .eq("id", existing.id);
 
   if (error) return { error: error.message };

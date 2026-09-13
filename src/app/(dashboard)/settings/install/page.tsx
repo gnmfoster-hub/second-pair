@@ -6,6 +6,7 @@ import { Avatar } from "@/components/Avatar";
 import { Snippet } from "./Snippet";
 import { TextNumber } from "./TextNumber";
 import { smsNumberFor } from "@/lib/messaging/connections";
+import { savedWords } from "@/lib/savedAt";
 import { smsConfigured } from "@/lib/messaging/sms";
 import { createClient } from "@/lib/supabase/server";
 import { Appearance } from "./Appearance";
@@ -83,10 +84,11 @@ export default async function ChannelsPage({
   const supabaseForNumbers = await createClient();
   const smsNumber = await smsNumberFor(supabaseForNumbers, studio.id);
 
-  // Where a call to that number rings before it becomes a text.
+  // Where a call to that number rings before it becomes a text, and when that
+  // was last decided.
   const { data: line } = await supabaseForNumbers
     .from("channel_connections")
-    .select("forward_to")
+    .select("forward_to, updated_at")
     .eq("studio_id", studio.id)
     .eq("channel", "sms")
     .maybeSingle();
@@ -109,6 +111,13 @@ export default async function ChannelsPage({
         <TextNumber
           number={smsNumber}
           forwardTo={line?.forward_to ?? null}
+          /*
+           * Worked out here, in the business's own zone, because a date turned
+           * into words in the browser is a date the server rendered
+           * differently — which React reports as a hydration error and the
+           * reader sees as the page flickering.
+           */
+          savedAt={savedWords(line?.updated_at, studio.timezone)}
           sendingReady={smsConfigured()}
         />
       </section>

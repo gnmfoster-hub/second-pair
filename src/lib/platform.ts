@@ -166,6 +166,12 @@ export type BusinessSummary = {
     active: boolean;
     /** Where a call rings before it becomes a text. SMS only. */
     forwardTo: string | null;
+    /**
+     * When the number or its forwarding last changed, in words. Null if it
+     * never has — which, on a support call, is the difference between "that
+     * did not save" and "that saved and something else is wrong".
+     */
+    savedAt: string | null;
   }[];
 
   settings: {

@@ -32,14 +32,37 @@ test("no business number means hand the number back", () => {
   assert.equal(accepted("", "").number, null);
 });
 
-test("a number in the shape people say out loud is refused", () => {
-  for (const bad of ["07700900123", "447700900123", "+44", "+0770090012", "hello"]) {
+/*
+ * This test used to assert the opposite, and it was wrong about the product
+ * rather than about the code.
+ *
+ * A real number, bought that morning and read off the Twilio invoice as
+ * 07860 123456, bounced off the form with a message about international
+ * dialling. Nobody in this country writes their own number with a +44 on the
+ * front, so the form was refusing the shape the answer actually arrives in.
+ */
+test("a number in the shape people say out loud is taken, and stored the way the line needs it", () => {
+  assert.equal(accepted("07700 900123", "").number, "+447700900123");
+  assert.equal(accepted("447700900123", "").number, "+447700900123");
+});
+
+test("the ring-me number is read the same forgiving way", () => {
+  assert.equal(accepted("+447700900123", "07700 900456").forwardTo, "+447700900456");
+});
+
+/*
+ * Forgiving about the shape is not the same as forgiving about the number, and
+ * that is the line worth holding a test against: widening what counts as typing
+ * it right must not widen what counts as a number.
+ */
+test("what is not a number is still not a number", () => {
+  for (const bad of ["+44", "+0770090012", "hello", "07700", "0770090012345"]) {
     refused(bad, "");
   }
 });
 
 test("a bad ring-me number is caught even when it is the only thing typed", () => {
-  assert.match(refused("", "07700900456").error, /international/);
+  assert.match(refused("", "0 7 7 0 0").error, /international/);
 });
 
 test("a call cannot be forwarded to itself, however it is punctuated", () => {

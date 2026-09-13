@@ -21,6 +21,7 @@ import {
   type Result,
 } from "./actions";
 import { formatPence } from "@/lib/money";
+import { readableNumber } from "@/lib/channels/phoneNumbers";
 import { Band, Figure } from "@/components/Figures";
 import type { PlatformKpis } from "@/lib/platform";
 
@@ -1139,8 +1140,40 @@ function Channels({ b }: { b: BusinessSummary }) {
             <button type="submit" className="btn bg-accent text-on-accent">
               Save their number
             </button>
-            {state.ok && <span className="hint">Saved.</span>}
+            {state.ok && <span className="text-sm text-ok">Saved.</span>}
             {state.error && <span className="text-sm text-warn">{state.error}</span>}
+
+            {/*
+              * What is actually stored, and when it went in.
+              *
+              * This panel used to be two boxes and a button, so a number that
+              * had been refused looked exactly like a number that had been
+              * saved — the boxes still held whatever was typed, either way. A
+              * number was bought, typed in here, and believed to be live for a
+              * day while nothing was connected at all.
+              *
+              * So it reports the stored value back rather than the typed one,
+              * in the shape a person reads it out, with the moment it saved
+              * next to it. "Nothing saved yet" is the line that answers the
+              * support call before it is made.
+              */}
+            <span className="hint ml-auto text-right">
+              {sms?.externalId ? (
+                <>
+                  Stored:{" "}
+                  <span className="font-mono">{readableNumber(sms.externalId)}</span>
+                  {sms.forwardTo && (
+                    <>
+                      , rings <span className="font-mono">{readableNumber(sms.forwardTo)}</span>
+                    </>
+                  )}
+                  {" · "}
+                  {sms.savedAt ? `saved ${sms.savedAt}` : "saved before this was recorded"}
+                </>
+              ) : (
+                "Nothing saved yet."
+              )}
+            </span>
           </div>
         </form>
 

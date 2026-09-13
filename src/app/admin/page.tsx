@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isPlatformAdmin, type BusinessSummary, type PlatformKpis } from "@/lib/platform";
 import { VERTICAL_LIST } from "@/lib/verticals";
+import { savedWords } from "@/lib/savedAt";
 import { Console } from "./Console";
 
 export const metadata = { title: "Second Pair — every business" };
@@ -112,7 +113,7 @@ export default async function AdminPage() {
    */
   const { data: connections } = await db
     .from("channel_connections")
-    .select("id, studio_id, channel, label, external_id, active, forward_to, artists(name)")
+    .select("id, studio_id, channel, label, external_id, active, forward_to, updated_at, artists(name)")
     .order("channel");
 
   const emailFor = new Map((users?.users ?? []).map((u) => [u.id, u.email ?? null]));
@@ -223,6 +224,7 @@ export default async function AdminPage() {
             external_id: string | null;
             active: boolean;
             forward_to: string | null;
+            updated_at: string | null;
             artists: { name: string } | null;
           }[]
         )
@@ -235,6 +237,7 @@ export default async function AdminPage() {
             forWho: c.artists?.name ?? null,
             active: c.active,
             forwardTo: c.forward_to,
+            savedAt: savedWords(c.updated_at),
           })),
         tickets: (tickets ?? [])
           .filter((t) => t.studio_id === s.id)

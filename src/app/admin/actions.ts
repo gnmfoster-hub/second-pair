@@ -5,6 +5,7 @@ import { seedFromPack } from "@/lib/seed";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { readNumbers } from "@/lib/channels/phoneNumbers";
 import { isPlatformAdmin } from "@/lib/platform";
+import { hasColumn } from "@/lib/db/hasColumn";
 import { siteOrigin } from "@/lib/origin";
 import { refreshDemo } from "@/lib/demo/refresh";
 
@@ -999,10 +1000,25 @@ export async function fixChannel(_prev: Result, fd: FormData): Promise<Result> {
     .limit(1)
     .maybeSingle();
 
+  /*
+   * Stamped only once the column is there. Writing it before the migration
+   * runs would not lose the stamp — PostgREST would reject the whole save, and
+   * the number would not go in at all.
+   */
+  const stamped = (await hasColumn(db, "channel_connections", "updated_at"))
+    ? { updated_at: new Date().toISOString() }
+    : {};
+
   const { error } = existing
     ? await db
         .from("channel_connections")
-        .update({ external_id: number, label: number, active: true, forward_to: forwardTo })
+        .update({
+          external_id: number,
+          label: number,
+          active: true,
+          forward_to: forwardTo,
+          ...stamped,
+        })
         .eq("id", existing.id)
     : await db.from("channel_connections").insert({
         studio_id: id,
@@ -1011,6 +1027,7 @@ export async function fixChannel(_prev: Result, fd: FormData): Promise<Result> {
         label: number,
         active: true,
         forward_to: forwardTo,
+        ...stamped,
       });
 
   if (error) return { error: error.message };

@@ -25,11 +25,22 @@ import { readableNumber } from "@/lib/channels/phoneNumbers";
 export function TextNumber({
   number,
   forwardTo,
+  savedAt,
   sendingReady,
 }: {
   number: string | null;
   /** Where a call to it rings first. Null texts the caller straight away. */
   forwardTo: string | null;
+  /**
+   * When this last changed, already in words. Null if it never has.
+   *
+   * "Saved." disappears on the next render, so five minutes later there is no
+   * telling a saved setting from one that was typed and abandoned. Same reason
+   * the main settings form grew a last-saved line, and the question is sharper
+   * here: whether your phone rings is not a thing to discover by missing a
+   * call.
+   */
+  savedAt: string | null;
   /** Whether the platform can send at all. Nothing they can do about it. */
   sendingReady: boolean;
 }) {
@@ -104,7 +115,29 @@ export function TextNumber({
             <SubmitButton />
             {state.error && <p className="text-sm text-bad">{state.error}</p>}
             {state.ok && <p className="text-sm text-ok">Saved.</p>}
+            <span className="hint ml-auto">
+              {savedAt ? `Last saved ${savedAt}` : "Not changed since it was set up"}
+            </span>
           </div>
+
+          {/*
+            * What is actually stored, said back in the shape it was typed.
+            *
+            * The box holds whatever was last typed into it, saved or not, so
+            * on its own it cannot answer "did that go in" — and this setting
+            * is one whose failure nobody notices until a call is missed.
+            */}
+          <p className="hint">
+            {forwardTo ? (
+              <>
+                A call to your number rings{" "}
+                <span className="font-mono">{readableNumber(forwardTo)}</span> for fifteen
+                seconds first, then the caller gets a text.
+              </>
+            ) : (
+              "Nobody is rung. A missed call is texted back straight away."
+            )}
+          </p>
         </form>
       )}
 

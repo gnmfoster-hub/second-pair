@@ -10,7 +10,12 @@
  * somebody else is a question only the database can answer.
  */
 
-/** Twilio addresses everything in full international form. Nothing else matches. */
+/**
+ * Twilio addresses everything in full international form. Nothing else matches.
+ *
+ * samePhone, at the foot of this file, is what turns what somebody types into
+ * that shape. This is the check that what came out is usable.
+ */
 const INTERNATIONAL = /^\+[1-9]\d{7,14}$/;
 
 /** How people write numbers, against how Twilio stores them. */
@@ -28,8 +33,21 @@ export type Numbers =
   | { ok: false; error: string };
 
 export function readNumbers(rawNumber: string, rawForward: string): Numbers {
-  const number = tidyNumber(rawNumber);
-  const forward = tidyNumber(rawForward);
+  /*
+   * Read the way somebody would write it, stored the way the line needs it.
+   *
+   * This used to demand the + form and refuse anything else, so typing
+   * 07860 123456 — which is how the number is written in this country, and how
+   * it is read off a card or a Twilio invoice — was rejected. A real number,
+   * bought that morning, bounced off a form with a message about international
+   * dialling.
+   *
+   * samePhone is the same normaliser the client search and the contact records
+   * use, so a number means the same thing everywhere in the product rather
+   * than in most of it.
+   */
+  const number = samePhone(rawNumber);
+  const forward = samePhone(rawForward);
 
   /*
    * Blank is a real answer in both boxes, and a different one in each.
