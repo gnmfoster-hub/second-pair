@@ -230,10 +230,35 @@ export default async function DiaryPage({
         ).data ?? [])
       : [];
 
-  const focused = who && team.some((a) => a.id === who) ? who : null;
-  const mine = new Set(
-    (focused ? team.filter((a) => a.id === focused) : artists).map((a) => a.id),
-  );
+  /*
+   * Whose columns are on screen.
+   *
+   * This was one person or everybody, which is the wrong shape for the salon
+   * it was built for: an owner with five chairs wants to watch the three that
+   * are in today, and had to choose between one stylist and a week's grid too
+   * wide to read. So `who` carries a list.
+   *
+   * Still in the address rather than in state, which is what makes it survive
+   * an arrow to next week, a reload, and being sent to somebody. Anything in
+   * it that is not one of this business's people is dropped rather than
+   * argued with — a stale link should show a diary, not an error.
+   */
+  const chosen = (who ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter((id) => team.some((a) => a.id === id));
+
+  // Empty means everybody, which is the ordinary case and needs no ticks.
+  const showing = chosen.length ? team.filter((a) => chosen.includes(a.id)) : team;
+
+  /** The address for a given set of people, in whichever view is open. */
+  const whoPart = (ids: string[]) => (ids.length ? `&who=${ids.join(",")}` : "");
+
+  /** That set with one person added or taken away. A chip is a tick. */
+  const toggled = (id: string) =>
+    chosen.includes(id) ? chosen.filter((x) => x !== id) : [...chosen, id];
+
+  const mine = new Set((chosen.length ? showing : artists).map((a) => a.id));
   /*
    * The arrangements anything on screen belongs to.
    *
@@ -413,8 +438,14 @@ export default async function DiaryPage({
    * where it is genuinely legible — a heading per day, a row per appointment,
    * and seven days of that reads perfectly well. Picking a person is what
    * unlocks the columns, because one person's week is what columns can show.
+   *
+   * Exactly one, and that is the point of the test rather than an accident of
+   * it. Now that several people can be ticked at once, three of five in the
+   * week would be three sets of appointments over seven columns — which is the
+   * confetti this whole note is about, arrived at by a different road. Several
+   * ticked gets the list, filtered to them, which is legible and honest.
    */
-  const weekEveryone = view === "week" && team.length > 1 && !focused;
+  const weekEveryone = view === "week" && team.length > 1 && chosen.length !== 1;
 
   /*
    * Filtered here rather than left to the grid.
@@ -425,7 +456,7 @@ export default async function DiaryPage({
    * filter has to happen before it gets there.
    */
   const gridEntries =
-    view === "week" && focused ? entries.filter((e) => e.artist_id === focused) : entries;
+    view === "week" && chosen.length ? entries.filter((e) => chosen.includes(e.artist_id)) : entries;
 
   const label =
     view === "day"
@@ -467,7 +498,7 @@ export default async function DiaryPage({
    * the second time it has been the same symptom, so it is a function rather
    * than five more template literals to keep in step by hand.
    */
-  const keepWho = (href: string) => (focused ? `${href}&who=${focused}` : href);
+  const keepWho = (href: string) => `${href}${whoPart(chosen)}`;
 
 
   // A month steps by a month, not by four weeks, or the label drifts.
@@ -540,7 +571,7 @@ export default async function DiaryPage({
 
   // Multiple people multiply the room available, so the figure means something
   // in a salon as well as in a van.
-  const capacity = workingMinutes * Math.max(1, focused ? 1 : team.length);
+  const capacity = workingMinutes * Math.max(1, showing.length);
 
   /*
    * The shape of the day, for the strip in the bar.
@@ -584,7 +615,7 @@ export default async function DiaryPage({
           Array.from({ length: 7 }, (_, i) => isoDate(addDays(start, i))),
           studio.hours,
           studio.timezone,
-          Math.max(1, focused ? 1 : team.length),
+          Math.max(1, showing.length),
         )
       : [];
 
@@ -627,11 +658,11 @@ export default async function DiaryPage({
           )
         : 0;
 
-    const people = Math.max(1, focused ? 1 : team.length);
+    const people = Math.max(1, showing.length);
     const room = openMinutes * people;
 
     const busy = weekLoad
-      .filter((b) => (focused ? b.artist_id === focused : mine.has(b.artist_id)))
+      .filter((b) => mine.has(b.artist_id))
       .filter((b) => isoDate(new Date(b.starts_at)) === key)
       .reduce(
         (total, b) =>
@@ -752,7 +783,7 @@ export default async function DiaryPage({
           <div data-no-swipe>
             <WhoPicker
               team={team}
-              focused={focused}
+              chosen={chosen}
               colourByPerson={(studio.diary_colour ?? "category") === "person"}
               view={view === "month" ? "week" : view}
               anchor={view === "day" ? isoDate(focusDay) : isoDate(start)}
@@ -1114,7 +1145,8 @@ export default async function DiaryPage({
             <WeekStrip
               focusDay={focusDay}
               load={strip}
-              who={focused}
+              // Carries whoever is ticked through to tomorrow, as one value.
+              who={chosen.length ? chosen.join(",") : null}
               today={isoDate(new Date())}
             />
           </SwipeDates>
@@ -1171,21 +1203,35 @@ export default async function DiaryPage({
                 : `/diary?view=week&week=${isoDate(start)}`
             }
             className={`rounded-full px-3 py-1 text-xs transition-colors ${
-              !focused ? "bg-surface-2 text-foreground" : "border border-border text-muted hover:text-foreground"
+              chosen.length === 0
+                ? "bg-surface-2 text-foreground"
+                : "border border-border text-muted hover:text-foreground"
             }`}
           >
             Everyone
           </Link>
+          {/*
+            * A chip is a tick, not a jump.
+            *
+            * It used to show exactly one person, which is the right control
+            * for "let me see Sarah's day" and no use at all for the thing an
+            * owner with five chairs actually does: watch the three who are in
+            * today. Tapping a name when none are ticked still shows only that
+            * person, so the old gesture does the old thing; tapping a second
+            * adds them, and un-ticking the last hands the diary back to
+            * everybody.
+            */}
           {team.map((a) => (
             <Link
               key={a.id}
               href={
                 view === "day"
-                  ? `/diary?view=day&day=${isoDate(focusDay)}&who=${a.id}`
-                  : `/diary?view=week&week=${isoDate(start)}&who=${a.id}`
+                  ? `/diary?view=day&day=${isoDate(focusDay)}${whoPart(toggled(a.id))}`
+                  : `/diary?view=week&week=${isoDate(start)}${whoPart(toggled(a.id))}`
               }
+              aria-pressed={chosen.includes(a.id)}
               className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition-colors ${
-                focused === a.id
+                chosen.includes(a.id)
                   ? "bg-surface-2 text-foreground"
                   : "border border-border text-muted hover:text-foreground"
               }`}
@@ -1367,7 +1413,7 @@ export default async function DiaryPage({
 
                 <DayList
                   entries={entries}
-                  artists={focused ? team.filter((a) => a.id === focused) : team}
+                  artists={showing}
                   timezone={studio.timezone}
                   /*
                     * One day, or the seven of the week. The same rows either
@@ -1393,7 +1439,7 @@ export default async function DiaryPage({
                 view={view}
                 colourBy={(studio.diary_colour ?? "category") as ColourMode}
                 entries={gridEntries}
-                artists={focused ? team.filter((a) => a.id === focused) : team}
+                artists={showing}
                 hours={studio.hours}
                 timezone={studio.timezone}
               />

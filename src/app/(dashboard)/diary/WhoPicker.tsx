@@ -32,14 +32,14 @@ import type { Artist } from "@/lib/types";
  */
 export function WhoPicker({
   team,
-  focused,
+  chosen,
   view,
   anchor,
   colourByPerson,
 }: {
   team: Artist[];
-  /** The id being shown, or null for everybody. */
-  focused: string | null;
+  /** Who is ticked. Empty means everybody, which is the ordinary case. */
+  chosen: string[];
   /** Which view the links should stay in. */
   view: "day" | "week";
   /** The day or the week start, as YYYY-MM-DD. */
@@ -49,13 +49,42 @@ export function WhoPicker({
 }) {
   const [open, setOpen] = useState(false);
 
-  const hrefFor = (id: string | null) =>
-    view === "day"
-      ? `/diary?view=day&day=${anchor}${id ? `&who=${id}` : ""}`
-      : `/diary?view=week&week=${anchor}${id ? `&who=${id}` : ""}`;
+  const hrefFor = (ids: string[]) => {
+    const who = ids.length ? `&who=${ids.join(",")}` : "";
+    return view === "day"
+      ? `/diary?view=day&day=${anchor}${who}`
+      : `/diary?view=week&week=${anchor}${who}`;
+  };
 
-  const person = focused ? team.find((a) => a.id === focused) : null;
+  /*
+   * Each row ticks itself in or out, and the menu stays open while it does.
+   *
+   * Watching three of five chairs is the thing this control now exists for,
+   * and a menu that shut after each name would make that three trips. Still
+   * links rather than state, so who is being watched stays in the address and
+   * survives an arrow to next week.
+   */
+  const toggled = (id: string) =>
+    chosen.includes(id) ? chosen.filter((x) => x !== id) : [...chosen, id];
+
   const colourOf = (a: Artist) => a.colour || colourForName(a.name);
+
+  /*
+   * What the button says.
+   *
+   * One person is their name, as it always was. Several is a count: three
+   * names do not fit across a phone, and "3 of 5" answers the question
+   * somebody is actually asking — whether they are looking at the whole shop —
+   * better than a truncated list does.
+   */
+  const picked = team.filter((a) => chosen.includes(a.id));
+  const person = picked.length === 1 ? picked[0] : null;
+  const label =
+    picked.length === 0
+      ? "Everyone"
+      : person
+        ? person.name
+        : `${picked.length} of ${team.length}`;
 
   return (
     <div className="relative">
@@ -73,7 +102,7 @@ export function WhoPicker({
             aria-hidden
           />
         )}
-        <span>{person ? person.name : "Everyone"}</span>
+        <span>{label}</span>
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path
             d="M6 9l6 6 6-6"
@@ -101,15 +130,15 @@ export function WhoPicker({
             role="menu"
           >
             <Link
-              href={hrefFor(null)}
+              href={hrefFor([])}
               onClick={() => setOpen(false)}
               className={`flex items-center gap-2.5 px-3.5 py-2.5 text-sm transition-colors hover:bg-surface-2 ${
-                !focused ? "font-semibold" : ""
+                picked.length === 0 ? "font-semibold" : ""
               }`}
               role="menuitem"
             >
               Everyone
-              {!focused && (
+              {picked.length === 0 && (
                 <span aria-hidden className="ml-auto text-accent">
                   ✓
                 </span>
@@ -121,12 +150,13 @@ export function WhoPicker({
             {team.map((a) => (
               <Link
                 key={a.id}
-                href={hrefFor(a.id)}
-                onClick={() => setOpen(false)}
+                href={hrefFor(toggled(a.id))}
+                // Deliberately left open: see the note on `toggled` above.
                 className={`flex items-center gap-2.5 px-3.5 py-2.5 text-sm transition-colors hover:bg-surface-2 ${
-                  focused === a.id ? "font-semibold" : ""
+                  chosen.includes(a.id) ? "font-semibold" : ""
                 }`}
-                role="menuitem"
+                role="menuitemcheckbox"
+                aria-checked={chosen.includes(a.id)}
               >
                 {/*
                   * Always a dot here, even when the diary is coloured by
@@ -139,7 +169,7 @@ export function WhoPicker({
                   aria-hidden
                 />
                 <span className="min-w-0 truncate">{a.name}</span>
-                {focused === a.id && (
+                {chosen.includes(a.id) && (
                   <span aria-hidden className="ml-auto text-accent">
                     ✓
                   </span>
