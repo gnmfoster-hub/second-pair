@@ -43,7 +43,7 @@ type RawRow = {
   deposit_amount_pence: number;
   price_pence: number | null;
   repeats: string;
-  group_id: string | null;
+  group_id?: string | null;
   attended: boolean | null;
   actual_minutes: number | null;
   outcome_note: string | null;
@@ -182,11 +182,21 @@ export default async function DiaryPage({
   // A little either side, so a multi-day holiday starting last week still shows.
   const { data } = await supabase
     .from("bookings")
+    /*
+     * Every column, named none of them.
+     *
+     * This listed each one, and adding group_id to the list before the
+     * migration existed took the diary out for every business at once —
+     * PostgREST rejects an entire query for one column it does not know, so
+     * the screen does not lose a field, it loses everything.
+     *
+     * A star cannot do that. It returns whatever the table has, so a column
+     * added later appears on its own and a column that is not there yet simply
+     * is not read. The joins still have to be named, and they are all on
+     * tables that are not changing.
+     */
     .select(
-      "id, artist_id, starts_at, ends_at, all_day, category, blocks_availability, source, " +
-        "title, notes, deposit_status, deposit_amount_pence, price_pence, repeats, attended, group_id, " +
-        "actual_minutes, outcome_note, " +
-        "contacts(id, name, phone), " +
+      "*, contacts(id, name, phone), " +
         "enquiries(description, job_address, job_postcode, quote_low_pence, conversation_id, conversations(contacts(name, phone)))",
     )
     .is("cancelled_at", null)
