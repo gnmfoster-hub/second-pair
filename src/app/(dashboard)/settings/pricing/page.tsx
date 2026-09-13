@@ -52,7 +52,21 @@ export default async function PricingPage() {
     .order("kind")
     .order("sort_order");
 
-  const services = (serviceRows ?? []) as Service[];
+  const allServices = (serviceRows ?? []) as Service[];
+
+  /*
+   * The shop's list, and the lists that belong to one person.
+   *
+   * Mixed together, a nail technician's twenty colours would bury a salon's
+   * six services on the owner's own pricing screen — and worse, they would
+   * look like things every stylist offers, which is the opposite of what the
+   * column means.
+   */
+  const services = allServices.filter((s) => s.artist_id == null);
+  const ownedBy = new Map<string, number>();
+  for (const s of allServices) {
+    if (s.artist_id) ownedBy.set(s.artist_id, (ownedBy.get(s.artist_id) ?? 0) + 1);
+  }
 
   /*
    * Everybody's own prices, in one read. Usually a short list — an override is
@@ -75,6 +89,27 @@ export default async function PricingPage() {
     return (
       <div className="space-y-8">
         <ServiceList services={services} words={{ customer: words.customer }} />
+
+        {/*
+         * Whose own lists exist, said rather than shown.
+         *
+         * The items themselves are theirs to manage, on their own settings —
+         * the owner setting prices does not want twenty gel colours in the
+         * middle of the salon's six services. Knowing they exist is enough.
+         */}
+        {ownedBy.size > 0 && (
+          <p className="hint">
+            {[...ownedBy]
+              .map(([id, n]) => {
+                const who = activeArtists.find((a) => a.id === id)?.name.split(" ")[0];
+                return who ? `${who} has ${n} of their own` : null;
+              })
+              .filter(Boolean)
+              .join(", ")}
+            . Those are on their own settings, and only offered to somebody asking for
+            them.
+          </p>
+        )}
 
         {/* What each person charges for what is on the list above. */}
         <PeoplePrices

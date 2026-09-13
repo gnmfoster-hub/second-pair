@@ -9,6 +9,7 @@ import { CalendarLinks } from "../data/CalendarLinks";
 import { PersonalCalendar } from "./PersonalCalendar";
 import { YourPrices } from "./YourPrices";
 import { MyBookings } from "./MyBookings";
+import { MyServices } from "./MyServices";
 import { byPerson } from "@/lib/servicePrices";
 import type { Service, ServicePerson } from "@/lib/types";
 
@@ -75,13 +76,22 @@ export default async function YouPage() {
           .select("*")
           .eq("studio_id", studio.id)
           .eq("active", true)
-          .eq("kind", "service")
           .order("sort_order"),
         supabase.from("service_people").select("*").eq("artist_id", me.id),
       ])
     : [{ data: null }, { data: null }];
 
-  const services = (serviceRows ?? []) as Service[];
+  const all = (serviceRows ?? []) as Service[];
+
+  /*
+   * Two different lists off one read.
+   *
+   * The shop's is what they price against — a row each, with the shop's number
+   * beside their own. Their own is a list they add to and take from, and it
+   * has no shop price to sit next to because there is no shop version of it.
+   */
+  const services = all.filter((s) => s.artist_id == null);
+  const mineOnly = all.filter((s) => s.artist_id === me?.id);
   const myPrices = byPerson((mineRows ?? []) as ServicePerson[]);
 
   const pack = verticalPack(studio.vertical);
@@ -167,6 +177,9 @@ export default async function YouPage() {
             isOwner={owns}
             ownLink={me.handle ? `${origin}/widget/${studio.slug}?with=${me.handle}` : null}
           />
+
+          {/* Work and products that are theirs rather than the shop's. */}
+          {pricesByList && <MyServices services={mineOnly} firstName={me.name.split(" ")[0]} />}
 
           {/* Their prices against the list, where the business keeps one. */}
           {pricesByList && (

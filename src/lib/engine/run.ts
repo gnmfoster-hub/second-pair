@@ -260,6 +260,14 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     bands = bandsFromServices(
       (listed.data ?? []) as Service[],
       byPerson((mineRows ?? []) as ServicePerson[]),
+      /*
+       * Whose conversation this is, which decides what may be offered at all.
+       *
+       * Without it nobody's own services would ever reach anybody — not even
+       * the person whose they are — because a row owned by somebody is only
+       * offered when that somebody is who is being booked with.
+       */
+      forArtistId,
     );
   } else {
     bands = priced.data ?? [];

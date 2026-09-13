@@ -117,3 +117,45 @@ test("it never produces an appointment of no length", () => {
 test("it never runs past what the business allows in one sitting", () => {
   assert.equal(minutesForClient(300, 300, 480), 480);
 });
+
+// ------------------------------------------------- whose service it is
+
+/*
+ * The rule that keeps a nail technician's list off a haircut enquiry. Her
+ * twenty gel colours are not the salon's work and nobody else there does any
+ * of them.
+ */
+test("somebody's own service is not offered to a stranger", () => {
+  const hers = service({ id: "gel", name: "Gel infill", artist_id: "nails" });
+  assert.equal(bandsFromServices([hers]).length, 0);
+});
+
+test("it is offered when they are the one being booked with", () => {
+  const hers = service({ id: "gel", name: "Gel infill", artist_id: "nails" });
+  const [b] = bandsFromServices([hers], null, "nails");
+  assert.equal(b.size_label, "Gel infill");
+});
+
+test("it is never offered when somebody else is being booked with", () => {
+  const hers = service({ id: "gel", name: "Gel infill", artist_id: "nails" });
+  assert.equal(bandsFromServices([hers], null, "stylist").length, 0);
+});
+
+test("the shop's own list is offered to everybody, named or not", () => {
+  const shop = service({ id: "cut", name: "Cut" });
+  assert.equal(bandsFromServices([shop]).length, 1);
+  assert.equal(bandsFromServices([shop], null, "nails").length, 1);
+});
+
+/* Booking with her means her own list and the shop's, not one or the other. */
+test("booking with somebody gives their own list and the shop's together", () => {
+  const bands = bandsFromServices(
+    [
+      service({ id: "cut", name: "Cut", sort_order: 1 }),
+      service({ id: "gel", name: "Gel infill", artist_id: "nails", sort_order: 2 }),
+    ],
+    null,
+    "nails",
+  );
+  assert.deepEqual(bands.map((b) => b.size_label), ["Cut", "Gel infill"]);
+});
