@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { hasColumn } from "@/lib/db/hasColumn";
 
 /**
  * What the week was actually worth, and who did it.
@@ -27,7 +28,25 @@ export type Takings = {
   byPerson: { id: string; name: string; bookings: number; pence: number }[];
   /** Only where a business prices by a named list. Empty otherwise. */
   byService: { name: string; bookings: number; pence: number }[];
+  /**
+   * Money taken over the counter: a bottle off the shelf, a voucher, a walk-in
+   * paying cash. Nothing to do with the diary, and in a salon it is a real
+   * slice of the week.
+   *
+   * Counted separately rather than folded in, because "we did forty
+   * appointments" and "we took two thousand pounds" are different sentences,
+   * and adding a shampoo to the first one makes it untrue.
+   */
+  sales: {
+    count: number;
+    pence: number;
+    byPerson: { id: string; name: string; count: number; pence: number }[];
+    byItem: { name: string; count: number; pence: number }[];
+  };
 };
+
+/** Nothing sold, which is what a business with no till activity looks like. */
+const NO_SALES: Takings["sales"] = { count: 0, pence: 0, byPerson: [], byItem: [] };
 
 type Row = {
   price_pence: number | null;
@@ -90,7 +109,109 @@ export async function takingsFor(
       .map(([id, v]) => ({ id, ...v }))
       .sort((a, b) => b.pence - a.pence),
     byService: [],
+    sales: await salesFor(db, studioId, from, to),
   };
+}
+
+/**
+ * What was sold over the counter in the same window.
+ *
+ * Separate query because it is a separate table and a separate idea: a sale
+ * has no time, blocks nothing, and belongs to whoever made it rather than to a
+ * diary. Folding it into the booking query would mean pretending a bottle of
+ * shampoo is a forty-minute appointment.
+ *
+ * Guarded, because payments and their line items arrive with a migration. A
+ * report is the wrong screen to take down over a table that is not there yet —
+ * on a deploy that lands before its migration this reads as a quiet week for
+ * the shelf rather than as an error page over the whole week's figures.
+ */
+export async function salesFor(
+  db: SupabaseClient,
+  studioId: string,
+  from: Date,
+  to: Date,
+): Promise<Takings["sales"]> {
+  if (!(await hasColumn(db, "payments", "gross_pence"))) return NO_SALES;
+
+  const { data, error } = await db
+    .from("payments")
+    .select("id, gross_pence, artist_id, artists(name)")
+    .eq("studio_id", studioId)
+    .eq("kind", "product")
+    .eq("status", "paid")
+    .gte("paid_at", from.toISOString())
+    .lt("paid_at", to.toISOString());
+
+  if (error) return NO_SALES;
+
+  const rows = (data ?? []) as unknown as {
+    id: string;
+    gross_pence: number | null;
+    artist_id: string | null;
+    artists: { name: string } | null;
+  }[];
+
+  const people = new Map<string, { name: string; count: number; pence: number }>();
+  let pence = 0;
+
+  for (const row of rows) {
+    pence += row.gross_pence ?? 0;
+    // A sale nobody is named on belongs to the shop, and is counted in the
+    // total without inventing a person to attribute it to.
+    if (!row.artist_id) continue;
+
+    const who = people.get(row.artist_id) ?? {
+      name: row.artists?.name ?? "Somebody",
+      count: 0,
+      pence: 0,
+    };
+    who.count += 1;
+    who.pence += row.gross_pence ?? 0;
+    people.set(row.artist_id, who);
+  }
+
+  return {
+    count: rows.length,
+    pence,
+    byPerson: [...people.entries()]
+      .map(([id, v]) => ({ id, ...v }))
+      .sort((a, b) => b.pence - a.pence),
+    byItem: await soldItems(db, rows.map((r) => r.id)),
+  };
+}
+
+/**
+ * What actually sold, by name.
+ *
+ * The question a shop asks at the end of a month and could not ask before:
+ * not "how much did the shelf make" but "what is worth reordering". Read from
+ * the names copied onto the lines at the time, so a product renamed in March
+ * does not rewrite February.
+ */
+async function soldItems(
+  db: SupabaseClient,
+  paymentIds: string[],
+): Promise<Takings["sales"]["byItem"]> {
+  if (!paymentIds.length) return [];
+  if (!(await hasColumn(db, "payment_items", "unit_pence"))) return [];
+
+  const { data } = await db
+    .from("payment_items")
+    .select("name, quantity, unit_pence")
+    .in("payment_id", paymentIds);
+
+  const totals = new Map<string, { count: number; pence: number }>();
+  for (const row of (data ?? []) as { name: string; quantity: number; unit_pence: number }[]) {
+    const t = totals.get(row.name) ?? { count: 0, pence: 0 };
+    t.count += row.quantity;
+    t.pence += row.quantity * row.unit_pence;
+    totals.set(row.name, t);
+  }
+
+  return [...totals.entries()]
+    .map(([name, v]) => ({ name, ...v }))
+    .sort((a, b) => b.pence - a.pence);
 }
 
 /**

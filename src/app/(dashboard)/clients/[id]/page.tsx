@@ -14,6 +14,8 @@ import { Forget } from "./Forget";
 import { whoseClient } from "@/lib/whoseClient";
 import { Timings, type ClientTiming } from "./Timings";
 import type { Service } from "@/lib/types";
+import { Bought, type Purchase } from "./Bought";
+import { hasColumn } from "@/lib/db/hasColumn";
 
 type ContactRow = {
   id: string;
@@ -185,6 +187,48 @@ export default async function ClientPage({
     .reduce((t, b) => t + b.deposit_amount_pence, 0);
   const noShows = bookings.filter((b) => b.attended === false).length;
 
+  /*
+   * What they have bought over the counter.
+   *
+   * Guarded on the table existing, because a client record is the wrong page
+   * to lose entirely over a migration that has not been run yet — everything
+   * else on it still works, so the section simply is not there.
+   */
+  const purchases: Purchase[] = [];
+  if (await hasColumn(supabase, "payments", "gross_pence")) {
+    const { data: paymentRows } = await supabase
+      .from("payments")
+      .select("id, gross_pence, paid_at, description, method")
+      .eq("contact_id", contact.id)
+      .eq("status", "paid")
+      .order("paid_at", { ascending: false })
+      .limit(20);
+
+    const ids = (paymentRows ?? []).map((p) => p.id as string);
+    const lines = ids.length && (await hasColumn(supabase, "payment_items", "unit_pence"))
+      ? ((
+          await supabase
+            .from("payment_items")
+            .select("payment_id, name, quantity, unit_pence")
+            .in("payment_id", ids)
+            .order("sort_order")
+        ).data ?? [])
+      : [];
+
+    for (const row of paymentRows ?? []) {
+      purchases.push({
+        id: row.id as string,
+        pence: (row.gross_pence as number) ?? 0,
+        when: (row.paid_at as string | null) ?? null,
+        description: (row.description as string | null) ?? null,
+        method: (row.method as string | null) ?? null,
+        items: (lines as { payment_id: string; name: string; quantity: number; unit_pence: number }[])
+          .filter((l) => l.payment_id === row.id)
+          .map((l) => ({ name: l.name, quantity: l.quantity, unitPence: l.unit_pence })),
+      });
+    }
+  }
+
   return (
     <div className="mx-auto max-w-4xl px-8 py-9">
       <Link href="/clients" className="hint hover:text-foreground">
@@ -306,6 +350,8 @@ export default async function ClientPage({
               timezone={studio.timezone}
             />
           </section>
+
+          <Bought purchases={purchases} timezone={studio.timezone} />
 
           <section className="card p-5">
             <h2 className="mb-3 text-sm font-medium">Conversations</h2>

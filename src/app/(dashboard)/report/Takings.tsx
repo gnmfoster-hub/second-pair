@@ -97,6 +97,48 @@ export function Takings({
         </div>
       )}
 
+      {/*
+        * The counter, kept apart from the diary.
+        *
+        * Shown only once something has been sold, because a business that
+        * sells nothing over the counter should not have an empty shelf
+        * reported at it every week.
+        */}
+      {figures.sales.count > 0 && (
+        <div className="mt-6 border-t border-border pt-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <div className="label">Over the counter</div>
+            <div className="tabular-nums">
+              {formatPence(figures.sales.pence)}
+              <span className="hint ml-2">
+                {figures.sales.count} {figures.sales.count === 1 ? "sale" : "sales"}
+              </span>
+            </div>
+          </div>
+
+          {figures.sales.byItem.length > 0 && (
+            <ul className="mt-2 space-y-1.5">
+              {figures.sales.byItem.slice(0, 8).map((item) => (
+                <li
+                  key={item.name}
+                  className="flex items-baseline justify-between gap-3 text-sm"
+                >
+                  <span className="min-w-0 truncate">{item.name}</span>
+                  <span className="tabular-nums">
+                    {formatPence(item.pence)}
+                    <span className="hint ml-2">{item.count}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <p className="hint mt-2">
+            Not in the figures above, which are appointments. This is the shelf.
+          </p>
+        </div>
+      )}
+
       <p className="hint mt-4">
         Everything in the diary, whoever booked it &mdash; the assistant, you, or
         whoever answered the phone. Cancellations are left out; anything nobody turned

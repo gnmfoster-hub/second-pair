@@ -74,6 +74,21 @@ export function AddMenu({
             detail="A meeting, a holiday, lunch, a delivery. Blocks the diary without being an appointment."
             onClick={() => onPick("other")}
           />
+
+          {/*
+            * The one thing on this menu that never touches the diary.
+            *
+            * A bottle sold over the counter takes no time and blocks nothing,
+            * so it has no business being an appointment. But it is money taken
+            * today, and this is where somebody already comes to write down
+            * what has just happened.
+            */}
+          <Link href="/diary/sell" className="block">
+            <Choice
+              title="Sell something"
+              detail="A bottle off the shelf, a voucher, a walk-in paying cash. Goes in the takings, not the diary."
+            />
+          </Link>
         </div>
       </div>
     </div>
