@@ -253,6 +253,45 @@ export async function setNotifyOwnBookings(
   return { ok: true };
 }
 
+/**
+ * Whose account money lands in, and who may take it.
+ *
+ * The business's, so the owner's. Every field here is read as present-or-absent
+ * except the model itself, which is a radio and always arrives — an unticked
+ * checkbox is not submitted, so a form that read them straight would be fine,
+ * and this one deliberately does exactly that because all three switches are
+ * on this single form and saving it means saying what they all are.
+ */
+export async function setPaymentModel(
+  _prev: FormState,
+  fd: FormData,
+): Promise<FormState> {
+  const { studio } = await requireOwner();
+  const supabase = await createClient();
+
+  const model = str(fd, "payment_model") === "people" ? "people" : "business";
+
+  const { error } = await supabase
+    .from("studios")
+    .update({
+      payment_model: model,
+      takes_payments: fd.get("takes_payments") === "on",
+      /*
+       * Only meaningful on the per-person model, and cleared when leaving it —
+       * a stale true sitting on a business that went back to one account would
+       * do nothing until somebody switched models again, and then do something
+       * surprising.
+       */
+      payment_fallback: model === "people" && fd.get("payment_fallback") === "on",
+    })
+    .eq("id", studio.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
 export async function setNotifyEveryEnquiry(
   _prev: FormState,
   fd: FormData,

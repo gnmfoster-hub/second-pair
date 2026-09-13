@@ -1,6 +1,8 @@
 import { requireOwner } from "@/lib/studio";
 import { StudioForm } from "./StudioForm";
 import { EveryEnquiry } from "./EveryEnquiry";
+import { PaymentModel } from "./PaymentModel";
+import { verticalPack } from "@/lib/verticals";
 
 export default async function StudioSettingsPage() {
   // The business itself — the owner's, and the page says so
@@ -10,6 +12,20 @@ export default async function StudioSettingsPage() {
     <div className="space-y-3">
       {/* What the business is told about. Theirs, so it lives here. */}
       <EveryEnquiry on={studio.notify_every_enquiry ?? false} />
+
+      {/* Whose money it is, and who may take it. */}
+      <PaymentModel
+        model={studio.payment_model === "people" ? "people" : "business"}
+        takesPayments={studio.takes_payments === true}
+        fallback={studio.payment_fallback === true}
+        connected={Boolean(studio.stripe_account_id)}
+        words={{
+          practitioners: {
+            ...verticalPack(studio.vertical).vocabulary,
+            ...(studio.vocabulary ?? {}),
+          }.practitioners,
+        }}
+      />
 
       <StudioForm
         studio={studio}

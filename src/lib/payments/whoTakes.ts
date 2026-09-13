@@ -23,6 +23,17 @@ export type BusinessMoney = {
   takes_payments?: boolean | null;
   deposit_mode?: string | null;
   stripe_account_id?: string | null;
+  /**
+   * Per-person model only: whether a payment falls back to the business when
+   * that person has no Stripe account of their own.
+   *
+   * The owner's decision, made out loud, and off until they make it. Both
+   * answers are defensible and neither is safe as a silent default — refusing
+   * quietly blocks a booking nobody can explain, and falling back quietly puts
+   * a chair renter's money in the owner's account, which is the thing the
+   * per-person model exists to prevent.
+   */
+  payment_fallback?: boolean | null;
 };
 
 export type PersonMoney = {
@@ -33,7 +44,17 @@ export type PersonMoney = {
 };
 
 export type Verdict =
-  | { ok: true; account: string; whose: "business" | "person" }
+  | {
+      ok: true;
+      account: string;
+      whose: "business" | "person";
+      /**
+       * True when this went to the business because the person has no account
+       * of their own. Recorded on the payment, so "why is this in my account"
+       * has an answer six weeks later.
+       */
+      fellBack?: boolean;
+    }
   | { ok: false; because: string };
 
 /**
@@ -83,9 +104,25 @@ export function whoTakes(
       };
     }
     if (!person.stripe_account_id) {
+      /*
+       * Nowhere of their own to pay. Whichever way this goes, it goes because
+       * the owner chose it rather than because the code picked a side.
+       */
+      if (business.payment_fallback === true && business.stripe_account_id) {
+        return {
+          ok: true,
+          account: business.stripe_account_id,
+          whose: "business",
+          fellBack: true,
+        };
+      }
+
       return {
         ok: false,
-        because: "They have not connected their own Stripe account yet, so there is nowhere to pay them.",
+        because:
+          business.payment_fallback === true
+            ? "They have no Stripe account and neither has the business, so there is nowhere for this to go."
+            : "They have not connected their own Stripe account yet, so there is nowhere to pay them.",
       };
     }
     return { ok: true, account: person.stripe_account_id, whose: "person" };

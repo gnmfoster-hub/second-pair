@@ -146,6 +146,21 @@ export type Studio = {
   /** What the assistant introduces itself as. Null uses the product default. */
   assistant_name: string | null;
   /**
+   * Whose Stripe account money lands in.
+   *
+   * "business" is one account for the shop. "people" is an account each, for a
+   * salon where every chair is its own business.
+   */
+  payment_model: "business" | "people";
+  /** Whether the full amount may be charged, not only a deposit. */
+  takes_payments: boolean;
+  /**
+   * Per-person model only: send a payment to the business when that person has
+   * no account of their own, rather than refusing it. The owner's decision, and
+   * off until they make it.
+   */
+  payment_fallback: boolean;
+  /**
    * When these settings last changed.
    *
    * Maintained by a trigger, so it is true whoever wrote the row and however.
