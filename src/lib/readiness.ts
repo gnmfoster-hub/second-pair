@@ -55,7 +55,7 @@ export async function readinessOf(
 
   const [
     { data: roster },
-    { count: services },
+    { data: priceList },
     { count: faqs },
     { count: hours },
     { count: devices },
@@ -64,10 +64,21 @@ export async function readinessOf(
       // books who has stopped taking bookings needs telling something different
       // from one that has nobody at all.
       db.from("artists").select("active").eq("studio_id", studio.id),
-      db
-        .from("price_bands")
-        .select("id", { count: "exact", head: true })
-        .eq("studio_id", studio.id),
+      /*
+       * Whichever way this business prices.
+       *
+       * Counting bands regardless would tell a salon on the named price list
+       * that it has nothing to quote from while its list sits full — the same
+       * mistake the set-up audit was making, on the same table, for the same
+       * reason.
+       */
+      studio.pricing_model === "services"
+        ? db
+            .from("services")
+            .select("*")
+            .eq("studio_id", studio.id)
+            .eq("active", true)
+        : db.from("price_bands").select("*").eq("studio_id", studio.id),
       db
         .from("faqs")
         .select("id", { count: "exact", head: true })
@@ -90,6 +101,34 @@ export async function readinessOf(
   const people = (roster ?? []).filter((a) => a.active).length;
   const nobodyAtAll = (roster ?? []).length === 0;
 
+  /*
+   * What the assistant could offer a stranger, in one shape.
+   *
+   * A service belonging to one person is left out: the question is whether
+   * this business can quote anybody who walks up, and a nail technician's own
+   * list cannot answer that.
+   */
+  const byList = studio.pricing_model === "services";
+  const offerable = (priceList ?? []).filter((row) => {
+    const r = row as Record<string, unknown>;
+    if (!byList) return true;
+    return r.kind === "service" && r.artist_id == null && r.bookable_online !== false;
+  });
+  const services = offerable.length;
+
+  // Something with no price is never offered at all, because the alternative
+  // is the assistant inventing a number.
+  const unpriced = byList
+    ? offerable.filter((r) => (r as Record<string, unknown>).price_pence == null)
+    : [];
+
+  // Work that has to be looked at first is booked for consultation_minutes,
+  // whatever the job is. Right when somebody chose that, and absurd when it is
+  // still sitting at a default nobody read.
+  const needsLookingAt = (priceList ?? []).filter(
+    (r) => (r as Record<string, unknown>).requires_consultation === true,
+  );
+
   const takesDeposits = studio.deposit_mode !== "none";
 
   return [
@@ -106,6 +145,60 @@ export async function readinessOf(
       href: people === 0 ? "/settings/artists" : "/settings/pricing",
       action: people === 0 ? (nobodyAtAll ? "Add rates" : "Take bookings again") : "Add services",
       blocking: true,
+    },
+    {
+      /*
+       * The one that was live on a real business and visible only from a
+       * terminal. Living Canvas had the script on their site and the widget
+       * switched off, so there was no button at all, nothing said so, and every
+       * visitor was a lost enquiry.
+       *
+       * It reads as ready when nobody has switched it off, which is the default
+       * — this is here to catch it being turned off and forgotten, not to
+       * nag a business that has not installed a website button yet.
+       */
+      key: "widget",
+      can: "Answer on your website",
+      ready: studio.widget_enabled !== false,
+      otherwise:
+        "The button is switched off, so there is none on your site even if the " +
+        "code is there — and nothing anywhere says so.",
+      href: "/settings/install",
+      action: "Turn it on",
+      blocking: false,
+    },
+    {
+      /*
+       * Work that has to be seen first is set aside consultation_minutes,
+       * whatever the job is. Ten minutes is a phone call; looking at an
+       * end-of-tenancy clean is an hour, and the difference is a wasted trip.
+       */
+      key: "consultation",
+      can: "Set aside long enough to look at a job",
+      ready: !(needsLookingAt.length > 0 && studio.consultation_minutes <= 15),
+      otherwise:
+        `${needsLookingAt.length} of the things you do need looking at first, and a ` +
+        `consultation here is ${studio.consultation_minutes} minutes. That is long ` +
+        `enough for a phone call, not for going to see it.`,
+      href: "/settings",
+      action: "Make it longer",
+      blocking: false,
+    },
+    {
+      /*
+       * Anything unpriced is silently left out of what can be offered, so a
+       * half-filled list quietly shrinks the business rather than erroring.
+       */
+      key: "priced",
+      can: "Quote everything on your list",
+      ready: unpriced.length === 0,
+      otherwise:
+        `${unpriced.length} ${unpriced.length === 1 ? "thing has" : "things have"} no ` +
+        `price, so ${unpriced.length === 1 ? "it is" : "they are"} never offered at ` +
+        `all — the alternative would be inventing a number.`,
+      href: "/settings/pricing",
+      action: "Fill them in",
+      blocking: false,
     },
     {
       key: "hours",
