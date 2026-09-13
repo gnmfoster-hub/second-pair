@@ -7,6 +7,8 @@ import { Takings } from "./Takings";
 import { formatPence } from "@/lib/money";
 import { whoHasNotBeenBack } from "@/lib/lapsed";
 import { NotBeenBack } from "./NotBeenBack";
+import { gapsAhead } from "@/lib/gapsAhead";
+import { GapsWorthFilling } from "./GapsWorthFilling";
 
 function Stat({
   value,
@@ -128,6 +130,22 @@ export default async function ReportPage({
         .filter((v) => Date.parse(v.starts_at) > now.getTime())
         .map((v) => v.contact_id),
     },
+  );
+
+  /*
+   * The gaps in the week ahead that could be sold.
+   *
+   * The other half of the list above. That one gives a salon people to ring;
+   * this gives them something to offer, and the two together are the whole of
+   * what a quiet week needs — which is otherwise a thing an owner worries
+   * about on a Sunday and cannot act on.
+   *
+   * The week ahead, deliberately, whichever week the figures are showing.
+   * Nobody can sell last Tuesday's empty afternoon.
+   */
+  const openSlots = await gapsAhead(supabase, studio, now);
+  const freeHours = Math.round(
+    openSlots.reduce((total, slot) => total + slot.minutes, 0) / 60,
   );
 
   /*
@@ -269,6 +287,8 @@ export default async function ReportPage({
       <Takings figures={takings} byService={byService} />
 
       <NotBeenBack people={notBeenBack} />
+
+      <GapsWorthFilling slots={openSlots} hours={freeHours} />
 
       {/*
        * What the assistant costs to run is not shown here any more.
