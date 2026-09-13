@@ -44,6 +44,8 @@ type RawRow = {
   price_pence: number | null;
   repeats: string;
   attended: boolean | null;
+  actual_minutes: number | null;
+  outcome_note: string | null;
   contacts: { id: string; name: string | null; phone: string | null } | null;
   enquiries: {
     description: string | null;
@@ -180,6 +182,7 @@ export default async function DiaryPage({
     .select(
       "id, artist_id, starts_at, ends_at, all_day, category, blocks_availability, source, " +
         "title, notes, deposit_status, deposit_amount_pence, price_pence, repeats, attended, " +
+        "actual_minutes, outcome_note, " +
         "contacts(id, name, phone), " +
         "enquiries(description, quote_low_pence, conversation_id, conversations(contacts(name, phone)))",
     )
@@ -241,6 +244,8 @@ export default async function DiaryPage({
       quotePence: r.enquiries?.quote_low_pence ?? null,
       repeats: r.repeats,
       attended: r.attended,
+      actual_minutes: r.actual_minutes,
+      outcome_note: r.outcome_note,
     }));
 
   /*
@@ -293,7 +298,10 @@ export default async function DiaryPage({
             price_pence: null,
             quotePence: null,
             repeats: "none",
+            // Nothing in somebody's own calendar is a booking to close off.
             attended: null,
+            actual_minutes: null,
+            outcome_note: null,
           }));
         } catch {
           return [];

@@ -49,6 +49,10 @@ export type Entry = {
   quotePence: number | null;
   /** Whether they turned up. Null until somebody closes the booking off. */
   attended: boolean | null;
+  /** How long it really took. Null for the many nobody had time to say. */
+  actual_minutes: number | null;
+  /** What happened, for the business. Never shown to the client. */
+  outcome_note: string | null;
   repeats: string;
 };
 

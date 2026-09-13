@@ -233,7 +233,15 @@ export function EntryDialog({
               * matters.
               */}
             {entry && Date.parse(entry.ends_at) < openedAt && (
-              <CloseOff id={entry.id} attended={entry.attended} />
+              <CloseOff
+                id={entry.id}
+                attended={entry.attended}
+                booked={Math.round(
+                  (Date.parse(entry.ends_at) - Date.parse(entry.starts_at)) / 60000,
+                )}
+                actualMinutes={entry.actual_minutes}
+                note={entry.outcome_note}
+              />
             )}
           </div>
         ) : null}
@@ -508,7 +516,20 @@ export function EntryDialog({
  * The answer already given is shown as the pressed state, so the panel says
  * what is recorded rather than asking a question that has been answered.
  */
-function CloseOff({ id, attended }: { id: string; attended: boolean | null }) {
+function CloseOff({
+  id,
+  attended,
+  booked,
+  actualMinutes,
+  note,
+}: {
+  id: string;
+  attended: boolean | null;
+  /** How many minutes it was booked for, so the box can say what it beat. */
+  booked: number;
+  actualMinutes: number | null;
+  note: string | null;
+}) {
   return (
     <form action={closeBooking} className="mt-3 border-t border-border pt-3">
       <input type="hidden" name="id" value={id} />
@@ -551,6 +572,63 @@ function CloseOff({ id, attended }: { id: string; attended: boolean | null }) {
           Counted on their record and in the report. Nothing happens to the deposit on
           its own &mdash; keeping it or returning it stays your call.
         </p>
+      )}
+
+      {/*
+        * How long it really took, and what happened.
+        *
+        * Behind a summary, and only once somebody has said they came, because
+        * it is the one number no diary ever records and the one nobody has
+        * time to be asked for. Somebody closing a booking off at half past
+        * five is answering "did they come"; made to answer "how long exactly"
+        * as well, they stop answering either.
+        *
+        * So it is offered, never required, and the value comes from the times
+        * somebody bothers. Every one of them makes the next estimate better.
+        */}
+      {attended === true && (
+        <details className="mt-3">
+          <summary className="cursor-pointer text-sm text-muted">
+            {actualMinutes != null || note ? "What happened" : "Add what it really took"}
+          </summary>
+
+          <div className="mt-3 space-y-3">
+            <label className="block">
+              <span className="label">How long it actually took</span>
+              <div className="flex items-center gap-2">
+                <input
+                  name="actual_minutes"
+                  type="number"
+                  min={5}
+                  step={5}
+                  defaultValue={actualMinutes ?? ""}
+                  placeholder={String(booked)}
+                  className="input max-w-[7rem]"
+                />
+                <span className="hint">
+                  minutes. It was booked for {booked}.
+                </span>
+              </div>
+            </label>
+
+            <label className="block">
+              <span className="label">Anything worth remembering</span>
+              <input
+                name="outcome_note"
+                defaultValue={note ?? ""}
+                placeholder="Ran over — colour needed a second application"
+                className="input"
+              />
+              <span className="hint">
+                For you and whoever has them next. Never shown to the client.
+              </span>
+            </label>
+
+            <button name="attended" value="yes" className="btn-ghost text-sm">
+              Save this
+            </button>
+          </div>
+        </details>
       )}
     </form>
   );

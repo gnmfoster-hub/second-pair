@@ -269,14 +269,38 @@ export async function closeBooking(fd: FormData) {
   const attended = said === "yes" ? true : said === "no" ? false : null;
 
   /*
+   * How long it really took, and what happened.
+   *
+   * Both optional, and they stay that way. Somebody closing a booking off at
+   * half past five is answering "did they come"; made to answer "how long
+   * exactly" as well, they stop answering either. The value of this column
+   * comes from the times somebody bothers, and nothing is gained by pressing.
+   *
+   * Absent means "not asked" and is left alone rather than written as null —
+   * so pressing the buttons a second time cannot wipe a duration somebody
+   * typed the first time.
+   */
+  const patch: Record<string, unknown> = {
+    attended,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (fd.has("actual_minutes")) {
+    const raw = str(fd, "actual_minutes");
+    const n = Number(raw);
+    patch.actual_minutes = raw !== "" && Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+  }
+
+  if (fd.has("outcome_note")) {
+    patch.outcome_note = str(fd, "outcome_note") || null;
+  }
+
+  /*
    * Tenancy is the row-level policy's job here, as it is for cancelling: the
    * signed-in client cannot see a booking that is not theirs, so it cannot
    * update one either.
    */
-  await supabase
-    .from("bookings")
-    .update({ attended, updated_at: new Date().toISOString() })
-    .eq("id", str(fd, "id"));
+  await supabase.from("bookings").update(patch).eq("id", str(fd, "id"));
 
   revalidatePath("/diary");
   revalidatePath("/clients");
