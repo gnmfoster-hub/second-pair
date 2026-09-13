@@ -2,14 +2,22 @@
 
 import { useActionState, useState } from "react";
 import { updateStudio, type FormState } from "./actions";
-import { Field, FormMessage, SubmitButton } from "@/components/Form";
+import { Field } from "@/components/Form";
+import { SaveBar } from "@/components/SaveBar";
 import { penceToInput } from "@/lib/money";
 import { DAY_NAMES, DEFAULT_HOURS, type Studio } from "@/lib/types";
 import { verticalPack } from "@/lib/verticals";
 import { ColourBy } from "@/app/(dashboard)/diary/ColourBy";
 import type { ColourMode } from "@/lib/diaryColour";
 
-export function StudioForm({ studio }: { studio: Studio }) {
+export function StudioForm({
+  studio,
+  lastSaved,
+}: {
+  studio: Studio;
+  /** When these settings last saved, already in words. */
+  lastSaved: string | null;
+}) {
   const [state, action] = useActionState<FormState, FormData>(updateStudio, {});
   const [depositType, setDepositType] = useState(studio.deposit_rule.type);
   const [depositMode, setDepositMode] = useState(studio.deposit_mode ?? "required");
@@ -586,10 +594,15 @@ export function StudioForm({ studio }: { studio: Studio }) {
         />
       </section>
 
-      <div className="flex items-center gap-4">
-        <SubmitButton />
-        <FormMessage state={state} />
-      </div>
+      {/*
+       * Save, where you can reach it.
+       *
+       * This was a button at the bottom of six hundred lines of form, and
+       * opening hours are near the top — so somebody changing a Tuesday
+       * closing time saw no save button anywhere on screen and reasonably
+       * assumed it saved itself.
+       */}
+      <SaveBar state={state} lastSaved={lastSaved} />
     </form>
   );
 }

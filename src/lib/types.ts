@@ -143,6 +143,14 @@ export type Studio = {
    * owner still learning to trust this wants to see each one until they do.
    */
   notify_every_enquiry: boolean;
+  /**
+   * When these settings last changed.
+   *
+   * Maintained by a trigger, so it is true whoever wrote the row and however.
+   * Shown on the settings page: a form that cannot answer "did that go in?"
+   * gets checked twice by careful people and trusted blindly by everyone else.
+   */
+  updated_at: string;
   /** Secret in the subscribe URL for the whole business. */
   calendar_token: string;
   /** Facts to work in where relevant. Not a script. */
