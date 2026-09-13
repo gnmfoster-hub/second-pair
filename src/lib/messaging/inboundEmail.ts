@@ -270,6 +270,21 @@ export function judge(
   }
 
   /*
+   * The word every bulk sender has to include and no customer ever writes.
+   *
+   * List-Unsubscribe above catches the ones that set the header. Plenty do not
+   * — a classified-ads company's advert statistics reached Neat & Tidy with no
+   * machine headers at all, and was answered in the business's own name.
+   *
+   * Parked rather than ignored, because a person can mention unsubscribing: "I
+   * keep getting your newsletter, can you take me off it" is a real thing to
+   * say to a business, and it deserves a human rather than silence.
+   */
+  if (/unsubscribe/i.test(email.body ?? "")) {
+    return { what: "park", because: "it offers a way to unsubscribe, so it is a mailing of some kind" };
+  }
+
+  /*
    * Nothing said, and a subject line is not a message.
    *
    * This used to require both to be empty, so "testing mailbox" with an empty
@@ -420,14 +435,26 @@ export function readEmail(payload: Record<string, unknown>): InboundEmail | null
      * markup straight to the assistant means it reads a wall of tags and may
      * quote them back at a customer.
      */
-    body: pick("text", "body", "plain") ?? flatten(pick("html")),
+    body: flatten(pick("text", "body", "plain")) ?? flatten(pick("html")),
     headers,
   };
 }
 
-/** Markup down to words, or null if there was none. */
+/**
+ * Markup down to words, or null if there was none.
+ *
+ * Applied to the plain-text part as well, which sounds redundant and is not:
+ * the field is picked by name, and a provider that puts markup under "body"
+ * sails straight past the check for "html". That is not hypothetical — a
+ * classified-ads company's statistics email reached the assistant as a
+ * DOCTYPE, a stylesheet and a comment about old Outlook, and it was asked to
+ * decide whether that was a customer.
+ *
+ * Text with no tags in it comes back unchanged, so the only cost is being sure.
+ */
 function flatten(html: string | null): string | null {
   if (!html) return null;
+  if (!/<[a-z!/][^>]*>/i.test(html)) return html.trim() || null;
   const text = plainTextFrom(html);
   return text || null;
 }

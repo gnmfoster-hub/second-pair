@@ -275,3 +275,56 @@ test("whitespace is not a body", () => {
   );
   assert.equal(v.what, "park");
 });
+
+// ─────────────────────────────────────── the advert that got a reply
+
+/*
+ * Live, on Neat & Tidy. A classified-ads company sent its advert statistics,
+ * carried no machine headers at all, and was written back to in the business's
+ * own name. The assistant even worked out what it was — and said so, in a
+ * reply, to a mailbox nobody reads.
+ */
+test("a mailing with an unsubscribe link is not answered", () => {
+  const v = judge(
+    {
+      from: "freeads@freeads.co.uk",
+      subject: "Your Advert Statistics",
+      body: "Your advert had 42 views this week. Unsubscribe from these emails.",
+    },
+    shop,
+  );
+  assert.equal(v.what, "park");
+});
+
+/*
+ * Parked, not ignored. Somebody asking a business to stop emailing them is a
+ * real thing to say, and it deserves a person rather than silence.
+ */
+test("a person asking to be taken off a list reaches a human", () => {
+  const v = judge(
+    {
+      from: "jo@gmail.com",
+      subject: "",
+      body: "Please unsubscribe me from your newsletter, I keep getting it twice.",
+    },
+    shop,
+  );
+  assert.equal(v.what, "park");
+  assert.notEqual(v.what, "ignore");
+});
+
+test("an ordinary enquiry is still answered", () => {
+  const v = judge(
+    { from: "jo@gmail.com", subject: "Quote", body: "How much for a forearm piece?" },
+    shop,
+  );
+  assert.equal(v.what, "answer");
+});
+
+// ───────────────────────────────────── markup, whichever field it arrives in
+
+test("markup under the text field is still turned into words", () => {
+  const words = plainTextFrom("<!DOCTYPE html><html><head><style>p{color:red}</style></head><body><p>Hello there</p></body></html>");
+  assert.equal(words, "Hello there");
+  assert.doesNotMatch(words, /DOCTYPE|color:red/);
+});
