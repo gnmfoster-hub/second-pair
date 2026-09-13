@@ -31,11 +31,43 @@ const db = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_
 const { data: studios } = await db.from("studios").select("*").is("archived_at", null);
 
 for (const s of studios) {
-  const [{ data: bands }, { data: people }, { data: faqs }] = await Promise.all([
+  const [{ data: priced }, { data: listed }, { data: people }, { data: faqs }] = await Promise.all([
     db.from("price_bands").select("size_label, requires_consultation, duration_minutes, hours_low, hours_high").eq("studio_id", s.id),
+    db.from("services").select("*").eq("studio_id", s.id).eq("active", true),
     db.from("artists").select("name, active, booking_provider, hours").eq("studio_id", s.id),
     db.from("faqs").select("id").eq("studio_id", s.id).neq("answer", ""),
   ]);
+
+  /*
+   * Whichever way this business prices, described the same way.
+   *
+   * Reading price_bands regardless was this script agreeing that a salon on
+   * the named list had nothing silently wrong while its list was empty — the
+   * exact failure it exists to catch, on the table it was not looking at.
+   *
+   * A service belonging to one person is left out of the count on purpose:
+   * the question here is whether the business can quote anybody who walks up,
+   * and a nail technician's own list cannot answer that.
+   */
+  const byList = s.pricing_model === "services";
+  const bands = byList
+    ? (listed ?? [])
+        .filter(x => x.kind === "service" && x.artist_id == null && x.bookable_online)
+        .map(x => ({
+          size_label: x.name,
+          requires_consultation: x.requires_consultation,
+          duration_minutes: x.minutes,
+          hours_low: (x.minutes ?? 0) / 60,
+          hours_high: (x.minutes ?? 0) / 60,
+          price_pence: x.price_pence,
+        }))
+    : priced;
+
+  // Something with no price is never offered, so a priced-by-list business
+  // with unpriced rows quietly offers less than its list says.
+  const unpriced = byList
+    ? (bands ?? []).filter(b => b.price_pence == null).map(b => b.size_label)
+    : [];
 
   const active = (people ?? []).filter(p => p.active);
   const openDays = (s.hours ?? []).filter(h => !h.closed).length;
@@ -44,6 +76,13 @@ for (const s of studios) {
   // The one that bit Neat & Tidy: no services means bookingTypeFor gets
   // undefined, which means durationFor falls through to consultation_minutes
   // and every appointment is that long, whatever the job is.
+  if (unpriced.length) {
+    faults.push(
+      `NO PRICE ON ${unpriced.join(", ")} — never offered at all, because the ` +
+      `alternative is inventing a number`,
+    );
+  }
+
   if (!bands?.length) {
     faults.push(
       `NO SERVICES — cannot quote, and every appointment would be booked as ` +

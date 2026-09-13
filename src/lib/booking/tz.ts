@@ -81,3 +81,21 @@ export function zonedToUtc(
   const firstPass = new Date(naive - offsetAt(new Date(naive), timeZone));
   return new Date(naive - offsetAt(firstPass, timeZone));
 }
+
+/**
+ * Turns the date and time from a form into an instant.
+ *
+ * Somebody types wall-clock time in their own timezone. Treating it as the
+ * server's would put every entry an hour out through British Summer Time — the
+ * same trap the assistant's slot finder had.
+ *
+ * Here rather than beside the diary's own action, because a second screen now
+ * needs it and a copy of a timezone conversion is a copy that will be half
+ * fixed one day.
+ */
+export function instantFrom(date: string, time: string, timezone: string): Date | null {
+  const d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  const t = /^(\d{2}):(\d{2})$/.exec(time);
+  if (!d || !t) return null;
+  return zonedToUtc(+d[1], +d[2], +d[3], +t[1] * 60 + +t[2], timezone);
+}

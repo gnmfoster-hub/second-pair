@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio, getArtists } from "@/lib/studio";
-import { zonedToUtc } from "@/lib/booking/tz";
+import { instantFrom } from "@/lib/booking/tz";
 import { categoryFor, repeatDates, type RepeatRule } from "@/lib/calendar";
 import { dropReminders } from "@/lib/reminders";
 import { scheduleReminders } from "@/lib/reminders";
@@ -13,20 +13,6 @@ import { DIARY_LAYOUT_COOKIE, type DiaryLayout } from "@/lib/diaryLayout";
 export type DiaryState = { error?: string; ok?: string };
 
 const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
-
-/**
- * Turns the date and time from a form into an instant.
- *
- * The owner types wall-clock time in their own timezone. Treating it as the
- * server's would put every entry an hour out through British Summer Time — the
- * same trap the assistant's slot finder had.
- */
-function instantFrom(date: string, time: string, timezone: string): Date | null {
-  const d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
-  const t = /^(\d{2}):(\d{2})$/.exec(time);
-  if (!d || !t) return null;
-  return zonedToUtc(+d[1], +d[2], +d[3], +t[1] * 60 + +t[2], timezone);
-}
 
 function clashMessage(code: string | undefined, fallback: string): string {
   if (code === "23P01") {
