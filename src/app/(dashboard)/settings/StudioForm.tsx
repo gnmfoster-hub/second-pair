@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { updateStudio, type FormState } from "./actions";
-import { Field } from "@/components/Form";
+import { Field, SubmitButton } from "@/components/Form";
 import { SaveBar } from "@/components/SaveBar";
 import { DEFAULT_ASSISTANT_NAME } from "@/lib/assistantName";
 import { penceToInput } from "@/lib/money";
@@ -143,6 +143,31 @@ export function StudioForm({
               </label>
             </div>
           ))}
+        </div>
+
+        {/*
+          * Save, here, where the hours are.
+          *
+          * There has been a save button for this all along, at the foot of a
+          * form six hundred lines long, following you down the page. It was
+          * reported missing anyway, twice — and that is the answer rather than
+          * the objection: whether a control exists is not the question,
+          * whether somebody who has just changed a Tuesday closing time can
+          * see one is. Opening hours are the setting people come back to, in
+          * a hurry, and they sit near the top.
+          *
+          * It saves the whole form, exactly as the bar at the bottom does —
+          * one form, one action, so the two cannot disagree about what went
+          * in. The stamp sits beside it, because "did that go in?" is what
+          * brings somebody back to this screen a second time.
+          */}
+        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-4">
+          <SubmitButton>Save opening hours</SubmitButton>
+          {state.ok && <span className="text-sm text-ok">Saved.</span>}
+          {state.error && <span className="text-sm text-bad">{state.error}</span>}
+          <span className="hint ml-auto">
+            {lastSaved ? `Last saved ${lastSaved}` : "Never saved"}
+          </span>
         </div>
       </section>
 
