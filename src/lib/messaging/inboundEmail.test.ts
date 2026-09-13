@@ -227,3 +227,51 @@ test("a customer who says confirm or verify is still answered", () => {
   }
 });
 
+
+// ───────────────────────────────────────────── a subject is not a message
+
+/*
+ * Found live: an email to Neat & Tidy with the subject "testing mailbox" and
+ * an empty body got a reply. The rule required subject AND body to be empty,
+ * so a subject on its own counted as something to answer.
+ *
+ * It is the commonest shape of mail a business address receives that is not a
+ * customer — a test, a forward with the note stripped, a "FYI" where the
+ * attachment was the whole point.
+ */
+test("a subject with no body is not answered", () => {
+  const v = judge({ from: "jo@gmail.com", subject: "testing mailbox", body: "" }, shop);
+  assert.equal(v.what, "park");
+});
+
+test("nothing at all is not answered either", () => {
+  const v = judge({ from: "jo@gmail.com", subject: "", body: "" }, shop);
+  assert.equal(v.what, "park");
+});
+
+/*
+ * Parked, not ignored. A person sent it and a person should see it — ignoring
+ * is for machines, and a customer who did put their whole question in the
+ * subject line must not vanish.
+ */
+test("it is parked for a human rather than dropped", () => {
+  const v = judge({ from: "jo@gmail.com", subject: "Do you do end of tenancy?", body: "" }, shop);
+  assert.equal(v.what, "park");
+  assert.notEqual(v.what, "ignore");
+});
+
+test("a body with no subject is still a person getting in touch", () => {
+  const v = judge(
+    { from: "jo@gmail.com", subject: "", body: "Hi, how much for a small tattoo?" },
+    shop,
+  );
+  assert.equal(v.what, "answer");
+});
+
+test("whitespace is not a body", () => {
+  const v = judge(
+    { from: "jo@gmail.com", subject: "Quote please", body: "  \t\n  " },
+    shop,
+  );
+  assert.equal(v.what, "park");
+});

@@ -270,11 +270,28 @@ export function judge(
   }
 
   /*
-   * Nothing said. A person, but with no question there is nothing to answer
-   * and a reply would be a robot asking a stranger what they meant.
+   * Nothing said, and a subject line is not a message.
+   *
+   * This used to require both to be empty, so "testing mailbox" with an empty
+   * body was answered — and that is the commonest shape of email a business's
+   * address receives that is not a customer: a test, a forward with the note
+   * stripped, a "FYI" with the attachment as the whole point.
+   *
+   * Somebody does occasionally put a real enquiry in a subject line and send
+   * it from a phone. Parking loses nothing there — it lands in the inbox, a
+   * person reads it and replies — where answering everything means writing
+   * back to every test anybody ever sends.
+   *
+   * Park rather than ignore, because a person sent it and a person should see
+   * it. Ignoring is for machines.
    */
-  if (!subject && !(email.body ?? "").trim()) {
-    return { what: "park", because: "it arrived empty" };
+  if (!(email.body ?? "").trim()) {
+    return {
+      what: "park",
+      because: subject
+        ? "there is a subject and nothing else, which is rarely a customer"
+        : "it arrived empty",
+    };
   }
 
   /*
