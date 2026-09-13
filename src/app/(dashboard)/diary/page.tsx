@@ -43,6 +43,7 @@ type RawRow = {
   deposit_amount_pence: number;
   price_pence: number | null;
   repeats: string;
+  group_id: string | null;
   attended: boolean | null;
   actual_minutes: number | null;
   outcome_note: string | null;
@@ -183,7 +184,7 @@ export default async function DiaryPage({
     .from("bookings")
     .select(
       "id, artist_id, starts_at, ends_at, all_day, category, blocks_availability, source, " +
-        "title, notes, deposit_status, deposit_amount_pence, price_pence, repeats, attended, " +
+        "title, notes, deposit_status, deposit_amount_pence, price_pence, repeats, attended, group_id, " +
         "actual_minutes, outcome_note, " +
         "contacts(id, name, phone), " +
         "enquiries(description, job_address, job_postcode, quote_low_pence, conversation_id, conversations(contacts(name, phone)))",
@@ -221,6 +222,31 @@ export default async function DiaryPage({
   const mine = new Set(
     (focused ? team.filter((a) => a.id === focused) : artists).map((a) => a.id),
   );
+  /*
+   * The arrangements anything on screen belongs to.
+   *
+   * One read for the names, and the size counted off the rows we already have
+   * — which is right for what it is used for. "One of five" means five in this
+   * arrangement; a party split across two days would show three today and two
+   * tomorrow, which is what somebody looking at Thursday actually wants to
+   * know.
+   */
+  const groupIds = [
+    ...new Set(
+      ((data ?? []) as unknown as RawRow[]).map((r) => r.group_id).filter(Boolean),
+    ),
+  ] as string[];
+
+  const { data: groupRows } = groupIds.length
+    ? await supabase.from("booking_groups").select("id, name").in("id", groupIds)
+    : { data: null };
+
+  const groupNames = new Map((groupRows ?? []).map((g) => [g.id, g.name as string]));
+  const groupSizes = new Map<string, number>();
+  for (const r of (data ?? []) as unknown as RawRow[]) {
+    if (r.group_id) groupSizes.set(r.group_id, (groupSizes.get(r.group_id) ?? 0) + 1);
+  }
+
   const entries: Entry[] = ((data ?? []) as unknown as RawRow[])
     .filter((r) => mine.has(r.artist_id))
     .map((r) => ({
@@ -248,6 +274,14 @@ export default async function DiaryPage({
       quotePence: r.enquiries?.quote_low_pence ?? null,
       repeats: r.repeats,
       attended: r.attended,
+      group:
+        r.group_id && groupNames.has(r.group_id)
+          ? {
+              id: r.group_id,
+              name: groupNames.get(r.group_id)!,
+              size: groupSizes.get(r.group_id) ?? 1,
+            }
+          : null,
       actual_minutes: r.actual_minutes,
       outcome_note: r.outcome_note,
     }));
@@ -304,6 +338,8 @@ export default async function DiaryPage({
             repeats: "none",
             job_address: null,
             job_postcode: null,
+            // Nothing in somebody's own calendar belongs to an arrangement.
+            group: null,
             // Nothing in somebody's own calendar is a booking to close off.
             attended: null,
             actual_minutes: null,

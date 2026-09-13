@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { ClientPicker } from "./ClientPicker";
 import Link from "next/link";
+import { cancelBookingGroup, type GroupState } from "./groupActions";
 import {
   saveDiaryEntry,
   cancelDiaryEntry,
@@ -203,6 +204,28 @@ export function EntryDialog({
             </svg>
           </button>
         </div>
+
+        {/*
+          * What else this is part of.
+          *
+          * Above the booking's own detail because it changes how the rest is
+          * read: a 45-minute blow dry at half nine means something different
+          * when it is one of five for the same wedding, and the thing somebody
+          * wants at that moment is usually the other four rather than this one.
+          *
+          * Shown for any source, since an arrangement can hold both a booking
+          * the assistant made and one typed in afterwards.
+          */}
+        {entry?.group && (
+          <div className="mt-4 rounded-lg border border-accent/30 bg-accent/5 p-4 text-sm">
+            <div className="font-medium">{entry.group.name}</div>
+            <div className="hint mt-0.5">
+              One of {entry.group.size} booked together
+              {entry.group.size > 1 ? " on this day" : ""}.
+            </div>
+            <GroupControls id={entry.group.id} name={entry.group.name} />
+          </div>
+        )}
 
         {fromClient ? (
           // A client booking is owned by its conversation. Time can move; the
@@ -501,6 +524,25 @@ export function EntryDialog({
             <textarea name="notes" defaultValue={entry?.notes ?? ""} rows={2} className="input" />
           </Field>
 
+          {/*
+            * The way out for somebody who has five of these to type.
+            *
+            * Here rather than on the Add button, because this is the moment it
+            * occurs to them: the form is open, the first name is half typed,
+            * and they have just remembered it is a wedding. A menu on the
+            * button would put the choice before the realisation.
+            */}
+          {!existing && (
+            <p className="hint pt-1">
+              Several people in together?{" "}
+              <Link href="/diary/group" className="text-accent hover:underline">
+                Book them as a group
+              </Link>{" "}
+              &mdash; each gets their own appointment, tied together so they can be
+              called off as one.
+            </p>
+          )}
+
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <SubmitButton>{existing ? "Save" : "Add it"}</SubmitButton>
             {state.error && <p className="text-sm text-bad">{state.error}</p>}
@@ -657,6 +699,62 @@ function CloseOff({
           </div>
         </details>
       )}
+    </form>
+  );
+}
+
+/**
+ * Calling the whole arrangement off.
+ *
+ * Behind a confirm, and the confirm says the number rather than the word
+ * "group" — "cancel all 5" is a decision somebody can make in the half second
+ * they have, where "cancel group" is a thing they have to stop and picture.
+ *
+ * Only cancelling. There is deliberately no "move them all", because the five
+ * are in four different people's diaries at four different times and there is
+ * no single sensible thing a nudge could mean. Each is dragged on its own, the
+ * way any other booking is.
+ */
+function GroupControls({ id, name }: { id: string; name: string }) {
+  const [state, action] = useActionState<GroupState, FormData>(cancelBookingGroup, {});
+  const [asked, setAsked] = useState(false);
+
+  if (state.ok) {
+    return (
+      <p className="mt-2 text-sm text-ok">
+        {state.made} cancelled. The slots are free and the history stays.
+      </p>
+    );
+  }
+
+  return (
+    <form action={action} className="mt-3">
+      <input type="hidden" name="group_id" value={id} />
+
+      {asked ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <button className="btn-ghost text-sm text-warn">
+            Yes, cancel all of {name}
+          </button>
+          <button
+            type="button"
+            onClick={() => setAsked(false)}
+            className="text-sm text-muted hover:text-foreground"
+          >
+            Leave it
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAsked(true)}
+          className="text-sm text-muted hover:text-warn"
+        >
+          Cancel the whole thing
+        </button>
+      )}
+
+      {state.error && <p className="mt-2 text-sm text-warn">{state.error}</p>}
     </form>
   );
 }
