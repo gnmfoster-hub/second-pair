@@ -5,7 +5,7 @@ import { consentPatch, describeConsent } from "./consent.ts";
 const NOW = new Date("2026-09-14T10:00:00Z");
 
 test("ticking it records when and who", () => {
-  const p = consentPatch(true, null, "ticked by Sarah", NOW);
+  const p = consentPatch(true, null, "ticked by Sarah", true, NOW);
   assert.equal(p.marketing_consent, true);
   assert.equal(p.marketing_consent_at, "2026-09-14T10:00:00.000Z");
   assert.equal(p.marketing_consent_source, "ticked by Sarah");
@@ -21,6 +21,7 @@ test("re-saving an already evidenced consent leaves the date alone", () => {
     true,
     { marketing_consent: true, marketing_consent_at: "2024-01-05T09:00:00.000Z" },
     "ticked by Mo",
+    true,
     NOW,
   );
   assert.equal(p.marketing_consent, true);
@@ -34,6 +35,7 @@ test("an undated tick gets evidenced the next time it is confirmed", () => {
     true,
     { marketing_consent: true, marketing_consent_at: null },
     "ticked by Mo",
+    true,
     NOW,
   );
   assert.equal(p.marketing_consent_at, "2026-09-14T10:00:00.000Z");
@@ -48,6 +50,7 @@ test("clearing it wipes the evidence with it", () => {
     false,
     { marketing_consent: true, marketing_consent_at: "2024-01-05T09:00:00.000Z" },
     "unticked by Sarah",
+    true,
     NOW,
   );
   assert.equal(p.marketing_consent, false);
@@ -82,4 +85,21 @@ test("an evidenced consent reads as a date and a source", () => {
   assert.equal(d.evidenced, true);
   assert.match(d.text, /14 September 2026/);
   assert.match(d.text, /ticked by Sarah/);
+});
+
+/*
+ * The one that broke saving a client for twenty minutes.
+ *
+ * The code shipped before its migration, so every save wrote two columns that
+ * did not exist — and PostgREST rejects the whole update, so saving a client
+ * stopped working rather than quietly losing the date.
+ */
+test("with no evidence columns yet, it writes the tick and nothing else", () => {
+  const p = consentPatch(true, null, "ticked by Sarah", false, NOW);
+  assert.deepEqual(p, { marketing_consent: true });
+});
+
+test("and clearing still works without them", () => {
+  const p = consentPatch(false, { marketing_consent: true }, "unticked", false, NOW);
+  assert.deepEqual(p, { marketing_consent: false });
 });

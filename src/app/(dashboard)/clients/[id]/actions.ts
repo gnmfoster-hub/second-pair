@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { consentPatch } from "@/lib/consent";
+import { consentPatch, canRecordEvidence } from "@/lib/consent";
 import { requireStudio } from "@/lib/studio";
 import { canMessage } from "@/lib/permissions";
 import { deliver, recordDelivery } from "@/lib/messaging/deliver";
@@ -47,6 +47,7 @@ export async function saveClient(_prev: ClientState, fd: FormData): Promise<Clie
         fd.get("marketing_consent") === "on",
         before as { marketing_consent?: boolean; marketing_consent_at?: string | null } | null,
         "recorded by the business",
+        await canRecordEvidence(supabase),
       ),
     })
     .eq("id", id)

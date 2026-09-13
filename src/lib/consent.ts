@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 /**
  * Recording that somebody agreed to be marketed to, in a way that would stand up.
  *
@@ -11,6 +13,28 @@
  * The alternative is a year of ticks nobody can date and a list that cannot
  * lawfully be used at the moment somebody wants to use it.
  */
+
+/*
+ * Whether the database has the two evidence columns yet.
+ *
+ * Asked once per process and remembered. Without this, code that writes them
+ * before the migration runs does not degrade — the whole update is rejected,
+ * and saving a client stops working entirely. That is not hypothetical: it is
+ * what this file did for the twenty minutes between being deployed and being
+ * noticed, and it is the second time today I have shipped a write against a
+ * column that was not there yet.
+ *
+ * It answers true forever once the migration lands, so the cost is one query
+ * on the first save after a deploy.
+ */
+let evidenceColumns: boolean | null = null;
+
+export async function canRecordEvidence(db: SupabaseClient): Promise<boolean> {
+  if (evidenceColumns !== null) return evidenceColumns;
+  const { error } = await db.from("contacts").select("marketing_consent_at").limit(0);
+  evidenceColumns = !error;
+  return evidenceColumns;
+}
 
 export type ConsentFields = {
   marketing_consent: boolean;
@@ -34,8 +58,16 @@ export function consentPatch(
   ticked: boolean,
   existing: { marketing_consent?: boolean; marketing_consent_at?: string | null } | null,
   recordedBy: string,
+  /**
+   * Whether the evidence columns exist. False writes the tick and nothing
+   * else, so a deploy that lands before its migration still saves a client
+   * rather than refusing to.
+   */
+  canEvidence = true,
   now: Date = new Date(),
 ): ConsentFields {
+  if (!canEvidence) return { marketing_consent: ticked };
+
   if (!ticked) {
     return {
       marketing_consent: false,
