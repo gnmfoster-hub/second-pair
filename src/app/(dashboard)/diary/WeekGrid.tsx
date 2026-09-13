@@ -13,6 +13,7 @@ import {
 import { categoryFor, addDays, isoDate } from "@/lib/calendar";
 import { hueFor, initialsOf, colourForName, type ColourMode } from "@/lib/diaryColour";
 import { EntryDialog } from "./EntryDialog";
+import type { Bookable } from "./ServicePick";
 import { moveDiaryEntry } from "./actions";
 import { zonedToUtc as toUtc } from "@/lib/booking/tz";
 import { useDrag, clockOf, lengthOf, SNAP_MINUTES } from "./useDrag";
@@ -209,6 +210,8 @@ export function WeekGrid({
   view,
   day,
   colourBy,
+  services = [],
+  stripeConnected = false,
 }: {
   weekStart: string;
   entries: Entry[];
@@ -218,6 +221,10 @@ export function WeekGrid({
   view: "week" | "day";
   day: string;
   colourBy: ColourMode;
+  /** What the business sells, so a slot can be filled in by picking one. */
+  services?: Bookable[];
+  /** Whether there is anywhere for money to go. */
+  stripeConnected?: boolean;
 }) {
   const router = useRouter();
 

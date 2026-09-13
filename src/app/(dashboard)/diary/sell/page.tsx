@@ -3,6 +3,7 @@ import { requireStudio, getArtists } from "@/lib/studio";
 import { createClient } from "@/lib/supabase/server";
 import { verticalPack } from "@/lib/verticals";
 import { SellForm } from "./SellForm";
+import { AskForPayment } from "@/components/AskForPayment";
 
 /**
  * The till.
@@ -78,6 +79,30 @@ export default async function SellPage() {
           people={people}
           me={me}
           words={{ business: words.business }}
+        />
+      </div>
+
+      {/*
+        * And the other way of being paid for it.
+        *
+        * The form above records money that has already changed hands. This is
+        * for the half of a counter sale where it has not: somebody collecting
+        * on Friday, or paying for their mother's voucher from two streets
+        * away. Kept underneath rather than inside, because they are different
+        * actions — one writes down what happened, the other asks for something
+        * to happen.
+        */}
+      <div className="mt-8 border-t border-border pt-6">
+        <div className="section-title">Or send a link to pay</div>
+        <p className="hint mb-3 mt-1 max-w-prose">
+          For something being collected later, or somebody paying who is not stood in
+          front of you. It lands in the takings by itself once they pay.
+        </p>
+        <AskForPayment
+          description={`${studio.name}`}
+          connected={Boolean(studio.stripe_account_id)}
+          artistId={me}
+          label="Make a payment link"
         />
       </div>
     </div>

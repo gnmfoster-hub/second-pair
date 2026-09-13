@@ -5,7 +5,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireStudio, getArtists, getPriceBands, getServiceOptions } from "@/lib/studio";
 import { formatRange, formatPence } from "@/lib/money";
 import { depositFor } from "@/lib/quote";
-import { CHANNEL_LABELS, labelFor, type ConvStatus } from "@/lib/types";
+import { CHANNEL_LABELS, labelFor, type ConvStatus, type Channel } from "@/lib/types";
+import { AskForPayment } from "@/components/AskForPayment";
 import { verticalPack } from "@/lib/verticals";
 import { ReplyBox } from "./ReplyBox";
 import { setPaused } from "./actions";
@@ -189,6 +190,33 @@ export default async function ConversationPage({
               </p>
             )}
             <ReplyBox conversationId={conversation.id} />
+
+            {/*
+              * And money, in the place you are already talking to them.
+              *
+              * "Can you send me a link?" is asked in the middle of a
+              * conversation more often than anywhere else, and the answer used
+              * to be to leave the thread, find the client, and come back. It
+              * sends into this same conversation, so the thread stays the
+              * record of it rather than a text on somebody else's phone.
+              */}
+            {contact && (
+              <div className="mt-4 border-t border-border pt-4">
+                <AskForPayment
+                  contactId={contact.id}
+                  artistId={conversation.artist_id ?? null}
+                  description={studio.name}
+                  connected={Boolean(studio.stripe_account_id)}
+                  channels={[
+                    {
+                      channel: conversation.channel,
+                      label: CHANNEL_LABELS[conversation.channel as Channel] ?? "this",
+                    },
+                  ]}
+                  label="Send them a payment link"
+                />
+              </div>
+            )}
           </section>
         </div>
 

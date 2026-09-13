@@ -1444,6 +1444,8 @@ export default async function DiaryPage({
                   entries={entries}
                   artists={showing}
                   timezone={studio.timezone}
+                  services={bookable}
+                  stripeConnected={Boolean(studio.stripe_account_id)}
                   /*
                     * One day, or the seven of the week. The same rows either
                     * way — a week on a phone is a day list with headings
@@ -1464,6 +1466,8 @@ export default async function DiaryPage({
             <div className={weekEveryone ? "hidden" : panes.grid}>
               <WeekGrid
                 weekStart={isoDate(start)}
+                services={bookable}
+                stripeConnected={Boolean(studio.stripe_account_id)}
                 day={isoDate(focusDay)}
                 view={view}
                 colourBy={(studio.diary_colour ?? "category") as ColourMode}

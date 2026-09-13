@@ -16,6 +16,7 @@ import {
 import { Field, SubmitButton } from "@/components/Form";
 import { formatPence } from "@/lib/money";
 import { depositPaid, hasDeposit } from "@/lib/deposit";
+import { AskForPayment } from "@/components/AskForPayment";
 import { CATEGORIES, OWNER_CATEGORIES, categoryFor, REPEATS } from "@/lib/calendar";
 import type { Artist } from "@/lib/types";
 import type { Entry } from "./WeekGrid";
@@ -44,6 +45,7 @@ export function EntryDialog({
   artists,
   timezone,
   services = [],
+  stripeConnected = false,
   adding,
   onClose,
 }: {
@@ -53,6 +55,14 @@ export function EntryDialog({
   timezone: string;
   /** What the business sells, where it keeps a named list. */
   services?: Bookable[];
+  /**
+   * Whether there is a Stripe account for money to land in.
+   *
+   * Decides whether asking for payment is offered at all — a control that can
+   * only ever fail is worse than one that is not there, and the fix for it is
+   * on another screen entirely.
+   */
+  stripeConnected?: boolean;
   /** What the add menu said this is, when it was asked. */
   adding?: "client" | "walkin" | "other";
   onClose: () => void;
@@ -364,6 +374,33 @@ export function EntryDialog({
               * which is what a control that appears an hour after you look for
               * it amounts to.
               */}
+            {/*
+              * Money, from the appointment it is owed on.
+              *
+              * The one place where somebody already knows the amount, the
+              * client and whose work it was — so all three are filled in, and
+              * asking for the balance is one tap rather than a trip to another
+              * screen to type what is on this one.
+              *
+              * No channel buttons here on purpose: this opens with the client
+              * usually stood in front of you, and the useful thing is a link
+              * to show them. Sending it is on their record and in the
+              * conversation, where you are already writing to them.
+              */}
+            {entry && isClientWork && (
+              <div className="mt-3 border-t border-border pt-3">
+                <AskForPayment
+                  contactId={entry.contactId}
+                  bookingId={entry.id}
+                  artistId={entry.artist_id}
+                  amountPence={entry.price_pence}
+                  description={entry.title || "Appointment"}
+                  connected={stripeConnected}
+                  label="Ask for payment"
+                />
+              </div>
+            )}
+
             {entry && Date.parse(entry.starts_at) <= openedAt && (
               <CloseOff
                 id={entry.id}

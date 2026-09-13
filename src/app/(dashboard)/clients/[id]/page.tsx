@@ -16,6 +16,7 @@ import { Timings, type ClientTiming } from "./Timings";
 import type { Service } from "@/lib/types";
 import { Bought, type Purchase } from "./Bought";
 import { hasColumn } from "@/lib/db/hasColumn";
+import { AskForPayment } from "@/components/AskForPayment";
 
 type ContactRow = {
   id: string;
@@ -326,6 +327,25 @@ export default async function ClientPage({
             routes={routes}
             allowed={mayMessage}
           />
+
+          {/*
+            * Money owed, from the screen where somebody notices it.
+            *
+            * A client's record is where you end up when you are wondering
+            * whether they ever paid for the last one, and until now the only
+            * thing you could do from here was message them and ask.
+            */}
+          <section className="card p-5">
+            <h2 className="section-title mb-3 text-sm">Take a payment</h2>
+            <AskForPayment
+              contactId={contact.id}
+              description={`${studio.name}`}
+              connected={Boolean(studio.stripe_account_id)}
+              channels={routes
+                .filter((r) => r.open)
+                .map((r) => ({ channel: r.channel, label: CHANNEL_LABELS[r.channel] }))}
+            />
+          </section>
 
           {pricesByList && (
             <Timings

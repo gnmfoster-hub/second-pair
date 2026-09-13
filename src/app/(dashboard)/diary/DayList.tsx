@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EntryDialog } from "./EntryDialog";
 import type { Entry } from "./WeekGrid";
+import type { Bookable } from "./ServicePick";
 import type { Artist } from "@/lib/types";
 import { categoryFor, isoDate } from "@/lib/calendar";
 import { hueFor, type ColourMode } from "@/lib/diaryColour";
@@ -94,6 +95,8 @@ export function DayList({
   timezone,
   days,
   colourBy,
+  services = [],
+  stripeConnected = false,
   nowIso,
 }: {
   entries: Entry[];
@@ -105,6 +108,10 @@ export function DayList({
    */
   days: string[];
   colourBy: ColourMode;
+  /** What the business sells, so a slot can be filled in by picking one. */
+  services?: Bookable[];
+  /** Whether there is anywhere for money to go. */
+  stripeConnected?: boolean;
   /** Stamped on the server, so the first paint matches and nothing flickers. */
   nowIso: string;
 }) {
@@ -503,6 +510,8 @@ export function DayList({
           prefill={creating}
           artists={artists}
           timezone={timezone}
+          services={services}
+          stripeConnected={stripeConnected}
           onClose={() => {
             setEditingId(null);
             setCreating(null);

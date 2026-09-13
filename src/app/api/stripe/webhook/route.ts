@@ -42,11 +42,55 @@ export async function POST(request: NextRequest) {
       const session = event.data.object;
       const bookingId = session.metadata?.booking_id;
       const conversationId = session.metadata?.conversation_id;
-      if (!bookingId) break;
 
       // payment_status guards against a session completing without funds, which
       // is possible with delayed payment methods.
       if (session.payment_status !== "paid") break;
+
+      /*
+       * A payment link, which may or may not belong to an appointment.
+       *
+       * This used to begin "no booking id, nothing to do" and stop, which was
+       * right while the only thing anybody could pay for was a deposit on a
+       * booking. Every link the product can now send — a balance on the day, a
+       * course paid up front, two bottles being collected on Friday — carries
+       * the id of its own row instead, and not one of them would have been
+       * recorded: the customer pays, Stripe is content, and the quarter's
+       * takings are short by exactly the amount that was easiest to take.
+       *
+       * Claimed once, like the booking below it. Stripe retries a webhook
+       * whenever it does not get a clean answer quickly enough, and a payment
+       * counted twice is a figure somebody does a tax return from.
+       */
+      const paymentId = session.metadata?.payment_id;
+      if (paymentId) {
+        const { error: payError } = await db
+          .from("payments")
+          .update({
+            status: "paid",
+            paid_at: new Date().toISOString(),
+            // What actually arrived, which is Stripe's figure rather than the
+            // one we asked for. They can differ, and theirs is the true one.
+            gross_pence: session.amount_total ?? undefined,
+            stripe_payment_intent_id:
+              typeof session.payment_intent === "string" ? session.payment_intent : null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", paymentId)
+          .neq("status", "paid");
+
+        /*
+         * Worth failing on, for the same reason as the booking below: Stripe
+         * retrying a payment we could not record is exactly what retries are
+         * for, and answering 200 would lose it silently.
+         */
+        if (payError) {
+          console.error("[stripe] could not record payment", payError.message);
+          return NextResponse.json({ error: "Could not record" }, { status: 500 });
+        }
+      }
+
+      if (!bookingId) break;
 
       /*
        * Claimed once, and only once.
