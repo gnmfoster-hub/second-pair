@@ -51,14 +51,19 @@ alter table payment_items enable row level security;
 
 -- Reached through the payment they belong to, so tenancy is checked once and
 -- in one place.
-drop policy if exists payment_items_read on payment_items;
+--
+-- No "drop policy if exists" in front of these, unlike the older migrations.
+-- The table above is created here, so its policies cannot already exist, and
+-- the drop lines were three chances for a statement to be mistyped or lost on
+-- the way into a SQL editor in exchange for guarding against nothing. Which is
+-- not hypothetical: this file failed to run the first time because one of them
+-- arrived without its semicolon, and the error pointed at the create after it.
 create policy payment_items_read on payment_items for select
   using (exists (
     select 1 from payments p
     where p.id = payment_items.payment_id and is_studio_member(p.studio_id)
   ));
 
-drop policy if exists payment_items_write on payment_items;
 create policy payment_items_write on payment_items for all
   using (exists (
     select 1 from payments p
@@ -90,7 +95,6 @@ create policy payment_items_write on payment_items for all
  * could record takings against somebody else, which on the per-person model is
  * putting money in another person's name.
  */
-drop policy if exists payments_staff_record on payments;
 create policy payments_staff_record on payments for insert
   with check (
     is_studio_member(studio_id)

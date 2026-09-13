@@ -452,6 +452,97 @@ try {
     .insert({ service_id: shopService.id, artist_id: colleague.id, price_pence: 1 });
   check("a person cannot set a colleague's price", Boolean(colleagueError), "the write was accepted");
 
+  // ---------------------------------------------------------------- counter sales
+
+  /*
+   * Selling a bottle at the desk.
+   *
+   * payments is owner-only to write apart from one deliberate hole: staff may
+   * insert, because a sale is made by whoever is stood at the desk, and a shop
+   * that has to route every bottle through the owner keeps a paper pad
+   * instead. The hole is meant to be exactly that shape — insert, their own
+   * takings, nothing else — and a policy is the only thing that enforces it.
+   * The screen and the action are politeness.
+   *
+   * Every check below runs as the employee, never the owner. Policies are
+   * OR'd, so an owner passes their own policy and would make all of this look
+   * like it works while none of it had been exercised. That is the mistake the
+   * managed-person test above was written wrong the first time.
+   */
+  console.log("\nCounter sales");
+
+  const { data: ownSale, error: ownSaleError } = await c.client
+    .from("payments")
+    .insert({
+      studio_id: studioB,
+      artist_id: employed.id,
+      kind: "product",
+      gross_pence: 1450,
+      status: "paid",
+      description: "Shampoo, 250ml",
+      paid_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+  check("a member of staff can record their own sale", !ownSaleError && Boolean(ownSale),
+    ownSaleError?.message);
+
+  const { error: itemError } = await c.client.from("payment_items").insert({
+    payment_id: ownSale?.id,
+    name: "Shampoo, 250ml",
+    quantity: 1,
+    unit_pence: 1450,
+  });
+  check("and what was in it", !itemError, itemError?.message);
+
+  /*
+   * The check that stops a sale going in under somebody else's name. On the
+   * per-person model that is not an accounting slip — it is money in another
+   * person's takings, and on their tax return.
+   */
+  const { error: theirsError } = await c.client.from("payments").insert({
+    studio_id: studioB,
+    artist_id: colleague.id,
+    kind: "product",
+    gross_pence: 9900,
+    status: "paid",
+  });
+  check("but not one in a colleague's name", Boolean(theirsError), "the write was accepted");
+
+  /* Insert and only insert: a mistake is undone by a refund, not a rewrite. */
+  const { data: afterEdit } = await c.client
+    .from("payments")
+    .update({ gross_pence: 1 })
+    .eq("id", ownSale?.id)
+    .select("id");
+  check("a member of staff cannot rewrite a payment", (afterEdit ?? []).length === 0,
+    "the update was accepted");
+
+  const { data: afterDelete } = await c.client
+    .from("payments")
+    .delete()
+    .eq("id", ownSale?.id)
+    .select("id");
+  check("nor delete one", (afterDelete ?? []).length === 0, "the delete was accepted");
+
+  const { data: saleAfter } = await admin
+    .from("payments")
+    .select("gross_pence")
+    .eq("id", ownSale?.id)
+    .maybeSingle();
+  check("and the sale is untouched at the end of it", saleAfter?.gross_pence === 1450,
+    `it now reads ${saleAfter?.gross_pence}`);
+
+  /* And the wall that matters most: another business cannot record into this one. */
+  const { error: crossSaleError } = await a.client.from("payments").insert({
+    studio_id: studioB,
+    kind: "product",
+    gross_pence: 100,
+    status: "paid",
+  });
+  check("another studio's owner cannot record a sale here", Boolean(crossSaleError),
+    "the write was accepted");
+
   // Studio B has a booking, which is what made a plain cascade delete fail.
   const { error: selfDeleteError } = await b.client.rpc("delete_studio", { target: studioB });
   check("owner B can erase their own studio despite a booking", !selfDeleteError,
