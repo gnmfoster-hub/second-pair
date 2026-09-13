@@ -173,6 +173,34 @@ export default async function ArtistsPage() {
                 * which is precisely what it was. The action checks the owner
                 * claim against studio_members; the field only says who.
                 */}
+              {/*
+                * Their takings, as the file their accountant wants.
+                *
+                * On the per-person model this is not a convenience — a chair
+                * renter's money is hers, and at the end of a quarter she needs
+                * gross, fee and net for her own work without being handed the
+                * whole salon's or a Stripe login she should not have. The
+                * route decides who may see whose; this only asks.
+                */}
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border p-4">
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium">
+                    What {artist.name.split(" ")[0]} has taken
+                  </div>
+                  <p className="hint mt-0.5">
+                    Every payment of theirs, with Stripe&rsquo;s fee and what actually
+                    landed. For their tax return.
+                  </p>
+                </div>
+                <a
+                  href={`/settings/data/takings?person=${artist.id}`}
+                  className="btn-ghost shrink-0"
+                  download
+                >
+                  Download
+                </a>
+              </div>
+
               <MyServices
                 services={ownServices.get(artist.id) ?? []}
                 firstName={artist.name.split(" ")[0]}

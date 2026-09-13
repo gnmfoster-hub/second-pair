@@ -77,6 +77,29 @@ export default async function DataPage() {
           detail="What it was worth, who it was with, and whether it was cancelled. Cancelled ones are included and marked — a short month is a worse surprise than a column."
           href="/settings/data/bookings"
         />
+
+        {/*
+          * The file a tax return gets done from.
+          *
+          * Gross, Stripe's fee, and what actually arrived — which is the whole
+          * reason we keep our own copy of what Stripe knows. An accountant
+          * wants those three in one place, and a chair renter wants them for
+          * herself without being handed the salon's takings or a Stripe login
+          * she has no business having.
+          *
+          * The owner gets everybody, or one person by adding ?person= to the
+          * link. Everybody else gets their own whatever the address says,
+          * which the route decides rather than believing the link.
+          */}
+        <Row
+          title={owns ? "Money taken" : "What you have taken"}
+          detail={
+            owns
+              ? "Every payment, with Stripe's fee and what actually landed. One person at a time, or the whole business."
+              : "Every payment of yours, with Stripe's fee and what actually landed — the file your accountant asks for."
+          }
+          href="/settings/data/takings"
+        />
       </div>
 
       {/*
