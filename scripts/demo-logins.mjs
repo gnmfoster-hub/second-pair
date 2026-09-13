@@ -65,6 +65,25 @@ const VIEWS = [
     managed: true,
     shows: "employed — the business sets everything, her phone stays hers",
   },
+  /*
+   * And somebody who is not in the diary at all.
+   *
+   * A receptionist, a manager, the apprentice who answers the phone. They need
+   * the inbox and a view of everybody's day; they have no hours, no rates, no
+   * column, and must never be offered to a customer as somebody to book with.
+   * It is the view a salon asks about second, straight after "can they change
+   * my prices", and there has been no way to show it.
+   *
+   * Done by having no artist row rather than a flag on one — see the migration
+   * that made that possible. Which is why this entry names nobody: there is no
+   * row in the book to point at, and that is precisely the point.
+   */
+  {
+    email: "demo-reception@second-pair.com",
+    person: null,
+    managed: false,
+    shows: "on the desk — the inbox and everybody's day, no diary of their own",
+  },
 ];
 
 const { data: existing } = await db.auth.admin.listUsers();
@@ -90,22 +109,32 @@ for (const view of VIEWS) {
     userId = data.user.id;
   }
 
-  const { data: artist } = await db
-    .from("artists")
-    .select("id")
-    .eq("studio_id", studio.id)
-    .eq("name", view.person)
-    .maybeSingle();
+  /*
+   * Somebody in the book, or somebody on the desk.
+   *
+   * A named person is linked to their artist row, which is what gives them a
+   * column, hours and rates. Somebody with no name here is deliberately left
+   * unlinked: no artist row is exactly what "works here, not in the diary"
+   * means, so there is nothing to create and nothing to filter out later.
+   */
+  if (view.person) {
+    const { data: artist } = await db
+      .from("artists")
+      .select("id")
+      .eq("studio_id", studio.id)
+      .eq("name", view.person)
+      .maybeSingle();
 
-  if (!artist) {
-    console.log(`${view.person}: not on the demo — run demo-depth.mjs first`);
-    continue;
+    if (!artist) {
+      console.log(`${view.person}: not on the demo — run demo-depth.mjs first`);
+      continue;
+    }
+
+    await db
+      .from("artists")
+      .update({ user_id: userId, owner_managed: view.managed })
+      .eq("id", artist.id);
   }
-
-  await db
-    .from("artists")
-    .update({ user_id: userId, owner_managed: view.managed })
-    .eq("id", artist.id);
 
   // Staff, not owner. The whole point is that they see less.
   await db
@@ -115,7 +144,7 @@ for (const view of VIEWS) {
       { onConflict: "studio_id,user_id" },
     );
 
-  console.log(`${view.person.padEnd(6)} ${view.email.padEnd(30)} ${view.shows}`);
+  console.log(`${(view.person ?? "Desk").padEnd(6)} ${view.email.padEnd(32)} ${view.shows}`);
 }
 
 console.log("\nNo passwords were set or printed.");
