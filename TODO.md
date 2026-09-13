@@ -8,19 +8,13 @@ Last updated: 14 September 2026.
 
 ---
 
-# Run this next
+# Migrations
 
-One migration is waiting. Open the Supabase SQL editor, paste the contents of
-`supabase/migrations/20260914180000_sales.sql`, and run it.
+All run, up to and including `20260914180000_sales.sql`. Nothing is waiting.
 
-It does two things: makes the table that holds what was in a sale, and lets a
-member of staff record a sale rather than only you. Until it is run, selling
-something still works and still lands in the takings and on the client's
-record — the itemised breakdown simply is not kept, and only the owner can ring
-one up.
-
-Everything before it is run, including this morning's, which is what put the
-saved-at timestamp on the phone numbers.
+When one is, it will be named here, and until it is run the product keeps
+working without it — everything new is written so the deploy and the migration
+can happen in either order.
 
 ---
 
