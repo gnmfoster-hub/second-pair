@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { saveClient, type ClientState } from "./actions";
 import { Field, SubmitButton } from "@/components/Form";
+import { describeConsent } from "@/lib/consent";
 
 export function ClientForm({
   client,
@@ -15,9 +16,13 @@ export function ClientForm({
     notes: string | null;
     alert: string | null;
     marketing_consent: boolean;
+    marketing_consent_at?: string | null;
+    marketing_consent_source?: string | null;
   };
 }) {
   const [state, action] = useActionState<ClientState, FormData>(saveClient, {});
+
+  const consent = describeConsent(client);
 
   return (
     <form action={action} className="card space-y-5 p-5">
@@ -60,9 +65,20 @@ export function ClientForm({
         />
         Happy to receive marketing
       </label>
+      {/*
+        * What is actually recorded, rather than what the tick implies.
+        *
+        * Three states, and a checkbox shows two of them. A tick nobody can date
+        * is the third, and it is what every tick made before this existed looks
+        * like — saying so is what stops somebody relying on it the day they
+        * want to send something.
+        */}
+      <p className={`hint ${consent.evidenced ? "" : "text-warn"}`}>{consent.text}</p>
+
       <p className="hint">
         Off unless they have actually agreed. Required under UK GDPR, and kept separate from
-        booking messages — reminders are sent regardless.
+        booking messages &mdash; reminders are sent regardless. When it was agreed is
+        recorded, because a tick on its own is not evidence of anything.
       </p>
 
       <div className="flex items-center gap-4">

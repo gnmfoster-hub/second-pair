@@ -23,6 +23,9 @@ type ContactRow = {
   notes: string | null;
   alert: string | null;
   marketing_consent: boolean;
+  /** Absent until the migration runs, which reads as "agreed, date unknown". */
+  marketing_consent_at?: string | null;
+  marketing_consent_source?: string | null;
   channel: Channel;
   created_at: string;
   conversations: {
@@ -266,6 +269,8 @@ export default async function ClientPage({
               notes: contact.notes,
               alert: contact.alert,
               marketing_consent: contact.marketing_consent,
+              marketing_consent_at: contact.marketing_consent_at ?? null,
+              marketing_consent_source: contact.marketing_consent_source ?? null,
             }}
           />
         </div>

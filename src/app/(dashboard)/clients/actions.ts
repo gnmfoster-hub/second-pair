@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { consentPatch } from "@/lib/consent";
 import { requireStudio } from "@/lib/studio";
 
 export type NewClientState = { error?: string };
@@ -47,7 +48,8 @@ export async function addClient(
       email: email || null,
       notes: str(fd, "notes") || null,
       alert: str(fd, "alert") || null,
-      marketing_consent: fd.get("marketing_consent") === "on",
+      // A new client has nothing recorded yet, so agreeing now is agreeing now.
+      ...consentPatch(fd.get("marketing_consent") === "on", null, "recorded by the business"),
     })
     .select("id")
     .single();

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { consentPatch } from "@/lib/consent";
 import { requireStudio } from "@/lib/studio";
 import { canMessage } from "@/lib/permissions";
 import { deliver, recordDelivery } from "@/lib/messaging/deliver";
@@ -19,6 +20,21 @@ export async function saveClient(_prev: ClientState, fd: FormData): Promise<Clie
   const supabase = await createClient();
 
   const id = str(fd, "id");
+
+  /*
+   * What is already recorded, so agreeing again does not restamp it.
+   *
+   * Somebody editing a phone number on a record whose box was ticked two years
+   * ago must not silently turn that into consent given today. select("*") so
+   * this keeps working before the migration that adds the two columns.
+   */
+  const { data: before } = await supabase
+    .from("contacts")
+    .select("*")
+    .eq("id", id)
+    .eq("studio_id", studio.id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("contacts")
     .update({
@@ -27,7 +43,11 @@ export async function saveClient(_prev: ClientState, fd: FormData): Promise<Clie
       email: str(fd, "email") || null,
       notes: str(fd, "notes") || null,
       alert: str(fd, "alert") || null,
-      marketing_consent: fd.get("marketing_consent") === "on",
+      ...consentPatch(
+        fd.get("marketing_consent") === "on",
+        before as { marketing_consent?: boolean; marketing_consent_at?: string | null } | null,
+        "recorded by the business",
+      ),
     })
     .eq("id", id)
     .eq("studio_id", studio.id);
