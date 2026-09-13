@@ -8,6 +8,7 @@ import { quoteForBand, quoteForStudio, depositFor, withVat } from "@/lib/quote";
 import { verticalPack } from "@/lib/verticals";
 import { coversPostcode } from "@/lib/travel";
 import { dayIn } from "@/lib/diaryGaps";
+import { minutesForClient } from "@/lib/serviceBands";
 import { stripeConfigured, effectiveDepositMode } from "@/lib/payments/stripe";
 import { sendBookingConfirmation } from "@/lib/messaging/confirmation";
 import {
@@ -443,7 +444,7 @@ async function saveEnquiry(
       (b) => b.size_label.toLowerCase() === (input.size_band as string).toLowerCase(),
     );
     if (!band) return { result: `No size band called "${input.size_band}".` };
-    patch.size_band_id = band.id;
+    Object.assign(patch, asksFor(ctx.studio, band.id));
     /*
      * Tell the rest of this turn, not just the database.
      *
@@ -653,7 +654,7 @@ async function quoteEstimate(
     .update({
       quote_low_pence: withVat(quote, ctx.studio).low_pence,
       quote_high_pence: withVat(quote, ctx.studio).high_pence,
-      size_band_id: band.id,
+      ...asksFor(ctx.studio, band.id),
     })
     .eq("id", ctx.enquiryId);
 
@@ -781,6 +782,61 @@ async function offeredBefore(ctx: ToolContext): Promise<string[]> {
   return offeredIn((data ?? []).map((row) => row.tool_calls as ToolTrace[] | null));
 }
 
+/**
+ * How long to set aside, once this client is taken into account.
+ *
+ * Thick hair that always takes twenty minutes longer; somebody who cannot sit
+ * still; a regular who is reliably quicker than the book says. Recorded on the
+ * client record by whoever learned it, and until now read by nobody — so the
+ * diary went on booking the standard slot and running late all afternoon.
+ *
+ * Only for a business that prices by its list, because the row is keyed to a
+ * service and bands are not services.
+ *
+ * Never mentioned to the client, and there is nothing here that could: it
+ * returns a number of minutes. Nobody wants to be the appointment that needs
+ * extra time.
+ */
+async function minutesFor(
+  ctx: ToolContext,
+  band: PriceBand | undefined,
+  type: "consultation" | "session",
+): Promise<number> {
+  const base = durationFor(ctx.studio, band, type);
+
+  // A consultation is a fixed short appointment, not the work itself, so what
+  // the work takes for this person does not apply to it.
+  if (type === "consultation" || !band || ctx.studio.pricing_model !== "services") {
+    return base;
+  }
+
+  const { data } = await ctx.db
+    .from("client_service_times")
+    .select("minutes_delta")
+    .eq("contact_id", ctx.contactId)
+    .eq("service_id", band.id)
+    .maybeSingle();
+
+  return minutesForClient(base, data?.minutes_delta, ctx.studio.max_session_minutes);
+}
+
+/**
+ * Which column an enquiry records what was asked for in.
+ *
+ * The two pricing models live in different tables, and the columns that point
+ * at them both carry a foreign key — so a service id written to size_band_id
+ * is not quietly wrong, it is rejected by the database. A business that priced
+ * by its list could have quoted perfectly and then failed to save a single
+ * enquiry, which is the worst possible half of a feature to ship.
+ *
+ * One function, used by both places that record it, so the two cannot drift.
+ */
+function asksFor(studio: Studio, bandId: string): Record<string, string> {
+  return studio.pricing_model === "services"
+    ? { service_id: bandId }
+    : { size_band_id: bandId };
+}
+
 async function getSlots(
   input: Record<string, unknown>,
   ctx: ToolContext,
@@ -790,7 +846,7 @@ async function getSlots(
 
   const band = ctx.bands.find((b) => b.id === ctx.enquirySizeBandId);
   const type = bookingTypeFor(band);
-  const minutes = durationFor(ctx.studio, band, type);
+  const minutes = await minutesFor(ctx, band, type);
 
   /*
    * What they actually asked for, if they asked for anything.
@@ -1075,7 +1131,7 @@ async function makeBooking(
 
   const band = ctx.bands.find((b) => b.id === ctx.enquirySizeBandId);
   const type = bookingTypeFor(band);
-  const minutes = durationFor(ctx.studio, band, type);
+  const minutes = await minutesFor(ctx, band, type);
 
   /*
    * Re-check against the live diary: the slot may have gone since it was offered.

@@ -14,7 +14,18 @@ import {
 } from "./prompt";
 import { toolDefinitions, executeTool, type ToolContext } from "./tools";
 import { depositFor, quoteForStudio } from "@/lib/quote";
-import type { Artist, Channel, Faq, PriceBand, ServiceOption, Studio } from "@/lib/types";
+import { bandsFromServices } from "@/lib/serviceBands";
+import { byPerson } from "@/lib/servicePrices";
+import type {
+  Artist,
+  Channel,
+  Faq,
+  PriceBand,
+  Service,
+  ServiceOption,
+  ServicePerson,
+  Studio,
+} from "@/lib/types";
 import { NotAnswering } from "./errors";
 
 /**
@@ -147,9 +158,26 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     );
   }
 
-  const [people, priced, asked, offered] = await Promise.all([
+  /*
+   * Both ways a business can describe what it sells, and only one is used.
+   *
+   * A tattooist prices by the size of the piece and the hours it sits; a salon
+   * sells a named thing for a fixed price in a fixed time. Which one this
+   * business uses is its own setting, and the other table is simply empty.
+   *
+   * Read unconditionally rather than behind the setting, because a business
+   * that switches must not need a deploy to start quoting — and reading an
+   * empty table costs nothing.
+   */
+  const [people, priced, listed, asked, offered] = await Promise.all([
     db.from("artists").select("*").eq("studio_id", studio.id).order("created_at"),
     db.from("price_bands").select("*").eq("studio_id", studio.id).order("sort_order"),
+    db
+      .from("services")
+      .select("*")
+      .eq("studio_id", studio.id)
+      .eq("active", true)
+      .order("sort_order"),
     db.from("faqs").select("*").eq("studio_id", studio.id).order("sort_order"),
     db.from("service_options").select("*").eq("studio_id", studio.id).order("sort_order"),
   ]);
@@ -169,32 +197,28 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
    * gone wrong, try again", which is true, rather than a confident and
    * completely wrong statement about somebody's business.
    */
-  const failed = [people, priced, asked, offered].find((r) => r.error);
+  /*
+   * The price list only counts against a business that prices by it.
+   *
+   * Including it unconditionally would mean a transient error on a table a
+   * tattooist does not use could stop that tattooist answering at all — a new
+   * way to fail, invented while adding a feature they will never turn on.
+   */
+  const failed = [
+    people,
+    priced,
+    asked,
+    offered,
+    ...(studio.pricing_model === "services" ? [listed] : []),
+  ].find((r) => r.error);
   if (failed) {
     throw new Error(`Could not load ${studio.slug}: ${failed.error!.message}`);
   }
 
   const artists = people.data;
-  const bands = priced.data;
+
   const faqs = asked.data;
   const options = offered.data;
-
-  /*
-   * Which people offer which services.
-   *
-   * Loaded once per turn and passed down, rather than queried inside a tool
-   * that may run several times. A band with nobody named against it is done by
-   * everybody, so this is empty for almost every business.
-   */
-  const { data: providerRows } = await db
-    .from("service_providers")
-    .select("band_id, artist_id")
-    .in("band_id", (bands ?? []).map((b) => b.id));
-
-  const providers: Record<string, string[]> = {};
-  for (const row of providerRows ?? []) {
-    (providers[row.band_id] ??= []).push(row.artist_id);
-  }
 
   /*
    * Who this enquiry is for arrives from the browser, so it is checked against
@@ -207,6 +231,63 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     (artists ?? []).some((a) => a.id === input.forArtistId && a.active)
       ? input.forArtistId
       : null;
+
+  /*
+   * One list of things to quote from, priced for whoever is being asked for.
+   *
+   * This has to happen after forArtistId, and that is the whole point of
+   * where it sits. A salon's seniors and juniors charge different money for
+   * the same thing, so quoting the shop's price to somebody who asked for
+   * Sarah by name is a wrong price given out in the business's own name —
+   * which is the one thing the assistant must never do.
+   *
+   * A service is expressed as the band it already is — a flat price with a
+   * known length — so the prompt, the quoting tool and the slot search carry
+   * on working against one shape. Teaching the engine a second model would
+   * mean a second prompt section and a second way to be subtly wrong.
+   */
+  let bands: PriceBand[];
+  if (studio.pricing_model === "services") {
+    /*
+     * Only when the conversation belongs to one person. Before anybody has
+     * been asked for, the shop's own price is the honest answer — and the
+     * assistant says a price is confirmed when the work has been seen anyway.
+     */
+    const { data: mineRows } = forArtistId
+      ? await db.from("service_people").select("*").eq("artist_id", forArtistId)
+      : { data: null };
+
+    bands = bandsFromServices(
+      (listed.data ?? []) as Service[],
+      byPerson((mineRows ?? []) as ServicePerson[]),
+    );
+  } else {
+    bands = priced.data ?? [];
+  }
+
+  /*
+   * Which people offer which services.
+   *
+   * Loaded once per turn and passed down, rather than queried inside a tool
+   * that may run several times. A band with nobody named against it is done by
+   * everybody, so this is empty for almost every business.
+   *
+   * Only bands have this. A price list says who does what on the row itself,
+   * so a services business leaves it empty and everybody does everything —
+   * which is right until somebody asks for the other thing.
+   */
+  const { data: providerRows } =
+    studio.pricing_model === "services"
+      ? { data: null }
+      : await db
+          .from("service_providers")
+          .select("band_id, artist_id")
+          .in("band_id", bands.map((b) => b.id));
+
+  const providers: Record<string, string[]> = {};
+  for (const row of providerRows ?? []) {
+    (providers[row.band_id] ??= []).push(row.artist_id);
+  }
 
   const { conversation, enquiryId, contactId } = await findOrCreateConversation(
     db,
@@ -490,9 +571,22 @@ async function generateReply(
     ),
   } as Anthropic.MessageParam);
 
-  // The tools need the enquiry's current state to pick the right band, person
-  // and deposit without the model having to restate any of it.
-  const band = ctx.bands.find((b) => b.id === enquiry?.size_band_id);
+  /*
+   * The tools need the enquiry's current state to pick the right band, person
+   * and deposit without the model having to restate any of it.
+   *
+   * Read from whichever column this business records it in. Taking only
+   * size_band_id would mean a price-list business forgot what had been asked
+   * for between one message and the next — the customer would be quoted, and
+   * then offered a slot the length of a consultation because nothing knew
+   * what they were booked in for.
+   */
+  const askedFor =
+    (ctx.studio.pricing_model === "services"
+      ? (enquiry as { service_id?: string | null } | null)?.service_id
+      : enquiry?.size_band_id) ?? null;
+
+  const band = ctx.bands.find((b) => b.id === askedFor);
   const quote =
     enquiry?.quote_low_pence != null && enquiry?.quote_high_pence != null
       ? {
@@ -504,7 +598,7 @@ async function generateReply(
         ? quoteForStudio(ctx.artists, band)
         : null;
 
-  ctx.enquirySizeBandId = enquiry?.size_band_id ?? null;
+  ctx.enquirySizeBandId = askedFor;
   ctx.enquiryArtistId = enquiry?.artist_id ?? null;
   ctx.depositPence = quote ? depositFor(ctx.studio.deposit_rule, quote) : 0;
   ctx.contactEmail = (contact as { email?: string | null } | null)?.email ?? null;
