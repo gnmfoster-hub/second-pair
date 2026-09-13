@@ -288,6 +288,79 @@ else await db.from("reminder_templates").insert(hers);
 
 say("Aisha sends her own reminders, in her own words");
 
+// ──────────────────────────────────────────────────────── a wedding party
+//
+// Four people on one Saturday morning, in three diaries, tied together. The
+// thing a group booking is for, and the only way to see what one looks like
+// without typing four of them in.
+const saturday = (() => {
+  const d = new Date();
+  d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7));
+  return d;
+})();
+
+const slot = (h, m) =>
+  new Date(Date.UTC(saturday.getFullYear(), saturday.getMonth(), saturday.getDate(), h, m)).toISOString();
+
+const PARTY = [
+  ["The bride", "Sarah", 8, 0, 120, 16000],
+  ["Bridesmaid — Ellie", "Priya", 8, 30, 60, 5500],
+  ["Bridesmaid — Nula", "Mo", 9, 0, 60, 4800],
+  ["Mother of the bride", "Chloe", 9, 30, 45, 3800],
+];
+
+await db.from("bookings").delete().eq("title", "The bride").eq("studio_id", studio.id);
+
+const { data: existingGroup } = await db
+  .from("booking_groups")
+  .select("id")
+  .eq("studio_id", studio.id)
+  .eq("name", "Hannah's wedding")
+  .maybeSingle();
+
+if (existingGroup) {
+  await db.from("bookings").delete().eq("group_id", existingGroup.id);
+  await db.from("booking_groups").delete().eq("id", existingGroup.id);
+}
+
+const { data: wedding, error: weddingError } = await db
+  .from("booking_groups")
+  .insert({
+    studio_id: studio.id,
+    name: "Hannah's wedding",
+    notes: "All arriving together at eight. Photographer at half eleven.",
+  })
+  .select("id")
+  .single();
+
+if (weddingError) {
+  say(`no wedding party — ${weddingError.message}`);
+} else {
+  let booked = 0;
+  for (const [who, withWho, h, m, mins, price] of PARTY) {
+    const { error } = await db.from("bookings").insert({
+      enquiry_id: null,
+      contact_id: null,
+      artist_id: people[withWho],
+      group_id: wedding.id,
+      source: "manual",
+      type: "session",
+      category: "appointment",
+      all_day: false,
+      blocks_availability: true,
+      title: who,
+      starts_at: slot(h, m),
+      ends_at: slot(h, m + mins),
+      price_pence: price,
+      deposit_amount_pence: 0,
+      deposit_status: "paid",
+      repeats: "none",
+    });
+    if (!error) booked += 1;
+  }
+  say(`a wedding party of ${booked}, across three diaries, on Saturday morning`);
+}
+
 // ─────────────────────────────────────────────────────────── what it shows
 say("");
 say("The demo now shows, per person:");
@@ -295,5 +368,6 @@ say("  Settings → Pricing     the salon's nine services, and what each person 
 say("  Settings → You         (as Sarah) her prices, her notifications, her reminders");
 say("  A client record        the timings the salon knows and never mentions");
 say("  Aisha                  her own list, her own reminders, and an assistant called Immy");
+say("  Saturday morning       a wedding party of four, tied together across three diaries");
 say("");
 say("Sign in as demo@second-pair.com to see it as Sarah.");
