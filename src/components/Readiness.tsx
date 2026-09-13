@@ -10,6 +10,17 @@ import type { Capability } from "@/lib/readiness";
  *
  * Disappears entirely once everything is ready. A permanent panel saying
  * "all good" is furniture.
+ *
+ * Two moods, because a business three minutes old and a business three months
+ * old need opposite things from the same information. Somebody who has just
+ * been set up is looking at eight red lines and no idea which to touch, and a
+ * wall of faults reads as a broken product rather than an unfinished one. So
+ * while most of it is undone it walks: one thing, the next thing, and the rest
+ * folded away behind a count.
+ *
+ * Once a business is mostly working the list is the right shape — those are
+ * maintenance, they are unrelated to each other, and somebody skimming wants
+ * to see all of them at once.
  */
 export function Readiness({ capabilities }: { capabilities: Capability[] }) {
   const missing = capabilities.filter((c) => !c.ready);
@@ -18,15 +29,28 @@ export function Readiness({ capabilities }: { capabilities: Capability[] }) {
   const blocking = missing.filter((c) => c.blocking);
   const ready = capabilities.length - missing.length;
 
+  /*
+   * Still being set up, rather than needing a tidy.
+   *
+   * Half undone is the line. Below it somebody is maintaining a working
+   * assistant; above it they are still building one, and being handed the
+   * whole list at once is how they put it off entirely.
+   */
+  const settingUp = missing.length > capabilities.length / 2;
+  const next = missing[0];
+  const after = missing.slice(1);
+
   return (
     <div
       className={`card mt-4 overflow-hidden ${blocking.length ? "border-warn/40" : ""}`}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 pt-5">
         <h2 className="section-title">
-          {blocking.length
-            ? "Your assistant is not ready yet"
-            : "Your assistant could do more"}
+          {settingUp
+            ? "Let's get you set up"
+            : blocking.length
+              ? "Your assistant is not ready yet"
+              : "Your assistant could do more"}
         </h2>
         <span className="hint num">
           {ready}/{capabilities.length} working
@@ -42,7 +66,52 @@ export function Readiness({ capabilities }: { capabilities: Capability[] }) {
         />
       </div>
 
-      <ul className="mt-4 divide-y divide-border border-t border-border">
+      {/*
+       * One thing at a time while there is a lot of it.
+       *
+       * The first missing capability is the one to do next — the list is
+       * ordered by what breaks first, so somebody who fixes only the top item
+       * has fixed the thing their next customer would have hit.
+       */}
+      {settingUp && (
+        <div className="mx-5 mt-4 rounded-xl border border-accent/30 bg-accent/5 p-4">
+          <div className="text-xs font-medium uppercase tracking-wide text-muted">
+            Next
+          </div>
+          <div className="mt-1 font-medium">{next.can}</div>
+          <p className="hint mt-1">{next.otherwise}</p>
+          <Link href={next.href} className="btn mt-3 inline-flex bg-accent text-on-accent">
+            {next.action}
+          </Link>
+        </div>
+      )}
+
+      {settingUp && after.length > 0 && (
+        <details className="mx-5 mt-3">
+          <summary className="cursor-pointer text-sm text-muted">
+            {after.length} more after that
+          </summary>
+          <ul className="mt-2 space-y-1.5">
+            {after.map((capability) => (
+              <li key={capability.key} className="flex items-baseline gap-2 text-sm">
+                <span className="text-muted">·</span>
+                <span className="min-w-0 flex-1">{capability.can}</span>
+                <Link href={capability.href} className="shrink-0 text-xs text-muted hover:text-foreground">
+                  {capability.action}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
+      {settingUp && <div className="h-5" />}
+
+      <ul
+        className={`mt-4 divide-y divide-border border-t border-border ${
+          settingUp ? "hidden" : ""
+        }`}
+      >
         {missing.map((capability) => (
           <li
             key={capability.key}

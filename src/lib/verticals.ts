@@ -25,7 +25,14 @@ export type Vocabulary = {
   /** What the size or duration bands are called. */
   size_unit: string;
   customer: string;
-  /** What the business itself is called: studio, salon, shop, firm. */
+  /**
+   * What the business itself is called: studio, salon, shop, garage.
+   *
+   * The trades all said "firm", which is wrong in British English — a firm is
+   * a solicitor's or an accountant's. A plumber is a business, or a company,
+   * or just their own name, and "ring the firm" is not a sentence anybody here
+   * says. It was reaching real customers.
+   */
   business: string;
 };
 
@@ -327,7 +334,7 @@ const HOME: VerticalPack[] = [
       practitioners: "electricians",
       service: "job",
       size_unit: "job",
-      business: "firm",
+      business: "business",
     },
     location: "at_customer",
     pricing: "hourly",
@@ -365,7 +372,7 @@ const HOME: VerticalPack[] = [
       practitioners: "plumbers",
       service: "job",
       size_unit: "job",
-      business: "firm",
+      business: "business",
     },
     location: "at_customer",
     pricing: "hourly",
@@ -402,7 +409,7 @@ const HOME: VerticalPack[] = [
       practitioners: "engineers",
       service: "job",
       size_unit: "job",
-      business: "firm",
+      business: "business",
     },
     location: "at_customer",
     pricing: "hourly",
@@ -439,7 +446,7 @@ const HOME: VerticalPack[] = [
       practitioners: "joiners",
       service: "job",
       size_unit: "job",
-      business: "firm",
+      business: "business",
     },
     location: "at_customer",
     pricing: "hourly",
@@ -466,7 +473,7 @@ const HOME: VerticalPack[] = [
       practitioners: "decorators",
       service: "job",
       size_unit: "job",
-      business: "firm",
+      business: "business",
     },
     location: "at_customer",
     pricing: "hourly",
@@ -492,7 +499,7 @@ const HOME: VerticalPack[] = [
       practitioners: "plasterers",
       service: "job",
       size_unit: "job",
-      business: "firm",
+      business: "business",
     },
     location: "at_customer",
     pricing: "hourly",
@@ -518,7 +525,7 @@ const HOME: VerticalPack[] = [
       practitioners: "roofers",
       service: "job",
       size_unit: "job",
-      business: "firm",
+      business: "business",
     },
     location: "at_customer",
     pricing: "hourly",
@@ -544,7 +551,7 @@ const HOME: VerticalPack[] = [
       practitioners: "team",
       service: "job",
       size_unit: "job",
-      business: "firm",
+      business: "business",
     },
     location: "at_customer",
     pricing: "hourly",
@@ -570,7 +577,7 @@ const HOME: VerticalPack[] = [
       practitioners: "locksmiths",
       service: "job",
       size_unit: "job",
-      business: "firm",
+      business: "business",
     },
     location: "at_customer",
     asks: [JOB_ADDRESS],
@@ -598,7 +605,7 @@ const HOME: VerticalPack[] = [
       practitioners: "gardeners",
       service: "visit",
       size_unit: "job",
-      business: "firm",
+      business: "business",
     },
     location: "at_customer",
     pricing: "hourly",
@@ -626,7 +633,7 @@ const HOME: VerticalPack[] = [
       practitioners: "cleaners",
       service: "clean",
       size_unit: "clean",
-      business: "firm",
+      business: "business",
     },
     location: "at_customer",
     pricing: "hourly",
