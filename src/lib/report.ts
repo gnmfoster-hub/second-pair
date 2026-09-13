@@ -26,6 +26,19 @@ export type WeeklyReport = {
   medianFirstResponseSeconds: number | null;
   needsHuman: number;
   noShows: number;
+  /**
+   * What the no-shows were worth, at what was quoted.
+   *
+   * The count on its own is a statistic; the money is a decision. Four
+   * no-shows sounds like bad luck and £340 sounds like a deposit policy —
+   * and the owner is the only person who can tell which it was.
+   *
+   * Quoted rather than taken, because nothing was taken: this is the work
+   * that did not happen, priced at what it was going to be worth. A deposit
+   * kept against it is counted separately and is not netted off here, since
+   * whether to keep one is a conversation with a person rather than a rule.
+   */
+  noShowPence: number;
   aiCostPence: number;
 };
 
@@ -77,7 +90,7 @@ export async function weeklyReport(
     .from("conversations")
     .select(
       "id, status, created_at, first_response_ms, " +
-        "enquiries(id, quote_low_pence, bookings(id, starts_at, deposit_amount_pence, deposit_status, cancelled_at, attended))",
+        "enquiries(id, quote_low_pence, bookings(id, starts_at, deposit_amount_pence, deposit_status, cancelled_at, attended, price_pence))",
     )
     .eq("studio_id", studio.id)
     // The week is a claim about what the assistant earned. A rehearsal by the
@@ -98,6 +111,8 @@ export async function weeklyReport(
         deposit_status: string;
         cancelled_at: string | null;
         attended: boolean | null;
+        /** What this one comes to, where somebody set it. */
+        price_pence: number | null;
       }[];
     } | null;
   };
@@ -118,6 +133,7 @@ export async function weeklyReport(
     medianFirstResponseSeconds: null,
     needsHuman: 0,
     noShows: 0,
+    noShowPence: 0,
     aiCostPence: 0,
   };
 
@@ -146,7 +162,20 @@ export async function weeklyReport(
 
     for (const b of row.enquiries?.bookings ?? []) {
       if (b.deposit_status === "paid") report.depositsPaidPence += b.deposit_amount_pence;
-      if (b.attended === false) report.noShows++;
+      if (b.attended === false) {
+        report.noShows++;
+        /*
+         * This booking's own price where there is one, and only then the
+         * enquiry's quote.
+         *
+         * An enquiry can hold more than one booking — a consultation and the
+         * work, or a standing weekly clean — and charging the whole quote
+         * against each missed one would overstate a bad week into a crisis.
+         * A recurring booking priced per visit is counted per visit, which is
+         * what was actually lost.
+         */
+        report.noShowPence += b.price_pence ?? row.enquiries?.quote_low_pence ?? 0;
+      }
     }
   }
 

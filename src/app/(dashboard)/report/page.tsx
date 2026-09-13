@@ -170,6 +170,31 @@ export default async function ReportPage({
           label="Waiting on you"
           detail="Handed over for a person to answer"
         />
+
+        {/*
+         * Empty chairs, and what they were worth.
+         *
+         * The count has been calculated since the report was written and shown
+         * nowhere — and until this week it could only ever have been zero,
+         * because nothing in the product could record a no-show. Both halves
+         * are fixed now, so the figure is worth a tile.
+         *
+         * The money is the point. Four no-shows sounds like bad luck; £340
+         * sounds like a deposit policy, and the owner is the only person who
+         * can tell which of the two it was.
+         *
+         * Shown only once there is one. A nil return every week teaches
+         * somebody to stop reading the row, and then they miss the week it is
+         * not nil.
+         */}
+        {report.noShows > 0 && (
+          <Stat
+            tone="warn"
+            value={String(report.noShows)}
+            label="Did not turn up"
+            detail={`${formatPence(report.noShowPence)} of work that did not happen`}
+          />
+        )}
       </div>
 
       {/*
