@@ -641,9 +641,12 @@ async function quoteEstimate(
     return { result: `Nobody here called "${input.artist_name}".` };
   }
 
-  const quote = named
-    ? quoteForBand(named, band)
-    : quoteForStudio(ctx.artists, band);
+  const forWhom = whoseWork(ctx, named);
+  const theirBand = (await pricedFor(ctx, band, forWhom)) ?? band;
+
+  const quote = forWhom
+    ? quoteForBand(forWhom, theirBand)
+    : quoteForStudio(ctx.artists, theirBand);
 
   if (!quote) {
     return { result: "Nobody is taking bookings, so no quote can be given. Escalate." };
@@ -783,6 +786,62 @@ async function offeredBefore(ctx: ToolContext): Promise<string[]> {
 }
 
 /**
+ * This band, priced for the person who is going to do the work.
+ *
+ * The bands are built once a turn, before anybody has said who they want — so
+ * they carry the shop's price, which is the right answer to "how much is a cut"
+ * and the wrong one to "how much is a cut with Sarah".
+ *
+ * Found by asking the live demo both questions. Sarah charges £48 for a cut the
+ * shop lists at £38, and the assistant quoted £38 either way. A customer told
+ * £38 and charged £48 is a wrong price given out in the business's own name,
+ * which is the one thing this must never do.
+ *
+ * Only for a business pricing by a named list. Bands already price per person,
+ * through their hourly rate.
+ */
+async function pricedFor(
+  ctx: ToolContext,
+  band: PriceBand | undefined,
+  artist: Artist | undefined,
+): Promise<PriceBand | undefined> {
+  if (!band || !artist || ctx.studio.pricing_model !== "services") return band;
+
+  const { data } = await ctx.db
+    .from("service_people")
+    .select("price_pence, minutes")
+    .eq("service_id", band.id)
+    .eq("artist_id", artist.id)
+    .maybeSingle();
+
+  if (!data) return band;
+  const price = data.price_pence as number | null;
+  const minutes = data.minutes as number | null;
+  if (price == null && minutes == null) return band;
+
+  return {
+    ...band,
+    /*
+     * Their own price collapses the range, the same way it does everywhere
+     * else: a range describes work that varies, and somebody naming their own
+     * number has answered the question the range was asking.
+     */
+    price_low_pence: price ?? band.price_low_pence,
+    price_high_pence: price ?? band.price_high_pence,
+    duration_minutes: minutes ?? band.duration_minutes,
+  };
+}
+
+/**
+ * Whose prices apply: the person asked for by name, or the one already on the
+ * enquiry. Somebody who said "with Sarah" three messages ago should not be
+ * quoted the shop's price because this message did not repeat her name.
+ */
+function whoseWork(ctx: ToolContext, named?: Artist): Artist | undefined {
+  return named ?? ctx.artists.find((a) => a.id === ctx.enquiryArtistId);
+}
+
+/**
  * How long to set aside, once this client is taken into account.
  *
  * Thick hair that always takes twenty minutes longer; somebody who cannot sit
@@ -844,7 +903,14 @@ async function getSlots(
   const artist = pickArtist(input, ctx);
   if (!artist) return { result: "Nobody is taking bookings. Escalate." };
 
-  const band = ctx.bands.find((b) => b.id === ctx.enquirySizeBandId);
+  /*
+   * Priced and timed for whoever is doing it. A slot cut to the shop's
+   * forty-five minutes when this person takes forty is the same fault as
+   * quoting the shop's price when she charges her own — it just shows up as a
+   * diary running late rather than as an argument about money.
+   */
+  const shopBand = ctx.bands.find((b) => b.id === ctx.enquirySizeBandId);
+  const band = await pricedFor(ctx, shopBand, artist);
   const type = bookingTypeFor(band);
   const minutes = await minutesFor(ctx, band, type);
 
@@ -1129,7 +1195,14 @@ async function makeBooking(
       .eq("id", existing.id);
   }
 
-  const band = ctx.bands.find((b) => b.id === ctx.enquirySizeBandId);
+  /*
+   * Priced and timed for whoever is doing it. A slot cut to the shop's
+   * forty-five minutes when this person takes forty is the same fault as
+   * quoting the shop's price when she charges her own — it just shows up as a
+   * diary running late rather than as an argument about money.
+   */
+  const shopBand = ctx.bands.find((b) => b.id === ctx.enquirySizeBandId);
+  const band = await pricedFor(ctx, shopBand, artist);
   const type = bookingTypeFor(band);
   const minutes = await minutesFor(ctx, band, type);
 
