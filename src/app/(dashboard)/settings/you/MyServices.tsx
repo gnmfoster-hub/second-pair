@@ -23,10 +23,23 @@ import type { Service } from "@/lib/types";
 export function MyServices({
   services,
   firstName,
+  artistId = null,
+  title,
 }: {
   /** Only this person's own. The shop's list is somebody else's screen. */
   services: Service[];
   firstName: string;
+  /**
+   * Whose list this is, when it is not the reader's own.
+   *
+   * Null means the signed-in person, which is what their own settings page
+   * wants and the only thing this could do before. Set, it is the owner
+   * setting somebody up — and the action checks that claim against
+   * studio_members rather than believing the field.
+   */
+  artistId?: string | null;
+  /** Overrides the heading, which reads wrongly about somebody else. */
+  title?: { heading: string; blurb: string };
 }) {
   const [adding, setAdding] = useState<"service" | "product" | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -38,12 +51,16 @@ export function MyServices({
     <section className="card p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="section-title">Things only you do</h2>
+          <h2 className="section-title">{title?.heading ?? "Things only you do"}</h2>
           <p className="hint mt-1 max-w-prose">
-            Work and products that are yours rather than the shop&rsquo;s &mdash; a nail
-            technician&rsquo;s colours, a piercer&rsquo;s jewellery. The assistant offers
-            these only to somebody asking for {firstName}, and never to somebody booking
-            with anyone else.
+            {title?.blurb ?? (
+              <>
+                Work and products that are yours rather than the shop&rsquo;s &mdash; a
+                nail technician&rsquo;s colours, a piercer&rsquo;s jewellery. The assistant
+                offers these only to somebody asking for {firstName}, and never to
+                somebody booking with anyone else.
+              </>
+            )}
           </p>
         </div>
         {!adding && (
@@ -75,6 +92,7 @@ export function MyServices({
                   service={item}
                   onDone={() => setEditing(null)}
                   sortOrder={item.sort_order}
+                  artistId={artistId}
                 />
               </li>
             ) : (
@@ -112,6 +130,7 @@ export function MyServices({
             kind={adding}
             onDone={() => setAdding(null)}
             sortOrder={services.length}
+            artistId={artistId}
           />
         </div>
       )}
@@ -124,11 +143,14 @@ function MyServiceForm({
   service,
   onDone,
   sortOrder,
+  artistId,
 }: {
   kind: "service" | "product";
   service?: Service;
   onDone: () => void;
   sortOrder: number;
+  /** Whose list, when the owner is filling somebody else's in. */
+  artistId: string | null;
 }) {
   const [state, action] = useActionState<MyServiceState, FormData>(saveMyService, {});
   const [retireState, retire] = useActionState<MyServiceState, FormData>(
@@ -146,6 +168,12 @@ function MyServiceForm({
       <input type="hidden" name="id" value={service?.id ?? ""} />
       <input type="hidden" name="kind" value={kind} />
       <input type="hidden" name="sort_order" value={sortOrder} />
+      {/*
+        * Only sent when the owner is filling in somebody else's list, and only
+        * honoured for an owner — the action checks that against
+        * studio_members rather than believing this field.
+        */}
+      {artistId && <input type="hidden" name="artist_id" value={artistId} />}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="sm:col-span-2">

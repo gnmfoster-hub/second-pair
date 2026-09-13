@@ -1,6 +1,8 @@
 import { requireStudio, getArtists, getServiceOptions } from "@/lib/studio";
 import { verticalPack } from "@/lib/verticals";
 import { ArtistEditor } from "./ArtistEditor";
+import { MyServices } from "../you/MyServices";
+import type { Service } from "@/lib/types";
 import { InviteButton } from "./InviteButton";
 import { InviteStaff } from "./InviteStaff";
 import { TeamCalendar } from "./TeamCalendar";
@@ -26,6 +28,26 @@ export default async function ArtistsPage() {
     .is("accepted_at", null);
 
   const pending = new Map((invites ?? []).map((i) => [i.artist_id, i.token]));
+
+  /*
+   * Everything belonging to one person rather than to the shop, grouped by
+   * whose it is. One query for the whole team — a salon has five people and a
+   * handful of these between them, and five queries to save reading twenty
+   * rows is the wrong trade.
+   */
+  const { data: ownRows } = await supabase
+    .from("services")
+    .select("*")
+    .eq("studio_id", studio.id)
+    .eq("active", true)
+    .not("artist_id", "is", null)
+    .order("sort_order");
+
+  const ownServices = new Map<string, Service[]>();
+  for (const row of (ownRows ?? []) as Service[]) {
+    if (!row.artist_id) continue;
+    ownServices.set(row.artist_id, [...(ownServices.get(row.artist_id) ?? []), row]);
+  }
 
   const origin = await siteOrigin();
   const pack = verticalPack(studio.vertical);
@@ -136,6 +158,30 @@ export default async function ArtistsPage() {
                 * live by, and nobody could do it for them.
                 */}
               <TheirCalendar artist={artist} />
+
+              {/*
+                * What this person does that nobody else here does.
+                *
+                * It has existed since own-services were built and lived on
+                * exactly one screen: that person's own settings. So an owner
+                * taking on a nail technician could add her to the diary, set
+                * her rate and her hours, and could not add a single thing she
+                * actually does — she had to sign in and do it herself, which
+                * for somebody who has not been invited yet is never.
+                *
+                * Reported as not being able to set services per team member,
+                * which is precisely what it was. The action checks the owner
+                * claim against studio_members; the field only says who.
+                */}
+              <MyServices
+                services={ownServices.get(artist.id) ?? []}
+                firstName={artist.name.split(" ")[0]}
+                artistId={artist.id}
+                title={{
+                  heading: `Things only ${artist.name.split(" ")[0]} does`,
+                  blurb: `Work and products that are ${artist.name.split(" ")[0]}'s rather than the ${words.business}'s. The assistant offers these only to somebody asking for them, never to somebody booking with anyone else.`,
+                }}
+              />
             </div>
           )}
 
