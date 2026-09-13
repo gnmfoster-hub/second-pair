@@ -284,6 +284,18 @@ export function ArtistEditor({
             </p>
 
             <Field
+              label="What the assistant calls itself for them"
+              hint="Blank uses the business's. Somebody answering a stylist's own Instagram is, as far as that client is concerned, her assistant rather than the shop's."
+            >
+              <input
+                name="assistant_name"
+                defaultValue={artist?.assistant_name ?? ""}
+                className="input max-w-xs"
+                maxLength={40}
+              />
+            </Field>
+
+            <Field
               label="Their opening line"
               hint="The first thing a client sees. Blank uses the business's."
             >

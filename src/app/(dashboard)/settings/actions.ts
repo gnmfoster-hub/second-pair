@@ -420,6 +420,8 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
       tone: str(fd, "tone"),
       // Blank means "use the trade pack's wording", not "no greeting".
       greeting: str(fd, "greeting") || null,
+      // And blank here means the default name, not a nameless assistant.
+      assistant_name: str(fd, "assistant_name") || null,
       hours: readHours(fd),
       /*
        * What this business calls things, where it differs from its trade.
@@ -726,6 +728,8 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
     // Blank means "sound like the business", which is what almost everybody
     // wants — so an empty box is null rather than an empty string.
     greeting: str(fd, "greeting") || null,
+    // Blank uses the business's, which uses the default.
+    assistant_name: str(fd, "assistant_name") || null,
     tone: str(fd, "tone") || null,
     hours: ownHours,
     extra_hours: extraHours,

@@ -143,6 +143,8 @@ export type Studio = {
    * owner still learning to trust this wants to see each one until they do.
    */
   notify_every_enquiry: boolean;
+  /** What the assistant introduces itself as. Null uses the product default. */
+  assistant_name: string | null;
   /**
    * When these settings last changed.
    *
@@ -327,6 +329,13 @@ export type Artist = {
   travel_buffer_minutes: number | null;
   /** True means this person's clients get their reminders, not the shop's. */
   reminders_own: boolean;
+  /**
+   * What the assistant calls itself on this person's own enquiries.
+   *
+   * Null uses the business's, which uses the default. Two falls, one meaning:
+   * nobody has said otherwise.
+   */
+  assistant_name: string | null;
   personal_ical_url: string | null;
   /** Whether those blocks appear in the business diary. On by default. */
   personal_calendar_show: boolean;

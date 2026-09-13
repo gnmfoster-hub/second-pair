@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { updateStudio, type FormState } from "./actions";
 import { Field } from "@/components/Form";
 import { SaveBar } from "@/components/SaveBar";
+import { DEFAULT_ASSISTANT_NAME } from "@/lib/assistantName";
 import { penceToInput } from "@/lib/money";
 import { DAY_NAMES, DEFAULT_HOURS, type Studio } from "@/lib/types";
 import { verticalPack } from "@/lib/verticals";
@@ -57,6 +58,19 @@ export function StudioForm({
           hint="Written into the assistant's system prompt. Be specific: how you greet people, what you never say."
         >
           <textarea name="tone" defaultValue={studio.tone} rows={3} className="input" />
+        </Field>
+
+        <Field
+          label="What the assistant calls itself"
+          hint={`A name gives somebody something to say back to — "thanks Robin" is a different conversation from "thanks". Blank uses ${DEFAULT_ASSISTANT_NAME}. It always says it is an assistant when asked, name or no name.`}
+        >
+          <input
+            name="assistant_name"
+            defaultValue={studio.assistant_name ?? ""}
+            placeholder={DEFAULT_ASSISTANT_NAME}
+            className="input max-w-xs"
+            maxLength={40}
+          />
         </Field>
 
         <Field
