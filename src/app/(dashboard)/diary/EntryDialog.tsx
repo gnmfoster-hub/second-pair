@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { ClientPicker } from "./ClientPicker";
+import { ServicePick, type Bookable } from "./ServicePick";
 import Link from "next/link";
 import { cancelBookingGroup, type GroupState } from "./groupActions";
 import {
@@ -40,12 +41,18 @@ export function EntryDialog({
   prefill,
   artists,
   timezone,
+  services = [],
+  adding,
   onClose,
 }: {
   entry: Entry | null;
   prefill: { date: string; time: string; endTime?: string; artistId?: string } | null;
   artists: Artist[];
   timezone: string;
+  /** What the business sells, where it keeps a named list. */
+  services?: Bookable[];
+  /** What the add menu said this is, when it was asked. */
+  adding?: "client" | "walkin" | "other";
   onClose: () => void;
 }) {
   const [state, action] = useActionState<DiaryState, FormData>(saveDiaryEntry, {});
@@ -63,6 +70,18 @@ export function EntryDialog({
    * that should not change while somebody is looking at it.
    */
   const [openedAt] = useState(() => Date.now());
+
+  /*
+   * The length, and who it is for, held here rather than left to the inputs.
+   *
+   * Picking a service has to be able to fill the length in, and looking up
+   * what this client takes needs to know which client — neither of which the
+   * form can do while both live only in uncontrolled fields.
+   */
+  const [contactId, setContactId] = useState<string | null>(entry?.contactId ?? null);
+  const [whoseColumn, setWhoseColumn] = useState<string>(
+    entry?.artist_id ?? prefill?.artistId ?? artists[0]?.id ?? "",
+  );
 
   const startFields = entry
     ? localFields(entry.starts_at, timezone)
@@ -86,7 +105,33 @@ export function EntryDialog({
     ? Math.round((Date.parse(entry.ends_at) - Date.parse(entry.starts_at)) / 60000)
     : (dragged ?? 60);
 
-  const [category, setCategory] = useState(entry?.category ?? "personal");
+  /*
+   * How long it runs, once something can change it.
+   *
+   * Picking a service sets it, and a client who takes longer than the book
+   * says moves it again — so it cannot live in an uncontrolled field the way
+   * it did when the only way to fill it in was to type.
+   */
+  const [length, setLength] = useState(minutes);
+
+  /*
+   * And the price, for the same reason: picking a service knows what it comes
+   * to, and the week's takings are read off this field.
+   */
+  const [price, setPrice] = useState(
+    entry?.price_pence != null ? (entry.price_pence / 100).toString() : "",
+  );
+
+  /*
+   * What the add menu said this is.
+   *
+   * "Time off or something that is not a client" opens on a block; everything
+   * else opens on an appointment. Without this the menu asks a question and
+   * then ignores the answer, which is worse than not asking.
+   */
+  const [category, setCategory] = useState(
+    entry?.category ?? (adding === "other" ? "personal" : adding ? "appointment" : "personal"),
+  );
 
   /*
    * The title, filled in by the category unless somebody has typed.
@@ -345,11 +390,33 @@ export function EntryDialog({
               hint="Search your clients, or type a name to add them."
             >
               <ClientPicker
+                onChosen={setContactId}
                 defaultValue={
                   entry ? { id: entry.contactId, name: entry.clientName } : null
                 }
               />
             </Field>
+          )}
+
+          {/*
+           * What they are having, which fills in the length and the price.
+           *
+           * Straight after who it is for, and that order is the point: a
+           * client's own timing cannot be applied until the form knows which
+           * client. Only where the business keeps a named list — a business
+           * pricing by size and hours never sees this and nothing changes for
+           * them.
+           */}
+          {!fromClient && isClientWork && services.length > 0 && (
+            <ServicePick
+              services={services}
+              artistId={whoseColumn}
+              contactId={contactId}
+              onPick={(mins, pence) => {
+                setLength(mins);
+                if (pence != null) setPrice((pence / 100).toFixed(2));
+              }}
+            />
           )}
 
           {/*
@@ -368,9 +435,8 @@ export function EntryDialog({
                 <input
                   name="price"
                   inputMode="decimal"
-                  defaultValue={
-                    entry?.price_pence != null ? (entry.price_pence / 100).toString() : ""
-                  }
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
                   placeholder="65"
                   className="input pl-7 tabular-nums"
                 />
@@ -446,7 +512,8 @@ export function EntryDialog({
                     min={5}
                     max={1440}
                     step={5}
-                    defaultValue={minutes}
+                    value={length}
+                    onChange={(e) => setLength(Number(e.target.value) || 0)}
                     className="input"
                     required
                   />
@@ -478,6 +545,7 @@ export function EntryDialog({
           <Field label={artists.length > 1 ? "Who for" : "Diary"}>
             <select
               name="artist_id"
+              onChange={(e) => setWhoseColumn(e.target.value)}
               defaultValue={entry?.artist_id ?? prefill?.artistId ?? artists[0]?.id}
               className="input"
               required

@@ -414,6 +414,77 @@ export async function setDiaryColour(mode: "category" | "client" | "person") {
  * Scoped to the studio by row-level security, and capped — this runs on every
  * other keystroke and nobody scrolls past ten matches anyway.
  */
+/**
+ * What this business sells, for the form that books it.
+ *
+ * The manual form has always asked for a number of minutes, which means
+ * somebody adding a colour has to remember how long a colour takes — and the
+ * business has already written that down. Picking the thing fills in the
+ * length and the price, and gets both right every time.
+ */
+export async function bookableServices() {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  if (studio.pricing_model !== "services") return [];
+
+  const { data } = await supabase
+    .from("services")
+    .select("*")
+    .eq("studio_id", studio.id)
+    .eq("active", true)
+    .order("sort_order");
+
+  return (data ?? [])
+    .filter((s) => s.kind === "service" && s.minutes != null)
+    .map((s) => ({
+      id: s.id as string,
+      name: s.name as string,
+      minutes: s.minutes as number,
+      price_pence: s.price_pence as number | null,
+      artist_id: (s.artist_id as string | null) ?? null,
+    }));
+}
+
+/**
+ * How long this client takes over this, as against the book.
+ *
+ * The thing the salon knows and nobody else does: thick hair that always runs
+ * twenty minutes over, somebody who cannot sit still. It has been recorded on
+ * the client since it was built and only the assistant could read it — so
+ * anybody booking by hand, which is most bookings in most salons, set aside
+ * the standard time and ran late.
+ *
+ * Returns the note as well. Whoever is typing deserves to see why the number
+ * moved, and it is the difference between a form that seems to guess and one
+ * that is obviously repeating something a colleague wrote down.
+ */
+export async function clientTiming(contactId: string, serviceId: string) {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  if (!contactId || !serviceId) return null;
+
+  // Checked against this business, because both ids come from the browser.
+  const { data: contact } = await supabase
+    .from("contacts")
+    .select("id")
+    .eq("id", contactId)
+    .eq("studio_id", studio.id)
+    .maybeSingle();
+
+  if (!contact) return null;
+
+  const { data } = await supabase
+    .from("client_service_times")
+    .select("minutes_delta, note, chargeable")
+    .eq("contact_id", contactId)
+    .eq("service_id", serviceId)
+    .maybeSingle();
+
+  return data ?? null;
+}
+
 export async function findClients(query: string) {
   const { studio } = await requireStudio();
   const supabase = await createClient();

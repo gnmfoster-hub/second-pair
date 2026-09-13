@@ -257,6 +257,33 @@ export default async function DiaryPage({
     if (r.group_id) groupSizes.set(r.group_id, (groupSizes.get(r.group_id) ?? 0) + 1);
   }
 
+  /*
+   * What the business sells, for the form that books it by hand.
+   *
+   * Empty for a business pricing by size and hours, which is what the manual
+   * form has always assumed — so nothing changes for them and the picker never
+   * appears at all.
+   */
+  const { data: sellable } =
+    studio.pricing_model === "services"
+      ? await supabase
+          .from("services")
+          .select("*")
+          .eq("studio_id", studio.id)
+          .eq("active", true)
+          .order("sort_order")
+      : { data: null };
+
+  const bookable = (sellable ?? [])
+    .filter((row) => row.kind === "service" && row.minutes != null)
+    .map((row) => ({
+      id: row.id as string,
+      name: row.name as string,
+      minutes: row.minutes as number,
+      price_pence: (row.price_pence as number | null) ?? null,
+      artist_id: (row.artist_id as string | null) ?? null,
+    }));
+
   const entries: Entry[] = ((data ?? []) as unknown as RawRow[])
     .filter((r) => mine.has(r.artist_id))
     .map((r) => ({
@@ -913,7 +940,7 @@ export default async function DiaryPage({
            * nobody finds on their own. Amber, because the pack allows one call
            * to action per screen and on this page it is obviously this.
            */}
-          <NewEntry artists={team} timezone={studio.timezone} />
+          <NewEntry artists={team} timezone={studio.timezone} services={bookable} />
         </div>
       </div>
 

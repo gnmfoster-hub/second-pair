@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { EntryDialog } from "./EntryDialog";
+import { AddMenu } from "./AddMenu";
+import type { Bookable } from "./ServicePick";
 import type { Artist } from "@/lib/types";
 
 /**
@@ -15,9 +17,30 @@ import type { Artist } from "@/lib/types";
  * It opens at the next half hour rather than at nothing, because that is
  * nearly always what somebody adding an appointment means.
  */
-export function NewEntry({ artists, timezone }: { artists: Artist[]; timezone: string }) {
+export function NewEntry({
+  artists,
+  timezone,
+  services,
+}: {
+  artists: Artist[];
+  timezone: string;
+  /** What the business sells, where it keeps a named list. Empty otherwise. */
+  services: Bookable[];
+}) {
   const [open, setOpen] = useState(false);
   const [when, setWhen] = useState<{ date: string; time: string } | null>(null);
+
+  /*
+   * Who it is for, asked before anything else.
+   *
+   * The form used to open straight onto a title and a length, which quietly
+   * decides that this is one person and that whoever is typing knows how long
+   * the job takes. Asking who first is what makes a client's own recorded
+   * timing usable at all — it cannot set aside her extra twenty minutes until
+   * it knows it is her.
+   */
+  const [asking, setAsking] = useState(false);
+  const [kind, setKind] = useState<"client" | "walkin" | "other">("walkin");
 
   // Computed on click rather than in render: the clock is not a pure value,
   // and a server-rendered "now" would be wrong by the time it arrived.
@@ -41,8 +64,14 @@ export function NewEntry({ artists, timezone }: { artists: Artist[]; timezone: s
       date: `${at.year}-${at.month}-${at.day}`,
       time: `${String(Math.floor(next / 60)).padStart(2, "0")}:${String(next % 60).padStart(2, "0")}`,
     });
-    setOpen(true);
+    setAsking(true);
   };
+
+  function chose(picked: "client" | "walkin" | "other") {
+    setKind(picked);
+    setAsking(false);
+    setOpen(true);
+  }
 
   /*
    * Opened straight away when the home screen shortcut was used.
@@ -158,12 +187,22 @@ export function NewEntry({ artists, timezone }: { artists: Artist[]; timezone: s
         <span className="hidden sm:inline">Add</span>
       </button>
 
+      {asking && (
+        <AddMenu
+          byList={services.length > 0}
+          onPick={chose}
+          onClose={() => setAsking(false)}
+        />
+      )}
+
       {open && when && (
         <EntryDialog
           entry={null}
           prefill={when}
           artists={artists}
           timezone={timezone}
+          services={services}
+          adding={kind}
           onClose={() => setOpen(false)}
         />
       )}

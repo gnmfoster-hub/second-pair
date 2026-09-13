@@ -1117,7 +1117,7 @@ function Channels({ b }: { b: BusinessSummary }) {
             </label>
 
             <label className="block">
-              <span className="label">Ring this first, for 20 seconds</span>
+              <span className="label">Ring this first, for 15 seconds</span>
               <input
                 name="forward_to"
                 defaultValue={sms?.forwardTo ?? ""}

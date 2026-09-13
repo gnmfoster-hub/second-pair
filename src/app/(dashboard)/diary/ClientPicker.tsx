@@ -25,13 +25,25 @@ type Match = { id: string; name: string | null; phone: string | null; alert: str
 
 export function ClientPicker({
   defaultValue,
+  onChosen,
 }: {
   defaultValue?: { id: string | null; name: string | null } | null;
+  /**
+   * Told when somebody is picked, so the form can look up what this client
+   * takes over the thing they are having. The hidden fields below stay the
+   * record of truth for the submit; this is only for what the form shows.
+   */
+  onChosen?: (id: string | null) => void;
 }) {
   const [query, setQuery] = useState(defaultValue?.name ?? "");
-  const [chosen, setChosen] = useState<ClientChoice | null>(
+  const [chosen, setChosenState] = useState<ClientChoice | null>(
     defaultValue?.name ? { id: defaultValue.id, name: defaultValue.name } : null,
   );
+  const setChosen = (next: ClientChoice | null) => {
+    setChosenState(next);
+    onChosen?.(next?.id ?? null);
+  };
+
   const [matches, setMatches] = useState<Match[]>([]);
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);

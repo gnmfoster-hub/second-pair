@@ -1,0 +1,102 @@
+"use client";
+
+import Link from "next/link";
+
+/**
+ * Who is this for, asked before anything else.
+ *
+ * The form used to open straight onto a title and a length, which quietly
+ * decides two things: that this is one person, and that whoever is typing
+ * knows how long the job takes. Both are often wrong, and the second is
+ * doubly so — the business has already written down how long a colour takes,
+ * and asking again is asking somebody to remember something the product knows.
+ *
+ * Asking who first is what makes the rest possible. Only once it knows this is
+ * Mrs Doyle can it set aside the twenty minutes extra somebody recorded
+ * against her months ago, which is the whole point of having recorded it.
+ */
+export function AddMenu({
+  onPick,
+  onClose,
+  byList,
+}: {
+  onPick: (kind: "client" | "walkin" | "other") => void;
+  onClose: () => void;
+  /** Whether this business keeps a named price list to pick a service from. */
+  byList: boolean;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-t-2xl bg-surface p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:pb-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="section-title">What are you adding?</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-sm text-muted hover:text-foreground"
+          >
+            Close
+          </button>
+        </div>
+
+        <div className="mt-4 space-y-2">
+          <Choice
+            title="Somebody who has been before"
+            detail={
+              byList
+                ? "Their record, their usual stylist, and anything the shop has written down about how long they take."
+                : "Their record and their history, so this booking joins the rest."
+            }
+            onClick={() => onPick("client")}
+          />
+
+          <Choice
+            title="Somebody new, or a walk-in"
+            detail="A name and a time. You can make them a client later if they come back."
+            onClick={() => onPick("walkin")}
+          />
+
+          <Link href="/diary/group" className="block">
+            <Choice
+              title="Several people together"
+              detail="A wedding party, a family, a house with four rooms. Each gets their own appointment, tied together."
+            />
+          </Link>
+
+          <Choice
+            title="Time off, or something that is not a client"
+            detail="A meeting, a holiday, lunch, a delivery. Blocks the diary without being an appointment."
+            onClick={() => onPick("other")}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Choice({
+  title,
+  detail,
+  onClick,
+}: {
+  title: string;
+  detail: string;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full rounded-xl border border-border bg-surface-2/40 px-4 py-3 text-left transition-colors hover:border-accent/40"
+    >
+      <div className="font-medium">{title}</div>
+      <div className="hint mt-0.5">{detail}</div>
+    </button>
+  );
+}
