@@ -578,7 +578,7 @@ export async function clientSummary(contactId: string) {
    */
   const { data: direct } = await supabase
     .from("bookings")
-    .select("id, starts_at, price_pence, attended, artist_id, artists(name), enquiry_id")
+    .select("id, starts_at, price_pence, attended, artist_id, artists(name), enquiry_id, title")
     .eq("contact_id", contactId)
     .is("cancelled_at", null)
     .order("starts_at", { ascending: false })
@@ -594,23 +594,59 @@ export async function clientSummary(contactId: string) {
     (enquiries ?? []).map((e) => [e.id as string, (e.service_id as string | null) ?? null]),
   );
 
-  const serviceIds = [...new Set([...serviceOf.values()].filter(Boolean))] as string[];
-  const { data: services } = serviceIds.length
-    ? await supabase.from("services").select("id, name").in("id", serviceIds)
-    : { data: null };
+  /*
+   * The whole price list, not only what the enquiries pointed at.
+   *
+   * It used to fetch just the services named by this person's enquiries, which
+   * is the smaller query and answers the smaller question. Matching a
+   * hand-typed title back to a real service needs the list itself — and that
+   * is what turns "Cut and blow dry" written in a box into a shortcut that can
+   * fill the length and the price in.
+   */
+  const { data: services } = await supabase
+    .from("services")
+    .select("id, name")
+    .eq("studio_id", studio.id)
+    .eq("active", true);
 
   const names = new Map((services ?? []).map((s) => [s.id as string, s.name as string]));
 
-  const visits = (direct ?? []).map((b) => ({
-    at: b.starts_at as string,
-    with: (b.artists as unknown as { name: string } | null)?.name ?? null,
-    what: serviceOf.get(b.enquiry_id as string)
-      ? (names.get(serviceOf.get(b.enquiry_id as string)!) ?? null)
-      : null,
-    serviceId: serviceOf.get(b.enquiry_id as string) ?? null,
-    pence: (b.price_pence as number | null) ?? null,
-    attended: (b.attended as boolean | null) ?? null,
-  }));
+  /*
+   * What they had, off the booking itself when there is no enquiry behind it.
+   *
+   * A named service only exists where the assistant took the enquiry and
+   * recorded one. Nearly every booking in a real diary is typed in by hand, so
+   * on live data this was null for eighteen visits out of nineteen — the panel
+   * could say somebody had been in nineteen times and not one word about what
+   * they had, which is the half anybody actually wants. The title is where
+   * that has been written down all along.
+   */
+  const byName = new Map(
+    (services ?? []).map((s) => [
+      (s.name as string).trim().toLowerCase(),
+      s.id as string,
+    ]),
+  );
+
+  const visits = (direct ?? []).map((b) => {
+    const fromEnquiry = serviceOf.get(b.enquiry_id as string) ?? null;
+    const title = ((b.title as string | null) ?? "").trim();
+
+    return {
+      at: b.starts_at as string,
+      with: (b.artists as unknown as { name: string } | null)?.name ?? null,
+      what: (fromEnquiry ? names.get(fromEnquiry) : null) ?? (title || null),
+      /*
+       * Only a real service id, because tapping "the usual" picks one out of
+       * the list above. A title matching a service by name is the same thing
+       * said twice, so it counts; a title matching nothing is still worth
+       * showing as history, and simply is not a shortcut.
+       */
+      serviceId: fromEnquiry ?? byName.get(title.toLowerCase()) ?? null,
+      pence: (b.price_pence as number | null) ?? null,
+      attended: (b.attended as boolean | null) ?? null,
+    };
+  });
 
   /*
    * What they usually have: the thing they have had most often, and only if
@@ -619,6 +655,8 @@ export async function clientSummary(contactId: string) {
    */
   const counts = new Map<string, { id: string; name: string; times: number }>();
   for (const v of visits) {
+    // Cancelled-out and no-shows still say what they came for, so they count
+    // towards what somebody usually has.
     if (!v.serviceId || !v.what) continue;
     const seen = counts.get(v.serviceId) ?? { id: v.serviceId, name: v.what, times: 0 };
     seen.times += 1;

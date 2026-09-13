@@ -133,9 +133,20 @@ export function EntryDialog({
    * "Time off or something that is not a client" opens on a block; everything
    * else opens on an appointment. Without this the menu asks a question and
    * then ignores the answer, which is worse than not asking.
+   *
+   * And when nothing said — which is every tap and drag straight onto the
+   * grid, the commonest way anybody adds anything — it is an appointment too.
+   * It used to fall through to "personal", so clicking an empty eleven o'clock
+   * gave you a time-off form: no client picker, no service list, no history,
+   * no price. Every one of those is hidden behind `isClientWork`, so the whole
+   * booking half of this form was missing from the route most people take to
+   * it, and it looked like the client history had simply stopped working.
+   *
+   * A slot in a diary is an appointment unless somebody says otherwise. Time
+   * off is the deliberate choice, and it is one tap away in the same control.
    */
   const [category, setCategory] = useState(
-    entry?.category ?? (adding === "other" ? "personal" : adding ? "appointment" : "personal"),
+    entry?.category ?? (adding === "other" ? "personal" : "appointment"),
   );
 
   /*
