@@ -969,6 +969,40 @@ async function buildTheAwkwardBits(
     // Nothing came back this month.
   }
 
+  // ------------------------------------------ somebody we can actually write to
+  /*
+   * Two clients with an address on them, and the rest deliberately without.
+   *
+   * Not one contact in the demo had an email. Which meant the entire written
+   * half of the product could not be demonstrated or tested on it: no booking
+   * confirmation, no receipt, no emailing a client from their record — every
+   * one of them returning quietly because there was nowhere to send it, which
+   * is correct behaviour and looks exactly like a feature that does not work.
+   *
+   * The business's own demo address, so anything sent lands somewhere that is
+   * ours to read and nothing is ever sent to a stranger. Change it on the
+   * client's record to your own if you want it in your pocket.
+   *
+   * Only two, on purpose. A client with no address is a real and common state
+   * — half a salon's book is a phone number and a name — and the screens that
+   * have to cope with it are worth seeing cope with it.
+   */
+  try {
+    const { data: named } = await db
+      .from("contacts")
+      .select("id")
+      .eq("studio_id", studioId)
+      .not("name", "is", null)
+      .order("created_at")
+      .limit(2);
+
+    for (const c of named ?? []) {
+      await db.from("contacts").update({ email: "demo@second-pair.com" }).eq("id", c.id);
+    }
+  } catch {
+    // Nobody to write to, then.
+  }
+
   // -------------------------------------- a bottle sold at the chair itself
   /*
    * One sale tied to the appointment it happened at, rather than to the day.
