@@ -248,6 +248,12 @@ you sent and the money work behind it.
 - Payments: Stripe connect for the business and for each person, payment links
   on the appointment, the client's record, the conversation and the till,
   refunds linked through to the exact charge, the till, products and stock.
+- "This was me testing" on a conversation, which keeps the thread and takes it
+  out of the client list, the figures and the report. The flag has existed
+  since the second week and only the dashboard preview could set it — so every
+  time you opened the real widget on your phone you became a customer.
+- The reach check was lying. It said Neat & Tidy could not email seven people
+  it can email, because it wrote its own copy of the rule instead of calling it.
 - A shelf for a business that prices by the hour. Living Canvas has aftercare
   balm on its price list at £10 and a screen to change it on.
 - Support sees the conversation a request was filed out of, which the assistant
