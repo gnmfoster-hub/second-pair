@@ -87,16 +87,36 @@ ten-minute visit to quote a whole house.
 
 It is your call, which is why it is here rather than changed.
 
-### 5. The Neat & Tidy number
+### 5. Take a backup before you test hard
+
+One command, and only you can run it because only you should hold the key:
+
+```
+BACKUP_KEY='a long passphrase you keep' node scripts/backup.mjs
+```
+
+Keep the passphrase where you keep everything else. There is no unencrypted
+path through that script on purpose &mdash; the file is every client's name,
+phone number and email for every business on here, in one place, with none of
+the row-level security that protects them in the database.
+
+I have run it and read it back with a throwaway key to prove the round trip
+works, and deleted the file. Payments are in it now; they never were.
+
+Once a month: `BACKUP_KEY='...' node scripts/restore.mjs <file>`. It only
+reports. A backup nobody has read back is a hope, and this is how you find out
+the passphrase in the password manager is the old one.
+
+### 6. The Neat & Tidy number
 
 Send it to Chris, and put it on the Facebook page, the Google listing and
 anything else with the old one on.
 
-### 6. Check the forward on info@neatandtidysolutions.co.uk
+### 7. Check the forward on info@neatandtidysolutions.co.uk
 
 You sent a test to it. Confirm it arrived at the Second Pair address.
 
-### 7. The slow ones
+### 8. The slow ones
 
 - **Meta verification** — weeks, and cannot be hurried. Steps below.
 - **ICO registration** — £52 a year. You are processing personal data on behalf
@@ -248,6 +268,9 @@ you sent and the money work behind it.
 - Payments: Stripe connect for the business and for each person, payment links
   on the appointment, the client's record, the conversation and the till,
   refunds linked through to the exact charge, the till, products and stock.
+- Tenant isolation now checks the early-access list, which is protected by
+  having no policies at all and was protected by nothing that would notice if
+  that changed; a business's channels; and booking groups. 48 checks, all green.
 - "This was me testing" on a conversation, which keeps the thread and takes it
   out of the client list, the figures and the report. The flag has existed
   since the second week and only the dashboard preview could set it — so every
