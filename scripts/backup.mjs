@@ -85,6 +85,26 @@ const TABLES = [
   "client_service_times",
   "faqs",
   "reminder_templates",
+
+  /*
+   * And the money, which was not in here at all.
+   *
+   * This file is as old as the diary and payments are newer than it, so the
+   * list simply never learned about them: every deposit taken, every bottle
+   * sold at the till, every refund — the whole of what a quarter is made of —
+   * was outside the only copy of this database we hold ourselves.
+   *
+   * It is also the part that cannot be reconstructed from anything else. A
+   * booking can be re-entered from a customer's memory and a phone number can
+   * be asked for again; what somebody paid in March cannot be worked out from
+   * first principles, and it is the one thing an accountant will ask for.
+   *
+   * The lines as well as the totals. A sale that says "£38.00, products" and
+   * cannot say what they were is half a record, and the half it is missing is
+   * the one a shop reads at the end of a month.
+   */
+  "payments",
+  "payment_items",
 ];
 
 const dump = { takenAt: new Date().toISOString(), tables: {} };
