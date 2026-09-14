@@ -212,6 +212,7 @@ export function WeekGrid({
   colourBy,
   services = [],
   stripeConnected = false,
+  travels = false,
 }: {
   weekStart: string;
   entries: Entry[];
@@ -225,6 +226,8 @@ export function WeekGrid({
   services?: Bookable[];
   /** Whether there is anywhere for money to go. */
   stripeConnected?: boolean;
+  /** Whether the work happens at the customer's address. */
+  travels?: boolean;
 }) {
   const router = useRouter();
 
@@ -1293,6 +1296,9 @@ export function WeekGrid({
           prefill={creating}
           artists={artists}
           timezone={timezone}
+          services={services}
+          stripeConnected={stripeConnected}
+          travels={travels}
           onClose={() => {
             setEditing(null);
             setCreating(null);

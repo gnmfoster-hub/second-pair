@@ -97,6 +97,7 @@ export function DayList({
   colourBy,
   services = [],
   stripeConnected = false,
+  travels = false,
   nowIso,
 }: {
   entries: Entry[];
@@ -112,6 +113,8 @@ export function DayList({
   services?: Bookable[];
   /** Whether there is anywhere for money to go. */
   stripeConnected?: boolean;
+  /** Whether the work happens at the customer's address. */
+  travels?: boolean;
   /** Stamped on the server, so the first paint matches and nothing flickers. */
   nowIso: string;
 }) {
@@ -512,6 +515,7 @@ export function DayList({
           timezone={timezone}
           services={services}
           stripeConnected={stripeConnected}
+          travels={travels}
           onClose={() => {
             setEditingId(null);
             setCreating(null);

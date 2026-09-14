@@ -1446,6 +1446,7 @@ export default async function DiaryPage({
                   timezone={studio.timezone}
                   services={bookable}
                   stripeConnected={Boolean(studio.stripe_account_id)}
+                  travels={studio.travel_mode !== "at_premises"}
                   /*
                     * One day, or the seven of the week. The same rows either
                     * way — a week on a phone is a day list with headings
@@ -1468,6 +1469,7 @@ export default async function DiaryPage({
                 weekStart={isoDate(start)}
                 services={bookable}
                 stripeConnected={Boolean(studio.stripe_account_id)}
+                travels={studio.travel_mode !== "at_premises"}
                 day={isoDate(focusDay)}
                 view={view}
                 colourBy={(studio.diary_colour ?? "category") as ColourMode}

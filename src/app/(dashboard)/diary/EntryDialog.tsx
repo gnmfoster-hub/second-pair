@@ -47,6 +47,7 @@ export function EntryDialog({
   timezone,
   services = [],
   stripeConnected = false,
+  travels = false,
   adding,
   onClose,
 }: {
@@ -64,6 +65,14 @@ export function EntryDialog({
    * on another screen entirely.
    */
   stripeConnected?: boolean;
+  /**
+   * Whether the work happens at the customer's address.
+   *
+   * Only changes what closing a booking off is called. "They came" is right
+   * for a salon and wrong for a cleaner, who went to them — and a screen that
+   * describes the job backwards is one somebody stops reading.
+   */
+  travels?: boolean;
   /** What the add menu said this is, when it was asked. */
   adding?: "client" | "walkin" | "other";
   onClose: () => void;
@@ -434,6 +443,7 @@ export function EntryDialog({
                 canRemember={Boolean(entry.contactId && entry.serviceId)}
                 firstName={(entry.clientName ?? "them").split(" ")[0]}
                 contactId={entry.contactId}
+                travels={travels}
               />
             )}
           </div>
@@ -772,6 +782,7 @@ function CloseOff({
   canRemember,
   firstName,
   contactId,
+  travels,
 }: {
   id: string;
   attended: boolean | null;
@@ -788,6 +799,8 @@ function CloseOff({
   firstName: string;
   /** Who it was for, so the till can be opened with them already in it. */
   contactId: string | null;
+  /** Whether the work happens at the customer's address. */
+  travels: boolean;
 }) {
   return (
     <form action={closeBooking} className="mt-3 border-t border-border pt-3">
@@ -802,7 +815,15 @@ function CloseOff({
             attended === true ? "bg-ok/10 text-ok" : ""
           }`}
         >
-          They came
+          {/*
+            * What "it went well" is called depends on who travelled.
+            *
+            * "They came" is right for a salon and plainly wrong for a cleaner,
+            * who went to them — and a screen describing the job backwards is
+            * one somebody stops trusting. The business already records which
+            * way round it works; nothing had ever read it here.
+            */}
+          {travels ? "Job done" : "They came"}
         </button>
         <button
           name="attended"
@@ -811,7 +832,7 @@ function CloseOff({
             attended === false ? "bg-warn/10 text-warn" : ""
           }`}
         >
-          No-show
+          {travels ? "Nobody in" : "No-show"}
         </button>
 
         {/*
