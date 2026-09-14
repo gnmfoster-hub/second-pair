@@ -42,6 +42,12 @@ next-env.d.ts
 
 .vercel
 .env*
+# Except the blank one, which is the setup checklist rather than a secret:
+# every value in it is empty, and step 4 of the README tells you to copy it.
+# `.env*` swallowed it, so a fresh clone has never contained the file the
+# README sends you to — which is how a key that is genuinely required, like
+# STRIPE_CONNECT_CLIENT_ID, ends up written down nowhere anybody would look.
+!.env.example
 .demo3.mjs
 .d.mjs
 .team.mjs

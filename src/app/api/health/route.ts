@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { emailConfigured, probeEmail } from "@/lib/messaging/email";
 import { smsConfigured, probeSms } from "@/lib/messaging/sms";
-import { hasAnthropicEnv } from "@/lib/env";
+import { hasAnthropicEnv, canConnectStripe } from "@/lib/env";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -94,7 +94,25 @@ export async function GET(request: NextRequest) {
         emailConfigured() && email.keyAccepted === true && email.senderVerified === true,
     },
     assistant: hasAnthropicEnv(),
-    payments: Boolean(process.env.STRIPE_SECRET_KEY),
+    /*
+     * Three keys, not one, because "payments" was a single boolean off the
+     * secret key — and that is the half that gates the least.
+     *
+     * The secret key charges a card. The Connect client id is what lets a
+     * business attach its own Stripe to ours at all; without it the connect
+     * button sends somebody to Stripe's door and bounces them straight back,
+     * which is how every business on here ended up with no connected account
+     * while this line read "payments: true". The webhook secret is how we
+     * hear that a payment succeeded, and without it a paid deposit never
+     * lands on the booking.
+     */
+    payments: {
+      secretKey: Boolean(process.env.STRIPE_SECRET_KEY),
+      connectClientId: Boolean(process.env.STRIPE_CONNECT_CLIENT_ID),
+      webhookSecret: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
+      /** The only one worth reading on its own: can a business connect today. */
+      canConnect: canConnectStripe(),
+    },
     texts: {
       /** All three variables present. Necessary, and on its own not enough. */
       configured: smsConfigured(),

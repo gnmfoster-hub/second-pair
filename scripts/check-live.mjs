@@ -214,8 +214,34 @@ if (!env.CRON_SECRET) {
       if (can.push) pass("push notifications are configured");
       else warn("push is not configured", "Nobody is told when something needs them.");
 
-      if (can.payments) pass("Stripe is connected");
-      else warn("Stripe is not connected", "Deposits cannot be taken — expected until you set it up.");
+      /*
+       * An object now, and an object is always truthy — the exact trap the
+       * note under `texts` describes, so this reads the fields by name.
+       *
+       * Tolerant of the old shape on purpose: until the build carrying the
+       * new health route is live this runs against a deployment that still
+       * answers with a plain boolean, and a check that breaks during its own
+       * rollout gets ignored at the one moment somebody is watching it.
+       */
+      if (typeof can.payments === "boolean") {
+        if (can.payments) pass("Stripe keys are set", "older build — connect not reported");
+        else warn("Stripe is not set up", "Deposits cannot be taken.");
+      } else if (can.payments?.canConnect) {
+        pass("businesses can connect their Stripe");
+        if (!can.payments.webhookSecret)
+          warn(
+            "STRIPE_WEBHOOK_SECRET is missing",
+            "A deposit would be paid and never land on the booking.",
+          );
+      } else if (can.payments?.secretKey && !can.payments?.connectClientId) {
+        fail(
+          "STRIPE_CONNECT_CLIENT_ID is missing",
+          "The key that charges cards is set, but no business can connect its own Stripe — " +
+            "the connect button bounces straight back. Stripe dashboard → Settings → Connect.",
+        );
+      } else {
+        warn("Stripe is not set up", "Deposits cannot be taken — expected until you set it up.");
+      }
 
       /*
        * can.texts is an object, and an object is always truthy.

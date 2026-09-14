@@ -9,15 +9,26 @@ import { penceToInput } from "@/lib/money";
 import { DAY_NAMES, DEFAULT_HOURS, type Studio } from "@/lib/types";
 import { verticalPack } from "@/lib/verticals";
 import { ColourBy } from "@/app/(dashboard)/diary/ColourBy";
+import { StripeNotice } from "./StripeNotice";
 import type { ColourMode } from "@/lib/diaryColour";
 
 export function StudioForm({
   studio,
   lastSaved,
+  stripeOutcome,
+  canConnectStripe,
 }: {
   studio: Studio;
   /** When these settings last saved, already in words. */
   lastSaved: string | null;
+  /** The ?stripe= word, when they have just come back from Stripe. */
+  stripeOutcome?: string;
+  /**
+   * Whether connecting is switched on at our end. False means the platform
+   * key is not set, and the button below would send somebody to Stripe and
+   * bounce them straight back — so it says so instead of offering that.
+   */
+  canConnectStripe: boolean;
 }) {
   const [state, action] = useActionState<FormState, FormData>(updateStudio, {});
   const [depositType, setDepositType] = useState(studio.deposit_rule.type);
@@ -341,27 +352,60 @@ export function StudioForm({
           * anything.
           */}
         <Field label="Taking the money">
-          {studio.stripe_account_id ? (
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="pill bg-ok/10 text-ok">Stripe connected</span>
-              <span className="hint font-mono text-xs">{studio.stripe_account_id}</span>
-              <a href="/api/stripe/connect/start" className="btn-ghost">
-                Connect a different account
-              </a>
-            </div>
-          ) : (
-            <div className="space-y-2.5">
-              <a href="/api/stripe/connect/start" className="btn inline-flex bg-accent text-on-accent">
-                Connect Stripe
-              </a>
-              <p className="hint max-w-prose">
-                You will be taken to Stripe to sign in, or to open an account if you have
-                not got one. Your customers then pay <strong>you</strong> directly &mdash;
-                the money never passes through Second Pair, and refunds and disputes stay
-                in your own Stripe account.
-              </p>
-            </div>
-          )}
+          <div className="space-y-2.5">
+            {/*
+              * How the last attempt went, which until now was thrown away.
+              * The route has always said; nothing has ever listened.
+              */}
+            <StripeNotice outcome={stripeOutcome} />
+
+            {studio.stripe_account_id ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="pill bg-ok/10 text-ok">Stripe connected</span>
+                <span className="hint font-mono text-xs">{studio.stripe_account_id}</span>
+                {canConnectStripe && (
+                  <a href="/api/stripe/connect/start" className="btn-ghost">
+                    Connect a different account
+                  </a>
+                )}
+              </div>
+            ) : canConnectStripe ? (
+              <>
+                <a href="/api/stripe/connect/start" className="btn inline-flex bg-accent text-on-accent">
+                  Connect Stripe
+                </a>
+                <p className="hint max-w-prose">
+                  You will be taken to Stripe to sign in, or to open an account if you have
+                  not got one. Your customers then pay <strong>you</strong> directly &mdash;
+                  the money never passes through Second Pair, and refunds and disputes stay
+                  in your own Stripe account.
+                </p>
+              </>
+            ) : (
+              /*
+               * No button, because there is nothing behind it.
+               *
+               * A greyed-out control with a reason beats one that looks
+               * live and does nothing: somebody who presses this and lands
+               * back on the same page concludes the product is broken, and
+               * they are not wrong — they are just wrong about which part.
+               */
+              <>
+                <span
+                  className="btn inline-flex pointer-events-none opacity-50"
+                  aria-disabled="true"
+                >
+                  Connect Stripe
+                </span>
+                <p className="hint max-w-prose">
+                  Card payments are not switched on at our end yet, so there is nothing to
+                  connect to. This one is on Second Pair rather than on you &mdash; we will
+                  tell you when it is ready. Everything else keeps working; the assistant
+                  simply will not ask anybody for a deposit.
+                </p>
+              </>
+            )}
+          </div>
         </Field>
         </>
         )}

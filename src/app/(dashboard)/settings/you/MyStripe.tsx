@@ -1,3 +1,5 @@
+import { StripeNotice } from "../StripeNotice";
+
 /**
  * Connecting your own Stripe, where the money is yours rather than the shop's.
  *
@@ -19,6 +21,8 @@ export function MyStripe({
   connected,
   perPerson,
   firstName,
+  outcome,
+  possible,
 }: {
   /** Whether this person already has an account of their own. */
   connected: boolean;
@@ -29,6 +33,14 @@ export function MyStripe({
    */
   perPerson: boolean;
   firstName: string;
+  /** The ?stripe= word, when they have just come back from Stripe. */
+  outcome?: string;
+  /**
+   * Whether connecting works at all yet — the platform key, which is ours and
+   * the same for everybody. Nothing a stylist can do anything about, so it is
+   * said plainly rather than left as a button that bounces.
+   */
+  possible: boolean;
 }) {
   return (
     <section className="card p-5">
@@ -58,7 +70,12 @@ export function MyStripe({
         )}
       </div>
 
-      {perPerson && !connected && (
+      {/* How the last attempt went, which nothing used to read. */}
+      <div className="mt-4 empty:mt-0">
+        <StripeNotice outcome={outcome} />
+      </div>
+
+      {perPerson && !connected && possible && (
         <>
           {/*
             * A link rather than a form. It leaves for Stripe and comes back to
@@ -74,6 +91,15 @@ export function MyStripe({
             safer of the two.
           </p>
         </>
+      )}
+
+      {perPerson && !connected && !possible && (
+        <p className="hint mt-4 max-w-prose">
+          Card payments are not switched on at our end yet, {firstName}, so there is
+          nothing for you to connect to today. That is on Second Pair rather than on you
+          or on whoever runs the place &mdash; this panel will offer you a button the
+          moment it is ready.
+        </p>
       )}
 
       {perPerson && connected && (

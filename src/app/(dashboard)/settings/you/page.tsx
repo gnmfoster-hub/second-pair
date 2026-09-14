@@ -1,4 +1,5 @@
 import { requireStudio, getArtists, getServiceOptions } from "@/lib/studio";
+import { canConnectStripe } from "@/lib/env";
 import { verticalPack } from "@/lib/verticals";
 import { createClient } from "@/lib/supabase/server";
 import { siteOrigin } from "@/lib/origin";
@@ -42,8 +43,14 @@ export const metadata = { title: "You — Second Pair" };
  * Nothing here is new. It is the same components, on a page the person they
  * belong to can open.
  */
-export default async function YouPage() {
+export default async function YouPage({
+  searchParams,
+}: {
+  /** How it went, when they have just come back from Stripe. */
+  searchParams: Promise<{ stripe?: string }>;
+}) {
   const { studio, userId } = await requireStudio();
+  const { stripe } = await searchParams;
 
   const [artists, options, origin] = await Promise.all([
     getArtists(studio.id),
@@ -180,6 +187,9 @@ export default async function YouPage() {
           connected={Boolean(me.stripe_account_id)}
           perPerson={studio.payment_model === "people"}
           firstName={me.name.split(" ")[0]}
+          outcome={stripe}
+          /* Whether connecting is switched on at our end at all. */
+          possible={canConnectStripe()}
         />
       )}
 
