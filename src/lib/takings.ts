@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { hasColumn } from "@/lib/db/hasColumn";
+import { splitSale } from "@/lib/splitSale";
 
 /**
  * What the week was actually worth, and who did it.
@@ -198,22 +199,20 @@ export async function salesFor(
 
   for (const row of rows) {
     /*
-     * A counter sale is entirely shelf; a bill is the work plus whatever came
-     * off the shelf with it, and only the second half belongs here.
-     *
-     * Getting this wrong is not a rounding error. The work is already in the
-     * diary's own figure above — counting a bill's gross here as well would
-     * show a £95 colour twice and make a week look like it took nearly double
-     * what it did, on the one screen somebody reads to find out.
+     * Worked out in splitSale, where the arithmetic can be tested without a
+     * database — it is the sort that gets checked with a calculator by
+     * somebody who has noticed their figures are wrong.
      */
-    const shelf =
-      row.kind === "product"
-        ? row.gross_pence ?? 0
-        : (lines.get(row.id) ?? []).reduce((sum, l) => sum + l.quantity * l.unit_pence, 0);
+    const { shelfPence: shelf, takenPence } = splitSale({
+      kind: row.kind,
+      grossPence: row.gross_pence,
+      shelfLines: (lines.get(row.id) ?? []).map((l) => ({
+        quantity: l.quantity,
+        unitPence: l.unit_pence,
+      })),
+    });
 
-    // Everything taken against an appointment, work and all. A different
-    // question from the one above, and the one the close-out exists to answer.
-    if (row.kind !== "product") taken += row.gross_pence ?? 0;
+    taken += takenPence;
 
     if (shelf <= 0) continue;
     pence += shelf;
