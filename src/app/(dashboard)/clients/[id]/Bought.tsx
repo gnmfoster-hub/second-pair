@@ -35,8 +35,15 @@ export function Bought({
 
   return (
     <section className="card p-5">
+      {/*
+        * "Paid" rather than "Bought", now that deposits land here too.
+        *
+        * A deposit is not something somebody bought, and the lines underneath
+        * still answer the question this section exists for — what does she
+        * use — because a deposit has no lines and a sale does.
+        */}
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="section-title text-sm">Bought</h2>
+        <h2 className="section-title text-sm">Paid</h2>
         <span className="hint tabular-nums">{formatPence(total)} in all</span>
       </div>
 

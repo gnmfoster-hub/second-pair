@@ -132,6 +132,64 @@ export async function POST(request: NextRequest) {
       // Already done by an earlier delivery of this same event.
       if (!claimed?.length) break;
 
+      /*
+       * A deposit is a transaction too, and it was in no ledger of ours.
+       *
+       * Deposits predate the payments table by months: they set a status on
+       * the booking and nothing else. So the week's takings, the counter
+       * total and the file somebody does a tax return from have never
+       * included a single deposit — every one of them taken, banked, and
+       * invisible to the only figures a business reads.
+       *
+       * Written here, once, behind the same claim that stops a retried
+       * webhook confirming a booking twice — so a deposit cannot be recorded
+       * twice either. Only where the session did not already carry a payment
+       * of its own, which is what a link made by askForPayment does: that one
+       * has been recorded since before the customer opened it.
+       */
+      if (!paymentId) {
+        const { data: booking } = await db
+          .from("bookings")
+          .select("artist_id, contact_id, artists(studio_id)")
+          .eq("id", bookingId)
+          .maybeSingle();
+
+        const studioId = (booking as { artists?: { studio_id?: string } | null } | null)
+          ?.artists?.studio_id;
+
+        if (studioId) {
+          const { error: depositError } = await db.from("payments").insert({
+            studio_id: studioId,
+            artist_id: booking?.artist_id ?? null,
+            contact_id: booking?.contact_id ?? null,
+            booking_id: bookingId,
+            kind: "deposit",
+            gross_pence: session.amount_total ?? 0,
+            status: "paid",
+            method: "link",
+            description: "Deposit",
+            stripe_session_id: session.id,
+            stripe_payment_intent_id:
+              typeof session.payment_intent === "string" ? session.payment_intent : null,
+            paid_at: new Date().toISOString(),
+          });
+
+          /*
+           * Logged and carried on, deliberately, unlike the claim above.
+           *
+           * The booking is already confirmed by this point and the customer is
+           * owed their confirmation email. Failing here would have Stripe
+           * retry the whole event, and the claim would stop the second attempt
+           * before it reached this line — so the row would never be written
+           * and the confirmation might go twice. A missing line in a ledger is
+           * worth less than either.
+           */
+          if (depositError) {
+            console.error("[stripe] deposit not recorded", depositError.message);
+          }
+        }
+      }
+
       if (conversationId) {
         await db
           .from("conversations")
@@ -176,6 +234,39 @@ export async function POST(request: NextRequest) {
 
     case "charge.refunded": {
       const charge = event.data.object;
+
+      /*
+       * The payment row, wherever the refund was actually done.
+       *
+       * There is no refund button in the product — a business does it in
+       * Stripe, which is their account and their dashboard. So this is the
+       * only way a refund ever reaches our own figures, and without it the
+       * money came back out and the week's takings, the counter total and the
+       * file somebody does their tax return from all still said it was paid.
+       *
+       * Matched on the payment intent rather than on metadata, because a
+       * refund raised by hand in Stripe carries whatever metadata the original
+       * charge had and nothing we can rely on. The intent is the one thing
+       * both ends always agree about.
+       */
+      const intent =
+        typeof charge.payment_intent === "string" ? charge.payment_intent : null;
+
+      if (intent) {
+        const { error } = await db
+          .from("payments")
+          .update({ status: "refunded", updated_at: new Date().toISOString() })
+          .eq("stripe_payment_intent_id", intent)
+          .neq("status", "refunded");
+
+        // Worth failing on, so Stripe retries: a refund we could not record is
+        // a figure that stays wrong, quietly, in somebody's accounts.
+        if (error) {
+          console.error("[stripe] could not record refund", error.message);
+          return NextResponse.json({ error: "Could not record" }, { status: 500 });
+        }
+      }
+
       const bookingId = charge.metadata?.booking_id;
       if (!bookingId) break;
 
