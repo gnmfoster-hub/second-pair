@@ -107,6 +107,32 @@ export function Takings({
       )}
 
       {/*
+        * How much of it has actually been taken.
+        *
+        * The figures above are what the week was worth: every appointment at
+        * its price, whether anybody has paid or not. That is the right answer
+        * to "what did we do" and no answer at all to "what came in", and until
+        * an appointment could be closed out with a bill there was nothing that
+        * could tell the two apart.
+        *
+        * Shown only once something has been taken this way. A business still
+        * writing it in a book should not be told every week that it has taken
+        * nothing.
+        */}
+      {figures.sales.taken > 0 && (
+        <div className="mt-6 border-t border-border pt-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <div className="label">Taken at the desk</div>
+            <div className="tabular-nums">{formatPence(figures.sales.taken)}</div>
+          </div>
+          <p className="hint mt-1">
+            Paid for and closed off, out of {formatPence(figures.pence)} booked. Cash, a
+            card machine, a phone or a link &mdash; all of it.
+          </p>
+        </div>
+      )}
+
+      {/*
         * The counter, kept apart from the diary.
         *
         * Shown only once something has been sold, because a business that
@@ -144,7 +170,9 @@ export function Takings({
           )}
 
           <p className="hint mt-2">
-            Not in the figures above, which are appointments. This is the shelf.
+            Not in the figures above, which are appointments. This is the shelf &mdash;
+            whether it was sold at the till or added to somebody&rsquo;s bill on the way
+            out.
           </p>
         </div>
       )}

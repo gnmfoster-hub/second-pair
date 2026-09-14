@@ -40,6 +40,15 @@ export type Takings = {
   sales: {
     count: number;
     pence: number;
+    /**
+     * Everything taken against an appointment — the work and whatever was
+     * bought with it — as against `pence` above, which is the shelf half only.
+     *
+     * A different question from what the diary was worth, and the one closing
+     * an appointment off exists to answer: booked two thousand four hundred,
+     * took two thousand one hundred and ninety.
+     */
+    taken: number;
     byPerson: { id: string; name: string; count: number; pence: number }[];
     byItem: {
       name: string;
@@ -53,6 +62,7 @@ export type Takings = {
 const NO_SALES: Takings["sales"] = {
   count: 0,
   pence: 0,
+  taken: 0,
   byPerson: [],
   byItem: [],
 };
@@ -143,11 +153,21 @@ export async function salesFor(
 ): Promise<Takings["sales"]> {
   if (!(await hasColumn(db, "payments", "gross_pence"))) return NO_SALES;
 
+  /*
+   * Counter sales and bills, which are two shapes of the same money.
+   *
+   * This asked for kind = product, which was every sale there was while the
+   * till was the only thing that could take money outside a deposit. Closing
+   * an appointment off now writes one payment for the work and whatever they
+   * bought with it — kind = payment — so leaving the filter alone would have
+   * meant a salon taking two hundred pounds at the desk on a Saturday and a
+   * week's takings that had never heard of it.
+   */
   const { data, error } = await db
     .from("payments")
-    .select("id, gross_pence, artist_id, artists(name)")
+    .select("id, kind, gross_pence, artist_id, artists(name)")
     .eq("studio_id", studioId)
-    .eq("kind", "product")
+    .in("kind", ["product", "payment"])
     .eq("status", "paid")
     .gte("paid_at", from.toISOString())
     .lt("paid_at", to.toISOString());
@@ -156,16 +176,47 @@ export async function salesFor(
 
   const rows = (data ?? []) as unknown as {
     id: string;
+    kind: string;
     gross_pence: number | null;
     artist_id: string | null;
     artists: { name: string } | null;
   }[];
 
+  /*
+   * The lines first, because a bill has to be split before it can be counted.
+   *
+   * Only lines pointing at a row on the price list, which a shelf item always
+   * does and the work on a bill never does. That is the discriminator for both
+   * halves below: what a bill sold, and what sells.
+   */
+  const lines = await soldLines(db, rows.map((r) => r.id));
+
   const people = new Map<string, { name: string; count: number; pence: number }>();
   let pence = 0;
+  let taken = 0;
 
   for (const row of rows) {
-    pence += row.gross_pence ?? 0;
+    /*
+     * A counter sale is entirely shelf; a bill is the work plus whatever came
+     * off the shelf with it, and only the second half belongs here.
+     *
+     * Getting this wrong is not a rounding error. The work is already in the
+     * diary's own figure above — counting a bill's gross here as well would
+     * show a £95 colour twice and make a week look like it took nearly double
+     * what it did, on the one screen somebody reads to find out.
+     */
+    const shelf =
+      row.kind === "product"
+        ? row.gross_pence ?? 0
+        : (lines.get(row.id) ?? []).reduce((sum, l) => sum + l.quantity * l.unit_pence, 0);
+
+    // Everything taken against an appointment, work and all. A different
+    // question from the one above, and the one the close-out exists to answer.
+    if (row.kind !== "product") taken += row.gross_pence ?? 0;
+
+    if (shelf <= 0) continue;
+    pence += shelf;
+
     // A sale nobody is named on belongs to the shop, and is counted in the
     // total without inventing a person to attribute it to.
     if (!row.artist_id) continue;
@@ -176,19 +227,40 @@ export async function salesFor(
       pence: 0,
     };
     who.count += 1;
-    who.pence += row.gross_pence ?? 0;
+    who.pence += shelf;
     people.set(row.artist_id, who);
   }
 
-  const byItem = await soldItems(db, rows.map((r) => r.id));
+  /*
+   * What sells, off the same lines.
+   *
+   * A bill carries the work beside the bottles, and the work is not something
+   * the shop sells off a shelf — leaving it in would put "Cut and blow dry" at
+   * the top of a list whose whole question is which products move.
+   */
+  const totals = new Map<string, { count: number; pence: number }>();
+
+  for (const of_ of lines.values()) {
+    for (const line of of_) {
+      const t = totals.get(line.name) ?? { count: 0, pence: 0 };
+      t.count += line.quantity;
+      t.pence += line.quantity * line.unit_pence;
+      totals.set(line.name, t);
+    }
+  }
 
   return {
-    count: rows.length,
+    // How many sales there were, which is how many had something on the shelf
+    // in them rather than how many payments were taken.
+    count: [...people.values()].reduce((n, p) => n + p.count, 0) || (pence > 0 ? 1 : 0),
     pence,
+    taken,
     byPerson: [...people.entries()]
       .map(([id, v]) => ({ id, ...v }))
       .sort((a, b) => b.pence - a.pence),
-    byItem,
+    byItem: [...totals.entries()]
+      .map(([name, v]) => ({ name, ...v }))
+      .sort((a, b) => b.pence - a.pence),
   };
 }
 
@@ -200,34 +272,42 @@ export async function salesFor(
  * the names copied onto the lines at the time, so a product renamed in March
  * does not rewrite February.
  */
-async function soldItems(
+async function soldLines(
   db: SupabaseClient,
   paymentIds: string[],
-): Promise<Takings["sales"]["byItem"]> {
-  if (!paymentIds.length) return [];
-  if (!(await hasColumn(db, "payment_items", "unit_pence"))) return [];
+): Promise<Map<string, { name: string; quantity: number; unit_pence: number }[]>> {
+  const empty = new Map<string, { name: string; quantity: number; unit_pence: number }[]>();
+  if (!paymentIds.length) return empty;
+  if (!(await hasColumn(db, "payment_items", "unit_pence"))) return empty;
 
+  /*
+   * Only lines that point at a row on the price list.
+   *
+   * That is what separates a bottle off the shelf from the work on a bill and
+   * from something typed at the till on the spot. The first is a product sale;
+   * the second is already counted in the diary's own figure; the third has no
+   * name on the price list to group under and would be a category of one.
+   */
   const { data } = await db
     .from("payment_items")
-    .select("name, quantity, unit_pence")
-    .in("payment_id", paymentIds);
+    .select("payment_id, name, quantity, unit_pence, service_id")
+    .in("payment_id", paymentIds)
+    .not("service_id", "is", null);
 
-  const lines = (data ?? []) as { name: string; quantity: number; unit_pence: number }[];
+  const by = new Map<string, { name: string; quantity: number; unit_pence: number }[]>();
 
-  const totals = new Map<string, { count: number; pence: number }>();
-
-  for (const row of lines) {
-    const t = totals.get(row.name) ?? { count: 0, pence: 0 };
-    t.count += row.quantity;
-    t.pence += row.quantity * row.unit_pence;
-
-
-    totals.set(row.name, t);
+  for (const row of (data ?? []) as {
+    payment_id: string;
+    name: string;
+    quantity: number;
+    unit_pence: number;
+  }[]) {
+    const list = by.get(row.payment_id) ?? [];
+    list.push({ name: row.name, quantity: row.quantity, unit_pence: row.unit_pence });
+    by.set(row.payment_id, list);
   }
 
-  return [...totals.entries()]
-    .map(([name, v]) => ({ name, ...v }))
-    .sort((a, b) => b.pence - a.pence);
+  return by;
 }
 
 /**
