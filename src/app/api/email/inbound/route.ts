@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { tooMuchEmail, sinceMidnight } from "@/lib/messaging/emailBudget";
 import { runTurn } from "@/lib/engine/run";
 import { sendEmail, emailConfigured, fetchReceivedEmail } from "@/lib/messaging/email";
 import { replyToFor } from "@/lib/messaging/replyTo";
@@ -150,6 +151,37 @@ export async function POST(request: NextRequest) {
   if (!email.body?.trim()) {
     await park(db, studio.id, sender, email, "the message itself could not be fetched");
     return ok("parked: no body, and it could not be fetched");
+  }
+
+  /*
+   * How much the assistant has already answered for this business today.
+   *
+   * Counted off the log written a few lines down, which is the table that
+   * exists to say what arrived — so the ceiling costs one count rather than a
+   * second tally to keep in step with the first.
+   *
+   * Spam is already free: the rules above throw it out before the model is
+   * touched. This is for the other kind — mail that reads like a person and is
+   * not one. A scripted sender writing in prose, a mailing list that forwards
+   * individually, a loop between two mailboxes: each looks exactly like a
+   * customer to a rule, and each costs a model call and sends a reply.
+   *
+   * Failing open on purpose. If the count cannot be read the mail is answered,
+   * because customers going unanswered while a table is slow is a worse
+   * failure than a day that costs more than it should.
+   */
+  const { count: answeredToday } = await db
+    .from("inbound_emails")
+    .select("id", { count: "exact", head: true })
+    .eq("studio_id", studio.id)
+    .eq("verdict", "answered")
+    .gte("at", sinceMidnight());
+
+  const overBudget = tooMuchEmail(answeredToday ?? 0);
+  if (overBudget) {
+    await park(db, studio.id, sender, email, overBudget);
+    await note(db, studio.id, email, slug, "parked", overBudget, false);
+    return ok(`parked: ${overBudget}`);
   }
 
   const said = [email.subject, email.body].filter(Boolean).join("\n\n").trim();
