@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { emailConfigured, probeEmail } from "@/lib/messaging/email";
 import { smsConfigured, probeSms } from "@/lib/messaging/sms";
 import { hasAnthropicEnv, canConnectStripe } from "@/lib/env";
+import { testModeReady } from "@/lib/payments/stripe";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -112,6 +113,24 @@ export async function GET(request: NextRequest) {
       webhookSecret: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
       /** The only one worth reading on its own: can a business connect today. */
       canConnect: canConnectStripe(),
+      /*
+       * Which Stripe the live keys are, and whether there is a sandbox beside
+       * them for demos.
+       *
+       * The prefix and nothing else — "sk_test_" or "sk_live_" is the first
+       * eight characters of a key and the only part of it that is not secret.
+       * Worth reporting because a deployment quietly on test keys takes real
+       * bookings and never takes a real deposit, and there is no other way to
+       * tell that from outside.
+       */
+      liveKeyIsReallyLive: process.env.STRIPE_SECRET_KEY?.startsWith("sk_live_") ?? null,
+      sandbox: {
+        secretKey: Boolean(process.env.STRIPE_SECRET_KEY_TEST),
+        connectClientId: Boolean(process.env.STRIPE_CONNECT_CLIENT_ID_TEST),
+        webhookSecret: Boolean(process.env.STRIPE_WEBHOOK_SECRET_TEST),
+        /** Whether a demo business can connect and be charged on test cards. */
+        ready: testModeReady(),
+      },
     },
     texts: {
       /** All three variables present. Necessary, and on its own not enough. */

@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { stripe } from "./stripe";
+import { stripe, modeFor } from "./stripe";
 import { whoTakes, type BusinessMoney, type PersonMoney, type MoneyKind } from "./whoTakes";
 import { formatPence } from "@/lib/money";
 import { expiryFor } from "./expiry";
@@ -35,7 +35,12 @@ export type PaymentLink = {
 };
 
 export async function createPaymentLink(args: {
-  business: BusinessMoney & { id: string; name: string };
+  /*
+   * `kind` decides which Stripe this goes to: a demo is charged on test keys
+   * where a sandbox is set up, everybody else on the live ones. Optional so a
+   * caller that does not know is simply live, which is the safe way round.
+   */
+  business: BusinessMoney & { id: string; name: string; kind?: string | null };
   /** Who the work is for, and whose takings it is. Null for the shop's own. */
   person: (PersonMoney & { name?: string | null }) | null;
   kind: MoneyKind;
@@ -123,7 +128,7 @@ export async function createPaymentLink(args: {
     expires_at: args.expiresAt ?? expiryFor(24),
   };
 
-  const session = await stripe().checkout.sessions.create(params, {
+  const session = await stripe(modeFor(business)).checkout.sessions.create(params, {
     stripeAccount: verdict.account,
   });
 

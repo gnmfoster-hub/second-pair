@@ -38,6 +38,20 @@ export function hasAnthropicEnv(): boolean {
  * every business on here, and a box on one business's settings page would
  * imply both the opposite things.
  */
-export function canConnectStripe(): boolean {
+export function canConnectStripe(business?: { kind?: string | null }): boolean {
+  /*
+   * A demo asks the sandbox instead, where one is set up.
+   *
+   * Both halves have to be present for whichever Stripe this business belongs
+   * to: a test client id with no test secret connects an account nothing can
+   * then charge, and saying "yes, connect" to that is worse than saying no.
+   */
+  if (business?.kind === "demo") {
+    const test = Boolean(
+      process.env.STRIPE_SECRET_KEY_TEST && process.env.STRIPE_CONNECT_CLIENT_ID_TEST,
+    );
+    if (test) return true;
+  }
+
   return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_CONNECT_CLIENT_ID);
 }

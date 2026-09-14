@@ -13,14 +13,58 @@ import { formatPence } from "@/lib/money";
  * mode, charging the platform account. `readyForRealMoney` is what gates that.
  */
 
-let client: Stripe | null = null;
+/**
+ * Which Stripe a business belongs to.
+ *
+ * Two, and only ever two: the real one, and Stripe's test mode. A demo that
+ * cannot take a payment cannot demonstrate the half of the product that is
+ * about money — and putting the whole platform in test mode to show somebody a
+ * salon would mean a real business could not take a real deposit while you
+ * were doing it.
+ *
+ * So the mode follows the business rather than the deployment. A demo runs on
+ * test keys where they are set and Stripe's own card numbers work on it; every
+ * other business is untouched and is on the live keys as before.
+ */
+export type StripeMode = "live" | "test";
 
-export function stripe(): Stripe {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    throw new Error("STRIPE_SECRET_KEY is not set");
+/** Whether a sandbox is set up at all. Without it everything stays live. */
+export const testModeReady = () =>
+  Boolean(process.env.STRIPE_SECRET_KEY_TEST && process.env.STRIPE_CONNECT_CLIENT_ID_TEST);
+
+/**
+ * Demos only, and never by accident.
+ *
+ * `kind` is set in the back office and nothing a customer can reach changes
+ * it. A real business cannot end up on test keys by having the wrong flag
+ * passed to it, because the only value that produces test mode is one word
+ * written by somebody running the platform.
+ */
+export function modeFor(business: { kind?: string | null }): StripeMode {
+  return business.kind === "demo" && testModeReady() ? "test" : "live";
+}
+
+export function secretFor(mode: StripeMode): string | undefined {
+  return mode === "test" ? process.env.STRIPE_SECRET_KEY_TEST : process.env.STRIPE_SECRET_KEY;
+}
+
+export function connectClientIdFor(mode: StripeMode): string | undefined {
+  return mode === "test"
+    ? process.env.STRIPE_CONNECT_CLIENT_ID_TEST
+    : process.env.STRIPE_CONNECT_CLIENT_ID;
+}
+
+const clients: Partial<Record<StripeMode, Stripe>> = {};
+
+export function stripe(mode: StripeMode = "live"): Stripe {
+  const key = secretFor(mode);
+  if (!key) {
+    throw new Error(
+      mode === "test" ? "STRIPE_SECRET_KEY_TEST is not set" : "STRIPE_SECRET_KEY is not set",
+    );
   }
-  client ??= new Stripe(process.env.STRIPE_SECRET_KEY);
-  return client;
+  clients[mode] ??= new Stripe(key);
+  return clients[mode]!;
 }
 
 export const stripeConfigured = () => Boolean(process.env.STRIPE_SECRET_KEY);
@@ -128,7 +172,7 @@ export async function createDepositCheckout(args: {
 
   // A direct charge on the connected account: the studio is the merchant of
   // record and the money is theirs from the moment it lands.
-  const session = await stripe().checkout.sessions.create(
+  const session = await stripe(modeFor(studio)).checkout.sessions.create(
     params,
     connected ? { stripeAccount: connected } : undefined,
   );
@@ -144,7 +188,7 @@ export async function retrieveOpenCheckout(
   sessionId: string,
 ): Promise<string | null> {
   try {
-    const session = await stripe().checkout.sessions.retrieve(
+    const session = await stripe(modeFor(studio)).checkout.sessions.retrieve(
       sessionId,
       undefined,
       studio.stripe_account_id ? { stripeAccount: studio.stripe_account_id } : undefined,
@@ -161,7 +205,7 @@ export async function refundDeposit(
   paymentIntentId: string,
 ): Promise<boolean> {
   try {
-    await stripe().refunds.create(
+    await stripe(modeFor(studio)).refunds.create(
       { payment_intent: paymentIntentId },
       studio.stripe_account_id ? { stripeAccount: studio.stripe_account_id } : undefined,
     );

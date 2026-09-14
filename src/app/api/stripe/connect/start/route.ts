@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireStudio } from "@/lib/studio";
 import { createClient } from "@/lib/supabase/server";
 import { signState, newNonce, authoriseUrl } from "@/lib/payments/connect";
+import { modeFor, secretFor, connectClientIdFor } from "@/lib/payments/stripe";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,11 +14,6 @@ export const dynamic = "force-dynamic";
  * money lands, which is not a decision for whoever is on the front desk.
  */
 export async function GET(request: NextRequest) {
-  const clientId = process.env.STRIPE_CONNECT_CLIENT_ID;
-  const secret = process.env.STRIPE_SECRET_KEY;
-
-  if (!clientId || !secret) return back(request, "not-configured");
-
   let studio;
   let userId;
   try {
@@ -25,6 +21,21 @@ export async function GET(request: NextRequest) {
   } catch {
     return NextResponse.redirect(new URL("/login", request.url));
   }
+
+  /*
+   * Which Stripe this business belongs to.
+   *
+   * Read from the business rather than the deployment, so a demo can connect a
+   * sandbox account and take Stripe's own test cards while every real business
+   * on the same deployment stays live. Both halves have to match — a test
+   * client id with a live secret connects nothing — so they are taken together
+   * from one decision.
+   */
+  const mode = modeFor(studio);
+  const clientId = connectClientIdFor(mode);
+  const secret = secretFor(mode);
+
+  if (!clientId || !secret) return back(request, "not-configured");
 
   /*
    * Whose account this is going to be.

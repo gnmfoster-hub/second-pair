@@ -189,7 +189,7 @@ export default async function YouPage({
           firstName={me.name.split(" ")[0]}
           outcome={stripe}
           /* Whether connecting is switched on at our end at all. */
-          possible={canConnectStripe()}
+          possible={canConnectStripe(studio)}
         />
       )}
 

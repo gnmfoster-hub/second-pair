@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { readState } from "@/lib/payments/connect";
+import { secretFor, type StripeMode } from "@/lib/payments/stripe";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,17 +17,39 @@ export const dynamic = "force-dynamic";
  * else's business and collect their deposits.
  */
 export async function GET(request: NextRequest) {
-  const secret = process.env.STRIPE_SECRET_KEY;
-  if (!secret) return back(request, "not-configured");
-
   const params = request.nextUrl.searchParams;
 
   // They pressed cancel on Stripe's screen, which is not an error.
   if (params.get("error")) return back(request, "cancelled");
 
   const code = params.get("code");
-  const state = readState(params.get("state") ?? "", secret);
 
+  /*
+   * Which Stripe sent them back, worked out from the state they carry.
+   *
+   * The state is signed with whichever secret started the flow, so trying
+   * both and keeping the one that verifies is also how we learn the mode —
+   * and it has to be this way round, because the state is the only thing that
+   * says which business this is and it cannot be trusted until it is checked.
+   *
+   * Both halves stay together after that: a code minted in test mode is
+   * exchanged against the test secret and nowhere else.
+   */
+  let secret: string | undefined;
+  let state: ReturnType<typeof readState> = null;
+
+  for (const mode of ["live", "test"] as StripeMode[]) {
+    const candidate = secretFor(mode);
+    if (!candidate) continue;
+    const read = readState(params.get("state") ?? "", candidate);
+    if (read) {
+      secret = candidate;
+      state = read;
+      break;
+    }
+  }
+
+  if (!secret) return back(request, "not-configured");
   if (!code || !state) return back(request, "expired");
 
   let accountId: string;

@@ -156,7 +156,7 @@ export async function readinessOf(
     model: perPerson ? "people" : "business",
     businessAccount: Boolean(studio.stripe_account_id),
     fallback: studio.payment_fallback === true,
-    platformReady: canConnectStripe(),
+    platformReady: canConnectStripe(studio),
     /*
      * Only the people who are actually taking bookings and actually taking
      * deposits. Somebody on the books who has stopped, or who has switched

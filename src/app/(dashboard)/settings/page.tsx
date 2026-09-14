@@ -97,7 +97,7 @@ export default async function StudioSettingsPage({
          * component cannot see it, which is why the button has always been
          * offered whether or not it could possibly work.
          */
-        canConnectStripe={canConnectStripe()}
+        canConnectStripe={canConnectStripe(studio)}
         /*
          * Formatted here, in the business's own zone, because a date turned
          * into words in the browser is a date the server rendered differently

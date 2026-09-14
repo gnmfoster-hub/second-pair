@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type Stripe from "stripe";
-import { stripe } from "@/lib/payments/stripe";
+import { stripe, type StripeMode } from "@/lib/payments/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendBookingConfirmation } from "@/lib/messaging/confirmation";
 import { sendPaymentReceipt } from "@/lib/messaging/receipt";
@@ -17,9 +17,25 @@ export const runtime = "nodejs";
  * rather than processed optimistically.
  */
 export async function POST(request: NextRequest) {
-  const secret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!secret) {
-    console.error("[stripe] STRIPE_WEBHOOK_SECRET is not set — refusing to trust the event");
+  /*
+   * Two signing secrets, because there are two Stripes.
+   *
+   * A demo business runs on test keys so it can be shown taking a payment
+   * without one changing hands, and Stripe signs a test event with the test
+   * endpoint's own secret. Both are tried and the event is only trusted if one
+   * of them verifies it — which is the same guarantee as before, twice.
+   *
+   * Nothing is relaxed by this. An unsigned request is still refused, and a
+   * request signed with neither secret is still refused; what changes is that
+   * "neither" now means neither of two rather than not the only one.
+   */
+  const secrets: { mode: StripeMode; secret: string }[] = [
+    { mode: "live", secret: process.env.STRIPE_WEBHOOK_SECRET ?? "" },
+    { mode: "test", secret: process.env.STRIPE_WEBHOOK_SECRET_TEST ?? "" },
+  ].filter((s): s is { mode: StripeMode; secret: string } => Boolean(s.secret));
+
+  if (secrets.length === 0) {
+    console.error("[stripe] no webhook secret is set — refusing to trust the event");
     return NextResponse.json({ error: "Webhooks not configured" }, { status: 503 });
   }
 
@@ -28,11 +44,20 @@ export async function POST(request: NextRequest) {
 
   const body = await request.text();
 
-  let event: Stripe.Event;
-  try {
-    event = stripe().webhooks.constructEvent(body, signature, secret);
-  } catch (error) {
-    console.error("[stripe] bad signature", (error as Error).message);
+  let event: Stripe.Event | null = null;
+  let lastError = "";
+
+  for (const { mode, secret } of secrets) {
+    try {
+      event = stripe(mode).webhooks.constructEvent(body, signature, secret);
+      break;
+    } catch (error) {
+      lastError = (error as Error).message;
+    }
+  }
+
+  if (!event) {
+    console.error("[stripe] bad signature", lastError);
     return NextResponse.json({ error: "Bad signature" }, { status: 400 });
   }
 
