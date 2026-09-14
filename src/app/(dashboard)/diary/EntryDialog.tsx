@@ -679,6 +679,30 @@ export function EntryDialog({
             </p>
           )}
 
+          {/*
+            * Money already taken, said before somebody cancels rather than
+            * discovered afterwards.
+            *
+            * Cancelling frees the slot and leaves the deposit exactly where it
+            * is, which is right — whether to keep it or give it back is the
+            * business's decision and often their written policy. What was
+            * wrong is that nothing said so. Somebody cancels an appointment
+            * with twenty-five pounds against it, the screen says nothing about
+            * money, and the question surfaces weeks later when the customer
+            * asks where their deposit went.
+            *
+            * No button. The money is on their own Stripe account and they are
+            * the merchant of record; the exact charge is a link on the
+            * client's record, which is where somebody goes to give it back.
+            */}
+          {existing && depositPaid(entry ?? {}) && hasDeposit(entry ?? {}) && (
+            <p className="hint pt-1">
+              {formatPence(entry?.deposit_amount_pence ?? 0)} has been paid on this.
+              Cancelling does not return it &mdash; keeping it or refunding it is your
+              call, in Stripe, from their record.
+            </p>
+          )}
+
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <SubmitButton>{existing ? "Save" : "Add it"}</SubmitButton>
             {state.error && <p className="text-sm text-bad">{state.error}</p>}

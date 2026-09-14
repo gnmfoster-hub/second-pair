@@ -199,18 +199,19 @@ export async function retrieveOpenCheckout(
   }
 }
 
-/** Refund a deposit, e.g. when the studio cancels. */
-export async function refundDeposit(
-  studio: Studio,
-  paymentIntentId: string,
-): Promise<boolean> {
-  try {
-    await stripe(modeFor(studio)).refunds.create(
-      { payment_intent: paymentIntentId },
-      studio.stripe_account_id ? { stripeAccount: studio.stripe_account_id } : undefined,
-    );
-    return true;
-  } catch {
-    return false;
-  }
-}
+/*
+ * There is deliberately no refund here.
+ *
+ * A function called refundDeposit stood in this spot, exported, working, and
+ * called by nothing — which is worse than an empty space, because anybody
+ * reading this file would reasonably conclude the product can refund and go
+ * looking for the button.
+ *
+ * It cannot, on purpose. These are Standard connected accounts: the business
+ * is the merchant of record and the money is theirs from the moment it lands,
+ * so refunds, disputes and chargebacks are settled in their own Stripe
+ * dashboard. A refund from here would be us moving money out of somebody
+ * else's balance. What the product does instead is link to the exact charge,
+ * from the client's record, which is the useful half — the slow part of a
+ * refund is finding the payment among three hundred.
+ */
