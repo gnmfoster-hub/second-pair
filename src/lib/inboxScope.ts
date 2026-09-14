@@ -35,11 +35,24 @@ export function inboxScope({
   whose?: string | null;
 }): Scope {
   /*
-   * Somebody with a login and no diary of their own — a manager, an
-   * administrator. They are here to answer people, so they get the enquiries
-   * nobody has claimed rather than an empty screen.
+   * Somebody with a login and no diary of their own — a receptionist, a
+   * manager, the apprentice who answers the phone.
+   *
+   * They used to get only the enquiries nobody had claimed, which is the
+   * wrong half of the job. A receptionist is on the desk precisely to deal
+   * with everybody's: the whole point of the role is that a stylist with her
+   * hands in somebody's hair does not answer the phone. Giving them the
+   * unclaimed ones and hiding the rest left the person most able to help
+   * looking at the shortest list in the building.
+   *
+   * They can narrow to one person the same way an owner can — same control,
+   * same addresses — because "what has Sarah got coming in" is a question
+   * asked at the desk far more often than in the office.
    */
-  if (!artistId && !owns) return { kind: "unclaimed" };
+  if (!artistId && !owns) {
+    if (whose === "everyone" || !whose) return { kind: "everyone" };
+    return { kind: "somebody", artistId: whose };
+  }
 
   if (owns) {
     if (whose === "everyone") return { kind: "everyone" };

@@ -216,8 +216,21 @@ export async function removeConversation(
 
   if (error) return { error: `Could not remove it: ${error.message}` };
 
-  revalidatePath("/conversations");
-  redirect("/conversations?removed=1");
+  /*
+   * Back to the inbox, which is the dashboard.
+   *
+   * This redirected to /conversations, and there is no such page — the inbox
+   * has always lived at the root and only the individual threads sit under
+   * /conversations/<id>. So deleting a thread worked perfectly and then
+   * dropped somebody on a 404, which reads as the delete having broken
+   * something rather than having succeeded.
+   *
+   * Both paths revalidated, because the thread's own page is now gone and the
+   * list it was in has one fewer row.
+   */
+  revalidatePath("/conversations", "layout");
+  revalidatePath("/");
+  redirect("/?removed=1");
 }
 
 /**
@@ -283,7 +296,8 @@ export async function markAsTest(fd: FormData): Promise<void> {
   }
 
   revalidatePath(`/conversations/${id}`);
-  revalidatePath("/conversations");
+  revalidatePath("/conversations", "layout");
+  revalidatePath("/");
   revalidatePath("/clients");
   revalidatePath("/");
 }

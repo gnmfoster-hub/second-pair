@@ -47,12 +47,39 @@ test("the owner can ask for one person", () => {
 
 // -------------------------------------------- logins without a diary
 
-test("a manager with no diary gets the unclaimed rather than nothing", () => {
+test("somebody on the desk sees everybody's", () => {
   /*
-   * Somebody who answers the phone but does no bookable work. Hiding
-   * everything would leave them an empty screen and no way to help.
+   * This used to give them only the enquiries nobody had claimed, on the
+   * reasoning that hiding everything would leave an empty screen. Half right
+   * and the wrong half: a receptionist is on the desk precisely to deal with
+   * everybody's, because a stylist with her hands in somebody's hair does not
+   * answer the phone. The old rule left the person most able to help looking
+   * at the shortest list in the building.
    */
-  assert.deepEqual(inboxScope({ owns: false, artistId: null }), { kind: "unclaimed" });
+  assert.deepEqual(inboxScope({ owns: false, artistId: null }), { kind: "everyone" });
+});
+
+test("and can narrow to one person, the same way an owner can", () => {
+  assert.deepEqual(inboxScope({ owns: false, artistId: null, whose: "sarah" }), {
+    kind: "somebody",
+    artistId: "sarah",
+  });
+  assert.deepEqual(inboxScope({ owns: false, artistId: null, whose: "everyone" }), {
+    kind: "everyone",
+  });
+});
+
+test("somebody who does have a diary still sees only their own", () => {
+  // Unchanged, and the point of the whole rule: a stylist's inbox is hers.
+  assert.deepEqual(inboxScope({ owns: false, artistId: "sarah" }), {
+    kind: "mine",
+    artistId: "sarah",
+  });
+  // Even if an address bar asks otherwise.
+  assert.deepEqual(inboxScope({ owns: false, artistId: "sarah", whose: "everyone" }), {
+    kind: "mine",
+    artistId: "sarah",
+  });
 });
 
 test("an owner with no diary of their own still sees the unclaimed", () => {

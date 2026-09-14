@@ -284,7 +284,15 @@ export default async function InboxPage({
         * the owner's own work under everybody else's. The rest are a click
         * away for when something needs sorting out.
         */}
-      {owns && (team ?? []).length > 1 && (
+      {/*
+        * Shown to whoever can act on more than their own.
+        *
+        * The owner, and anybody on the desk with no diary of their own — a
+        * receptionist is there to deal with everybody's, and a filter is how
+        * "what has Sarah got coming in" gets answered without leaving the
+        * screen. A stylist sees her own and has nothing to filter.
+        */}
+      {(owns || !me) && (team ?? []).length > 1 && (
         <div className="mt-5 flex flex-wrap items-center gap-1.5">
           <WhoseLink href="/" current={whose} match={undefined}>
             Mine
