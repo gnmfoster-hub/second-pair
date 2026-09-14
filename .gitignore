@@ -51,3 +51,4 @@ next-env.d.ts
 # eventually decrypt on a laptop and leave there.
 backups/
 *.enc
+scripts/_*.mjs
