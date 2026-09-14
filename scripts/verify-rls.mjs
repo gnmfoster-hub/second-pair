@@ -543,6 +543,126 @@ try {
   check("another studio's owner cannot record a sale here", Boolean(crossSaleError),
     "the write was accepted");
 
+  // ---------------------------------------------------- a table with no door
+
+  console.log("");
+  console.log("Tables no browser session may touch");
+
+  /*
+   * product_interest holds real people's email addresses — strangers who asked
+   * to be told when something of ours is ready — and it is ours rather than
+   * any business's. It is protected by having row-level security on and not a
+   * single policy, which means no session can reach it however it asks.
+   *
+   * That arrangement is invisible and one migration away from being undone: a
+   * permissive policy added by somebody tidying up would open it silently, and
+   * nothing anywhere would notice. So it is checked, and the check is the only
+   * thing standing between that and a list of addresses somebody can read.
+   */
+  const { data: seeded } = await admin
+    .from("product_interest")
+    .insert({ product: `rls-test-${stamp}`, email: `rls-${stamp}@inkdesk.test` })
+    .select("id")
+    .maybeSingle();
+
+  const { data: peeked } = await a.client
+    .from("product_interest")
+    .select("id, email")
+    .eq("id", seeded?.id ?? "00000000-0000-0000-0000-000000000000");
+
+  check("a signed-in user cannot read the early-access list", (peeked ?? []).length === 0,
+    "the row came back");
+
+  const { error: pushedError } = await a.client
+    .from("product_interest")
+    .insert({ product: "sneaked", email: `sneak-${stamp}@inkdesk.test` });
+
+  check("nor add anybody to it", Boolean(pushedError), "the write was accepted");
+
+  if (seeded?.id) await admin.from("product_interest").delete().eq("id", seeded.id);
+
+  // -------------------------------------------- the newer tenant-scoped ones
+
+  console.log("");
+  console.log("Channels and arrangements");
+
+  /*
+   * A channel connection carries the number customers text and what it takes
+   * to answer on it. Somebody else's is the one row on the platform whose
+   * leaking would let another business read a salon's incoming messages.
+   */
+  const { data: chanB, error: chanSeedError } = await admin
+    .from("channel_connections")
+    .insert({
+      studio_id: studioB,
+      channel: "sms",
+      external_id: `+4477009${stamp % 100000}`,
+      label: "07700 900000",
+    })
+    .select("id")
+    .maybeSingle();
+
+  /*
+   * Said out loud rather than skipped.
+   *
+   * The first version of this used a column name that does not exist, the
+   * insert failed, and the two checks below simply did not run — no failure,
+   * no mention, and a tally that went up by four instead of six. A test that
+   * quietly does not happen is worse than one that fails, because the number
+   * at the bottom still says everything is fine.
+   */
+  if (!chanB?.id) {
+    check("a channel could be set up to test against", false, chanSeedError?.message ?? "no row");
+  }
+
+  if (chanB?.id) {
+    const { data: chanPeek } = await a.client
+      .from("channel_connections")
+      .select("id, external_ref")
+      .eq("id", chanB.id);
+
+    check("owner A cannot read studio B's channels", (chanPeek ?? []).length === 0,
+      "the connection came back");
+
+    const { data: chanMoved } = await a.client
+      .from("channel_connections")
+      .update({ active: false })
+      .eq("id", chanB.id)
+      .select("id");
+
+    check("nor switch one off", (chanMoved ?? []).length === 0, "the update was accepted");
+  }
+
+  /*
+   * And a booking group — a wedding party, a landlord's two flats. Newer than
+   * every test above it, and the name on it is a customer's.
+   */
+  const { data: groupB, error: groupSeedError } = await admin
+    .from("booking_groups")
+    .insert({ studio_id: studioB, name: `Wedding ${stamp}` })
+    .select("id")
+    .maybeSingle();
+
+  if (!groupB?.id) {
+    check("an arrangement could be set up to test against", false, groupSeedError?.message ?? "no row");
+  }
+
+  if (groupB?.id) {
+    const { data: groupPeek } = await a.client
+      .from("booking_groups")
+      .select("id, name")
+      .eq("id", groupB.id);
+
+    check("owner A cannot read studio B's arrangements", (groupPeek ?? []).length === 0,
+      "the group came back");
+
+    const { error: groupWriteError } = await a.client
+      .from("booking_groups")
+      .insert({ studio_id: studioB, name: "not mine" });
+
+    check("nor start one there", Boolean(groupWriteError), "the write was accepted");
+  }
+
   // Studio B has a booking, which is what made a plain cascade delete fail.
   const { error: selfDeleteError } = await b.client.rpc("delete_studio", { target: studioB });
   check("owner B can erase their own studio despite a booking", !selfDeleteError,
