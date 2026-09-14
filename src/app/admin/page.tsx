@@ -87,6 +87,25 @@ export default async function AdminPage() {
    * The attention panel still only counts the open ones; these are kept for
    * reading back.
    */
+  /*
+   * People who asked to be told when something of ours is ready.
+   *
+   * The marketing site has a form for this and it writes to a table with no
+   * screen behind it — no list, no count, and told_at, which exists so a
+   * launch email cannot arrive twice, unsettable because nothing could read
+   * the rows to set it. An email goes to us on each signup, which is the whole
+   * of what anybody knew about it: miss the email, or have it land in spam,
+   * and somebody who asked to hear from us is gone.
+   *
+   * Read here rather than in its own page: it is a handful of rows about our
+   * own products and a page of its own would be a page nobody opens.
+   */
+  const { data: interest } = await db
+    .from("product_interest")
+    .select("id, product, email, name, note, source, created_at, told_at")
+    .order("created_at", { ascending: false })
+    .limit(200);
+
   const { data: tickets } = await db
     .from("support_tickets")
     .select("id, studio_id, subject, status, updated_at, from_conversation_id")
@@ -480,6 +499,16 @@ export default async function AdminPage() {
       hasOwnBusiness={hasOwnBusiness}
       kpis={kpis}
       businesses={summaries}
+      interest={(interest ?? []).map((r) => ({
+        id: r.id as string,
+        product: r.product as string,
+        email: r.email as string,
+        name: (r.name as string | null) ?? null,
+        note: (r.note as string | null) ?? null,
+        source: (r.source as string | null) ?? null,
+        at: r.created_at as string,
+        toldAt: (r.told_at as string | null) ?? null,
+      }))}
       trades={VERTICAL_LIST.map((v) => ({ value: v.id, label: v.label }))}
     />
   );

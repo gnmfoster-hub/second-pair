@@ -1036,3 +1036,51 @@ export async function fixChannel(_prev: Result, fd: FormData): Promise<Result> {
   revalidatePath("/admin");
   return { ok: true };
 }
+
+/**
+ * Marking the early-access list as written to.
+ *
+ * `told_at` has been on the table since it was created, for exactly one
+ * purpose — so a launch email does not arrive twice — and nothing has ever
+ * been able to set it, because nothing has ever been able to read the list
+ * either. A form on the marketing site has been quietly collecting real
+ * people's addresses into a table with no screen behind it.
+ *
+ * Set after the writing, never instead of it. Nothing here sends a launch
+ * email: that is a decision about wording and timing, not a button. So this
+ * says "I have written to them" and is pressed by somebody who has, which is
+ * honest about which half is automatic.
+ */
+export async function markTold(_prev: Result, fd: FormData): Promise<Result> {
+  const stop = await guard();
+  if (stop) return stop;
+
+  const product = String(fd.get("product") ?? "").trim();
+  if (!product) return { error: "Which product?" };
+
+  const db = createAdminClient();
+
+  /*
+   * Only the ones on the list as it was read. Somebody who signs up between
+   * the page rendering and the button being pressed has not been written to,
+   * and marking them told would lose them permanently and silently — which is
+   * the one failure this column exists to prevent, arriving by another door.
+   */
+  const ids = String(fd.get("ids") ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+
+  if (ids.length === 0) return { error: "Nobody to mark." };
+
+  const { error } = await db
+    .from("product_interest")
+    .update({ told_at: new Date().toISOString() })
+    .in("id", ids)
+    .is("told_at", null);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin");
+  return { ok: true, note: `${ids.length} marked as written to.` };
+}

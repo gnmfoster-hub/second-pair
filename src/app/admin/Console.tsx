@@ -18,6 +18,7 @@ import {
   setKind,
   snoozeAttention,
   archiveBusiness,
+  markTold,
   type Result,
 } from "./actions";
 import { formatPence } from "@/lib/money";
@@ -38,9 +39,11 @@ export function Console({
   businesses,
   trades,
   hasOwnBusiness,
+  interest,
 }: {
   kpis: PlatformKpis;
   businesses: BusinessSummary[];
+  interest: Waiting[];
   trades: { value: string; label: string }[];
   /** Whether this administrator also runs a business, and so has a diary. */
   hasOwnBusiness: boolean;
@@ -106,6 +109,7 @@ export function Console({
 
       <NeedsYou businesses={businesses} />
       <OpenRequests businesses={businesses} />
+      <EarlyAccess interest={interest} />
 
       {/*
         * Search, because fifteen businesses is a scroll and a hundred is not.
@@ -1693,6 +1697,108 @@ function Handover({ state }: { state: Result }) {
           className="input w-full font-mono text-xs"
           aria-label="One-use sign-in link"
         />
+      )}
+    </div>
+  );
+}
+
+export type Waiting = {
+  id: string;
+  product: string;
+  email: string;
+  name: string | null;
+  note: string | null;
+  source: string | null;
+  at: string;
+  toldAt: string | null;
+};
+
+/**
+ * People waiting to hear that something of ours is ready.
+ *
+ * The marketing site has had a form for this since Family APP! went on the
+ * page, and it writes to a table nothing could read. An email came to us on
+ * each signup and that was the whole of it — miss one, or have it land in
+ * spam, and somebody who asked to hear from us was gone with no way to find
+ * out they existed. The column that stops a launch email arriving twice could
+ * never be set, because nothing could see the rows to set it.
+ *
+ * Absent entirely while nobody has asked. An empty panel headed "early access"
+ * on a screen about running businesses is furniture, and this screen already
+ * says what it is for.
+ */
+function EarlyAccess({ interest }: { interest: Waiting[] }) {
+  if (interest.length === 0) return null;
+
+  const products = [...new Set(interest.map((w) => w.product))];
+
+  return (
+    <section className="card mt-6 p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="section-title">Waiting to hear</h2>
+        <span className="hint">
+          {interest.length} {interest.length === 1 ? "person" : "people"}
+        </span>
+      </div>
+
+      <div className="mt-4 space-y-5">
+        {products.map((product) => (
+          <Product key={product} product={product} rows={interest.filter((w) => w.product === product)} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Product({ product, rows }: { product: string; rows: Waiting[] }) {
+  const [state, action] = useActionState<Result, FormData>(markTold, {});
+  const untold = rows.filter((r) => !r.toldAt);
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-baseline gap-x-3">
+        <strong className="text-sm">{product}</strong>
+        <span className="hint">
+          {untold.length === 0
+            ? "everybody has been written to"
+            : `${untold.length} not written to yet`}
+        </span>
+      </div>
+
+      <ul className="mt-2 divide-y divide-border border-y border-border">
+        {rows.map((r) => (
+          <li key={r.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2 text-sm">
+            <span className="font-medium">{r.name ?? "—"}</span>
+            {/*
+              * Selectable, because the next thing anybody does with this list
+              * is paste it somewhere to write to them.
+              */}
+            <span className="select-all font-mono text-xs">{r.email}</span>
+            <span className="hint ml-auto">{since(r.at)}</span>
+            {r.toldAt && <span className="pill bg-ok/10 text-ok">told</span>}
+            {r.note && <p className="hint w-full whitespace-pre-wrap">{r.note}</p>}
+          </li>
+        ))}
+      </ul>
+
+      {untold.length > 0 && (
+        <form action={action} className="mt-2 flex flex-wrap items-center gap-3">
+          <input type="hidden" name="product" value={product} />
+          <input type="hidden" name="ids" value={untold.map((r) => r.id).join(",")} />
+          <span className="select-all font-mono text-xs">
+            {untold.map((r) => r.email).join(", ")}
+          </span>
+          {/*
+            * After the writing, not instead of it. Nothing here sends a launch
+            * email — that is a decision about wording and timing rather than a
+            * button — so this is pressed by somebody who has just sent one.
+            */}
+          <button type="submit" className="btn-ghost py-1.5 text-xs">
+            I have written to these {untold.length}
+          </button>
+          {state.error && <span className="text-xs text-warn">{state.error}</span>}
+          {state.note && <span className="text-xs text-ok">{state.note}</span>}
+        </form>
       )}
     </div>
   );
