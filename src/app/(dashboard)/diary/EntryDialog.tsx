@@ -735,6 +735,18 @@ export function EntryDialog({
         {entry && isClientWork && (
           <div className="mt-4 space-y-1 rounded-lg bg-surface-2/50 p-4 text-sm">
             {/*
+              * Named, because it was reported missing twice while being on the
+              * screen.
+              *
+              * There is no button called "complete" and there should not be:
+              * finishing with somebody is two facts — what they owe and
+              * whether they turned up — and a single button would have to
+              * guess at both. But a block of controls with no heading reads as
+              * a row of unrelated options, and somebody looking for the end of
+              * an appointment scrolls past it.
+              */}
+            <div className="label pb-1">Finishing off</div>
+            {/*
               * Only where there is a deposit to speak of.
               *
               * This read "Deposit £0.00 — paid" on everything typed into the
@@ -886,7 +898,7 @@ function CloseOff({
   return (
     <form action={closeBooking} className="mt-3 border-t border-border pt-3">
       <input type="hidden" name="id" value={id} />
-      <div className="label">How did it go?</div>
+      <div className="label">Did they turn up?</div>
 
       <div className="mt-1.5 flex flex-wrap items-center gap-2">
         <button
