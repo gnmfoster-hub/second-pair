@@ -65,7 +65,7 @@ export type Entry = {
    * The arrangement this belongs to, where it is one of several booked
    * together. Null for almost every booking.
    */
-  group: { id: string; name: string; size: number } | null;
+  group: { id: string; name: string; size: number; organiser: string | null } | null;
   /** What the enquiry was quoted, for the week's worth. */
   quotePence: number | null;
   /** Whether they turned up. Null until somebody closes the booking off. */

@@ -14,7 +14,7 @@ import {
   type DiaryState,
 } from "./actions";
 import { Field, SubmitButton } from "@/components/Form";
-import { useSheet } from "@/components/useSheet";
+import { useSheet, asSheet } from "@/components/useSheet";
 import { formatPence } from "@/lib/money";
 import { depositPaid, hasDeposit } from "@/lib/deposit";
 import { AskForPayment } from "@/components/AskForPayment";
@@ -218,7 +218,7 @@ export function EntryDialog({
     if (state.ok) onClose();
   }, [state.ok, onClose]);
 
-  return (
+  return asSheet(
     <div
       /*
         * A sheet on a phone, a dialog on a desktop.
@@ -323,6 +323,14 @@ export function EntryDialog({
             <div className="hint mt-0.5">
               One of {entry.group.size} booked together
               {entry.group.size > 1 ? " on this day" : ""}.
+              {/*
+                * Who to ring if the whole thing has to move — you ring the
+                * bride, not the four bridesmaids. Recorded since groups were
+                * built and read nowhere until now.
+                */}
+              {entry.group.organiser && (
+                <> {entry.group.organiser} arranged it.</>
+              )}
             </div>
             <GroupControls id={entry.group.id} name={entry.group.name} />
           </div>

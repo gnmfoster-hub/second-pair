@@ -1,6 +1,31 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+
+/**
+ * Putting a sheet at the top of the document, not where it was written.
+ *
+ * z-index only means anything inside its own stacking context, and a modal
+ * written next to the button that opens it inherits whatever context that
+ * button happens to sit in. The diary's sheet was z-50, the tab bar z-40 and
+ * the full-screen button z-40 — and both of those painted over the sheet
+ * anyway, because the sheet's fifty was fifty inside a box that was itself
+ * behind them. From a screenshot: the last option on the add menu sat under
+ * the tab bar, with a round button on top of it.
+ *
+ * Nothing about the markup says which ancestor did it, and the next one added
+ * would do it again. So the sheet goes to the body, where its z-index is
+ * compared against the things it actually has to beat.
+ *
+ * Guarded for the server, where there is no body. Both sheets only render
+ * after somebody has tapped something, so in practice this is always the
+ * browser — the check is for the one render where it is not.
+ */
+export function asSheet(children: ReactNode): ReactNode {
+  if (typeof document === "undefined") return null;
+  return createPortal(children, document.body);
+}
 
 /**
  * Making a sheet behave like a sheet on a phone.

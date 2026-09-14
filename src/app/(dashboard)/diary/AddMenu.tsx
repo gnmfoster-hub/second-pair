@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSheet } from "@/components/useSheet";
+import { useSheet, asSheet } from "@/components/useSheet";
 
 /**
  * Who is this for, asked before anything else.
@@ -28,7 +28,7 @@ export function AddMenu({
 }) {
   const sheet = useSheet<HTMLDivElement>();
 
-  return (
+  return asSheet(
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6"
       onClick={onClose}
@@ -100,7 +100,7 @@ export function AddMenu({
           </Link>
         </div>
       </div>
-    </div>
+    </div>,
   );
 }
 

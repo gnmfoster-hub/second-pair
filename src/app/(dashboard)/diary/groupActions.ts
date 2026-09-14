@@ -107,6 +107,20 @@ export async function createBookingGroup(
   const made: string[] = [];
   const skipped: string[] = [];
 
+  /*
+   * Who gets rung when the whole thing has to move.
+   *
+   * The first person named, which is the bride, the mother, whoever rang up —
+   * true far more often than not, and it costs nobody an extra field on a form
+   * that is already the most typing in the product.
+   *
+   * The column has existed since groups were built and nothing has ever set
+   * it, so every arrangement has carried an organiser that was always null.
+   * It is read on the appointment too, so this does not simply move the
+   * problem from unwritten to unread.
+   */
+  let leadContactId: string | null = null;
+
   for (const row of rows) {
     /*
      * Somebody new still gets a record.
@@ -128,6 +142,9 @@ export async function createBookingGroup(
         .maybeSingle();
       contactId = made?.id ?? null;
     }
+
+    // The first one we end up with is the organiser.
+    if (!leadContactId && contactId) leadContactId = contactId;
 
     const starts = instantFrom(date, row.time, studio.timezone)!;
     const ends = new Date(starts.getTime() + row.minutes * 60_000);
@@ -188,6 +205,20 @@ export async function createBookingGroup(
   if (made.length === 0) {
     await supabase.from("booking_groups").delete().eq("id", group.id);
     return { error: "Every one of them clashed with something already booked." };
+  }
+
+  /*
+   * Written after the rows, because it is one of them.
+   *
+   * Failure is not worth reporting: the party is booked, and an arrangement
+   * that does not know who organised it is a smaller loss than telling
+   * somebody their five appointments did not go in when they did.
+   */
+  if (leadContactId) {
+    await supabase
+      .from("booking_groups")
+      .update({ lead_contact_id: leadContactId })
+      .eq("id", group.id);
   }
 
   revalidatePath("/diary");

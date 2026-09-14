@@ -274,11 +274,23 @@ export default async function DiaryPage({
     ),
   ] as string[];
 
+  /*
+   * select("*") rather than naming the columns, and the organiser joined on.
+   *
+   * Who arranged a party is the one thing somebody needs when it has to move —
+   * you ring the bride, not the four bridesmaids — and it has been recorded
+   * nowhere and read nowhere since groups were built.
+   */
   const { data: groupRows } = groupIds.length
-    ? await supabase.from("booking_groups").select("id, name").in("id", groupIds)
+    ? await supabase.from("booking_groups").select("*, contacts(name)").in("id", groupIds)
     : { data: null };
 
   const groupNames = new Map((groupRows ?? []).map((g) => [g.id, g.name as string]));
+  const groupLeads = new Map(
+    ((groupRows ?? []) as unknown as { id: string; contacts: { name: string | null } | null }[])
+      .filter((g) => g.contacts?.name)
+      .map((g) => [g.id, g.contacts!.name as string]),
+  );
   const groupSizes = new Map<string, number>();
   for (const r of (data ?? []) as unknown as RawRow[]) {
     if (r.group_id) groupSizes.set(r.group_id, (groupSizes.get(r.group_id) ?? 0) + 1);
@@ -345,6 +357,7 @@ export default async function DiaryPage({
               id: r.group_id,
               name: groupNames.get(r.group_id)!,
               size: groupSizes.get(r.group_id) ?? 1,
+              organiser: groupLeads.get(r.group_id) ?? null,
             }
           : null,
       actual_minutes: r.actual_minutes,
