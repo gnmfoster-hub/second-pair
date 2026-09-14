@@ -24,6 +24,18 @@ const SEPARATOR = ".";
 export type ConnectState = {
   /** Which business is connecting. */
   studio: string;
+  /**
+   * Which person, where this is one of them connecting rather than the shop.
+   *
+   * A salon of chair renters pays each person directly, and their money has to
+   * land in an account that is theirs: their ID, their bank details, their
+   * liability. So the account belongs to the person, and the business is only
+   * the context it was set up in.
+   *
+   * Absent means the business's own, which is what every connection was until
+   * now and stays the common case.
+   */
+  artist?: string;
   /** Random, so a state token cannot be replayed. */
   nonce: string;
   /** When it was made, in milliseconds. */

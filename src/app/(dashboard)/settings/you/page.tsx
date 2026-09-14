@@ -12,6 +12,7 @@ import { CalendarLinks } from "../data/CalendarLinks";
 import { PersonalCalendar } from "./PersonalCalendar";
 import { YourPrices } from "./YourPrices";
 import { MyBookings } from "./MyBookings";
+import { MyStripe } from "./MyStripe";
 import { MyServices } from "./MyServices";
 import { MyTravel } from "./MyTravel";
 import { MyReminders } from "./MyReminders";
@@ -164,6 +165,23 @@ export default async function YouPage() {
        * appointments of their own to be told about.
        */}
       {me && <MyBookings artist={me} />}
+
+      {/*
+        * Where their own money lands, on a business that pays people directly.
+        *
+        * Only that person can connect it — Stripe asks for a passport and a
+        * bank account — so it has to live on their own page, and there was
+        * nowhere for it before: every connection the product could make was
+        * the business's, which on the per-person model meant nobody's payments
+        * could be taken at all.
+        */}
+      {me && (
+        <MyStripe
+          connected={Boolean(me.stripe_account_id)}
+          perPerson={studio.payment_model === "people"}
+          firstName={me.name.split(" ")[0]}
+        />
+      )}
 
       {/*
        * Their own diary elsewhere.

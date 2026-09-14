@@ -199,9 +199,18 @@ export default async function ClientPage({
   if (await hasColumn(supabase, "payments", "gross_pence")) {
     const { data: paymentRows } = await supabase
       .from("payments")
-      .select("id, gross_pence, paid_at, description, method")
+      .select("id, gross_pence, paid_at, description, method, status, stripe_payment_intent_id")
       .eq("contact_id", contact.id)
-      .eq("status", "paid")
+      /*
+       * Paid and refunded, not only paid.
+       *
+       * A refund is a thing that happened to this client and belongs on their
+       * record. Filtering it out would make a payment disappear from their
+       * history entirely, which reads as the product having lost it. Pending
+       * stays out on purpose: a link nobody has opened yet is not a payment,
+       * and showing it would say they had paid when they have not.
+       */
+      .in("status", ["paid", "refunded"])
       .order("paid_at", { ascending: false })
       .limit(20);
 
@@ -223,6 +232,8 @@ export default async function ClientPage({
         when: (row.paid_at as string | null) ?? null,
         description: (row.description as string | null) ?? null,
         method: (row.method as string | null) ?? null,
+        status: (row.status as string | null) ?? "paid",
+        intent: (row.stripe_payment_intent_id as string | null) ?? null,
         items: (lines as { payment_id: string; name: string; quantity: number; unit_pence: number }[])
           .filter((l) => l.payment_id === row.id)
           .map((l) => ({ name: l.name, quantity: l.quantity, unitPence: l.unit_pence })),

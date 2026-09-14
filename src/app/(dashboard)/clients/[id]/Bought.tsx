@@ -7,6 +7,16 @@ export type Purchase = {
   when: string | null;
   description: string | null;
   method: string | null;
+  /** "paid" or "refunded". Refunds stay on the record rather than vanishing. */
+  status: string;
+  /**
+   * Stripe's own id for the charge, where it went through Stripe at all.
+   *
+   * Null for cash and for a card machine, which are the business's own
+   * arrangements and nothing to do with us — there is nowhere to send somebody
+   * for those, and pretending otherwise would be worse than saying nothing.
+   */
+  intent: string | null;
   items: { name: string; quantity: number; unitPence: number }[];
 };
 
@@ -31,7 +41,17 @@ export function Bought({
 }) {
   if (purchases.length === 0) return null;
 
-  const total = purchases.reduce((sum, p) => sum + p.pence, 0);
+  /*
+   * What they have actually paid, which is not what they have been charged.
+   *
+   * A refunded payment stays on the record above — it happened, and hiding it
+   * would read as the product having lost a payment — but adding it to the
+   * total would tell a salon somebody has spent two hundred pounds when half
+   * of it went back.
+   */
+  const total = purchases
+    .filter((p) => p.status !== "refunded")
+    .reduce((sum, p) => sum + p.pence, 0);
 
   return (
     <section className="card p-5">
@@ -65,9 +85,41 @@ export function Bought({
               </span>
               <span className="tabular-nums">{formatPence(p.pence)}</span>
             </div>
-            <div className="hint mt-0.5">
-              {savedWords(p.when, timezone) ?? "no date recorded"}
-              {p.method && ` · ${p.method === "card" ? "card machine" : p.method}`}
+            <div className="hint mt-0.5 flex flex-wrap items-baseline gap-x-2">
+              <span>
+                {savedWords(p.when, timezone) ?? "no date recorded"}
+                {p.method && ` · ${p.method === "card" ? "card machine" : p.method}`}
+              </span>
+
+              {p.status === "refunded" && <span className="text-warn">refunded</span>}
+
+              {/*
+                * Refunding, which happens in Stripe rather than here.
+                *
+                * The money is on the business's own Stripe account — they are
+                * the merchant of record, and refunds, disputes and chargebacks
+                * are theirs. A button here would either need their keys or
+                * have to move money on their behalf, and neither is something
+                * we should be doing to somebody's balance.
+                *
+                * So this is a link to the exact charge, which is the useful
+                * half: the slow part of a refund is finding the payment among
+                * three hundred, not pressing the button once you have.
+                *
+                * Only where there is a charge to open. Cash and a card machine
+                * never went through Stripe, and there is nowhere to send
+                * anybody for those.
+                */}
+              {p.intent && p.status !== "refunded" && (
+                <a
+                  href={`https://dashboard.stripe.com/payments/${p.intent}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-accent hover:underline"
+                >
+                  Refund in Stripe
+                </a>
+              )}
             </div>
           </li>
         ))}

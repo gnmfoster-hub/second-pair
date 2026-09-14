@@ -58,16 +58,34 @@ export async function GET(request: NextRequest) {
    * named in the state, which was signed before they left.
    */
   const db = createAdminClient();
-  const { error } = await db
-    .from("studios")
-    .update({ stripe_account_id: accountId })
-    .eq("id", state.studio);
 
-  return back(request, error ? "refused" : "connected");
+  /*
+   * Onto the person, or onto the business — whichever the signed state says.
+   *
+   * Scoped to the studio as well as the id, even though the id is a uuid and
+   * the state was signed. The state proves which business began this; the
+   * extra condition means that even a state naming the wrong person could not
+   * attach an account to somebody in another salon, which is the one mistake
+   * here that nobody would ever notice.
+   */
+  const { error } = state.artist
+    ? await db
+        .from("artists")
+        .update({ stripe_account_id: accountId })
+        .eq("id", state.artist)
+        .eq("studio_id", state.studio)
+    : await db.from("studios").update({ stripe_account_id: accountId }).eq("id", state.studio);
+
+  // Back where they started, which for one of the team is their own page.
+  return back(
+    request,
+    error ? "refused" : "connected",
+    state.artist ? "/settings/you" : "/settings",
+  );
 }
 
-function back(request: NextRequest, why: string) {
-  const url = new URL("/settings", request.url);
+function back(request: NextRequest, why: string, to = "/settings") {
+  const url = new URL(to, request.url);
   url.searchParams.set("stripe", why);
   return NextResponse.redirect(url);
 }

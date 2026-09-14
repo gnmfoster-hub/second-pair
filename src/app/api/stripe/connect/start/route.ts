@@ -19,29 +19,77 @@ export async function GET(request: NextRequest) {
   if (!clientId || !secret) return back(request, "not-configured");
 
   let studio;
+  let userId;
   try {
-    ({ studio } = await requireStudio());
+    ({ studio, userId } = await requireStudio());
   } catch {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (!(await isOwner())) return back(request, "owner-only");
+  /*
+   * Whose account this is going to be.
+   *
+   * `?mine` is one of the team connecting their own, which is the only way a
+   * salon that pays each person directly works at all: their money has to land
+   * somewhere that is theirs. Anything else is the business's, which is the
+   * owner's decision and unchanged.
+   *
+   * Deliberately no way to name somebody else. Stripe's onboarding asks for a
+   * passport and a bank account, and neither of those is the owner's to hand
+   * over — an owner who could start this "for" a stylist would be inviting her
+   * to put her ID into a flow somebody else began, and the account would
+   * answer to whoever finished it. Each person starts their own, or it does
+   * not happen.
+   */
+  const mine = request.nextUrl.searchParams.has("mine");
 
-  const state = signState({ studio: studio.id, nonce: newNonce(), at: Date.now() }, secret);
+  if (!mine && !(await isOwner())) return back(request, "owner-only");
+
+  let artistId: string | undefined;
+  let email = studio.email;
+  let name = studio.name;
+
+  if (mine) {
+    const supabase = await createClient();
+    const { data: me } = await supabase
+      .from("artists")
+      .select("id, name, email")
+      .eq("studio_id", studio.id)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    // Somebody with a login and no place in the diary has no takings of their
+    // own, so there is nothing for an account of theirs to receive.
+    if (!me) return back(request, "not-in-the-diary", "/settings/you");
+
+    artistId = me.id as string;
+    email = (me.email as string | null) ?? studio.email;
+    name = me.name as string;
+  }
+
+  const state = signState(
+    {
+      studio: studio.id,
+      ...(artistId ? { artist: artistId } : {}),
+      nonce: newNonce(),
+      at: Date.now(),
+    },
+    secret,
+  );
 
   return NextResponse.redirect(
     authoriseUrl({
       clientId,
       redirectUri: new URL("/api/stripe/connect/callback", request.url).toString(),
       state,
-      email: studio.email,
-      businessName: studio.name,
+      email,
+      businessName: name,
     }),
   );
 }
 
-function back(request: NextRequest, why: string) {
-  const url = new URL("/settings", request.url);
+function back(request: NextRequest, why: string, to = "/settings") {
+  const url = new URL(to, request.url);
   url.searchParams.set("stripe", why);
   return NextResponse.redirect(url);
 }
