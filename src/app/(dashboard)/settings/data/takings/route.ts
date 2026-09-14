@@ -77,7 +77,7 @@ export async function GET(request: Request) {
 
   let query = supabase
     .from("payments")
-    .select("paid_at, kind, status, method, description, gross_pence, fee_pence, net_pence, artists(name), contacts(name)")
+    .select("paid_at, kind, status, method, description, gross_pence, fee_pence, net_pence, destination_account, artists(name), contacts(name)")
     .eq("studio_id", studio.id)
     .order("paid_at", { ascending: false });
 
@@ -100,6 +100,7 @@ export async function GET(request: Request) {
     gross_pence: number | null;
     fee_pence: number | null;
     net_pence: number | null;
+    destination_account: string | null;
     artists: { name: string } | null;
     contacts: { name: string } | null;
   }[];
@@ -123,8 +124,44 @@ export async function GET(request: Request) {
   const money = (pence: number | null | undefined) =>
     pence == null ? "" : (pence / 100).toFixed(2);
 
+  /*
+   * Whose Stripe account the money actually landed in.
+   *
+   * Recorded on every payment since links were built, for exactly this — the
+   * column's own comment says "so a per-person model can be audited" — and
+   * read by nothing, which made it a note to nobody.
+   *
+   * Said in words rather than as an acct_ id, because the question it answers
+   * is asked out loud six weeks later: "why is Sarah's colour in the shop's
+   * account?" The answer is that she had not connected hers yet and the owner
+   * had switched the fallback on, and the only place that can now be worked
+   * out is a spreadsheet.
+   *
+   * Blank for cash and a card machine, which never went near Stripe and have
+   * no account to name.
+   */
+  const shopAccount = studio.stripe_account_id ?? null;
+
+  const landedIn = (account: string | null) => {
+    if (!account) return "";
+    if (shopAccount && account === shopAccount) return "The business";
+    return "Their own";
+  };
+
   const csv = toCsv(
-    ["Date", "Who", "Client", "What", "Kind", "How paid", "Status", "Gross", "Fee", "Net"],
+    [
+      "Date",
+      "Who",
+      "Client",
+      "What",
+      "Kind",
+      "How paid",
+      "Status",
+      "Landed in",
+      "Gross",
+      "Fee",
+      "Net",
+    ],
     rows.map((r) => [
       day(r.paid_at),
       r.artists?.name ?? "The business",
@@ -133,6 +170,7 @@ export async function GET(request: Request) {
       r.kind,
       r.method ?? "",
       r.status,
+      landedIn(r.destination_account),
       money(r.gross_pence),
       money(r.fee_pence),
       money(r.net_pence ?? netOf(r.gross_pence ?? 0, r.fee_pence)),
