@@ -11,7 +11,7 @@ Last updated: 14 September 2026.
 # Migrations
 
 **Nothing waiting.** All run, up to and including
-`20260915090000_stock.sql`.
+`20260915140000_who_offers_what.sql`.
 
 When one is waiting it will be named here. Until it is run the product keeps
 working without it — everything new is written so the deploy and the migration
