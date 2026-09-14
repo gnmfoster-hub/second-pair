@@ -353,63 +353,84 @@ mobile number.
 
 # Mine
 
-**Doing now:** nothing half-finished. The last run closed out the live bug list
-you sent and the money work behind it.
+Everything you have asked for, and where it stands. Scoped so you can push back
+on any of it before I build it.
 
-**Next, in the order I would do them:**
+## Done since you started testing
 
-1. **Meta**, once the app is through review. Nothing to build until then.
+- **Emailed replies read as emails.** Greeting, paragraphs, a sign-off and a
+  subject that threads, around the same words. They were arriving as a text
+  that had wandered into an inbox.
+- **A ceiling on what the assistant answers by email** — forty a day per
+  business, past which mail is parked for a person. Spam was already free (the
+  rules run before the model), but mail that reads like a person and is not one
+  was unbounded.
+- **Mail arriving at our addresses** is recorded and readable in the back
+  office, folded away, opening by itself only when something was addressed to a
+  business that does not exist. Only mail that is *ours* — a verification code,
+  or an address with no business behind it — keeps a sender and a subject; a
+  customer writing in records that it happened and nothing more. Swept monthly.
+- **No VAT means no VAT.** The rate, the number and "do your prices include
+  it" only appear once the box is ticked.
+- **The client picker takes a mobile and an email**, for somebody new, either
+  or neither. It took a name and nothing else, so everybody booked in over the
+  phone was unreachable.
+- **Deleting a conversation** no longer lands on a 404.
+- **The desk sees the whole inbox**, with the same per-person filter an owner
+  has. A receptionist was getting only the unclaimed ones.
+- **Find somebody in the diary** without knowing when they are in, for the
+  width of an icon and no extra height on a phone.
+- **A client's record says when they are next in**, each one a link straight
+  into that appointment.
+- **One bill at the end of an appointment**: the work at what it was booked at
+  and editable, the shelf beside it, one total, one payment. Cash, card
+  machine, tapped on a phone, or a link.
+- **Finishing off is at the bottom** of an appointment, under the detail, and
+  is called that.
+- **The keyboard no longer covers the field you tapped.**
+- **The diary waited on five round trips in a row** before drawing anything.
+  Now two.
+- **The back office says connected of allowed** rather than reading as though a
+  business only has text messages.
 
-**Done, and waiting on nothing:**
+## Next, in the order I would do them
 
-- Payments: Stripe connect for the business and for each person, payment links
-  on the appointment, the client's record, the conversation and the till,
-  refunds linked through to the exact charge, the till, products and stock.
-- Tenant isolation now checks the early-access list, which is protected by
-  having no policies at all and was protected by nothing that would notice if
-  that changed; a business's channels; and booking groups. 48 checks, all green.
-- "This was me testing" on a conversation, which keeps the thread and takes it
-  out of the client list, the figures and the report. The flag has existed
-  since the second week and only the dashboard preview could set it — so every
-  time you opened the real widget on your phone you became a customer.
-- The reach check was lying. It said Neat & Tidy could not email seven people
-  it can email, because it wrote its own copy of the rule instead of calling it.
-- A shelf for a business that prices by the hour. Living Canvas has aftercare
-  balm on its price list at £10 and a screen to change it on.
-- Support sees the conversation a request was filed out of, which the assistant
-  has been recording since it was built and nothing ever read. Checked against
-  the support studio first: a business's own conversations stay unreadable
-  here, which is the one promise that cannot be made twice.
-- The early-access signups from the marketing site have a screen. They were
-  going into a table nothing could read.
-- Selling a product from the appointment itself, rather than leaving it and
-  opening the till: the shop's shelf plus that person's own, the sale tied to
-  the visit, and what has already been sold shown on the appointment so nobody
-  rings the same bottle up twice.
-- Receipts by email, for every payment that used to say nothing: a link paid
-  from any of the four screens, a deposit on a booking added by hand, and a
-  sale at the till where the client has an address. Not for a deposit the
-  assistant takes while booking — that already sends a confirmation in the same
-  second, and two emails a second apart read as a glitch. Any of them can be
-  sent again from the client's record.
-- Per person: hours, rates, roles, greeting, tone, time off, travel time,
-  reminders, calendar feed, their own services and prices, and which of the
-  shop's services they do and do not offer.
-- Diary: reads on a phone, keeps the view you chose when you change person,
-  a colour each, a complete button, and the add box no longer cut off.
-- Clients: history on somebody added by hand, what they have bought, and who
-  has not been back.
-- Channels: SMS in and out on a number per business, email in and out, the
-  inbox, and the assistant answering on both.
-- The setup checklist asks the right money question now. It used to ask whether
-  the business had connected Stripe, which is the wrong question on a salon of
-  chair renters — there the shop's account is not where anybody's money goes,
-  and a business could read as ready while every charge was refused.
+1. **The iPad in landscape.** The add-booking sheet is small and half covered
+   by the keyboard. The sheet is sized against the visible viewport, which is
+   right on a phone and wrong on a short wide one: there is plenty of width and
+   almost no height, and it should use it — two columns, and the field being
+   typed into kept above the keyboard. Half a day.
 
-**Known, and deliberately not done:**
+2. **The whole add-a-booking flow, properly.** You have called it clunky twice
+   and you are right. What I would do rather than patch it again: one sheet
+   that opens on the thing you are most likely to want — a regular having the
+   usual, at the time you tapped — with everything else folded behind it. Type
+   two letters, pick the person, and the service, length, price and their own
+   timing fill themselves in from what they had last time. Nothing asked twice,
+   nothing asked that can be worked out. A day, and worth doing once rather
+   than three more times.
+
+3. **How somebody prefers to be reached.** You asked for this with the phone
+   and email. It needs a column on contacts and a rule change in `routesFor`,
+   which currently decides for itself that a text beats an email. Small, but it
+   is a migration, so it waits for a moment you are not mid-test.
+
+4. **Backups, automatically.** Today it is one command you run yourself, which
+   means it happens when somebody remembers. Options, cheapest first: a nightly
+   scheduled job writing an encrypted file to storage; the same plus a copy to
+   somewhere off this platform; or leaving it manual and putting a reminder in
+   the weekly report. The middle one is what I would do, and the decision is
+   yours because it is the one that costs money.
+
+5. **Meta channels**, when the app is through review. Nothing to build until
+   then.
+
+## Known and deliberately not done
 
 - Sign-up is invitation-only. Every business is set up by somebody who has
-  spoken to the owner, and the page that used to offer a form now says so.
+  spoken to the owner, and the page that used to offer a form says so.
 - There is nowhere in the app to type the Stripe Connect key. It is ours, it is
   the same value for every business on here, and a box on one business's
   settings page would imply both of those are false.
+- No refund button. Standard Connect: the business is the merchant of record
+  and it is their money. The product links to the exact charge instead.
