@@ -222,6 +222,7 @@ export function WeekGrid({
   colourBy,
   services = [],
   shelf = [],
+  openId,
   stripeConnected = false,
   travels = false,
 }: {
@@ -237,6 +238,8 @@ export function WeekGrid({
   services?: Bookable[];
   /** What is on the shelf, for selling a bottle at the end of an appointment. */
   shelf?: ShelfItem[];
+  /** An appointment to open on arrival, where a link named one. */
+  openId?: string | null;
   /** Whether there is anywhere for money to go. */
   stripeConnected?: boolean;
   /** Whether the work happens at the customer's address. */
@@ -319,7 +322,17 @@ export function WeekGrid({
    * showing what is actually there. It also closes itself if the entry stops
    * existing, which is the right answer to somebody deleting it in another tab.
    */
-  const [editingId, setEditingId] = useState<string | null>(null);
+  /*
+   * Opened straight from a link, where somebody arrived at this day looking
+   * for one particular appointment.
+   *
+   * A client's record can say "in on Thursday at ten" and send you here, and
+   * landing on a day with thirty rows on it and hunting for the one you were
+   * just reading about is the product handing the work back. The id seeds the
+   * state rather than driving it, so closing the sheet closes it — the URL
+   * does not keep reopening what you have just shut.
+   */
+  const [editingId, setEditingId] = useState<string | null>(openId ?? null);
   const editing = editingId ? (entries.find((e) => e.id === editingId) ?? null) : null;
 
   const setEditing = (entry: Entry | null) => setEditingId(entry?.id ?? null);

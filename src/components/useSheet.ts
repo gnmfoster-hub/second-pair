@@ -118,5 +118,38 @@ export function useSheet<T extends HTMLElement>() {
     };
   }, []);
 
+  /*
+   * And bring whatever is being typed into above the keyboard.
+   *
+   * Measuring the room left is half of it: the sheet is the right height and
+   * the field somebody just tapped is still behind the keyboard, because
+   * nothing moved the sheet's own scroll. The browser does this by itself for
+   * an ordinary page and does not for a fixed box it is not scrolling.
+   *
+   * On the next frame rather than immediately — the keyboard is still on its
+   * way up when focus fires, so a field centred now is centred against the
+   * screen as it was a moment ago. Capturing, because focus does not bubble.
+   *
+   * `nearest` rather than `center`: a field at the top of a short form should
+   * not be dragged into the middle of the sheet, which looks like the panel
+   * jumping every time somebody taps.
+   */
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const follow = (event: FocusEvent) => {
+      const field = event.target as HTMLElement | null;
+      if (!field?.matches?.("input, textarea, select")) return;
+
+      setTimeout(() => {
+        field.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }, 250);
+    };
+
+    el.addEventListener("focusin", follow, true);
+    return () => el.removeEventListener("focusin", follow, true);
+  }, []);
+
   return ref;
 }

@@ -396,121 +396,6 @@ export function EntryDialog({
           </div>
         ) : null}
 
-        {/*
-          * Everything you do to an appointment while somebody is standing
-          * there: what it cost, charging for it, selling them something, and
-          * closing it off afterwards.
-          *
-          * Outside the block above, which is the point. All of this used to
-          * live inside it, and that block only renders when the booking came
-          * from a conversation — so an appointment typed into the diary by
-          * hand had no complete button, no payment link and no way to sell
-          * anybody a bottle. Which is most appointments in most salons: the
-          * phone rings, somebody writes it in, and none of the things this
-          * product is for were reachable from it.
-          *
-          * Client work only. A lunch break and a day off are entries in the
-          * diary and neither of them is owed money or needs closing off.
-          */}
-        {entry && isClientWork && (
-          <div className="mt-4 space-y-1 rounded-lg bg-surface-2/50 p-4 text-sm">
-            {/*
-              * Only where there is a deposit to speak of.
-              *
-              * This read "Deposit £0.00 — paid" on everything typed into the
-              * diary by hand, because those are stored as nothing-marked-paid
-              * to keep the unpaid-hold sweep from cancelling them. Most
-              * entries in most diaries carry no deposit at all, so the
-              * commonest thing this line did was make a false statement about
-              * money — in a studio that had not even connected Stripe.
-              */}
-            {hasDeposit(entry) && (
-              <div className="hint">
-                Deposit {formatPence(entry.deposit_amount_pence ?? 0)} —{" "}
-                {depositPaid(entry) ? "paid" : "not paid"}
-              </div>
-            )}
-
-            {/*
-              * Out to the two places this appointment came from.
-              *
-              * Their record is where a phone number, an email address, what
-              * they are allergic to and what they have agreed to be sent all
-              * live — and there has never been a way to reach it from the
-              * appointment. Changing somebody's number meant closing this,
-              * going to the client list, searching for a name you are looking
-              * at, and opening them: four steps away from the screen that
-              * already knows who they are.
-              */}
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-              {entry.contactId && (
-                <Link
-                  href={`/clients/${entry.contactId}`}
-                  className="inline-block text-sm text-accent hover:underline"
-                >
-                  Open their record →
-                </Link>
-              )}
-
-              {entry.conversationId && (
-                <Link
-                  href={`/conversations/${entry.conversationId}`}
-                  className="inline-block text-sm text-accent hover:underline"
-                >
-                  Open the conversation →
-                </Link>
-              )}
-            </div>
-
-            {/*
-              * The bill, which is the whole close-out rather than three of
-              * them.
-              *
-              * The work at what it was booked at and editable, anything they
-              * bought beside it, one total, one payment. Three separate
-              * controls stood here before — amend the price on the form
-              * below, record the bottle as its own sale, then ask for an
-              * amount you had worked out yourself — for a moment that is one
-              * sentence at a desk.
-              */}
-            <Bill
-              bookingId={entry.id}
-              workName={entry.title || "Appointment"}
-              workPence={entry.price_pence}
-              shelf={mineToSell}
-              alreadyPence={entry.soldPence}
-              connected={stripeConnected}
-            />
-
-            {/*
-              * From the moment it starts, not from the moment it was due to
-              * end.
-              *
-              * Asking on Tuesday whether somebody turned up to Thursday is
-              * noise on every booking in the diary, and noise on every booking
-              * is how a control gets ignored on the one that matters. Waiting
-              * for the booked end time was the other mistake: a forty-five
-              * minute cut that took half an hour is finished, the client has
-              * gone, and the person closing it off is stood there with fifteen
-              * minutes to spare.
-              */}
-            {Date.parse(entry.starts_at) <= openedAt && (
-              <CloseOff
-                id={entry.id}
-                attended={entry.attended}
-                booked={Math.round(
-                  (Date.parse(entry.ends_at) - Date.parse(entry.starts_at)) / 60000,
-                )}
-                actualMinutes={entry.actual_minutes}
-                note={entry.outcome_note}
-                canRemember={Boolean(entry.contactId && entry.serviceId)}
-                firstName={(entry.clientName ?? "them").split(" ")[0]}
-                contactId={entry.contactId}
-                travels={travels}
-              />
-            )}
-          </div>
-        )}
 
         {/* space-y-4 on a phone. Five was a fifth of the screen given to the
             gaps between fields on a form that already had to scroll. */}
@@ -820,6 +705,139 @@ export function EntryDialog({
             )}
           </div>
         </form>
+
+        {/*
+          * Finishing off, under the detail rather than over it.
+          *
+          * These were the first thing on the screen, above the fields that say
+          * when the appointment is and who it is with — which is the wrong way
+          * round for every visit to this panel except the last one. You open an
+          * appointment to read it or change it far more often than to close it
+          * out, and on a phone a screenful of money controls stood between
+          * somebody and the time they came to check.
+          */}
+        {/*
+          * Everything you do to an appointment while somebody is standing
+          * there: what it cost, charging for it, selling them something, and
+          * closing it off afterwards.
+          *
+          * Outside the block above, which is the point. All of this used to
+          * live inside it, and that block only renders when the booking came
+          * from a conversation — so an appointment typed into the diary by
+          * hand had no complete button, no payment link and no way to sell
+          * anybody a bottle. Which is most appointments in most salons: the
+          * phone rings, somebody writes it in, and none of the things this
+          * product is for were reachable from it.
+          *
+          * Client work only. A lunch break and a day off are entries in the
+          * diary and neither of them is owed money or needs closing off.
+          */}
+        {entry && isClientWork && (
+          <div className="mt-4 space-y-1 rounded-lg bg-surface-2/50 p-4 text-sm">
+            {/*
+              * Only where there is a deposit to speak of.
+              *
+              * This read "Deposit £0.00 — paid" on everything typed into the
+              * diary by hand, because those are stored as nothing-marked-paid
+              * to keep the unpaid-hold sweep from cancelling them. Most
+              * entries in most diaries carry no deposit at all, so the
+              * commonest thing this line did was make a false statement about
+              * money — in a studio that had not even connected Stripe.
+              */}
+            {hasDeposit(entry) && (
+              <div className="hint">
+                Deposit {formatPence(entry.deposit_amount_pence ?? 0)} —{" "}
+                {depositPaid(entry) ? "paid" : "not paid"}
+              </div>
+            )}
+
+            {/*
+              * Out to the two places this appointment came from.
+              *
+              * Their record is where a phone number, an email address, what
+              * they are allergic to and what they have agreed to be sent all
+              * live — and there has never been a way to reach it from the
+              * appointment. Changing somebody's number meant closing this,
+              * going to the client list, searching for a name you are looking
+              * at, and opening them: four steps away from the screen that
+              * already knows who they are.
+              */}
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+              {entry.contactId && (
+                <Link
+                  href={`/clients/${entry.contactId}`}
+                  className="inline-block text-sm text-accent hover:underline"
+                >
+                  Open their record →
+                </Link>
+              )}
+
+              {entry.conversationId && (
+                <Link
+                  href={`/conversations/${entry.conversationId}`}
+                  className="inline-block text-sm text-accent hover:underline"
+                >
+                  Open the conversation →
+                </Link>
+              )}
+            </div>
+
+            {/*
+              * The bill, which is the whole close-out rather than three of
+              * them.
+              *
+              * The work at what it was booked at and editable, anything they
+              * bought beside it, one total, one payment. Three separate
+              * controls stood here before — amend the price on the form
+              * below, record the bottle as its own sale, then ask for an
+              * amount you had worked out yourself — for a moment that is one
+              * sentence at a desk.
+              */}
+            <Bill
+              bookingId={entry.id}
+              workName={entry.title || "Appointment"}
+              /*
+                * What it was booked at, and failing that what it was quoted
+                * at. An appointment the assistant took carries the quote on
+                * the enquiry rather than a price on the booking, so reading
+                * only the second put an empty box in front of somebody whose
+                * appointment plainly had a number on it.
+                */
+              workPence={entry.price_pence ?? entry.quotePence}
+              shelf={mineToSell}
+              alreadyPence={entry.soldPence}
+              connected={stripeConnected}
+            />
+
+            {/*
+              * From the moment it starts, not from the moment it was due to
+              * end.
+              *
+              * Asking on Tuesday whether somebody turned up to Thursday is
+              * noise on every booking in the diary, and noise on every booking
+              * is how a control gets ignored on the one that matters. Waiting
+              * for the booked end time was the other mistake: a forty-five
+              * minute cut that took half an hour is finished, the client has
+              * gone, and the person closing it off is stood there with fifteen
+              * minutes to spare.
+              */}
+            {Date.parse(entry.starts_at) <= openedAt && (
+              <CloseOff
+                id={entry.id}
+                attended={entry.attended}
+                booked={Math.round(
+                  (Date.parse(entry.ends_at) - Date.parse(entry.starts_at)) / 60000,
+                )}
+                actualMinutes={entry.actual_minutes}
+                note={entry.outcome_note}
+                canRemember={Boolean(entry.contactId && entry.serviceId)}
+                firstName={(entry.clientName ?? "them").split(" ")[0]}
+                contactId={entry.contactId}
+                travels={travels}
+              />
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -98,6 +98,7 @@ export function DayList({
   colourBy,
   services = [],
   shelf = [],
+  openId,
   stripeConnected = false,
   travels = false,
   nowIso,
@@ -115,6 +116,8 @@ export function DayList({
   services?: Bookable[];
   /** What is on the shelf, for selling a bottle at the end of an appointment. */
   shelf?: ShelfItem[];
+  /** An appointment to open on arrival, where a link named one. */
+  openId?: string | null;
   /** Whether there is anywhere for money to go. */
   stripeConnected?: boolean;
   /** Whether the work happens at the customer's address. */
@@ -139,7 +142,17 @@ export function DayList({
     );
   };
 
-  const [editingId, setEditingId] = useState<string | null>(null);
+  /*
+   * Opened straight from a link, where somebody arrived at this day looking
+   * for one particular appointment.
+   *
+   * A client's record can say "in on Thursday at ten" and send you here, and
+   * landing on a day with thirty rows on it and hunting for the one you were
+   * just reading about is the product handing the work back. The id seeds the
+   * state rather than driving it, so closing the sheet closes it — the URL
+   * does not keep reopening what you have just shut.
+   */
+  const [editingId, setEditingId] = useState<string | null>(openId ?? null);
   const [creating, setCreating] = useState<{
     date: string;
     time: string;

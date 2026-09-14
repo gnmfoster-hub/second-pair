@@ -157,31 +157,42 @@ export function Bill({
           <input type="hidden" name="booking_id" value={bookingId} />
           <input type="hidden" name="work_name" value={workName} />
 
-          <label className="block">
-            <span className="label">For the {workName.toLowerCase()}</span>
-            <div className="flex items-center gap-2">
+          {/*
+            * The appointment is already on the bill.
+            *
+            * It opened as an empty box next to a disabled button, which reads
+            * as "nothing has been added" — and the appointment plainly has
+            * been: it is the thing you are standing in. So the work is a line
+            * like any other, priced at whatever it was booked at, and the
+            * price is a box on that line rather than the first thing to fill
+            * in.
+            */}
+          <ul className="space-y-1.5">
+            <li className="flex items-center gap-2 text-sm">
+              <span className="min-w-0 flex-1 truncate">{workName}</span>
               <input
                 name="work"
                 value={work}
                 onChange={(e) => setWork(e.target.value)}
                 inputMode="decimal"
                 placeholder="0.00"
-                className="input max-w-[8rem] tabular-nums"
-                autoFocus
+                aria-label={`What to charge for the ${workName.toLowerCase()}`}
+                className="input w-24 py-1 text-right tabular-nums"
               />
-              <span className="hint">
-                {/*
-                  * What it was booked at, kept visible while it is changed.
-                  * "Was it ninety-five?" is the question somebody asks
-                  * themselves the moment they start typing over it.
-                  */}
-                {workPence != null
-                  ? `booked at ${formatPence(workPence)}`
-                  : "nothing was quoted"}
-              </span>
-            </div>
-            <span className="hint">Leave it empty if the work is already paid for.</span>
-          </label>
+            </li>
+          </ul>
+
+          <p className="hint">
+            {/*
+              * What it was booked at, kept visible while it is changed. "Was
+              * it ninety-five?" is the question somebody asks themselves the
+              * moment they start typing over it.
+              */}
+            {workPence != null
+              ? `Booked at ${formatPence(workPence)}. Change it here and the appointment changes with it.`
+              : "Nothing was quoted for this one, so put in what it came to."}
+            {" "}Clear it if the work is already paid for.
+          </p>
 
           {shelf.length > 0 && (
             <div>
@@ -207,7 +218,7 @@ export function Bill({
           )}
 
           {lines.length > 0 && (
-            <ul className="space-y-1.5">
+            <ul className="space-y-1.5 border-t border-border pt-2">
               {lines.map((line, i) => (
                 <li key={line.key} className="flex items-center gap-2 text-sm">
                   <input type="hidden" name={`service_${i}`} value={line.serviceId} />

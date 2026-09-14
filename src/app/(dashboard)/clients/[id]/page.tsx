@@ -150,6 +150,19 @@ export default async function ClientPage({
     .sort((a, b) => Date.parse(b.starts_at) - Date.parse(a.starts_at));
 
   /*
+   * Still to come, soonest first — the opposite order from the history,
+   * because the next one is the interesting one and the last one is the
+   * interesting one on that list.
+   *
+   * Cancelled left out: an appointment that is not happening is not something
+   * they are coming in for, and the history below still carries it.
+   */
+  const coming = bookings
+    .filter((b) => !b.cancelled_at && Date.parse(b.starts_at) >= Date.now())
+    .sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at))
+    .slice(0, 3);
+
+  /*
    * What was actually sent to this person.
    *
    * The reminders table has always recorded the rendered body, the channel and
@@ -365,6 +378,51 @@ export default async function ClientPage({
               services={services}
               timings={timings}
             />
+          )}
+
+          {/*
+            * When they are next in, and a way straight to it.
+            *
+            * The history below is everything that has happened, newest first,
+            * and the one thing somebody looking up a client actually wants —
+            * "when are they in?" — was buried at the top of it among things
+            * that already have. Worse, having found it there was nothing to
+            * do about it: moving it, taking payment or closing it off all
+            * meant going to the diary and hunting for the day.
+            */}
+          {coming.length > 0 && (
+            <section className="card p-5">
+              <h2 className="section-title mb-3 text-sm">Coming up</h2>
+              <ul className="divide-y divide-border">
+                {coming.map((b) => (
+                  <li key={b.id}>
+                    <Link
+                      href={`/diary?day=${b.starts_at.slice(0, 10)}&entry=${b.id}`}
+                      className="row -mx-2 flex items-baseline gap-3 rounded-lg px-2 py-2.5"
+                    >
+                      <span className="text-sm font-medium">
+                        {new Intl.DateTimeFormat("en-GB", {
+                          timeZone: studio.timezone,
+                          weekday: "short",
+                          day: "numeric",
+                          month: "short",
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: true,
+                        }).format(new Date(b.starts_at))}
+                      </span>
+                      <span className="hint min-w-0 flex-1 truncate">
+                        {b.title ?? "Appointment"}
+                        {artists.find((a) => a.id === b.artist_id)
+                          ? ` · ${artists.find((a) => a.id === b.artist_id)!.name.split(" ")[0]}`
+                          : ""}
+                      </span>
+                      <span className="hint shrink-0">Open →</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
 
           <section className="card p-5">

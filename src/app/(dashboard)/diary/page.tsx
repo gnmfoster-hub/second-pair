@@ -88,9 +88,16 @@ function weekLabel(from: Date, to: Date): string {
 export default async function DiaryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ week?: string; view?: string; day?: string; who?: string }>;
+  searchParams: Promise<{
+    week?: string;
+    view?: string;
+    day?: string;
+    who?: string;
+    /** One appointment to open on arrival, from a link that knew which. */
+    entry?: string;
+  }>;
 }) {
-  const { week, view: viewParam, day: dayParam, who } = await searchParams;
+  const { week, view: viewParam, day: dayParam, who, entry: openId } = await searchParams;
   const { studio } = await requireStudio();
   const supabase = await createClient();
   const artists = await getArtists(studio.id);
@@ -1542,6 +1549,7 @@ export default async function DiaryPage({
                   timezone={studio.timezone}
                   services={bookable}
                   shelf={shelf}
+                  openId={openId ?? null}
                   stripeConnected={Boolean(studio.stripe_account_id)}
                   travels={studio.travel_mode !== "at_premises"}
                   /*
@@ -1566,6 +1574,7 @@ export default async function DiaryPage({
                 weekStart={isoDate(start)}
                 services={bookable}
                 shelf={shelf}
+                openId={openId ?? null}
                 stripeConnected={Boolean(studio.stripe_account_id)}
                 travels={studio.travel_mode !== "at_premises"}
                 day={isoDate(focusDay)}
