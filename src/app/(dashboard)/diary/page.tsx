@@ -188,8 +188,18 @@ export default async function DiaryPage({
   const end =
     view === "day" ? addDays(focusDay, 1) : view === "month" ? monthEnd : addDays(start, 7);
 
+  /*
+   * Three reads that do not need each other, started together.
+   *
+   * They ran one after another: the week's bookings, then the strip across the
+   * top of a phone, then the price list — none of which is built out of
+   * either of the others, and each one a round trip to another continent
+   * before the next one starts. Four hundred milliseconds of waiting in a row
+   * on the screen somebody opens twenty times a day, for no reason but the
+   * order the code was written in.
+   */
   // A little either side, so a multi-day holiday starting last week still shows.
-  const { data } = await supabase
+  const bookingsQuery = supabase
     .from("bookings")
     /*
      * Every column, named none of them.
@@ -224,18 +234,50 @@ export default async function DiaryPage({
    * Only for the day view, because only the day view has a strip. The week and
    * month already show the week.
    */
-  const weekLoad: { starts_at: string; ends_at: string; artist_id: string }[] =
+  const weekLoadQuery =
     view === "day"
-      ? ((
-          await supabase
-            .from("bookings")
-            .select("starts_at, ends_at, artist_id")
-            .is("cancelled_at", null)
-            .eq("blocks_availability", true)
-            .gte("starts_at", startOfWeek(focusDay).toISOString())
-            .lt("starts_at", addDays(startOfWeek(focusDay), 7).toISOString())
-        ).data ?? [])
-      : [];
+      ? supabase
+          .from("bookings")
+          .select("starts_at, ends_at, artist_id")
+          .is("cancelled_at", null)
+          .eq("blocks_availability", true)
+          .gte("starts_at", startOfWeek(focusDay).toISOString())
+          .lt("starts_at", addDays(startOfWeek(focusDay), 7).toISOString())
+      : Promise.resolve({ data: [] });
+
+  /*
+   * Everything on this business's price list — the work and the shelf.
+   *
+   * Read whatever way they price, which it did not used to be. This was gated
+   * on pricing_model === "services" because the only thing it fed was the
+   * picker for booking work by hand, and a business pricing by size and hours
+   * has no named list to book from.
+   *
+   * That conflates two different questions. How you price your work and
+   * whether you sell things off a shelf are unrelated: a tattoo studio prices
+   * by the hour against size bands and still sells aftercare balm, and gating
+   * this meant the balm could be typed onto the price list and never appear
+   * anywhere it could be sold. The picker below is still gated, because that
+   * part was right.
+   */
+  const sellableQuery = supabase
+    .from("services")
+    .select("*")
+    .eq("studio_id", studio.id)
+    .eq("active", true)
+    .order("sort_order");
+
+  const [{ data }, weekLoadResult, { data: sellable }] = await Promise.all([
+    bookingsQuery,
+    weekLoadQuery,
+    sellableQuery,
+  ]);
+
+  const weekLoad = (weekLoadResult.data ?? []) as {
+    starts_at: string;
+    ends_at: string;
+    artist_id: string;
+  }[];
 
   /*
    * Whose columns are on screen.
@@ -288,9 +330,38 @@ export default async function DiaryPage({
    * you ring the bride, not the four bridesmaids — and it has been recorded
    * nowhere and read nowhere since groups were built.
    */
-  const { data: groupRows } = groupIds.length
-    ? await supabase.from("booking_groups").select("*, contacts(name)").in("id", groupIds)
-    : { data: null };
+  /*
+   * And the two reads that need the week's bookings, also started together.
+   *
+   * Which arrangements are on screen, and what has already been taken at each
+   * appointment. Neither is built out of the other and they were a round trip
+   * apart for no reason but where they happen to be used.
+   */
+  const bookingIds = ((data ?? []) as unknown as RawRow[]).map((r) => r.id);
+
+  const [{ data: groupRows }, { data: sold }] = await Promise.all([
+    groupIds.length
+      ? supabase.from("booking_groups").select("*, contacts(name)").in("id", groupIds)
+      : Promise.resolve({ data: null }),
+    /*
+     * Everything already taken at these appointments, not only the bottles.
+     *
+     * This counted product sales alone, which was right when the only thing an
+     * appointment could be charged for was a bottle on the way out. The bill
+     * charges for the work as well, so leaving the filter would mean closing
+     * somebody out, reopening the appointment, and being told nothing had been
+     * taken — which is how the same client gets charged for the same colour
+     * twice.
+     */
+    bookingIds.length
+      ? supabase
+          .from("payments")
+          .select("booking_id, gross_pence")
+          .in("booking_id", bookingIds)
+          .in("kind", ["product", "payment"])
+          .eq("status", "paid")
+      : Promise.resolve({ data: null }),
+  ]);
 
   const groupNames = new Map((groupRows ?? []).map((g) => [g.id, g.name as string]));
   const groupLeads = new Map(
@@ -302,28 +373,6 @@ export default async function DiaryPage({
   for (const r of (data ?? []) as unknown as RawRow[]) {
     if (r.group_id) groupSizes.set(r.group_id, (groupSizes.get(r.group_id) ?? 0) + 1);
   }
-
-  /*
-   * Everything on this business's price list — the work and the shelf.
-   *
-   * Read whatever way they price, which it did not used to be. This was gated
-   * on pricing_model === "services" because the only thing it fed was the
-   * picker for booking work by hand, and a business pricing by size and hours
-   * has no named list to book from.
-   *
-   * That conflates two different questions. How you price your work and
-   * whether you sell things off a shelf are unrelated: a tattoo studio prices
-   * by the hour against size bands and still sells aftercare balm, and gating
-   * this meant the balm could be typed onto the price list and never appear
-   * anywhere it could be sold. The picker below is still gated, because that
-   * part was right.
-   */
-  const { data: sellable } = await supabase
-    .from("services")
-    .select("*")
-    .eq("studio_id", studio.id)
-    .eq("active", true)
-    .order("sort_order");
 
   /*
    * What can be sold alongside the work.
@@ -366,40 +415,9 @@ export default async function DiaryPage({
    */
   const soldOn = new Map<string, number>();
 
-  /*
-   * Asked for every business now, not only those with a shelf.
-   *
-   * It used to be skipped where nothing was on sale, because the only thing it
-   * fed was a line about bottles. The bill takes payment for the work itself,
-   * which every business has — so a tattoo studio with an empty shelf needs
-   * this exactly as much as a salon with a full one.
-   */
-  {
-    const ids = ((data ?? []) as unknown as RawRow[]).map((r) => r.id);
-
-    if (ids.length > 0) {
-      /*
-       * Everything already taken at these appointments, not only the bottles.
-       *
-       * This counted product sales alone, which was right when the only thing
-       * an appointment could be charged for was a bottle on the way out. The
-       * bill charges for the work as well, so leaving the filter would mean
-       * closing somebody out, reopening the appointment, and being told
-       * nothing had been taken — which is how the same client gets charged for
-       * the same colour twice.
-       */
-      const { data: sold } = await supabase
-        .from("payments")
-        .select("booking_id, gross_pence")
-        .in("booking_id", ids)
-        .in("kind", ["product", "payment"])
-        .eq("status", "paid");
-
-      for (const row of sold ?? []) {
-        const id = row.booking_id as string;
-        soldOn.set(id, (soldOn.get(id) ?? 0) + ((row.gross_pence as number) ?? 0));
-      }
-    }
+  for (const row of sold ?? []) {
+    const id = row.booking_id as string;
+    soldOn.set(id, (soldOn.get(id) ?? 0) + ((row.gross_pence as number) ?? 0));
   }
 
   const entries: Entry[] = ((data ?? []) as unknown as RawRow[])
