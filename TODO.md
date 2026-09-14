@@ -248,6 +248,14 @@ you sent and the money work behind it.
 - Payments: Stripe connect for the business and for each person, payment links
   on the appointment, the client's record, the conversation and the till,
   refunds linked through to the exact charge, the till, products and stock.
+- A shelf for a business that prices by the hour. Living Canvas has aftercare
+  balm on its price list at £10 and a screen to change it on.
+- Support sees the conversation a request was filed out of, which the assistant
+  has been recording since it was built and nothing ever read. Checked against
+  the support studio first: a business's own conversations stay unreadable
+  here, which is the one promise that cannot be made twice.
+- The early-access signups from the marketing site have a screen. They were
+  going into a table nothing could read.
 - Selling a product from the appointment itself, rather than leaving it and
   opening the till: the shop's shelf plus that person's own, the sale tied to
   the visit, and what has already been sold shown on the appointment so nobody
