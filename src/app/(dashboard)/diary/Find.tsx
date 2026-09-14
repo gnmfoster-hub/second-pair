@@ -21,8 +21,16 @@ import { findInDiary, type Found } from "./findActions";
 export function Find() {
   const [open, setOpen] = useState(false);
   const [term, setTerm] = useState("");
-  const [found, setFound] = useState<Found[] | null>(null);
-  const [looking, setLooking] = useState(false);
+  /*
+   * The answer and the question it was asked, together.
+   *
+   * Keeping only the rows meant they belonged to whatever had been typed most
+   * recently, which is not true while a query is in flight — so a third letter
+   * showed the results for two for a moment. Holding the term they answer lets
+   * the render decide whether they are still worth showing, instead of an
+   * effect reaching back to clear them.
+   */
+  const [answer, setAnswer] = useState<{ term: string; rows: Found[] } | null>(null);
   const box = useRef<HTMLInputElement>(null);
 
   // Focus on opening, and on a phone that is also what raises the keyboard.
@@ -42,19 +50,13 @@ export function Find() {
     if (!open) return;
 
     const wanted = term.trim();
-    if (wanted.length < 2) {
-      setFound(null);
-      return;
-    }
+    if (wanted.length < 2) return;
 
     let current = true;
-    setLooking(true);
 
     const timer = setTimeout(async () => {
       const rows = await findInDiary(wanted).catch(() => []);
-      if (!current) return;
-      setFound(rows);
-      setLooking(false);
+      if (current) setAnswer({ term: wanted, rows });
     }, 300);
 
     return () => {
@@ -120,15 +122,15 @@ export function Find() {
 
       {term.trim().length >= 2 && (
         <div className="absolute left-4 right-4 top-full mt-1 overflow-hidden rounded-xl border border-border bg-surface shadow-lg sm:left-8 sm:right-8">
-          {found === null || looking ? (
+          {answer?.term !== term.trim() ? (
             <p className="hint px-3.5 py-3">Looking…</p>
-          ) : found.length === 0 ? (
+          ) : answer.rows.length === 0 ? (
             <p className="hint px-3.5 py-3">
               Nobody by that name has anything booked from today onwards.
             </p>
           ) : (
             <ul className="divide-y divide-border">
-              {found.map((row) => (
+              {answer.rows.map((row) => (
                 <li key={row.id}>
                   {/*
                     * Straight to the appointment, open. The diary takes an
