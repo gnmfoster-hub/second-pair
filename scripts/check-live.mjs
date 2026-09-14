@@ -228,6 +228,22 @@ if (!env.CRON_SECRET) {
         else warn("Stripe is not set up", "Deposits cannot be taken.");
       } else if (can.payments?.canConnect) {
         pass("businesses can connect their Stripe");
+
+        /*
+         * Which Stripe, said out loud.
+         *
+         * Test keys and live keys behave identically right up to the moment
+         * money is supposed to move — real bookings, real confirmations, and
+         * not a penny taken. A deployment sitting on test keys looks perfect
+         * from every screen and from every other check on this page.
+         */
+        if (can.payments.mode === "test")
+          warn(
+            "Stripe is in TEST mode",
+            "Cards are fake and no money can be taken. Right for a demo, wrong for a real business.",
+          );
+        else if (can.payments.mode === "unrecognised")
+          warn("Stripe key is an odd shape", "Not sk_test_ or sk_live_ — worth a look.");
         if (!can.payments.webhookSecret)
           warn(
             "STRIPE_WEBHOOK_SECRET is missing",

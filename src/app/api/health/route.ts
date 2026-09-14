@@ -20,6 +20,22 @@ export const dynamic = "force-dynamic";
  * what it is. Behind the same secret as the scheduled job, because even the
  * shape of what is and is not configured is nobody's business but ours.
  */
+/**
+ * Which Stripe a key belongs to, from the only part of it that is not secret.
+ *
+ * Stripe puts the mode in the prefix — sk_test_, sk_live_, rk_live_ for a
+ * restricted one — so this can be answered without reading a single character
+ * of the key itself. Worth answering because the two behave identically right
+ * up to the moment money is supposed to move: a deployment on test keys takes
+ * real bookings, sends real confirmations, and quietly never takes a penny.
+ */
+function keyMode(key: string | undefined): "test" | "live" | "none" | "unrecognised" {
+  if (!key) return "none";
+  if (key.startsWith("sk_test_") || key.startsWith("rk_test_")) return "test";
+  if (key.startsWith("sk_live_") || key.startsWith("rk_live_")) return "live";
+  return "unrecognised";
+}
+
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
@@ -123,7 +139,7 @@ export async function GET(request: NextRequest) {
        * bookings and never takes a real deposit, and there is no other way to
        * tell that from outside.
        */
-      liveKeyIsReallyLive: process.env.STRIPE_SECRET_KEY?.startsWith("sk_live_") ?? null,
+      mode: keyMode(process.env.STRIPE_SECRET_KEY),
       sandbox: {
         secretKey: Boolean(process.env.STRIPE_SECRET_KEY_TEST),
         connectClientId: Boolean(process.env.STRIPE_CONNECT_CLIENT_ID_TEST),
