@@ -106,6 +106,24 @@ export default async function AdminPage() {
     .order("created_at", { ascending: false })
     .limit(200);
 
+  /*
+   * What has reached an inbound address lately, and what was decided.
+   *
+   * The question this answers is the one asked every time a business is set
+   * up: the provider says it has sent a confirmation code to an address of
+   * ours, and nothing appears. Three possible reasons, previously
+   * indistinguishable — it never arrived, it arrived and was thrown away as a
+   * machine talking, or the address named a business that does not exist.
+   *
+   * Read whole and shown newest first. A short list on purpose: this is for
+   * "did that just arrive", not for reading a week's mail.
+   */
+  const { data: inbound } = await db
+    .from("inbound_emails")
+    .select("*")
+    .order("at", { ascending: false })
+    .limit(25);
+
   const { data: tickets } = await db
     .from("support_tickets")
     .select("id, studio_id, subject, status, updated_at, from_conversation_id")
@@ -553,6 +571,15 @@ export default async function AdminPage() {
       hasOwnBusiness={hasOwnBusiness}
       kpis={kpis}
       businesses={summaries}
+      inbound={(inbound ?? []).map((r) => ({
+        id: r.id as string,
+        to: (r.to_address as string | null) ?? null,
+        from: (r.from_address as string | null) ?? null,
+        subject: (r.subject as string | null) ?? null,
+        verdict: String(r.verdict),
+        because: (r.because as string | null) ?? null,
+        at: r.at as string,
+      }))}
       interest={(interest ?? []).map((r) => ({
         id: r.id as string,
         product: r.product as string,

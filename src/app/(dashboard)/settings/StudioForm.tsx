@@ -34,6 +34,15 @@ export function StudioForm({
   const [depositType, setDepositType] = useState(studio.deposit_rule.type);
   const [depositMode, setDepositMode] = useState(studio.deposit_mode ?? "required");
   const [travelMode, setTravelMode] = useState(studio.travel_mode ?? "at_premises");
+  /*
+   * Whether there is any VAT to talk about.
+   *
+   * Held in state so the rest of the section can disappear when there is not.
+   * A business that is not registered was still being asked whether its prices
+   * include VAT, and neither answer is true — there is no VAT in them at all,
+   * and being made to pick one reads as the product not believing you.
+   */
+  const [vatRegistered, setVatRegistered] = useState(studio.vat_registered);
   const pack = verticalPack(studio.vertical);
   const packGreeting = pack.greeting;
   const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
@@ -485,13 +494,36 @@ export function StudioForm({
           <input
             type="checkbox"
             name="vat_registered"
-            defaultChecked={studio.vat_registered}
+            checked={vatRegistered}
+            onChange={(e) => setVatRegistered(e.target.checked)}
             className="accent-[var(--accent)]"
           />
           We are VAT registered
         </label>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        {/*
+          * Nothing else, when there is nothing else.
+          *
+          * Below this used to show regardless: a rate, a VAT number, and a
+          * choice between "prices already include VAT" and "add it before
+          * quoting". For a business that is not registered neither is true —
+          * there is no VAT in the price and none to add — and a required
+          * choice between two wrong answers is how somebody concludes they are
+          * being charged VAT they do not charge.
+          *
+          * The assistant has always said nothing about VAT for an unregistered
+          * business, which is correct and was impossible to believe from this
+          * screen.
+          */}
+        {!vatRegistered && (
+          <p className="hint">
+            Nothing here applies to you, so the assistant never mentions VAT and your
+            prices are quoted exactly as you enter them. Tick the box above if that
+            changes.
+          </p>
+        )}
+
+        {vatRegistered && <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Rate (%)">
             <input
               name="vat_rate_percent"
@@ -511,9 +543,9 @@ export function StudioForm({
               className="input font-mono text-xs"
             />
           </Field>
-        </div>
+        </div>}
 
-        <Field label="The prices you have entered">
+        {vatRegistered && <Field label="The prices you have entered">
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -536,7 +568,7 @@ export function StudioForm({
               Exclude VAT — add it before quoting
             </label>
           </div>
-        </Field>
+        </Field>}
       </section>
 
       <section className="card space-y-5 p-6">

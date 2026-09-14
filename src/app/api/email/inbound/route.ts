@@ -101,7 +101,10 @@ export async function POST(request: NextRequest) {
     .eq("slug", slug)
     .maybeSingle();
 
-  if (!studio || studio.archived_at) return ok("no such business");
+  if (!studio || studio.archived_at) {
+    await note(db, null, email, slug, "refused", "no business has that address");
+    return ok("no such business");
+  }
 
   const verdict = judge(email, {
     ownDomains: [studio.email ? domainOf(studio.email) : ""].filter(Boolean),
@@ -113,12 +116,16 @@ export async function POST(request: NextRequest) {
 
   // A machine talking. Nothing is written down, because a newsletter landing
   // in the inbox every Tuesday makes the inbox worth less than it was.
-  if (verdict.what === "ignore") return ok(`ignored: ${verdict.because}`);
+  if (verdict.what === "ignore") {
+    await note(db, studio.id, email, slug, "ignored", verdict.because);
+    return ok(`ignored: ${verdict.because}`);
+  }
 
   const sender = addressOf(email.from);
 
   if (verdict.what === "park") {
     await park(db, studio.id, sender, email, verdict.because);
+    await note(db, studio.id, email, slug, "parked", verdict.because);
     return ok(`parked: ${verdict.because}`);
   }
 
@@ -182,6 +189,8 @@ export async function POST(request: NextRequest) {
      * in the webhook response too, since that is the one place a provider's own
      * delivery log will show it back.
      */
+    await note(db, studio.id, email, slug, "answered", null);
+
     if (sent.status !== "sent") {
       await db.from("messages").insert({
         conversation_id: result.conversationId,
@@ -335,4 +344,50 @@ function sameSecret(given: string | null, expected: string): boolean {
   const b = Buffer.from(expected);
   // timingSafeEqual throws on differing lengths, and a length is not a secret.
   return a.length === b.length && timingSafeEqual(a, b);
+}
+
+/**
+ * That it arrived, and what was decided.
+ *
+ * Setting a business up means pointing their real mailbox at an address of
+ * ours, and every provider confirms that by emailing a code to the
+ * destination. When the code does not turn up there are three possible
+ * reasons — it never arrived, it arrived and was thrown away as a machine
+ * talking, or the address named a business that does not exist — and they were
+ * indistinguishable from outside, because the two that reach us left no trace
+ * at all.
+ *
+ * Ignoring is still right for a newsletter: parking one puts it in the inbox
+ * every Tuesday until the inbox is worth nothing. But "we ignored it, and
+ * here is the sentence saying why" is worth keeping, somewhere that is ours.
+ *
+ * The subject and the sender, never the body. What somebody wrote to a
+ * business is theirs, and none of it is needed to answer the only question
+ * this exists for.
+ *
+ * Swallowed whole. A webhook must answer 200 or the provider sends the same
+ * email again, and a note nobody could write is not a reason to take a
+ * customer's message twice.
+ */
+async function note(
+  db: ReturnType<typeof createAdminClient>,
+  studioId: string | null,
+  email: InboundEmail,
+  slug: string | null,
+  verdict: "answered" | "parked" | "ignored" | "refused",
+  because: string | null,
+) {
+  try {
+    await db.from("inbound_emails").insert({
+      studio_id: studioId,
+      to_address: slug ? `${slug}@${process.env.EMAIL_INBOUND_DOMAIN ?? "in.second-pair.com"}` : null,
+      from_address: (email.from ?? "").slice(0, 200),
+      subject: (email.subject ?? "").slice(0, 300),
+      verdict,
+      because,
+    });
+  } catch {
+    // The table arrives with a migration, and a deploy that lands before it
+    // must not start refusing mail.
+  }
 }

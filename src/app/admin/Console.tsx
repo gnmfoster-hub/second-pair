@@ -40,10 +40,12 @@ export function Console({
   trades,
   hasOwnBusiness,
   interest,
+  inbound,
 }: {
   kpis: PlatformKpis;
   businesses: BusinessSummary[];
   interest: Waiting[];
+  inbound: Arrived[];
   trades: { value: string; label: string }[];
   /** Whether this administrator also runs a business, and so has a diary. */
   hasOwnBusiness: boolean;
@@ -109,6 +111,7 @@ export function Console({
 
       <NeedsYou businesses={businesses} />
       <OpenRequests businesses={businesses} />
+      <Arrivals inbound={inbound} />
       <EarlyAccess interest={interest} />
 
       {/*
@@ -1836,5 +1839,72 @@ function Product({ product, rows }: { product: string; rows: Waiting[] }) {
         </form>
       )}
     </div>
+  );
+}
+
+export type Arrived = {
+  id: string;
+  to: string | null;
+  from: string | null;
+  subject: string | null;
+  verdict: string;
+  because: string | null;
+  at: string;
+};
+
+/**
+ * What has reached an inbound address lately.
+ *
+ * Setting a business up means pointing their real mailbox at an address of
+ * ours, and every provider confirms that by emailing a code to the
+ * destination. When the code does not turn up there were three possible
+ * reasons and no way to tell them apart: it never arrived, it arrived and was
+ * thrown away as a machine talking, or the address named a business that does
+ * not exist. Only the first is out of our hands, and it was the one everybody
+ * assumed.
+ *
+ * The subject and the sender, never the body. What somebody wrote to a
+ * business is theirs, and none of it is needed to answer the question this
+ * exists for.
+ */
+function Arrivals({ inbound }: { inbound: Arrived[] }) {
+  if (inbound.length === 0) return null;
+
+  const colour = (verdict: string) =>
+    verdict === "answered"
+      ? "bg-ok/10 text-ok"
+      : verdict === "parked"
+        ? "bg-accent/10 text-accent"
+        : "bg-warn/10 text-warn";
+
+  return (
+    <section className="card mt-6 p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="section-title">Mail that arrived for a business</h2>
+        <span className="hint">newest first</span>
+      </div>
+
+      <ul className="mt-3 divide-y divide-border border-y border-border">
+        {inbound.map((row) => (
+          <li key={row.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2 text-sm">
+            <span className={`pill shrink-0 ${colour(row.verdict)}`}>{row.verdict}</span>
+            <span className="font-mono text-xs">{row.from ?? "—"}</span>
+            <span className="hint ml-auto">{since(row.at)}</span>
+            <span className="w-full min-w-0">
+              <span className="block truncate">{row.subject || "(no subject)"}</span>
+              <span className="hint block truncate">
+                to {row.to ?? "an address with no business behind it"}
+                {row.because ? ` — ${row.because}` : ""}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="hint mt-2">
+        Nothing here at all means nothing reached us: look in Resend&rsquo;s own received
+        log, which is upstream of this.
+      </p>
+    </section>
   );
 }
