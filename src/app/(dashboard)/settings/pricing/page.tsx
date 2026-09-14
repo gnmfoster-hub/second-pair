@@ -235,6 +235,26 @@ export default async function PricingPage() {
         )}
       </section>
 
+      {/*
+        * And the shelf, which has nothing to do with how the work is priced.
+        *
+        * This screen showed a business pricing by the hour its bands and
+        * nothing else, on the reasonable assumption that bands were the whole
+        * of what it sells. A tattoo studio sells aftercare balm; a cleaner
+        * sells a bottle of the stuff they use. Both could be put on the price
+        * list by the database and by nothing else — the till and the
+        * appointment would sell them, and there was no screen anywhere to
+        * create one, price it, or take it off sale.
+        *
+        * Only the retail half: the work itself is the table above, and a
+        * second list headed "what you do" would be asking which one counts.
+        */}
+      <ServiceList
+        services={services}
+        words={{ customer: words.customer }}
+        only="product"
+      />
+
       {/* Why the columns above differ, and where to change it. */}
       <WhoChargesWhat
         artists={activeArtists}

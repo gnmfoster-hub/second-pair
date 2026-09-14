@@ -19,9 +19,21 @@ import type { Service } from "@/lib/types";
 export function ServiceList({
   services,
   words,
+  only,
 }: {
   services: Service[];
   words: { customer: string };
+  /**
+   * Show one half of the list rather than both.
+   *
+   * For a business that prices its work by the hour against size bands. Its
+   * work is on the bands screen and there is nothing to put under "what you
+   * do" — but a tattoo studio still sells aftercare balm, and until this there
+   * was no screen in the product where it could put one. The balm could be
+   * sold from the till and from an appointment, and could not be created,
+   * priced or taken off sale anywhere at all.
+   */
+  only?: "service" | "product";
 }) {
   const [adding, setAdding] = useState<"service" | "product" | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -31,7 +43,7 @@ export function ServiceList({
 
   return (
     <div className="space-y-6">
-      <Group
+      {only !== "product" && <Group
         title="What you do"
         blurb={`Anything that takes time and goes in the diary. The length is what the assistant offers a ${words.customer}, so it wants to be the truth rather than the best case.`}
         items={bookable}
@@ -40,9 +52,9 @@ export function ServiceList({
         setEditing={setEditing}
         onAdd={() => setAdding("service")}
         addLabel="Add something you do"
-      />
+      />}
 
-      <Group
+      {only !== "service" && <Group
         title="What you sell"
         blurb="Anything that takes no time — shampoo, aftercare, a gift card. It can be sold without an appointment and never appears in the diary."
         items={retail}
@@ -51,7 +63,7 @@ export function ServiceList({
         setEditing={setEditing}
         onAdd={() => setAdding("product")}
         addLabel="Add something you sell"
-      />
+      />}
 
       {adding && (
         <ServiceForm
