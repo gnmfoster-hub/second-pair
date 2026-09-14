@@ -452,13 +452,21 @@ export default async function DiaryPage({
    * and seven days of that reads perfectly well. Picking a person is what
    * unlocks the columns, because one person's week is what columns can show.
    *
-   * Exactly one, and that is the point of the test rather than an accident of
-   * it. Now that several people can be ticked at once, three of five in the
-   * week would be three sets of appointments over seven columns — which is the
-   * confetti this whole note is about, arrived at by a different road. Several
-   * ticked gets the list, filtered to them, which is legible and honest.
+   * Nobody chosen, and only nobody. This briefly read "not exactly one", on
+   * the reasoning that three of five in a week is the same confetti by a
+   * different road — which is true of the pixels and wrong about who decides.
+   * It meant that looking at one person in columns and then ticking a second
+   * threw you into the list, with the control lighting up to agree, and
+   * nothing anybody pressed had asked for that. Reported as: it should stay in
+   * the view you are using unless you change it.
+   *
+   * So the rule is back to what it was written as. Everyone's week is a list
+   * because nobody chose that and the grid would be unreadable; the moment
+   * somebody picks anybody, the shape is theirs and stays put. Three people in
+   * a week is busier than one — and they can see that, and there is a control
+   * an inch away.
    */
-  const weekEveryone = view === "week" && team.length > 1 && chosen.length !== 1;
+  const weekEveryone = view === "week" && team.length > 1 && chosen.length === 0;
 
   /*
    * Filtered here rather than left to the grid.
