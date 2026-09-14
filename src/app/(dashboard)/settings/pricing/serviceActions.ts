@@ -55,24 +55,17 @@ export async function saveService(_prev: ServiceState, fd: FormData): Promise<Se
   }
 
   /*
-   * What it cost and how many are left, once those columns exist.
+   * How many are left, once the column exists.
    *
    * Guarded, because PostgREST rejects an entire statement over one column it
    * has not heard of — so without this a deploy landing before its migration
-   * would stop anybody saving a price at all. A shop that cannot edit its
-   * price list is a far worse morning than one that cannot yet record what a
-   * bottle cost.
+   * would stop anybody saving a price at all, and a shop that cannot edit its
+   * price list is a far worse morning than one that cannot count bottles.
    *
-   * Both read blank as "not said" rather than as nought. A nought cost reports
-   * every sale as pure profit; a nought stock says the shelf is bare.
+   * Blank is "not counting" rather than nought. Nought says the shelf is bare.
    */
-  const counts: { cost_pence?: number | null; stock?: number | null } = (await hasColumn(
-    supabase,
-    "services",
-    "stock",
-  ))
+  const counts: { stock?: number | null } = (await hasColumn(supabase, "services", "stock"))
     ? {
-        cost_pence: parsePounds(fd.get("cost")),
         stock: (() => {
           const raw = str(fd, "stock");
           if (!raw) return null;

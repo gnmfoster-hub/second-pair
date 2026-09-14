@@ -574,12 +574,12 @@ export async function refreshDemo(db: Db, studioId: string): Promise<DemoRefresh
 
   // ------------------------------------------------------- the shelf
   /*
-   * What the products cost and how many are on the shelf.
+   * How many of each are on the shelf.
    *
-   * Left empty they are the honest default — most businesses do not count —
-   * and a demo of "we can tell you what the shelf made" with no cost against
-   * anything demonstrates nothing. One of them is deliberately left at two, so
-   * the low-stock case is visible rather than described.
+   * Empty is the honest default for a real business — most do not count four
+   * bottles — and a demo of "it tells you what is running out" with nothing
+   * counted demonstrates nothing. One is deliberately left at two, so the
+   * nearly-out case is visible rather than described.
    *
    * Guarded and swallowed: this is the newest thing in the product and a demo
    * rebuild is not where a missing migration should first be discovered.
@@ -587,18 +587,14 @@ export async function refreshDemo(db: Db, studioId: string): Promise<DemoRefresh
   try {
     const { data: shelf } = await db
       .from("services")
-      .select("id, price_pence")
+      .select("id")
       .eq("studio_id", studio.id)
       .eq("kind", "product");
 
     for (const [i, item] of (shelf ?? []).entries()) {
       await db
         .from("services")
-        .update({
-          // A little over a third, which is roughly what a salon pays trade.
-          cost_pence: Math.round(((item.price_pence as number) ?? 0) * 0.38),
-          stock: [2, 11, 7, 4, 9][i % 5],
-        })
+        .update({ stock: [2, 11, 7, 4, 9][i % 5] })
         .eq("id", item.id);
     }
   } catch {

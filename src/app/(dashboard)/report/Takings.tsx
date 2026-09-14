@@ -125,25 +125,6 @@ export function Takings({
             </div>
           </div>
 
-          {/*
-            * What it made, as against what it took.
-            *
-            * The reason a cost can be recorded against a product at all. Taking
-            * two hundred pounds off a shelf that cost a hundred and forty is a
-            * different week from taking two hundred off one that cost thirty,
-            * and the takings figure alone cannot tell them apart.
-            *
-            * Shown only once something has a cost on it. Null is "nobody has
-            * said", and printing £0 made would be a far more alarming sentence
-            * than the truth, which is that the question has not been answered
-            * yet.
-            */}
-          {figures.sales.madePence != null && (
-            <p className="hint mt-1">
-              {formatPence(figures.sales.madePence)} of that is what it made, after what
-              the stock cost you.
-            </p>
-          )}
 
           {figures.sales.byItem.length > 0 && (
             <ul className="mt-2 space-y-1.5">

@@ -229,50 +229,37 @@ function ServiceForm({
         )}
 
         {/*
-          * What it cost, and how many are left.
+          * How many are left, and nothing else.
           *
-          * Two questions a shop asks about its own shelf that nothing could
-          * answer: what did we make on that, and have we got any. Both
-          * optional, and both empty by default — most of these businesses sell
-          * four things off a shelf and count them by looking, and being made
-          * to keep a stock figure accurate is how a feature becomes a chore
-          * and then a lie.
+          * There was a "what it cost you" box here too, and it was taken out:
+          * this is not a stock-control system and nobody running a salon wants
+          * to keep a cost price current against four bottles in order to be
+          * told a margin they already know. A product here exists to be
+          * charged for, not accounted for.
           *
-          * Empty is not zero on either. A nought cost would report every
-          * bottle as pure profit; a nought stock would say the shelf is bare.
+          * The count stays because it answers a question somebody actually
+          * asks at the till — have we got any — and it keeps itself up to date
+          * as things sell rather than needing maintenance.
+          *
+          * Empty is not nought: nought says the shelf is bare, empty says you
+          * are not counting these, and most businesses are not.
           */}
         {kind === "product" && (
-          <>
-            <label>
-              <span className="label">What it cost you</span>
-              <input
-                name="cost"
-                inputMode="decimal"
-                defaultValue={penceToInput(service?.cost_pence)}
-                placeholder="Optional"
-                className="input"
-              />
-              <span className="hint">
-                So a month can say what the shelf made, not only what it took.
-              </span>
-            </label>
-
-            <label>
-              <span className="label">How many left</span>
-              <input
-                name="stock"
-                type="number"
-                min={0}
-                step={1}
-                defaultValue={service?.stock ?? ""}
-                placeholder="Leave empty to not count"
-                className="input"
-              />
-              <span className="hint">
-                Counts down as they sell. Empty means you are not counting these.
-              </span>
-            </label>
-          </>
+          <label>
+            <span className="label">How many left</span>
+            <input
+              name="stock"
+              type="number"
+              min={0}
+              step={1}
+              defaultValue={service?.stock ?? ""}
+              placeholder="Leave empty to not count"
+              className="input"
+            />
+            <span className="hint">
+              Counts down as they sell. Empty means you are not counting these.
+            </span>
+          </label>
         )}
       </div>
 

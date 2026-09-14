@@ -6,6 +6,7 @@ import { ClientPicker } from "../ClientPicker";
 import { recordSale, type SellState } from "../sellActions";
 import { METHODS, lineTotal } from "@/lib/sales";
 import { formatPence } from "@/lib/money";
+import { AskForPayment } from "@/components/AskForPayment";
 
 type Product = {
   id: string;
@@ -49,12 +50,15 @@ export function SellForm({
   me,
   words,
   forClient = null,
+  connected = false,
 }: {
   products: Product[];
   people: { id: string; name: string }[];
   /** Whoever is signed in, where they are one of the people. */
   me: string | null;
   words: { business: string };
+  /** Whether there is a Stripe account for a payment link to land in. */
+  connected?: boolean;
   /**
    * Somebody this sale is already for, when the till was opened from their
    * appointment. Null for a passer-by, which is the other half of the time.
@@ -63,6 +67,9 @@ export function SellForm({
 }) {
   const [state, action] = useActionState<SellState, FormData>(recordSale, {});
   const [lines, setLines] = useState<Line[]>([blank()]);
+
+  /** Whose takings this is, and so whose Stripe account a link pays into. */
+  const [whose, setWhose] = useState(me ?? "");
 
   /*
    * Whether the receipt has been cleared away.
@@ -129,6 +136,18 @@ export function SellForm({
     return sum + lineTotal({ quantity: l.quantity, unitPence: Math.round(pounds * 100) });
   }, 0);
 
+  /*
+   * The sale in one line, for a payment link.
+   *
+   * The same wording the server writes onto the payment, so what the customer
+   * reads on the Stripe page and what the business reads in its takings are
+   * the same sentence.
+   */
+  const basket = lines
+    .filter((l) => l.name.trim())
+    .map((l) => (l.quantity > 1 ? `${l.quantity} × ${l.name}` : l.name))
+    .join(", ");
+
   if (state.ok && !state.error && !dismissed) {
     return (
       <div className="card p-6 text-center">
@@ -158,7 +177,8 @@ export function SellForm({
   }
 
   return (
-    <form action={action} className="space-y-5">
+    <div className="space-y-5">
+      <form action={action} className="space-y-5">
       {/* ------------------------------------------------------ the shelf */}
       {products.length > 0 && (
         <div className="card p-5">
@@ -285,7 +305,19 @@ export function SellForm({
         {people.length > 1 && (
           <label className="block">
             <span className="label">Whose sale is it</span>
-            <select name="artist_id" defaultValue={me ?? ""} className="input max-w-xs">
+            {/*
+              * Held in state rather than left to the form, because the payment
+              * link underneath has to go to the same person. Whose sale it is
+              * decides which Stripe account the money lands in wherever the
+              * business pays each person directly, so the two halves of this
+              * screen cannot be allowed to disagree about it.
+              */}
+            <select
+              name="artist_id"
+              value={whose}
+              onChange={(e) => setWhose(e.target.value)}
+              className="input max-w-xs"
+            >
               <option value="">The {words.business}&rsquo;s own</option>
               {people.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -326,6 +358,41 @@ export function SellForm({
         </Link>
         {state.error && <p className="text-sm text-bad">{state.error}</p>}
       </div>
-    </form>
+      </form>
+
+      {/*
+        * Or charge them for it, rather than writing down that they paid.
+        *
+        * The form above records money that has already changed hands. This is
+        * the other half, and the commoner one for anything that is not cash in
+        * a till: the same basket, charged through Stripe, with a link you can
+        * show them or send.
+        *
+        * It carries the basket and whoever the sale belongs to, so the money
+        * goes where the business's own setting says it should — to that
+        * person's account where each person is paid directly, and to the
+        * business's where there is one account for everybody. That decision is
+        * whoTakes', made in one place for every kind of money in the product.
+        *
+        * A sibling of the form rather than inside it: a form cannot contain
+        * another one, and these are two different actions on the same basket.
+        */}
+      {connected && total > 0 && (
+        <div className="card p-5">
+          <div className="section-title">Or charge it</div>
+          <p className="hint mb-3 mt-1 max-w-prose">
+            A link they can pay from, for {formatPence(total)}. It lands in the takings by
+            itself once they pay &mdash; nothing to write down afterwards.
+          </p>
+          <AskForPayment
+            amountPence={total}
+            description={basket || "Sold over the counter"}
+            artistId={whose || null}
+            connected={connected}
+            label={`Charge ${formatPence(total)}`}
+          />
+        </div>
+      )}
+    </div>
   );
 }

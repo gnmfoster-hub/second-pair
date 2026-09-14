@@ -262,11 +262,6 @@ export type Service = {
   /** On the price list, but not offered to strangers by the assistant. */
   bookable_online: boolean;
   /**
-   * What it cost the shop to buy in. Null means nobody has said, which is not
-   * nought — nought would report every sale as pure profit.
-   */
-  cost_pence?: number | null;
-  /**
    * How many are left. Null means this is not counted at all; nought means
    * counted and none left, and those are different sentences on a screen.
    */

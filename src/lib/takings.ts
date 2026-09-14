@@ -45,19 +45,7 @@ export type Takings = {
       name: string;
       count: number;
       pence: number;
-      /**
-       * What those cost the shop, where a cost has been recorded against the
-       * product. Null means nobody has said — which is not nought, and the
-       * difference matters: nought would report the whole sale as profit.
-       */
-      costPence: number | null;
     }[];
-    /**
-     * Takings less what the stock cost, across everything where both are
-     * known. Null where nothing has a cost on it yet, so the screen can say
-     * "you have not told us what these cost" rather than "you made £0".
-     */
-    madePence: number | null;
   };
 };
 
@@ -67,7 +55,6 @@ const NO_SALES: Takings["sales"] = {
   pence: 0,
   byPerson: [],
   byItem: [],
-  madePence: null,
 };
 
 type Row = {
@@ -202,20 +189,6 @@ export async function salesFor(
       .map(([id, v]) => ({ id, ...v }))
       .sort((a, b) => b.pence - a.pence),
     byItem,
-    /*
-     * What the shelf actually made.
-     *
-     * Only across the things with a cost recorded, and null where none of them
-     * has one — so the screen can say "you have not told us what these cost"
-     * instead of "you made nothing", which is a different and much more
-     * alarming sentence.
-     */
-    madePence: byItem.some((i) => i.costPence != null)
-      ? byItem.reduce(
-          (made, i) => (i.costPence == null ? made : made + i.pence - i.costPence),
-          0,
-        )
-      : null,
   };
 }
 
@@ -236,56 +209,18 @@ async function soldItems(
 
   const { data } = await db
     .from("payment_items")
-    .select("name, quantity, unit_pence, service_id")
+    .select("name, quantity, unit_pence")
     .in("payment_id", paymentIds);
 
-  const lines = (data ?? []) as {
-    name: string;
-    quantity: number;
-    unit_pence: number;
-    service_id: string | null;
-  }[];
+  const lines = (data ?? []) as { name: string; quantity: number; unit_pence: number }[];
 
-  /*
-   * What the shop paid for the stock, where it has said.
-   *
-   * Read from the product rather than copied onto the line, unlike the name
-   * and the price. Those are what the customer was told and must not change;
-   * this is the shop's own figure and the most recent one is the one they
-   * would use. A bottle bought cheaper this month is genuinely cheaper this
-   * month.
-   *
-   * Guarded on the column, because the line items arrived before the cost did
-   * and a report is the wrong place to discover a missing migration.
-   */
-  const ids = [...new Set(lines.map((l) => l.service_id).filter(Boolean))] as string[];
-  const costs = new Map<string, number | null>();
-
-  if (ids.length && (await hasColumn(db, "services", "cost_pence"))) {
-    const { data: products } = await db
-      .from("services")
-      .select("id, cost_pence")
-      .in("id", ids);
-
-    for (const p of products ?? []) {
-      costs.set(p.id as string, (p.cost_pence as number | null) ?? null);
-    }
-  }
-
-  const totals = new Map<string, { count: number; pence: number; costPence: number | null }>();
+  const totals = new Map<string, { count: number; pence: number }>();
 
   for (const row of lines) {
-    const t = totals.get(row.name) ?? { count: 0, pence: 0, costPence: null };
+    const t = totals.get(row.name) ?? { count: 0, pence: 0 };
     t.count += row.quantity;
     t.pence += row.quantity * row.unit_pence;
 
-    /*
-     * Nought is a real cost and absent is not, so they are kept apart the
-     * whole way up. A line with no cost against it leaves this null rather
-     * than adding nothing, which would quietly report it as all profit.
-     */
-    const each = row.service_id ? costs.get(row.service_id) : null;
-    if (each != null) t.costPence = (t.costPence ?? 0) + row.quantity * each;
 
     totals.set(row.name, t);
   }
