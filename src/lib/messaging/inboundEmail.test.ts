@@ -284,7 +284,7 @@ test("whitespace is not a body", () => {
  * own name. The assistant even worked out what it was — and said so, in a
  * reply, to a mailbox nobody reads.
  */
-test("a mailing with an unsubscribe link is not answered", () => {
+test("a mailing that only mentions unsubscribing is not answered", () => {
   const v = judge(
     {
       from: "freeads@freeads.co.uk",
@@ -293,7 +293,67 @@ test("a mailing with an unsubscribe link is not answered", () => {
     },
     shop,
   );
+  // Parked rather than ignored: with no link to go on, this is
+  // indistinguishable from a person using the word, and the two are separated
+  // by the test below rather than guessed at here.
   assert.equal(v.what, "park");
+});
+
+/*
+ * And it should not reach the inbox either, which is the half that was
+ * reported. Parking a mailing puts it in front of somebody flagged as needing
+ * a person — a cleaning directory's listing notice sat at the top of a real
+ * business's inbox marked urgent. A bulk sender carries an unsubscribe link; a
+ * person types the word. That is the whole of the difference and it is enough.
+ */
+test("a mailing with an actual link is ignored, not put in the inbox", () => {
+  const v = judge(
+    {
+      from: "featured@cleaners10.com",
+      subject: "Listing Notification for Neat & Tidy Solutions",
+      body:
+        "This is a reminder that your listing is now available on Cleaners10.\n" +
+        "To stop receiving these, unsubscribe here: https://cleaners10.com/u/58063568",
+    },
+    shop,
+  );
+  assert.equal(v.what, "ignore");
+});
+
+test("the link is found whichever side of the word it falls", () => {
+  // A flattened anchor puts the address first.
+  const flattened = judge(
+    {
+      from: "ads@example.com",
+      subject: "Stats",
+      body: "https://example.com/unsubscribe Unsubscribe",
+    },
+    shop,
+  );
+  assert.equal(flattened.what, "ignore");
+
+  // A plain-text part puts it after.
+  const plain = judge(
+    { from: "ads@example.com", subject: "Stats", body: "Unsubscribe: https://example.com/u/9" },
+    shop,
+  );
+  assert.equal(plain.what, "ignore");
+});
+
+/*
+ * The one that must not be swept up with them: a real customer whose signature
+ * happens to carry a link, writing a real enquiry.
+ */
+test("a customer with a link in their signature is still a customer", () => {
+  const v = judge(
+    {
+      from: "jo@gmail.com",
+      subject: "Cleaning quote",
+      body: "Hi, how much for a deep clean?\n\nJo\nhttps://www.jomarsh.co.uk",
+    },
+    shop,
+  );
+  assert.equal(v.what, "answer");
 });
 
 /*

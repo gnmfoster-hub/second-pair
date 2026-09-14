@@ -101,6 +101,18 @@ const VERIFYING = [
 /** Addresses that exist to send and never to receive. */
 const NEVER_REPLY = /^(no[-_.]?reply|do[-_.]?not[-_.]?reply|bounce|mailer-daemon|postmaster|abuse|notifications?|alerts?|billing|invoices?)@/i;
 
+/**
+ * An unsubscribe link, which is the thing only a bulk sender carries.
+ *
+ * Both orders, because the markup and the plain text put them the opposite way
+ * round: a flattened anchor gives "https://…/u/123 Unsubscribe" and a text
+ * part gives "Unsubscribe: https://…". Fifty characters between them is enough
+ * for "click here to unsubscribe from these emails" and short enough that the
+ * word in one paragraph and an unrelated link in the next do not pair up.
+ */
+const UNSUBSCRIBE_LINK =
+  /(unsubscribe|opt[-\s]?out)[^\n]{0,50}https?:\/\/|https?:\/\/[^\s]{0,200}(unsubscribe|opt[-_]?out)/i;
+
 /** Subjects a mail system writes, not a person. */
 const MACHINE_SUBJECT =
   /^(undeliverable|delivery status notification|mail delivery|returned mail|automatic reply|out of office|auto(matic)?[- ]?reply|read receipt)/i;
@@ -280,8 +292,28 @@ export function judge(
    * keep getting your newsletter, can you take me off it" is a real thing to
    * say to a business, and it deserves a human rather than silence.
    */
-  if (/unsubscribe/i.test(email.body ?? "")) {
-    return { what: "park", because: "it offers a way to unsubscribe, so it is a mailing of some kind" };
+  const body = email.body ?? "";
+
+  /*
+   * A link to unsubscribe, which only a bulk sender has.
+   *
+   * The note above is sound and the result was wrong. Parking puts a thing in
+   * the inbox flagged as needing a person — so a cleaning directory's listing
+   * notice sat at the top of a real business's inbox marked urgent, and was
+   * reported as an irrelevant email the assistant already knew was a waste of
+   * time.
+   *
+   * The two are easy to separate once you look for the right thing: a mailing
+   * carries an unsubscribe *link*, a person types the word. So a link is a
+   * mailing and is ignored outright — no conversation, nothing in the inbox —
+   * and the bare word still parks, which keeps the case the note protects.
+   */
+  if (UNSUBSCRIBE_LINK.test(body)) {
+    return { what: "ignore", because: "it is a mailing with an unsubscribe link in it" };
+  }
+
+  if (/unsubscribe/i.test(body)) {
+    return { what: "park", because: "it mentions unsubscribing, so a person should read it" };
   }
 
   /*
