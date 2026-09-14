@@ -572,7 +572,66 @@ export async function refreshDemo(db: Db, studioId: string): Promise<DemoRefresh
     appointments++;
   }
 
+  // --------------------------------------------------- money switched on
+  /*
+   * A demo of a product about money with the money switched off.
+   *
+   * The salon sat at deposit_mode 'none' and takes_payments false while its
+   * own assistant bookings said "deposit paid" on them — which is not a
+   * demonstration of anything, it is two halves of a screen disagreeing in
+   * front of whoever is being shown it. Everything downstream was off with it:
+   * the payment panel on an appointment, the ask-for-payment control on four
+   * screens, the deposit line on a quote.
+   *
+   * On, and set to what a salon actually does: a deposit asked for rather than
+   * demanded, because most of them take a card number for a colour and not for
+   * a fringe trim.
+   */
+  await db
+    .from("studios")
+    .update({ deposit_mode: "optional", takes_payments: true })
+    .eq("id", studio.id);
+
   // ------------------------------------------------------- the shelf
+  /*
+   * Things the shop itself sells, as against one person's own.
+   *
+   * The demo's two products both belonged to the nail technician, which is a
+   * real arrangement and the wrong one to have only. A product owned by one
+   * person is on that person's appointments and nobody else's — so five of the
+   * six chairs had an empty shelf, and the thing being demonstrated is the
+   * bottle sold at the end of a colour.
+   */
+  try {
+    for (const [i, [name, price_pence]] of SHELF.slice(0, 3).entries()) {
+      const { data: had } = await db
+        .from("services")
+        .select("id")
+        .eq("studio_id", studio.id)
+        .eq("name", name)
+        .is("artist_id", null)
+        .maybeSingle();
+
+      if (had) {
+        await db.from("services").update({ price_pence, active: true }).eq("id", had.id);
+      } else {
+        await db.from("services").insert({
+          studio_id: studio.id,
+          name,
+          kind: "product",
+          minutes: null,
+          price_pence,
+          // A bottle is not an appointment, so it is not something to book.
+          bookable_online: false,
+          active: true,
+          sort_order: 200 + i,
+        });
+      }
+    }
+  } catch {
+    // A shelf of one person's own products is still a shelf.
+  }
+
   /*
    * How many of each are on the shelf.
    *
@@ -788,7 +847,180 @@ export async function refreshDemo(db: Db, studioId: string): Promise<DemoRefresh
     conversations++;
   }
 
+  /*
+   * The states a week has in it that a generated week never does.
+   *
+   * Everything above builds a salon where nothing has gone wrong: nobody
+   * cancels, nobody is off sick, nothing is ever refunded, and nobody buys a
+   * bottle on their way out. Those are the screens somebody testing wants to
+   * see most, because they are the ones that are hard to reach by hand — you
+   * cannot demonstrate a cancellation list without a cancellation.
+   *
+   * Each of these is guarded on its own. They are independent of one another
+   * and none of them is worth failing a rebuild over.
+   */
+  await buildTheAwkwardBits(db, studio.id, roster, monday, at);
+
   return { appointments, conversations, messages, history, sales };
+}
+
+/**
+ * Cancellations, time off, a refund, and a bottle sold at the chair.
+ *
+ * Grouped rather than scattered through the builder above, because they have
+ * one thing in common: every one of them is a state the product handles and
+ * the demo could not show. Somebody testing the cancellation flow had to
+ * cancel something first, which meant the thing they were testing had already
+ * happened by the time they got to it.
+ */
+async function buildTheAwkwardBits(
+  db: Db,
+  studioId: string,
+  roster: { id: string; name: string }[],
+  monday: Date,
+  at: (dayOffset: number, hour: number, minute?: number) => Date,
+): Promise<void> {
+  // ------------------------------------------------------ somebody cancels
+  /*
+   * Two, late in the week, from two different people.
+   *
+   * Cancelled rather than deleted: a cancellation is a thing that happened and
+   * the slot it leaves is what the "we have had a cancellation" offer is made
+   * out of. Deleting it would leave a gap in the diary that looks like nobody
+   * was ever booked, which is the opposite of the point.
+   */
+  try {
+    const { data: soon } = await db
+      .from("bookings")
+      .select("id")
+      .in("artist_id", roster.map((r) => r.id))
+      .is("cancelled_at", null)
+      .eq("category", "appointment")
+      .gte("starts_at", at(3, 0).toISOString())
+      .lte("starts_at", at(5, 23).toISOString())
+      .limit(2);
+
+    for (const b of soon ?? []) {
+      await db
+        .from("bookings")
+        .update({
+          cancelled_at: new Date(monday.getTime() - 2 * 86_400_000).toISOString(),
+          blocks_availability: false,
+        })
+        .eq("id", b.id);
+    }
+  } catch {
+    // A demo where nobody cancels is still a demo.
+  }
+
+  // --------------------------------------------------------- and time off
+  /*
+   * A fortnight booked off in a month, on the column rather than as a
+   * booking in the diary.
+   *
+   * The two are different and both exist: the holiday further up is an entry
+   * somebody can see in the week, and this is the thing the assistant reads
+   * when deciding whether to offer a Tuesday in three weeks. Nobody had a
+   * single day on it, so the half that stops a customer being offered a slot
+   * during somebody's holiday has never been exercised.
+   */
+  try {
+    const off = new Date(monday.getTime() + 28 * 86_400_000);
+    const back = new Date(off.getTime() + 13 * 86_400_000);
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    const sarah = roster.find((r) => r.name === "Sarah");
+
+    if (sarah) {
+      await db
+        .from("artists")
+        .update({ time_off: [{ from: iso(off), to: iso(back), reason: "Holiday" }] })
+        .eq("id", sarah.id);
+    }
+  } catch {
+    // Nobody goes on holiday in the demo, then.
+  }
+
+  // ------------------------------------------------------------ a refund
+  /*
+   * One sale given back, so the refunded state exists somewhere.
+   *
+   * It shows in three places that are otherwise unreachable without doing it
+   * for real in Stripe: the badge on the client's record, the payment left out
+   * of their total, and the refund line in the week's takings.
+   */
+  try {
+    const { data: one } = await db
+      .from("payments")
+      .select("id")
+      .eq("studio_id", studioId)
+      .eq("kind", "product")
+      .eq("status", "paid")
+      .order("paid_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (one) {
+      await db
+        .from("payments")
+        .update({ status: "refunded", updated_at: new Date().toISOString() })
+        .eq("id", one.id);
+    }
+  } catch {
+    // Nothing came back this month.
+  }
+
+  // -------------------------------------- a bottle sold at the chair itself
+  /*
+   * One sale tied to the appointment it happened at, rather than to the day.
+   *
+   * Every other sale in here is a counter sale with no booking behind it,
+   * which is what the till makes. This is what the appointment makes — and it
+   * is the half that shows on the appointment when you reopen it, and the half
+   * that answers "she had a colour and bought the silver shampoo" six weeks
+   * later. Without one, the panel on the appointment always reads as though
+   * nothing has ever been sold there.
+   */
+  try {
+    const { data: recent } = await db
+      .from("bookings")
+      .select("id, artist_id, contact_id")
+      .in("artist_id", roster.map((r) => r.id))
+      .is("cancelled_at", null)
+      .not("contact_id", "is", null)
+      .eq("category", "appointment")
+      .lt("starts_at", monday.toISOString())
+      .order("starts_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (recent) {
+      const [name, pence] = SHELF[0];
+      const { data: sale } = await db
+        .from("payments")
+        .insert({
+          studio_id: studioId,
+          artist_id: recent.artist_id,
+          contact_id: recent.contact_id,
+          booking_id: recent.id,
+          kind: "product",
+          gross_pence: pence,
+          status: "paid",
+          method: "card",
+          description: name,
+          paid_at: new Date(monday.getTime() - 86_400_000).toISOString(),
+        })
+        .select("id")
+        .single();
+
+      if (sale) {
+        await db
+          .from("payment_items")
+          .insert({ payment_id: sale.id, name, quantity: 1, unit_pence: pence, sort_order: 0 });
+      }
+    }
+  } catch {
+    // Nobody bought anything on the way out, then.
+  }
 }
 
 /**
