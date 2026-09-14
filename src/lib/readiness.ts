@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Studio } from "@/lib/types";
 import { emailConfigured } from "@/lib/messaging/email";
+import { canConnectStripe } from "@/lib/env";
+import { depositReadiness } from "@/lib/depositReadiness";
 
 /**
  * Can this assistant actually do its job yet?
@@ -60,10 +62,17 @@ export async function readinessOf(
     { count: hours },
     { count: devices },
   ] = await Promise.all([
-      // Everybody, not just the active ones: a business with somebody on the
-      // books who has stopped taking bookings needs telling something different
-      // from one that has nobody at all.
-      db.from("artists").select("active").eq("studio_id", studio.id),
+      /*
+       * Everybody, not just the active ones: a business with somebody on the
+       * books who has stopped taking bookings needs telling something different
+       * from one that has nobody at all.
+       *
+       * The whole row rather than one column, because the money questions
+       * below need three more of them and PostgREST rejects an entire query
+       * over a single column it has not heard of — which on a business part
+       * way through a migration would read as having no staff at all.
+       */
+      db.from("artists").select("*").eq("studio_id", studio.id),
       /*
        * Whichever way this business prices.
        *
@@ -130,6 +139,46 @@ export async function readinessOf(
   );
 
   const takesDeposits = studio.deposit_mode !== "none";
+
+  /*
+   * Whether a deposit could actually be paid today.
+   *
+   * This used to be "has the business connected Stripe", which is the wrong
+   * question on a salon of chair renters: there the shop's account is not
+   * where anybody's money goes, and a business with it connected read as
+   * ready while every charge was refused. Worked out in its own file, where
+   * the branches can be tested without a database.
+   */
+  const perPerson = studio.payment_model === "people";
+
+  const deposits = depositReadiness({
+    takesDeposits,
+    model: perPerson ? "people" : "business",
+    businessAccount: Boolean(studio.stripe_account_id),
+    fallback: studio.payment_fallback === true,
+    platformReady: canConnectStripe(),
+    /*
+     * Only the people who are actually taking bookings and actually taking
+     * deposits. Somebody on the books who has stopped, or who has switched
+     * deposits off for themselves, is not a thing anybody needs to fix.
+     *
+     * takes_deposits undefined means the column is not there yet, which reads
+     * as taking them — the same way whoTakes treats it, because the business
+     * switch is doing the gating in that case.
+     */
+    taking: (roster ?? []).filter(
+      (a) => a.active && (a as Record<string, unknown>).takes_deposits !== false,
+    ).length,
+    waiting: (roster ?? [])
+      .filter(
+        (a) =>
+          a.active &&
+          (a as Record<string, unknown>).takes_deposits !== false &&
+          !(a as Record<string, unknown>).stripe_account_id,
+      )
+      .map((a) => String((a as Record<string, unknown>).name ?? "").split(" ")[0])
+      .filter(Boolean),
+  });
 
   return [
     {
@@ -258,6 +307,33 @@ export async function readinessOf(
       blocking: false,
     },
     {
+      /*
+       * The quick half of being told, which is the half nobody has.
+       *
+       * Not one device on the whole platform has ever been subscribed. That
+       * was invisible until now because the check above accepts an email
+       * address instead, and every business has one — so the line reads
+       * "ready" while the notification that matters, the one that arrives
+       * while somebody is between jobs, has never gone anywhere.
+       *
+       * Separate and not blocking: email genuinely does tell them. This is
+       * the difference between finding out this evening and finding out now.
+       *
+       * It has to be done on the phone itself, by each person, which is why
+       * it points at their own settings rather than the business's — and why
+       * it was unreachable until that page existed at all.
+       */
+      key: "phone",
+      can: "Buzz your phone when somebody books",
+      ready: (devices ?? 0) > 0,
+      otherwise:
+        "No phone here has been signed up, so a booking reaches you by email and " +
+        "nothing else — which is fine this evening and no use at four o'clock.",
+      href: "/settings/you",
+      action: "Turn it on",
+      blocking: false,
+    },
+    {
       key: "privacy",
       can: "Tell people how their details are used",
       ready: Boolean(studio.privacy_notice_url),
@@ -269,23 +345,50 @@ export async function readinessOf(
     },
     {
       /*
-       * Deposits switched on with nowhere of their own for the money to land.
+       * Deposits switched on with nowhere for the money to land.
        *
-       * Blocking, and it is the only money question on this list. Without a
-       * connected account a deposit cannot be taken at all — the charge is
-       * refused rather than quietly routed into the platform's own Stripe,
-       * which is what used to happen. So this is not a warning about tidiness:
-       * it is the difference between the assistant being able to hold a slot
-       * and not.
+       * Blocking, because without somewhere to pay a deposit cannot be taken
+       * at all — the charge is refused rather than quietly routed into the
+       * platform's own Stripe, which is what used to happen. This is not a
+       * warning about tidiness: it is whether the assistant can hold a slot.
+       *
+       * Worked out in depositReadiness, because "has the business connected
+       * Stripe" is the wrong question on a salon of chair renters and this
+       * line asked nothing else for as long as deposits have existed.
        */
       key: "stripe",
       can: "Take a deposit",
-      ready: !takesDeposits || Boolean(studio.stripe_account_id),
-      otherwise:
-        "You take deposits but your own Stripe account is not connected, so nobody can pay one.",
-      href: "/settings",
-      action: "Connect Stripe",
+      ready: deposits.ready,
+      otherwise: deposits.otherwise,
+      href: deposits.href,
+      /*
+       * Sometimes there is no button, and an empty one is better than a wrong
+       * one. When the platform key is missing there is nothing an owner can
+       * press, and when it is a stylist's own account to connect, sending the
+       * owner to a screen that cannot do it would waste the one trip they
+       * make.
+       */
+      action: deposits.action,
       blocking: true,
+    },
+    {
+      /*
+       * Somebody being paid into an account that is not theirs.
+       *
+       * Only ever says anything on the per-person model with the fallback
+       * switched on — where deposits are taken perfectly well and land in the
+       * shop's account, which is the exact arrangement that model exists to
+       * prevent. Nothing is broken, so it is not blocking and there is no
+       * button: the fix belongs to the person, and the owner's part was the
+       * decision they already made.
+       */
+      key: "own-accounts",
+      can: "Pay each person into their own account",
+      ready: !deposits.fallingBack,
+      otherwise: deposits.fallingBack ?? "",
+      href: "/settings/artists",
+      action: "",
+      blocking: false,
     },
     {
       key: "policy",

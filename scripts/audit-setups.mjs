@@ -34,7 +34,7 @@ for (const s of studios) {
   const [{ data: priced }, { data: listed }, { data: people }, { data: faqs }] = await Promise.all([
     db.from("price_bands").select("size_label, requires_consultation, duration_minutes, hours_low, hours_high").eq("studio_id", s.id),
     db.from("services").select("*").eq("studio_id", s.id).eq("active", true),
-    db.from("artists").select("name, active, booking_provider, hours").eq("studio_id", s.id),
+    db.from("artists").select("*").eq("studio_id", s.id),
     db.from("faqs").select("id").eq("studio_id", s.id).neq("answer", ""),
   ]);
 
@@ -123,6 +123,43 @@ for (const s of studios) {
   // A notice period longer than the window searched leaves nothing to offer.
   if (s.notice_hours >= 21 * 24) {
     faults.push(`NOTICE ${s.notice_hours}h swallows the whole three-week search window`);
+  }
+
+  /*
+   * Where a deposit would land, which is not the same question on the two
+   * payment models — and asking only the business one is how a salon of chair
+   * renters reads as configured while every charge it takes is refused.
+   *
+   * Silent by design at every step: the charge is refused rather than routed
+   * somewhere convenient, and a refusal in a conversation looks to the owner
+   * like the customer changing their mind.
+   */
+  if (s.deposit_mode !== "none") {
+    if (s.payment_model === "people") {
+      const takers = active.filter(p => p.takes_deposits !== false);
+      const stranded = takers.filter(p => !p.stripe_account_id).map(p => p.name);
+      if (!takers.length) {
+        faults.push("DEPOSITS ON AND NOBODY TAKES THEM — both switches have to agree on this model");
+      } else if (stranded.length && !(s.payment_fallback && s.stripe_account_id)) {
+        faults.push(
+          `NO STRIPE FOR ${stranded.join(", ")} — money goes to each person here, so a ` +
+          `deposit for their work is refused. Only they can connect it`,
+        );
+      } else if (stranded.length) {
+        faults.push(
+          `${stranded.join(", ")} have no Stripe, so their deposits land in the business ` +
+          `account — which is what the per-person model exists to prevent`,
+        );
+      }
+    } else if (!s.stripe_account_id) {
+      faults.push("DEPOSITS ON AND NO STRIPE — nobody can pay one");
+    }
+  }
+
+  // Deposits off is a decision. Payments off with a connected account is
+  // usually somebody who has not found the switch.
+  if (s.stripe_account_id && s.takes_payments !== true) {
+    faults.push("STRIPE CONNECTED AND PAYMENTS OFF — every payment link is refused before it reaches Stripe");
   }
 
   console.log("=".repeat(66));

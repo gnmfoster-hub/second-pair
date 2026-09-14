@@ -25,15 +25,31 @@ than breaking.
 Everything here is something I cannot do from this side. Roughly in the order
 it is holding something up.
 
-### 1. Connect Stripe for Living Canvas
+### 1. Switch the money on for Living Canvas
 
-Nothing can be charged until there is an account for the money to land in — no
-deposits, and none of the payment links that now sit on the appointment, the
-client's record, the conversation and the till. Those controls say so rather
-than failing, but they say it instead of working.
+I have been calling this "connect Stripe", and that was a third of it. I checked
+the live database rather than going from memory, and Living Canvas is off at
+three separate switches:
 
-Settings → the business → connect Stripe. It is Stripe's own onboarding: their
-ID, their bank details, ten minutes.
+| What | Now | Where |
+| ---- | --- | ----- |
+| Stripe account | not connected | Settings → the business → Taking the money |
+| Deposits | `none` | Settings → the business → Deposits |
+| Payments in full | off | Settings → Whose money it is |
+
+Connecting Stripe on its own changes nothing you can see, because with deposits
+set to none the assistant never asks for one, and a payment link is refused
+before it ever reaches Stripe. All three, or none of it works. That is why
+every payment control has been saying "not set up" rather than doing anything.
+
+The connect button itself works. I told you the platform key might be missing;
+it is not, it has been set on Vercel all along. What was missing was anything
+saying so — the button bounced people back in silence, which I have fixed.
+
+Stripe's own onboarding: their ID, their bank details, about ten minutes.
+
+The same three switches apply to Neat & Tidy whenever you want money moving
+there.
 
 ### 2. Living Canvas has no price list
 
@@ -48,26 +64,26 @@ bands. Tell me and I will set it up either way.
 
 ### 3. Nobody has a phone signed up for notifications
 
-Not one device on the whole platform.
+Still not one device, on any of the three businesses.
 
-I said before that this meant every alert was going nowhere. That was wrong and
-worth correcting: a booking sends an email *and* a push, and the email half
-works — so you are being told, just not on your phone. What is unused is the
-quick half, which is the one that matters when somebody books while you are
-between jobs.
+A booking sends an email *and* a push, and the email half works — so you are
+being told, just not on your phone. What is unused is the quick half, the one
+that matters when somebody books while you are between jobs.
 
 It has to be done on the phone itself, by each person, from their own settings
-tab — the one now named after them.
+tab. New since the last version of this list: it is now its own line on the
+dashboard checklist, so a business can see it rather than only me from a
+terminal. The old checklist took an email address as good enough and read green.
 
 ### 4. Karen's consultation is ten minutes
 
-Three of Neat & Tidy's services need a consultation first — end of tenancy,
-after builders, deep clean — and a consultation there is set to ten minutes.
+Unchanged, and still ten minutes on the live record.
 
-Ten minutes is a phone call. If those quotes are done by ringing somebody back,
-that is exactly right and there is nothing to do. If Karen goes and looks at
-the property, the assistant is booking her a ten-minute visit to quote a whole
-house, and the number wants changing.
+Three of Neat & Tidy's services need a consultation first — end of tenancy,
+after builders, deep clean. Ten minutes is a phone call. If those quotes are
+done by ringing somebody back, that is exactly right and there is nothing to
+do. If Karen goes and looks at the property, the assistant is booking her a
+ten-minute visit to quote a whole house.
 
 It is your call, which is why it is here rather than changed.
 
@@ -80,142 +96,38 @@ anything else with the old one on.
 
 You sent a test to it. Confirm it arrived at the Second Pair address.
 
-### 7. The slow ones, unchanged
+### 7. The slow ones
 
-Meta verification, the ICO registration, and `EMAIL_FROM` / `INTEREST_EMAIL` on
-Vercel. All still outstanding and none of them blocks anything today.
+- **Meta verification** — weeks, and cannot be hurried. Steps below.
+- **ICO registration** — £52 a year. You are processing personal data on behalf
+  of other businesses, so it is not optional.
+
+`EMAIL_FROM` has come off this list: it is set on Vercel and the live check
+confirms mail sends from your own domain. `INTEREST_EMAIL` is not worth a line
+either — it falls back to `EMAIL_FROM`, so enquiries from the marketing site
+already reach you. Set it only if you want them somewhere else.
 
 ---
 
 # Yours
 
-## The order, and why
+## Done since this list was last written
 
-| # | Job | Time | Why it is here |
-| - | --- | ---- | -------------- |
-| 1 | DNS on second-pair.com | 30 min | Unblocks Vercel, email and Meta at once |
-| 2 | Resend, then Supabase SMTP | 30 min | Sign-in is currently broken for real use |
-| 3 | Vercel deploy | 20 min | Nothing is live until this |
-| 4 | Name clearance | 1 hr | Before anything is printed |
-| 5 | Twilio | 30 min + days waiting | Approval queue; start the clock |
-| 6 | Meta verification | 1 hr + weeks waiting | Slowest thing here |
-| 7 | Four decisions | — | I am blocked on two of them |
+| # | Job | State |
+| - | --- | ----- |
+| 1 | DNS on second-pair.com | **Done.** A, CNAME, SPF, DKIM and DMARC all verify. |
+| 2 | Resend, then Supabase SMTP | **Done.** Key accepted, sender domain verified. |
+| 3 | Vercel deploy | **Done.** Live on www.second-pair.com, cron job running. |
+| 5 | Twilio | **Done.** Account active, not on trial. Living Canvas and Neat & Tidy each have their own number registered. |
 
-Do 1 and 2 in the same sitting. They share a browser tab.
+`node scripts/check-live.mjs` is what confirms all of that, and it is worth
+running after any change to Vercel's environment variables. It now also checks
+whether a business can connect Stripe at all — the check that would have caught
+item 1 being three switches rather than one.
 
----
+## Still open
 
-## 1. DNS on second-pair.com
-
-Log in to wherever you bought the domain. Find "DNS", "DNS records", or
-"Advanced DNS". You are adding records, not changing nameservers.
-
-**For Vercel — add these two now:**
-
-| Type  | Host / Name | Value                  | TTL     |
-| ----- | ----------- | ---------------------- | ------- |
-| A     | `@`         | `76.76.21.21`          | Default |
-| CNAME | `www`       | `cname.vercel-dns.com` | Default |
-
-`@` means the bare domain. Some registrars want it blank instead — if `@` is
-rejected, leave the field empty.
-
-**For email — three or four more**, but do step 2 first because Resend generates
-them for you and they are unique to your account. Do not invent them. They will
-look roughly like:
-
-| Type | Host / Name         | Purpose                            |
-| ---- | ------------------- | ---------------------------------- |
-| TXT  | `send`              | SPF — says Resend may send for you  |
-| TXT  | `resend._domainkey` | DKIM — signs your mail so it is trusted |
-| MX   | `send`              | Bounce handling                     |
-| TXT  | `_dmarc`            | DMARC — optional, improves delivery |
-
-**Copy the values Resend shows you exactly.** A single wrong character means
-every email you send lands in spam, and it will not tell you — it just quietly
-does not arrive.
-
-DNS takes anywhere from two minutes to an hour to propagate. Both Vercel and
-Resend have a "Verify" button; press it, and if it fails, wait twenty minutes
-and press it again before assuming you made a mistake.
-
----
-
-## 2. Resend, then Supabase SMTP
-
-**This is the most urgent technical thing on the list**, and it is not obvious
-why, so: signing in, signing up and password resets all send an email. Right now
-they go through Supabase's *shared* sender. That is rate limited to a handful an
-hour across everybody using it, and it sends from a Supabase address that lands
-in spam. The moment two people sign up in the same hour, one of them does not
-get in. It is the front door and it is currently held shut.
-
-### Resend
-
-1. Go to resend.com and sign up. Free tier: 3,000 emails a month, 100 a day.
-   That is plenty for a long while.
-2. **Domains → Add Domain →** `second-pair.com`. Region: Ireland or London.
-3. It shows you the DNS records. Add them at your registrar (step 1), then come
-   back and press **Verify**.
-4. **API Keys → Create API Key.** Name it "Second Pair", permission "Sending
-   access". Copy it — it is shown once.
-5. Put it in `.env.local`. Open it with notepad:
-
-   ```
-   notepad "$HOME\Desktop\inkdesk\.env.local"
-   ```
-
-   Add these two lines:
-
-   ```
-   RESEND_API_KEY=re_xxxxxxxxxxxx
-   EMAIL_FROM=hello@second-pair.com
-   ```
-
-   **Do not paste the key into a chat with me.** It goes in the file and
-   nowhere else.
-
-### Supabase SMTP
-
-This is what fixes sign-in.
-
-1. Supabase dashboard → your project → **Project Settings → Authentication**.
-2. Find **SMTP Settings**. Turn on **Enable Custom SMTP**.
-3. Fill in:
-   - Host: `smtp.resend.com`
-   - Port: `465`
-   - Username: `resend`
-   - Password: your Resend API key from above
-   - Sender email: `hello@second-pair.com`
-   - Sender name: `Second Pair`
-4. Save.
-5. While you are there: **Authentication → Rate Limits**. The email limit is
-   low by default because of the shared sender. Raise it — 100 an hour is
-   sensible. It is pointless leaving it at 4 once you have your own sender.
-6. Test it: sign out, then use "email me a link" on the login page. It should
-   arrive within seconds, from your address, not Supabase's.
-
----
-
-## 3. Vercel deploy
-
-1. Vercel → **Add New → Project → Import** `gnmfoster-hub/second-pair`.
-2. Framework preset: Next.js. Leave the build settings alone.
-3. **Before deploying**, open **Environment Variables** and paste in everything
-   from your `.env.local`. Every line. Missing one does not fail the build — it
-   fails quietly at runtime, which is worse.
-4. Deploy.
-5. **Settings → Domains → Add** `second-pair.com` and `www.second-pair.com`.
-   It checks the DNS from step 1.
-6. **Settings → Cron Jobs**: confirm the reminders job is scheduled. It needs
-   `CRON_SECRET` set, or it returns 503 and nothing is ever sent.
-
-Whenever you add an environment variable later, you must **redeploy**. Vercel
-does not pick up new variables on its own, and this catches everybody once.
-
----
-
-## 4. Name clearance
+### 4. Name clearance
 
 An hour, and worth doing before the name goes anywhere it cannot be taken back.
 
@@ -224,60 +136,23 @@ An hour, and worth doing before the name goes anywhere it cannot be taken back.
    a confusingly similar name.
 2. **UK IPO trade marks** — trademarks.ipo.gov.uk/ipo-tmtext. Search "Second
    Pair" in **class 9** (software) and **class 42** (software as a service).
-   Those two are what matter for this. An existing mark in class 25 (clothing)
-   does not stop you.
+   Those two are what matter. An existing mark in class 25 (clothing) does not
+   stop you.
 3. **Handles** — check the socials you would actually use.
 4. If it is clear and you want to keep it, a UK trade mark application in those
    two classes is about £200 and you can file it yourself.
 
-If it comes back dirty, you want to know now, while the name is only in a
-codebase and not on a customer's invoice.
+If it comes back dirty, you want to know now, while the name is in a codebase
+and not on a customer's invoice.
 
----
+### 6. Meta
 
-## 5. Twilio
-
-You do not need this working today. Start it now because UK number approval
-takes days and the clock only starts when you apply.
-
-1. Sign up at twilio.com. The trial credit covers testing.
-2. **Phone Numbers → Buy a Number.** Country: United Kingdom. Tick **SMS**.
-   Buy **one** to start with — you will want one per business eventually, but
-   one proves it works.
-3. It will ask for a **Regulatory Bundle**: a UK address and a document proving
-   it (a utility bill or bank statement in the business name). Submit it
-   immediately. A day or two normally, longer if they query anything.
-4. From the console, note down:
-   - Account SID
-   - Auth Token
-   - The number you bought, in full international form (`+447…`)
-5. Put them in `.env.local` with notepad, same as before:
-
-   ```
-   TWILIO_ACCOUNT_SID=ACxxxxxxxx
-   TWILIO_AUTH_TOKEN=xxxxxxxx
-   TWILIO_FROM_NUMBER=+447xxxxxxxxx
-   ```
-
-6. Then, in Second Pair: **Settings → Channels**. Put the number in, and it
-   shows you the webhook URL to paste back into Twilio under **A message comes
-   in**. Without that step, texts arrive at Twilio and go nowhere.
-
-The number is also how an incoming text is routed to the right business, so each
-one needs its own before you take on a second customer. A shared number arrives
-with no way of telling whose customer it is.
-
----
-
-## 6. Meta
-
-The slowest thing on this list and it cannot start until step 3 is done, because
-Meta will not review an app without a live HTTPS URL and a published privacy
-policy.
+The slowest thing on this list. It can start now — the live HTTPS site and the
+published privacy policy it was waiting on are both up.
 
 **You are setting up your own business portfolio, for Second Pair — not one on
 Living Canvas's behalf.** You do this once. Each customer then connects their
-own WhatsApp and Instagram to your reviewed app by clicking a button. This is
+own WhatsApp and Instagram to your reviewed app by pressing a button. This is
 the thing most people get wrong and end up doing forty times.
 
 1. **business.facebook.com** → create a Business Portfolio for Second Pair.
@@ -287,15 +162,13 @@ the thing most people get wrong and end up doing forty times.
    weeks. Start it before you need it.
 3. **developers.facebook.com** → create an App, type **Business**.
 4. Add the products: **WhatsApp**, **Messenger**, **Instagram**.
-5. Set the callback URL to `https://second-pair.com/api/meta/webhook` and a
+5. Set the callback URL to `https://www.second-pair.com/api/meta/webhook` and a
    verify token you make up. Tell me the token and I will match it.
-6. Request the permissions: `whatsapp_business_messaging`,
-   `pages_messaging`, `instagram_manage_messages`.
+6. Request the permissions: `whatsapp_business_messaging`, `pages_messaging`,
+   `instagram_manage_messages`.
 7. Submit for **App Review**. They want a screencast showing what the app does.
 
----
-
-## 7. Decisions I need from you
+### 7. Decisions I need from you
 
 Two of these are blocking me.
 
@@ -342,7 +215,7 @@ one line to explain, and it stops a chatty salon quietly costing you money.
 About £1 a month per business, and worth it. A reply comes back to a number
 belonging to one business, so there is no guessing who it was for. A shared
 number breaks the first time one customer deals with two of your businesses,
-which in one town they will.
+which in one town they will. Both live businesses now have their own.
 
 There is a cheaper option — an **alphanumeric sender ID**, where the message
 shows as from "Living Canvas" rather than a number. Costs nothing extra, looks
@@ -355,36 +228,50 @@ People do not read email. "You are in at four tomorrow" has to be read, and that
 is SMS's job.
 
 Email is right for things somebody goes looking for later: **confirmations**
-(now sent, with the appointment attached as a calendar file), **deposit
-receipts**, **staff logins** (now sent for you), **the weekly report**, and as
-the fallback when there is no mobile number.
+(sent, with the appointment attached as a calendar file), **deposit receipts**,
+**staff logins**, **the weekly report**, and as the fallback when there is no
+mobile number.
 
 ---
 
 # Mine
 
-**Doing now:** reminders over SMS. They currently only reach people who came in
-through the website widget, which is almost nobody.
+**Doing now:** nothing half-finished. The last run closed out the live bug list
+you sent and the money work behind it.
 
-**Then:**
+**Next, in the order I would do them:**
 
-1. Deposit receipts by email.
-2. Meta, once the app is through review.
-3. Roles on the artist editor, and per-person greeting and tone — all three have
-   database columns and no screen yet.
+1. **A product onto an appointment.** Selling a bottle of conditioner means
+   going to the till. Adding it to the booking somebody is already looking at
+   is how it actually happens in a salon. Offered twice and not picked up — say
+   if you want it and it is a short job.
+2. **Deposit receipts by email.** The one step in the money flow with no paper
+   trail at the end of it.
+3. **Meta**, once the app is through review. Nothing to build until then.
 
-**Done and waiting on you:**
+**Done, and waiting on nothing:**
 
-- Text messages: sending, an inbound webhook so replies reach the inbox and the
-  assistant answers them, and a number registered per business under Settings →
-  Channels. Needs step 5.
-- Email: confirmations with a calendar file, staff invites that send themselves.
-  Needs step 2.
-- Outbound messaging: message a client from their page, add a client who has
-  never written in. Needs step 2 or 5.
-- The diary reads properly on a phone.
-- Staff logins, permissions, per-person hours, rates, roles, time off.
-- Calendar feed, push notifications, deposits, the weekly report.
+- Payments: Stripe connect for the business and for each person, payment links
+  on the appointment, the client's record, the conversation and the till,
+  refunds linked through to the exact charge, the till, products and stock.
+- Per person: hours, rates, roles, greeting, tone, time off, travel time,
+  reminders, calendar feed, their own services and prices, and which of the
+  shop's services they do and do not offer.
+- Diary: reads on a phone, keeps the view you chose when you change person,
+  a colour each, a complete button, and the add box no longer cut off.
+- Clients: history on somebody added by hand, what they have bought, and who
+  has not been back.
+- Channels: SMS in and out on a number per business, email in and out, the
+  inbox, and the assistant answering on both.
+- The setup checklist asks the right money question now. It used to ask whether
+  the business had connected Stripe, which is the wrong question on a salon of
+  chair renters — there the shop's account is not where anybody's money goes,
+  and a business could read as ready while every charge was refused.
 
-Everything in that list is built and none of it can send a message to anybody
-until steps 2 and 5 are done. That is the whole of what is blocking this.
+**Known, and deliberately not done:**
+
+- Sign-up is invitation-only. Every business is set up by somebody who has
+  spoken to the owner, and the page that used to offer a form now says so.
+- There is nowhere in the app to type the Stripe Connect key. It is ours, it is
+  the same value for every business on here, and a box on one business's
+  settings page would imply both of those are false.

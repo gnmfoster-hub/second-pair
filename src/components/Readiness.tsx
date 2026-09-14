@@ -81,9 +81,20 @@ export function Readiness({ capabilities }: { capabilities: Capability[] }) {
           </div>
           <div className="mt-1 font-medium">{next.can}</div>
           <p className="hint mt-1">{next.otherwise}</p>
-          <Link href={next.href} className="btn mt-3 inline-flex bg-accent text-on-accent">
-            {next.action}
-          </Link>
+          {/*
+            * Only where there is something to press.
+            *
+            * Some of these are nobody-in-the-building's to fix — the platform
+            * key is ours, and a stylist's own Stripe account can only be
+            * connected by her. A button sending an owner somewhere that
+            * cannot do it is worse than no button: it spends the one trip
+            * they were going to make.
+            */}
+          {next.action && (
+            <Link href={next.href} className="btn mt-3 inline-flex bg-accent text-on-accent">
+              {next.action}
+            </Link>
+          )}
         </div>
       )}
 
@@ -97,9 +108,11 @@ export function Readiness({ capabilities }: { capabilities: Capability[] }) {
               <li key={capability.key} className="flex items-baseline gap-2 text-sm">
                 <span className="text-muted">·</span>
                 <span className="min-w-0 flex-1">{capability.can}</span>
-                <Link href={capability.href} className="shrink-0 text-xs text-muted hover:text-foreground">
-                  {capability.action}
-                </Link>
+                {capability.action && (
+                  <Link href={capability.href} className="shrink-0 text-xs text-muted hover:text-foreground">
+                    {capability.action}
+                  </Link>
+                )}
               </li>
             ))}
           </ul>
@@ -169,9 +182,11 @@ export function Readiness({ capabilities }: { capabilities: Capability[] }) {
               <span className="hint mt-0.5 block">{capability.otherwise}</span>
             </span>
 
-            <Link href={capability.href} className="btn-ghost shrink-0 py-1.5 text-xs">
-              {capability.action}
-            </Link>
+            {capability.action && (
+              <Link href={capability.href} className="btn-ghost shrink-0 py-1.5 text-xs">
+                {capability.action}
+              </Link>
+            )}
           </li>
         ))}
       </ul>
