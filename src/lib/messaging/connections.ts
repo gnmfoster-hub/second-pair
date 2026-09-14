@@ -1,7 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Channel } from "@/lib/types";
-import { emailConfigured } from "./email";
-import { smsConfigured } from "./sms";
+// With extensions, so node can load this file directly and a check script can
+// ask the real rule rather than writing its own copy of it. The type import
+// above is erased, so the @/ alias in it costs nothing.
+import { emailConfigured } from "./email.ts";
+import { smsConfigured } from "./sms.ts";
 
 /**
  * Which ways of reaching people this business has actually plugged in.
