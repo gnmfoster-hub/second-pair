@@ -142,8 +142,20 @@ export function Find() {
                     onClick={() => setOpen(false)}
                     className="row flex items-baseline gap-3 px-3.5 py-2.5"
                   >
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                      {row.who}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">{row.who}</span>
+                      {/*
+                        * What it is and whose chair, which the action has
+                        * always worked out and nothing showed.
+                        *
+                        * Without it a search for "colour" returns a list of
+                        * names with no clue why any of them matched — and two
+                        * appointments for the same person on the same day are
+                        * two identical rows.
+                        */}
+                      {row.what && (
+                        <span className="hint block truncate text-xs">{row.what}</span>
+                      )}
                     </span>
                     <span className="hint shrink-0 text-xs">{row.when}</span>
                   </Link>

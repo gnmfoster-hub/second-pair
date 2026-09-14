@@ -263,6 +263,37 @@ export async function POST(request: NextRequest) {
 
     case "checkout.session.expired": {
       const session = event.data.object;
+
+      /*
+       * The link nobody paid.
+       *
+       * Every payment link this product makes expires within a day — a link
+       * that never stops working is one that turns up in a text message
+       * eighteen months later and charges somebody for an appointment they
+       * have long since had. When one does expire, the row it was made
+       * alongside is still sitting there marked pending.
+       *
+       * This case read booking_id and stopped, because when it was written a
+       * link was always a deposit on a booking and there was no payments
+       * table. So every balance asked for and not paid left a row saying money
+       * was on its way, for ever, and the only thing keeping that harmless is
+       * that no screen reads pending yet. The first one that does — a list of
+       * what is outstanding, which is an obvious thing to want — would open
+       * full of ghosts.
+       *
+       * Marked failed rather than deleted. "I sent her a link and she never
+       * paid" is worth being able to answer, and a row that vanishes cannot
+       * answer it.
+       */
+      const expiredPayment = session.metadata?.payment_id;
+      if (expiredPayment) {
+        await db
+          .from("payments")
+          .update({ status: "failed", updated_at: new Date().toISOString() })
+          .eq("id", expiredPayment)
+          .eq("status", "pending");
+      }
+
       const bookingId = session.metadata?.booking_id;
       if (!bookingId) break;
 

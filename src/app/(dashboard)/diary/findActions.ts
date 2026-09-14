@@ -80,7 +80,17 @@ export async function findInDiary(term: string): Promise<Found[]> {
       .limit(12),
   ]);
 
-  const named = new Map(contactIds.map((id, i) => [id, (people ?? [])[i]?.name as string | null]));
+  /*
+   * Built from the rows themselves, not from two lists lined up by index.
+   *
+   * The first version zipped contactIds against people by position, which is
+   * true only because one is derived from the other three lines earlier — the
+   * sort of thing that keeps working until somebody filters one of them and
+   * every name in the results belongs to the wrong person.
+   */
+  const named = new Map(
+    (people ?? []).map((c) => [c.id as string, (c.name as string | null) ?? null]),
+  );
 
   const rows = [...(byPerson.data ?? []), ...(byTitle.data ?? [])] as unknown as {
     id: string;
