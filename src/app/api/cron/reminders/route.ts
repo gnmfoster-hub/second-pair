@@ -67,6 +67,25 @@ export async function GET(request: NextRequest) {
    */
   const tidied = await forgetHandledMessages(db);
 
+  /*
+   * And the note of what arrived, which is only worth a month.
+   *
+   * It exists to answer "is this address working" while a business is being
+   * set up, and that question has an answer within days. Kept longer it
+   * becomes a record of who has written to whom, slowly, for no reason anybody
+   * would defend — so it is swept on the same run that clears everything else
+   * nobody will ask about again.
+   *
+   * Swallowed: a sweep that cannot tidy is not a reason to fail a run that has
+   * reminders to send.
+   */
+  try {
+    const month = new Date(Date.now() - 30 * 86_400_000).toISOString();
+    await db.from("inbound_emails").delete().lt("at", month);
+  } catch {
+    // The table arrives with a migration, and this must not wait for it.
+  }
+
   const { data: studios } = await db.from("studios").select("*");
 
   /*

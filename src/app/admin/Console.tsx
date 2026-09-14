@@ -111,7 +111,6 @@ export function Console({
 
       <NeedsYou businesses={businesses} />
       <OpenRequests businesses={businesses} />
-      <Arrivals inbound={inbound} />
       <EarlyAccess interest={interest} />
 
       {/*
@@ -152,6 +151,8 @@ export function Console({
           <Business key={b.id} b={b} />
         ))}
       </div>
+
+      <Arrivals inbound={inbound} />
 
       <p className="hint mt-10">
         This screen cannot open a business&rsquo;s conversation, and that is deliberate.
@@ -1885,12 +1886,35 @@ function Arrivals({ inbound }: { inbound: Arrived[] }) {
         ? "bg-accent/10 text-accent"
         : "bg-warn/10 text-warn";
 
+  /*
+   * Something addressed to a business that does not exist, which is almost
+   * always a slug typed wrong while setting a forward up. The one state here
+   * worth noticing without being asked.
+   */
+  const wrong = inbound.filter((row) => row.verdict === "refused").length;
+
   return (
-    <section className="card mt-6 p-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="section-title">Mail that arrived for a business</h2>
-        <span className="hint">newest first</span>
-      </div>
+    /*
+     * Folded, and near the bottom.
+     *
+     * This is looked at twice in a business's life — while its forwarding is
+     * being set up, and when somebody says an email went missing. A panel for
+     * that does not belong above the businesses, and a list of what arrived
+     * today is not something anybody should have to scroll past to reach the
+     * work. Open only when something was addressed to nobody, which is the one
+     * state here that is a fault rather than a record.
+     */
+    <details className="card mt-6 p-5" open={wrong > 0}>
+      <summary className="cursor-pointer">
+        <span className="section-title">Mail arriving at our addresses</span>
+        <span className="hint ml-2">
+          {wrong > 0
+            ? `${wrong} addressed to nobody`
+            : inbound.length === 0
+              ? "nothing yet"
+              : `${inbound.length} recent`}
+        </span>
+      </summary>
 
       {inbound.length === 0 && (
         <p className="hint mt-2">
@@ -1902,10 +1926,20 @@ function Arrivals({ inbound }: { inbound: Arrived[] }) {
         {inbound.map((row) => (
           <li key={row.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2 text-sm">
             <span className={`pill shrink-0 ${colour(row.verdict)}`}>{row.verdict}</span>
-            <span className="font-mono text-xs">{row.from ?? "—"}</span>
+            {/*
+              * Blank where it was somebody writing to a business.
+              *
+              * Their mail is theirs. What is kept is that it arrived and what
+              * was decided, which answers the only question this exists for —
+              * is the address working — without a back office that can read
+              * every customer's subject line.
+              */}
+            <span className="font-mono text-xs">
+              {row.from ?? <span className="hint not-italic">a person, not recorded</span>}
+            </span>
             <span className="hint ml-auto">{since(row.at)}</span>
             <span className="w-full min-w-0">
-              <span className="block truncate">{row.subject || "(no subject)"}</span>
+              {row.subject && <span className="block truncate">{row.subject}</span>}
               <span className="hint block truncate">
                 to {row.to ?? "an address with no business behind it"}
                 {row.because ? ` — ${row.because}` : ""}
@@ -1916,12 +1950,18 @@ function Arrivals({ inbound }: { inbound: Arrived[] }) {
       </ul>
 
       <p className="hint mt-2">
-        Every email that reaches <span className="font-mono text-xs">@in.second-pair.com</span>{" "}
-        appears here, whether it was answered, put in the business&rsquo;s inbox, or thrown
-        away as a machine talking. If something was sent and is <em>not</em> here, it never
-        reached us &mdash; look in Resend&rsquo;s own received log, which is upstream of
-        this.
+        Every email reaching <span className="font-mono text-xs">@in.second-pair.com</span>{" "}
+        leaves a line here, so &ldquo;did it arrive&rdquo; always has an answer. Only the
+        ones that are <strong>ours</strong> keep a sender and a subject &mdash; a
+        verification code, or mail to an address with no business behind it. A customer
+        writing to a business records that it happened and nothing else: their mail is
+        theirs, and it is in that business&rsquo;s own inbox where it belongs. Kept a
+        month, then deleted.
       </p>
-    </section>
+      <p className="hint mt-1">
+        Sent something and it is <em>not</em> here at all? It never reached us. Look in
+        Resend&rsquo;s own received log, which is upstream of this.
+      </p>
+    </details>
   );
 }

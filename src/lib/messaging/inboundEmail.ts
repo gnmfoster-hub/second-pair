@@ -48,6 +48,19 @@ export type Verdict = {
   what: "answer" | "park" | "ignore";
   /** Said in the owner's terms, for the note in the inbox. */
   because: string;
+  /**
+   * Whether this is us setting the address up rather than somebody writing in.
+   *
+   * A verification code from a mail provider is the one piece of inbound mail
+   * that is our business as well as theirs — it exists because we asked them
+   * to point a mailbox at us, and somebody on this side needs to know it
+   * arrived. Everything else that comes through here is a customer writing to
+   * a business, and none of that is ours to keep a record of.
+   *
+   * So it is marked rather than inferred from the wording, because what gets
+   * written down on our side hangs off it.
+   */
+  setup?: true;
 };
 
 /**
@@ -237,6 +250,7 @@ export function judge(
     return {
       what: "park",
       because: "it looks like a code for setting this address up — read it and carry on",
+      setup: true,
     };
   }
 

@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (!studio || studio.archived_at) {
-    await note(db, null, email, slug, "refused", "no business has that address");
+    await note(db, null, email, slug, "refused", "no business has that address", true);
     return ok("no such business");
   }
 
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
   // A machine talking. Nothing is written down, because a newsletter landing
   // in the inbox every Tuesday makes the inbox worth less than it was.
   if (verdict.what === "ignore") {
-    await note(db, studio.id, email, slug, "ignored", verdict.because);
+    await note(db, studio.id, email, slug, "ignored", verdict.because, false);
     return ok(`ignored: ${verdict.because}`);
   }
 
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
 
   if (verdict.what === "park") {
     await park(db, studio.id, sender, email, verdict.because);
-    await note(db, studio.id, email, slug, "parked", verdict.because);
+    await note(db, studio.id, email, slug, "parked", verdict.because, verdict.setup === true);
     return ok(`parked: ${verdict.because}`);
   }
 
@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
      * in the webhook response too, since that is the one place a provider's own
      * delivery log will show it back.
      */
-    await note(db, studio.id, email, slug, "answered", null);
+    await note(db, studio.id, email, slug, "answered", null, false);
 
     if (sent.status !== "sent") {
       await db.from("messages").insert({
@@ -376,13 +376,32 @@ async function note(
   slug: string | null,
   verdict: "answered" | "parked" | "ignored" | "refused",
   because: string | null,
+  /**
+   * Whether this one is ours to read.
+   *
+   * True for a verification code and for mail to an address with no business
+   * behind it — the first exists because we asked a provider to point a
+   * mailbox at us, and the second is not addressed to anybody. False for a
+   * customer writing to a business, a newsletter they subscribed to, and
+   * everything else that comes through here.
+   */
+  ours: boolean,
 ) {
   try {
     await db.from("inbound_emails").insert({
       studio_id: studioId,
       to_address: slug ? `${slug}@${process.env.EMAIL_INBOUND_DOMAIN ?? "in.second-pair.com"}` : null,
-      from_address: (email.from ?? "").slice(0, 200),
-      subject: (email.subject ?? "").slice(0, 300),
+      /*
+       * Who it was from and what it said, only where it is ours.
+       *
+       * Otherwise the row records that mail arrived for a business and what
+       * was decided, and nothing about who wrote or what they wanted. That is
+       * enough to answer "is the address working" — the only question this
+       * exists for — and it keeps a back office that can read every customer's
+       * subject line from existing in the first place.
+       */
+      from_address: ours ? (email.from ?? "").slice(0, 200) : null,
+      subject: ours ? (email.subject ?? "").slice(0, 300) : null,
       verdict,
       because,
     });
