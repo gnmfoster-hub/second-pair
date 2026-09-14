@@ -33,6 +33,20 @@ export type Purchase = {
  * and no length, and putting it on the same timeline as bookings would mean
  * inventing both.
  */
+/**
+ * How it was paid, in words rather than in the value stored.
+ *
+ * "card" is what the column holds and "card machine" is what somebody calls
+ * it; "phone" is a card tapped on a phone through Stripe, which is a different
+ * thing from a card terminal even though both look like a card at the desk.
+ */
+function methodWords(method: string): string {
+  if (method === "card") return "card machine";
+  if (method === "phone") return "tapped on a phone";
+  if (method === "link") return "paid by link";
+  return method;
+}
+
 export function Bought({
   purchases,
   timezone,
@@ -101,7 +115,7 @@ export function Bought({
             <div className="hint mt-0.5 flex flex-wrap items-baseline gap-x-2">
               <span>
                 {savedWords(p.when, timezone) ?? "no date recorded"}
-                {p.method && ` · ${p.method === "card" ? "card machine" : p.method}`}
+                {p.method && ` · ${methodWords(p.method)}`}
               </span>
 
               {p.status === "refunded" && <span className="text-warn">refunded</span>}

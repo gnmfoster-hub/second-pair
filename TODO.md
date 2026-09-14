@@ -107,16 +107,53 @@ Once a month: `BACKUP_KEY='...' node scripts/restore.mjs <file>`. It only
 reports. A backup nobody has read back is a hope, and this is how you find out
 the passphrase in the password manager is the old one.
 
-### 6. The Neat & Tidy number
+### 6. Decide about tapping a card on a phone
+
+Researched against Stripe's own documentation, September 2026. Three different
+things get called "pay on the phone" and only one of them is hard.
+
+**The customer taps their own phone or watch** — Apple Pay, Google Pay. This
+already works and needs nothing: they appear on the Stripe checkout page every
+link in the product opens. Send the link from the client's record or the
+conversation and they pay with two taps on their own phone. Nothing to build.
+
+**You tap their card on your phone** — Stripe Tap to Pay. Live in the UK,
+iPhone XS or later, and a good range of Android. Two ways to have it:
+
+| | What it costs you | What it gives up |
+| - | - | - |
+| Stripe's own Dashboard app | Nothing. Download it, log in, charge. | Two apps at the desk. Record the amount here as "tapped on a phone" afterwards. |
+| Built into Second Pair | A native app — Terminal iOS or React Native SDK | Weeks, plus App Store review |
+
+The second is not a feature, it is a project: Tap to Pay is only in Stripe's
+iOS and React Native Terminal SDKs, there is no web or browser path at all, and
+this product is a web app. It also needs an Apple entitlement requested twice
+(development, then distribution), a mandatory "How to Tap" overlay from Apple's
+own framework before review, and an app in the App Store to put it in.
+
+**My recommendation: the Dashboard app, and revisit if a customer asks twice.**
+Because every business here has its own Stripe account under Standard Connect,
+they can use Stripe's app today with no work from anybody. The bill now has
+"Tapped on a phone" as a way to record it, kept separate from "card machine" on
+purpose: a tap through Stripe is already in their Stripe account and will show
+in their payouts, and a third-party terminal never touches Stripe — recording
+both as "card" makes a month impossible to reconcile.
+
+Worth knowing before choosing: in the UK some cards refuse a contactless tap
+above the CVM limit and demand the card be inserted, which a phone cannot do.
+Stripe's own advice in that case is another card, a real reader, or a payment
+link — so a phone is never the only way you can take money.
+
+### 7. The Neat & Tidy number
 
 Send it to Chris, and put it on the Facebook page, the Google listing and
 anything else with the old one on.
 
-### 7. Check the forward on info@neatandtidysolutions.co.uk
+### 8. Check the forward on info@neatandtidysolutions.co.uk
 
 You sent a test to it. Confirm it arrived at the Second Pair address.
 
-### 8. The slow ones
+### 9. The slow ones
 
 - **Meta verification** — weeks, and cannot be hurried. Steps below.
 - **ICO registration** — £52 a year. You are processing personal data on behalf

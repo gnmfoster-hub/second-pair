@@ -94,6 +94,18 @@ export function readSale(raw: readonly Partial<SaleLine>[]): Sale {
 export const METHODS = [
   { value: "cash", label: "Cash" },
   { value: "card", label: "Card machine" },
+  /*
+   * A card tapped on somebody's own phone, through Stripe's app.
+   *
+   * Its own method rather than "card machine", because the two look identical
+   * at the desk and are not the same thing afterwards: a tap through Stripe is
+   * already in this business's Stripe account and will appear in its payouts,
+   * and a third-party card terminal never touches Stripe at all. Recording
+   * both as "card" makes a month impossible to reconcile against a Stripe
+   * statement — half the rows are in it and half are not, and nothing says
+   * which half.
+   */
+  { value: "phone", label: "Tapped on a phone" },
   { value: "other", label: "Something else" },
 ] as const;
 
