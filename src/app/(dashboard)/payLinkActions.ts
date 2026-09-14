@@ -188,6 +188,8 @@ export async function askForPayment(
     conversations: (contact.conversations ?? []) as never,
     phone: contact.phone as string | null,
     email: contact.email as string | null,
+    /* Which way they asked to be reached, where they have said. */
+    prefers: (contact as { prefers?: string | null }).prefers as "sms" | "email" | null,
     connected: await connectedChannels(supabase, studio.id),
   });
 

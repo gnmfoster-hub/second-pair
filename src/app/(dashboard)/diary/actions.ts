@@ -779,5 +779,6 @@ async function fromPicker(
     name: str(fd, "contact_name"),
     phone: str(fd, "contact_name_phone"),
     email: str(fd, "contact_name_email"),
+    prefers: str(fd, "contact_name_prefers"),
   });
 }

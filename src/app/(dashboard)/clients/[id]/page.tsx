@@ -191,6 +191,8 @@ export default async function ClientPage({
     conversations,
     phone: contact.phone,
     email: contact.email,
+    /* Which way they asked to be reached, where they have said. */
+    prefers: (contact as { prefers?: string | null }).prefers as "sms" | "email" | null,
     connected: await connectedChannels(supabase, studio.id),
   });
   const mayMessage = await canMessage();

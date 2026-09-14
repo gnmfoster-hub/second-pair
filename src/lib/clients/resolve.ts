@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { hasColumn } from "@/lib/db/hasColumn";
 
 /**
  * What the client picker submitted, turned into a client.
@@ -22,6 +23,8 @@ export async function resolveContact(
     name?: string | null;
     phone?: string | null;
     email?: string | null;
+    /** Which way they would rather be reached, where they said. */
+    prefers?: string | null;
   },
 ): Promise<string | null> {
   const id = (fields.id ?? "").trim();
@@ -43,6 +46,18 @@ export async function resolveContact(
   const phone = (fields.phone ?? "").trim();
   const email = (fields.email ?? "").trim().toLowerCase();
 
+  /*
+   * A preference only where they gave one, and only one we understand.
+   *
+   * Written through a guard because the column arrives with a migration, and
+   * PostgREST refuses an entire insert over one column it has not heard of —
+   * so without this a deploy landing first would stop anybody adding a client
+   * at all, which is a far worse morning than one without preferences.
+   */
+  const wanted = (fields.prefers ?? "").trim();
+  const prefers = wanted === "sms" || wanted === "email" ? wanted : null;
+  const canPrefer = prefers ? await hasColumn(db, "contacts", "prefers") : false;
+
   const { data } = await db
     .from("contacts")
     .insert({
@@ -50,6 +65,7 @@ export async function resolveContact(
       name,
       ...(phone ? { phone } : {}),
       ...(email ? { email } : {}),
+      ...(canPrefer ? { prefers } : {}),
     })
     .select("id")
     .single();

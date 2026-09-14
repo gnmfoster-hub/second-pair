@@ -72,6 +72,13 @@ export function ClientPicker({
    */
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  /*
+   * Which they would rather have, asked only once both are on offer.
+   *
+   * With one address there is nothing to choose between, and a question with
+   * one answer is a question worth not asking.
+   */
+  const [prefers, setPrefers] = useState("");
 
   const [matches, setMatches] = useState<Match[]>([]);
   const [open, setOpen] = useState(false);
@@ -121,6 +128,11 @@ export function ClientPicker({
           are changed on their record, not in passing while booking them. */}
       <input type="hidden" name={`${name}_phone`} value={chosen && !chosen.id ? phone : ""} />
       <input type="hidden" name={`${name}_email`} value={chosen && !chosen.id ? email : ""} />
+      <input
+        type="hidden"
+        name={`${name}_prefers`}
+        value={chosen && !chosen.id && phone.trim() && email.trim() ? prefers : ""}
+      />
 
       <input
         value={query}
@@ -183,6 +195,41 @@ export function ClientPicker({
               className="input"
             />
           </label>
+          {/*
+            * And which they would rather have, once there are two.
+            *
+            * Only then: with one address there is nothing to choose between,
+            * and a question with one answer is one worth not asking. It
+            * reorders what gets tried and takes nothing away — somebody who
+            * prefers email is still textable when the chair falls free at
+            * nine in the morning.
+            */}
+          {phone.trim() && email.trim() && (
+            <div className="w-full">
+              <span className="label">Best on</span>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {[
+                  { value: "", label: "No preference" },
+                  { value: "sms", label: "Text" },
+                  { value: "email", label: "Email" },
+                ].map((option) => (
+                  <button
+                    key={option.value || "any"}
+                    type="button"
+                    onClick={() => setPrefers(option.value)}
+                    className={`rounded-full px-3 py-1 text-xs transition-colors ${
+                      prefers === option.value
+                        ? "bg-accent text-on-accent"
+                        : "border border-border text-muted hover:text-foreground"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <p className="hint w-full">
             Either, both or neither. Without one of them a reminder has nowhere to go and
             a cancelled slot cannot be offered to them.

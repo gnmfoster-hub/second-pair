@@ -232,3 +232,66 @@ test("email has no twenty-four hour window — it is not Meta's to close", () =>
   });
   assert.equal(route.open, true);
 });
+
+// ───────────────────────────────────── what they said they would rather have
+
+test("a text comes first by default, because it gets read", () => {
+  const routes = routesFor({
+    conversations: [],
+    phone: "+447700900123",
+    email: "jane@example.com",
+    connected: ["sms", "email", "web"],
+  });
+  assert.equal(routes[0].channel, "sms");
+});
+
+test("and email comes first when they have asked for email", () => {
+  const routes = routesFor({
+    conversations: [],
+    phone: "+447700900123",
+    email: "jane@example.com",
+    prefers: "email",
+    connected: ["sms", "email", "web"],
+  });
+  assert.equal(routes[0].channel, "email");
+  // Still offered, not removed: a preference is not a prohibition.
+  assert.ok(routes.some((r) => r.channel === "sms"));
+});
+
+test("asking for a text explicitly is the same as the default", () => {
+  const routes = routesFor({
+    conversations: [],
+    phone: "+447700900123",
+    email: "jane@example.com",
+    prefers: "sms",
+    connected: ["sms", "email", "web"],
+  });
+  assert.equal(routes[0].channel, "sms");
+});
+
+/*
+ * Somebody who prefers email and gave only a mobile is still reachable. A
+ * preference reorders what exists; it never invents an address or hides one.
+ */
+test("preferring a channel they have no address on changes nothing", () => {
+  const routes = routesFor({
+    conversations: [],
+    phone: "+447700900123",
+    email: null,
+    prefers: "email",
+    connected: ["sms", "email", "web"],
+  });
+  assert.equal(routes.length, 1);
+  assert.equal(routes[0].channel, "sms");
+});
+
+test("a preference for something that cannot start a conversation is ignored", () => {
+  const routes = routesFor({
+    conversations: [],
+    phone: "+447700900123",
+    email: "jane@example.com",
+    prefers: "whatsapp",
+    connected: ["sms", "email", "web"],
+  });
+  assert.equal(routes[0].channel, "sms");
+});

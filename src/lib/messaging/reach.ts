@@ -42,6 +42,24 @@ const CAN_START: Channel[] = ["sms", "email", "web"];
 const COLD_ORDER: Channel[] = ["sms", "email"];
 
 /**
+ * The order to try, once a customer has said which they would rather have.
+ *
+ * The default above is a judgement about people in general — a text gets read,
+ * an email gets read eventually — and it is the right default. It is not a
+ * reason to text somebody who has asked to be emailed, which is a thing people
+ * ask and a thing a business promises. So a stated preference goes first and
+ * everything else keeps its usual order behind it.
+ *
+ * Only reorders. It never adds a channel they have no address on, and never
+ * removes one — somebody who prefers email and gives only a mobile is still
+ * reachable, which is the whole point of having two.
+ */
+function coldOrder(prefers?: Channel | null): Channel[] {
+  if (!prefers || !COLD_ORDER.includes(prefers)) return COLD_ORDER;
+  return [prefers, ...COLD_ORDER.filter((c) => c !== prefers)];
+}
+
+/**
  * Channels Meta holds to a 24-hour reply window.
  *
  * Outside it WhatsApp and Messenger require a template approved in advance,
@@ -81,6 +99,7 @@ export function routesFor({
   conversations,
   phone,
   email,
+  prefers,
   connected,
   now = Date.now(),
 }: {
@@ -94,6 +113,13 @@ export function routesFor({
   phone: string | null;
   /** Their email, if known. The other way, and a weaker one. */
   email?: string | null;
+  /**
+   * Which of the two they would rather have, where they have said.
+   *
+   * Null is the ordinary case and means the default order: a text first,
+   * because it gets read.
+   */
+  prefers?: Channel | null;
   /** Channels this business has actually connected. */
   connected: Channel[];
   now?: number;
@@ -179,7 +205,8 @@ export function routesFor({
       Date.parse(b.lastInboundAt ?? "0") - Date.parse(a.lastInboundAt ?? "0");
     if (recency !== 0) return recency;
 
-    return COLD_ORDER.indexOf(a.channel) - COLD_ORDER.indexOf(b.channel);
+    const order = coldOrder(prefers);
+    return order.indexOf(a.channel) - order.indexOf(b.channel);
   });
 }
 

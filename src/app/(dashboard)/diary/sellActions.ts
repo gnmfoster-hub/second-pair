@@ -116,6 +116,7 @@ export async function recordSale(_prev: SellState, fd: FormData): Promise<SellSt
     name: str(fd, "contact_name"),
     phone: str(fd, "contact_name_phone"),
     email: str(fd, "contact_name_email"),
+    prefers: str(fd, "contact_name_prefers"),
   });
 
   /*
