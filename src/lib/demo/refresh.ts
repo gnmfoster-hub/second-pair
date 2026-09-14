@@ -572,6 +572,39 @@ export async function refreshDemo(db: Db, studioId: string): Promise<DemoRefresh
     appointments++;
   }
 
+  // ------------------------------------------------------- the shelf
+  /*
+   * What the products cost and how many are on the shelf.
+   *
+   * Left empty they are the honest default — most businesses do not count —
+   * and a demo of "we can tell you what the shelf made" with no cost against
+   * anything demonstrates nothing. One of them is deliberately left at two, so
+   * the low-stock case is visible rather than described.
+   *
+   * Guarded and swallowed: this is the newest thing in the product and a demo
+   * rebuild is not where a missing migration should first be discovered.
+   */
+  try {
+    const { data: shelf } = await db
+      .from("services")
+      .select("id, price_pence")
+      .eq("studio_id", studio.id)
+      .eq("kind", "product");
+
+    for (const [i, item] of (shelf ?? []).entries()) {
+      await db
+        .from("services")
+        .update({
+          // A little over a third, which is roughly what a salon pays trade.
+          cost_pence: Math.round(((item.price_pence as number) ?? 0) * 0.38),
+          stock: [2, 11, 7, 4, 9][i % 5],
+        })
+        .eq("id", item.id);
+    }
+  } catch {
+    // A demo with an uncounted shelf is still a demo.
+  }
+
   // ------------------------------------------------------- the memory
   const { history, sales } = await buildHistory(db, studio.id, clients, lapsedIds, roster, monday);
 
