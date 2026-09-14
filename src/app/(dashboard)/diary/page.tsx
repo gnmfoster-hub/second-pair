@@ -21,6 +21,7 @@ import {
   diaryPanes,
 } from "@/lib/diaryLayout";
 import { LayoutToggle } from "./LayoutToggle";
+import { Find } from "./Find";
 import { FullDiary } from "./FullDiary";
 import { SwipeDates } from "./SwipeDates";
 import { busyFromIcal } from "@/lib/booking/ical";
@@ -844,7 +845,12 @@ export default async function DiaryPage({
         */}
       <div
         data-chrome
-        className="sticky top-[var(--app-bar)] z-20 -mx-4 flex flex-wrap items-baseline gap-x-3 gap-y-2 bg-background px-4 pb-2 pt-1 sm:-mx-8 sm:gap-x-4 sm:px-8"
+        /*
+         * `relative`, so the search can cover this row rather than push it
+         * down. A search box with a row of its own is forty pixels of a screen
+         * whose whole problem is that a day does not fit on it.
+         */
+        className="relative sticky top-[var(--app-bar)] z-20 -mx-4 flex flex-wrap items-baseline gap-x-3 gap-y-2 bg-background px-4 pb-2 pt-1 sm:-mx-8 sm:gap-x-4 sm:px-8"
       >
         {/*
           * The word "Diary" is worth fifty pixels on a phone and says nothing.
@@ -880,6 +886,18 @@ export default async function DiaryPage({
             {asHours(bookedMinutes)} &middot; {formatPence(worth)}
           </span>
         )}
+
+        {/*
+          * Finding somebody, for the width of an icon.
+          *
+          * First on this line's right-hand side because it is the only control
+          * here that answers a question rather than changing the view, and
+          * because what it opens covers the row — so it has to be reachable
+          * before anything else on it is.
+          */}
+        <div data-no-swipe className="ml-auto">
+          <Find />
+        </div>
 
         {/*
           * The shape control, in the space next to the date.

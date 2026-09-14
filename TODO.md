@@ -25,7 +25,25 @@ than breaking.
 Everything here is something I cannot do from this side. Roughly in the order
 it is holding something up.
 
-### 1. Switch the money on for Living Canvas
+### 1. Stripe, on the sheet
+
+Everything about money is on one page now, in three parts: your own account,
+how a business connects theirs, and how you would charge them monthly.
+
+**https://claude.ai/code/artifact/ce6ed7c3-5feb-4c27-a7c0-71d904f6b3f4**
+
+The three things worth knowing before you open it:
+
+- **You are on test keys.** The live site's key starts `sk_test_`. Everything
+  works and nothing takes money, so a real salon connecting Stripe today would
+  connect a test account and never take a penny.
+- **Connecting Stripe is a third of it.** Living Canvas is off at three
+  switches, not one — the account, deposits, and payments in full. See below.
+- **Nothing bills anybody.** The plan and price in the back office are notes.
+  No invoice is raised and no card is charged, by anything, ever. That is five
+  minutes of clicking in Stripe rather than code, and it is not done.
+
+### 2. Switch the money on for Living Canvas
 
 I have been calling this "connect Stripe", and that was a third of it. I checked
 the live database rather than going from memory, and Living Canvas is off at
@@ -51,7 +69,7 @@ Stripe's own onboarding: their ID, their bank details, about ten minutes.
 The same three switches apply to Neat & Tidy whenever you want money moving
 there.
 
-### 2. Living Canvas has no price list
+### 3. Living Canvas has no price list
 
 It prices by the hour against size bands, which is right for tattooing and is
 why there are seven bands and no services. Two things read from a named list
@@ -62,7 +80,7 @@ Nothing is broken. It is a choice about whether a tattoo studio wants named
 things as well — a piercing, a touch-up, a consultation — sitting alongside the
 bands. Tell me and I will set it up either way.
 
-### 3. Nobody has a phone signed up for notifications
+### 4. Nobody has a phone signed up for notifications
 
 Still not one device, on any of the three businesses.
 
@@ -75,7 +93,7 @@ tab. New since the last version of this list: it is now its own line on the
 dashboard checklist, so a business can see it rather than only me from a
 terminal. The old checklist took an email address as good enough and read green.
 
-### 4. Karen's consultation is ten minutes
+### 5. Karen's consultation is ten minutes
 
 Unchanged, and still ten minutes on the live record.
 
@@ -87,7 +105,7 @@ ten-minute visit to quote a whole house.
 
 It is your call, which is why it is here rather than changed.
 
-### 5. Take a backup before you test hard
+### 6. Take a backup before you test hard
 
 One command, and only you can run it because only you should hold the key:
 
@@ -107,7 +125,7 @@ Once a month: `BACKUP_KEY='...' node scripts/restore.mjs <file>`. It only
 reports. A backup nobody has read back is a hope, and this is how you find out
 the passphrase in the password manager is the old one.
 
-### 6. Decide about tapping a card on a phone
+### 7. Decide about tapping a card on a phone
 
 Researched against Stripe's own documentation, September 2026. Three different
 things get called "pay on the phone" and only one of them is hard.
@@ -144,16 +162,16 @@ above the CVM limit and demand the card be inserted, which a phone cannot do.
 Stripe's own advice in that case is another card, a real reader, or a payment
 link — so a phone is never the only way you can take money.
 
-### 7. The Neat & Tidy number
+### 8. The Neat & Tidy number
 
 Send it to Chris, and put it on the Facebook page, the Google listing and
 anything else with the old one on.
 
-### 8. Check the forward on info@neatandtidysolutions.co.uk
+### 9. Check the forward on info@neatandtidysolutions.co.uk
 
 You sent a test to it. Confirm it arrived at the Second Pair address.
 
-### 9. The slow ones
+### 10. The slow ones
 
 - **Meta verification** — weeks, and cannot be hurried. Steps below.
 - **ICO registration** — £52 a year. You are processing personal data on behalf
