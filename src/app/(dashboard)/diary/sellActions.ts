@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { resolveContact } from "@/lib/clients/resolve";
 import { readSale, readMethod, type SaleLine } from "@/lib/sales";
 import { hasColumn } from "@/lib/db/hasColumn";
+import { sendPaymentReceipt } from "@/lib/messaging/receipt";
 
 export type SellState = { error?: string; ok?: boolean; total?: number };
 
@@ -215,6 +216,21 @@ export async function recordSale(_prev: SellState, fd: FormData): Promise<SellSt
         .eq("studio_id", studio.id);
     }
   }
+
+  /*
+   * A receipt, where there is somebody to send it to.
+   *
+   * A till sale is the one kind of payment with a person standing in front of
+   * you, which is probably why it has never produced anything: they were
+   * handed their bottles and that felt like the end of it. It is not — six
+   * weeks later "which conditioner was it" is a question the customer cannot
+   * answer and neither can the salon.
+   *
+   * Silent when the contact has no email, which is most walk-ins, and never
+   * something anybody has to decide about at the counter. The sale is already
+   * recorded by this point either way.
+   */
+  if (contactId) await sendPaymentReceipt(supabase, payment.id);
 
   revalidatePath("/diary");
   revalidatePath("/clients");

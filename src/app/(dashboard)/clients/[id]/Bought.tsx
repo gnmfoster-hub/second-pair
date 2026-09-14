@@ -1,5 +1,6 @@
 import { formatPence } from "@/lib/money";
 import { savedWords } from "@/lib/savedAt";
+import { SendReceipt } from "./SendReceipt";
 
 export type Purchase = {
   id: string;
@@ -35,9 +36,21 @@ export type Purchase = {
 export function Bought({
   purchases,
   timezone,
+  contactId,
+  canEmail,
 }: {
   purchases: Purchase[];
   timezone: string | null;
+  contactId: string;
+  /**
+   * Whether there is an address to send a receipt to.
+   *
+   * Read here rather than discovered on pressing it: offering a button that
+   * can only ever answer "there is no email address on this client" is worse
+   * than not offering it, because somebody presses it once per payment before
+   * believing it.
+   */
+  canEmail: boolean;
 }) {
   if (purchases.length === 0) return null;
 
@@ -119,6 +132,17 @@ export function Bought({
                 >
                   Refund in Stripe
                 </a>
+              )}
+
+              {/*
+                * Sending the receipt again, which is what somebody actually
+                * wants from this screen. A receipt goes on its own when the
+                * money lands; it can go to spam, or to an address they have
+                * since changed, and "I never got it" had no answer here but
+                * typing the payment out by hand in a message.
+                */}
+              {canEmail && p.status !== "refunded" && (
+                <SendReceipt paymentId={p.id} contactId={contactId} />
               )}
             </div>
           </li>

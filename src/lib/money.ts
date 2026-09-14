@@ -8,6 +8,25 @@ export function formatPence(pence: number): string {
   }).format(pence / 100);
 }
 
+/**
+ * The same money, always to the penny.
+ *
+ * `formatPence` drops a trailing `.00`, which is right almost everywhere:
+ * "from £120" is how a price is said out loud, and "£120.00" on a quote reads
+ * like a bill. On a document about money that has actually moved it is the
+ * other way round. A receipt listing £24.50, £14 and £38.50 looks like three
+ * different kinds of number, and the one without the pence looks rounded —
+ * which on the one page a customer checks against their bank statement is the
+ * worst thing it could look.
+ */
+export function formatExactPence(pence: number): string {
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+    minimumFractionDigits: 2,
+  }).format(pence / 100);
+}
+
 export function formatRange(lowPence: number, highPence: number): string {
   if (lowPence === highPence) return formatPence(lowPence);
   return `${formatPence(lowPence)} to ${formatPence(highPence)}`;

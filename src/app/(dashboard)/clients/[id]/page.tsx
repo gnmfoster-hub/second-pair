@@ -382,7 +382,12 @@ export default async function ClientPage({
             />
           </section>
 
-          <Bought purchases={purchases} timezone={studio.timezone} />
+          <Bought
+            purchases={purchases}
+            timezone={studio.timezone}
+            contactId={contact.id}
+            canEmail={Boolean(contact.email)}
+          />
 
           <section className="card p-5">
             <h2 className="mb-3 text-sm font-medium">Conversations</h2>

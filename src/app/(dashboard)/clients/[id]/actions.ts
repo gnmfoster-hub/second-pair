@@ -10,6 +10,7 @@ import { routesFor } from "@/lib/messaging/reach";
 import { connectedChannels, smsNumberFor } from "@/lib/messaging/connections";
 import type { Channel } from "@/lib/types";
 import { replyToFor } from "@/lib/messaging/replyTo";
+import { sendPaymentReceipt } from "@/lib/messaging/receipt";
 
 export type ClientState = { error?: string; ok?: boolean };
 
@@ -182,4 +183,64 @@ export async function messageClient(
   revalidatePath("/");
 
   return result.error ? { ok: true, warning: result.error } : { ok: true };
+}
+
+/**
+ * Send a receipt again.
+ *
+ * "I never got it" is the single most common thing anybody says about a
+ * receipt, and until this the only answer a business had was to describe the
+ * payment in a message typed by hand. The email goes automatically when the
+ * money lands; it can land in spam, or go to an address they have since
+ * changed, and a receipt nobody can re-send is half a feature.
+ *
+ * Deliberately no preview and no editing. It is a record of what happened, and
+ * a receipt somebody can reword before sending is not a record.
+ */
+export async function resendReceipt(
+  _prev: ClientState,
+  fd: FormData,
+): Promise<ClientState> {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  const paymentId = str(fd, "payment_id");
+  const contactId = str(fd, "contact_id");
+
+  /*
+   * Scoped to the business, and checked here rather than trusted from the
+   * form. A payment id is a uuid in a hidden field, and "it would have to be
+   * guessed" is not an access rule — RLS would refuse the read anyway, and
+   * this turns that into a sentence rather than a blank screen.
+   */
+  const { data: payment } = await supabase
+    .from("payments")
+    .select("id, status")
+    .eq("id", paymentId)
+    .eq("studio_id", studio.id)
+    .maybeSingle();
+
+  if (!payment) return { error: "That payment is not on this account." };
+
+  // A refunded payment is not a receipt anybody should be sending again: the
+  // money went back, and a document saying they paid it would be wrong.
+  if (payment.status !== "paid") {
+    return { error: "That payment was refunded, so there is no receipt to send." };
+  }
+
+  const { data: contact } = await supabase
+    .from("contacts")
+    .select("email")
+    .eq("id", contactId)
+    .eq("studio_id", studio.id)
+    .maybeSingle();
+
+  if (!contact?.email) {
+    return { error: "There is no email address on this client to send it to." };
+  }
+
+  await sendPaymentReceipt(supabase, paymentId);
+
+  revalidatePath(`/clients/${contactId}`);
+  return { ok: true };
 }

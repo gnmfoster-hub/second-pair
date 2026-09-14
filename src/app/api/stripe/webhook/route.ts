@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { stripe } from "@/lib/payments/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendBookingConfirmation } from "@/lib/messaging/confirmation";
+import { sendPaymentReceipt } from "@/lib/messaging/receipt";
 import { alertNewBooking } from "@/lib/notify";
 
 export const runtime = "nodejs";
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
        */
       const paymentId = session.metadata?.payment_id;
       if (paymentId) {
-        const { error: payError } = await db
+        const { data: tookIt, error: payError } = await db
           .from("payments")
           .update({
             status: "paid",
@@ -77,7 +78,8 @@ export async function POST(request: NextRequest) {
             updated_at: new Date().toISOString(),
           })
           .eq("id", paymentId)
-          .neq("status", "paid");
+          .neq("status", "paid")
+          .select("id");
 
         /*
          * Worth failing on, for the same reason as the booking below: Stripe
@@ -88,6 +90,22 @@ export async function POST(request: NextRequest) {
           console.error("[stripe] could not record payment", payError.message);
           return NextResponse.json({ error: "Could not record" }, { status: 500 });
         }
+
+        /*
+         * The receipt, and only on the delivery that actually claimed the row.
+         *
+         * The claim already refused to touch a payment marked paid, but
+         * nothing asked whether it had changed anything — which was harmless
+         * while the only thing after it was another write of the same values,
+         * and stops being harmless the moment an email hangs off it. Stripe
+         * retries whenever it does not get a clean answer quickly enough, and
+         * a customer receiving three identical receipts for one payment is a
+         * business that looks like it has lost track of their money.
+         *
+         * Not for a deposit taken while booking: that has no payment_id here,
+         * takes the branch below, and sends a confirmation of its own.
+         */
+        if (tookIt?.length) await sendPaymentReceipt(db, paymentId);
       }
 
       if (!bookingId) break;

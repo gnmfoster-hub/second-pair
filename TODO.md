@@ -245,15 +245,19 @@ you sent and the money work behind it.
    going to the till. Adding it to the booking somebody is already looking at
    is how it actually happens in a salon. Offered twice and not picked up — say
    if you want it and it is a short job.
-2. **Deposit receipts by email.** The one step in the money flow with no paper
-   trail at the end of it.
-3. **Meta**, once the app is through review. Nothing to build until then.
+2. **Meta**, once the app is through review. Nothing to build until then.
 
 **Done, and waiting on nothing:**
 
 - Payments: Stripe connect for the business and for each person, payment links
   on the appointment, the client's record, the conversation and the till,
   refunds linked through to the exact charge, the till, products and stock.
+- Receipts by email, for every payment that used to say nothing: a link paid
+  from any of the four screens, a deposit on a booking added by hand, and a
+  sale at the till where the client has an address. Not for a deposit the
+  assistant takes while booking — that already sends a confirmation in the same
+  second, and two emails a second apart read as a glitch. Any of them can be
+  sent again from the client's record.
 - Per person: hours, rates, roles, greeting, tone, time off, travel time,
   reminders, calendar feed, their own services and prices, and which of the
   shop's services they do and do not offer.

@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   formatPence,
+  formatExactPence,
   formatRange,
   parsePounds,
   renderPolicy,
@@ -137,4 +138,22 @@ test("an unknown placeholder is stripped, never spoken", () => {
 test("a policy with no placeholders is left exactly alone", () => {
   const plain = "48 hours' notice, or the deposit is kept.";
   assert.equal(renderPolicy(plain, { deposit: 5000 }), plain);
+});
+
+/*
+ * The receipt formatter. `formatPence` drops a trailing .00 because a quote
+ * reads better as "from £120"; a document about money that has moved wants
+ * every figure the same shape.
+ */
+test("formatExactPence always shows the pence", () => {
+  assert.equal(formatExactPence(3800), "£38.00");
+  assert.equal(formatExactPence(3850), "£38.50");
+  assert.equal(formatExactPence(0), "£0.00");
+  assert.equal(formatExactPence(5), "£0.05");
+  assert.equal(formatExactPence(123456), "£1,234.56");
+});
+
+test("and formatPence still does not, which is the whole difference", () => {
+  assert.equal(formatPence(3800), "£38");
+  assert.equal(formatExactPence(3800), "£38.00");
 });
