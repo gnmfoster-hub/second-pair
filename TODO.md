@@ -125,7 +125,49 @@ Once a month: `BACKUP_KEY='...' node scripts/restore.mjs <file>`. It only
 reports. A backup nobody has read back is a hope, and this is how you find out
 the passphrase in the password manager is the old one.
 
-### 7. Decide about tapping a card on a phone
+### 7. Decide whether to take a cut of what goes through
+
+You asked whether you can get paid for sending businesses to Stripe.
+Researched against Stripe's own documentation, September 2026.
+
+**Not as a referral.** Stripe runs no public affiliate scheme — there is no
+link you can sign up for that pays you per business referred. The Stripe
+Partner Program does share revenue based on the volume of businesses you bring,
+and it is application-based and aimed at platforms that already have volume to
+talk about. Worth applying to when you have ten customers, pointless now.
+
+**But there is a real mechanism, and you already have the integration for it.**
+Every payment this product takes is a direct charge on the business's own
+connected account. Stripe lets a platform add an `application_fee_amount` to
+exactly that kind of charge: the money splits at the moment of payment, the
+business gets the rest, and your cut lands in your own Stripe balance. Stripe
+takes no extra fee on the fee.
+
+It is not a referral bonus from Stripe. It is a fee from the business, which
+is a better thing — it scales with their takings rather than with signing them
+up.
+
+**The decision, and it is a real one.** Today the answer to "does Second Pair
+touch our money" is no, flatly, and that sentence sells. An application fee
+makes the answer "a percentage of it, disclosed". Both are defensible; only one
+of them is what the terms and the settings page currently say.
+
+Three things to know before choosing:
+
+- **Refunds do not return it automatically.** Refund a £95 colour and the
+  application fee stays with you unless the refund explicitly says otherwise —
+  so the business is £3 down on a sale they gave back. Since refunds here are
+  done by hand in their own Stripe dashboard, there is no code of ours in the
+  way to get it right. That is the one that turns into an angry email.
+- **It has to be in the terms**, and in a sentence somebody reads before they
+  connect, not in clause 14.
+- **It changes the pricing conversation.** A subscription plus a percentage is
+  two prices; most platforms pick one and are clearer for it.
+
+If you want it, it is a small change — one field on the checkout session — plus
+the refund handling, which is the part that is not small.
+
+### 8. Decide about tapping a card on a phone
 
 Researched against Stripe's own documentation, September 2026. Three different
 things get called "pay on the phone" and only one of them is hard.
@@ -162,16 +204,16 @@ above the CVM limit and demand the card be inserted, which a phone cannot do.
 Stripe's own advice in that case is another card, a real reader, or a payment
 link — so a phone is never the only way you can take money.
 
-### 8. The Neat & Tidy number
+### 9. The Neat & Tidy number
 
 Send it to Chris, and put it on the Facebook page, the Google listing and
 anything else with the old one on.
 
-### 9. Check the forward on info@neatandtidysolutions.co.uk
+### 10. Check the forward on info@neatandtidysolutions.co.uk
 
 You sent a test to it. Confirm it arrived at the Second Pair address.
 
-### 10. The slow ones
+### 11. The slow ones
 
 - **Meta verification** — weeks, and cannot be hurried. Steps below.
 - **ICO registration** — £52 a year. You are processing personal data on behalf
