@@ -393,6 +393,27 @@ export function EntryDialog({
                 </a>
               </div>
             )}
+          </div>
+        ) : null}
+
+        {/*
+          * Everything you do to an appointment while somebody is standing
+          * there: what it cost, charging for it, selling them something, and
+          * closing it off afterwards.
+          *
+          * Outside the block above, which is the point. All of this used to
+          * live inside it, and that block only renders when the booking came
+          * from a conversation — so an appointment typed into the diary by
+          * hand had no complete button, no payment link and no way to sell
+          * anybody a bottle. Which is most appointments in most salons: the
+          * phone rings, somebody writes it in, and none of the things this
+          * product is for were reachable from it.
+          *
+          * Client work only. A lunch break and a day off are entries in the
+          * diary and neither of them is owed money or needs closing off.
+          */}
+        {entry && isClientWork && (
+          <div className="mt-4 space-y-1 rounded-lg bg-surface-2/50 p-4 text-sm">
             {/*
               * Only where there is a deposit to speak of.
               *
@@ -403,38 +424,44 @@ export function EntryDialog({
               * commonest thing this line did was make a false statement about
               * money — in a studio that had not even connected Stripe.
               */}
-            {hasDeposit(entry ?? {}) && (
+            {hasDeposit(entry) && (
               <div className="hint">
-                Deposit {formatPence(entry?.deposit_amount_pence ?? 0)} —{" "}
-                {depositPaid(entry ?? {}) ? "paid" : "not paid"}
+                Deposit {formatPence(entry.deposit_amount_pence ?? 0)} —{" "}
+                {depositPaid(entry) ? "paid" : "not paid"}
               </div>
-            )}
-            {entry?.conversationId && (
-              <Link
-                href={`/conversations/${entry.conversationId}`}
-                className="mt-2 inline-block text-sm text-accent hover:underline"
-              >
-                Open the conversation →
-              </Link>
             )}
 
             {/*
-              * From the moment it starts, not from the moment it was due to
-              * end.
+              * Out to the two places this appointment came from.
               *
-              * Asking on Tuesday whether somebody turned up to Thursday is
-              * noise on every booking in the diary, and noise on every booking
-              * is how a control gets ignored on the one that matters. That
-              * part was right. Waiting for the booked end time was not: a
-              * forty-five minute cut that took half an hour is finished, the
-              * client has gone, and the person closing it off is stood there
-              * with fifteen minutes to spare — which is exactly when this gets
-              * done, and exactly when it was not there.
-              *
-              * It was reported as there being no complete button at all, twice,
-              * which is what a control that appears an hour after you look for
-              * it amounts to.
+              * Their record is where a phone number, an email address, what
+              * they are allergic to and what they have agreed to be sent all
+              * live — and there has never been a way to reach it from the
+              * appointment. Changing somebody's number meant closing this,
+              * going to the client list, searching for a name you are looking
+              * at, and opening them: four steps away from the screen that
+              * already knows who they are.
               */}
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+              {entry.contactId && (
+                <Link
+                  href={`/clients/${entry.contactId}`}
+                  className="inline-block text-sm text-accent hover:underline"
+                >
+                  Open their record →
+                </Link>
+              )}
+
+              {entry.conversationId && (
+                <Link
+                  href={`/conversations/${entry.conversationId}`}
+                  className="inline-block text-sm text-accent hover:underline"
+                >
+                  Open the conversation →
+                </Link>
+              )}
+            </div>
+
             {/*
               * Money, from the appointment it is owed on.
               *
@@ -448,41 +475,51 @@ export function EntryDialog({
               * to show them. Sending it is on their record and in the
               * conversation, where you are already writing to them.
               */}
-            {entry && isClientWork && (
-              <div className="mt-3 border-t border-border pt-3">
-                <AskForPayment
-                  contactId={entry.contactId}
+            <div className="mt-3 border-t border-border pt-3">
+              <AskForPayment
+                contactId={entry.contactId}
+                bookingId={entry.id}
+                artistId={entry.artist_id}
+                amountPence={entry.price_pence}
+                description={entry.title || "Appointment"}
+                connected={stripeConnected}
+                label="Ask for payment"
+              />
+
+              {/*
+                * And anything they bought on the way out.
+                *
+                * Beneath asking for payment rather than above it, because the
+                * balance on the work is the thing somebody opens this for and
+                * a bottle of conditioner is the afterthought — which is
+                * exactly why it needs to be here at all. An afterthought that
+                * costs three screens is an afterthought that gets written on a
+                * pad.
+                */}
+              {mineToSell.length > 0 && (
+                <SellOnBooking
                   bookingId={entry.id}
+                  contactId={entry.contactId}
                   artistId={entry.artist_id}
-                  amountPence={entry.price_pence}
-                  description={entry.title || "Appointment"}
-                  connected={stripeConnected}
-                  label="Ask for payment"
+                  shelf={mineToSell}
+                  alreadyPence={entry.soldPence}
                 />
+              )}
+            </div>
 
-                {/*
-                  * And anything they bought on the way out.
-                  *
-                  * Beneath asking for payment rather than above it, because
-                  * the balance on the work is the thing somebody opens this
-                  * for and a bottle of conditioner is the afterthought — which
-                  * is exactly why it needs to be here at all. An afterthought
-                  * that costs three screens is an afterthought that gets
-                  * written on a pad.
-                  */}
-                {mineToSell.length > 0 && (
-                  <SellOnBooking
-                    bookingId={entry.id}
-                    contactId={entry.contactId}
-                    artistId={entry.artist_id}
-                    shelf={mineToSell}
-                    alreadyPence={entry.soldPence}
-                  />
-                )}
-              </div>
-            )}
-
-            {entry && Date.parse(entry.starts_at) <= openedAt && (
+            {/*
+              * From the moment it starts, not from the moment it was due to
+              * end.
+              *
+              * Asking on Tuesday whether somebody turned up to Thursday is
+              * noise on every booking in the diary, and noise on every booking
+              * is how a control gets ignored on the one that matters. Waiting
+              * for the booked end time was the other mistake: a forty-five
+              * minute cut that took half an hour is finished, the client has
+              * gone, and the person closing it off is stood there with fifteen
+              * minutes to spare.
+              */}
+            {Date.parse(entry.starts_at) <= openedAt && (
               <CloseOff
                 id={entry.id}
                 attended={entry.attended}
@@ -498,7 +535,7 @@ export function EntryDialog({
               />
             )}
           </div>
-        ) : null}
+        )}
 
         {/* space-y-4 on a phone. Five was a fifth of the screen given to the
             gaps between fields on a form that already had to scroll. */}
