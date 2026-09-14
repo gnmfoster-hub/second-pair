@@ -404,33 +404,6 @@ export function EntryDialog({
           <input type="hidden" name="category" value={category} />
           <input type="hidden" name="all_day" value={allDay ? "true" : "false"} />
 
-          {!fromClient && (
-            <Field label="What is it">
-              <div className="flex flex-wrap gap-1.5">
-                {(existing ? CATEGORIES : OWNER_CATEGORIES).map((c) => (
-                  <button
-                    key={c.key}
-                    type="button"
-                    onClick={() => chooseCategory(c.key)}
-                    className={`rounded-full px-3 py-1 text-xs transition-colors ${
-                      category === c.key
-                        ? "text-white"
-                        : "border border-border text-muted hover:text-foreground"
-                    }`}
-                    style={category === c.key ? { background: c.hue } : undefined}
-                  >
-                    {c.label}
-                  </button>
-                ))}
-              </div>
-              {chosen.hint && <p className="hint mt-2">{chosen.hint}</p>}
-              {!chosen.blocks && (
-                <p className="hint mt-1 text-warn">
-                  A note only — the assistant can still book over this time.
-                </p>
-              )}
-            </Field>
-          )}
 
           {/*
            * Client work is for somebody; everything else is a title.
@@ -626,6 +599,28 @@ export function EntryDialog({
             </select>
           </Field>
 
+          {/*
+            * Everything usually left alone, folded.
+            *
+            * Whether it repeats, what kind of entry it is, and a note nobody
+            * else sees. Five more fields on a sheet whose common case is a
+            * name, a service and a time — and every one of them visible meant
+            * scrolling past four things to reach the one you wanted, on a
+            * phone, with somebody on the line.
+            *
+            * A summary rather than a heading, so it is one tap when it is
+            * wanted and no height when it is not. Open on an entry already
+            * using any of it, because then it is not "anything else", it is
+            * what this booking is.
+            */}
+          <details
+            className="sheet-wide rounded-xl border border-border px-3.5 py-2.5"
+            open={Boolean(
+              entry?.notes || (entry?.repeats && entry.repeats !== "none") || !isClientWork,
+            )}
+          >
+            <summary className="cursor-pointer text-sm text-muted">Anything else</summary>
+            <div className="mt-3 space-y-4">
           {!existing && !fromClient && (
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Repeat">
@@ -655,10 +650,56 @@ export function EntryDialog({
               Part of a repeating set. Saving changes this one only.
             </p>
           )}
+          {/*
+            * What kind of entry this is, below the booking rather than above
+            * it.
+            *
+            * It was the first question on the sheet: a row of chips asking
+            * "what is it" before anything about who or when. Nineteen times
+            * in twenty the answer is "an appointment" — it is what the slot
+            * you just tapped is for — and the add menu has usually said so
+            * already. Asking first put the rarest decision in front of the
+            * commonest one, on a form somebody is filling in with a customer
+            * waiting on the phone.
+            *
+            * Still here, still one tap, just not in the way. Open when it is
+            * anything other than ordinary client work, because that is when
+            * it is the thing being changed.
+            */}
+          {!fromClient && (
+            <Field label="What is it">
+              <div className="flex flex-wrap gap-1.5">
+                {(existing ? CATEGORIES : OWNER_CATEGORIES).map((c) => (
+                  <button
+                    key={c.key}
+                    type="button"
+                    onClick={() => chooseCategory(c.key)}
+                    className={`rounded-full px-3 py-1 text-xs transition-colors ${
+                      category === c.key
+                        ? "text-white"
+                        : "border border-border text-muted hover:text-foreground"
+                    }`}
+                    style={category === c.key ? { background: c.hue } : undefined}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+              {chosen.hint && <p className="hint mt-2">{chosen.hint}</p>}
+              {!chosen.blocks && (
+                <p className="hint mt-1 text-warn">
+                  A note only — the assistant can still book over this time.
+                </p>
+              )}
+            </Field>
+          )}
+
 
           <Field label="Notes" hint="Only you see these.">
             <textarea name="notes" defaultValue={entry?.notes ?? ""} rows={2} className="input" />
           </Field>
+            </div>
+          </details>
 
           {/*
             * The way out for somebody who has five of these to type.
