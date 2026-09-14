@@ -79,6 +79,51 @@ test("a service with no length is never offered, because it cannot be booked", (
   assert.equal(bandsFromServices([service({ minutes: null })]).length, 0);
 });
 
+/*
+ * The gap this closes. Who-does-what keeps the assistant from picking somebody
+ * for work they do not do, and it only gets a say while there is still a
+ * choice to make — on somebody's own Instagram the person is already settled
+ * and that map is never consulted. So an apprentice would have quoted balayage
+ * on her own account, at the shop's price, for work she does not do.
+ */
+test("what this person does not do is off their own list", () => {
+  const balayage = service({ id: "balayage" });
+  const mine = new Map([
+    [
+      "balayage",
+      { service_id: "balayage", artist_id: "jade", minutes: null, price_pence: null, offered: false },
+    ],
+  ]);
+
+  assert.equal(bandsFromServices([balayage], mine, "jade").length, 0);
+});
+
+test("but everything they have said nothing about stays on it", () => {
+  const cut = service({ id: "cut" });
+  const mine = new Map([
+    [
+      "other",
+      { service_id: "other", artist_id: "jade", minutes: null, price_pence: null, offered: false },
+    ],
+  ]);
+
+  assert.equal(bandsFromServices([cut], mine, "jade").length, 1);
+});
+
+test("an explicit yes is a yes, and their own price comes with it", () => {
+  const cut = service({ id: "cut" });
+  const mine = new Map([
+    [
+      "cut",
+      { service_id: "cut", artist_id: "jade", minutes: 25, price_pence: 2600, offered: true },
+    ],
+  ]);
+
+  const [band] = bandsFromServices([cut], mine, "jade");
+  assert.equal(band.price_low_pence, 2600);
+  assert.equal(band.duration_minutes, 25);
+});
+
 test("consultation-first survives, so it is still booked as a consultation", () => {
   const [b] = bandsFromServices([service({ requires_consultation: true })]);
   assert.equal(b.requires_consultation, true);

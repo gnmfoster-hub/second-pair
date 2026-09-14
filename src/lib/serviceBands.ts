@@ -86,6 +86,20 @@ export function bandsFromServices(
     .filter((s) => s.minutes != null)
     // The business's, or this person's own. Never somebody else's.
     .filter((s) => s.artist_id == null || s.artist_id === forArtistId)
+    /*
+     * And not the ones this person does not do.
+     *
+     * The map of who-does-what keeps the assistant from choosing somebody for
+     * work they do not do, but it only gets a say while there is still a
+     * choice to make. On somebody's own Instagram, or through a link carrying
+     * their handle, the person is already settled and that map is never
+     * consulted — so the whole shop's price list was read out in their name,
+     * and an apprentice would have quoted balayage on her own account.
+     *
+     * Absent means they do it, the same as everywhere else: only an explicit
+     * false takes anything off a list.
+     */
+    .filter((s) => mine?.get(s.id)?.offered !== false)
     .map((s) => bandFromService(s, mine?.get(s.id)))
     .filter((b) => b.price_low_pence != null)
     .sort((a, b) => a.sort_order - b.sort_order);
