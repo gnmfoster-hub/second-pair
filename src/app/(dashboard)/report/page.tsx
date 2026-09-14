@@ -133,15 +133,37 @@ export default async function ReportPage({
   );
 
   /*
+   * What is nearly gone off the shelf.
+   *
+   * Only where the shop is counting — a null stock means it is not, and a
+   * warning about a number nobody keeps would be noise on every report for
+   * ever. Three is the line: enough warning to order before the last one goes.
+   *
+   * select("*") and filtered here rather than named in the query, so this
+   * keeps working on either side of the migration that added the column.
+   */
+  const { data: shelf } = await supabase
+    .from("services")
+    .select("*")
+    .eq("studio_id", studio.id)
+    .eq("kind", "product")
+    .eq("active", true);
+
+  const runningLow = ((shelf ?? []) as { name: string; stock?: number | null }[])
+    .filter((p) => p.stock != null && p.stock <= 3)
+    .map((p) => ({ name: p.name, stock: p.stock as number }))
+    .sort((a, b) => a.stock - b.stock);
+
+  /*
    * The gaps in the week ahead that could be sold.
    *
-   * The other half of the list above. That one gives a salon people to ring;
-   * this gives them something to offer, and the two together are the whole of
-   * what a quiet week needs — which is otherwise a thing an owner worries
+   * The other half of "who hasn't been back". That list gives a salon people
+   * to ring; this gives them something to offer, and the two together are the
+   * whole of what a quiet week needs — otherwise a thing an owner worries
    * about on a Sunday and cannot act on.
    *
-   * The week ahead, deliberately, whichever week the figures are showing.
-   * Nobody can sell last Tuesday's empty afternoon.
+   * The week ahead, deliberately, whichever week the figures are showing:
+   * nobody can sell last Tuesday's empty afternoon.
    */
   const openSlots = await gapsAhead(supabase, studio, now);
   const freeHours = Math.round(
@@ -284,7 +306,7 @@ export default async function ReportPage({
       </div>
 
       {/* What the week came to, from the diary rather than the conversations. */}
-      <Takings figures={takings} byService={byService} />
+      <Takings figures={takings} byService={byService} runningLow={runningLow} />
 
       <NotBeenBack people={notBeenBack} />
 

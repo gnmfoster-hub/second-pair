@@ -18,9 +18,18 @@ import type { Takings as Figures } from "@/lib/takings";
 export function Takings({
   figures,
   byService,
+  runningLow = [],
 }: {
   figures: Figures;
   byService: Figures["byService"];
+  /**
+   * Products down to their last few, where the shop counts them at all.
+   *
+   * Not part of the week's figures — a shelf with one bottle left needs
+   * reordering in a quiet week more than a busy one — but this is the page
+   * somebody reads once a week, so it is where a reorder gets noticed.
+   */
+  runningLow?: { name: string; stock: number }[];
 }) {
   if (figures.bookings === 0) return null;
 
@@ -116,6 +125,26 @@ export function Takings({
             </div>
           </div>
 
+          {/*
+            * What it made, as against what it took.
+            *
+            * The reason a cost can be recorded against a product at all. Taking
+            * two hundred pounds off a shelf that cost a hundred and forty is a
+            * different week from taking two hundred off one that cost thirty,
+            * and the takings figure alone cannot tell them apart.
+            *
+            * Shown only once something has a cost on it. Null is "nobody has
+            * said", and printing £0 made would be a far more alarming sentence
+            * than the truth, which is that the question has not been answered
+            * yet.
+            */}
+          {figures.sales.madePence != null && (
+            <p className="hint mt-1">
+              {formatPence(figures.sales.madePence)} of that is what it made, after what
+              the stock cost you.
+            </p>
+          )}
+
           {figures.sales.byItem.length > 0 && (
             <ul className="mt-2 space-y-1.5">
               {figures.sales.byItem.slice(0, 8).map((item) => (
@@ -136,6 +165,36 @@ export function Takings({
           <p className="hint mt-2">
             Not in the figures above, which are appointments. This is the shelf.
           </p>
+        </div>
+      )}
+
+      {/*
+        * What to reorder, which is the one thing on this page with a deadline.
+        *
+        * Only for products the shop is actually counting — a null stock means
+        * they are not, and inventing a warning about a number nobody is
+        * keeping would be noise on every report forever.
+        *
+        * Outside the counter block above, because it is true whether or not
+        * anything sold this week: a shelf with one bottle left on it needs
+        * reordering in a quiet week more than a busy one.
+        */}
+      {runningLow.length > 0 && (
+        <div className="mt-6 border-t border-border pt-4">
+          <div className="label">Running low</div>
+          <ul className="mt-2 space-y-1.5">
+            {runningLow.map((item) => (
+              <li
+                key={item.name}
+                className="flex items-baseline justify-between gap-3 text-sm"
+              >
+                <span className="min-w-0 truncate">{item.name}</span>
+                <span className={`tabular-nums ${item.stock === 0 ? "text-warn" : "hint"}`}>
+                  {item.stock === 0 ? "none left" : `${item.stock} left`}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
