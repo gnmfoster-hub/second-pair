@@ -57,6 +57,22 @@ export function ClientPicker({
     onChosen?.(next?.id ?? null);
   };
 
+  /*
+   * How to reach somebody being added for the first time.
+   *
+   * The picker took a name and nothing else, so every client booked in over
+   * the phone arrived with no number on them — and the product that exists to
+   * send reminders and offer cancelled slots could reach not one of them. The
+   * number is in the hand of whoever is typing the name; asking a week later
+   * means asking the customer again.
+   *
+   * Both optional, and only shown for somebody new: an existing client already
+   * has whatever is on their record, and offering to change it here is how a
+   * booking quietly overwrites a phone number.
+   */
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+
   const [matches, setMatches] = useState<Match[]>([]);
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -101,6 +117,10 @@ export function ClientPicker({
       {/* What the form actually submits. */}
       <input type="hidden" name={idName} value={chosen?.id ?? ""} />
       <input type="hidden" name={name} value={chosen?.name ?? ""} />
+      {/* Only for somebody new. An existing client's details are theirs and
+          are changed on their record, not in passing while booking them. */}
+      <input type="hidden" name={`${name}_phone`} value={chosen && !chosen.id ? phone : ""} />
+      <input type="hidden" name={`${name}_email`} value={chosen && !chosen.id ? email : ""} />
 
       <input
         value={query}
@@ -129,6 +149,45 @@ export function ClientPicker({
             </>
           )}
         </p>
+      )}
+
+      {/*
+        * And how to reach them, while somebody is standing there.
+        *
+        * Two boxes rather than a second screen, because the number is in the
+        * hand of whoever is typing the name and will not be later. Either or
+        * neither: plenty of people book with a name and nothing else, and a
+        * required field here would be a required lie.
+        */}
+      {chosen && !chosen.id && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          <label className="min-w-[9rem] flex-1">
+            <span className="label">Mobile</span>
+            <input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              inputMode="tel"
+              autoComplete="off"
+              placeholder="07700 900123"
+              className="input num"
+            />
+          </label>
+          <label className="min-w-[11rem] flex-1">
+            <span className="label">Email</span>
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              type="email"
+              autoComplete="off"
+              placeholder="them@example.com"
+              className="input"
+            />
+          </label>
+          <p className="hint w-full">
+            Either, both or neither. Without one of them a reminder has nowhere to go and
+            a cancelled slot cannot be offered to them.
+          </p>
+        </div>
       )}
 
       {/*

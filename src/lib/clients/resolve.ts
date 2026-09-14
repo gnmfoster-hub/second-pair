@@ -17,7 +17,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export async function resolveContact(
   db: Pick<SupabaseClient, "from">,
   studioId: string,
-  fields: { id?: string | null; name?: string | null; phone?: string | null },
+  fields: {
+    id?: string | null;
+    name?: string | null;
+    phone?: string | null;
+    email?: string | null;
+  },
 ): Promise<string | null> {
   const id = (fields.id ?? "").trim();
   if (id) return id;
@@ -28,11 +33,24 @@ export async function resolveContact(
   // them would fill the book with people nobody can greet.
   if (!name) return null;
 
+  /*
+   * Whatever was offered, and nothing invented.
+   *
+   * An empty box is left off the row rather than written as a blank string: a
+   * contact with `phone: ""` looks like somebody who has a number to every
+   * query that asks whether they can be texted, and then the text fails.
+   */
   const phone = (fields.phone ?? "").trim();
+  const email = (fields.email ?? "").trim().toLowerCase();
 
   const { data } = await db
     .from("contacts")
-    .insert({ studio_id: studioId, name, ...(phone ? { phone } : {}) })
+    .insert({
+      studio_id: studioId,
+      name,
+      ...(phone ? { phone } : {}),
+      ...(email ? { email } : {}),
+    })
     .select("id")
     .single();
 

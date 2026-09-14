@@ -114,6 +114,8 @@ export async function recordSale(_prev: SellState, fd: FormData): Promise<SellSt
   const contactId = await resolveContact(supabase, studio.id, {
     id: str(fd, "contact_id"),
     name: str(fd, "contact_name"),
+    phone: str(fd, "contact_name_phone"),
+    email: str(fd, "contact_name_email"),
   });
 
   /*

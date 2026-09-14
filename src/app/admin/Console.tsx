@@ -1868,8 +1868,16 @@ export type Arrived = {
  * exists for.
  */
 function Arrivals({ inbound }: { inbound: Arrived[] }) {
-  if (inbound.length === 0) return null;
-
+  /*
+   * Shown even when there is nothing in it, which is the opposite of the rule
+   * every other panel here follows.
+   *
+   * Empty is not "nothing to report" on this one — it is the answer. Somebody
+   * looks at this precisely because a provider says it has sent a code and
+   * none has appeared, and hiding the panel at that moment leaves them
+   * searching the back office for a thing that is deliberately invisible. The
+   * sentence at the bottom is the whole point of it.
+   */
   const colour = (verdict: string) =>
     verdict === "answered"
       ? "bg-ok/10 text-ok"
@@ -1884,7 +1892,13 @@ function Arrivals({ inbound }: { inbound: Arrived[] }) {
         <span className="hint">newest first</span>
       </div>
 
-      <ul className="mt-3 divide-y divide-border border-y border-border">
+      {inbound.length === 0 && (
+        <p className="hint mt-2">
+          Nothing has reached an inbound address yet.
+        </p>
+      )}
+
+      <ul className="mt-3 divide-y divide-border border-y border-border empty:hidden empty:border-0">
         {inbound.map((row) => (
           <li key={row.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2 text-sm">
             <span className={`pill shrink-0 ${colour(row.verdict)}`}>{row.verdict}</span>
@@ -1902,8 +1916,11 @@ function Arrivals({ inbound }: { inbound: Arrived[] }) {
       </ul>
 
       <p className="hint mt-2">
-        Nothing here at all means nothing reached us: look in Resend&rsquo;s own received
-        log, which is upstream of this.
+        Every email that reaches <span className="font-mono text-xs">@in.second-pair.com</span>{" "}
+        appears here, whether it was answered, put in the business&rsquo;s inbox, or thrown
+        away as a machine talking. If something was sent and is <em>not</em> here, it never
+        reached us &mdash; look in Resend&rsquo;s own received log, which is upstream of
+        this.
       </p>
     </section>
   );

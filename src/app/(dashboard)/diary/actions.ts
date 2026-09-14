@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { resolveContact } from "@/lib/clients/resolve";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio, getArtists } from "@/lib/studio";
@@ -89,7 +90,7 @@ export async function saveDiaryEntry(
             title: str(fd, "title") || str(fd, "contact_name") || null,
             notes: str(fd, "notes") || null,
             price_pence: priceOf(fd),
-            contact_id: await resolveContact(supabase, studio.id, fd),
+            contact_id: await fromPicker(supabase, studio.id, fd),
           };
 
     const { error } = await supabase.from("bookings").update(patch).eq("id", id);
@@ -107,7 +108,7 @@ export async function saveDiaryEntry(
   //
   // Client bookings are titled by who they are for, so somebody booking Marie
   // in over the phone types her name once rather than into two fields.
-  const contactId = await resolveContact(supabase, studio.id, fd);
+  const contactId = await fromPicker(supabase, studio.id, fd);
   const title = str(fd, "title") || str(fd, "contact_name");
   if (!title) return { error: "Give it a title, or say who it is for." };
 
@@ -740,25 +741,6 @@ export async function findClients(query: string) {
  * and gets a contact row created for them, so a booking taken over the phone
  * builds the same history an assistant booking would.
  */
-async function resolveContact(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  studioId: string,
-  fd: FormData,
-): Promise<string | null> {
-  const id = str(fd, "contact_id");
-  if (id) return id;
-
-  const name = str(fd, "contact_name");
-  if (!name) return null;
-
-  const { data } = await supabase
-    .from("contacts")
-    .insert({ studio_id: studioId, name })
-    .select("id")
-    .single();
-
-  return data?.id ?? null;
-}
 
 /**
  * A price typed in pounds, kept in pence.
@@ -774,4 +756,28 @@ function priceOf(fd: FormData): number | null {
   const pounds = Number(raw);
   if (!Number.isFinite(pounds) || pounds < 0) return null;
   return Math.round(pounds * 100);
+}
+
+/**
+ * The client picker's fields, turned into a client.
+ *
+ * There were two of these: the shared one in lib/clients, and a private copy
+ * here that took a name and nothing else. So a client added at the till got
+ * their phone number kept and the same client added in the diary did not —
+ * the same form, the same picker, two different answers, decided by which file
+ * the action happened to live in.
+ *
+ * One rule now, named where the form names its fields.
+ */
+async function fromPicker(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  studioId: string,
+  fd: FormData,
+): Promise<string | null> {
+  return resolveContact(supabase, studioId, {
+    id: str(fd, "contact_id"),
+    name: str(fd, "contact_name"),
+    phone: str(fd, "contact_name_phone"),
+    email: str(fd, "contact_name_email"),
+  });
 }
