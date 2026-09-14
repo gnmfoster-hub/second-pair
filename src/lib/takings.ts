@@ -194,6 +194,7 @@ export async function salesFor(
   const people = new Map<string, { name: string; count: number; pence: number }>();
   let pence = 0;
   let taken = 0;
+  let count = 0;
 
   for (const row of rows) {
     /*
@@ -216,6 +217,7 @@ export async function salesFor(
 
     if (shelf <= 0) continue;
     pence += shelf;
+    count += 1;
 
     // A sale nobody is named on belongs to the shop, and is counted in the
     // total without inventing a person to attribute it to.
@@ -250,9 +252,16 @@ export async function salesFor(
   }
 
   return {
-    // How many sales there were, which is how many had something on the shelf
-    // in them rather than how many payments were taken.
-    count: [...people.values()].reduce((n, p) => n + p.count, 0) || (pence > 0 ? 1 : 0),
+    /*
+     * How many sales there were: payments with something off the shelf in
+     * them, rather than how many payments were taken at all.
+     *
+     * Counted alongside the total rather than added up from byPerson, which
+     * was the first shape of this and quietly wrong — a sale with nobody named
+     * on it belongs to the shop and never reaches that map, so a Saturday of
+     * shop sales would have reported none.
+     */
+    count,
     pence,
     taken,
     byPerson: [...people.entries()]
