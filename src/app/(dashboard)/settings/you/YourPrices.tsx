@@ -46,6 +46,8 @@ export function YourPrices({
 
   return (
     <form action={action} className="card p-5">
+      {/* Says the ticks were on screen — see the note in priceActions. */}
+      <input type="hidden" name="touch_offered" value="1" />
       <div className="section-title">Your prices</div>
       <p className="hint mt-1.5 max-w-prose">
         What the assistant quotes when somebody asks for you by name. Leave a row alone
@@ -54,6 +56,7 @@ export function YourPrices({
       </p>
 
       <div className="mt-5 hidden gap-3 px-1 text-xs uppercase tracking-wide text-muted sm:flex">
+        <span className="w-12">Does it</span>
         <span className="flex-1">What you do</span>
         <span className="w-28">On the list</span>
         <span className="w-28">Your price</span>
@@ -68,6 +71,24 @@ export function YourPrices({
               key={s.id}
               className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 sm:flex-nowrap"
             >
+              {/*
+                * Whether you do this one at all.
+                *
+                * Unticked, the assistant stops offering you for it. A junior
+                * who does not do balayage was being quoted for it at a price
+                * she never set, and the first anybody heard was somebody
+                * arriving for it.
+                */}
+              <label className="flex w-12 shrink-0 items-center gap-2">
+                <input
+                  type="checkbox"
+                  name={`offered_${s.id}`}
+                  defaultChecked={row?.offered !== false}
+                  className="accent-[var(--accent)]"
+                />
+                <span className="sr-only">You do {s.name}</span>
+              </label>
+
               <span className="min-w-0 flex-1 basis-full truncate font-medium sm:basis-auto">
                 {s.name}
               </span>

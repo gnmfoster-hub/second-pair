@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireStudio } from "@/lib/studio";
 import { createClient } from "@/lib/supabase/server";
 import { parsePounds } from "@/lib/money";
+import { hasColumn } from "@/lib/db/hasColumn";
 
 export type PriceState = { error?: string; ok?: boolean; saved?: number };
 
@@ -74,8 +75,20 @@ export async function saveMyPrices(_prev: PriceState, fd: FormData): Promise<Pri
     artist_id: string;
     minutes: number | null;
     price_pence: number | null;
+    offered?: boolean;
   }[] = [];
   const clears: string[] = [];
+
+  /*
+   * Whether the ticks saying what they do were on the form at all.
+   *
+   * The same sentinel as the owner's version, for the same reason: an unticked
+   * box and an absent one are one thing in a submission, so a save from
+   * anywhere that does not show them would read as "I do none of it".
+   */
+  const carriesOffering =
+    fd.get("touch_offered") != null &&
+    (await hasColumn(supabase, "service_people", "offered"));
 
   for (const id of known) {
     const price = parsePounds(fd.get(`price_${id}`));
@@ -83,17 +96,28 @@ export async function saveMyPrices(_prev: PriceState, fd: FormData): Promise<Pri
     const n = Number(rawMinutes);
     const minutes = rawMinutes !== "" && Number.isFinite(n) && n > 0 ? Math.round(n) : null;
 
+    const doesIt = !carriesOffering || fd.get(`offered_${id}`) != null;
+
     /*
      * Both boxes empty means "whatever the list says", which is the answer for
      * nearly every service and has to cost nothing to give. It is expressed by
      * there being no row at all, so emptying the boxes deletes one — otherwise
      * a person who changed their mind would be stuck with an override they
      * could see no way to remove.
+     *
+     * "I do not do this one" is a real answer and keeps its row even with both
+     * boxes empty, or unticking something would delete the only record of it.
      */
-    if (price === null && minutes === null) {
+    if (price === null && minutes === null && doesIt) {
       clears.push(id);
     } else {
-      upserts.push({ service_id: id, artist_id: me.id, minutes, price_pence: price });
+      upserts.push({
+        service_id: id,
+        artist_id: me.id,
+        minutes,
+        price_pence: price,
+        ...(carriesOffering ? { offered: doesIt } : {}),
+      });
     }
   }
 

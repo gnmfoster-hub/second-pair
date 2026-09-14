@@ -284,6 +284,14 @@ export type ServicePerson = {
   artist_id: string;
   minutes: number | null;
   price_pence: number | null;
+  /**
+   * False where this person does not do this service at all.
+   *
+   * Absent means they do, which is also what no row at all means — so a
+   * business that has never thought about it is unaffected, and the assistant
+   * goes on offering everybody for everything until somebody says otherwise.
+   */
+  offered?: boolean;
 };
 
 export type Artist = {

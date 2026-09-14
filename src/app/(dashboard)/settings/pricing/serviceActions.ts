@@ -194,8 +194,21 @@ export async function saveTeamPrices(
     artist_id: string;
     minutes: number | null;
     price_pence: number | null;
+    offered?: boolean;
   }[] = [];
   const clears: string[] = [];
+
+  /*
+   * Whether the form carried the "does this" ticks at all.
+   *
+   * The same sentinel as the person editor, and for the same reason: an
+   * unticked box and an absent one are indistinguishable in a submission, so a
+   * save from a screen that does not show these — or an older page in a tab —
+   * would otherwise read as "they do none of it" and take somebody off the
+   * whole price list.
+   */
+  const askedAboutOffering = await hasColumn(supabase, "service_people", "offered");
+  const carriesOffering = fd.get("touch_offered") != null && askedAboutOffering;
 
   for (const { id } of services ?? []) {
     const price = parsePounds(fd.get(`price_${id}`));
@@ -203,9 +216,28 @@ export async function saveTeamPrices(
     const n = Number(raw);
     const minutes = raw !== "" && Number.isFinite(n) && n > 0 ? Math.round(n) : null;
 
-    // Both empty means the shop's price, which is expressed by no row at all.
-    if (price === null && minutes === null) clears.push(id);
-    else upserts.push({ service_id: id, artist_id: artistId, minutes, price_pence: price });
+    // Ticked means they do it, which is also what no row at all means.
+    const doesIt = !carriesOffering || fd.get(`offered_${id}`) != null;
+
+    /*
+     * Nothing said and they do it: the shop's price, expressed by no row.
+     *
+     * "They do not do it" is a real answer and has to survive, so it keeps its
+     * row even with no price and no minutes on it — otherwise ticking somebody
+     * off a service would delete the only record of that fact.
+     */
+    if (price === null && minutes === null && doesIt) {
+      clears.push(id);
+      continue;
+    }
+
+    upserts.push({
+      service_id: id,
+      artist_id: artistId,
+      minutes,
+      price_pence: price,
+      ...(carriesOffering ? { offered: doesIt } : {}),
+    });
   }
 
   if (clears.length) {

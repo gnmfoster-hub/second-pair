@@ -297,6 +297,53 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     (providers[row.band_id] ??= []).push(row.artist_id);
   }
 
+  /*
+   * And the same question for a business that prices by a named list.
+   *
+   * No two people on a salon's price list do all of it — the junior does not
+   * do balayage, the barber does not do a full head of foils. Without this the
+   * assistant believes everybody does everything, so it offers a stylist for
+   * work she does not do, at a price she never set, and the first anybody
+   * hears of it is a customer turning up for it. Bands have had this since
+   * August; the list had nothing.
+   *
+   * Stored as the exceptions — a row saying somebody does not — and turned
+   * here into the shape whoCanDo already expects, which is who does. That
+   * keeps the common case free: a business where everybody does everything
+   * writes no rows, gets no entries, and the rule that "nobody named means
+   * everybody" is untouched and still the one under test.
+   */
+  if (studio.pricing_model === "services" && bands.length) {
+    const { data: notOffered } = await db
+      .from("service_people")
+      .select("service_id, artist_id")
+      .in("service_id", bands.map((b) => b.id))
+      .eq("offered", false);
+
+    const refuses = new Map<string, Set<string>>();
+    for (const row of notOffered ?? []) {
+      const set = refuses.get(row.service_id as string) ?? new Set<string>();
+      set.add(row.artist_id as string);
+      refuses.set(row.service_id as string, set);
+    }
+
+    for (const [serviceId, theirs] of refuses) {
+      const willing = (artists ?? [])
+        .filter((a) => a.active && !theirs.has(a.id))
+        .map((a) => a.id);
+      /*
+       * Nobody left is not the same as nobody named.
+       *
+       * If every active person is marked as not doing something, an empty list
+       * here would read as "everybody does it" and the assistant would offer
+       * the first name on the roster for work nobody in the building does. A
+       * single impossible id says plainly that there is nobody, which is the
+       * truth, and the assistant falls through to fetching a human.
+       */
+      providers[serviceId] = willing.length ? willing : ["nobody"];
+    }
+  }
+
   const { conversation, enquiryId, contactId } = await findOrCreateConversation(
     db,
     studio.id,

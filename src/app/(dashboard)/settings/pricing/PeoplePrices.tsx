@@ -84,7 +84,18 @@ export function PeoplePrices({
         <form action={action} key={whoId} className="mt-5">
           <input type="hidden" name="artist_id" value={whoId} />
 
+          {/*
+            * The sentinel saying these ticks were on screen at all.
+            *
+            * An unticked box and an absent one look identical in a submission,
+            * so without this a save from anywhere that does not show them would
+            * read as "they do none of it" and take somebody off the entire
+            * price list in one press.
+            */}
+          <input type="hidden" name="touch_offered" value="1" />
+
           <div className="hidden gap-3 px-1 text-xs uppercase tracking-wide text-muted sm:flex">
+            <span className="w-12">Does it</span>
             <span className="flex-1">What you do</span>
             <span className="w-28">On the list</span>
             <span className="w-28">{who.name.split(" ")[0]}&rsquo;s price</span>
@@ -99,6 +110,27 @@ export function PeoplePrices({
                   key={s.id}
                   className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 sm:flex-nowrap"
                 >
+                  {/*
+                    * Whether they do it at all, which decides everything to
+                    * the right of it.
+                    *
+                    * Unticked, the assistant stops offering them for this —
+                    * it will not quote a junior for balayage at a price she
+                    * never set, and somebody turning up for it is how that
+                    * used to be found out.
+                    */}
+                  <label className="flex w-12 shrink-0 items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name={`offered_${s.id}`}
+                      defaultChecked={row?.offered !== false}
+                      className="accent-[var(--accent)]"
+                    />
+                    <span className="sr-only">
+                      {who.name} does {s.name}
+                    </span>
+                  </label>
+
                   <span className="min-w-0 flex-1 basis-full truncate font-medium sm:basis-auto">
                     {s.name}
                   </span>
