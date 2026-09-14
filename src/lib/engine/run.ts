@@ -4,6 +4,7 @@ import { joinReply } from "./reply";
 import { whoAnswers, type AnsweringMode } from "@/lib/answering";
 import { isOutOfHours } from "@/lib/report";
 import { notifyStudio } from "@/lib/notify";
+import { whoOffers } from "./whoOffers";
 import Anthropic from "@anthropic-ai/sdk";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -320,28 +321,14 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
       .in("service_id", bands.map((b) => b.id))
       .eq("offered", false);
 
-    const refuses = new Map<string, Set<string>>();
-    for (const row of notOffered ?? []) {
-      const set = refuses.get(row.service_id as string) ?? new Set<string>();
-      set.add(row.artist_id as string);
-      refuses.set(row.service_id as string, set);
-    }
-
-    for (const [serviceId, theirs] of refuses) {
-      const willing = (artists ?? [])
-        .filter((a) => a.active && !theirs.has(a.id))
-        .map((a) => a.id);
-      /*
-       * Nobody left is not the same as nobody named.
-       *
-       * If every active person is marked as not doing something, an empty list
-       * here would read as "everybody does it" and the assistant would offer
-       * the first name on the roster for work nobody in the building does. A
-       * single impossible id says plainly that there is nobody, which is the
-       * truth, and the assistant falls through to fetching a human.
-       */
-      providers[serviceId] = willing.length ? willing : ["nobody"];
-    }
+    Object.assign(
+      providers,
+      whoOffers(
+        bands.map((b) => b.id),
+        (notOffered ?? []) as { service_id: string; artist_id: string }[],
+        artists ?? [],
+      ),
+    );
   }
 
   const { conversation, enquiryId, contactId } = await findOrCreateConversation(

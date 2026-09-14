@@ -601,6 +601,47 @@ export async function refreshDemo(db: Db, studioId: string): Promise<DemoRefresh
     // A demo with an uncounted shelf is still a demo.
   }
 
+  // --------------------------------------------------- who does what
+  /*
+   * The apprentice does not do colour, and the nail technician does no hair.
+   *
+   * True of every salon and invisible in a demo without it: a price list where
+   * everybody does everything is the one shape a real shop never has, and the
+   * thing the assistant most needs to get right — offering the person who can
+   * actually do the work — cannot be shown at all.
+   *
+   * Guarded and swallowed, like the shelf above it.
+   */
+  try {
+    const { data: hair } = await db
+      .from("services")
+      .select("id, name")
+      .eq("studio_id", studio.id)
+      .eq("kind", "service")
+      .is("artist_id", null);
+
+    const colour = ["Half head of foils", "Full head of highlights", "Balayage", "Wedding hair"];
+    const jade = roster.find((a) => a.name === "Jade");
+    const aisha = roster.find((a) => a.name === "Aisha");
+
+    for (const service of hair ?? []) {
+      const off: string[] = [];
+      // An apprentice cuts and blow dries; she is not let loose on a colour.
+      if (jade && colour.includes(service.name as string)) off.push(jade.id);
+      // And a nail technician does none of the hair at all.
+      if (aisha) off.push(aisha.id);
+
+      for (const artistId of off) {
+        await db.from("service_people").upsert(
+          { service_id: service.id, artist_id: artistId, minutes: null, price_pence: null, offered: false },
+          { onConflict: "service_id,artist_id" },
+        );
+      }
+    }
+  } catch {
+    // A demo where everybody does everything is still a demo.
+  }
+
   // ------------------------------------------------------- the memory
   const { history, sales } = await buildHistory(db, studio.id, clients, lapsedIds, roster, monday);
 
