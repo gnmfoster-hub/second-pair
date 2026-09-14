@@ -89,7 +89,7 @@ export default async function AdminPage() {
    */
   const { data: tickets } = await db
     .from("support_tickets")
-    .select("id, studio_id, subject, status, updated_at")
+    .select("id, studio_id, subject, status, updated_at, from_conversation_id")
     .order("updated_at", { ascending: false });
 
   const { data: ticketMessages } = tickets?.length
@@ -97,6 +97,63 @@ export default async function AdminPage() {
         .from("support_messages")
         .select("id, ticket_id, author, body, created_at")
         .in("ticket_id", tickets.map((t) => t.id))
+        .order("created_at")
+    : { data: [] };
+
+  /*
+   * What they were actually saying when the request was raised.
+   *
+   * The help assistant files a request out of a conversation and writes the
+   * conversation's id onto the ticket. The migration that added the column
+   * indexed it. Nothing has ever read it — so a ticket arrives here titled
+   * with the assistant's one-line summary of a problem, and the ten minutes of
+   * back-and-forth that produced it, including everything the assistant
+   * already tried, sits one column away and unreachable. Whoever picks it up
+   * answers blind, and usually by asking the question the person has already
+   * answered.
+   *
+   * Only for tickets still needing something. A closed one is history, and
+   * reading every conversation behind every request ever raised would be a
+   * large query to render something nobody is looking at.
+   */
+  const liveOrigins = (tickets ?? [])
+    .filter((t) => t.status !== "closed" && t.from_conversation_id)
+    .map((t) => t.from_conversation_id as string);
+
+  /*
+   * And only ever the help assistant's own conversations.
+   *
+   * This screen says at the bottom that it cannot open a conversation, and it
+   * means it: every customer of every business here has been told that nobody
+   * else on Second Pair can read what they wrote. A request is only ever filed
+   * out of a support conversation — a business owner talking to us, in our own
+   * studio, which is not anybody's customer — so reading those breaks nothing.
+   *
+   * Checked rather than assumed, because the difference between the two is one
+   * uuid in one column, and the cost of being wrong about it once is the only
+   * promise this product makes that cannot be made again.
+   */
+  const supportSlug = process.env.NEXT_PUBLIC_SUPPORT_SLUG?.trim() || null;
+
+  const { data: supportStudio } = supportSlug
+    ? await db.from("studios").select("id").eq("slug", supportSlug).maybeSingle()
+    : { data: null };
+
+  const { data: ours } = liveOrigins.length && supportStudio
+    ? await db
+        .from("conversations")
+        .select("id")
+        .in("id", liveOrigins)
+        .eq("studio_id", supportStudio.id)
+    : { data: [] };
+
+  const readable = (ours ?? []).map((c) => c.id as string);
+
+  const { data: originMessages } = readable.length
+    ? await db
+        .from("messages")
+        .select("id, conversation_id, role, content, created_at")
+        .in("conversation_id", readable)
         .order("created_at")
     : { data: [] };
 
@@ -245,6 +302,25 @@ export default async function AdminPage() {
             id: t.id,
             subject: t.subject,
             status: t.status as "open" | "answered" | "closed",
+            /*
+             * The tail of it, not the whole thing.
+             *
+             * The last dozen turns are what the request came out of; the first
+             * dozen are usually somebody being told where a button is. A
+             * support screen that opens with forty messages on it is one
+             * nobody reads.
+             */
+            origin: t.from_conversation_id
+              ? (originMessages ?? [])
+                  .filter((m) => m.conversation_id === t.from_conversation_id)
+                  .slice(-12)
+                  .map((m) => ({
+                    id: m.id as string,
+                    role: String(m.role),
+                    body: String(m.content ?? ""),
+                    at: m.created_at as string,
+                  }))
+              : [],
             messages: (ticketMessages ?? [])
               .filter((m) => m.ticket_id === t.id)
               .map((m) => ({

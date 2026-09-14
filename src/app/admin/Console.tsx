@@ -147,9 +147,11 @@ export function Console({
       </div>
 
       <p className="hint mt-10">
-        This screen cannot open a conversation, and that is deliberate. Every customer of
-        every business here has been told that nobody else on Second Pair can read what
-        they wrote.
+        This screen cannot open a business&rsquo;s conversation, and that is deliberate.
+        Every customer of every business here has been told that nobody else on Second
+        Pair can read what they wrote. The only messages it shows are the ones sent to our
+        own help assistant &mdash; a business owner talking to us, which is nobody&rsquo;s
+        customer, and which is checked against the support studio rather than assumed.
       </p>
     </div>
   );
@@ -1002,6 +1004,33 @@ function Request({ ticket }: { ticket: BusinessSummary["tickets"][number] }) {
           <span className="pill bg-ok/10 text-ok">Answered</span>
         )}
       </div>
+
+      {/*
+        * The conversation it came out of, folded away.
+        *
+        * Folded because the summary above is usually enough and forty messages
+        * would bury the reply box. Present because when the summary is not
+        * enough, this is the only thing that helps — and until now it did not
+        * exist on any screen, so the alternative was writing back to ask
+        * somebody what they meant by a sentence the assistant wrote about them.
+        */}
+      {ticket.origin.length > 0 && (
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs text-muted">
+            What they were saying ({ticket.origin.length})
+          </summary>
+          <div className="mt-2 space-y-1.5 border-l-2 border-border pl-3">
+            {ticket.origin.map((m) => (
+              <p key={m.id} className="whitespace-pre-wrap text-xs">
+                <span className="mr-1.5 uppercase tracking-wide text-muted">
+                  {m.role === "assistant" ? "Assistant" : m.role === "user" ? "Them" : m.role}
+                </span>
+                {m.body}
+              </p>
+            ))}
+          </div>
+        </details>
+      )}
 
       <div className="mt-3 space-y-2">
         {ticket.messages.map((m) => (

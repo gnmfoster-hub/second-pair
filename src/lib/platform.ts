@@ -141,6 +141,17 @@ export type BusinessSummary = {
     subject: string;
     status: "open" | "answered" | "closed";
     messages: { id: string; author: "owner" | "support"; body: string; at: string }[];
+    /*
+     * The conversation the request came out of, where the help assistant
+     * raised it rather than somebody typing it.
+     *
+     * The tail of it, and empty for a request typed by hand or a closed one.
+     * The subject on a filed request is the assistant's own summary, which is
+     * the right thing to read in a list and not enough to answer from — the
+     * ticket says "reminders are not sending" and the conversation says which
+     * reminder, to whom, and what it already checked.
+     */
+    origin: { id: string; role: string; body: string; at: string }[];
   }[];
 
   /*
