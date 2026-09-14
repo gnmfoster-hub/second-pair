@@ -433,6 +433,7 @@ export function EntryDialog({
                 note={entry.outcome_note}
                 canRemember={Boolean(entry.contactId && entry.serviceId)}
                 firstName={(entry.clientName ?? "them").split(" ")[0]}
+                contactId={entry.contactId}
               />
             )}
           </div>
@@ -770,6 +771,7 @@ function CloseOff({
   note,
   canRemember,
   firstName,
+  contactId,
 }: {
   id: string;
   attended: boolean | null;
@@ -784,6 +786,8 @@ function CloseOff({
   canRemember: boolean;
   /** What to call them in the offer, so it reads as being about a person. */
   firstName: string;
+  /** Who it was for, so the till can be opened with them already in it. */
+  contactId: string | null;
 }) {
   return (
     <form action={closeBooking} className="mt-3 border-t border-border pt-3">
@@ -901,6 +905,32 @@ function CloseOff({
                   </span>
                 </span>
               </label>
+            )}
+
+            {/*
+              * And whether they bought anything on the way out.
+              *
+              * This is when a bottle is actually sold — at the end of the
+              * appointment, with the client stood there — and it meant closing
+              * the booking off, walking to the till and typing a name the
+              * screen had on it a second earlier. The link carries them over.
+              *
+              * A link rather than a form: a sale is its own thing with its own
+              * lines and its own way of being paid for, and folding a till
+              * into this sheet would make the commonest action here — saying
+              * somebody turned up — harder in order to make a rarer one
+              * shorter.
+              */}
+            {contactId && (
+              <p className="hint">
+                <Link
+                  href={`/diary/sell?client=${contactId}`}
+                  className="text-accent hover:underline"
+                >
+                  Did {firstName} buy anything?
+                </Link>{" "}
+                It goes on their record and in today&rsquo;s takings.
+              </p>
             )}
 
             <label className="block">

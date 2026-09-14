@@ -12,9 +12,35 @@ import { AskForPayment } from "@/components/AskForPayment";
  * when something needs writing down — and a sale is the one thing that
  * happened in the shop today that the diary had no way of hearing about.
  */
-export default async function SellPage() {
+export default async function SellPage({
+  searchParams,
+}: {
+  /** `client` arrives from closing an appointment off. See below. */
+  searchParams: Promise<{ client?: string }>;
+}) {
+  const { client } = await searchParams;
   const { studio, userId } = await requireStudio();
   const supabase = await createClient();
+
+  /*
+   * Who it is for, when this came from an appointment.
+   *
+   * A bottle is sold at the end of somebody's appointment far more often than
+   * it is sold to a passer-by, and that meant closing the booking, walking to
+   * the till, and typing a name the product had on screen a second earlier.
+   * Closing an appointment off now offers this with them already in it.
+   *
+   * Checked against this business rather than trusted, because it arrives in
+   * the address bar.
+   */
+  const { data: forClient } = client
+    ? await supabase
+        .from("contacts")
+        .select("id, name")
+        .eq("id", client)
+        .eq("studio_id", studio.id)
+        .maybeSingle()
+    : { data: null };
 
   /*
    * Products first, then anything else on the price list.
@@ -80,6 +106,7 @@ export default async function SellPage() {
           people={people}
           me={me}
           words={{ business: words.business }}
+          forClient={forClient ? { id: forClient.id, name: forClient.name } : null}
         />
       </div>
 

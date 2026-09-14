@@ -48,12 +48,18 @@ export function SellForm({
   people,
   me,
   words,
+  forClient = null,
 }: {
   products: Product[];
   people: { id: string; name: string }[];
   /** Whoever is signed in, where they are one of the people. */
   me: string | null;
   words: { business: string };
+  /**
+   * Somebody this sale is already for, when the till was opened from their
+   * appointment. Null for a passer-by, which is the other half of the time.
+   */
+  forClient?: { id: string; name: string | null } | null;
 }) {
   const [state, action] = useActionState<SellState, FormData>(recordSale, {});
   const [lines, setLines] = useState<Line[]>([blank()]);
@@ -270,7 +276,10 @@ export function SellForm({
             Leave it empty for somebody passing. Naming them puts it on their record, so
             &ldquo;what does she use&rdquo; has an answer next time.
           </p>
-          <ClientPicker placeholder="Search a client, or type a name" />
+          <ClientPicker
+            placeholder="Search a client, or type a name"
+            defaultValue={forClient}
+          />
         </div>
 
         {people.length > 1 && (
