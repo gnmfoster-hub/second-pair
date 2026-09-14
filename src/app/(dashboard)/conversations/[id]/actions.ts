@@ -213,3 +213,71 @@ export async function removeConversation(
   revalidatePath("/conversations");
   redirect("/conversations?removed=1");
 }
+
+/**
+ * Saying that a conversation was you, not a customer.
+ *
+ * Testing your own assistant is the first thing anybody does with it, and
+ * every one of those goes into the client list, the figures on the dashboard,
+ * the weekly report and the alert that fetches somebody. A live business has
+ * ended up with eighteen clients, half of them nameless and most of them the
+ * owner trying the widget on their own phone.
+ *
+ * The flag has existed since the second week and only one thing could ever set
+ * it: the preview inside the dashboard, which knows it is the owner because
+ * they are signed in. Open the real widget in a normal tab — which is what you
+ * do to see what a customer sees, and the only way to see it on a phone — and
+ * there is nothing that could know.
+ *
+ * Marking rather than deleting, which is already here and does something
+ * harsher. A test conversation is worth keeping and reading: it is how you
+ * find out what the assistant said. What it is not worth is counting.
+ */
+export async function markAsTest(fd: FormData): Promise<void> {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  const id = String(fd.get("id") ?? "");
+  const test = String(fd.get("test") ?? "") === "true";
+  if (!id) return;
+
+  const { data: conversation } = await supabase
+    .from("conversations")
+    .select("id, contact_id")
+    .eq("id", id)
+    .eq("studio_id", studio.id)
+    .maybeSingle();
+
+  if (!conversation) return;
+
+  await supabase.from("conversations").update({ is_test: test }).eq("id", conversation.id);
+
+  /*
+   * And the person, but only when there is nothing else of theirs.
+   *
+   * A contact can have several threads. Somebody who wrote in properly in
+   * March and was used for a test in September is a real client, and hiding
+   * them because of the second one would lose the first. So the person is
+   * marked only when every conversation they have is a test — and unmarked
+   * the moment any one of them is not.
+   */
+  if (conversation.contact_id) {
+    const { data: theirs } = await supabase
+      .from("conversations")
+      .select("is_test")
+      .eq("contact_id", conversation.contact_id);
+
+    const allTests = (theirs ?? []).length > 0 && (theirs ?? []).every((c) => c.is_test === true);
+
+    await supabase
+      .from("contacts")
+      .update({ is_test: allTests })
+      .eq("id", conversation.contact_id)
+      .eq("studio_id", studio.id);
+  }
+
+  revalidatePath(`/conversations/${id}`);
+  revalidatePath("/conversations");
+  revalidatePath("/clients");
+  revalidatePath("/");
+}

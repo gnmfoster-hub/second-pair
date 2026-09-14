@@ -12,6 +12,7 @@ import { ReplyBox } from "./ReplyBox";
 import { setPaused } from "./actions";
 import { StatusPicker } from "./StatusPicker";
 import { Remove } from "./Remove";
+import { WasMe } from "./WasMe";
 
 export default async function ConversationPage({
   params,
@@ -382,6 +383,8 @@ export default async function ConversationPage({
 
       {/* Last, and folded away. Permanent, and the only thing on this page
           that cannot be taken back. */}
+      <WasMe id={conversation.id} test={conversation.is_test === true} />
+
       <Remove id={conversation.id} who={contact?.name ?? null} />
     </div>
   );
