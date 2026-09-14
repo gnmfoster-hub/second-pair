@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSheet } from "@/components/useSheet";
 
 /**
  * Who is this for, asked before anything else.
@@ -25,13 +26,21 @@ export function AddMenu({
   /** Whether this business keeps a named price list to pick a service from. */
   byList: boolean;
 }) {
+  const sheet = useSheet<HTMLDivElement>();
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-t-2xl bg-surface p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:pb-5"
+        /*
+          * Holds the diary still behind it, like the form it opens into.
+          * Without it a drag anywhere over this scrolls the week underneath,
+          * so the menu appears to be stuck to a page that is moving.
+          */
+        ref={sheet}
+        className="max-h-[min(82dvh,var(--sheet-room,82dvh))] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-2xl bg-surface p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:pb-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-baseline justify-between gap-3">

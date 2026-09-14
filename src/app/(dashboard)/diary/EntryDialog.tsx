@@ -14,6 +14,7 @@ import {
   type DiaryState,
 } from "./actions";
 import { Field, SubmitButton } from "@/components/Form";
+import { useSheet } from "@/components/useSheet";
 import { formatPence } from "@/lib/money";
 import { depositPaid, hasDeposit } from "@/lib/deposit";
 import { AskForPayment } from "@/components/AskForPayment";
@@ -68,7 +69,11 @@ export function EntryDialog({
   onClose: () => void;
 }) {
   const [state, action] = useActionState<DiaryState, FormData>(saveDiaryEntry, {});
-  const dialog = useRef<HTMLDivElement>(null);
+  /*
+   * The sheet itself: focus goes in here when it opens, and useSheet holds
+   * the page still behind it and measures what the keyboard has left.
+   */
+  const dialog = useSheet<HTMLDivElement>();
 
   const existing = Boolean(entry);
   const fromClient = entry?.source === "assistant";
@@ -196,7 +201,9 @@ export function EntryDialog({
     document.addEventListener("keydown", onKey);
     dialog.current?.querySelector<HTMLElement>("input, select")?.focus();
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+    // `dialog` comes from a hook rather than useRef, so the linter cannot see
+    // that it is stable. It is — listing it costs nothing and keeps the rule on.
+  }, [onClose, dialog]);
 
   useEffect(() => {
     if (state.ok) onClose();
@@ -236,8 +243,22 @@ export function EntryDialog({
          * technically there and practically was not. Six percent more backdrop
          * is about fifty pixels of target across the full width of the phone,
          * at the end the hand is already at.
+         *
+         * And whichever of those two is smaller, once the keyboard is up.
+         * --sheet-room is the screen that is actually left, measured by
+         * useSheet — dvh is the window, and on iOS a keyboard covers the
+         * window rather than changing it, so 82dvh put Save underneath it.
+         * The fallback is the old behaviour for anything with no
+         * visualViewport to ask.
          */
-        className="card max-h-[82dvh] w-full max-w-lg overflow-y-auto rounded-b-none p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:max-h-[88dvh] sm:rounded-2xl sm:p-6 sm:pb-6"
+        /*
+         * overscroll-contain keeps the gesture in here. Without it, reaching
+         * the end of this box hands the rest of the flick to the diary
+         * underneath, which then scrolls instead — half of "the diary behind
+         * scrolls, not the box". The other half is the page being held still,
+         * which useSheet does.
+         */
+        className="card max-h-[min(82dvh,var(--sheet-room,82dvh))] w-full max-w-lg overflow-y-auto overscroll-contain rounded-b-none p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:max-h-[min(88dvh,var(--sheet-room,88dvh))] sm:rounded-2xl sm:p-6 sm:pb-6"
       >
         {/* The bar every phone sheet has, which says this one lifts off rather
             than being a page you have to finish. */}
