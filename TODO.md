@@ -10,8 +10,15 @@ Last updated: 14 September 2026.
 
 # Migrations
 
-**Nothing waiting.** All run, up to and including
-`20260915140000_who_offers_what.sql`.
+**One waiting:** `20260915080000_prefers.sql` — one column on contacts, for
+which way somebody would rather be reached.
+
+Nothing breaks until it is run. The write is guarded, so a preference is simply
+not kept and everything else works exactly as it does now; run it and the
+question appears on the client picker whenever somebody gives both a number and
+an address.
+
+`20260914220000_inbound_log.sql` is run and working.
 
 When one is waiting it will be named here. Until it is run the product keeps
 working without it — everything new is written so the deploy and the migration
