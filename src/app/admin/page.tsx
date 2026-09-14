@@ -241,6 +241,59 @@ export default async function AdminPage() {
 
       const hours = (s.hours ?? []) as { day: number; open: string; close: string; closed: boolean }[];
 
+      /*
+       * The other ways to look at a demo.
+       *
+       * Four logins were made for the demo salon and three of them could be
+       * reached by nothing: a stylist renting her chair, an employee whose
+       * settings the business keeps, and somebody on the desk with no column
+       * in the diary. Those are the three views a salon actually asks about,
+       * and the owner's — the only one that could be opened — is the least
+       * interesting of the four, because it is the one where everything is
+       * visible and nothing has been decided for you.
+       *
+       * Demos only. On a real business this would be a list of people whose
+       * account somebody could walk into, which is not a feature.
+       */
+      const views: BusinessSummary["views"] = [];
+
+      if ((s.kind ?? "customer") === "demo") {
+        const [{ data: everyone }, { data: linked }] = await Promise.all([
+          db.from("studio_members").select("user_id, role").eq("studio_id", s.id),
+          db.from("artists").select("user_id, name, role, owner_managed").eq("studio_id", s.id),
+        ]);
+
+        const asArtist = new Map(
+          (linked ?? [])
+            .filter((a) => a.user_id)
+            .map((a) => [a.user_id as string, a]),
+        );
+
+        for (const m of everyone ?? []) {
+          const person = asArtist.get(m.user_id);
+          views.push({
+            userId: m.user_id,
+            /*
+             * Named by who they are in the salon rather than by their login.
+             * "Aisha" is the thing being demonstrated; the address is an
+             * implementation detail of how the demo was built.
+             */
+            label: person ? (person.name as string) : m.role === "owner" ? "The owner" : "On the desk",
+            what:
+              m.role === "owner"
+                ? "everything"
+                : person
+                  ? person.owner_managed
+                    ? "employed — the business keeps her settings"
+                    : "renting a chair — her own prices, list and reminders"
+                  : "no column in the diary: the inbox and everybody's day",
+          });
+        }
+
+        // The owner first, then whoever is least like them.
+        views.sort((a, b) => (a.label === "The owner" ? -1 : b.label === "The owner" ? 1 : 0));
+      }
+
       return {
         id: s.id,
         name: s.name,
@@ -253,6 +306,7 @@ export default async function AdminPage() {
         owners: (members ?? [])
           .filter((m) => m.studio_id === s.id)
           .map((m) => ({ userId: m.user_id, email: emailFor.get(m.user_id) ?? null })),
+        views,
         people: await count("artists"),
         team: (
           await db

@@ -668,16 +668,42 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
         */}
       {b.kind === "demo" && (
         <form action={demoAction} className="rounded-xl border border-border bg-surface-2/40 p-3.5">
-          <div className="flex flex-wrap items-center gap-3">
-            <input type="hidden" name="id" value={b.id} />
-            <div className="min-w-0">
-              <div className="text-sm font-medium">Open it</div>
-              <div className="hint">
-                Signed in, straight to the diary. No password, and the link is spent
-                once it is used.
-              </div>
+          <input type="hidden" name="id" value={b.id} />
+
+          <div className="min-w-0">
+            <div className="text-sm font-medium">Open it, as anybody who works there</div>
+            <div className="hint">
+              Signed in, straight to the diary. No password, and each link is spent once
+              it is used.
             </div>
-            <button className="btn ml-auto bg-accent text-on-accent">Open the demo</button>
+          </div>
+
+          {/*
+            * A button each, rather than one button and a picker.
+            *
+            * What a salon asks is "what will my stylists see?" and "can they
+            * change my prices?", and the answer is four different screens. A
+            * dropdown would make choosing between them a decision; four
+            * buttons make it a comparison, which is what it is.
+            *
+            * The value goes on the button rather than a hidden field, so the
+            * one pressed is the one that is sent.
+            */}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {(b.views.length
+              ? b.views
+              : [{ userId: "", label: "The owner", what: "everything" }]
+            ).map((v) => (
+              <button
+                key={v.userId || "owner"}
+                name="as"
+                value={v.userId}
+                className="rounded-xl border border-border bg-surface px-3 py-2 text-left transition-colors hover:border-accent/50"
+              >
+                <span className="block text-sm font-medium">{v.label}</span>
+                <span className="hint">{v.what}</span>
+              </button>
+            ))}
           </div>
 
           {demo.link && (

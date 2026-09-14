@@ -359,23 +359,48 @@ export async function openDemo(_prev: Result, fd: FormData): Promise<Result> {
   }
 
   /*
-   * Whoever owns it. A demo has exactly one owner and it is ours, but the
-   * owner is read rather than assumed — a hard-coded address here would break
-   * silently the first time the demo was rebuilt under another one.
+   * Whose view to open.
+   *
+   * The demo has four logins and this could only ever reach one of them. The
+   * other three — a stylist renting her chair, an employee whose settings the
+   * business keeps, and somebody on the desk with no column in the diary —
+   * were created by a script, wired up properly, and reachable by nothing: the
+   * three views a salon actually asks about, and the owner's is the least
+   * interesting of the four because it is the only one where nothing is
+   * decided for you.
+   *
+   * Named by user id and checked against this studio's own membership. Not by
+   * email, and never taken on trust: this hands somebody a signed-in session,
+   * and "the id was in a hidden field" is not a permission check.
    */
-  const { data: member } = await db
-    .from("studio_members")
-    .select("user_id")
-    .eq("studio_id", studio.id)
-    .eq("role", "owner")
-    .limit(1)
-    .maybeSingle();
+  const wanted = String(fd.get("as") ?? "").trim();
 
-  if (!member) return { error: "That demo has no owner to sign in as." };
+  const { data: member } = wanted
+    ? await db
+        .from("studio_members")
+        .select("user_id")
+        .eq("studio_id", studio.id)
+        .eq("user_id", wanted)
+        .maybeSingle()
+    : await db
+        .from("studio_members")
+        .select("user_id")
+        .eq("studio_id", studio.id)
+        .eq("role", "owner")
+        .limit(1)
+        .maybeSingle();
+
+  if (!member) {
+    return {
+      error: wanted
+        ? "That person does not work at the demo."
+        : "That demo has no owner to sign in as.",
+    };
+  }
 
   const { data: user } = await db.auth.admin.getUserById(member.user_id);
   const email = user?.user?.email;
-  if (!email) return { error: "That demo's owner has no email." };
+  if (!email) return { error: "That login has no email to send a link to." };
 
   const origin = await siteOrigin();
   const { data, error } = await db.auth.admin.generateLink({

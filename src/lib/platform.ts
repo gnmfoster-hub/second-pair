@@ -69,6 +69,15 @@ export type BusinessSummary = {
   snoozedUntil: string | null;
   createdAt: string;
   owners: { email: string | null; userId: string }[];
+  /**
+   * The views a demo can be opened as. Empty for everything else.
+   *
+   * A demo exists to be looked at from somebody's side, and until now only the
+   * owner's side could be reached — which is the side where everything is
+   * visible and nothing is decided for you, and so the least useful one to
+   * show anybody.
+   */
+  views: { userId: string; label: string; what: string }[];
   /** For support: is it actually set up, or did they stop halfway? */
   people: number;
   /**
