@@ -48,20 +48,39 @@ bands. Tell me and I will set it up either way.
 
 ### 3. Nobody has a phone signed up for notifications
 
-Not one device on the whole platform, which means every "you have a new
-enquiry" has been going nowhere. It needs doing on the phone itself, by each
-person, from their own settings tab — the one now named after them.
+Not one device on the whole platform.
 
-### 4. The Neat & Tidy number
+I said before that this meant every alert was going nowhere. That was wrong and
+worth correcting: a booking sends an email *and* a push, and the email half
+works — so you are being told, just not on your phone. What is unused is the
+quick half, which is the one that matters when somebody books while you are
+between jobs.
+
+It has to be done on the phone itself, by each person, from their own settings
+tab — the one now named after them.
+
+### 4. Karen's consultation is ten minutes
+
+Three of Neat & Tidy's services need a consultation first — end of tenancy,
+after builders, deep clean — and a consultation there is set to ten minutes.
+
+Ten minutes is a phone call. If those quotes are done by ringing somebody back,
+that is exactly right and there is nothing to do. If Karen goes and looks at
+the property, the assistant is booking her a ten-minute visit to quote a whole
+house, and the number wants changing.
+
+It is your call, which is why it is here rather than changed.
+
+### 5. The Neat & Tidy number
 
 Send it to Chris, and put it on the Facebook page, the Google listing and
 anything else with the old one on.
 
-### 5. Check the forward on info@neatandtidysolutions.co.uk
+### 6. Check the forward on info@neatandtidysolutions.co.uk
 
 You sent a test to it. Confirm it arrived at the Second Pair address.
 
-### 6. The slow ones, unchanged
+### 7. The slow ones, unchanged
 
 Meta verification, the ICO registration, and `EMAIL_FROM` / `INTEREST_EMAIL` on
 Vercel. All still outstanding and none of them blocks anything today.
