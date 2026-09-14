@@ -505,3 +505,53 @@ body.diary-focus [data-diary-scroll] {
 @media (min-width: 768px) {
   :root { --app-bar: 0px; }
 }
+
+/*
+ * A tablet on its side, with the keyboard up.
+ *
+ * The sheet is capped against the screen that is actually left, which is right
+ * on a phone and wrong here: an iPad in landscape with a keyboard showing has
+ * about three hundred pixels of height and eleven hundred of width, and the
+ * sheet was using a third of the width and none of the spare. A form for one
+ * appointment, in a letterbox, with six hundred empty pixels either side of it.
+ *
+ * So on a screen that is short and wide, the sheet takes the width it has and
+ * lays its fields out in two columns. The height cap is unchanged — it is
+ * measuring something real — and phones and ordinary desktops never match
+ * this, so neither can be broken by it.
+ *
+ * Marked by a class rather than applied to every sheet: the add menu is six
+ * buttons and would look absurd across two columns.
+ */
+@media (max-height: 560px) and (min-width: 820px) {
+  .sheet-roomy {
+    max-width: 62rem;
+  }
+
+  /*
+   * Two columns, and the margins that stacked them turned off.
+   *
+   * `space-y` works by putting a top margin on every sibling but the first,
+   * which in a grid is an uneven gap on the second row and nothing anybody
+   * would choose. The grid's own gap replaces it.
+   */
+  .sheet-roomy .sheet-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem 1.25rem;
+    align-items: start;
+  }
+
+  .sheet-roomy .sheet-fields > * {
+    margin-top: 0;
+  }
+
+  /*
+   * The things that are not one field. A row of buttons, a block of prose or
+   * the whole finishing panel reads badly cut in half, and there is no
+   * shortage of width to give them.
+   */
+  .sheet-roomy .sheet-fields > .sheet-wide {
+    grid-column: 1 / -1;
+  }
+}

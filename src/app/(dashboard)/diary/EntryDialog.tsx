@@ -290,7 +290,7 @@ export function EntryDialog({
          * scrolls, not the box". The other half is the page being held still,
          * which useSheet does.
          */
-        className="card max-h-[min(82dvh,var(--sheet-room,82dvh))] w-full max-w-lg overflow-y-auto overscroll-contain rounded-b-none p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:max-h-[min(88dvh,var(--sheet-room,88dvh))] sm:rounded-2xl sm:p-6 sm:pb-6"
+        className="card sheet-roomy max-h-[min(82dvh,var(--sheet-room,82dvh))] w-full max-w-lg overflow-y-auto overscroll-contain rounded-b-none p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:max-h-[min(88dvh,var(--sheet-room,88dvh))] sm:rounded-2xl sm:p-6 sm:pb-6"
       >
         {/* The bar every phone sheet has, which says this one lifts off rather
             than being a page you have to finish. */}
@@ -399,7 +399,7 @@ export function EntryDialog({
 
         {/* space-y-4 on a phone. Five was a fifth of the screen given to the
             gaps between fields on a form that already had to scroll. */}
-        <form action={action} className="mt-4 space-y-4 sm:mt-5 sm:space-y-5">
+        <form action={action} className="sheet-fields mt-4 space-y-4 sm:mt-5 sm:space-y-5">
           {entry && <input type="hidden" name="id" value={entry.id} />}
           <input type="hidden" name="category" value={category} />
           <input type="hidden" name="all_day" value={allDay ? "true" : "false"} />
@@ -703,7 +703,7 @@ export function EntryDialog({
             </p>
           )}
 
-          <div className="flex flex-wrap items-center gap-3 pt-1">
+          <div className="sheet-wide flex flex-wrap items-center gap-3 pt-1">
             <SubmitButton>{existing ? "Save" : "Add it"}</SubmitButton>
             {state.error && <p className="text-sm text-bad">{state.error}</p>}
             <div className="flex-1" />
@@ -757,7 +757,7 @@ export function EntryDialog({
           * diary and neither of them is owed money or needs closing off.
           */}
         {entry && isClientWork && (
-          <div className="mt-4 space-y-1 rounded-lg bg-surface-2/50 p-4 text-sm">
+          <div className="sheet-wide mt-4 space-y-1 rounded-lg bg-surface-2/50 p-4 text-sm">
             {/*
               * Named, because it was reported missing twice while being on the
               * screen.
