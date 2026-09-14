@@ -39,7 +39,7 @@ export async function sendOwnerReply(
   // RLS would block a foreign id, but failing here gives a better message.
   const { data: conversation } = await supabase
     .from("conversations")
-    .select("id, channel, external_ref, last_inbound_at, contacts(phone, email)")
+    .select("id, channel, external_ref, last_inbound_at, contacts(name, phone, email)")
     .eq("id", id)
     .eq("studio_id", studio.id)
     .maybeSingle();
@@ -61,6 +61,7 @@ export async function sendOwnerReply(
    * the thread and had no idea it never left.
    */
   const contact = conversation.contacts as unknown as {
+      name: string | null;
     phone: string | null;
     email: string | null;
   } | null;
@@ -77,7 +78,12 @@ export async function sendOwnerReply(
      * closed the tab. Whatever the assistant collected while it was talking to
      * them is the only way back to them.
      */
-    reachOn: { phone: contact?.phone ?? null, email: contact?.email ?? null },
+    reachOn: {
+          phone: contact?.phone ?? null,
+          email: contact?.email ?? null,
+          // So an email opens with their name rather than "Hello,".
+          firstName: (contact?.name ?? null) as string | null,
+        },
     fromName: studio.name,
     replyTo: replyToFor(studio),
   });

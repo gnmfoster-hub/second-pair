@@ -37,6 +37,8 @@ export type Delivery = {
 // be reached — so there is one copy of it and it can be tested on its own.
 export { withinWindow, WINDOWED as NEEDS_WINDOW } from "./reach";
 
+import { asEmail } from "./asEmail.ts";
+
 
 
 export async function deliver({
@@ -83,7 +85,12 @@ export async function deliver({
    * They are not sitting in the widget waiting — they closed the tab. This is
    * whatever the assistant managed to collect while it was talking to them.
    */
-  reachOn?: { phone?: string | null; email?: string | null } | null;
+  reachOn?: {
+    phone?: string | null;
+    email?: string | null;
+    /** Who it is going to, so an email can greet them by name. */
+    firstName?: string | null;
+  } | null;
 }): Promise<Delivery> {
   if (!body.trim()) return { status: "failed", error: "Nothing to send." };
 
@@ -111,10 +118,28 @@ export async function deliver({
     }
 
     if (reachOn?.email) {
+      /*
+       * Dressed as an email rather than posted as a chat message.
+       *
+       * The words are written once and go wherever somebody can be reached,
+       * which is right — four versions of "we can do Thursday at two" is how
+       * three of them go stale. But the same words in an inbox with no
+       * greeting, no sign-off and a subject reading "Message from Willow & Co"
+       * arrive looking like a text that has wandered in, and read as a mail
+       * filter's idea of junk.
+       */
+      const letter = asEmail({
+        body,
+        businessName: fromName ?? "",
+        firstName: reachOn.firstName,
+        canReply: Boolean(replyTo),
+        about: subject,
+      });
+
       return sendEmail({
         to: reachOn.email,
-        subject: subject ?? (fromName ? `Message from ${fromName}` : "A message for you"),
-        text: body,
+        subject: letter.subject,
+        text: letter.text,
         fromName,
         replyTo,
       });
@@ -173,14 +198,26 @@ export async function deliver({
     case "sms":
       return sendSms({ to, body, from });
 
-    case "email":
+    case "email": {
+      // The same envelope as the widget's email fallback above, for the same
+      // reason: one of these is a reply to somebody who wrote in by email, and
+      // it was going out looking even more like a text than the other.
+      const letter = asEmail({
+        body,
+        businessName: fromName ?? "",
+        firstName: reachOn?.firstName,
+        canReply: Boolean(replyTo),
+        about: subject,
+      });
+
       return sendEmail({
         to,
-        subject: subject ?? (fromName ? `Message from ${fromName}` : "A message for you"),
-        text: body,
+        subject: letter.subject,
+        text: letter.text,
         fromName,
         replyTo,
       });
+    }
 
     case "voice":
       return { status: "failed", error: "You cannot send a message down a phone call." };

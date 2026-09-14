@@ -1140,12 +1140,21 @@ function Channels({ b }: { b: BusinessSummary }) {
 
   return (
     <details className="rounded-xl border border-border p-3">
+      {/*
+        * Connected, said as connected.
+        *
+        * This read "Their channels — sms" for a business authorised for all
+        * seven, because it lists what is plugged in and the pills on the row
+        * above list what is allowed. Two different facts, one of them
+        * summarised in a way that reads as the other, and the honest reading
+        * of it was "they only have text messages".
+        */}
       <summary className="cursor-pointer text-sm text-muted">
         Their channels
         <span className="ml-2 text-xs">
           {b.connections.length === 0
-            ? "— nothing connected"
-            : `— ${b.connections.map((c) => c.channel).join(", ")}`}
+            ? `— none connected, ${b.channels.length} allowed`
+            : `— ${b.connections.map((c) => c.channel).join(", ")} connected of ${b.channels.length} allowed`}
         </span>
       </summary>
 

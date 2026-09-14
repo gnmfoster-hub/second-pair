@@ -29,7 +29,7 @@ export async function releaseHeldConversations(
   const { data: due } = await db
     .from("conversations")
     .select(
-      "id, external_ref, channel, ai_paused, last_message_at, studios(slug, name, archived_at), contacts(phone, email, page_scoped_id)",
+      "id, external_ref, channel, ai_paused, last_message_at, studios(slug, name, archived_at), contacts(name, phone, email, page_scoped_id)",
     )
     .lte("hold_until", now)
     .not("hold_until", "is", null)
@@ -48,6 +48,7 @@ export async function releaseHeldConversations(
       archived_at: string | null;
     } | null;
     const contact = conversation.contacts as unknown as {
+      name: string | null;
       phone: string | null;
       email: string | null;
       page_scoped_id: string | null;
@@ -126,7 +127,12 @@ export async function releaseHeldConversations(
          * — and this message is the whole point of the feature: a gap has
          * appeared and somebody wanted it.
          */
-        reachOn: { phone: contact?.phone ?? null, email: contact?.email ?? null },
+        reachOn: {
+          phone: contact?.phone ?? null,
+          email: contact?.email ?? null,
+          // So an email opens with their name rather than "Hello,".
+          firstName: (contact?.name ?? null) as string | null,
+        },
         body: result.reply,
         lastInboundAt: conversation.last_message_at,
         subject: `Re: your enquiry`,
