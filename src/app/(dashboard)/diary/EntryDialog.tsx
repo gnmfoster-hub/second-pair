@@ -18,6 +18,7 @@ import { useSheet, asSheet } from "@/components/useSheet";
 import { formatPence } from "@/lib/money";
 import { depositPaid, hasDeposit } from "@/lib/deposit";
 import { AskForPayment } from "@/components/AskForPayment";
+import { SellOnBooking, type ShelfItem } from "./SellOnBooking";
 import { CATEGORIES, OWNER_CATEGORIES, categoryFor, REPEATS } from "@/lib/calendar";
 import type { Artist } from "@/lib/types";
 import type { Entry } from "./WeekGrid";
@@ -46,6 +47,7 @@ export function EntryDialog({
   artists,
   timezone,
   services = [],
+  shelf = [],
   stripeConnected = false,
   travels = false,
   adding,
@@ -57,6 +59,14 @@ export function EntryDialog({
   timezone: string;
   /** What the business sells, where it keeps a named list. */
   services?: Bookable[];
+  /**
+   * The things on the shelf, as opposed to the work.
+   *
+   * Separate from `services` above on purpose: that one is what can be booked,
+   * and this is what can be sold alongside it. Empty for a business that does
+   * not sell anything over the counter, and the panel then never appears.
+   */
+  shelf?: ShelfItem[];
   /**
    * Whether there is a Stripe account for money to land in.
    *
@@ -203,6 +213,19 @@ export function EntryDialog({
   const chosen = categoryFor(category);
   // Appointments and consultations are for a person; a delivery is not.
   const isClientWork = category === "appointment" || category === "consultation";
+
+  /*
+   * What can be sold at this particular appointment.
+   *
+   * The shop's shelf, plus anything belonging to whoever is doing the work.
+   * Somebody else's own products are theirs to sell and not on this list —
+   * putting them here would put the money in the wrong person's takings on a
+   * business that pays each person directly, which is the one mistake in this
+   * area nobody would ever spot.
+   */
+  const mineToSell = entry
+    ? shelf.filter((s) => s.ownerId == null || s.ownerId === entry.artist_id)
+    : [];
 
   // Close on Escape, and put focus somewhere sensible when it opens.
   useEffect(() => {
@@ -436,6 +459,26 @@ export function EntryDialog({
                   connected={stripeConnected}
                   label="Ask for payment"
                 />
+
+                {/*
+                  * And anything they bought on the way out.
+                  *
+                  * Beneath asking for payment rather than above it, because
+                  * the balance on the work is the thing somebody opens this
+                  * for and a bottle of conditioner is the afterthought — which
+                  * is exactly why it needs to be here at all. An afterthought
+                  * that costs three screens is an afterthought that gets
+                  * written on a pad.
+                  */}
+                {mineToSell.length > 0 && (
+                  <SellOnBooking
+                    bookingId={entry.id}
+                    contactId={entry.contactId}
+                    artistId={entry.artist_id}
+                    shelf={mineToSell}
+                    alreadyPence={entry.soldPence}
+                  />
+                )}
               </div>
             )}
 

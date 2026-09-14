@@ -13,6 +13,7 @@ import {
 import { categoryFor, addDays, isoDate } from "@/lib/calendar";
 import { hueFor, initialsOf, colourForName, type ColourMode } from "@/lib/diaryColour";
 import { EntryDialog } from "./EntryDialog";
+import type { ShelfItem } from "./SellOnBooking";
 import type { Bookable } from "./ServicePick";
 import { moveDiaryEntry } from "./actions";
 import { zonedToUtc as toUtc } from "@/lib/booking/tz";
@@ -52,6 +53,15 @@ export type Entry = {
   conversationId: string | null;
   /** What this booking comes to. Set by hand; falls back to the quote. */
   price_pence: number | null;
+  /**
+   * What has been sold at this appointment on top of the work — a bottle of
+   * something on the way out.
+   *
+   * Null where nothing has. Carried on the entry so reopening an appointment
+   * shows what was already rung up, which is the only thing standing between
+   * somebody and charging the same customer twice for the same conditioner.
+   */
+  soldPence: number | null;
   /**
    * What the client told the assistant, for the person turning up.
    *
@@ -211,6 +221,7 @@ export function WeekGrid({
   day,
   colourBy,
   services = [],
+  shelf = [],
   stripeConnected = false,
   travels = false,
 }: {
@@ -224,6 +235,8 @@ export function WeekGrid({
   colourBy: ColourMode;
   /** What the business sells, so a slot can be filled in by picking one. */
   services?: Bookable[];
+  /** What is on the shelf, for selling a bottle at the end of an appointment. */
+  shelf?: ShelfItem[];
   /** Whether there is anywhere for money to go. */
   stripeConnected?: boolean;
   /** Whether the work happens at the customer's address. */
@@ -1297,6 +1310,7 @@ export function WeekGrid({
           artists={artists}
           timezone={timezone}
           services={services}
+          shelf={shelf}
           stripeConnected={stripeConnected}
           travels={travels}
           onClose={() => {

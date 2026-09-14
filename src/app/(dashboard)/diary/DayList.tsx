@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EntryDialog } from "./EntryDialog";
+import type { ShelfItem } from "./SellOnBooking";
 import type { Entry } from "./WeekGrid";
 import type { Bookable } from "./ServicePick";
 import type { Artist } from "@/lib/types";
@@ -96,6 +97,7 @@ export function DayList({
   days,
   colourBy,
   services = [],
+  shelf = [],
   stripeConnected = false,
   travels = false,
   nowIso,
@@ -111,6 +113,8 @@ export function DayList({
   colourBy: ColourMode;
   /** What the business sells, so a slot can be filled in by picking one. */
   services?: Bookable[];
+  /** What is on the shelf, for selling a bottle at the end of an appointment. */
+  shelf?: ShelfItem[];
   /** Whether there is anywhere for money to go. */
   stripeConnected?: boolean;
   /** Whether the work happens at the customer's address. */
@@ -514,6 +518,7 @@ export function DayList({
           artists={artists}
           timezone={timezone}
           services={services}
+          shelf={shelf}
           stripeConnected={stripeConnected}
           travels={travels}
           onClose={() => {

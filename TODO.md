@@ -241,17 +241,17 @@ you sent and the money work behind it.
 
 **Next, in the order I would do them:**
 
-1. **A product onto an appointment.** Selling a bottle of conditioner means
-   going to the till. Adding it to the booking somebody is already looking at
-   is how it actually happens in a salon. Offered twice and not picked up — say
-   if you want it and it is a short job.
-2. **Meta**, once the app is through review. Nothing to build until then.
+1. **Meta**, once the app is through review. Nothing to build until then.
 
 **Done, and waiting on nothing:**
 
 - Payments: Stripe connect for the business and for each person, payment links
   on the appointment, the client's record, the conversation and the till,
   refunds linked through to the exact charge, the till, products and stock.
+- Selling a product from the appointment itself, rather than leaving it and
+  opening the till: the shop's shelf plus that person's own, the sale tied to
+  the visit, and what has already been sold shown on the appointment so nobody
+  rings the same bottle up twice.
 - Receipts by email, for every payment that used to say nothing: a link paid
   from any of the four screens, a deposit on a booking added by hand, and a
   sale at the till where the client has an address. Not for a deposit the

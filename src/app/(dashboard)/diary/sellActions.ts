@@ -116,12 +116,38 @@ export async function recordSale(_prev: SellState, fd: FormData): Promise<SellSt
     name: str(fd, "contact_name"),
   });
 
+  /*
+   * The appointment it was sold at, where it was sold at one.
+   *
+   * A bottle of conditioner bought on the way out belongs to that visit, not
+   * merely to that day: it is what makes "she had a colour and bought the
+   * silver shampoo" answerable six weeks later, and it is what stops the same
+   * bottle being rung up twice when somebody reopens the appointment.
+   *
+   * Checked against the business rather than trusted from the form. The id
+   * arrives in a hidden field, and RLS would refuse a booking belonging to
+   * somebody else anyway — this turns that into a sentence instead of a row
+   * quietly written with a null.
+   */
+  const bookingId = str(fd, "booking_id") || null;
+  if (bookingId) {
+    const { data: booking } = await supabase
+      .from("bookings")
+      .select("id, artists!inner(studio_id)")
+      .eq("id", bookingId)
+      .eq("artists.studio_id", studio.id)
+      .maybeSingle();
+
+    if (!booking) return { error: "That appointment is not in this diary." };
+  }
+
   const { data: payment, error } = await supabase
     .from("payments")
     .insert({
       studio_id: studio.id,
       artist_id: artistId,
       contact_id: contactId,
+      booking_id: bookingId,
       kind: "product",
       gross_pence: sale.totalPence,
       /*

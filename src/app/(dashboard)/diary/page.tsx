@@ -297,23 +297,44 @@ export default async function DiaryPage({
   }
 
   /*
-   * What the business sells, for the form that books it by hand.
+   * Everything on this business's price list — the work and the shelf.
    *
-   * Empty for a business pricing by size and hours, which is what the manual
-   * form has always assumed — so nothing changes for them and the picker never
-   * appears at all.
+   * Read whatever way they price, which it did not used to be. This was gated
+   * on pricing_model === "services" because the only thing it fed was the
+   * picker for booking work by hand, and a business pricing by size and hours
+   * has no named list to book from.
+   *
+   * That conflates two different questions. How you price your work and
+   * whether you sell things off a shelf are unrelated: a tattoo studio prices
+   * by the hour against size bands and still sells aftercare balm, and gating
+   * this meant the balm could be typed onto the price list and never appear
+   * anywhere it could be sold. The picker below is still gated, because that
+   * part was right.
    */
-  const { data: sellable } =
-    studio.pricing_model === "services"
-      ? await supabase
-          .from("services")
-          .select("*")
-          .eq("studio_id", studio.id)
-          .eq("active", true)
-          .order("sort_order")
-      : { data: null };
+  const { data: sellable } = await supabase
+    .from("services")
+    .select("*")
+    .eq("studio_id", studio.id)
+    .eq("active", true)
+    .order("sort_order");
 
-  const bookable = (sellable ?? [])
+  /*
+   * What can be sold alongside the work.
+   *
+   * `sellable` is every active row on the price list; `bookable` below is the
+   * half of it that can be booked, and this is the other half.
+   */
+  const shelf = (sellable ?? [])
+    .filter((row) => row.kind === "product")
+    .map((row) => ({
+      id: row.id as string,
+      name: row.name as string,
+      pricePence: (row.price_pence as number | null) ?? null,
+      stock: (row.stock as number | null) ?? null,
+      ownerId: (row.artist_id as string | null) ?? null,
+    }));
+
+  const bookable = (studio.pricing_model === "services" ? (sellable ?? []) : [])
     .filter((row) => row.kind === "service" && row.minutes != null)
     .map((row) => ({
       id: row.id as string,
@@ -322,6 +343,39 @@ export default async function DiaryPage({
       price_pence: (row.price_pence as number | null) ?? null,
       artist_id: (row.artist_id as string | null) ?? null,
     }));
+
+  /*
+   * What has already been sold at each of these appointments.
+   *
+   * One query over the bookings on screen, rather than one per appointment or
+   * none at all. None at all was the tempting option — the panel could simply
+   * show what it had just recorded — and it is the one that charges somebody
+   * twice: sell a bottle, close the appointment, reopen it half an hour later
+   * and there is no sign the first sale ever happened.
+   *
+   * Only where the business sells anything over the counter. A tattoo studio
+   * with an empty shelf would be paying for a query to learn that nobody has
+   * bought something it does not stock.
+   */
+  const soldOn = new Map<string, number>();
+
+  if (shelf.length > 0) {
+    const ids = ((data ?? []) as unknown as RawRow[]).map((r) => r.id);
+
+    if (ids.length > 0) {
+      const { data: sold } = await supabase
+        .from("payments")
+        .select("booking_id, gross_pence")
+        .in("booking_id", ids)
+        .eq("kind", "product")
+        .eq("status", "paid");
+
+      for (const row of sold ?? []) {
+        const id = row.booking_id as string;
+        soldOn.set(id, (soldOn.get(id) ?? 0) + ((row.gross_pence as number) ?? 0));
+      }
+    }
+  }
 
   const entries: Entry[] = ((data ?? []) as unknown as RawRow[])
     .filter((r) => mine.has(r.artist_id))
@@ -339,6 +393,7 @@ export default async function DiaryPage({
       deposit_status: r.deposit_status,
       deposit_amount_pence: r.deposit_amount_pence,
       price_pence: r.price_pence,
+      soldPence: soldOn.get(r.id) ?? null,
       // Either route: a conversation's contact, or one attached by hand.
       clientName: r.enquiries?.conversations?.contacts?.name ?? r.contacts?.name ?? null,
       clientPhone: r.enquiries?.conversations?.contacts?.phone ?? r.contacts?.phone ?? null,
@@ -412,6 +467,8 @@ export default async function DiaryPage({
             description: null,
             conversationId: null,
             price_pence: null,
+            // Nor has anybody sold a bottle of anything at a dentist appointment.
+            soldPence: null,
             quotePence: null,
             repeats: "none",
             job_address: null,
@@ -1466,6 +1523,7 @@ export default async function DiaryPage({
                   artists={showing}
                   timezone={studio.timezone}
                   services={bookable}
+                  shelf={shelf}
                   stripeConnected={Boolean(studio.stripe_account_id)}
                   travels={studio.travel_mode !== "at_premises"}
                   /*
@@ -1489,6 +1547,7 @@ export default async function DiaryPage({
               <WeekGrid
                 weekStart={isoDate(start)}
                 services={bookable}
+                shelf={shelf}
                 stripeConnected={Boolean(studio.stripe_account_id)}
                 travels={studio.travel_mode !== "at_premises"}
                 day={isoDate(focusDay)}
