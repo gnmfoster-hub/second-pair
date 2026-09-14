@@ -17,8 +17,8 @@ import { Field, SubmitButton } from "@/components/Form";
 import { useSheet, asSheet } from "@/components/useSheet";
 import { formatPence } from "@/lib/money";
 import { depositPaid, hasDeposit } from "@/lib/deposit";
-import { AskForPayment } from "@/components/AskForPayment";
-import { SellOnBooking, type ShelfItem } from "./SellOnBooking";
+import { Bill } from "./Bill";
+import type { ShelfItem } from "./Bill";
 import { CATEGORIES, OWNER_CATEGORIES, categoryFor, REPEATS } from "@/lib/calendar";
 import type { Artist } from "@/lib/types";
 import type { Entry } from "./WeekGrid";
@@ -463,49 +463,24 @@ export function EntryDialog({
             </div>
 
             {/*
-              * Money, from the appointment it is owed on.
+              * The bill, which is the whole close-out rather than three of
+              * them.
               *
-              * The one place where somebody already knows the amount, the
-              * client and whose work it was — so all three are filled in, and
-              * asking for the balance is one tap rather than a trip to another
-              * screen to type what is on this one.
-              *
-              * No channel buttons here on purpose: this opens with the client
-              * usually stood in front of you, and the useful thing is a link
-              * to show them. Sending it is on their record and in the
-              * conversation, where you are already writing to them.
+              * The work at what it was booked at and editable, anything they
+              * bought beside it, one total, one payment. Three separate
+              * controls stood here before — amend the price on the form
+              * below, record the bottle as its own sale, then ask for an
+              * amount you had worked out yourself — for a moment that is one
+              * sentence at a desk.
               */}
-            <div className="mt-3 border-t border-border pt-3">
-              <AskForPayment
-                contactId={entry.contactId}
-                bookingId={entry.id}
-                artistId={entry.artist_id}
-                amountPence={entry.price_pence}
-                description={entry.title || "Appointment"}
-                connected={stripeConnected}
-                label="Ask for payment"
-              />
-
-              {/*
-                * And anything they bought on the way out.
-                *
-                * Beneath asking for payment rather than above it, because the
-                * balance on the work is the thing somebody opens this for and
-                * a bottle of conditioner is the afterthought — which is
-                * exactly why it needs to be here at all. An afterthought that
-                * costs three screens is an afterthought that gets written on a
-                * pad.
-                */}
-              {mineToSell.length > 0 && (
-                <SellOnBooking
-                  bookingId={entry.id}
-                  contactId={entry.contactId}
-                  artistId={entry.artist_id}
-                  shelf={mineToSell}
-                  alreadyPence={entry.soldPence}
-                />
-              )}
-            </div>
+            <Bill
+              bookingId={entry.id}
+              workName={entry.title || "Appointment"}
+              workPence={entry.price_pence}
+              shelf={mineToSell}
+              alreadyPence={entry.soldPence}
+              connected={stripeConnected}
+            />
 
             {/*
               * From the moment it starts, not from the moment it was due to

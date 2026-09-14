@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readSale, lineTotal, readMethod } from "./sales.ts";
+import { readSale, lineTotal, readMethod, penceOf, linesFromForm } from "./sales.ts";
 
 const shampoo = { serviceId: "s1", name: "Shampoo, 250ml", quantity: 1, unitPence: 1450 };
 
@@ -81,4 +81,55 @@ test("a method nobody offered is recorded as something else, not as itself", () 
   assert.equal(readMethod("cash"), "cash");
   assert.equal(readMethod("bitcoin"), "other");
   assert.equal(readMethod(""), "other");
+});
+
+// ─────────────────────────────────────────────── what a form says a sale is
+
+test("penceOf takes what somebody actually types", () => {
+  assert.equal(penceOf("12"), 1200);
+  assert.equal(penceOf("12.50"), 1250);
+  assert.equal(penceOf("£12.50"), 1250);
+  assert.equal(penceOf("1,250"), 125000);
+  assert.equal(penceOf(" 8 "), 800);
+});
+
+test("and a blank is not nothing — it is nobody having said", () => {
+  assert.ok(Number.isNaN(penceOf("")));
+  assert.ok(Number.isNaN(penceOf("what")));
+});
+
+test("linesFromForm reads the rows that were filled in", () => {
+  const form: Record<string, string> = {
+    name_0: "Shampoo",
+    qty_0: "2",
+    price_0: "14.50",
+    service_0: "svc-1",
+    name_2: "Conditioner",
+    price_2: "14.50",
+  };
+  const lines = linesFromForm((k) => form[k] ?? null);
+  assert.equal(lines.length, 2);
+  assert.deepEqual(lines[0], {
+    serviceId: "svc-1",
+    name: "Shampoo",
+    quantity: 2,
+    unitPence: 1450,
+  });
+  // A row with no quantity is one of them, which is what a till assumes.
+  assert.equal(lines[1]?.quantity, 1);
+  assert.equal(lines[1]?.serviceId, null);
+});
+
+test("a row nobody touched is not a line", () => {
+  assert.equal(linesFromForm(() => null).length, 0);
+  assert.equal(linesFromForm((k) => (k === "qty_0" ? "1" : null)).length, 0);
+});
+
+/*
+ * The gap matters: a form can leave row 1 empty and fill row 2, and reading
+ * only up to the first blank would lose the second.
+ */
+test("a gap in the middle does not stop it", () => {
+  const form: Record<string, string> = { name_0: "A", price_0: "1", name_5: "B", price_5: "2" };
+  assert.equal(linesFromForm((k) => form[k] ?? null).length, 2);
 });

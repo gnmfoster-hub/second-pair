@@ -100,3 +100,53 @@ export const METHODS = [
 export function readMethod(raw: string): string {
   return METHODS.some((m) => m.value === raw) ? raw : "other";
 }
+
+/**
+ * A price somebody typed in pounds, as integer pence.
+ *
+ * Everything downstream is pence and the conversion happens once, at the edge
+ * where a person typed something. Not-a-number rather than nought for a blank:
+ * "they paid nothing" and "nobody said" are different answers and readSale
+ * refuses the second one.
+ */
+export function penceOf(raw: string): number {
+  const clean = raw.replace(/[£,\s]/g, "");
+  if (!clean) return Number.NaN;
+  const pounds = Number(clean);
+  if (!Number.isFinite(pounds)) return Number.NaN;
+  return Math.round(pounds * 100);
+}
+
+/**
+ * The lines of a sale, as a form describes them.
+ *
+ * Indexed field names rather than a JSON blob, for the same reason the group
+ * form uses them: it works without JavaScript, and a half-filled row shows up
+ * in the request rather than inside a string somebody has to unpick.
+ *
+ * Here rather than beside one of the forms because three screens now build a
+ * sale — the till, an appointment, and closing one off — and a second copy of
+ * this is how two of them end up disagreeing about what a blank row means.
+ */
+export function linesFromForm(
+  get: (key: string) => string | null,
+  howMany = 30,
+): Partial<SaleLine>[] {
+  const str = (key: string) => String(get(key) ?? "").trim();
+  const lines: Partial<SaleLine>[] = [];
+
+  for (let i = 0; i < howMany; i++) {
+    const name = str(`name_${i}`);
+    const price = str(`price_${i}`);
+    if (!name && !price) continue;
+
+    lines.push({
+      serviceId: str(`service_${i}`) || null,
+      name,
+      quantity: Number(str(`qty_${i}`) || "1"),
+      unitPence: penceOf(price),
+    });
+  }
+
+  return lines;
+}

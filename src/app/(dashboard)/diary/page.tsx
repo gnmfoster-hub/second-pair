@@ -359,15 +359,33 @@ export default async function DiaryPage({
    */
   const soldOn = new Map<string, number>();
 
-  if (shelf.length > 0) {
+  /*
+   * Asked for every business now, not only those with a shelf.
+   *
+   * It used to be skipped where nothing was on sale, because the only thing it
+   * fed was a line about bottles. The bill takes payment for the work itself,
+   * which every business has — so a tattoo studio with an empty shelf needs
+   * this exactly as much as a salon with a full one.
+   */
+  {
     const ids = ((data ?? []) as unknown as RawRow[]).map((r) => r.id);
 
     if (ids.length > 0) {
+      /*
+       * Everything already taken at these appointments, not only the bottles.
+       *
+       * This counted product sales alone, which was right when the only thing
+       * an appointment could be charged for was a bottle on the way out. The
+       * bill charges for the work as well, so leaving the filter would mean
+       * closing somebody out, reopening the appointment, and being told
+       * nothing had been taken — which is how the same client gets charged for
+       * the same colour twice.
+       */
       const { data: sold } = await supabase
         .from("payments")
         .select("booking_id, gross_pence")
         .in("booking_id", ids)
-        .eq("kind", "product")
+        .in("kind", ["product", "payment"])
         .eq("status", "paid");
 
       for (const row of sold ?? []) {

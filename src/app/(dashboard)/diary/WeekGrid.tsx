@@ -13,7 +13,7 @@ import {
 import { categoryFor, addDays, isoDate } from "@/lib/calendar";
 import { hueFor, initialsOf, colourForName, type ColourMode } from "@/lib/diaryColour";
 import { EntryDialog } from "./EntryDialog";
-import type { ShelfItem } from "./SellOnBooking";
+import type { ShelfItem } from "./Bill";
 import type { Bookable } from "./ServicePick";
 import { moveDiaryEntry } from "./actions";
 import { zonedToUtc as toUtc } from "@/lib/booking/tz";
