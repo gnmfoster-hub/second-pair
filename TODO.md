@@ -39,6 +39,12 @@ Proven on 15 September: Sarah connected her own Stripe, a £55 link was paid
 with a test card, Stripe's message reached the site and the payment is marked
 paid with Stripe's fee (£1.93) and take-home (£53.07).
 
+**One click on the demo:** sign in as Sarah, Settings, and press **Connect the
+business's Stripe** (the orange warning under "If somebody has not connected
+Stripe yet"). Pick Sarah's same test account. Until then Priya, Mo, Chloe and
+Jade's appointments cannot take a link, because the fallback switch is on but
+the business itself has no account — Sarah's and Aisha's own work fine.
+
 Optional tidy-up in Stripe: delete the Thin destination called **"Webhook
 endpoint"**. Nothing uses it, and its secret is the wrong one to copy.
 
@@ -450,24 +456,28 @@ on any of it before I build it.
 - **Forms tested end to end on the demo**, and a failed submit keeps answers.
 - **Worklist page** with tick-off steps and links to every sheet.
 
+## Done most recently
+
+- **Staff sending a payment link** no longer hits "row-level security". Tested
+  live as Aisha on Sarah's appointment (money to Sarah's Stripe) and on her own
+  (to Aisha's).
+- **The diary opens on your own column** when you are one of the team; the
+  owner and the desk still open on everyone.
+- **Quotes can name who wrote them** — "From (optional)", defaults to you,
+  shows "Quoted by …" on the quote.
+- **Overlapping boxes** — scanned every page as owner and as Aisha at phone,
+  iPad portrait, iPad landscape and 1024 wide. Nothing real left on screen; the
+  phone header's three theme buttons are one now, so the business name fits.
+- **Fallback with no business account** now says so in Settings, with the button.
+- Needs a form first, quotes with priced lines, holiday From/To, service saved
+  on bookings, Stripe for each person — all done earlier.
+
 ## Next, in the order I would do them
 
-### 0. (was) The business's own report — done
+### 1. A first-run walk-through for a new business
 
-Any date range instead of one week; takings by person, service and how paid;
-deposits; no-shows; new versus returning; busiest times; forms waiting; and the
-weekly email that was promised and never built. About a day.
-
-### 2. "Needs a form first" on a service
-
-The column is in the forms migration. Once run: pick a form on a service, the
-customer gets it when they book, and the appointment shows "Form not signed"
-until they have. Half a day.
-
-### 3. Quotes as forms with priced lines
-
-Accept-and-sign turning into a booking or a payment link. After forms have been
-used for real.
+Opens on first sign-in and walks the owner through hours, prices, the team,
+Stripe and a test message, ticking each off, and can be picked up later.
 
 ### 4. Backups, automatically
 
