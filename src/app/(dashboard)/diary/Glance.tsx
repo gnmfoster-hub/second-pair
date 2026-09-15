@@ -142,11 +142,11 @@ export function Glance({
         )}
 
         <div className="grid grid-cols-2 gap-2">
-          <button type="button" onClick={onChange} className="btn w-full">
+          <button type="button" onClick={onChange} className="btn w-full border border-border">
             Change or cancel
           </button>
           {entry.contactId ? (
-            <Link href={`/clients/${entry.contactId}`} className="btn w-full text-center">
+            <Link href={`/clients/${entry.contactId}`} className="btn w-full border border-border text-center">
               Their record
             </Link>
           ) : (

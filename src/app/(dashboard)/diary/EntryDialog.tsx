@@ -335,7 +335,7 @@ export function EntryDialog({
               {mode === "look"
                 ? "Appointment"
                 : mode === "complete"
-                  ? "Complete"
+                  ? `Complete${entry?.clientName ? ` — ${entry.clientName}` : ""}`
                   : existing
                     ? "Change"
                     : "Add to the diary"}

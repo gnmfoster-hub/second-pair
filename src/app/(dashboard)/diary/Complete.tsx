@@ -178,7 +178,10 @@ export function Complete({
 
   // ───────────────────────────────────────────────────── the screen
   return (
-    <form action={action} className="space-y-4 rounded-xl border border-border bg-surface p-4">
+    <form
+      action={action}
+      className={startOpen ? "space-y-4" : "space-y-4 rounded-xl border border-border bg-surface p-4"}
+    >
       <input type="hidden" name="booking_id" value={bookingId} />
       <input type="hidden" name="attended" value={came ? "yes" : "no"} />
       <input type="hidden" name="work_name" value={what} />
@@ -192,7 +195,8 @@ export function Complete({
         </span>
       ))}
 
-      <div className="flex items-baseline justify-between gap-3">
+      {/* The sheet already says Complete and has a way back when it opened straight here. */}
+      <div className={startOpen ? "hidden" : "flex items-baseline justify-between gap-3"}>
         <div className="font-medium">Complete{clientName ? ` — ${clientName}` : ""}</div>
         <button
           type="button"
