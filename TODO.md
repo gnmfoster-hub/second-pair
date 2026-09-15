@@ -371,74 +371,147 @@ mobile number.
 Everything you have asked for, and where it stands. Scoped so you can push back
 on any of it before I build it.
 
-## Done since you started testing
+## Done on 15 September
 
-- **Emailed replies read as emails.** Greeting, paragraphs, a sign-off and a
-  subject that threads, around the same words. They were arriving as a text
-  that had wandered into an inbox.
-- **A ceiling on what the assistant answers by email** — forty a day per
-  business, past which mail is parked for a person. Spam was already free (the
-  rules run before the model), but mail that reads like a person and is not one
-  was unbounded.
-- **Mail arriving at our addresses** is recorded and readable in the back
-  office, folded away, opening by itself only when something was addressed to a
-  business that does not exist. Only mail that is *ours* — a verification code,
-  or an address with no business behind it — keeps a sender and a subject; a
-  customer writing in records that it happened and nothing more. Swept monthly.
-- **No VAT means no VAT.** The rate, the number and "do your prices include
-  it" only appear once the box is ticked.
-- **The client picker takes a mobile and an email**, for somebody new, either
-  or neither. It took a name and nothing else, so everybody booked in over the
-  phone was unreachable.
-- **Deleting a conversation** no longer lands on a 404.
-- **The desk sees the whole inbox**, with the same per-person filter an owner
-  has. A receptionist was getting only the unclaimed ones.
-- **Find somebody in the diary** without knowing when they are in, for the
-  width of an icon and no extra height on a phone.
-- **A client's record says when they are next in**, each one a link straight
-  into that appointment.
-- **One bill at the end of an appointment**: the work at what it was booked at
-  and editable, the shelf beside it, one total, one payment. Cash, card
-  machine, tapped on a phone, or a link.
-- **Finishing off is at the bottom** of an appointment, under the detail, and
-  is called that.
-- **The keyboard no longer covers the field you tapped.**
-- **The diary waited on five round trips in a row** before drawing anything.
-  Now two.
-- **The back office says connected of allowed** rather than reading as though a
-  business only has text messages.
+- **Tapping an appointment opens on the appointment** — who, when, what, the
+  price, the status — with one big **Complete** and "Change or cancel" beside
+  it. It used to open the edit form with Complete three screens down.
+- **Complete takes the whole sheet**: did they come, what they had, anything
+  bought, how they paid.
+- **A payment link is sent, not just shown**: "Text it to 07700…" / "Email it
+  to…", plus copy or open for them to pay there. On the demo it says what it
+  would have sent and sends nothing.
+- **Owner and desk take money for anybody**: the record, the conversation and
+  the till ask whose work it was, and the money lands in that person's own
+  Stripe when the business pays people separately.
+- **Each person's Stripe** is listed on Settings → Taking money, with "Connect
+  my Stripe" on your own row.
+- **Stripe connect says why when it fails** and checks the account was saved.
+  The live check now spots a client ID and key from different Stripe accounts.
+- **The page after paying** says deposit or payment, what for, to whom, and
+  has a way back to the business.
+- **The diary shows ✓ Completed · £55 paid** or No-show on each card.
+- **Stripe's fee and the take-home amount** are recorded on every card payment.
+- **Payment links were refused at random** for expiring exactly a day out.
+  Fixed.
+- **History on a client lists only visits that have happened**, and a title
+  that is only the client's name is not shown twice.
+- **Contact preference** (text or email) — migration run and live.
+
+## Done earlier in testing
+
+- Emailed replies read as emails; a daily ceiling on what the assistant answers
+  by email; mail arriving at our addresses recorded and folded away in the back
+  office.
+- No VAT means no VAT.
+- The client picker takes a mobile and an email.
+- Deleting a conversation no longer lands on a 404.
+- The desk sees the whole inbox, with a per-person filter.
+- Find somebody in the diary; a client's record says when they are next in.
+- The keyboard no longer covers the field you tapped; the iPad on its side uses
+  its width.
+- The diary loads in two round trips rather than five.
 
 ## Next, in the order I would do them
 
-1. **The iPad in landscape.** The add-booking sheet is small and half covered
-   by the keyboard. The sheet is sized against the visible viewport, which is
-   right on a phone and wrong on a short wide one: there is plenty of width and
-   almost no height, and it should use it — two columns, and the field being
-   typed into kept above the keyboard. Half a day.
+### 1. Every screen in the business's own words (doing now)
 
-2. **The whole add-a-booking flow, properly.** You have called it clunky twice
-   and you are right. What I would do rather than patch it again: one sheet
-   that opens on the thing you are most likely to want — a regular having the
-   usual, at the time you tapped — with everything else folded behind it. Type
-   two letters, pick the person, and the service, length, price and their own
-   timing fill themselves in from what they had last time. Nothing asked twice,
-   nothing asked that can be worked out. A day, and worth doing once rather
-   than three more times.
+You asked that everything we have built fits each business as its trade. The
+assistant already does — it reads the trade's pack. The screens mostly do not:
+a survey found about thirty places still written for a salon or a tattoo
+studio. A cleaner's Complete screen asks "What they had"; a tutor's says
+"Search your clients" when their word is students; the till suggests
+"Shampoo, gift voucher"; a new diary note suggests "Order ink and needles".
 
-3. **How somebody prefers to be reached.** You asked for this with the phone
-   and email. It needs a column on contacts and a rule change in `routesFor`,
-   which currently decides for itself that a text beats an email. Small, but it
-   is a migration, so it waits for a moment you are not mid-test.
+- One `wordsFor(business)` helper, used everywhere, instead of the same line
+  copied into twelve files.
+- Every hard-coded trade word replaced: the diary sheet, Complete, the
+  appointment view, the add menu, the till, prices, Settings → You, Taking
+  money, the pages a customer sees after paying.
+- **A real setup bug**: every new business starts on size-band pricing, because
+  the trade's own pricing (fixed prices for a salon, hourly for a plumber) is
+  never read when the business is created. Neat & Tidy and Willow & Co were set
+  by hand, which is why nobody noticed.
+- The database still defaults a new business to tattoo. Changed to general.
+- The salon demo's enquiries are labelled "new tattoo". Fixed in the refresh.
+- A test that walks all 34 trades and fails if any screen shows another
+  trade's words.
 
-4. **Backups, automatically.** Today it is one command you run yourself, which
-   means it happens when somebody remembers. Options, cheapest first: a nightly
-   scheduled job writing an encrypted file to storage; the same plus a copy to
-   somewhere off this platform; or leaving it manual and putting a reminder in
-   the weekly report. The middle one is what I would do, and the decision is
-   yours because it is the one that costs money.
+About a day. No migration.
 
-5. **Meta channels**, when the app is through review. Nothing to build until
-   then.
+### 2. Forms and signatures on a client
+
+Nothing exists yet — no forms, signatures or documents anywhere, only the
+marketing-consent tick. What I would build:
+
+- **Forms the business writes**, from simple blocks: a paragraph, a question
+  (short answer, long answer, yes/no, pick one, date), a tick to agree, and a
+  signature. **Starter forms per trade**, ready to edit: tattoo consent and
+  aftercare; salon patch-test record and colour consent; aesthetics medical
+  questionnaire; a health questionnaire (PAR-Q) for a personal trainer; pet
+  details and vaccinations for a groomer; parental consent for a tutor; terms
+  and quote acceptance for trades.
+- **Send to one or many**: from a client's record, from an appointment, or to a
+  list (tick clients, or everyone booked on a day). It goes by text or email as
+  a private link — no login for the customer.
+- **The customer's page**: fill it in, sign with a finger or mouse and type
+  their name, submit. Kept with the time, and a frozen copy of exactly what they
+  agreed to — editing the form later never changes one already signed.
+- **Paper forms**: take a photo or upload a PDF on the client's record, kept
+  privately against them.
+- **A Forms section on the client's record**: sent, opened, signed, waiting;
+  resend; view or download.
+- **Before an appointment**: an optional "must be signed first" on a service,
+  a nudge to the customer if it is not, and a warning on the appointment.
+- **Quotes**: a form with priced lines and an accept-and-sign; an accepted quote
+  can turn into a booking or a payment link. Second, after the rest works.
+- **Privacy**: consent and health answers can be special-category data. Private
+  storage only, readable only by the business, exported with the client, and
+  erased when a client is forgotten.
+
+Three to four days for the first version (forms, send, sign, upload, the
+client's section); quotes after. **Needs one migration**, which I will give you
+when it is ready.
+
+### 3. Reports
+
+Today: the business's own weekly page (enquiries, bookings, takings, no-shows,
+who has not been back, gaps) and eight headline figures in your back office.
+The weekly report email the product promises was never built.
+
+**Your back office — a Reports page**, every report with a date range, a
+filter by business and by trade, and a CSV download:
+
+- **Growth**: businesses by status over time, new and stopped, monthly income
+  and plan mix, trials that became paying.
+- **Use, per business**: enquiries, bookings, conversion, messages by channel,
+  assistant cost, text cost, staff actually logging in, last active — and an
+  **at risk** list of businesses going quiet.
+- **Money through the product**: deposits and payments taken by link, gross,
+  fees, by business and by trade.
+- **The assistant**: time to first reply, how often it hands to a person, spam
+  filtered, email parked at the daily ceiling.
+- **Health**: texts and emails that failed, Stripe messages that failed,
+  reminders sent and failed, mail arriving.
+
+**Each business's own report**: any range (month, quarter, custom) rather than
+one week; takings by person, service and how paid; deposits; no-shows;
+returning versus new; busiest times; forms still to sign once forms exist; and
+the weekly email.
+
+About two days for your Reports page first, then a day for the business side.
+No migration for the first part.
+
+### 4. Backups, automatically
+
+Today it is one command you run yourself. Options, cheapest first: a nightly
+job writing an encrypted file to storage; the same plus a copy somewhere off
+this platform; or manual with a reminder. The middle one is what I would do,
+and the decision is yours because it costs money.
+
+### 5. Meta channels
+
+When the app is through review. Nothing to build until then.
 
 ## Known and deliberately not done
 
