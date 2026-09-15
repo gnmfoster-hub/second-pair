@@ -75,9 +75,25 @@ export async function saveReminder(_prev: FormState, fd: FormData): Promise<Form
   };
 
   const id = str(fd, "id");
-  const { error } = id
-    ? await supabase.from("reminder_templates").update(row).eq("id", id)
-    : await supabase.from("reminder_templates").insert(row);
+  /*
+   * Asked for the row back, so "nothing matched" is not read as success.
+   *
+   * A member of staff editing one of the business's reminders (or an id from a
+   * stale page) is refused by the database rules, which changes nothing and
+   * reports no error — so the screen said saved and the reminder went out
+   * unchanged the next evening.
+   */
+  const { data: written, error } = id
+    ? await supabase.from("reminder_templates").update(row).eq("id", id).select("id")
+    : await supabase.from("reminder_templates").insert(row).select("id");
+
+  if (!error && !written?.length) {
+    return {
+      error: artistId
+        ? "That reminder is not yours to change."
+        : "Only the owner can change the business's reminders.",
+    };
+  }
 
   if (error) {
     return {
