@@ -1276,9 +1276,9 @@ export function WeekGrid({
                           * And the service underneath, where there is room,
                           * now that the name has the top line.
                           */}
-                        {height > 54 && e.clientName && (e.title || e.description) && (
+                        {height > 54 && e.clientName && serviceLine(e) && (
                           <div className="truncate text-foreground/70">
-                            {e.title || e.description}
+                            {serviceLine(e)}
                           </div>
                         )}
                         {height > 54 && !e.clientName && (e.description || e.notes) && (
@@ -1359,4 +1359,10 @@ export function WeekGrid({
       )}
     </>
   );
+}
+
+/** The service under a name — never the name said twice, which hand-typed titles often are. */
+export function serviceLine(e: { clientName: string | null; title: string | null; description: string | null }) {
+  const same = (e.title ?? "").trim().toLowerCase() === (e.clientName ?? "").trim().toLowerCase();
+  return (e.title && !same ? e.title : e.description) || null;
 }

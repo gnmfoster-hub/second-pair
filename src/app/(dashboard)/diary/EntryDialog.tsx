@@ -17,6 +17,7 @@ import { useSheet, asSheet } from "@/components/useSheet";
 import { formatPence } from "@/lib/money";
 import { depositPaid, hasDeposit } from "@/lib/deposit";
 import { Complete } from "./Complete";
+import { Glance } from "./Glance";
 import type { ShelfItem } from "./Complete";
 import { CATEGORIES, OWNER_CATEGORIES, categoryFor, REPEATS } from "@/lib/calendar";
 import type { Artist } from "@/lib/types";
@@ -156,9 +157,11 @@ export function EntryDialog({
    * And the price, for the same reason: picking a service knows what it comes
    * to, and the week's takings are read off this field.
    */
-  const [price, setPrice] = useState(
-    entry?.price_pence != null ? (entry.price_pence / 100).toString() : "",
-  );
+  const [price, setPrice] = useState(() => {
+    // What it was booked at, where the price itself was never typed in.
+    const pence = entry?.price_pence ?? entry?.quotePence ?? null;
+    return pence != null ? (pence / 100).toString() : "";
+  });
 
   /*
    * What the add menu said this is.
@@ -207,6 +210,22 @@ export function EntryDialog({
       filledIn.current = label;
     }
   };
+  /*
+   * Which of three things the sheet is showing.
+   *
+   * An appointment opens on itself — who, when, what, and Complete — rather
+   * than on the form for changing it. Adding something, or opening a lunch
+   * break, is still straight into the form, because there is nothing to look
+   * at yet and nothing to complete.
+   */
+  const [mode, setMode] = useState<"look" | "edit" | "complete">(() =>
+    entry && (entry.category === "appointment" || entry.category === "consultation")
+      ? "look"
+      : "edit",
+  );
+  const canGoBack = Boolean(
+    entry && (entry.category === "appointment" || entry.category === "consultation"),
+  );
   const [allDay, setAllDay] = useState(entry?.all_day ?? false);
   const [repeats, setRepeats] = useState("none");
   const chosen = categoryFor(category);
@@ -299,9 +318,29 @@ export function EntryDialog({
         />
 
         <div className="flex items-start justify-between gap-3">
-          <h2 className="section-title">
-            {existing ? "Edit" : "Add to the diary"}
-          </h2>
+          <div className="flex items-center gap-1">
+            {canGoBack && mode !== "look" && (
+              <button
+                type="button"
+                onClick={() => setMode("look")}
+                aria-label="Back"
+                className="-ml-2 grid size-9 place-items-center rounded-full text-muted hover:bg-surface-2 hover:text-foreground"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            )}
+            <h2 className="section-title">
+              {mode === "look"
+                ? "Appointment"
+                : mode === "complete"
+                  ? "Complete"
+                  : existing
+                    ? "Change"
+                    : "Add to the diary"}
+            </h2>
+          </div>
           {/*
             * A real target, not the word "Close" set in hint.
             *
@@ -339,7 +378,7 @@ export function EntryDialog({
           * Shown for any source, since an arrangement can hold both a booking
           * the assistant made and one typed in afterwards.
           */}
-        {entry?.group && (
+        {entry?.group && mode !== "complete" && (
           <div className="mt-4 rounded-lg border border-accent/30 bg-accent/5 p-4 text-sm">
             <div className="font-medium">{entry.group.name}</div>
             <div className="hint mt-0.5">
@@ -358,7 +397,43 @@ export function EntryDialog({
           </div>
         )}
 
-        {fromClient ? (
+        {mode === "look" && entry && (
+          <Glance
+            entry={entry}
+            timezone={timezone}
+            whoName={artists.find((a) => a.id === entry.artist_id)?.name ?? null}
+            due={Date.parse(entry.starts_at) <= endOfToday()}
+            onComplete={() => setMode("complete")}
+            onChange={() => setMode("edit")}
+          />
+        )}
+
+        {mode === "complete" && entry && (
+          <div className="mt-3">
+            <Complete
+              bookingId={entry.id}
+              clientName={entry.clientName}
+              workName={
+                entry.title && entry.title !== entry.clientName ? entry.title : "Appointment"
+              }
+              workPence={entry.price_pence ?? entry.quotePence}
+              services={services}
+              shelf={mineToSell}
+              connected={Boolean(entry.artist_id && payable.includes(entry.artist_id))}
+              attended={entry.attended}
+              travels={travels}
+              alreadyPence={entry.soldPence}
+              bookedMinutes={Math.round(
+                (Date.parse(entry.ends_at) - Date.parse(entry.starts_at)) / 60000,
+              )}
+              startOpen
+              onCancel={() => setMode("look")}
+              onDone={onClose}
+            />
+          </div>
+        )}
+
+        {mode === "edit" && fromClient ? (
           // A client booking is owned by its conversation. Time can move; the
           // rest belongs to the enquiry and is shown, not edited.
           <div className="mt-4 space-y-1 rounded-lg bg-surface-2/50 p-4 text-sm">
@@ -398,6 +473,7 @@ export function EntryDialog({
 
         {/* space-y-4 on a phone. Five was a fifth of the screen given to the
             gaps between fields on a form that already had to scroll. */}
+        {mode === "edit" && (
         <form action={action} className="sheet-fields mt-4 space-y-4 sm:mt-5 sm:space-y-5">
           {entry && <input type="hidden" name="id" value={entry.id} />}
           <input type="hidden" name="category" value={category} />
@@ -769,132 +845,6 @@ export function EntryDialog({
             )}
           </div>
         </form>
-
-        {/*
-          * Finishing off, under the detail rather than over it.
-          *
-          * These were the first thing on the screen, above the fields that say
-          * when the appointment is and who it is with — which is the wrong way
-          * round for every visit to this panel except the last one. You open an
-          * appointment to read it or change it far more often than to close it
-          * out, and on a phone a screenful of money controls stood between
-          * somebody and the time they came to check.
-          */}
-        {/*
-          * Everything you do to an appointment while somebody is standing
-          * there: what it cost, charging for it, selling them something, and
-          * closing it off afterwards.
-          *
-          * Outside the block above, which is the point. All of this used to
-          * live inside it, and that block only renders when the booking came
-          * from a conversation — so an appointment typed into the diary by
-          * hand had no complete button, no payment link and no way to sell
-          * anybody a bottle. Which is most appointments in most salons: the
-          * phone rings, somebody writes it in, and none of the things this
-          * product is for were reachable from it.
-          *
-          * Client work only. A lunch break and a day off are entries in the
-          * diary and neither of them is owed money or needs closing off.
-          */}
-        {entry && isClientWork && (
-          <div className="sheet-wide mt-4 space-y-1 rounded-lg bg-surface-2/50 p-4 text-sm">
-            {/*
-              * Named, because it was reported missing twice while being on the
-              * screen.
-              *
-              * There is no button called "complete" and there should not be:
-              * finishing with somebody is two facts — what they owe and
-              * whether they turned up — and a single button would have to
-              * guess at both. But a block of controls with no heading reads as
-              * a row of unrelated options, and somebody looking for the end of
-              * an appointment scrolls past it.
-              */}
-            <div className="label pb-1">Finishing off</div>
-            {/*
-              * Only where there is a deposit to speak of.
-              *
-              * This read "Deposit £0.00 — paid" on everything typed into the
-              * diary by hand, because those are stored as nothing-marked-paid
-              * to keep the unpaid-hold sweep from cancelling them. Most
-              * entries in most diaries carry no deposit at all, so the
-              * commonest thing this line did was make a false statement about
-              * money — in a studio that had not even connected Stripe.
-              */}
-            {hasDeposit(entry) && (
-              <div className="hint">
-                Deposit {formatPence(entry.deposit_amount_pence ?? 0)} —{" "}
-                {depositPaid(entry) ? "paid" : "not paid"}
-              </div>
-            )}
-
-            {/*
-              * Out to the two places this appointment came from.
-              *
-              * Their record is where a phone number, an email address, what
-              * they are allergic to and what they have agreed to be sent all
-              * live — and there has never been a way to reach it from the
-              * appointment. Changing somebody's number meant closing this,
-              * going to the client list, searching for a name you are looking
-              * at, and opening them: four steps away from the screen that
-              * already knows who they are.
-              */}
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-              {entry.contactId && (
-                <Link
-                  href={`/clients/${entry.contactId}`}
-                  className="inline-block text-sm text-accent hover:underline"
-                >
-                  Open their record →
-                </Link>
-              )}
-
-              {entry.conversationId && (
-                <Link
-                  href={`/conversations/${entry.conversationId}`}
-                  className="inline-block text-sm text-accent hover:underline"
-                >
-                  Open the conversation →
-                </Link>
-              )}
-            </div>
-
-            {/*
-              * One button, and the whole of finishing behind it.
-              *
-              * Two panels stood here — a bill, and a "did they turn up" — each
-              * saving on its own, so an appointment was finished only if
-              * somebody knew to use both. Asked for again and again as "a
-              * complete button". It is one now: did they come, what did they
-              * have, anything bought, how did they pay, and the last tap does
-              * all of it.
-              *
-              * From the morning of the day, not the minute it starts. Waiting
-              * for the start time hid the button on everything later today,
-              * which is exactly where somebody looks for it while the client
-              * is still in the chair.
-              */}
-            {Date.parse(entry.starts_at) <= endOfToday() ? (
-              <Complete
-                bookingId={entry.id}
-                clientName={entry.clientName}
-                workName={entry.title || "Appointment"}
-                workPence={entry.price_pence ?? entry.quotePence}
-                services={services}
-                shelf={mineToSell}
-                connected={Boolean(entry.artist_id && payable.includes(entry.artist_id))}
-                attended={entry.attended}
-                travels={travels}
-                alreadyPence={entry.soldPence}
-                bookedMinutes={Math.round(
-                  (Date.parse(entry.ends_at) - Date.parse(entry.starts_at)) / 60000,
-                )}
-              />
-            ) : (
-              <p className="hint">
-                You can complete this on the day.
-              </p>
-            )}
-          </div>
         )}
       </div>
     </div>

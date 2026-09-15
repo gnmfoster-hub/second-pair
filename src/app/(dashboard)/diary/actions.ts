@@ -582,6 +582,12 @@ export async function clientSummary(contactId: string) {
     .select("id, starts_at, price_pence, attended, artist_id, artists(name), enquiry_id, title")
     .eq("contact_id", contactId)
     .is("cancelled_at", null)
+    /*
+     * Visits that have happened. "Been in 16 times" listed next Saturday first,
+     * because a regular's diary runs ahead of today — and a history that opens
+     * on the future reads as though the dates are wrong.
+     */
+    .lt("starts_at", new Date().toISOString())
     .order("starts_at", { ascending: false })
     .limit(20);
 

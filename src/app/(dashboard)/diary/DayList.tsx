@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EntryDialog } from "./EntryDialog";
 import type { ShelfItem } from "./Complete";
-import type { Entry } from "./WeekGrid";
+import { serviceLine, type Entry } from "./WeekGrid";
 import type { Bookable } from "./ServicePick";
 import type { Artist } from "@/lib/types";
 import { categoryFor, isoDate } from "@/lib/calendar";
@@ -472,10 +472,8 @@ export function DayList({
                   <span className="block truncate text-sm font-medium">
                     {e.clientName || e.title || "Appointment"}
                   </span>
-                  {(e.title || e.description) && e.clientName && (
-                    <span className="hint mt-0.5 block truncate">
-                      {e.title || e.description}
-                    </span>
+                  {e.clientName && serviceLine(e) && (
+                    <span className="hint mt-0.5 block truncate">{serviceLine(e)}</span>
                   )}
                   <span className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
                     {/*

@@ -46,6 +46,9 @@ export function Complete({
   travels = false,
   alreadyPence,
   bookedMinutes,
+  startOpen = false,
+  onCancel,
+  onDone,
 }: {
   bookingId: string;
   clientName: string | null;
@@ -65,9 +68,15 @@ export function Complete({
   /** What has already been taken at this appointment. */
   alreadyPence: number | null;
   bookedMinutes: number;
+  /** Straight to the questions, when the appointment already offered the button. */
+  startOpen?: boolean;
+  /** Where Cancel goes, when this is not the one holding the button. */
+  onCancel?: () => void;
+  /** Where "back to the diary" goes once it is done. */
+  onDone?: () => void;
 }) {
   const [state, action, pending] = useActionState<BillState, FormData>(completeAppointment, {});
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(startOpen);
   const [came, setCame] = useState(true);
   const [what, setWhat] = useState(workName);
   const [price, setPrice] = useState(workPence != null ? (workPence / 100).toFixed(2) : "");
@@ -137,6 +146,11 @@ export function Complete({
           </a>
         )}
         {state.error && <p className="hint mt-1 text-warn">{state.error}</p>}
+        {onDone && (
+          <button type="button" onClick={onDone} className="btn mt-3 w-full">
+            Back to the diary
+          </button>
+        )}
       </div>
     );
   }
@@ -182,7 +196,7 @@ export function Complete({
         <div className="font-medium">Complete{clientName ? ` — ${clientName}` : ""}</div>
         <button
           type="button"
-          onClick={() => setOpen(false)}
+          onClick={() => (onCancel ? onCancel() : setOpen(false))}
           className="text-sm text-muted hover:text-foreground"
         >
           Cancel
