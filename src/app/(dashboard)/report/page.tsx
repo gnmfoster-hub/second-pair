@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio } from "@/lib/studio";
-import { weeklyReport, lastWeek } from "@/lib/report";
+import { weeklyReport } from "@/lib/report";
+import { reportRange, REPORT_RANGES } from "@/lib/reportRange";
+import { howPaid, newAndReturning, busiest, type PaymentRow } from "@/lib/reportExtras";
+import { MoneyAndPeople } from "./MoneyAndPeople";
+import { EmailMeThis } from "./EmailMeThis";
+import { WeeklyEmailSwitch } from "./WeeklyEmailSwitch";
+import { wordsFor } from "@/lib/words";
 import { takingsFor, takingsByService } from "@/lib/takings";
 import { Takings } from "./Takings";
 import { formatPence } from "@/lib/money";
@@ -41,30 +47,30 @@ function Stat({
 export default async function ReportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ weeks?: string }>;
+  searchParams: Promise<{ weeks?: string; range?: string; from?: string; to?: string }>;
 }) {
-  const { weeks } = await searchParams;
-  /*
-   * -1 is the week we are in; 0 is the last completed one.
-   *
-   * It used to stop at 0, so on a Friday afternoon there was no way to see how
-   * the week was going — the page you would open to ask that question could
-   * only show you the one before. The default is still the completed week,
-   * because that is the one worth reviewing.
-   */
-  const back = Math.min(12, Math.max(-1, Number(weeks) || 0));
-  const thisWeek = back === -1;
+  const params = await searchParams;
 
   const { studio } = await requireStudio();
   const supabase = await createClient();
+  const words = wordsFor(studio);
+  const { data: membership } = await supabase
+    .from("studio_members")
+    .select("role")
+    .eq("studio_id", studio.id)
+    .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "")
+    .maybeSingle();
+  const owns = membership?.role === "owner";
 
   const now = new Date();
-  const { from, to } = lastWeek(now, studio.timezone);
-  from.setUTCDate(from.getUTCDate() - back * 7);
-  to.setUTCDate(to.getUTCDate() - back * 7);
-
-  // The week in progress ends now, not on a Monday that has not happened.
-  if (thisWeek) to.setTime(now.getTime());
+  /*
+   * The range: a week by default, as it always was, with the arrows — or a
+   * month, last month, the quarter, the year, or two dates typed in.
+   */
+  const chosen = reportRange(params, now, studio.timezone);
+  const { from, to } = chosen;
+  const back = chosen.weeks ?? 0;
+  const thisWeek = chosen.soFar;
 
   const report = await weeklyReport(supabase, studio, from, to);
 
@@ -184,16 +190,46 @@ export default async function ReportPage({
    * time an extra query is worth it.
    */
   let sinceCount = 0;
-  if (report.enquiries === 0 && !thisWeek) {
+  if (report.enquiries === 0 && !thisWeek && to.getTime() < now.getTime()) {
     const since = await weeklyReport(supabase, studio, to, now);
     sinceCount = since.enquiries;
   }
 
-  const range = thisWeek
-    ? `${from.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – today`
-    : `${from.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${new Date(
-        to.getTime() - 86400000,
-      ).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
+  const range = chosen.title;
+
+  /*
+   * Money, people and when it is busy — the parts of the report about the
+   * business rather than about the assistant.
+   */
+  const [{ data: paymentRows }, { data: formRows }] = await Promise.all([
+    supabase
+      .from("payments")
+      .select("kind, method, status, gross_pence, fee_pence, paid_at, created_at")
+      .eq("studio_id", studio.id)
+      .gte("created_at", new Date(from.getTime() - 31 * 86_400_000).toISOString()),
+    supabase.from("client_forms").select("status, signed_at").eq("studio_id", studio.id).neq("status", "void"),
+  ]);
+  const paid = howPaid((paymentRows ?? []) as PaymentRow[], from, to);
+  const people = newAndReturning(
+    visits.map((v) => ({ contactId: v.contact_id, at: v.starts_at })),
+    from,
+    to,
+    now,
+  );
+  const busy = busiest(
+    visits
+      .filter((v) => Date.parse(v.starts_at) >= from.getTime() && Date.parse(v.starts_at) < to.getTime())
+      .map((v) => v.starts_at),
+    studio.timezone,
+  );
+  const forms = formRows
+    ? {
+        waiting: formRows.filter((f) => f.status === "sent" || f.status === "opened").length,
+        signed: formRows.filter(
+          (f) => f.signed_at && Date.parse(f.signed_at as string) >= from.getTime() && Date.parse(f.signed_at as string) < to.getTime(),
+        ).length,
+      }
+    : null;
 
   const responded =
     report.medianFirstResponseSeconds == null
@@ -205,19 +241,60 @@ export default async function ReportPage({
   return (
     <div className="mx-auto max-w-4xl px-8 py-9">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
-        <h1 className="page-title">{thisWeek ? "This week so far" : "The week"}</h1>
-        <span className="hint">{range}</span>
-        <div className="ml-auto flex gap-2">
-          <Link href={`/report?weeks=${back + 1}`} className="btn-ghost px-3">
-            ←
-          </Link>
-          {back > -1 && (
-            <Link href={`/report?weeks=${back - 1}`} className="btn-ghost px-3">
-              →
+        <h1 className="page-title">{range}</h1>
+        {chosen.weeks != null && (
+          <div className="ml-auto flex gap-2">
+            <Link href={`/report?weeks=${back + 1}`} className="btn-ghost px-3" aria-label="The week before">
+              ←
             </Link>
-          )}
-        </div>
+            {back > -1 && (
+              <Link href={`/report?weeks=${back - 1}`} className="btn-ghost px-3" aria-label="The week after">
+                →
+              </Link>
+            )}
+          </div>
+        )}
       </div>
+
+      {/*
+        * Any stretch of time, not only a week.
+        *
+        * A plain form, so it works without any script and the address can be
+        * bookmarked or sent to an accountant.
+        */}
+      <form method="get" className="mt-4 flex flex-wrap items-end gap-2">
+        <div className="flex flex-wrap gap-1.5">
+          {REPORT_RANGES.map((r) => (
+            <Link
+              key={r.key}
+              href={`/report?range=${r.key}`}
+              className={`rounded-full border px-3 py-1 text-xs ${
+                chosen.key === r.key ? "border-accent bg-accent text-on-accent" : "border-border hover:border-accent"
+              }`}
+            >
+              {r.label}
+            </Link>
+          ))}
+        </div>
+        <label className="text-xs">
+          <span className="label">From</span>
+          <input id="report-from" type="date" name="from" defaultValue={params.from ?? ""} className="input py-1 text-sm" />
+        </label>
+        <label className="text-xs">
+          <span className="label">To</span>
+          <input id="report-to" type="date" name="to" defaultValue={params.to ?? ""} className="input py-1 text-sm" />
+        </label>
+        <button className="btn border border-border py-1.5 text-sm">Show</button>
+        <div className="ml-auto">
+          <EmailMeThis range={{ range: params.range, from: params.from, to: params.to, weeks: params.weeks }} />
+        </div>
+      </form>
+
+      {owns && (
+        <div className="mt-3">
+          <WeeklyEmailSwitch on={(studio as { weekly_report_email?: boolean }).weekly_report_email === true} />
+        </div>
+      )}
 
       {/*
         * Why it is empty, before the emptiness.
@@ -307,6 +384,8 @@ export default async function ReportPage({
 
       {/* What the week came to, from the diary rather than the conversations. */}
       <Takings figures={takings} byService={byService} runningLow={runningLow} />
+
+      <MoneyAndPeople paid={paid} people={people} busy={busy} forms={forms} customers={words.customers} />
 
       <NotBeenBack people={notBeenBack} />
 

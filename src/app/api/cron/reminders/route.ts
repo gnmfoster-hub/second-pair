@@ -8,6 +8,7 @@ import type { Studio } from "@/lib/types";
 import { forgetOldEnquiries } from "@/lib/retention";
 import { forgetHandledMessages } from "@/lib/handledMessages";
 import { sweepWentWrong } from "@/lib/cronOutcome";
+import { sendWeeklyReports } from "@/lib/weeklyReports";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -144,7 +145,16 @@ export async function GET(request: NextRequest) {
    */
   const answered = await releaseHeldConversations(db, await siteOrigin());
 
-  const body = { released, due, sent, waiting, failures, answered, forgotten, tidied };
+  /*
+   * Monday's report, for the businesses that asked for it. After everything
+   * a customer is waiting on, and never able to fail the run.
+   */
+  const weekly = await sendWeeklyReports(db, (studios ?? []) as Studio[], await siteOrigin()).catch((e) => ({
+    sent: 0,
+    failed: [(e as Error).message],
+  }));
+
+  const body = { released, due, sent, waiting, failures, answered, forgotten, tidied, weekly };
 
   /*
    * Said out loud, because nothing downstream will say it.

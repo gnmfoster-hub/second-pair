@@ -38,7 +38,7 @@ export function Takings({
   return (
     <section className="card mt-4 p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="section-title">What the week came to</h2>
+        <h2 className="section-title">What it came to</h2>
         <span className="hint tabular-nums">
           {figures.bookings} appointments
         </span>
