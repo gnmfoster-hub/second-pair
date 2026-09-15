@@ -589,7 +589,9 @@ export async function refreshDemo(db: Db, studioId: string): Promise<DemoRefresh
    */
   await db
     .from("studios")
-    .update({ deposit_mode: "optional", takes_payments: true })
+    // Fallback on, so one Stripe connected by the owner shows checkout for everyone,
+    // while a stylist who connects their own still shows the money going to them.
+    .update({ deposit_mode: "optional", takes_payments: true, payment_fallback: true })
     .eq("id", studio.id);
 
   // ------------------------------------------------------- the shelf
