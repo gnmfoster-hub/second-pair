@@ -18,7 +18,7 @@ export type ShelfItem = {
   ownerId: string | null;
 };
 
-type Line = { key: number; serviceId: string; name: string; quantity: number; pricePence: number };
+type Line = { key: number; serviceId: string | null; name: string; quantity: number; pricePence: number };
 let nextKey = 1;
 
 /**
@@ -186,7 +186,7 @@ export function Complete({
       <input type="hidden" name="work" value={price} />
       {lines.map((line, i) => (
         <span key={line.key} hidden>
-          <input type="hidden" name={`service_${i}`} value={line.serviceId} />
+          <input type="hidden" name={`service_${i}`} value={line.serviceId ?? ""} />
           <input type="hidden" name={`name_${i}`} value={line.name} />
           <input type="hidden" name={`qty_${i}`} value={line.quantity} />
           <input type="hidden" name={`price_${i}`} value={(line.pricePence / 100).toFixed(2)} />
@@ -280,10 +280,19 @@ export function Complete({
             )}
           </div>
 
-          {/* 3 ─ anything they bought on the way out. */}
-          {shelf.length > 0 && (
-            <div>
-              <span className="label">Anything they bought</span>
+          {/*
+            * 3 ─ anything else on the bill: something off the shelf, or
+            * something typed in.
+            *
+            * Shown for every business now, not only one with a shelf. The
+            * commonest extra is not a product at all — a fringe trim thrown in
+            * for a fiver, a call-out charge, parking, a broken part replaced —
+            * and with nowhere to put it the money went on the bill as a
+            * higher price for the work, which is the wrong line in the takings
+            * and the wrong thing on the receipt.
+            */}
+          <div>
+              <span className="label">Anything else on the bill</span>
               <div className="mt-1 flex flex-wrap gap-1.5">
                 {shelf.map((item) => (
                   <button
@@ -321,8 +330,12 @@ export function Complete({
                   ))}
                 </ul>
               )}
-            </div>
-          )}
+              <Extra
+                onAdd={(name, pence) =>
+                  setLines((all) => [...all, { key: nextKey++, serviceId: null, name, quantity: 1, pricePence: pence }])
+                }
+              />
+          </div>
 
           <div className="flex items-baseline justify-between border-t border-border pt-3">
             <span className="label">Total</span>
@@ -390,5 +403,76 @@ export function Complete({
 
       {state.error && <p className="text-sm text-bad">{state.error}</p>}
     </form>
+  );
+}
+
+/**
+ * Something that is not on the shelf, typed in with its price.
+ *
+ * Kept as its own line with no product behind it, so it reaches the receipt
+ * and the takings under the name it was given, and never touches stock.
+ */
+function Extra({ onAdd }: { onAdd: (name: string, pence: number) => void }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const pence = Math.round(Number(price.replace(/[£,\s]/g, "")) * 100);
+  const valid = name.trim().length > 0 && Number.isFinite(pence) && pence > 0;
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="mt-2 text-sm text-accent hover:underline">
+        + Something else
+      </button>
+    );
+  }
+
+  const add = () => {
+    if (!valid) return;
+    onAdd(name.trim().slice(0, 120), pence);
+    setName("");
+    setPrice("");
+    setOpen(false);
+  };
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      <input
+        id="extra-name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            add();
+          }
+        }}
+        placeholder="What it is"
+        aria-label="What it is"
+        className="input min-w-0 flex-1"
+        autoFocus
+      />
+      <input
+        id="extra-price"
+        value={price}
+        onChange={(e) => setPrice(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            add();
+          }
+        }}
+        inputMode="decimal"
+        placeholder="0.00"
+        aria-label="Price"
+        className="input w-24 text-right tabular-nums"
+      />
+      <button type="button" onClick={add} disabled={!valid} className="btn border border-border text-sm disabled:opacity-50">
+        Add
+      </button>
+      <button type="button" onClick={() => setOpen(false)} className="text-sm text-muted hover:text-foreground">
+        Cancel
+      </button>
+    </div>
   );
 }
