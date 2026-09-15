@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { submitForm, type SignState } from "./actions";
 import { detailKey, type Block } from "@/lib/forms/blocks";
 
@@ -36,7 +36,22 @@ export function FillForm({ token, blocks, business }: { token: string; blocks: B
   }
 
   return (
-    <form action={action} className="mt-6 space-y-5">
+    <form
+      /*
+       * Submitted by hand rather than through the form's action.
+       *
+       * A form action clears every field once it returns, which is right for a
+       * form that worked and cruel for one that did not: a customer who missed
+       * one question of ten would have the other nine wiped and the signature
+       * with them. Dispatching it ourselves keeps what they typed.
+       */
+      onSubmit={(e) => {
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        startTransition(() => action(data));
+      }}
+      className="mt-6 space-y-5"
+    >
       <input type="hidden" name="token" value={token} />
       <div ref={top} />
 

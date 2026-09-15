@@ -384,9 +384,17 @@ export default async function ClientPage({
             studioId={studio.id}
             contactId={contact.id}
             firstName={(contact.name ?? "them").split(" ")[0]}
-            channels={routes
-              .filter((r) => r.open && (r.channel === "sms" || r.channel === "email"))
-              .map((r) => ({ channel: r.channel, label: r.channel === "sms" ? "Text" : "Email" }))}
+            channels={
+              // The demo offers what a business with texting and email would, and sends nothing.
+              studio.kind === "demo"
+                ? [
+                    ...(contact.phone ? [{ channel: "sms", label: "Text" }] : []),
+                    ...(contact.email ? [{ channel: "email", label: "Email" }] : []),
+                  ]
+                : routes
+                    .filter((r) => r.open && (r.channel === "sms" || r.channel === "email"))
+                    .map((r) => ({ channel: r.channel, label: r.channel === "sms" ? "Text" : "Email" }))
+            }
             mayMessage={mayMessage}
           />
 
