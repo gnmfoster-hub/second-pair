@@ -113,6 +113,7 @@ export async function POST(request: NextRequest) {
     // How much this business lets it answer on its own. See InboundMode.
     mode: readInboundMode(studio.inbound_mode),
     answerTo: (studio.inbound_addresses as string[] | null) ?? [],
+    name: studio.name as string,
   });
 
   // A machine talking. Nothing is written down, because a newsletter landing

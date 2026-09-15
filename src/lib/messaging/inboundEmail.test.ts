@@ -388,3 +388,26 @@ test("markup under the text field is still turned into words", () => {
   assert.equal(words, "Hello there");
   assert.doesNotMatch(words, /DOCTYPE|color:red/);
 });
+
+// ───────────────────────────────────────── somebody selling, not a customer
+
+test("a sales pitch is ignored, for every business, before anything is answered", () => {
+  const v = judge(
+    {
+      from: "kaseefexpert5@gmail.com",
+      subject: "Quick question",
+      body: "If I bring 30–45 orders to Livingcanvastattoo in September, can we explore a collaboration? What’s the best WhatsApp to connect with you?",
+    },
+    { ...shop, name: "Living Canvas Tattoo" },
+  );
+  assert.equal(v.what, "ignore");
+  assert.match(v.because, /sales pitch/);
+});
+
+test("a verification code still reaches the owner even if it reads like a pitch", () => {
+  const v = judge(
+    { from: "noreply@zoho.com", subject: "Your confirmation code", body: "Your confirmation code is 123456 to boost your sales tools" },
+    { ...shop, name: "Living Canvas Tattoo" },
+  );
+  assert.equal(v.what, "park");
+});

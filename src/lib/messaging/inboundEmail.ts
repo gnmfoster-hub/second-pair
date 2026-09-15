@@ -139,6 +139,7 @@ const MACHINE_SUBJECT =
  * because this is where a reader of the inbound rules expects to find it.
  */
 import { addressOf, domainOf } from "./address.ts";
+import { coldPitch } from "./coldPitch.ts";
 export { addressOf, domainOf };
 
 /**
@@ -232,6 +233,8 @@ export function judge(
     mode?: InboundMode;
     /** Their public addresses, when the mode is "listed". */
     answerTo?: string[];
+    /** The business's name, which a scraper squashes into one word. */
+    name?: string;
   } = {},
 ): Verdict {
   const headers = Object.fromEntries(
@@ -353,6 +356,22 @@ export function judge(
         ? "there is a subject and nothing else, which is rarely a customer"
         : "it arrived empty",
     };
+  }
+
+  /*
+   * Somebody selling to the business, not a customer.
+   *
+   * After everything that parks mail for a person — a verification code, the
+   * business itself, somebody asking to unsubscribe — and before anything is
+   * answered. Ignored rather than parked: every business on here receives
+   * these by the dozen, and a pitch in the inbox flagged as needing a person
+   * is the noise the inbox exists to keep out. Nothing is lost by it; the
+   * email is still in the business's own mailbox, which only ever forwarded
+   * a copy. See coldPitch for how it is told apart from a customer.
+   */
+  const pitch = coldPitch(email, { name: business.name });
+  if (pitch.pitch) {
+    return { what: "ignore", because: `it reads as a sales pitch (${pitch.signs.join("; ")})` };
   }
 
   /*
