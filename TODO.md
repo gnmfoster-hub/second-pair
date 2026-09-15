@@ -16,12 +16,12 @@ Last updated: 15 September 2026.
 
 # Migrations
 
-**One waiting:** `20260916090000_forms.sql` — forms and signatures: the forms a
-business writes, the copies sent to customers, private storage for paper forms,
-and "needs a form first" on a service. Every forms screen says it is waiting
-until this is run; nothing else is affected.
+**One waiting:** `20260916150000_weekly_report_email.sql` — the switch for the
+Monday report email, and the date it last went. Until it is run the switch says
+it needs an update and nothing is sent.
 
-`20260915080000_prefers.sql` and `20260914220000_inbound_log.sql` are run.
+`20260916090000_forms.sql`, `20260915080000_prefers.sql` and
+`20260914220000_inbound_log.sql` are run.
 
 When one is waiting it will be named here. Until it is run the product keeps
 working without it — everything new is written so the deploy and the migration
@@ -446,9 +446,18 @@ on any of it before I build it.
   and no-shows, money through Stripe with fees, forms, failures, last sign-in,
   days quiet and an at-risk list.
 
+## Done on 16 September, later
+
+- **Something bespoke on a bill** — "+ Something else" on Complete.
+- **Each business's own report** — any range, how it was paid, new versus
+  returning, when it is busy, forms waiting, "Email me this", and a Monday
+  email the owner switches on. The menu says Reports.
+- **Forms tested end to end on the demo**, and a failed submit keeps answers.
+- **Worklist page** with tick-off steps and links to every sheet.
+
 ## Next, in the order I would do them
 
-### 1. The business's own report
+### 0. (was) The business's own report — done
 
 Any date range instead of one week; takings by person, service and how paid;
 deposits; no-shows; new versus returning; busiest times; forms waiting; and the
