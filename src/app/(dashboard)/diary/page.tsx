@@ -21,7 +21,7 @@ import {
   diaryPanes,
 } from "@/lib/diaryLayout";
 import { LayoutToggle } from "./LayoutToggle";
-import { whoTakes } from "@/lib/payments/whoTakes";
+import { payableFor } from "@/lib/payments/whoTakes";
 import { Find } from "./Find";
 import { FullDiary } from "./FullDiary";
 import { SwipeDates } from "./SwipeDates";
@@ -109,7 +109,7 @@ export default async function DiaryPage({
    * offered exactly where pressing it would work — the business's account, a
    * stylist's own, or the owner's chosen fallback.
    */
-  const payable = artists.filter((a) => whoTakes(studio, a, "payment").ok).map((a) => a.id);
+  const payable = payableFor(studio, artists).map((a) => a.id);
 
   // With more than one person, the day — everyone side by side — is the view a
   // shop actually works from. On your own, the week is more useful.

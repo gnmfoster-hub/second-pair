@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio, getArtists } from "@/lib/studio";
+import { payableFor } from "@/lib/payments/whoTakes";
 import { formatPence } from "@/lib/money";
 import { Timeline, type TimelineReminder } from "./Timeline";
 import { CHANNEL_LABELS, CONV_STATUS_LABELS, type Channel, type ConvStatus } from "@/lib/types";
@@ -75,9 +76,10 @@ export default async function ClientPage({
 }) {
   const { id } = await params;
   const { found } = await searchParams;
-  const { studio } = await requireStudio();
+  const { studio, userId } = await requireStudio();
   const supabase = await createClient();
   const artists = await getArtists(studio.id);
+  const payable = payableFor(studio, artists.filter((a) => a.active));
 
   const { data: contactRow } = await supabase
     .from("contacts")
@@ -366,7 +368,9 @@ export default async function ClientPage({
             <AskForPayment
               contactId={contact.id}
               description={`${studio.name}`}
-              connected={Boolean(studio.stripe_account_id)}
+              connected={payable.length > 0}
+              people={payable.map((a) => ({ id: a.id, name: a.name }))}
+              artistId={payable.find((a) => a.user_id === userId)?.id ?? null}
               channels={routes
                 .filter((r) => r.open)
                 .map((r) => ({ channel: r.channel, label: CHANNEL_LABELS[r.channel] }))}

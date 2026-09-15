@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireStudio, getArtists } from "@/lib/studio";
+import { payableFor } from "@/lib/payments/whoTakes";
 import { createClient } from "@/lib/supabase/server";
 import { verticalPack } from "@/lib/verticals";
 import { SellForm } from "./SellForm";
@@ -112,7 +113,7 @@ export default async function SellPage({
            * underneath it — a generic "make a link" box below a basket you had
            * just filled in was asking somebody to type the same total twice.
            */
-          connected={Boolean(studio.stripe_account_id)}
+          connected={payableFor(studio, await getArtists(studio.id)).length > 0}
         />
       </div>
     </div>

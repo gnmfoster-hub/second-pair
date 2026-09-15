@@ -151,3 +151,15 @@ export function netOf(gross: number, fee: number | null | undefined): number | n
   if (fee == null) return null;
   return gross - fee;
 }
+
+/**
+ * The people a card payment can be taken for today, asked the way a link asks.
+ *
+ * Every screen that offers a payment link used to decide whether to offer it
+ * off the business's own account alone, so on the per-person model a stylist
+ * with Stripe connected still saw "no Stripe account is connected" everywhere
+ * but the diary. One answer, from the same rule the link itself obeys.
+ */
+export function payableFor<P extends PersonMoney>(business: BusinessMoney, people: P[]): P[] {
+  return people.filter((p) => whoTakes(business, p, "payment").ok);
+}

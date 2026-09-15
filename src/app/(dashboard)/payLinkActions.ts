@@ -11,7 +11,7 @@ import { connectedChannels, smsNumberFor } from "@/lib/messaging/connections";
 import { deliver } from "@/lib/messaging/deliver";
 import { replyToFor } from "@/lib/messaging/replyTo";
 import { parsePounds, formatPence } from "@/lib/money";
-import type { Channel } from "@/lib/types";
+import { CHANNEL_LABELS, type Channel } from "@/lib/types";
 
 export type PayLinkState = {
   error?: string;
@@ -91,7 +91,7 @@ export async function askForPayment(
   const { data: contact } = contactId
     ? await supabase
         .from("contacts")
-        .select("id, name, phone, email, conversations(id, channel, external_ref, last_inbound_at)")
+        .select("*, conversations(id, channel, external_ref, last_inbound_at)")
         .eq("id", contactId)
         .eq("studio_id", studio.id)
         .maybeSingle()
@@ -176,36 +176,87 @@ export async function askForPayment(
     return { url: link.url, note };
   }
 
+  const sent = await sendLink({
+    supabase,
+    studio,
+    contact: contact as LinkContact | null,
+    sendOn,
+    url: link.url,
+    amountPence,
+    description,
+  });
+  if (sent.error) return { url: link.url, note, error: sent.error };
+
+  revalidatePath("/diary");
+  revalidatePath("/clients");
+  if (contactId) revalidatePath(`/clients/${contactId}`);
+
+  return { url: link.url, sentOn: sendOn, note };
+}
+
+type LinkContact = {
+  id: string;
+  name: string | null;
+  phone: string | null;
+  email: string | null;
+  prefers?: string | null;
+  conversations:
+    | { id: string; channel: string; external_ref: string | null; last_inbound_at: string | null }[]
+    | null;
+};
+
+/**
+ * Putting a link that already exists in front of the person who owes it.
+ *
+ * Shared by asking for a payment from a record or a conversation and by
+ * completing an appointment, which makes its link first and asks where to send
+ * it second. Two copies of "which way can we reach them, and write it into the
+ * thread" would drift, and the one that drifted would be the one that texted a
+ * customer from the wrong number.
+ */
+async function sendLink({
+  supabase,
+  studio,
+  contact,
+  sendOn,
+  url,
+  amountPence,
+  description,
+}: {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  studio: Awaited<ReturnType<typeof requireStudio>>["studio"];
+  contact: LinkContact | null;
+  sendOn: Channel;
+  url: string;
+  amountPence: number;
+  description: string;
+}): Promise<{ error?: string }> {
   if (!(await canMessage())) {
-    return { url: link.url, note, error: "You cannot message customers, so here is the link to copy." };
+    return { error: "You cannot message customers, so here is the link to copy." };
   }
 
-  if (!contact) {
-    return { url: link.url, note, error: "Nobody to send it to — here is the link." };
-  }
+  if (!contact) return { error: "Nobody to send it to — here is the link." };
 
   const routes = routesFor({
     conversations: (contact.conversations ?? []) as never,
-    phone: contact.phone as string | null,
-    email: contact.email as string | null,
+    phone: contact.phone,
+    email: contact.email,
     /* Which way they asked to be reached, where they have said. */
-    prefers: (contact as { prefers?: string | null }).prefers as "sms" | "email" | null,
+    prefers: (contact.prefers ?? null) as "sms" | "email" | null,
     connected: await connectedChannels(supabase, studio.id),
   });
 
   const route = routes.find((r) => r.channel === sendOn);
   if (!route?.open) {
     return {
-      url: link.url,
-      note,
       error: route?.blocked ?? "There is no way to reach them on that. Here is the link to copy.",
     };
   }
 
-  const firstName = ((contact.name as string | null) ?? "").split(" ")[0];
+  const firstName = (contact.name ?? "").split(" ")[0];
   const body =
     `${firstName ? `Hi ${firstName}, ` : ""}here is a link to pay ` +
-    `${formatPence(amountPence)} for ${description} — ${link.url}`;
+    `${formatPence(amountPence)} for ${description} — ${url}`;
 
   const sent = await deliver({
     channel: route.channel,
@@ -221,11 +272,7 @@ export async function askForPayment(
   });
 
   if (sent.status === "failed") {
-    return {
-      url: link.url,
-      note,
-      error: `${sent.error ?? "It would not send"} — here is the link to copy instead.`,
-    };
+    return { error: `${sent.error ?? "It would not send"} — here is the link to copy instead.` };
   }
 
   /*
@@ -235,7 +282,7 @@ export async function askForPayment(
    * message on somebody else's phone, and the next person to open this
    * conversation has no idea it happened.
    */
-  const existing = (contact.conversations ?? []) as { id: string; channel: string }[];
+  const existing = contact.conversations ?? [];
   const thread = existing.find((c) => c.channel === route.channel) ?? existing[0];
   if (thread) {
     await supabase.from("messages").insert({
@@ -249,9 +296,97 @@ export async function askForPayment(
       .eq("id", thread.id);
   }
 
-  revalidatePath("/diary");
-  revalidatePath("/clients");
-  if (contactId) revalidatePath(`/clients/${contactId}`);
+  return {};
+}
 
-  return { url: link.url, sentOn: sendOn, note };
+/**
+ * The ways a link could reach this client right now, for buttons to offer.
+ *
+ * Only the open ones, each with where it would go, so a button can say "Text
+ * 07700 900406" rather than "Send" and leave somebody wondering where to.
+ */
+export async function linkRoutes(
+  contactId: string | null,
+): Promise<{ channel: Channel; label: string; to: string }[]> {
+  if (!contactId) return [];
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  const { data: contact } = await supabase
+    .from("contacts")
+    .select("*, conversations(id, channel, external_ref, last_inbound_at)")
+    .eq("id", contactId)
+    .eq("studio_id", studio.id)
+    .maybeSingle();
+  if (!contact) return [];
+
+  const routes = routesFor({
+    conversations: (contact.conversations ?? []) as never,
+    phone: contact.phone as string | null,
+    email: contact.email as string | null,
+    prefers: ((contact as { prefers?: string | null }).prefers ?? null) as "sms" | "email" | null,
+    connected: await connectedChannels(supabase, studio.id),
+  });
+
+  return routes
+    .filter((r) => r.open && r.channel !== "web")
+    .map((r) => ({
+      channel: r.channel,
+      label:
+        r.channel === "sms"
+          ? "Text"
+          : r.channel === "email"
+            ? "Email"
+            : (CHANNEL_LABELS[r.channel] ?? r.channel),
+      to: r.channel === "sms" || r.channel === "email" ? r.to : "",
+    }));
+}
+
+/**
+ * Sending a link made a moment ago by completing an appointment.
+ *
+ * The payment is read back from this business rather than trusted from the
+ * form, and the address has to be a Stripe checkout page — so the worst a
+ * doctored form can do is send a client a real link for a real payment.
+ */
+export async function sendLinkNow(_prev: PayLinkState, fd: FormData): Promise<PayLinkState> {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  const url = str(fd, "url");
+  const sendOn = str(fd, "send_on") as Channel;
+  if (!url.startsWith("https://checkout.stripe.com/")) return { error: "That is not a payment link." };
+
+  const { data: payment } = await supabase
+    .from("payments")
+    .select("id, contact_id, gross_pence, description, status")
+    .eq("id", str(fd, "payment_id"))
+    .eq("studio_id", studio.id)
+    .maybeSingle();
+  if (!payment) return { url, error: "That payment is not in this business." };
+  if (payment.status === "paid") return { url, error: "That has already been paid." };
+
+  const { data: contact } = payment.contact_id
+    ? await supabase
+        .from("contacts")
+        .select("*, conversations(id, channel, external_ref, last_inbound_at)")
+        .eq("id", payment.contact_id)
+        .eq("studio_id", studio.id)
+        .maybeSingle()
+    : { data: null };
+
+  const sent = await sendLink({
+    supabase,
+    studio,
+    contact: contact as LinkContact | null,
+    sendOn,
+    url,
+    amountPence: payment.gross_pence as number,
+    description: (payment.description as string | null) ?? studio.name,
+  });
+  if (sent.error) return { url, error: sent.error };
+
+  revalidatePath("/diary");
+  if (payment.contact_id) revalidatePath(`/clients/${payment.contact_id}`);
+  return { url, sentOn: sendOn };
 }

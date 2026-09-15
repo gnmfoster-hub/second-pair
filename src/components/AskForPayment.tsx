@@ -25,6 +25,7 @@ export function AskForPayment({
   kind = "payment",
   channels = [],
   connected,
+  people = [],
   label = "Ask for payment",
 }: {
   contactId?: string | null;
@@ -39,6 +40,15 @@ export function AskForPayment({
   channels?: { channel: string; label: string }[];
   /** Whether there is a Stripe account to take money into at all. */
   connected: boolean;
+  /**
+   * Who it can be taken for, where that decides whose account it lands in.
+   *
+   * The owner and the desk take money for everybody. On a business that pays
+   * each person directly, the one question that matters is whose work it was
+   * — so it is asked, and the money goes to that person's own Stripe whoever
+   * pressed the button. Not shown with one person or one account.
+   */
+  people?: { id: string; name: string }[];
   label?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -73,7 +83,28 @@ export function AskForPayment({
     <form action={action} className="rounded-xl border border-border bg-surface-2/40 p-3.5">
       <input type="hidden" name="contact_id" value={contactId ?? ""} />
       <input type="hidden" name="booking_id" value={bookingId ?? ""} />
-      <input type="hidden" name="artist_id" value={artistId ?? ""} />
+      {people.length > 1 ? (
+        <label className="mb-3 block">
+          <span className="label">Whose work is it for</span>
+          <select
+            name="artist_id"
+            defaultValue={artistId && people.some((p) => p.id === artistId) ? artistId : ""}
+            className="input"
+            required
+          >
+            <option value="" disabled>
+              Choose who
+            </option>
+            {people.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : (
+        <input type="hidden" name="artist_id" value={artistId ?? people[0]?.id ?? ""} />
+      )}
       <input type="hidden" name="kind" value={kind} />
 
       <div className="flex flex-wrap items-end gap-3">
@@ -167,8 +198,8 @@ export function AskForPayment({
 
       <p className="hint mt-2">
         {amountPence != null && `${formatPence(amountPence)} by default. `}
-        The link stops working after a day, and the money goes straight to your own
-        Stripe account.
+        The link stops working after a day, and the money goes straight to the Stripe
+        account of whoever it is for.
       </p>
     </form>
   );

@@ -8,6 +8,8 @@ import { createPaymentLink } from "@/lib/payments/link";
 import { buildBill, readMethod, linesFromForm, penceOf } from "@/lib/sales";
 import { hasColumn } from "@/lib/db/hasColumn";
 import { sendPaymentReceipt } from "@/lib/messaging/receipt";
+import { linkRoutes } from "../payLinkActions";
+import type { Channel } from "@/lib/types";
 
 export type BillState = {
   error?: string;
@@ -17,6 +19,10 @@ export type BillState = {
   completed?: "done" | "no-show";
   /** A link to show them, where that is how it is being taken. */
   url?: string;
+  /** The pending payment behind that link, so it can be sent on afterwards. */
+  paymentId?: string;
+  /** The ways the link could reach them right now: "Text 07700 900406". */
+  sendTo?: { channel: Channel; label: string; to: string }[];
 };
 
 const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
@@ -186,7 +192,13 @@ export async function takePayment(_prev: BillState, fd: FormData): Promise<BillS
         .eq("id", payment.id);
 
       revalidatePath("/diary");
-      return { ok: true, total, url: link.url };
+      return {
+        ok: true,
+        total,
+        url: link.url,
+        paymentId: payment.id as string,
+        sendTo: await linkRoutes(contactId).catch(() => []),
+      };
     } catch (e) {
       /*
        * Taken back out again, and the reason said.

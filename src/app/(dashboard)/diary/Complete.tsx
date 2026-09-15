@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { SendLink } from "./SendLink";
 import { completeAppointment, type BillState } from "./billActions";
 import { lineTotal } from "@/lib/sales";
 import { formatPence } from "@/lib/money";
@@ -131,19 +132,12 @@ export function Complete({
             ? "Counted on their record and in the report. Any deposit stays where it is."
             : (state.total ?? 0) > 0
               ? state.url
-                ? `${formatPence(state.total ?? 0)} to pay by link — it lands in the takings by itself once they do.`
+                ? `${formatPence(state.total ?? 0)} to pay by link. Send it to them below — it marks itself paid when they pay.`
                 : `${formatPence(state.total ?? 0)} taken. On their record, in today's takings, and a receipt has gone to ${firstName} if they have an email address.`
               : "Closed off with nothing taken today."}
         </p>
-        {state.url && (
-          <a
-            href={state.url}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-2 block break-all rounded-lg bg-surface px-3 py-2 text-sm text-accent underline"
-          >
-            {state.url}
-          </a>
+        {state.url && state.paymentId && (
+          <SendLink url={state.url} paymentId={state.paymentId} sendTo={state.sendTo ?? []} />
         )}
         {state.error && <p className="hint mt-1 text-warn">{state.error}</p>}
         {onDone && (

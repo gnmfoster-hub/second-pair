@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireStudio, getArtists, getPriceBands, getServiceOptions } from "@/lib/studio";
+import { payableFor } from "@/lib/payments/whoTakes";
 import { formatRange, formatPence } from "@/lib/money";
 import { depositFor } from "@/lib/quote";
 import { CHANNEL_LABELS, labelFor, type ConvStatus, type Channel } from "@/lib/types";
@@ -207,7 +208,8 @@ export default async function ConversationPage({
                   contactId={contact.id}
                   artistId={conversation.artist_id ?? null}
                   description={studio.name}
-                  connected={Boolean(studio.stripe_account_id)}
+                  connected={payableFor(studio, artists.filter((a) => a.active)).length > 0}
+                  people={payableFor(studio, artists.filter((a) => a.active)).map((a) => ({ id: a.id, name: a.name }))}
                   channels={[
                     {
                       channel: conversation.channel,

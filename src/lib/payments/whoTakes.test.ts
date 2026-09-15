@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { whoTakes, netOf } from "./whoTakes.ts";
+import { whoTakes, netOf, payableFor } from "./whoTakes.ts";
 
 const SHOP = "acct_shop";
 const HERS = "acct_sarah";
@@ -119,4 +119,23 @@ test("net is gross less the fee", () => {
 test("a fee that never arrived leaves net unknown rather than wrong", () => {
   assert.equal(netOf(4800, null), null);
   assert.equal(netOf(4800, undefined), null);
+});
+
+// ─────────────────────────────────────────── who a card link can be offered for
+
+test("on the per-person model only the people with their own account can be paid by card", () => {
+  const jade = { id: "jade", stripe_account_id: null };
+  const people = payableFor({ ...renters, stripe_account_id: null }, [sarah, jade]);
+  assert.deepEqual(people.map((p) => p.id), ["sarah"]);
+});
+
+test("with the fallback on and a shop account, everybody can be paid by card", () => {
+  const jade = { id: "jade", stripe_account_id: null };
+  const people = payableFor({ ...renters, payment_fallback: true }, [sarah, jade]);
+  assert.deepEqual(people.map((p) => p.id), ["sarah", "jade"]);
+});
+
+test("on the business model nobody can be paid by card until the shop connects", () => {
+  assert.equal(payableFor({ ...shop, stripe_account_id: null }, [sarah]).length, 0);
+  assert.equal(payableFor(shop, [sarah]).length, 1);
 });
