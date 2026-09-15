@@ -237,6 +237,21 @@ async function sendLink({
 
   if (!contact) return { error: "Nobody to send it to — here is the link." };
 
+  /*
+   * The demo pretends, and says so.
+   *
+   * Its clients are invented and its numbers are the ones Ofcom keeps for
+   * drama, so nothing may actually leave — but a demo that stops at "texting
+   * is not set up" cannot show the thing it is there to show. So it goes as
+   * far as a real send would and no further: the right number, the right
+   * words, written into the thread.
+   */
+  if (studio.kind === "demo") {
+    const to = sendOn === "sms" ? contact.phone : sendOn === "email" ? contact.email : null;
+    if (!to) return { error: "There is nothing on their record to send that to." };
+    return {};
+  }
+
   const routes = routesFor({
     conversations: (contact.conversations ?? []) as never,
     phone: contact.phone,
@@ -320,6 +335,14 @@ export async function linkRoutes(
     .maybeSingle();
   if (!contact) return [];
 
+  // The demo offers what a real business with texting and email would.
+  if (studio.kind === "demo") {
+    return [
+      ...(contact.phone ? [{ channel: "sms" as Channel, label: "Text", to: contact.phone as string }] : []),
+      ...(contact.email ? [{ channel: "email" as Channel, label: "Email", to: contact.email as string }] : []),
+    ];
+  }
+
   const routes = routesFor({
     conversations: (contact.conversations ?? []) as never,
     phone: contact.phone as string | null,
@@ -388,5 +411,5 @@ export async function sendLinkNow(_prev: PayLinkState, fd: FormData): Promise<Pa
 
   revalidatePath("/diary");
   if (payment.contact_id) revalidatePath(`/clients/${payment.contact_id}`);
-  return { url, sentOn: sendOn };
+  return { url, sentOn: sendOn, note: studio.kind === "demo" ? "Demo: nothing was really sent." : undefined };
 }

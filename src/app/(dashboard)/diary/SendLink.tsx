@@ -42,6 +42,7 @@ export function SendLink({
       {sentTo ? (
         <p className="rounded-lg bg-ok/10 px-3 py-2 text-sm text-ok">
           Sent{sentTo.to ? ` to ${sentTo.to}` : ""}. It marks itself paid when they pay.
+          {state.note && <span className="mt-0.5 block text-xs opacity-80">{state.note}</span>}
         </p>
       ) : (
         <form action={action} className="space-y-2">
@@ -60,8 +61,9 @@ export function SendLink({
           ))}
           {sendTo.length === 0 && (
             <p className="hint text-sm">
-              There is no number or email on their record to send it to. Copy it, or show
-              them the link.
+              Nothing here can reach them: a text needs their number and texting switched
+              on for the business, and an email needs an address on their record. Copy it,
+              or open it for them to pay now.
             </p>
           )}
         </form>
