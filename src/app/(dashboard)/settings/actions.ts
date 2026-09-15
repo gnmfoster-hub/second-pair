@@ -1836,7 +1836,7 @@ export async function resetCalendarLink(
   _prev: FormState,
   fd: FormData,
 ): Promise<FormState> {
-  const { studio } = await requireStudio();
+  const { studio, userId } = await requireStudio();
   const supabase = await createClient();
 
   const whose = str(fd, "whose");
@@ -1873,12 +1873,28 @@ export async function resetCalendarLink(
 
   if (!me) return { error: "That person is not in this business." };
 
-  const { error } = await supabase
+  /*
+   * Theirs, or the owner's to reset for them.
+   *
+   * Checked here rather than left to the database: a member of staff asking
+   * for somebody else's was refused by the rules, which changed nothing and
+   * returned no error — so the screen said the link had been replaced while
+   * the old one still worked.
+   */
+  if (me.user_id !== userId && !(await isOwner())) {
+    return { error: "That is not your calendar link." };
+  }
+
+  const { data: reset, error } = await supabase
     .from("artists")
     .update({ calendar_token: freshToken() })
-    .eq("id", me.id);
+    .eq("id", me.id)
+    .select("id");
 
   if (error) return { error: error.message };
+  if (!reset?.length) {
+    return { error: "That link could not be reset. Ask whoever runs the business." };
+  }
 
   revalidatePath("/settings/data");
   return { ok: true };

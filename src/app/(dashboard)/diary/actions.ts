@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { resolveContact } from "@/lib/clients/resolve";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireStudio, getArtists } from "@/lib/studio";
 import { instantFrom } from "@/lib/booking/tz";
 import { samePhone } from "@/lib/channels/phoneNumbers";
@@ -508,9 +509,21 @@ export async function setDiaryLayout(layout: DiaryLayout) {
 
 export async function setDiaryColour(mode: "category" | "client" | "person") {
   const { studio } = await requireStudio();
-  const supabase = await createClient();
 
-  await supabase.from("studios").update({ diary_colour: mode }).eq("id", studio.id);
+  /*
+   * Written with the server's own access, after requireStudio has said this
+   * person belongs here.
+   *
+   * The business settings table is the owner's to write, so a stylist
+   * pressing this changed nothing at all — the control moved, the diary
+   * redrew from the old setting, and nothing said why. It is what the
+   * colours mean on a shared screen, not money or hours, and everybody who
+   * uses the diary may set it.
+   */
+  await createAdminClient()
+    .from("studios")
+    .update({ diary_colour: mode })
+    .eq("id", studio.id);
   revalidatePath("/diary");
 }
 

@@ -408,12 +408,25 @@ export async function sendLinkNow(_prev: PayLinkState, fd: FormData): Promise<Pa
 
   const { data: payment } = await supabase
     .from("payments")
-    .select("id, contact_id, gross_pence, description, status")
+    .select("id, contact_id, gross_pence, description, status, stripe_session_id")
     .eq("id", str(fd, "payment_id"))
     .eq("studio_id", studio.id)
     .maybeSingle();
   if (!payment) return { url, error: "That payment is not in this business." };
   if (payment.status === "paid") return { url, error: "That has already been paid." };
+
+  /*
+   * And the link has to be this payment's own.
+   *
+   * Being a Stripe address was the whole check, so a doctored form could have
+   * texted a client somebody else's checkout page from the business's number.
+   * A checkout URL carries its session id, and we stored that when the link
+   * was made.
+   */
+  const session = payment.stripe_session_id as string | null;
+  if (!session || !url.includes(session)) {
+    return { url, error: "That link does not belong to this payment." };
+  }
 
   const { data: contact } = payment.contact_id
     ? await supabase

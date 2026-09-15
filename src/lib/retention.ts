@@ -79,6 +79,16 @@ export async function forgetOldEnquiries(
     .select("id, contact_id, created_at, last_message_at")
     .eq("studio_id", studio.id)
     .lt("created_at", cutoff.toISOString())
+    /*
+     * Oldest first, so the sweep makes progress.
+     *
+     * Without an order the same 500 rows can come back every run — and a
+     * business whose oldest conversations all became bookings (which are kept)
+     * would fill that batch with rows nothing deletes, so the ones that should
+     * go never appear at all. The policy would read as running and delete
+     * nothing, for ever.
+     */
+    .order("created_at")
     .limit(500);
 
   /*
@@ -114,7 +124,15 @@ export async function forgetOldEnquiries(
   );
 
   const going = whatToForget(old as Ageing[], keep, cutoff);
-  if (!going.length) return { conversations: 0, contacts: 0 };
+  /*
+   * Nothing to delete in this batch does not mean nothing to delete.
+   *
+   * Said out loud so the sweep's own log shows a business whose oldest batch
+   * is entirely kept, rather than looking identical to one with nothing old.
+   */
+  if (!going.length) {
+    return { conversations: 0, contacts: 0, ...(old.length >= 500 ? { more: true } : {}) };
+  }
 
   const goingIds = going.map((c) => c.id);
   const goingEnquiries = (enquiries ?? [])

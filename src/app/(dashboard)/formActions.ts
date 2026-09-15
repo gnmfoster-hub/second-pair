@@ -152,7 +152,7 @@ export async function sendForm(_prev: FormActionState, fd: FormData): Promise<Fo
   if (contactIds.length > 200) return { error: "That is more than 200 people at once. Send it in smaller groups." };
 
   const how = str(fd, "send_on") as Channel | "auto" | "";
-  const bookingId = str(fd, "booking_id") || null;
+  const bookingId = await ourBooking(supabase, studio.id, str(fd, "booking_id"));
 
   const { data: template, error: tError } = await supabase
     .from("form_templates")
@@ -435,7 +435,7 @@ ${note}` : ""}`,
     supabase,
     contactIds: [contactId],
     how: str(fd, "send_on") as Channel | "auto" | "",
-    bookingId: str(fd, "booking_id") || null,
+    bookingId: await ourBooking(supabase, studio.id, str(fd, "booking_id")),
     copy: {
       templateId: null,
       title: `Quote — ${formatPence(total)}`,
@@ -447,4 +447,27 @@ ${note}` : ""}`,
       expiresInDays: validDays,
     },
   });
+}
+
+/**
+ * A booking id from a form, kept only if it is this business's.
+ *
+ * Forms are sent from an appointment as well as from a client's record, so
+ * the id rides along in a hidden field. Nothing reads it publicly today,
+ * which is exactly why it is worth checking now rather than after something
+ * does.
+ */
+async function ourBooking(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  studioId: string,
+  bookingId: string,
+): Promise<string | null> {
+  if (!bookingId) return null;
+  const { data } = await supabase
+    .from("bookings")
+    .select("id, artists!inner(studio_id)")
+    .eq("id", bookingId)
+    .eq("artists.studio_id", studioId)
+    .maybeSingle();
+  return data?.id ?? null;
 }
