@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { flagged, cleanBlocks } from "@/lib/forms/blocks";
 import { SendForm } from "./SendForm";
 import { PaperForm } from "./PaperForm";
+import { SendQuote } from "./SendQuote";
 
 /**
  * Forms on a customer's record: what has been sent, what is signed, and a way
@@ -82,7 +83,7 @@ export async function FormsPanel({
                   </span>
                   <span className="flex shrink-0 gap-1">
                     {warn && <span className="pill bg-warn/10 text-[0.65rem] text-warn">Read answers</span>}
-                    <Status status={f.status as string} />
+                    <Status status={f.status as string} quote={String(f.title).startsWith("Quote")} />
                   </span>
                 </Link>
               </li>
@@ -101,17 +102,18 @@ export async function FormsPanel({
           channels={channels}
           mayMessage={mayMessage}
         />
+        <SendQuote contactId={contactId} firstName={firstName} channels={channels} mayMessage={mayMessage} />
         <PaperForm contactId={contactId} />
       </div>
     </section>
   );
 }
 
-function Status({ status }: { status: string }) {
+function Status({ status, quote = false }: { status: string; quote?: boolean }) {
   const look: Record<string, [string, string]> = {
     sent: ["Sent", "bg-surface-2 text-muted"],
     opened: ["Opened", "bg-accent/10 text-accent"],
-    signed: ["Signed", "bg-ok/10 text-ok"],
+    signed: [quote ? "Accepted" : "Signed", "bg-ok/10 text-ok"],
     paper: ["Paper", "bg-ok/10 text-ok"],
   };
   const [label, cls] = look[status] ?? [status, "bg-surface-2 text-muted"];

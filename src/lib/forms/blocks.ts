@@ -20,7 +20,8 @@ export type BlockType =
   | "choice" // pick one
   | "date"
   | "agree" // a tick box that must be ticked
-  | "signature";
+  | "signature"
+  | "lines"; // a priced list, for a quote — set when it is sent, never typed by the customer
 
 export type Block = {
   id: string;
@@ -34,7 +35,11 @@ export type Block = {
   options?: string[];
   /** For "yesno": ask for detail when they answer yes. */
   detailOnYes?: boolean;
+  /** For "lines": what is being quoted, in pence. */
+  items?: QuoteLine[];
 };
+
+export type QuoteLine = { name: string; quantity: number; pence: number };
 
 export type Answers = Record<string, string>;
 
@@ -49,7 +54,8 @@ export const BLOCK_TYPES: { value: BlockType; label: string }[] = [
   { value: "signature", label: "Signature" },
 ];
 
-const TYPES = new Set(BLOCK_TYPES.map((t) => t.value));
+// "lines" is not offered in the editor — a quote's prices are set when it is sent.
+const TYPES = new Set<BlockType>([...BLOCK_TYPES.map((t) => t.value), "lines"]);
 const MAX_BLOCKS = 80;
 const MAX_LABEL = 2000;
 
@@ -101,6 +107,21 @@ export function cleanBlocks(raw: unknown): Block[] {
       block.options = options;
     }
     if (type === "yesno" && b.detailOnYes) block.detailOnYes = true;
+    if (type === "lines") {
+      const items = (Array.isArray(b.items) ? b.items : [])
+        .map((raw) => {
+          const it = (raw ?? {}) as Record<string, unknown>;
+          return {
+            name: String(it.name ?? "").trim().slice(0, 200),
+            quantity: Math.max(1, Math.min(999, Math.round(Number(it.quantity) || 1))),
+            pence: Math.max(0, Math.min(100_000_000, Math.round(Number(it.pence) || 0))),
+          };
+        })
+        .filter((it) => it.name)
+        .slice(0, 50);
+      if (!items.length) continue;
+      block.items = items;
+    }
     out.push(block);
   }
   return out;
@@ -118,7 +139,7 @@ export const detailKey = (id: string) => `${id}__detail`;
 export function readAnswers(blocks: Block[], get: (key: string) => string | null): Answers {
   const answers: Answers = {};
   for (const b of blocks) {
-    if (b.type === "text" || b.type === "signature") continue;
+    if (b.type === "text" || b.type === "signature" || b.type === "lines") continue;
     const value = (get(`q_${b.id}`) ?? "").trim().slice(0, 5000);
     if (b.type === "agree") {
       answers[b.id] = value ? "yes" : "";
@@ -145,7 +166,7 @@ export function whatIsMissing(blocks: Block[], answers: Answers, signing?: Signi
   const missing: string[] = [];
   for (const b of blocks) {
     const value = answers[b.id] ?? "";
-    if (b.type === "text") continue;
+    if (b.type === "text" || b.type === "lines") continue;
     if (b.type === "signature") {
       if (!signing?.name?.trim()) missing.push("Type your full name under the signature.");
       if (!validSignature(signing?.signature)) missing.push("Sign in the box.");
@@ -215,4 +236,11 @@ export function flagged(blocks: Block[], answers: Answers | null | undefined): B
 function short(label: string): string {
   const one = label.replace(/\s+/g, " ").trim();
   return one.length > 70 ? `${one.slice(0, 67)}…` : one;
+}
+
+/** What a quote comes to, across every priced list in it. */
+export function quoteTotal(blocks: Block[]): number {
+  return blocks
+    .filter((b) => b.type === "lines")
+    .reduce((sum, b) => sum + (b.items ?? []).reduce((n, it) => n + it.quantity * it.pence, 0), 0);
 }

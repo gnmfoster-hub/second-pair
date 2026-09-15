@@ -3,6 +3,7 @@
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { submitForm, type SignState } from "./actions";
 import { detailKey, type Block } from "@/lib/forms/blocks";
+import { formatPence } from "@/lib/money";
 
 /**
  * The form itself, on the customer's phone.
@@ -71,6 +72,8 @@ export function FillForm({ token, blocks, business }: { token: string; blocks: B
       {blocks.map((b) => (
         <div key={b.id} className={b.type === "text" ? "" : "card p-4"}>
           {b.type === "text" && <p className="whitespace-pre-line text-sm leading-relaxed">{b.label}</p>}
+
+          {b.type === "lines" && <QuoteTable items={b.items ?? []} />}
 
           {(b.type === "short" || b.type === "long" || b.type === "date") && (
             <label className="block">
@@ -264,5 +267,29 @@ function SignatureBox() {
         <input id="signer_name" name="signer_name" className="input mt-2" autoComplete="name" />
       </label>
     </div>
+  );
+}
+
+/** The priced lines of a quote, and what they come to. Read, never edited. */
+export function QuoteTable({ items }: { items: { name: string; quantity: number; pence: number }[] }) {
+  const total = items.reduce((n, it) => n + it.quantity * it.pence, 0);
+  return (
+    <table className="w-full text-sm tabular-nums">
+      <tbody>
+        {items.map((it, i) => (
+          <tr key={i} className="border-b border-border">
+            <td className="py-2 pr-2">
+              {it.quantity > 1 ? `${it.quantity} × ` : ""}
+              {it.name}
+            </td>
+            <td className="py-2 text-right">{formatPence(it.quantity * it.pence)}</td>
+          </tr>
+        ))}
+        <tr>
+          <td className="pt-3 font-semibold">Total</td>
+          <td className="pt-3 text-right text-lg font-semibold">{formatPence(total)}</td>
+        </tr>
+      </tbody>
+    </table>
   );
 }

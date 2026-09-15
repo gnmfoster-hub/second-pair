@@ -10,7 +10,8 @@ import { routesFor } from "@/lib/messaging/reach";
 import { connectedChannels, smsNumberFor } from "@/lib/messaging/connections";
 import { deliver } from "@/lib/messaging/deliver";
 import { replyToFor } from "@/lib/messaging/replyTo";
-import { cleanBlocks } from "@/lib/forms/blocks";
+import { cleanBlocks, quoteTotal, type QuoteLine } from "@/lib/forms/blocks";
+import { formatPence, parsePounds } from "@/lib/money";
 import { starter } from "@/lib/forms/starters";
 import type { Channel } from "@/lib/types";
 
@@ -162,6 +163,58 @@ export async function sendForm(_prev: FormActionState, fd: FormData): Promise<Fo
   if (tError) return { error: /relation|does not exist/i.test(tError.message) ? NOT_YET : tError.message };
   if (!template || !template.active) return { error: "That form is not available any more." };
 
+  return deliverCopies({
+    studio,
+    userId,
+    supabase,
+    contactIds,
+    how,
+    bookingId,
+    copy: {
+      templateId: template.id as string,
+      title: template.name as string,
+      blocks: template.blocks,
+      subject: `${template.name} — ${studio.name}`,
+      message: (firstName, url) =>
+        `${firstName ? `Hi ${firstName}, ` : ""}${studio.name} has a form for you to fill in: ` +
+        `${template.name}. It takes a couple of minutes — ${url}`,
+    },
+  });
+}
+
+type Copy = {
+  templateId: string | null;
+  title: string;
+  blocks: unknown;
+  subject: string;
+  message: (firstName: string, url: string) => string;
+  expiresInDays?: number;
+};
+
+/**
+ * One copy each, made and sent.
+ *
+ * Shared by forms and quotes: both are a frozen copy with a private link,
+ * delivered the way each person can be reached, and both name whoever could
+ * not be reached rather than counting them.
+ */
+async function deliverCopies({
+  studio,
+  userId,
+  supabase,
+  contactIds,
+  how,
+  bookingId,
+  copy,
+}: {
+  studio: Awaited<ReturnType<typeof requireStudio>>["studio"];
+  userId: string;
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  contactIds: string[];
+  how: Channel | "auto" | "";
+  bookingId: string | null;
+  copy: Copy;
+}): Promise<FormActionState> {
   const { data: people } = await supabase
     .from("contacts")
     .select("*, conversations(id, channel, external_ref, last_inbound_at)")
@@ -179,7 +232,7 @@ export async function sendForm(_prev: FormActionState, fd: FormData): Promise<Fo
   const origin = await siteOrigin();
   const connected = await connectedChannels(supabase, studio.id);
   const smsFrom = await smsNumberFor(supabase, studio.id);
-  const expires = new Date(Date.now() + 30 * 86_400_000).toISOString();
+  const expires = new Date(Date.now() + (copy.expiresInDays ?? 30) * 86_400_000).toISOString();
 
   let sent = 0;
   let lastUrl: string | undefined;
@@ -218,10 +271,10 @@ export async function sendForm(_prev: FormActionState, fd: FormData): Promise<Fo
       .insert({
         studio_id: studio.id,
         contact_id: person.id,
-        template_id: template.id,
+        template_id: copy.templateId,
         booking_id: contactIds.length === 1 ? bookingId : null,
-        title: template.name,
-        blocks: template.blocks,
+        title: copy.title,
+        blocks: copy.blocks,
         status: "sent",
         token,
         expires_at: expires,
@@ -237,16 +290,14 @@ export async function sendForm(_prev: FormActionState, fd: FormData): Promise<Fo
     }
 
     if (route && studio.kind !== "demo") {
-      const body =
-        `${firstName ? `Hi ${firstName}, ` : ""}${studio.name} has a form for you to fill in: ` +
-        `${template.name}. It takes a couple of minutes — ${url}`;
+      const body = copy.message(firstName, url);
       const delivered = await deliver({
         channel: route.channel,
         to: route.to,
         body,
         lastInboundAt: route.lastInboundAt ?? null,
         from: route.channel === "sms" ? smsFrom : undefined,
-        subject: `${template.name} — ${studio.name}`,
+        subject: copy.subject,
         fromName: studio.name,
         replyTo: replyToFor(studio),
       });
@@ -308,4 +359,72 @@ export async function listFormTemplates(): Promise<{ id: string; name: string }[
     .order("sort_order")
     .order("created_at");
   return (data ?? []).map((t) => ({ id: t.id as string, name: t.name as string }));
+}
+
+/**
+ * A quote, priced line by line, for the customer to accept and sign.
+ *
+ * Built here rather than from a template, because the prices are this job's
+ * and nobody else's. It carries its own frozen lines, a valid-until date, a
+ * tick to accept and a signature — so an accepted quote is a record of exactly
+ * what was agreed at exactly what price.
+ */
+export async function sendQuote(_prev: FormActionState, fd: FormData): Promise<FormActionState> {
+  const { studio, userId } = await requireStudio();
+  const supabase = await createClient();
+
+  const contactId = str(fd, "contact_id");
+  if (!contactId) return { error: "Who is the quote for?" };
+
+  const items: QuoteLine[] = [];
+  for (let i = 0; i < 30; i++) {
+    const name = str(fd, `line_name_${i}`);
+    const price = parsePounds(fd.get(`line_price_${i}`));
+    if (!name && price == null) continue;
+    if (!name) return { error: `Line ${i + 1} has a price but no description.` };
+    if (price == null || price < 0) return { error: `Put a price on "${name}".` };
+    items.push({ name, quantity: Math.max(1, Math.round(Number(str(fd, `line_qty_${i}`)) || 1)), pence: price });
+  }
+  if (!items.length) return { error: "Add at least one line to the quote." };
+
+  const validDays = Math.min(90, Math.max(1, Number(str(fd, "valid_days")) || 30));
+  const until = new Date(Date.now() + validDays * 86_400_000).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: studio.timezone ?? "Europe/London",
+  });
+  const note = str(fd, "note").slice(0, 2000);
+
+  const blocks = cleanBlocks([
+    { id: "intro", type: "text", label: note || `Here is your quote from ${studio.name}.` },
+    { id: "lines", type: "lines", label: "The quote", items },
+    {
+      id: "valid",
+      type: "text",
+      label: `This quote is valid until ${until}.${studio.vat_registered ? (studio.prices_include_vat ? " Prices include VAT." : " VAT is added to these prices.") : ""}`,
+    },
+    { id: "accept", type: "agree", label: "I accept this quote." },
+    { id: "sign", type: "signature", label: "Signature" },
+  ]);
+  const total = quoteTotal(blocks);
+
+  return deliverCopies({
+    studio,
+    userId,
+    supabase,
+    contactIds: [contactId],
+    how: str(fd, "send_on") as Channel | "auto" | "",
+    bookingId: str(fd, "booking_id") || null,
+    copy: {
+      templateId: null,
+      title: `Quote — ${formatPence(total)}`,
+      blocks,
+      subject: `Your quote from ${studio.name} — ${formatPence(total)}`,
+      message: (firstName, url) =>
+        `${firstName ? `Hi ${firstName}, ` : ""}here is your quote from ${studio.name}: ${formatPence(total)}. ` +
+        `You can read it and accept it here — ${url}`,
+      expiresInDays: validDays,
+    },
+  });
 }

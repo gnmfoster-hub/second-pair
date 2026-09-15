@@ -8,6 +8,7 @@ import {
   answerText,
   flagged,
   detailKey,
+  quoteTotal,
   type Block,
 } from "./blocks.ts";
 import { ALL_STARTERS, startersFor } from "./starters.ts";
@@ -148,4 +149,28 @@ test("somebody else's signed form does not count", () => {
     NOW,
   );
   assert.equal(need?.state, "missing");
+});
+
+// ───────────────────────────────────────────── quotes
+
+test("a quote's lines are kept, cleaned and totalled; the customer cannot answer them", () => {
+  const blocks = cleanBlocks([
+    { id: "q", type: "lines", label: "Your quote", items: [
+      { name: "End of tenancy clean, 2 bed", quantity: 1, pence: 18000 },
+      { name: "Oven clean", quantity: 2, pence: 4500 },
+      { name: "", quantity: 1, pence: 999 },
+      { name: "Negative", quantity: 1, pence: -500 },
+    ] },
+    { id: "ok", type: "agree", label: "I accept this quote" },
+    { id: "sign", type: "signature", label: "Signature" },
+  ]);
+  assert.equal(blocks[0].items?.length, 3);
+  assert.equal(quoteTotal(blocks), 18000 + 9000 + 0);
+  const a = readAnswers(blocks, (k) => (k === "q_q" ? "tampered" : k === "q_ok" ? "on" : null));
+  assert.equal("q" in a, false);
+  assert.deepEqual(whatIsMissing(blocks, a, { name: "Sue", signature: SIGNATURE }), []);
+});
+
+test("a quote with no priced lines is not a quote", () => {
+  assert.equal(cleanBlocks([{ type: "lines", label: "Quote", items: [] }]).length, 0);
 });

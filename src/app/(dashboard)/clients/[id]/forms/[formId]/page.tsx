@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireStudio } from "@/lib/studio";
+import { requireStudio, getArtists } from "@/lib/studio";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { answerText, cleanBlocks, flagged } from "@/lib/forms/blocks";
+import { answerText, cleanBlocks, flagged, quoteTotal } from "@/lib/forms/blocks";
+import { QuoteTable } from "@/app/f/[token]/FillForm";
+import { AskForPayment } from "@/components/AskForPayment";
+import { payableFor } from "@/lib/payments/whoTakes";
+import { formatPence } from "@/lib/money";
 import { PrintButton } from "./PrintButton";
 import { Withdraw } from "./Withdraw";
 
@@ -37,6 +41,9 @@ export default async function ClientFormPage({
   if (!form) notFound();
 
   const blocks = cleanBlocks(form.blocks);
+  const total = quoteTotal(blocks);
+  const isQuote = blocks.some((b) => b.type === "lines");
+  const payable = isQuote && form.status === "signed" ? payableFor(studio, (await getArtists(studio.id)).filter((a) => a.active)) : [];
   const answers = (form.answers ?? {}) as Record<string, string>;
   const warnings = flagged(blocks, answers);
   const who = (form.contacts as { name: string | null } | null)?.name ?? "Customer";
@@ -123,7 +130,11 @@ export default async function ClientFormPage({
       ) : (
         <section className="card divide-y divide-border">
           {blocks.map((b) =>
-            b.type === "text" ? (
+            b.type === "lines" ? (
+              <div key={b.id} className="px-5 py-4">
+                <QuoteTable items={b.items ?? []} />
+              </div>
+            ) : b.type === "text" ? (
               <p key={b.id} className="whitespace-pre-line px-5 py-4 text-sm text-foreground/80">
                 {b.label}
               </p>
@@ -149,6 +160,26 @@ export default async function ClientFormPage({
               </div>
             ),
           )}
+        </section>
+      )}
+
+      {/*
+        * An accepted quote is the moment to take a deposit or the whole thing.
+        */}
+      {isQuote && form.status === "signed" && (
+        <section className="card p-5 print:hidden">
+          <h2 className="section-title">Accepted — {formatPence(total)}</h2>
+          <p className="hint mt-1 text-sm">Take a deposit or the whole amount by link, or book the work in the diary.</p>
+          <div className="mt-3">
+            <AskForPayment
+              contactId={id}
+              amountPence={total}
+              description={form.title as string}
+              connected={payable.length > 0}
+              people={payable.map((a) => ({ id: a.id, name: a.name }))}
+              label="Send a payment link for this quote"
+            />
+          </div>
         </section>
       )}
 
