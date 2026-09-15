@@ -45,11 +45,13 @@ export async function POST(request: NextRequest) {
   const body = await request.text();
 
   let event: Stripe.Event | null = null;
+  let eventMode: StripeMode = "live";
   let lastError = "";
 
   for (const { mode, secret } of secrets) {
     try {
       event = stripe(mode).webhooks.constructEvent(body, signature, secret);
+      eventMode = mode;
       break;
     } catch (error) {
       lastError = (error as Error).message;
@@ -130,7 +132,41 @@ export async function POST(request: NextRequest) {
          * Not for a deposit taken while booking: that has no payment_id here,
          * takes the branch below, and sends a confirmation of its own.
          */
-        if (tookIt?.length) await sendPaymentReceipt(db, paymentId);
+        if (tookIt?.length) {
+          /*
+           * What Stripe kept, and so what the business actually takes home.
+           *
+           * The takings export has had a fee column and a take-home column
+           * since it was written, and nothing ever filled either — every card
+           * payment went out with the fee blank, which is the one figure an
+           * accountant cannot work out from ours. It is on the charge's
+           * balance transaction, on the business's own account.
+           *
+           * Best effort. A fee that cannot be read yet is not a reason to
+           * refuse the payment and have Stripe retry it.
+           */
+          if (typeof session.payment_intent === "string" && event.account) {
+            try {
+              const intent = await stripe(eventMode).paymentIntents.retrieve(
+                session.payment_intent,
+                { expand: ["latest_charge.balance_transaction"] },
+                { stripeAccount: event.account },
+              );
+              const charge = intent.latest_charge as Stripe.Charge | null;
+              const txn = charge?.balance_transaction as Stripe.BalanceTransaction | null;
+              if (txn && typeof txn === "object") {
+                await db
+                  .from("payments")
+                  .update({ fee_pence: txn.fee, net_pence: txn.net })
+                  .eq("id", paymentId);
+              }
+            } catch (e) {
+              console.error("[stripe] could not read the fee", (e as Error).message);
+            }
+          }
+
+          await sendPaymentReceipt(db, paymentId);
+        }
       }
 
       if (!bookingId) break;
