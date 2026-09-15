@@ -91,6 +91,17 @@ export async function saveMyPrices(_prev: PriceState, fd: FormData): Promise<Pri
     (await hasColumn(supabase, "service_people", "offered"));
 
   for (const id of known) {
+    /*
+     * Only the rows this form actually drew.
+     *
+     * Every active service was walked, and one that was not on the page — a
+     * person's own gel nails, a product, something added in another tab — has
+     * no boxes in the submission, so it read as "no price, does not do it" and
+     * was saved that way. A nail tech saving her prices took her own services
+     * off the assistant's list.
+     */
+    if (!fd.has(`price_${id}`)) continue;
+
     const price = parsePounds(fd.get(`price_${id}`));
     const rawMinutes = String(fd.get(`minutes_${id}`) ?? "").trim();
     const n = Number(rawMinutes);

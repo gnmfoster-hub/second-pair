@@ -615,22 +615,49 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
       ...(deposit === studioDepositUnchanged ? {} : { deposit_rule: deposit }),
       deposit_mode: depositMode,
       vat_registered: fd.get("vat_registered") === "on",
-      vat_rate_percent: Math.min(
-        100,
-        Math.max(0, Number(str(fd, "vat_rate_percent")) || 20),
-      ),
-      prices_include_vat: fd.get("prices_include_vat") !== "off",
-      vat_number: str(fd, "vat_number") || null,
+      /*
+       * Fields the form only shows some of the time are only written when
+       * they were shown.
+       *
+       * The cancellation policy is hidden while deposits are off, the travel
+       * boxes while customers come to you, and the VAT details while not
+       * registered — and a field that is not on the page is not in the form,
+       * so each read as empty and was saved as empty. Switching deposits off
+       * for a week deleted the policy somebody had written.
+       */
+      ...(fd.has("vat_rate_percent")
+        ? {
+            vat_rate_percent: (() => {
+              const rate = Number(str(fd, "vat_rate_percent"));
+              // Nought is a real rate; only a blank or nonsense means the default.
+              return Number.isFinite(rate) && str(fd, "vat_rate_percent") !== ""
+                ? Math.min(100, Math.max(0, rate))
+                : 20;
+            })(),
+          }
+        : {}),
+      ...(fd.has("prices_include_vat") ? { prices_include_vat: fd.get("prices_include_vat") !== "off" } : {}),
+      ...(fd.has("vat_number") ? { vat_number: str(fd, "vat_number") || null } : {}),
       travel_mode: str(fd, "travel_mode") || "at_premises",
-      travel_buffer_minutes: Math.min(
-        240,
-        Math.max(0, Number(str(fd, "travel_buffer_minutes")) || 0),
-      ),
-      service_areas: str(fd, "service_areas")
-        .split(/[,\s]+/)
-        .map((a) => a.trim().toUpperCase())
-        .filter(Boolean),
-      cancellation_policy: str(fd, "cancellation_policy"),
+      ...(fd.has("travel_buffer_minutes")
+        ? {
+            travel_buffer_minutes: Math.min(
+              240,
+              Math.max(0, Number(str(fd, "travel_buffer_minutes")) || 0),
+            ),
+          }
+        : {}),
+      ...(fd.has("service_areas")
+        ? {
+            service_areas: str(fd, "service_areas")
+              .split(/[,\s]+/)
+              .map((a) => a.trim().toUpperCase())
+              .filter(Boolean),
+          }
+        : {}),
+      ...(fd.has("cancellation_policy")
+        ? { cancellation_policy: str(fd, "cancellation_policy") }
+        : {}),
       privacy_notice_url: privacy || null,
       terms_url: terms || null,
       /* Not from this form any more: it is set by the Connect callback,
@@ -1213,7 +1240,16 @@ export async function updateAssistant(_prev: FormState, fd: FormData): Promise<F
   const { error } = await supabase
     .from("studios")
     .update({
-      email: usableAddress(replyAddress),
+      /*
+       * Only when the form carries it.
+       *
+       * This page has no address box — the business's email lives on the main
+       * settings page — so reading it here always found nothing and wrote
+       * null. Saving the assistant's tone quietly took away the reply-to on
+       * every email, the owner's own alerts, and the check that stops the
+       * business's own mail being answered.
+       */
+      ...(fd.has("email") ? { email: usableAddress(replyAddress) } : {}),
       inbound_mode: readInboundMode(fd.get("inbound_mode")),
       /*
        * Only addresses that could actually be written to.
