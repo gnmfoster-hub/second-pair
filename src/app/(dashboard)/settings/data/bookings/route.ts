@@ -16,8 +16,24 @@ export const dynamic = "force-dynamic";
  * March short" is a worse question than a column saying so.
  */
 export async function GET() {
-  const { studio } = await requireStudio();
+  const { studio, userId } = await requireStudio();
   const supabase = await createClient();
+
+  /*
+   * The whole diary is the owner's to take away.
+   *
+   * Any sign-in could download it, so somebody leaving could walk out with
+   * every client's number. Their own takings have their own export.
+   */
+  const { data: membership } = await supabase
+    .from("studio_members")
+    .select("role")
+    .eq("studio_id", studio.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (membership?.role !== "owner") {
+    return NextResponse.json({ error: "Only the owner can download the whole diary." }, { status: 403 });
+  }
 
   /*
    * Scoped to their own people, explicitly.

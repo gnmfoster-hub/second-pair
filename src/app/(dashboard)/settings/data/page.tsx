@@ -67,16 +67,21 @@ export default async function DataPage() {
       </p>
 
       <div className="card mt-6 divide-y divide-border p-0">
-        <Row
-          title={`Your ${words.customer}s`}
-          detail="Names, numbers, emails and your notes, with who has agreed to marketing."
-          href="/settings/data/clients"
-        />
-        <Row
-          title="Every appointment"
-          detail="What it was worth, who it was with, and whether it was cancelled. Cancelled ones are included and marked — a short month is a worse surprise than a column."
-          href="/settings/data/bookings"
-        />
+        {/* The whole list and the whole diary are the owner's to take away. */}
+        {owns && (
+          <>
+            <Row
+              title={`Your ${words.customer}s`}
+              detail="Names, numbers, emails and your notes, with who has agreed to marketing."
+              href="/settings/data/clients"
+            />
+            <Row
+              title="Every appointment"
+              detail="What it was worth, who it was with, and whether it was cancelled. Cancelled ones are included and marked — a short month is a worse surprise than a column."
+              href="/settings/data/bookings"
+            />
+          </>
+        )}
 
         {/*
           * The file a tax return gets done from.
@@ -121,7 +126,15 @@ export default async function DataPage() {
 
       <CalendarLinks
         origin={origin}
-        business={business ? { name: business.name, token: business.calendar_token } : null}
+        /*
+         * The whole diary's feed only reaches the owner's page.
+         *
+         * It was passed to everybody and hidden in the component, which hides
+         * it from the screen and not from the page: the token was in what the
+         * browser received, and with it any member of staff had every client's
+         * name and number for as long as they liked, after leaving included.
+         */
+        business={owns && business ? { name: business.name, token: business.calendar_token } : null}
         mine={me ? { id: me.id, name: me.name, token: me.calendar_token } : null}
         owns={owns}
       />
