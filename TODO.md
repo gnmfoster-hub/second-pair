@@ -4,7 +4,7 @@ Two lists. Yours is first — accounts, DNS, decisions, things only you can do.
 Mine is at the bottom. They are separate on purpose: the last version mixed them
 up and it was impossible to tell what was blocking what.
 
-Last updated: 14 September 2026.
+Last updated: 15 September 2026.
 
 ---
 
@@ -32,49 +32,28 @@ than breaking.
 Everything here is something I cannot do from this side. Roughly in the order
 it is holding something up.
 
-### 0. Stripe client ID is from a different Stripe account than the key
+### 0. Stripe on the demo: one thing left to check
 
-Connecting failed with `Authorization code provided does not belong to you`.
-The live check now proves why: `STRIPE_SECRET_KEY` belongs to
-**"Giles Foster Apps sandbox"**, and `STRIPE_CONNECT_CLIENT_ID` does not. Stripe
-accepts the ID, but it belongs to another account (most likely the main
-account's test mode, or a different sandbox).
+**Working now**, all on Second Pair LTD sandbox: the key, the Connect client
+ID and a Connect webhook I created (`we_1UFurI…`, three payment events). Sarah
+on the demo has her own Stripe connected. Completing her appointment by link
+makes a £95 link into her account in under two seconds, and the link can be
+texted or emailed from the same screen (on the demo it says what it would send
+and sends nothing).
 
-1. Stripe dashboard → account switcher (top left) → **Giles Foster Apps sandbox**
-   — check the name at the top says exactly that before copying anything
-2. Settings → Connect → Onboarding options → **OAuth** (switch on for Standard)
-3. Redirect URI listed exactly: `https://www.second-pair.com/api/stripe/connect/callback`
-4. Copy the **Test client ID** shown on that page (starts `ca_`)
-5. Vercel → Environment Variables → replace `STRIPE_CONNECT_CLIENT_ID` → **Redeploy**
-6. `cd %USERPROFILE%\Desktop\inkdesk` then `node scripts/check-live.mjs` — it must say
-   `ok businesses can connect their Stripe into "Giles Foster Apps sandbox"`
-7. Then on the demo: Settings → Business → Taking money → your row → **Connect my
-   Stripe** (or the business Connect button) → **Skip this form** → back to Connected
-8. Diary → appointment today → **Complete** → "Send a card link" should be there
+**Not yet proven: Stripe telling the site a payment happened.** The site
+accepts a correctly signed event (tested with a real one), but Stripe itself
+still lists its four "expired" events as undelivered after several minutes.
 
-If step 6 still says "different Stripe accounts" with an ID copied from that
-sandbox, tell me — the check itself would be wrong.
-
-### 1. Put a test Stripe account on the demo (30 seconds, after step 0)
-
-So a payment link on the demo actually opens Stripe and takes a test card.
-Stripe no longer lets a platform create these by API without a settings
-change, and the proper route is better for a demo anyway — it is exactly what a
-real business sees.
-
-1. `/admin` → Willow & Co → **See it as → The owner** (or Settings → the
-   business, if you are already in the demo)
-2. **Whose money it is** → pick **one account for the business** (the demo is
-   currently on "each person paid separately", which would need six of these)
-3. **Taking the money → Connect Stripe**
-4. Stripe opens in test mode. Press **"Skip this form"** at the top — it makes
-   a ready test account instantly
-5. Back in the demo, open today's appointment → **Complete** → **Send a payment
-   link**, and pay with `4242 4242 4242 4242`, any future date, any CVC
-
-If you would rather show an employee being paid into their own account, keep
-the per-person setting and do step 3 as **See it as → Sarah** → Settings → You →
-Connect my Stripe instead.
+1. Stripe (Second Pair LTD sandbox) → Workbench → **Webhooks** → the endpoint
+   `https://www.second-pair.com/api/stripe/webhook`
+2. Open **Event deliveries**: what response code does it show (200, 400, 401,
+   timeout)? Tell me.
+3. Then on your phone, as Sarah or the owner: Diary → an appointment of Sarah's
+   today → **Complete** → **Send a payment link** → **Open it here** → Card →
+   `4242 4242 4242 4242`, any future date, any CVC → Pay
+4. Back in the appointment it should say **Completed · £… taken** within a few
+   seconds. If it still says waiting, step 2 is why.
 
 ### 1b. Stripe, on the sheet
 
