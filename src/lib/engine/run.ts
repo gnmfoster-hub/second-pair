@@ -559,16 +559,24 @@ type ReplyContext = Omit<ToolContext, "db"> & {
  */
 async function withAClientNow(db: ReturnType<typeof createAdminClient>, studioId: string) {
   const now = new Date().toISOString();
-  const { data } = await db
+  /*
+   * Through the person, because bookings belong to an artist and have no
+   * studio column. Asking for one made the query fail every time, the error
+   * was ignored, and nobody was ever "with a client" — so the assistant held
+   * back from a business whose owner had their hands full.
+   */
+  const { data, error } = await db
     .from("bookings")
-    .select("id")
-    .eq("studio_id", studioId)
+    .select("id, artists!inner(studio_id)")
+    .eq("artists.studio_id", studioId)
+    .in("category", ["appointment", "consultation"])
     .is("cancelled_at", null)
     .is("held_until", null)
     .lte("starts_at", now)
     .gt("ends_at", now)
     .limit(1);
 
+  if (error) console.error("[answering] could not read the diary", error.message);
   return Boolean(data?.length);
 }
 

@@ -1,6 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { runTurn } from "./run";
 import { deliver, recordDelivery } from "@/lib/messaging/deliver";
+import { smsNumberFor } from "@/lib/messaging/connections";
+import { replyToFor } from "@/lib/messaging/replyTo";
+import { notifyStudio } from "@/lib/notify";
 import type { Channel } from "@/lib/types";
 
 /**
@@ -26,10 +29,19 @@ export async function releaseHeldConversations(
 ): Promise<{ answered: number; skipped: number; failed: number }> {
   const now = new Date().toISOString();
 
-  const { data: due } = await db
+  /*
+   * Only columns that exist, and the error read.
+   *
+   * This asked for a contact column that has never been in the database, so
+   * PostgREST refused the whole query on every sweep — and the error was
+   * discarded, so "nothing due" and "could not look" were the same answer.
+   * Every text and email that arrived in opening hours was held for the owner
+   * and then never answered by anybody, while every check said the job ran.
+   */
+  const { data: due, error } = await db
     .from("conversations")
     .select(
-      "id, external_ref, channel, ai_paused, last_message_at, studios(slug, name, archived_at), contacts(name, phone, email, page_scoped_id)",
+      "id, studio_id, external_ref, channel, ai_paused, last_message_at, studios(slug, name, email, archived_at), contacts(name, phone, email)",
     )
     .lte("hold_until", now)
     .not("hold_until", "is", null)
@@ -40,18 +52,23 @@ export async function releaseHeldConversations(
   let skipped = 0;
   let failed = 0;
 
+  if (error) {
+    console.error("[release] could not read held conversations", error.message);
+    return { answered, skipped, failed: 1 };
+  }
+
   for (const conversation of due ?? []) {
     // PostgREST returns a to-one embed as an object, not an array.
     const studio = conversation.studios as unknown as {
       slug: string;
       name: string;
+      email: string | null;
       archived_at: string | null;
     } | null;
     const contact = conversation.contacts as unknown as {
       name: string | null;
       phone: string | null;
       email: string | null;
-      page_scoped_id: string | null;
     } | null;
 
     /*
@@ -94,6 +111,31 @@ export async function releaseHeldConversations(
       continue;
     }
 
+    /*
+     * Never answer what the mailbox already called spam.
+     *
+     * The inbound filter ignores these now, before a conversation exists. Mail
+     * that arrived before it did was held like anything else, and this sweep
+     * could not run at all at the time — so the first working run would have
+     * been the assistant writing back to phishing. Checked here as well, so a
+     * hold from before any future filter cannot do the same.
+     */
+    if (conversation.channel === "email") {
+      const { data: said } = await db
+        .from("messages")
+        .select("content")
+        .eq("conversation_id", conversation.id)
+        .eq("role", "client")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (/^\s*(?:\*{2,}\s*spam\s*\*{2,}|\[spam\]|spam:)/i.test(said?.content ?? "")) {
+        await db.from("conversations").update({ status: "lost" }).eq("id", conversation.id);
+        skipped++;
+        continue;
+      }
+    }
+
     try {
       const result = await runTurn({
         studioSlug: studio.slug,
@@ -111,12 +153,20 @@ export async function releaseHeldConversations(
         continue;
       }
 
+      /*
+       * The thread's own address first.
+       *
+       * A text or an email conversation is keyed on the number or address it
+       * came from, and that is where the answer goes — the same place the
+       * live reply is sent. The contact's saved details are usually empty on a
+       * first message, which is exactly when a held reply is sent.
+       */
       const to =
         conversation.channel === "sms"
-          ? contact?.phone
+          ? conversation.external_ref ?? contact?.phone
           : conversation.channel === "email"
-            ? contact?.email
-            : (contact?.page_scoped_id ?? conversation.external_ref);
+            ? conversation.external_ref ?? contact?.email
+            : conversation.external_ref;
 
       const delivery = await deliver({
         channel: conversation.channel as Channel,
@@ -137,6 +187,12 @@ export async function releaseHeldConversations(
         lastInboundAt: conversation.last_message_at,
         subject: `Re: your enquiry`,
         fromName: studio.name,
+        replyTo: replyToFor(studio),
+        // From the number they texted, or a reply to it reaches no business.
+        from:
+          conversation.channel === "sms"
+            ? await smsNumberFor(db, conversation.studio_id as string)
+            : undefined,
       });
 
       const { data: message } = await db
@@ -149,6 +205,27 @@ export async function releaseHeldConversations(
         .maybeSingle();
 
       if (message) await recordDelivery(db, message.id, delivery);
+
+      /*
+       * Answered on the screen and not on their phone is not answered.
+       *
+       * The thread shows the reply either way, so without this a failed send
+       * looks exactly like a sent one. Handed to the owner, and they are told.
+       */
+      if (delivery.status === "failed" || delivery.status === "outside_window") {
+        await db
+          .from("conversations")
+          .update({ status: "needs_human" })
+          .eq("id", conversation.id);
+        await notifyStudio(db, conversation.studio_id as string, {
+          title: "A reply did not go",
+          body: "The assistant answered but it could not be sent. Reply to them yourself.",
+          url: `/conversations/${conversation.id}`,
+          tag: `undelivered-${conversation.id}`,
+        });
+        failed++;
+        continue;
+      }
 
       answered++;
     } catch (error) {
