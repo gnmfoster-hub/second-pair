@@ -32,7 +32,28 @@ than breaking.
 Everything here is something I cannot do from this side. Roughly in the order
 it is holding something up.
 
-### 1. Stripe, on the sheet
+### 1. Put a test Stripe account on the demo (30 seconds)
+
+So a payment link on the demo actually opens Stripe and takes a test card.
+Stripe no longer lets a platform create these by API without a settings
+change, and the proper route is better for a demo anyway — it is exactly what a
+real business sees.
+
+1. `/admin` → Willow & Co → **See it as → The owner** (or Settings → the
+   business, if you are already in the demo)
+2. **Whose money it is** → pick **one account for the business** (the demo is
+   currently on "each person paid separately", which would need six of these)
+3. **Taking the money → Connect Stripe**
+4. Stripe opens in test mode. Press **"Skip this form"** at the top — it makes
+   a ready test account instantly
+5. Back in the demo, open today's appointment → **Complete** → **Send a payment
+   link**, and pay with `4242 4242 4242 4242`, any future date, any CVC
+
+If you would rather show an employee being paid into their own account, keep
+the per-person setting and do step 3 as **See it as → Sarah** → Settings → You →
+Connect my Stripe instead.
+
+### 1b. Stripe, on the sheet
 
 Everything about money is on one page now, in three parts: your own account,
 how a business connects theirs, and how you would charge them monthly.
