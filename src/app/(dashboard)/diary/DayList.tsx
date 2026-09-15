@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EntryDialog } from "./EntryDialog";
+import type { Words } from "@/lib/wordsText";
 import { formatPence } from "@/lib/money";
 import type { ShelfItem } from "./Complete";
 import { serviceLine, type Entry } from "./WeekGrid";
@@ -101,6 +102,7 @@ export function DayList({
   shelf = [],
   openId,
   payable = [],
+  words,
   travels = false,
   nowIso,
 }: {
@@ -126,6 +128,8 @@ export function DayList({
    * never saw a link to send.
    */
   payable?: string[];
+  /** What this business calls things, from its trade and its own changes. */
+  words: Words;
   /** Whether the work happens at the customer's address. */
   travels?: boolean;
   /** Stamped on the server, so the first paint matches and nothing flickers. */
@@ -547,6 +551,7 @@ export function DayList({
           shelf={shelf}
           payable={payable}
           travels={travels}
+          words={words}
           onClose={() => {
             setEditingId(null);
             setCreating(null);

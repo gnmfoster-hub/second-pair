@@ -22,7 +22,7 @@ export function ServiceList({
   only,
 }: {
   services: Service[];
-  words: { customer: string };
+  words: { customer: string; product?: string; service?: string };
   /**
    * Show one half of the list rather than both.
    *
@@ -56,7 +56,7 @@ export function ServiceList({
 
       {only !== "service" && <Group
         title="What you sell"
-        blurb="Anything that takes no time — shampoo, aftercare, a gift card. It can be sold without an appointment and never appears in the diary."
+        blurb={`Anything that takes no time — ${(words.product ?? "a gift card").toLowerCase()}, a gift card. It can be sold on its own and never appears in the diary.`}
         items={retail}
         empty="Nothing yet. Worth adding if you sell anything over the counter."
         editing={editing}
@@ -68,6 +68,7 @@ export function ServiceList({
       {adding && (
         <ServiceForm
           kind={adding}
+          example={adding === "product" ? words.product : words.service}
           onDone={() => setAdding(null)}
           sortOrder={services.length}
         />
@@ -168,8 +169,11 @@ function ServiceForm({
   service,
   onDone,
   sortOrder,
+  example,
 }: {
   kind: "service" | "product";
+  /** A name from this trade to show in the empty box. */
+  example?: string;
   service?: Service;
   onDone: () => void;
   sortOrder: number;
@@ -194,7 +198,7 @@ function ServiceForm({
           <input
             name="name"
             defaultValue={service?.name ?? ""}
-            placeholder={kind === "product" ? "Shampoo, 250ml" : "Cut and blow dry"}
+            placeholder={example ?? (kind === "product" ? "Gift card" : "Consultation")}
             className="input"
             required
             autoFocus

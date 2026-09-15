@@ -7,6 +7,7 @@ import { CHANNEL_LABELS, type Channel } from "@/lib/types";
 import { ChannelIcon } from "@/components/ChannelIcon";
 import { Waiting } from "@/components/Waiting";
 import { whoseClient } from "@/lib/whoseClient";
+import { wordsFor, capital } from "@/lib/words";
 
 type Row = {
   bookings:
@@ -148,7 +149,7 @@ export default async function ClientsPage({
   return (
     <div className="mx-auto max-w-4xl px-8 py-9">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
-        <h1 className="page-title">Clients</h1>
+        <h1 className="page-title">{capital(wordsFor(studio).customers)}</h1>
         <span className="hint">
           {clients.length}
           {clients.length === 200 ? "+" : ""} {term ? "matching" : "in total"}

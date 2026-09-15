@@ -162,7 +162,7 @@ const THREADS: Thread[] = [
     openedLastNightAt: [21, 34],
     booking: { artist: "Sarah", in: 2, hour: 10, minute: 0, mins: 150, price: 12500 },
     enquiry: {
-      intent: "new_tattoo",
+      intent: "appointment",
       description: "Half head of foils and a trim",
       quote_low_pence: 11000,
       quote_high_pence: 14500,
@@ -197,7 +197,7 @@ const THREADS: Thread[] = [
     status: "deposit_paid",
     booking: { artist: "Nadia", in: 3, hour: 10, minute: 0, mins: 180, price: 14000 },
     enquiry: {
-      intent: "new_tattoo",
+      intent: "appointment",
       description: "Balayage, mid-length, box dye to lift",
       quote_low_pence: 12000,
       quote_high_pence: 16000,
@@ -311,7 +311,7 @@ const THREADS: Thread[] = [
     status: "booked",
     booking: { artist: "Mo", in: 1, hour: 11, minute: 15, mins: 75, price: 5500 },
     enquiry: {
-      intent: "new_tattoo",
+      intent: "appointment",
       description: "Root touch-up and blow dry",
       quote_low_pence: 5500,
       quote_high_pence: 5500,

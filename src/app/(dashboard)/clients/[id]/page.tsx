@@ -18,6 +18,7 @@ import type { Service } from "@/lib/types";
 import { Bought, type Purchase } from "./Bought";
 import { hasColumn } from "@/lib/db/hasColumn";
 import { AskForPayment } from "@/components/AskForPayment";
+import { wordsFor } from "@/lib/words";
 
 type ContactRow = {
   id: string;
@@ -273,13 +274,13 @@ export default async function ClientPage({
        */}
       {found && (
         <p className="mt-3 rounded-xl border border-border bg-surface-2/60 px-4 py-3 text-sm">
-          You already had this client, so nothing was added. Their existing details
+          You already had this {wordsFor(studio).customer}, so nothing was added. Their existing details
           are below.
         </p>
       )}
 
       <h1 className="page-title mt-3">
-        {contact.name ?? contact.phone ?? "Unnamed client"}
+        {contact.name ?? contact.phone ?? `Unnamed ${wordsFor(studio).customer}`}
       </h1>
       <p className="hint mt-1">
         First in touch{" "}

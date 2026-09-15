@@ -51,6 +51,17 @@ export async function seedFromPack(
       // address at all, and whether travel time is left between jobs. Getting
       // this wrong makes the product unusable for a mobile trade on day one.
       travel_mode: pack.location,
+      /*
+       * How it prices, from the trade.
+       *
+       * Never set before, so every business started on size bands — the way a
+       * tattoo studio or a plumber quotes — including a salon with a price list
+       * on the wall. On bands the diary has no service to pick, Complete has
+       * nothing to change it to, and per-person prices do not exist. The two
+       * live businesses on a price list were switched by hand, which is why
+       * nobody saw it.
+       */
+      pricing_model: pack.pricing === "fixed" ? "services" : "bands",
     })
     .eq("id", studioId);
   if (studioError) errors.push(`vocabulary: ${studioError.message}`);
@@ -76,6 +87,26 @@ export async function seedFromPack(
     const { error } = await db.from("price_bands").insert(bands);
     if (error) errors.push(`bands: ${error.message}`);
     else seeded.push(`${bands.length} services`);
+  }
+
+  // --- the price list, for a trade that has one
+  if (pack.pricing === "fixed" && !(await has("services"))) {
+    const services = pack.bands.map((b, i) => ({
+      studio_id: studioId,
+      name: b.size_label,
+      kind: "service",
+      minutes: b.duration_minutes ?? Math.round(b.hours_low * 60),
+      price_pence: b.price_low_pence,
+      price_to_pence:
+        b.price_high_pence != null && b.price_high_pence !== b.price_low_pence
+          ? b.price_high_pence
+          : null,
+      requires_consultation: b.requires_consultation,
+      sort_order: i,
+    }));
+    const { error } = await db.from("services").insert(services);
+    if (error) errors.push(`price list: ${error.message}`);
+    else seeded.push(`${services.length} on the price list`);
   }
 
   // --- questions worth answering, left blank for the owner to fill in

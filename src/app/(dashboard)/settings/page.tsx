@@ -7,6 +7,7 @@ import { StudioForm } from "./StudioForm";
 import { EveryEnquiry } from "./EveryEnquiry";
 import { PaymentModel } from "./PaymentModel";
 import { verticalPack } from "@/lib/verticals";
+import { wordsFor } from "@/lib/words";
 
 export default async function StudioSettingsPage({
   searchParams,
@@ -90,10 +91,8 @@ export default async function StudioSettingsPage({
           }))}
         canConnect={canConnectStripe(studio)}
         words={{
-          practitioners: {
-            ...verticalPack(studio.vertical).vocabulary,
-            ...(studio.vocabulary ?? {}),
-          }.practitioners,
+          practitioners: wordsFor(studio).practitioners,
+          business: wordsFor(studio).business,
         }}
       />
 

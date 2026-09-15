@@ -13,6 +13,7 @@ import {
 import { categoryFor, addDays, isoDate } from "@/lib/calendar";
 import { hueFor, initialsOf, colourForName, type ColourMode } from "@/lib/diaryColour";
 import { EntryDialog } from "./EntryDialog";
+import type { Words } from "@/lib/wordsText";
 import type { ShelfItem } from "./Complete";
 import type { Bookable } from "./ServicePick";
 import { moveDiaryEntry } from "./actions";
@@ -224,6 +225,7 @@ export function WeekGrid({
   shelf = [],
   openId,
   payable = [],
+  words,
   travels = false,
 }: {
   weekStart: string;
@@ -247,6 +249,8 @@ export function WeekGrid({
    * never saw a link to send.
    */
   payable?: string[];
+  /** What this business calls things, from its trade and its own changes. */
+  words: Words;
   /** Whether the work happens at the customer's address. */
   travels?: boolean;
 }) {
@@ -1354,6 +1358,7 @@ export function WeekGrid({
           shelf={shelf}
           payable={payable}
           travels={travels}
+          words={words}
           onClose={() => {
             setEditing(null);
             setCreating(null);

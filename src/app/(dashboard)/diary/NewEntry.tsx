@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { EntryDialog } from "./EntryDialog";
+import type { Words } from "@/lib/wordsText";
 import { AddMenu } from "./AddMenu";
 import type { Bookable } from "./ServicePick";
 import type { Artist } from "@/lib/types";
@@ -21,11 +22,14 @@ export function NewEntry({
   artists,
   timezone,
   services,
+  words,
 }: {
   artists: Artist[];
   timezone: string;
   /** What the business sells, where it keeps a named list. Empty otherwise. */
   services: Bookable[];
+  /** What this business calls things, from its trade and its own changes. */
+  words: Words;
 }) {
   const [open, setOpen] = useState(false);
   const [when, setWhen] = useState<{ date: string; time: string } | null>(null);
@@ -189,6 +193,7 @@ export function NewEntry({
 
       {asking && (
         <AddMenu
+          words={words}
           byList={services.length > 0}
           onPick={chose}
           onClose={() => setAsking(false)}
@@ -197,6 +202,7 @@ export function NewEntry({
 
       {open && when && (
         <EntryDialog
+          words={words}
           entry={null}
           prefill={when}
           artists={artists}

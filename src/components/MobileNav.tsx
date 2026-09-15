@@ -29,7 +29,14 @@ const TABS = [
   { href: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 
-export function MobileNav({ needsYou = 0 }: { needsYou?: number }) {
+export function MobileNav({
+  needsYou = 0,
+  customers = "Clients",
+}: {
+  needsYou?: number;
+  /** What this trade calls the people it serves: Clients, Patients, Pupils. */
+  customers?: string;
+}) {
   const pathname = usePathname();
 
   return (
@@ -40,7 +47,7 @@ export function MobileNav({ needsYou = 0 }: { needsYou?: number }) {
       aria-label="Sections"
     >
       <ul className="flex">
-        {TABS.map((tab) => {
+        {TABS.map((t) => (t.href === "/clients" ? { ...t, label: customers } : t)).map((tab) => {
           const active = tab.exact ? pathname === tab.href : pathname.startsWith(tab.href);
           const Icon = tab.icon;
 

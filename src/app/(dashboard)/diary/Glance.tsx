@@ -4,6 +4,7 @@ import Link from "next/link";
 import { formatPence } from "@/lib/money";
 import { depositPaid, hasDeposit } from "@/lib/deposit";
 import type { Entry } from "./WeekGrid";
+import { capital, type Words } from "@/lib/wordsText";
 
 /**
  * An appointment, as it is when you tap it.
@@ -22,6 +23,7 @@ import type { Entry } from "./WeekGrid";
 export function Glance({
   entry,
   timezone,
+  words,
   whoName,
   due,
   onComplete,
@@ -29,6 +31,8 @@ export function Glance({
 }: {
   entry: Entry;
   timezone: string;
+  /** What this business calls things, from its trade and its own changes. */
+  words: Words;
   /** Whose column it sits in. */
   whoName: string | null;
   /** Whether it is today or earlier, which is when it can be completed. */
@@ -62,7 +66,7 @@ export function Glance({
       ? `${Math.floor(minutes / 60)}h${minutes % 60 ? ` ${minutes % 60}m` : ""}`
       : `${minutes}m`;
 
-  const who = entry.clientName ?? entry.title ?? "Appointment";
+  const who = entry.clientName ?? entry.title ?? capital(words.service);
   // The service, unless the title is only the client's name said again.
   const what =
     entry.title && entry.title.trim().toLowerCase() !== (entry.clientName ?? "").trim().toLowerCase()

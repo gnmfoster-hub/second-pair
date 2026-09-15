@@ -25,6 +25,7 @@ export function MyServices({
   firstName,
   artistId = null,
   title,
+  business = "business",
 }: {
   /** Only this person's own. The shop's list is somebody else's screen. */
   services: Service[];
@@ -40,6 +41,8 @@ export function MyServices({
   artistId?: string | null;
   /** Overrides the heading, which reads wrongly about somebody else. */
   title?: { heading: string; blurb: string };
+  /** What the business is called in its trade: salon, studio, clinic. */
+  business?: string;
 }) {
   const [adding, setAdding] = useState<"service" | "product" | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -55,8 +58,8 @@ export function MyServices({
           <p className="hint mt-1 max-w-prose">
             {title?.blurb ?? (
               <>
-                Work and products that are yours rather than the shop&rsquo;s &mdash; a
-                nail technician&rsquo;s colours, a piercer&rsquo;s jewellery. The assistant
+                Work and products that are yours rather than the {business}&rsquo;s &mdash; a
+                special you offer, or something only you sell. The assistant
                 offers these only to somebody asking for {firstName}, and never to
                 somebody booking with anyone else.
               </>
@@ -78,7 +81,7 @@ export function MyServices({
       {services.length === 0 && !adding && (
         <p className="hint mt-4">
           Nothing yet. Most people need none of this &mdash; it is for work the rest of
-          the shop does not do.
+          the {business} does not do.
         </p>
       )}
 

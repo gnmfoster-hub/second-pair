@@ -18,6 +18,7 @@ import { formatPence } from "@/lib/money";
 import { depositPaid, hasDeposit } from "@/lib/deposit";
 import { Complete } from "./Complete";
 import { Glance } from "./Glance";
+import { capital, type Words } from "@/lib/wordsText";
 import type { ShelfItem } from "./Complete";
 import { CATEGORIES, OWNER_CATEGORIES, categoryFor, REPEATS } from "@/lib/calendar";
 import type { Artist } from "@/lib/types";
@@ -56,6 +57,7 @@ export function EntryDialog({
   services = [],
   shelf = [],
   payable = [],
+  words,
   travels = false,
   adding,
   onClose,
@@ -76,6 +78,8 @@ export function EntryDialog({
   shelf?: ShelfItem[];
   /** Whose appointments can be paid by card link: the people with somewhere for the money to land. */
   payable?: string[];
+  /** What this business calls things, from its trade and its own changes. */
+  words: Words;
   /**
    * Whether the work happens at the customer's address.
    *
@@ -333,7 +337,7 @@ export function EntryDialog({
             )}
             <h2 className="section-title">
               {mode === "look"
-                ? "Appointment"
+                ? capital(words.service)
                 : mode === "complete"
                   ? `Complete${entry?.clientName ? ` — ${entry.clientName}` : ""}`
                   : existing
@@ -401,6 +405,7 @@ export function EntryDialog({
           <Glance
             entry={entry}
             timezone={timezone}
+            words={words}
             whoName={artists.find((a) => a.id === entry.artist_id)?.name ?? null}
             due={Date.parse(entry.starts_at) <= endOfToday()}
             onComplete={() => setMode("complete")}
@@ -414,7 +419,7 @@ export function EntryDialog({
               bookingId={entry.id}
               clientName={entry.clientName}
               workName={
-                entry.title && entry.title !== entry.clientName ? entry.title : "Appointment"
+                entry.title && entry.title !== entry.clientName ? entry.title : capital(words.service)
               }
               workPence={entry.price_pence ?? entry.quotePence}
               services={services}
@@ -422,6 +427,7 @@ export function EntryDialog({
               connected={Boolean(entry.artist_id && payable.includes(entry.artist_id))}
               attended={entry.attended}
               travels={travels}
+              words={words}
               alreadyPence={entry.soldPence}
               bookedMinutes={Math.round(
                 (Date.parse(entry.ends_at) - Date.parse(entry.starts_at)) / 60000,
@@ -437,7 +443,7 @@ export function EntryDialog({
           // A client booking is owned by its conversation. Time can move; the
           // rest belongs to the enquiry and is shown, not edited.
           <div className="mt-4 space-y-1 rounded-lg bg-surface-2/50 p-4 text-sm">
-            <div className="font-medium">{entry?.clientName ?? "Client booking"}</div>
+            <div className="font-medium">{entry?.clientName ?? `${capital(words.customer)} booking`}</div>
             {entry?.description && <div className="hint">{entry.description}</div>}
             {entry?.clientPhone && <div className="hint tabular-nums">{entry.clientPhone}</div>}
 
@@ -491,7 +497,7 @@ export function EntryDialog({
           {!fromClient && isClientWork && (
             <Field
               label="Who it's for"
-              hint="Search your clients, or type a name to add them."
+              hint={`Search your ${words.customers}, or type a name to add them.`}
             >
               <ClientPicker
                 onChosen={setContactId}
@@ -543,7 +549,7 @@ export function EntryDialog({
            * stays blank rather than becoming zero.
            */}
           {!fromClient && isClientWork && (
-            <Field label="Price" hint="What the job comes to. Leave blank if you don't know yet.">
+            <Field label="Price" hint={`What the ${words.service} comes to. Leave blank if you don't know yet.`}>
               <div className="relative max-w-[10rem]">
                 <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted">
                   £
@@ -578,7 +584,7 @@ export function EntryDialog({
                 }}
                 placeholder={
                   category === "supplies"
-                    ? "Order ink and needles"
+                    ? words.exampleSupplies
                     : category === "meeting"
                       ? "Accountant"
                       : "Dentist"

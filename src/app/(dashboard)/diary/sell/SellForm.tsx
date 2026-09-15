@@ -56,7 +56,7 @@ export function SellForm({
   people: { id: string; name: string }[];
   /** Whoever is signed in, where they are one of the people. */
   me: string | null;
-  words: { business: string };
+  words: { business: string; product?: string };
   /** Whether there is a Stripe account for a payment link to land in. */
   connected?: boolean;
   /**
@@ -232,7 +232,7 @@ export function SellForm({
                   name={`name_${i}`}
                   value={line.name}
                   onChange={(e) => set(line.key, { name: e.target.value, serviceId: null })}
-                  placeholder="Shampoo, gift voucher…"
+                  placeholder={`${words.product ?? "Gift voucher"}…`}
                   className="input"
                 />
               </label>

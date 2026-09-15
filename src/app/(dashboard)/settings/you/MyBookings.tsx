@@ -18,7 +18,14 @@ import type { Artist } from "@/lib/types";
  *
  * Theirs. The owner cannot set it for them, and does not need to.
  */
-export function MyBookings({ artist }: { artist: Artist }) {
+export function MyBookings({
+  artist,
+  business = "business",
+}: {
+  artist: Artist;
+  /** What the business is called in its trade: salon, studio, clinic. */
+  business?: string;
+}) {
   const [state, action] = useActionState<FormState, FormData>(setNotifyOwnBookings, {});
   const first = artist.name.split(" ")[0];
 
@@ -38,7 +45,7 @@ export function MyBookings({ artist }: { artist: Artist }) {
           Tell me when somebody books in with me
           <span className="hint block">
             Goes to {first}&rsquo;s own devices and {first}&rsquo;s own address &mdash; not
-            the shop&rsquo;s, and not anybody else&rsquo;s. You are not told about other
+            the {business}&rsquo;s, and not anybody else&rsquo;s. You are not told about other
             people&rsquo;s bookings.
           </span>
         </span>

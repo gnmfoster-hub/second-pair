@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireStudio, getArtists } from "@/lib/studio";
 import { payableFor } from "@/lib/payments/whoTakes";
 import { createClient } from "@/lib/supabase/server";
-import { verticalPack } from "@/lib/verticals";
+import { wordsFor } from "@/lib/words";
 import { SellForm } from "./SellForm";
 
 /**
@@ -72,10 +72,7 @@ export default async function SellPage({
 
   const me = (await getArtists(studio.id)).find((a) => a.user_id === userId)?.id ?? null;
 
-  const words = {
-    ...verticalPack(studio.vertical).vocabulary,
-    ...(studio.vocabulary ?? {}),
-  };
+  const words = wordsFor(studio);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
@@ -85,7 +82,7 @@ export default async function SellPage({
 
       <h1 className="page-title mt-3">Sell something</h1>
       <p className="hint mt-1 max-w-prose">
-        Anything that is not an appointment: a bottle off the shelf, a voucher, a walk-in
+        Anything that is not {words.service === "appointment" ? "an appointment" : `a ${words.service}`}: {words.exampleProduct.toLowerCase()}, a voucher, a walk-in
         paying cash. It goes in today&rsquo;s takings and on the client&rsquo;s record.
       </p>
 
@@ -105,7 +102,7 @@ export default async function SellPage({
           products={products}
           people={people}
           me={me}
-          words={{ business: words.business }}
+          words={{ business: words.business, product: words.exampleProduct }}
           forClient={forClient ? { id: forClient.id, name: forClient.name } : null}
           /*
            * Whether a payment link is possible at all. The till offers one for

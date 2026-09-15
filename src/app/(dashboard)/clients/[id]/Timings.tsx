@@ -197,7 +197,7 @@ function TimingRow({
         <input
           name="note"
           defaultValue={timing?.note ?? ""}
-          placeholder="Very thick hair — colour always overruns"
+          placeholder="Always runs over — allow extra time"
           className="input"
         />
         <span className="hint">

@@ -4,6 +4,7 @@ import { createDepositCheckout, retrieveOpenCheckout } from "@/lib/payments/stri
 import { describeSlot } from "@/lib/booking";
 import type { Studio } from "@/lib/types";
 import { readyForRealMoney } from "@/lib/payments/stripe";
+import { wordsFor, capital } from "@/lib/words";
 
 export const runtime = "nodejs";
 
@@ -107,7 +108,7 @@ export async function GET(
       bookingId: booking.id,
       conversationId: enquiry?.conversation_id ?? "",
       amountPence: booking.deposit_amount_pence,
-      description: `${booking.type === "consultation" ? "Consultation" : "Session"} with ${artist.name}, ${describeSlot(
+      description: `${booking.type === "consultation" ? "Consultation" : capital(wordsFor(studio).service)} with ${artist.name}, ${describeSlot(
         { starts_at: booking.starts_at, ends_at: booking.ends_at },
         studio.timezone,
       )}`,

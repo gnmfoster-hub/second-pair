@@ -30,7 +30,7 @@ export function PeoplePrices({
   services: Service[];
   /** Everybody's overrides. Usually a short list. */
   rows: ServicePerson[];
-  words: { practitioner: string; practitioners: string };
+  words: { practitioner: string; practitioners: string; business?: string };
 }) {
   const [whoId, setWhoId] = useState<string>(artists[0]?.id ?? "");
   const [state, action] = useActionState<TeamPriceState, FormData>(saveTeamPrices, {});
@@ -51,9 +51,9 @@ export function PeoplePrices({
     <section className="card p-5">
       <h2 className="section-title">What each {words.practitioner} charges</h2>
       <p className="hint mt-1 max-w-prose">
-        Only where they differ from the list above. Everybody is on the shop&rsquo;s price
+        Only where they differ from the list above. Everybody is on the {words.business ?? "business"}&rsquo;s price
         until you say otherwise, which is what most of these should stay &mdash; a senior
-        who charges more for a colour is the exception worth typing in.
+        who charges more for something is the exception worth typing in.
       </p>
 
       {/*
@@ -183,7 +183,7 @@ export function PeoplePrices({
           </div>
 
           <p className="hint mt-3 max-w-prose">
-            Clearing both boxes on a row puts them back on the shop&rsquo;s price. They can
+            Clearing both boxes on a row puts them back on the {words.business ?? "business"}&rsquo;s price. They can
             change their own on their settings too &mdash; whoever saved last wins, as it
             would if you were both writing on the same wall.
           </p>

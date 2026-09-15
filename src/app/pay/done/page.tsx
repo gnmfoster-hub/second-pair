@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatPence } from "@/lib/money";
 import { stripe, modeFor } from "@/lib/payments/stripe";
+import { wordsFor } from "@/lib/words";
 
 export const dynamic = "force-dynamic";
 
@@ -36,13 +37,19 @@ export default async function PaymentDonePage({
   let paid = false;
   let amount = 0;
   let what: string | null = null;
-  let business: { name: string; slug: string; timezone: string | null } | null = null;
+  let business: {
+    name: string;
+    slug: string;
+    timezone: string | null;
+    vertical?: string | null;
+    vocabulary?: Record<string, string> | null;
+  } | null = null;
   let startsAt: string | null = null;
 
   if (paymentId) {
     const { data: payment } = await db
       .from("payments")
-      .select("*, studios(name, slug, timezone, kind)")
+      .select("*, studios(name, slug, timezone, kind, vertical, vocabulary)")
       .eq("id", paymentId)
       .maybeSingle();
 
@@ -52,6 +59,8 @@ export default async function PaymentDonePage({
         slug: string;
         timezone: string | null;
         kind: string | null;
+        vertical: string | null;
+        vocabulary: Record<string, string> | null;
       } | null;
       business = studio;
       kind = payment.kind === "deposit" ? "deposit" : "payment";
@@ -84,7 +93,7 @@ export default async function PaymentDonePage({
   } else if (bookingId) {
     const { data } = await db
       .from("bookings")
-      .select("starts_at, deposit_status, deposit_amount_pence, artists(studios(name, slug, timezone))")
+      .select("starts_at, deposit_status, deposit_amount_pence, artists(studios(name, slug, timezone, vertical, vocabulary))")
       .eq("id", bookingId)
       .maybeSingle();
     paid = data?.deposit_status === "paid";
@@ -110,6 +119,8 @@ export default async function PaymentDonePage({
     : null;
 
   const to = business?.name ? ` to ${business.name}` : "";
+  // "Your appointment", "your lesson", "your clean" — the trade's own word.
+  const service = wordsFor(business ?? {}).service;
 
   let heading: string;
   let body: string;
@@ -121,7 +132,7 @@ export default async function PaymentDonePage({
   } else if (kind === "deposit") {
     heading = "Deposit paid";
     body = `${formatPence(amount)} paid${to}.${
-      when ? ` Your appointment on ${when} is confirmed.` : " Your appointment is confirmed."
+      when ? ` Your ${service} on ${when} is confirmed.` : ` Your ${service} is confirmed.`
     }`;
   } else {
     heading = "Payment received";

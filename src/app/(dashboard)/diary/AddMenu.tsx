@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSheet, asSheet } from "@/components/useSheet";
+import type { Words } from "@/lib/wordsText";
 
 /**
  * Who is this for, asked before anything else.
@@ -20,11 +21,14 @@ export function AddMenu({
   onPick,
   onClose,
   byList,
+  words,
 }: {
   onPick: (kind: "client" | "walkin" | "other") => void;
   onClose: () => void;
   /** Whether this business keeps a named price list to pick a service from. */
   byList: boolean;
+  /** What this business calls things, from its trade and its own changes. */
+  words: Words;
 }) {
   const sheet = useSheet<HTMLDivElement>();
 
@@ -59,7 +63,7 @@ export function AddMenu({
             title="Somebody who has been before"
             detail={
               byList
-                ? "Their record, their usual stylist, and anything the shop has written down about how long they take."
+                ? `Their record, their usual ${words.practitioner}, and anything the ${words.business} has written down about how long they take.`
                 : "Their record and their history, so this booking joins the rest."
             }
             onClick={() => onPick("client")}
@@ -95,7 +99,7 @@ export function AddMenu({
           <Link href="/diary/sell" className="block">
             <Choice
               title="Sell something"
-              detail="A bottle off the shelf, a voucher, a walk-in paying cash. Goes in the takings, not the diary."
+              detail={`${words.exampleProduct}, a voucher, somebody paying cash. Goes in the takings, not the diary.`}
             />
           </Link>
         </div>

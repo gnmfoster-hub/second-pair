@@ -36,7 +36,7 @@ export function PaymentModel({
   team?: { id: string; name: string; connected: boolean; isMe: boolean; canSignIn: boolean }[];
   /** Whether connecting works at our end at all. */
   canConnect?: boolean;
-  words: { practitioners: string };
+  words: { practitioners: string; business?: string };
 }) {
   const [state, action] = useActionState<FormState, FormData>(setPaymentModel, {});
 
@@ -70,8 +70,8 @@ export function PaymentModel({
           <span>
             An account each
             <span className="hint block">
-              Their money never touches yours. Right where every chair is its own
-              business &mdash; and each of the {words.practitioners} connects their own
+              Their money never touches yours. Right where each of them runs their own
+              business under your roof &mdash; and each of the {words.practitioners} connects their own
               Stripe, which means their own ID and bank details, not yours.
             </span>
           </span>

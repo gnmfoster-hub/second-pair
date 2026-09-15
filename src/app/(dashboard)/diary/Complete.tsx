@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { SendLink } from "./SendLink";
+import { capital, whatTheyHad, type Words } from "@/lib/wordsText";
 import { completeAppointment, type BillState } from "./billActions";
 import { lineTotal } from "@/lib/sales";
 import { formatPence } from "@/lib/money";
@@ -45,6 +46,7 @@ export function Complete({
   connected,
   attended,
   travels = false,
+  words,
   alreadyPence,
   bookedMinutes,
   startOpen = false,
@@ -66,6 +68,8 @@ export function Complete({
    * right for a salon and backwards for a cleaner, who went to them.
    */
   travels?: boolean;
+  /** What this business calls things, from its trade and its own changes. */
+  words: Words;
   /** What has already been taken at this appointment. */
   alreadyPence: number | null;
   bookedMinutes: number;
@@ -203,7 +207,7 @@ export function Complete({
 
       {/* 1 ─ did they come. Yes already chosen, because nearly everybody does. */}
       <div>
-        <span className="label">{travels ? "Did the job go ahead?" : `Did ${firstName} come?`}</span>
+        <span className="label">{travels ? `Did the ${words.service} go ahead?` : `Did ${firstName} come?`}</span>
         <div className="mt-1 flex gap-2">
           <button
             type="button"
@@ -212,7 +216,7 @@ export function Complete({
               came ? "border-ok bg-ok/10 text-ok" : "border-border text-muted"
             }`}
           >
-            {travels ? "Job done" : "Yes"}
+            {travels ? `${capital(words.service)} done` : "Yes"}
           </button>
           <button
             type="button"
@@ -240,7 +244,7 @@ export function Complete({
         <>
           {/* 2 ─ what they had, and what it came to. */}
           <div>
-            <span className="label">What they had</span>
+            <span className="label">{whatTheyHad(words)}</span>
             <div className="mt-1 flex gap-2">
               {services.length > 0 ? (
                 <select

@@ -21,6 +21,7 @@ import { Managed } from "./Managed";
 import type { ReminderTemplateRow } from "../reminders/ReminderEditor";
 import { byPerson } from "@/lib/servicePrices";
 import type { Service, ServicePerson } from "@/lib/types";
+import { wordsFor } from "@/lib/words";
 
 export const metadata = { title: "You — Second Pair" };
 
@@ -150,8 +151,7 @@ export default async function YouPage({
    */
   const managed = me?.owner_managed === true;
 
-  const pack = verticalPack(studio.vertical);
-  const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
+  const words = wordsFor(studio);
   const styles = options.filter((o) => o.kind === "style");
 
   return (
@@ -171,7 +171,7 @@ export default async function YouPage({
        * Only for somebody who is actually in the diary: a receptionist has no
        * appointments of their own to be told about.
        */}
-      {me && <MyBookings artist={me} />}
+      {me && <MyBookings artist={me} business={words.business} />}
 
       {/*
         * Where their own money lands, on a business that pays people directly.
@@ -184,6 +184,7 @@ export default async function YouPage({
         */}
       {me && (
         <MyStripe
+          business={words.business}
           connected={Boolean(me.stripe_account_id)}
           perPerson={studio.payment_model === "people"}
           firstName={me.name.split(" ")[0]}
@@ -282,7 +283,7 @@ export default async function YouPage({
                 styles={styles}
                 studioHours={studio.hours}
                 noun={words.practitioner}
-                roles={pack.roles}
+                roles={verticalPack(studio.vertical).roles}
                 isOwner={owns}
                 ownLink={
                   me.handle ? `${origin}/widget/${studio.slug}?with=${me.handle}` : null
@@ -292,11 +293,12 @@ export default async function YouPage({
           )}
 
           {/* Work and products that are theirs rather than the shop's. */}
-          {!managed && pricesByList && <MyServices services={mineOnly} firstName={me.name.split(" ")[0]} />}
+          {!managed && pricesByList && <MyServices services={mineOnly} firstName={me.name.split(" ")[0]} business={words.business} />}
 
           {/* Their prices against the list, where the business keeps one. */}
           {!managed && pricesByList && (
             <YourPrices
+              business={words.business}
               services={services}
               mine={myPrices}
               firstName={me.name.split(" ")[0]}

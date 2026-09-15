@@ -24,6 +24,7 @@ export function MyStripe({
   outcome,
   detail,
   possible,
+  business = "business",
 }: {
   /** Whether this person already has an account of their own. */
   connected: boolean;
@@ -44,6 +45,8 @@ export function MyStripe({
    * said plainly rather than left as a button that bounces.
    */
   possible: boolean;
+  /** What the business is called in its trade: salon, studio, clinic. */
+  business?: string;
 }) {
   return (
     <section className="card p-5">
@@ -54,13 +57,13 @@ export function MyStripe({
             {perPerson ? (
               <>
                 This business pays each person directly, so card payments for your work
-                land in your own Stripe account &mdash; never the shop&rsquo;s, and never
+                land in your own Stripe account &mdash; never the {business}&rsquo;s, and never
                 ours. You connect it yourself because Stripe asks for your ID and your
                 bank details, and those are nobody else&rsquo;s to hand over.
               </>
             ) : (
               <>
-                This business takes card payments into one account for the whole shop, so
+                This business takes card payments into one account for the whole {business}, so
                 there is nothing for you to connect &mdash; whoever runs it settles up with
                 you however you already arrange it.
               </>

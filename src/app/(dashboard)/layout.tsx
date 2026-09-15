@@ -19,9 +19,11 @@ import { MobileAccount } from "@/components/MobileAccount";
 import { HelpButton } from "@/components/HelpButton";
 import { AdminLink } from "@/components/AdminLink";
 import { inboxScope, scopedTo } from "@/lib/inboxScope";
+import { wordsFor, capital } from "@/lib/words";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { studio, userEmail, userId } = await requireStudio();
+  const words = wordsFor(studio);
   const supabase = await createClient();
   const team = (await getArtists(studio.id)).filter((a) => a.active);
 
@@ -153,7 +155,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             Diary
           </NavLink>
           <NavLink href="/clients" icon={<ClientsIcon />}>
-            Clients
+            {capital(words.customers)}
           </NavLink>
           <NavLink href="/report" icon={<WeekIcon />}>
             The week
@@ -214,7 +216,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         * disagree with the tab beside it — one count, two places it appears.
         */}
       <AppBadge count={needsYou ?? 0} />
-      <MobileNav needsYou={needsYou ?? 0} />
+      <MobileNav needsYou={needsYou ?? 0} customers={capital(words.customers)} />
     </div>
   );
 }

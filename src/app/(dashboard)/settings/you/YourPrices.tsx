@@ -22,11 +22,14 @@ export function YourPrices({
   services,
   mine,
   firstName,
+  business = "business",
 }: {
   services: Service[];
   /** This person's overrides, keyed by service. Usually nearly empty. */
   mine: Map<string, ServicePerson>;
   firstName: string;
+  /** What the business is called in its trade: salon, studio, clinic. */
+  business?: string;
 }) {
   const [state, action] = useActionState<PriceState, FormData>(saveMyPrices, {});
 
@@ -51,7 +54,7 @@ export function YourPrices({
       <div className="section-title">Your prices</div>
       <p className="hint mt-1.5 max-w-prose">
         What the assistant quotes when somebody asks for you by name. Leave a row alone
-        and you are on the shop&rsquo;s price, which is what most of these should be
+        and you are on the {business}&rsquo;s price, which is what most of these should be
         &mdash; fill one in only where you genuinely differ. Nobody else can change these.
       </p>
 
@@ -139,14 +142,14 @@ export function YourPrices({
         {state.ok && (
           <p className="text-sm text-ok">
             {state.saved === 0
-              ? `Saved. ${firstName} is on the shop's prices for everything.`
-              : `Saved. ${state.saved} of your own, the rest on the shop's prices.`}
+              ? `Saved. ${firstName} is on the ${business}'s prices for everything.`
+              : `Saved. ${state.saved} of your own, the rest on the ${business}'s prices.`}
           </p>
         )}
       </div>
 
       <p className="hint mt-3 max-w-prose">
-        Clearing both boxes on a row puts you back on the shop&rsquo;s price for it.
+        Clearing both boxes on a row puts you back on the {business}&rsquo;s price for it.
       </p>
     </form>
   );

@@ -12,6 +12,7 @@ import type { ServicePerson } from "@/lib/types";
 import type { Service } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 import { verticalPack } from "@/lib/verticals";
+import { wordsFor } from "@/lib/words";
 
 export default async function PricingPage() {
   // The prices — the owner's, and the page says so
@@ -82,13 +83,13 @@ export default async function PricingPage() {
   const peoplePrices = (peopleRows ?? []) as ServicePerson[];
 
   const pack = verticalPack(studio.vertical);
-  const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
+  const words = wordsFor(studio);
   const title = (word: string) => word.replace(/^./, (c) => c.toUpperCase());
 
   if (studio.pricing_model === "services") {
     return (
       <div className="space-y-8">
-        <ServiceList services={services} words={{ customer: words.customer }} />
+        <ServiceList services={services} words={{ customer: words.customer, product: words.exampleProduct, service: words.exampleService }} />
 
         {/*
          * Whose own lists exist, said rather than shown.
@@ -131,7 +132,7 @@ export default async function PricingPage() {
           <h2 className="section-title">{title(words.size_unit)}s</h2>
           <p className="hint mt-1">
             Price a service by the hour, or set a flat price. The two mix freely — a
-            £45 cut and an hourly colour correction can sit side by side.
+            {words.examplePrice} and something charged by the hour can sit side by side.
           </p>
         </div>
 
@@ -173,7 +174,7 @@ export default async function PricingPage() {
 
         {activeArtists.length === 0 || bands.length === 0 ? (
           <p className="hint border-t border-border px-5 py-6">
-            Add at least one active artist and one size band to see the quote table.
+            Add at least one active {words.practitioner} and one {words.size_unit} to see the quote table.
           </p>
         ) : (
           <div className="overflow-x-auto border-t border-border">
@@ -251,7 +252,7 @@ export default async function PricingPage() {
         */}
       <ServiceList
         services={services}
-        words={{ customer: words.customer }}
+        words={{ customer: words.customer, product: words.exampleProduct, service: words.exampleService }}
         only="product"
       />
 

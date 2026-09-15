@@ -545,7 +545,7 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
   const supabase = await createClient();
 
   const name = str(fd, "name");
-  if (!name) return { error: "Studio name is required." };
+  if (!name) return { error: "The business needs a name." };
 
   const depositMode = str(fd, "deposit_mode") || "required";
   // A business that takes no deposits should not be blocked by an unset amount.
@@ -755,7 +755,7 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
     if (error?.code === "23503") {
       return {
         error:
-          "This artist has bookings, so they cannot be deleted. Untick “Taking bookings” " +
+          "They have bookings, so they cannot be deleted. Untick “Taking bookings” " +
           "to stop new enquiries reaching them.",
       };
     }

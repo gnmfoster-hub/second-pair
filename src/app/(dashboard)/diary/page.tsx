@@ -22,6 +22,7 @@ import {
 } from "@/lib/diaryLayout";
 import { LayoutToggle } from "./LayoutToggle";
 import { payableFor } from "@/lib/payments/whoTakes";
+import { wordsFor } from "@/lib/words";
 import { Find } from "./Find";
 import { FullDiary } from "./FullDiary";
 import { SwipeDates } from "./SwipeDates";
@@ -110,6 +111,7 @@ export default async function DiaryPage({
    * stylist's own, or the owner's chosen fallback.
    */
   const payable = payableFor(studio, artists).map((a) => a.id);
+  const words = wordsFor(studio);
 
   // With more than one person, the day — everyone side by side — is the view a
   // shop actually works from. On your own, the week is more useful.
@@ -1137,7 +1139,7 @@ export default async function DiaryPage({
            * nobody finds on their own. Amber, because the pack allows one call
            * to action per screen and on this page it is obviously this.
            */}
-          <NewEntry artists={team} timezone={studio.timezone} services={bookable} />
+          <NewEntry artists={team} timezone={studio.timezone} services={bookable} words={words} />
         </div>
       </div>
 
@@ -1595,6 +1597,7 @@ export default async function DiaryPage({
                   openId={openId ?? null}
                   payable={payable}
                   travels={studio.travel_mode !== "at_premises"}
+                  words={words}
                   /*
                     * One day, or the seven of the week. The same rows either
                     * way — a week on a phone is a day list with headings
@@ -1620,6 +1623,7 @@ export default async function DiaryPage({
                 openId={openId ?? null}
                 payable={payable}
                 travels={studio.travel_mode !== "at_premises"}
+                  words={words}
                 day={isoDate(focusDay)}
                 view={view}
                 colourBy={(studio.diary_colour ?? "category") as ColourMode}
