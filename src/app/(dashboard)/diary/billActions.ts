@@ -10,6 +10,7 @@ import { hasColumn } from "@/lib/db/hasColumn";
 import { sendPaymentReceipt } from "@/lib/messaging/receipt";
 import { linkRoutes } from "../payLinkActions";
 import type { Channel } from "@/lib/types";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type BillState = {
   error?: string;
@@ -51,6 +52,14 @@ const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
 export async function takePayment(_prev: BillState, fd: FormData): Promise<BillState> {
   const { studio } = await requireStudio();
   const supabase = await createClient();
+  /*
+   * Payments are written with the server's own access, once the checks above
+   * have said the person and the appointment belong to this business. As the
+   * signed-in person, a stylist could only record takings in their own name and
+   * could not save the Stripe link on the row, so the desk or a colleague taking
+   * payment for somebody else was refused by the database.
+   */
+  const money = createAdminClient();
 
   const bookingId = str(fd, "booking_id");
   if (!bookingId) return { error: "No appointment." };
@@ -109,7 +118,7 @@ export async function takePayment(_prev: BillState, fd: FormData): Promise<BillS
   const method = str(fd, "method");
   const asLink = method === "link";
 
-  const { data: payment, error } = await supabase
+  const { data: payment, error } = await money
     .from("payments")
     .insert({
       studio_id: studio.id,
@@ -143,7 +152,7 @@ export async function takePayment(_prev: BillState, fd: FormData): Promise<BillS
    * words, so an older database records it completely rather than breaking.
    */
   if (await hasColumn(supabase, "payment_items", "unit_pence")) {
-    const { error: lineError } = await supabase.from("payment_items").insert(
+    const { error: lineError } = await money.from("payment_items").insert(
       lines.map((l, i) => ({
         payment_id: payment.id,
         service_id: l.serviceId,
@@ -186,7 +195,7 @@ export async function takePayment(_prev: BillState, fd: FormData): Promise<BillS
         clientEmail: (contact?.email as string | null) ?? null,
       });
 
-      await supabase
+      await money
         .from("payments")
         .update({ stripe_session_id: link.sessionId, destination_account: link.account })
         .eq("id", payment.id);
@@ -207,7 +216,7 @@ export async function takePayment(_prev: BillState, fd: FormData): Promise<BillS
        * for ever saying somebody owes money they were never asked for. The
        * bill is still on screen, so nothing anybody typed is lost.
        */
-      await supabase.from("payments").delete().eq("id", payment.id);
+      await money.from("payments").delete().eq("id", payment.id);
       return { error: e instanceof Error ? e.message : "Stripe would not make a link." };
     }
   }

@@ -18,8 +18,12 @@ export async function FormsPanel({
   firstName,
   channels,
   mayMessage,
+  team = [],
+  me = null,
 }: {
   studioId: string;
+  team?: { id: string; name: string }[];
+  me?: string | null;
   contactId: string;
   firstName: string;
   /** The ways this customer can be reached right now. */
@@ -102,7 +106,7 @@ export async function FormsPanel({
           channels={channels}
           mayMessage={mayMessage}
         />
-        <SendQuote contactId={contactId} firstName={firstName} channels={channels} mayMessage={mayMessage} />
+        <SendQuote contactId={contactId} firstName={firstName} channels={channels} mayMessage={mayMessage} team={team} me={me} />
         <PaperForm contactId={contactId} />
       </div>
     </section>

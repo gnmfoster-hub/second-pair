@@ -132,7 +132,7 @@ export default async function ClientFormPage({
           {blocks.map((b) =>
             b.type === "lines" ? (
               <div key={b.id} className="px-5 py-4">
-                <QuoteTable items={b.items ?? []} />
+                <QuoteTable items={b.items ?? []} by={b.by?.name} />
               </div>
             ) : b.type === "text" ? (
               <p key={b.id} className="whitespace-pre-line px-5 py-4 text-sm text-foreground/80">
@@ -177,6 +177,7 @@ export default async function ClientFormPage({
               description={form.title as string}
               connected={payable.length > 0}
               people={payable.map((a) => ({ id: a.id, name: a.name }))}
+              artistId={blocks.find((b) => b.type === "lines")?.by?.id ?? null}
               label="Send a payment link for this quote"
             />
           </div>

@@ -50,7 +50,7 @@ export function WhoPicker({
   const [open, setOpen] = useState(false);
 
   const hrefFor = (ids: string[]) => {
-    const who = ids.length ? `&who=${ids.join(",")}` : "";
+    const who = ids.length ? `&who=${ids.join(",")}` : "&who=all";
     return view === "day"
       ? `/diary?view=day&day=${anchor}${who}`
       : `/diary?view=week&week=${anchor}${who}`;

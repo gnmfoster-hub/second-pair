@@ -12,6 +12,7 @@ import { deliver } from "@/lib/messaging/deliver";
 import { replyToFor } from "@/lib/messaging/replyTo";
 import { parsePounds, formatPence } from "@/lib/money";
 import { CHANNEL_LABELS, type Channel } from "@/lib/types";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type PayLinkState = {
   error?: string;
@@ -47,6 +48,14 @@ export async function askForPayment(
 ): Promise<PayLinkState> {
   const { studio, userId } = await requireStudio();
   const supabase = await createClient();
+  /*
+   * Payments are written with the server's own access, once the checks above
+   * have said the person and the appointment belong to this business. As the
+   * signed-in person, a stylist could only record takings in their own name and
+   * could not save the Stripe link on the row, so the desk or a colleague taking
+   * payment for somebody else was refused by the database.
+   */
+  const money = createAdminClient();
 
   const amountPence = parsePounds(fd.get("amount"));
   if (amountPence == null || amountPence <= 0) {
@@ -108,7 +117,7 @@ export async function askForPayment(
    * is money arriving with nothing to attach it to and a quarter's takings
    * quietly short.
    */
-  const { data: payment, error: rowError } = await supabase
+  const { data: payment, error: rowError } = await money
     .from("payments")
     .insert({
       studio_id: studio.id,
@@ -150,11 +159,11 @@ export async function askForPayment(
      * for, for a payment that was never asked for — which is worse than the
      * refusal, because the refusal is on screen and the row is not.
      */
-    await supabase.from("payments").delete().eq("id", payment.id);
+    await money.from("payments").delete().eq("id", payment.id);
     return { error: e instanceof Error ? e.message : "Stripe would not make that link." };
   }
 
-  await supabase
+  await money
     .from("payments")
     .update({ stripe_session_id: link.sessionId, destination_account: link.account })
     .eq("id", payment.id);

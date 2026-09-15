@@ -102,7 +102,7 @@ export default async function DiaryPage({
   }>;
 }) {
   const { week, view: viewParam, day: dayParam, who, entry: openId } = await searchParams;
-  const { studio } = await requireStudio();
+  const { studio, userId } = await requireStudio();
   const supabase = await createClient();
   const artists = await getArtists(studio.id);
   const team = artists.filter((a) => a.active);
@@ -303,7 +303,29 @@ export default async function DiaryPage({
    * it that is not one of this business's people is dropped rather than
    * argued with — a stale link should show a diary, not an error.
    */
-  const chosen = (who ?? "")
+  /*
+   * Signed in as one of the team, the diary opens on their own column.
+   *
+   * A stylist opening the diary wants their day, not five chairs of other
+   * people's. Only when nothing was asked for — "Everyone" is an explicit
+   * choice (who=all) and sticks — and never for the owner, who runs the whole
+   * floor and is the one person for whom everybody is the right default.
+   */
+  let defaultWho: string | undefined;
+  if (who === undefined) {
+    const me = team.find((a) => a.user_id === userId);
+    if (me) {
+      const { data: role } = await supabase
+        .from("studio_members")
+        .select("role")
+        .eq("studio_id", studio.id)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (role?.role !== "owner") defaultWho = me.id;
+    }
+  }
+
+  const chosen = (who ?? defaultWho ?? "")
     .split(",")
     .map((id) => id.trim())
     .filter((id) => team.some((a) => a.id === id));
@@ -312,7 +334,8 @@ export default async function DiaryPage({
   const showing = chosen.length ? team.filter((a) => chosen.includes(a.id)) : team;
 
   /** The address for a given set of people, in whichever view is open. */
-  const whoPart = (ids: string[]) => (ids.length ? `&who=${ids.join(",")}` : "");
+  // "all" when nobody is ticked, so choosing Everyone is remembered rather than falling back to your own column.
+  const whoPart = (ids: string[]) => (ids.length ? `&who=${ids.join(",")}` : "&who=all");
 
   /** That set with one person added or taken away. A chip is a tick. */
   const toggled = (id: string) =>
@@ -1350,7 +1373,7 @@ export default async function DiaryPage({
               focusDay={focusDay}
               load={strip}
               // Carries whoever is ticked through to tomorrow, as one value.
-              who={chosen.length ? chosen.join(",") : null}
+              who={chosen.length ? chosen.join(",") : "all"}
               today={isoDate(new Date())}
             />
           </SwipeDates>
@@ -1403,8 +1426,8 @@ export default async function DiaryPage({
           <Link
             href={
               view === "day"
-                ? `/diary?view=day&day=${isoDate(focusDay)}`
-                : `/diary?view=week&week=${isoDate(start)}`
+                ? `/diary?view=day&day=${isoDate(focusDay)}&who=all`
+                : `/diary?view=week&week=${isoDate(start)}&who=all`
             }
             className={`rounded-full px-3 py-1 text-xs transition-colors ${
               chosen.length === 0

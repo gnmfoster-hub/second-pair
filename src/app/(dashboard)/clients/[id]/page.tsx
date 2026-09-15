@@ -396,6 +396,8 @@ export default async function ClientPage({
                     .map((r) => ({ channel: r.channel, label: r.channel === "sms" ? "Text" : "Email" }))
             }
             mayMessage={mayMessage}
+            team={artists.filter((a) => a.active).map((a) => ({ id: a.id, name: a.name }))}
+            me={artists.find((a) => a.user_id === userId)?.id ?? null}
           />
 
           {pricesByList && (

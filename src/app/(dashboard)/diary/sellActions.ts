@@ -7,6 +7,7 @@ import { resolveContact } from "@/lib/clients/resolve";
 import { readSale, readMethod, type SaleLine } from "@/lib/sales";
 import { hasColumn } from "@/lib/db/hasColumn";
 import { sendPaymentReceipt } from "@/lib/messaging/receipt";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type SellState = { error?: string; ok?: boolean; total?: number };
 
@@ -68,6 +69,14 @@ function readLines(fd: FormData): Partial<SaleLine>[] {
 export async function recordSale(_prev: SellState, fd: FormData): Promise<SellState> {
   const { studio, userId } = await requireStudio();
   const supabase = await createClient();
+  /*
+   * Payments are written with the server's own access, once the checks above
+   * have said the person and the appointment belong to this business. As the
+   * signed-in person, a stylist could only record takings in their own name and
+   * could not save the Stripe link on the row, so the desk or a colleague taking
+   * payment for somebody else was refused by the database.
+   */
+  const money = createAdminClient();
 
   const sale = readSale(readLines(fd));
   if (!sale.ok) return { error: sale.because };
@@ -144,7 +153,7 @@ export async function recordSale(_prev: SellState, fd: FormData): Promise<SellSt
     if (!booking) return { error: "That appointment is not in this diary." };
   }
 
-  const { data: payment, error } = await supabase
+  const { data: payment, error } = await money
     .from("payments")
     .insert({
       studio_id: studio.id,
@@ -188,7 +197,7 @@ export async function recordSale(_prev: SellState, fd: FormData): Promise<SellSt
    * is shown a warning about a table.
    */
   if (await hasColumn(supabase, "payment_items", "unit_pence")) {
-    const { error: lineError } = await supabase.from("payment_items").insert(
+    const { error: lineError } = await money.from("payment_items").insert(
       sale.lines.map((line, i) => ({
         payment_id: payment.id,
         service_id: line.serviceId,

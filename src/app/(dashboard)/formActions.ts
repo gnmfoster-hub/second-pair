@@ -387,6 +387,20 @@ export async function sendQuote(_prev: FormActionState, fd: FormData): Promise<F
   }
   if (!items.length) return { error: "Add at least one line to the quote." };
 
+  // Who is giving the quote, if anybody was chosen. Checked against this business.
+  let by: { id: string; name: string } | undefined;
+  const byId = str(fd, "by_artist_id");
+  if (byId) {
+    const { data: person } = await supabase
+      .from("artists")
+      .select("id, name")
+      .eq("id", byId)
+      .eq("studio_id", studio.id)
+      .maybeSingle();
+    if (!person) return { error: "That person is not in this business." };
+    by = { id: person.id as string, name: person.name as string };
+  }
+
   const validDays = Math.min(90, Math.max(1, Number(str(fd, "valid_days")) || 30));
   const until = new Date(Date.now() + validDays * 86_400_000).toLocaleDateString("en-GB", {
     day: "numeric",
@@ -397,8 +411,14 @@ export async function sendQuote(_prev: FormActionState, fd: FormData): Promise<F
   const note = str(fd, "note").slice(0, 2000);
 
   const blocks = cleanBlocks([
-    { id: "intro", type: "text", label: note || `Here is your quote from ${studio.name}.` },
-    { id: "lines", type: "lines", label: "The quote", items },
+    {
+      id: "intro",
+      type: "text",
+      label: `Here is your quote from ${by ? `${by.name} at ` : ""}${studio.name}.${note ? `
+
+${note}` : ""}`,
+    },
+    { id: "lines", type: "lines", label: "The quote", items, ...(by ? { by } : {}) },
     {
       id: "valid",
       type: "text",
@@ -422,7 +442,7 @@ export async function sendQuote(_prev: FormActionState, fd: FormData): Promise<F
       blocks,
       subject: `Your quote from ${studio.name} — ${formatPence(total)}`,
       message: (firstName, url) =>
-        `${firstName ? `Hi ${firstName}, ` : ""}here is your quote from ${studio.name}: ${formatPence(total)}. ` +
+        `${firstName ? `Hi ${firstName}, ` : ""}here is your quote from ${by ? `${by.name.split(" ")[0]} at ` : ""}${studio.name}: ${formatPence(total)}. ` +
         `You can read it and accept it here — ${url}`,
       expiresInDays: validDays,
     },

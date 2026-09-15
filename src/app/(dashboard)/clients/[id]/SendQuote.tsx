@@ -19,9 +19,15 @@ export function SendQuote({
   firstName,
   channels,
   mayMessage,
+  team = [],
+  me = null,
 }: {
   contactId: string;
   firstName: string;
+  /** Who could be named on the quote. */
+  team?: { id: string; name: string }[];
+  /** The signed-in person, if they are one of the team. */
+  me?: string | null;
   channels: { channel: string; label: string }[];
   mayMessage: boolean;
 }) {
@@ -123,6 +129,20 @@ export function SendQuote({
         </button>
         <span className="font-semibold tabular-nums">{formatPence(total)}</span>
       </div>
+
+      {team.length > 0 && (
+        <label className="block">
+          <span className="label">From (optional)</span>
+          <select id={`q-by-${contactId}`} name="by_artist_id" defaultValue={me ?? ""} className="input text-sm">
+            <option value="">Just the business</option>
+            {team.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       <label className="block">
         <span className="label">A note (optional)</span>

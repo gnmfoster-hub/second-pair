@@ -37,6 +37,8 @@ export type Block = {
   detailOnYes?: boolean;
   /** For "lines": what is being quoted, in pence. */
   items?: QuoteLine[];
+  /** For "lines": who is giving the quote, where somebody chose to say. */
+  by?: { id: string; name: string };
 };
 
 export type QuoteLine = { name: string; quantity: number; pence: number };
@@ -121,6 +123,10 @@ export function cleanBlocks(raw: unknown): Block[] {
         .slice(0, 50);
       if (!items.length) continue;
       block.items = items;
+      const by = (b.by ?? null) as { id?: unknown; name?: unknown } | null;
+      if (by && typeof by.id === "string" && typeof by.name === "string" && by.name.trim()) {
+        block.by = { id: by.id.slice(0, 64), name: by.name.trim().slice(0, 80) };
+      }
     }
     out.push(block);
   }

@@ -75,7 +75,7 @@ export function FillForm({ token, blocks, business }: { token: string; blocks: B
         <div key={b.id} className={b.type === "text" ? "" : "card p-4"}>
           {b.type === "text" && <p className="whitespace-pre-line text-sm leading-relaxed">{b.label}</p>}
 
-          {b.type === "lines" && <QuoteTable items={b.items ?? []} />}
+          {b.type === "lines" && <QuoteTable items={b.items ?? []} by={b.by?.name} />}
 
           {(b.type === "short" || b.type === "long" || b.type === "date") && (
             <label className="block">
@@ -273,10 +273,11 @@ function SignatureBox() {
 }
 
 /** The priced lines of a quote, and what they come to. Read, never edited. */
-export function QuoteTable({ items }: { items: { name: string; quantity: number; pence: number }[] }) {
+export function QuoteTable({ items, by }: { items: { name: string; quantity: number; pence: number }[]; by?: string }) {
   const total = items.reduce((n, it) => n + it.quantity * it.pence, 0);
   return (
     <table className="w-full text-sm tabular-nums">
+      {by && <caption className="pb-2 text-left text-xs text-muted">Quoted by {by}</caption>}
       <tbody>
         {items.map((it, i) => (
           <tr key={i} className="border-b border-border">
