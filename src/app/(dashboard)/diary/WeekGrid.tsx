@@ -1247,6 +1247,9 @@ export function WeekGrid({
                             * right way round; the grid never did.
                             */}
                           <span className="truncate">
+                            {/* A tick for finished with, which fits in the narrowest card. */}
+                            {e.attended === true && <span aria-label="Completed">✓ </span>}
+                            {e.attended === false && <span aria-label="No-show">✗ </span>}
                             {e.clientName ?? e.title ?? cat.label}
                           </span>
                         </div>

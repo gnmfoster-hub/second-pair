@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EntryDialog } from "./EntryDialog";
+import { formatPence } from "@/lib/money";
 import type { ShelfItem } from "./Complete";
 import { serviceLine, type Entry } from "./WeekGrid";
 import type { Bookable } from "./ServicePick";
@@ -505,8 +506,17 @@ export function DayList({
                         Booked for you
                       </span>
                     )}
-                    {depositPaid(e) && (
+                    {depositPaid(e) && e.attended == null && (
                       <span className="pill bg-ok/10 text-[0.62rem] text-ok">Deposit paid</span>
+                    )}
+                    {/* Finished with, readable down the day without opening each one. */}
+                    {e.attended === true && (
+                      <span className="pill bg-ok/10 text-[0.62rem] text-ok">
+                        ✓ Completed{e.soldPence ? ` · ${formatPence(e.soldPence)} paid` : ""}
+                      </span>
+                    )}
+                    {e.attended === false && (
+                      <span className="pill bg-warn/10 text-[0.62rem] text-warn">No-show</span>
                     )}
                   </span>
                 </span>
