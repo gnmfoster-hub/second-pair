@@ -190,6 +190,19 @@ export async function saveDiaryEntry(
 
     added++;
     firstId ??= result.data.id;
+
+    /*
+     * Reminders, for somebody who is coming in.
+     *
+     * Only the edit path and the assistant ever scheduled them, so every
+     * appointment typed into the diary — a phone booking, a regular's next
+     * visit booked at the till — got no reminder at all. The business had
+     * reminders switched on and the customers most likely to forget, the ones
+     * who booked by talking to somebody, were the ones who never got one.
+     */
+    if (contactId && !allDay && (category === "appointment" || category === "consultation")) {
+      await scheduleReminders(supabase, studio.id, result.data.id, at.toISOString(), artistId);
+    }
   }
 
   if (added === 0) {

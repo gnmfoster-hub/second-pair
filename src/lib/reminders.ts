@@ -118,6 +118,16 @@ export async function scheduleReminders(
       booking_id: bookingId,
       template_id: t.id,
       due_at: new Date(start - t.hours_before * 3600_000).toISOString(),
+      /*
+       * Waiting again, whatever it was before.
+       *
+       * Moving a booking drops its reminders (skipped) and schedules them
+       * again, and the upsert updated the time but not the status — so every
+       * dragged appointment kept its reminders as skipped and never got one.
+       * One already sent for the old time is due again for the new one too.
+       */
+      status: "pending",
+      sent_at: null,
     }))
     .filter((r) => Date.parse(r.due_at) > now);
 
@@ -202,6 +212,16 @@ export async function sendDueReminders(
     )
     .eq("status", "pending")
     .lte("due_at", now.toISOString())
+    /*
+     * This business's, in the database rather than afterwards.
+     *
+     * The query took the first 200 pending reminders on the whole platform, in
+     * no order, and then kept this business's. Reminders with nowhere to go
+     * stay pending for ever, so once there were enough of them anywhere, a
+     * business's genuinely due reminders could simply never be fetched.
+     */
+    .eq("bookings.artists.studio_id", studio.id)
+    .order("due_at")
     .limit(200);
 
   const rows = ((data ?? []) as unknown as DueRow[]).filter(
@@ -234,8 +254,13 @@ export async function sendDueReminders(
     const booking = row.bookings;
     const conversation = booking?.enquiries?.conversations;
 
-    // A cancelled appointment must never be reminded about.
-    if (!booking || booking.cancelled_at) {
+    /*
+     * A cancelled appointment must never be reminded about, and neither must
+     * one that has already happened — a reminder left waiting for a channel
+     * would otherwise go out the day a text number is connected, for an
+     * appointment weeks in the past.
+     */
+    if (!booking || booking.cancelled_at || Date.parse(booking.starts_at) <= now.getTime()) {
       await db.from("reminders").update({ status: "skipped" }).eq("id", row.id);
       result.skipped++;
       continue;
@@ -293,6 +318,22 @@ export async function sendDueReminders(
     }).find((r) => r.open);
 
     if (route) {
+      /*
+       * Claimed before it is sent.
+       *
+       * The status only changed after delivery, so two sweeps overlapping —
+       * the five-minute run and the daily one, or two delayed runs arriving
+       * together — could both read it as pending and both send it. Whichever
+       * takes the row sends; the other finds nothing to take.
+       */
+      const { data: mine } = await db
+        .from("reminders")
+        .update({ status: "sent" })
+        .eq("id", row.id)
+        .eq("status", "pending")
+        .select("id");
+      if (!mine?.length) continue;
+
       /*
        * Written into the thread as well as sent.
        *
