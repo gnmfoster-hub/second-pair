@@ -12,12 +12,12 @@ export default async function StudioSettingsPage({
   searchParams,
 }: {
   /** How it went, when they have just come back from Stripe. */
-  searchParams: Promise<{ stripe?: string }>;
+  searchParams: Promise<{ stripe?: string; detail?: string }>;
 }) {
   // The business itself — the owner's, and the page says so
   // rather than only the tab: hiding a link is not a permission.
   const { studio } = await requireOwner();
-  const { stripe } = await searchParams;
+  const { stripe, detail } = await searchParams;
 
   /*
    * The other ways to look at this business, on a demo and nowhere else.
@@ -90,6 +90,7 @@ export default async function StudioSettingsPage({
       <StudioForm
         studio={studio}
         stripeOutcome={stripe}
+        stripeDetail={detail}
         /*
          * Whether there is anything behind the connect button at all.
          *

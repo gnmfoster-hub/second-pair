@@ -22,6 +22,7 @@ export function MyStripe({
   perPerson,
   firstName,
   outcome,
+  detail,
   possible,
 }: {
   /** Whether this person already has an account of their own. */
@@ -35,6 +36,8 @@ export function MyStripe({
   firstName: string;
   /** The ?stripe= word, when they have just come back from Stripe. */
   outcome?: string;
+  /** Stripe's own words, when it refused. */
+  detail?: string;
   /**
    * Whether connecting works at all yet — the platform key, which is ours and
    * the same for everybody. Nothing a stylist can do anything about, so it is
@@ -72,7 +75,7 @@ export function MyStripe({
 
       {/* How the last attempt went, which nothing used to read. */}
       <div className="mt-4 empty:mt-0">
-        <StripeNotice outcome={outcome} />
+        <StripeNotice outcome={outcome} detail={detail} />
       </div>
 
       {perPerson && !connected && possible && (

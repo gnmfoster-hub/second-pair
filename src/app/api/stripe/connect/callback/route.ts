@@ -18,22 +18,18 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
-
-  // They pressed cancel on Stripe's screen, which is not an error.
-  if (params.get("error")) return back(request, "cancelled");
-
   const code = params.get("code");
 
   /*
-   * Which Stripe sent them back, worked out from the state they carry.
+   * The state first, before anything else is decided.
    *
-   * The state is signed with whichever secret started the flow, so trying
-   * both and keeping the one that verifies is also how we learn the mode —
-   * and it has to be this way round, because the state is the only thing that
-   * says which business this is and it cannot be trusted until it is checked.
-   *
-   * Both halves stay together after that: a code minted in test mode is
-   * exchanged against the test secret and nowhere else.
+   * It is signed with whichever secret started the flow, so trying both and
+   * keeping the one that verifies is also how the mode is learned. And it says
+   * where somebody came from — their own page or the business's — which every
+   * outcome below needs, including the failures. Reading it only after an
+   * error had already been handled is how a refusal from somebody's own page
+   * used to send them to the business settings, where the message sat on a
+   * screen they were not looking at.
    */
   let secret: string | undefined;
   let state: ReturnType<typeof readState> = null;
@@ -49,29 +45,68 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  if (!secret) return back(request, "not-configured");
-  if (!code || !state) return back(request, "expired");
+  const home = state?.artist ? "/settings/you" : "/settings";
+
+  /*
+   * Stripe saying no, which is not the same as somebody saying no.
+   *
+   * Every error came back as "cancelled" — "Nothing was connected, you
+   * cancelled on Stripe, no harm done" — whatever Stripe had actually said. So
+   * a flow that failed at Stripe's end reported that the person had changed
+   * their mind, which reads as it having gone fine. Only access_denied is a
+   * person pressing cancel; anything else is a fault, and its reason goes back
+   * with it.
+   */
+  const stripeError = params.get("error");
+  if (stripeError) {
+    const detail = params.get("error_description") ?? stripeError;
+    if (stripeError === "access_denied") return back(request, "cancelled", home);
+    console.error("[stripe connect] Stripe returned an error", stripeError, detail);
+    return back(request, "refused", home, detail);
+  }
+
+  if (!secret) return back(request, "not-configured", home);
+  if (!code || !state) return back(request, "expired", home);
 
   let accountId: string;
   try {
+    /*
+     * The secret sent both ways Stripe accepts it.
+     *
+     * Its OAuth reference shows the key as a client_secret field or as basic
+     * auth; this sent only a Bearer header, which is how the rest of the API
+     * authenticates and is not what this endpoint documents. Belt and braces
+     * on the one request that decides whether a connection exists at all.
+     */
     const response = await fetch("https://connect.stripe.com/oauth/token", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
         Authorization: `Bearer ${secret}`,
       },
-      body: new URLSearchParams({ grant_type: "authorization_code", code }),
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        client_secret: secret,
+      }),
     });
 
-    const body = (await response.json()) as {
+    const body = (await response.json().catch(() => ({}))) as {
       stripe_user_id?: string;
+      error?: string;
       error_description?: string;
     };
 
-    if (!response.ok || !body.stripe_user_id) return back(request, "refused");
+    if (!response.ok || !body.stripe_user_id) {
+      const detail = body.error_description ?? body.error ?? `Stripe answered ${response.status}`;
+      console.error("[stripe connect] token exchange refused", response.status, detail);
+      return back(request, "refused", home, detail);
+    }
     accountId = body.stripe_user_id;
-  } catch {
-    return back(request, "refused");
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : "Stripe could not be reached";
+    console.error("[stripe connect] token exchange failed", detail);
+    return back(request, "refused", home, detail);
   }
 
   /*
@@ -83,32 +118,43 @@ export async function GET(request: NextRequest) {
   const db = createAdminClient();
 
   /*
-   * Onto the person, or onto the business — whichever the signed state says.
+   * Onto the person, or onto the business — whichever the signed state says —
+   * and checked that something was actually written.
    *
-   * Scoped to the studio as well as the id, even though the id is a uuid and
-   * the state was signed. The state proves which business began this; the
-   * extra condition means that even a state naming the wrong person could not
-   * attach an account to somebody in another salon, which is the one mistake
-   * here that nobody would ever notice.
+   * An update matching no rows is not an error to PostgREST: it succeeds, having
+   * changed nothing. So this could report "connected" with no account saved
+   * anywhere, and the only sign was a settings page still saying there was no
+   * Stripe. Asking for the rows back makes "nothing matched" a failure with a
+   * sentence, rather than a success with a lie in it.
    */
-  const { error } = state.artist
+  const { data: saved, error } = state.artist
     ? await db
         .from("artists")
         .update({ stripe_account_id: accountId })
         .eq("id", state.artist)
         .eq("studio_id", state.studio)
-    : await db.from("studios").update({ stripe_account_id: accountId }).eq("id", state.studio);
+        .select("id")
+    : await db
+        .from("studios")
+        .update({ stripe_account_id: accountId })
+        .eq("id", state.studio)
+        .select("id");
 
-  // Back where they started, which for one of the team is their own page.
-  return back(
-    request,
-    error ? "refused" : "connected",
-    state.artist ? "/settings/you" : "/settings",
-  );
+  if (error || !saved?.length) {
+    const detail = error
+      ? error.message
+      : "Stripe connected the account, but it could not be saved against this business.";
+    console.error("[stripe connect] could not save", accountId, detail);
+    return back(request, "refused", home, detail);
+  }
+
+  return back(request, "connected", home);
 }
 
-function back(request: NextRequest, why: string, to = "/settings") {
+function back(request: NextRequest, why: string, to = "/settings", detail?: string) {
   const url = new URL(to, request.url);
   url.searchParams.set("stripe", why);
+  // Stripe's own words, where it gave any. Trimmed: it is shown, not stored.
+  if (detail) url.searchParams.set("detail", detail.slice(0, 200));
   return NextResponse.redirect(url);
 }

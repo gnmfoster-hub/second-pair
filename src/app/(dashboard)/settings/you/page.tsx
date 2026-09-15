@@ -47,10 +47,10 @@ export default async function YouPage({
   searchParams,
 }: {
   /** How it went, when they have just come back from Stripe. */
-  searchParams: Promise<{ stripe?: string }>;
+  searchParams: Promise<{ stripe?: string; detail?: string }>;
 }) {
   const { studio, userId } = await requireStudio();
-  const { stripe } = await searchParams;
+  const { stripe, detail } = await searchParams;
 
   const [artists, options, origin] = await Promise.all([
     getArtists(studio.id),
@@ -188,6 +188,7 @@ export default async function YouPage({
           perPerson={studio.payment_model === "people"}
           firstName={me.name.split(" ")[0]}
           outcome={stripe}
+          detail={detail}
           /* Whether connecting is switched on at our end at all. */
           possible={canConnectStripe(studio)}
         />

@@ -16,6 +16,7 @@ export function StudioForm({
   studio,
   lastSaved,
   stripeOutcome,
+  stripeDetail,
   canConnectStripe,
 }: {
   studio: Studio;
@@ -23,6 +24,8 @@ export function StudioForm({
   lastSaved: string | null;
   /** The ?stripe= word, when they have just come back from Stripe. */
   stripeOutcome?: string;
+  /** Stripe's own words, when it refused. */
+  stripeDetail?: string;
   /**
    * Whether connecting is switched on at our end. False means the platform
    * key is not set, and the button below would send somebody to Stripe and
@@ -366,7 +369,7 @@ export function StudioForm({
               * How the last attempt went, which until now was thrown away.
               * The route has always said; nothing has ever listened.
               */}
-            <StripeNotice outcome={stripeOutcome} />
+            <StripeNotice outcome={stripeOutcome} detail={stripeDetail} />
 
             {studio.stripe_account_id ? (
               <div className="flex flex-wrap items-center gap-3">

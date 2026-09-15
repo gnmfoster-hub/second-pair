@@ -54,7 +54,7 @@ export function EntryDialog({
   timezone,
   services = [],
   shelf = [],
-  stripeConnected = false,
+  payable = [],
   travels = false,
   adding,
   onClose,
@@ -73,14 +73,8 @@ export function EntryDialog({
    * not sell anything over the counter, and the panel then never appears.
    */
   shelf?: ShelfItem[];
-  /**
-   * Whether there is a Stripe account for money to land in.
-   *
-   * Decides whether asking for payment is offered at all — a control that can
-   * only ever fail is worse than one that is not there, and the fix for it is
-   * on another screen entirely.
-   */
-  stripeConnected?: boolean;
+  /** Whose appointments can be paid by card link: the people with somewhere for the money to land. */
+  payable?: string[];
   /**
    * Whether the work happens at the customer's address.
    *
@@ -887,7 +881,7 @@ export function EntryDialog({
                 workPence={entry.price_pence ?? entry.quotePence}
                 services={services}
                 shelf={mineToSell}
-                connected={stripeConnected}
+                connected={Boolean(entry.artist_id && payable.includes(entry.artist_id))}
                 attended={entry.attended}
                 travels={travels}
                 alreadyPence={entry.soldPence}

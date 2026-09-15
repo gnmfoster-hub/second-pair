@@ -21,6 +21,7 @@ import {
   diaryPanes,
 } from "@/lib/diaryLayout";
 import { LayoutToggle } from "./LayoutToggle";
+import { whoTakes } from "@/lib/payments/whoTakes";
 import { Find } from "./Find";
 import { FullDiary } from "./FullDiary";
 import { SwipeDates } from "./SwipeDates";
@@ -103,6 +104,12 @@ export default async function DiaryPage({
   const supabase = await createClient();
   const artists = await getArtists(studio.id);
   const team = artists.filter((a) => a.active);
+  /*
+   * Asked the same way the link itself asks, person by person, so the button is
+   * offered exactly where pressing it would work — the business's account, a
+   * stylist's own, or the owner's chosen fallback.
+   */
+  const payable = artists.filter((a) => whoTakes(studio, a, "payment").ok).map((a) => a.id);
 
   // With more than one person, the day — everyone side by side — is the view a
   // shop actually works from. On your own, the week is more useful.
@@ -1586,7 +1593,7 @@ export default async function DiaryPage({
                   services={bookable}
                   shelf={shelf}
                   openId={openId ?? null}
-                  stripeConnected={Boolean(studio.stripe_account_id)}
+                  payable={payable}
                   travels={studio.travel_mode !== "at_premises"}
                   /*
                     * One day, or the seven of the week. The same rows either
@@ -1611,7 +1618,7 @@ export default async function DiaryPage({
                 services={bookable}
                 shelf={shelf}
                 openId={openId ?? null}
-                stripeConnected={Boolean(studio.stripe_account_id)}
+                payable={payable}
                 travels={studio.travel_mode !== "at_premises"}
                 day={isoDate(focusDay)}
                 view={view}

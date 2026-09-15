@@ -99,7 +99,7 @@ export function DayList({
   services = [],
   shelf = [],
   openId,
-  stripeConnected = false,
+  payable = [],
   travels = false,
   nowIso,
 }: {
@@ -118,8 +118,13 @@ export function DayList({
   shelf?: ShelfItem[];
   /** An appointment to open on arrival, where a link named one. */
   openId?: string | null;
-  /** Whether there is anywhere for money to go. */
-  stripeConnected?: boolean;
+  /**
+   * Whose appointments a card link can be sent for — the people whose money has
+   * somewhere to land. One yes-or-no for the business used to decide this, so
+   * on the per-person model a stylist with their own Stripe connected still
+   * never saw a link to send.
+   */
+  payable?: string[];
   /** Whether the work happens at the customer's address. */
   travels?: boolean;
   /** Stamped on the server, so the first paint matches and nothing flickers. */
@@ -532,7 +537,7 @@ export function DayList({
           timezone={timezone}
           services={services}
           shelf={shelf}
-          stripeConnected={stripeConnected}
+          payable={payable}
           travels={travels}
           onClose={() => {
             setEditingId(null);

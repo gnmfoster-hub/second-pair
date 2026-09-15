@@ -47,7 +47,7 @@ const OUTCOMES: Record<string, { tone: "ok" | "warn"; text: string }> = {
   },
 };
 
-export function StripeNotice({ outcome }: { outcome?: string }) {
+export function StripeNotice({ outcome, detail }: { outcome?: string; detail?: string }) {
   const said = outcome ? OUTCOMES[outcome] : null;
   if (!said) return null;
 
@@ -58,6 +58,14 @@ export function StripeNotice({ outcome }: { outcome?: string }) {
       }`}
     >
       {said.text}
+      {/*
+       * What Stripe actually said, where it said anything. "Would not finish"
+       * on its own sent everybody back to press the same button again; the
+       * reason is usually one line that says exactly what to change.
+       */}
+      {detail && outcome !== "connected" && (
+        <span className="mt-1 block text-xs opacity-80">Stripe said: {detail}</span>
+      )}
     </p>
   );
 }
