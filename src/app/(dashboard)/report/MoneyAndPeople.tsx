@@ -9,6 +9,8 @@ import type { HowPaid } from "@/lib/reportExtras";
  * mostly cash, how much is Stripe keeping, are we finding new people or living
  * off regulars, and which afternoon is dead.
  */
+const FULL_DAY: Record<string, string> = { Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday", Thu: "Thursday", Fri: "Friday", Sat: "Saturday", Sun: "Sunday" };
+
 export function MoneyAndPeople({
   paid,
   people,
@@ -102,7 +104,7 @@ export function MoneyAndPeople({
           <h2 className="section-title">When it is busy</h2>
           {busy.busiestDay && busy.busiestHour != null && (
             <span className="hint text-sm">
-              Busiest on {busy.busiestDay}s, most often starting around {hourLabel(busy.busiestHour)}
+              Busiest on {FULL_DAY[busy.busiestDay] ?? busy.busiestDay}s, most often starting around {hourLabel(busy.busiestHour)}
             </span>
           )}
         </div>

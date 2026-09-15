@@ -25,7 +25,7 @@ const TABS = [
   { href: "/", label: "Inbox", icon: InboxIcon, exact: true },
   { href: "/diary", label: "Diary", icon: DiaryIcon },
   { href: "/clients", label: "Clients", icon: ClientsIcon },
-  { href: "/report", label: "Week", icon: WeekIcon },
+  { href: "/report", label: "Reports", icon: WeekIcon },
   { href: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 

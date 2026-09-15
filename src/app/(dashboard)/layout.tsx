@@ -158,7 +158,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             {capital(words.customers)}
           </NavLink>
           <NavLink href="/report" icon={<WeekIcon />}>
-            The week
+            Reports
           </NavLink>
           <NavLink href="/settings" icon={<SettingsIcon />}>
             Settings

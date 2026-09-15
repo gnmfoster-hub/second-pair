@@ -263,7 +263,7 @@ export default async function ReportPage({
         * bookmarked or sent to an accountant.
         */}
       <form method="get" className="mt-4 flex flex-wrap items-end gap-2">
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex w-full flex-wrap gap-1.5">
           {REPORT_RANGES.map((r) => (
             <Link
               key={r.key}
