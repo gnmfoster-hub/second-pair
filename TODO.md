@@ -10,14 +10,19 @@ Two lists. Yours is first — accounts, DNS, decisions, things only you can do.
 Mine is at the bottom. They are separate on purpose: the last version mixed them
 up and it was impossible to tell what was blocking what.
 
-Last updated: 15 September 2026.
+Last updated: 16 September 2026, after the overnight review of the whole site.
 
 ---
 
 # Migrations
 
-**None waiting.** All run and checked, the last being
-`20260916150000_weekly_report_email.sql` on 16 September.
+**Two waiting**, both from the overnight review and both explained under
+"Waiting on you" below:
+
+- `20260917010000_artist_protected_columns.sql`
+- `20260917020000_sms_opt_outs.sql`
+
+Everything before them is run and checked.
 
 When one is waiting it will be named here. Until it is run the product keeps
 working without it — everything new is written so the deploy and the migration
@@ -27,6 +32,21 @@ than breaking.
 ---
 
 # Waiting on you
+
+### 0a. Two migrations to run (5 minutes, Supabase SQL editor)
+
+Both are in `supabase/migrations/`. Paste each into Supabase → SQL editor → Run.
+
+1. `20260917010000_artist_protected_columns.sql` — stops a member of staff
+   changing, straight through the database, which business their record belongs
+   to, which login owns it, their own Stripe account, or the "the business looks
+   after this person" switch. Accepting an invite still works; so does the
+   owner, and so does anything the server does for them.
+2. `20260917020000_sms_opt_outs.sql` — remembers a customer who texts STOP, per
+   business. Until it is run, STOP is still never answered by the assistant;
+   the remembering is what needs the table.
+
+Nothing else waits on these — everything deployed works before and after.
 
 Everything here is something I cannot do from this side. Roughly in the order
 it is holding something up.
@@ -455,6 +475,46 @@ on any of it before I build it.
   email the owner switches on. The menu says Reports.
 - **Forms tested end to end on the demo**, and a failed submit keeps answers.
 - **Worklist page** with tick-off steps and links to every sheet.
+
+## Done overnight, 15-16 September (whole-site review)
+
+Four reviews of the whole codebase — the customer's side, the diary and money,
+settings and the back end, the assistant and messaging — plus a crawl of every
+page as the owner, as two members of staff and as a customer, and the unit
+tests. 45 real faults found; 43 fixed and deployed. The serious ones:
+
+- **Held texts and emails were never answered.** Both live businesses answer
+  "when I'm free", which holds a message for five minutes so the owner can
+  reply first. The job that releases them asked the database for a column that
+  does not exist, failed every single run, and the error was thrown away — so
+  every text and email arriving in opening hours was held and then answered by
+  nobody. Out-of-hours messages were answered normally, which hid it. Fixed,
+  and a reply that cannot be sent now hands the conversation over and says so.
+- **Booking a second visit cancelled the first.** "Can you also do the 20th?"
+  silently cancelled the appointment on the 10th — including ones already done.
+  Now it asks whether it is an extra visit, and only a deposit hold is ever
+  replaced.
+- **The assistant was never told today's date.** "Tomorrow" and "next Friday"
+  were guesses.
+- **Texts could be dropped.** A reply taking more than 15 seconds was thrown
+  away by Twilio while the thread showed it as sent. Texts are now acknowledged
+  first and sent separately, from the business's own number.
+- **A customer could pay twice**, or pay for a slot whose hold had run out.
+- **Complete ignored a deposit already paid** — a £100 colour with £30 paid
+  asked for £100.
+- **Saving Settings → Assistant wiped the business email** (reply-to on every
+  message, and the owner's own alerts). Saving prices took a person's own
+  services off the list.
+- **Diary bookings got no reminders**, and moving a booking killed its
+  reminders for good.
+- **Inbox replies went out from the platform's text number**, so customers'
+  replies reached nobody, and could not send on WhatsApp or Instagram at all.
+- **Staff could download the whole client list**, and had the whole-diary
+  calendar link in their browser.
+
+Left deliberately: Meta message retries (nothing is live on Meta yet), and the
+last day of the 21-day slot window not being checked against personal calendar
+feeds (the database still prevents any double-booking).
 
 ## Done most recently
 
