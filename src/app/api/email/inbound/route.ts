@@ -201,6 +201,38 @@ export async function POST(request: NextRequest) {
     return ok(`parked: ${overBudget}`);
   }
 
+  /*
+   * And how much it has already said to this one sender today.
+   *
+   * Two automatic mailboxes can answer each other for ever: an acknowledgement
+   * robot that sends no machine headers reads as a person, gets a reply, and
+   * acknowledges the reply. The business-wide ceiling above would eventually
+   * stop it — by which point it has spent the whole day's allowance, and real
+   * customers are the ones parked. A person does not need more than a handful
+   * of answers from the assistant in a day; past that, the owner looks.
+   */
+  const { data: thread } = await db
+    .from("conversations")
+    .select("id")
+    .eq("studio_id", studio.id)
+    .eq("channel", "email")
+    .eq("external_ref", sender)
+    .maybeSingle();
+  if (thread) {
+    const { count: toThemToday } = await db
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("conversation_id", thread.id)
+      .eq("role", "assistant")
+      .gte("created_at", sinceMidnight());
+    if ((toThemToday ?? 0) >= 6) {
+      const because = "the assistant has already answered this sender six times today";
+      await park(db, studio.id, sender, email, because);
+      await note(db, studio.id, email, slug, "parked", because, false);
+      return ok(`parked: ${because}`);
+    }
+  }
+
   const said = [email.subject, email.body].filter(Boolean).join("\n\n").trim();
 
   try {
@@ -221,6 +253,8 @@ export async function POST(request: NextRequest) {
       text: result.reply,
       fromName: studio.name,
       replyTo: replyToFor(studio),
+      // Marked as an automatic reply, so other automatic mailboxes do not answer it.
+      automatic: true,
     });
 
     /*

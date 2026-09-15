@@ -28,8 +28,30 @@ export type Pitch = { pitch: boolean; score: number; signs: string[] };
 const FREEMAIL = /@(gmail|googlemail|outlook|hotmail|live|yahoo|icloud|proton(mail)?|aol|gmx|yandex|mail)\./i;
 
 // What a marketer names their throwaway inbox after.
-const SELLER_NAME =
-  /(agency|agenc|expert|sales|digital|marketing|seo|growth|ecom|store|shopify|brand|promo|leads?|consult|traffic|webdesign|dev|support|suport|solutions?)/i;
+/*
+ * Words a seller's throwaway address is made of — matched as parts of the
+ * address, not anywhere inside it.
+ *
+ * As a bare search, "brand" matched brandon@ and "dev" matched devon@, so a
+ * real customer forwarding something ("Fwd:", no thread headers) from their
+ * own Gmail scored as a pitch and was ignored outright. Short words now have
+ * to be a whole part of the address (seo.growth, digital-dev22); longer ones
+ * may start or end a part (salesforce, growthexpert).
+ */
+const SELLER_SHORT = new Set(["seo", "dev", "ecom", "store", "brand", "promo", "lead", "leads", "sales"]);
+const SELLER_LONG = [
+  "agency", "expert", "digital", "marketing", "growth", "shopify", "consult",
+  "traffic", "webdesign", "support", "suport", "solution", "solutions",
+];
+
+function sellerName(local: string): boolean {
+  const parts = local.toLowerCase().split(/[._\-+\d]+/).filter(Boolean);
+  return parts.some(
+    (part) =>
+      SELLER_SHORT.has(part) ||
+      SELLER_LONG.some((word) => part === word || part.startsWith(word) || part.endsWith(word)),
+  );
+}
 
 const NUMBERED_PROMISE =
   /\b\d{1,4}\s*(?:[–—-]|to)\s*\d{1,4}\s*(?:\+\s*)?(?:new\s+)?(?:orders|sales|customers|clients|leads|bookings|commandes|ventes)\b/i;
@@ -98,7 +120,10 @@ export function coldPitch(
 
   if (FREEMAIL.test(address)) {
     const local = address.split("@")[0] ?? "";
-    if (SELLER_NAME.test(local) || /\d{3,}$/.test(local)) add(1, "a throwaway seller's address");
+    // Trailing digits, but not a birth year — half of real Gmail addresses end in one.
+    const digits = /(\d{3,})$/.exec(local)?.[1] ?? "";
+    const aYear = /^(19|20)\d{2}$/.test(digits);
+    if (sellerName(local) || (digits && !aYear)) add(1, "a throwaway seller's address");
   }
 
   if (!subject && GREETING_ONLY.test(body)) add(1, "a greeting with nothing in it and no subject");

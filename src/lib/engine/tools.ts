@@ -471,9 +471,7 @@ async function saveEnquiry(
   }
 
   if (typeof input.artist_name === "string") {
-    const artist = ctx.artists.find(
-      (a) => a.name.toLowerCase() === (input.artist_name as string).toLowerCase(),
-    );
+    const artist = offeredNamed(ctx, input.artist_name as string);
     if (!artist) return { result: `Nobody here called "${input.artist_name}".` };
     // Same reason as the band above: later tools in this turn need to know.
     ctx.enquiryArtistId = artist.id;
@@ -652,9 +650,7 @@ async function quoteEstimate(
 
   const named =
     typeof input.artist_name === "string"
-      ? ctx.artists.find(
-          (a) => a.name.toLowerCase() === (input.artist_name as string).toLowerCase(),
-        )
+      ? offeredNamed(ctx, input.artist_name as string)
       : undefined;
 
   if (input.artist_name && !named) {
@@ -721,6 +717,23 @@ async function quoteEstimate(
 }
 
 /** Resolves which person's diary to use: the one asked for, or the first available. */
+/**
+ * Somebody by name, from the people this assistant may offer.
+ *
+ * Names were matched against everybody on the books — somebody who has left,
+ * a person switched off, a stylist the owner has kept off the website. The
+ * list of names the model is given is limited, but a name typed by a customer
+ * ("can I have Chloe?") or slipped in by a message pretending to be an
+ * instruction went straight past it and could book a person who is not
+ * offered at all.
+ */
+function offeredNamed(ctx: ToolContext, name: string): Artist | undefined {
+  const wanted = name.trim().toLowerCase();
+  return whoCanBeOffered(ctx.artists, ctx.studio, ctx.forArtist ?? null, ctx.channel).find(
+    (a) => a.name.toLowerCase() === wanted,
+  );
+}
+
 function pickArtist(input: Record<string, unknown>, ctx: ToolContext) {
   // The channel decides, and nothing overrides it. An enquiry that arrived on
   // this person's own Instagram is theirs — the assistant must not hand it to
@@ -730,9 +743,7 @@ function pickArtist(input: Record<string, unknown>, ctx: ToolContext) {
   if (ctx.forArtist) return ctx.forArtist;
 
   if (typeof input.artist_name === "string") {
-    return ctx.artists.find(
-      (a) => a.name.toLowerCase() === (input.artist_name as string).toLowerCase(),
-    );
+    return offeredNamed(ctx, input.artist_name as string);
   }
 
   const enquiryArtist = ctx.artists.find((a) => a.id === ctx.enquiryArtistId);

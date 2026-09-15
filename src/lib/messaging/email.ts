@@ -65,6 +65,7 @@ export async function sendEmail({
   replyTo,
   fromName,
   attachments,
+  automatic = false,
 }: {
   to: string;
   subject: string;
@@ -76,6 +77,11 @@ export async function sendEmail({
   /** The business's name in the From line, so it does not look like it came from us. */
   fromName?: string;
   attachments?: Attachment[];
+  /**
+   * Written by the assistant rather than a person. Says so in the headers
+   * (RFC 3834), which is what stops another automatic mailbox replying to it.
+   */
+  automatic?: boolean;
 }): Promise<Delivery> {
   const key = apiKey();
   const from = process.env.EMAIL_FROM;
@@ -128,6 +134,7 @@ export async function sendEmail({
         to: [to],
         subject,
         text,
+        ...(automatic ? { headers: { "Auto-Submitted": "auto-replied" } } : {}),
         ...(html ? { html } : {}),
         ...(replyAddress ? { reply_to: replyAddress } : {}),
         ...(attachments?.length ? { attachments } : {}),

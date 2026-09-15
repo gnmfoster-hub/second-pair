@@ -109,3 +109,15 @@ test("a customer asking for a quote is not", () => {
   );
   assert.equal(v.pitch, false, v.signs.join("; "));
 });
+
+test("a customer called Brandon or Devon forwarding something is not a seller", () => {
+  for (const from of ["brandon.hale@gmail.com", "devon1984@gmail.com"]) {
+    const verdict = coldPitch({
+      from,
+      subject: "Fwd: photos of the kitchen",
+      body: "Hi, forwarding the photos from my landlord. Could you quote for an end of tenancy clean?",
+      headers: {},
+    });
+    assert.equal(verdict.pitch, false, from);
+  }
+});
