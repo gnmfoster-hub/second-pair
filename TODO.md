@@ -1,5 +1,11 @@
 # What needs doing
 
+**The worklist, as a page:** https://claude.ai/artifact/RUkxMxmooA3VsckxfAVan9
+— with links at the top to the **Stripe sheet**
+(https://claude.ai/code/artifact/ce6ed7c3-5feb-4c27-a7c0-71d904f6b3f4) and the
+**Willow & Co test pass**
+(https://claude.ai/code/artifact/ee3b9c04-fabb-4cd5-a059-cc33d6805b56).
+
 Two lists. Yours is first — accounts, DNS, decisions, things only you can do.
 Mine is at the bottom. They are separate on purpose: the last version mixed them
 up and it was impossible to tell what was blocking what.
