@@ -32,23 +32,28 @@ than breaking.
 Everything here is something I cannot do from this side. Roughly in the order
 it is holding something up.
 
-### 0. Connect Stripe on the demo once more, and tell me what it says
+### 0. Stripe client ID is from a different Stripe account than the key
 
-The client ID is fixed — Stripe now accepts it. The last attempt never reached
-Stripe's "authorised" step (no connected account appeared), and the return page
-used to hide why. It now shows **"Stripe said: …"** under the message.
+Connecting failed with `Authorization code provided does not belong to you`.
+The live check now proves why: `STRIPE_SECRET_KEY` belongs to
+**"Giles Foster Apps sandbox"**, and `STRIPE_CONNECT_CLIENT_ID` does not. Stripe
+accepts the ID, but it belongs to another account (most likely the main
+account's test mode, or a different sandbox).
 
-1. Signed in as the Willow & Co **owner**: Settings → Getting paid → **Connect Stripe**
-2. On Stripe's sandbox page press **Skip this form** (top of the page) — do not
-   fill in real details
-3. You should land back on Settings with **Connected**
-4. Diary → any appointment today or earlier → **Complete** → "Send a card link"
-   should now be there, for every stylist (demo falls back to the business account)
-5. If it is not Connected, copy the whole message, including "Stripe said", to me
+1. Stripe dashboard → account switcher (top left) → **Giles Foster Apps sandbox**
+   — check the name at the top says exactly that before copying anything
+2. Settings → Connect → Onboarding options → **OAuth** (switch on for Standard)
+3. Redirect URI listed exactly: `https://www.second-pair.com/api/stripe/connect/callback`
+4. Copy the **Test client ID** shown on that page (starts `ca_`)
+5. Vercel → Environment Variables → replace `STRIPE_CONNECT_CLIENT_ID` → **Redeploy**
+6. `cd %USERPROFILE%\Desktop\inkdesk` then `node scripts/check-live.mjs` — it must say
+   `ok businesses can connect their Stripe into "Giles Foster Apps sandbox"`
+7. Then on the demo: Settings → Business → Taking money → your row → **Connect my
+   Stripe** (or the business Connect button) → **Skip this form** → back to Connected
+8. Diary → appointment today → **Complete** → "Send a card link" should be there
 
-If Stripe itself shows an error page about the redirect URI, check it is listed
-exactly: `https://www.second-pair.com/api/stripe/connect/callback`
-(sandbox → Settings → Connect → Onboarding options → OAuth).
+If step 6 still says "different Stripe accounts" with an ID copied from that
+sandbox, tell me — the check itself would be wrong.
 
 ### 1. Put a test Stripe account on the demo (30 seconds, after step 0)
 
