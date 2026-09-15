@@ -259,6 +259,8 @@ export type Service = {
   /** The top of a range, for work that honestly varies. */
   price_to_pence: number | null;
   requires_consultation: boolean;
+  /** A form the customer must sign before this is done. */
+  requires_form_id?: string | null;
   /** On the price list, but not offered to strangers by the assistant. */
   bookable_online: boolean;
   /**

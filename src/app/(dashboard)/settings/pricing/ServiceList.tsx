@@ -20,6 +20,7 @@ export function ServiceList({
   services,
   words,
   only,
+  forms = [],
 }: {
   services: Service[];
   words: { customer: string; product?: string; service?: string };
@@ -34,6 +35,8 @@ export function ServiceList({
    * priced or taken off sale anywhere at all.
    */
   only?: "service" | "product";
+  /** The business's forms, for "needs a form first". */
+  forms?: { id: string; name: string }[];
 }) {
   const [adding, setAdding] = useState<"service" | "product" | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -50,6 +53,7 @@ export function ServiceList({
         empty="Nothing on the list yet. Until there is, the assistant cannot put a price on anything."
         editing={editing}
         setEditing={setEditing}
+        forms={forms}
         onAdd={() => setAdding("service")}
         addLabel="Add something you do"
       />}
@@ -61,6 +65,7 @@ export function ServiceList({
         empty="Nothing yet. Worth adding if you sell anything over the counter."
         editing={editing}
         setEditing={setEditing}
+        forms={forms}
         onAdd={() => setAdding("product")}
         addLabel="Add something you sell"
       />}
@@ -69,6 +74,7 @@ export function ServiceList({
         <ServiceForm
           kind={adding}
           example={adding === "product" ? words.product : words.service}
+          forms={forms}
           onDone={() => setAdding(null)}
           sortOrder={services.length}
         />
@@ -86,6 +92,7 @@ function Group({
   setEditing,
   onAdd,
   addLabel,
+  forms,
 }: {
   title: string;
   blurb: string;
@@ -95,6 +102,7 @@ function Group({
   setEditing: (id: string | null) => void;
   onAdd: () => void;
   addLabel: string;
+  forms: { id: string; name: string }[];
 }) {
   return (
     <section className="card p-5">
@@ -118,6 +126,7 @@ function Group({
                 <ServiceForm
                   kind={item.kind}
                   service={item}
+                  forms={forms}
                   onDone={() => setEditing(null)}
                   sortOrder={item.sort_order}
                 />
@@ -134,6 +143,11 @@ function Group({
 
                 {item.requires_consultation && (
                   <span className="pill bg-surface-2 text-muted">consultation first</span>
+                )}
+                {item.requires_form_id && (
+                  <span className="pill bg-surface-2 text-muted">
+                    form first{forms.find((f) => f.id === item.requires_form_id) ? `: ${forms.find((f) => f.id === item.requires_form_id)!.name}` : ""}
+                  </span>
                 )}
                 {!item.bookable_online && (
                   <span className="pill bg-surface-2 text-muted">not offered online</span>
@@ -170,10 +184,12 @@ function ServiceForm({
   onDone,
   sortOrder,
   example,
+  forms = [],
 }: {
   kind: "service" | "product";
   /** A name from this trade to show in the empty box. */
   example?: string;
+  forms?: { id: string; name: string }[];
   service?: Service;
   onDone: () => void;
   sortOrder: number;
@@ -296,6 +312,26 @@ function ServiceForm({
               </span>
             </span>
           </label>
+
+          {/*
+            * A form to sign before this is done — the patch test before a
+            * colour, the consent before a tattoo. The customer is sent it when
+            * the assistant books them, and the appointment says so until it is
+            * signed.
+            */}
+          {forms.length > 0 && (
+            <label className="block text-sm">
+              <span className="label">Needs a form signed first</span>
+              <select id={`form-first-${service?.id ?? "new"}`} name="requires_form_id" defaultValue={service?.requires_form_id ?? ""} className="input">
+                <option value="">No form needed</option>
+                {forms.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
 
           <label className="flex items-start gap-2.5 text-sm">
             <input

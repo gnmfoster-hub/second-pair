@@ -5,6 +5,7 @@ import { formatPence } from "@/lib/money";
 import { depositPaid, hasDeposit } from "@/lib/deposit";
 import type { Entry } from "./WeekGrid";
 import { capital, type Words } from "@/lib/wordsText";
+import { FormFirst } from "./FormFirst";
 
 /**
  * An appointment, as it is when you tap it.
@@ -104,6 +105,10 @@ export function Glance({
           </span>
         )}
       </div>
+
+      {entry.formNeed && entry.contactId && (
+        <FormFirst need={entry.formNeed} contactId={entry.contactId} bookingId={entry.id} />
+      )}
 
       {entry.description && <p className="hint mt-3 text-sm">{entry.description}</p>}
       {entry.notes && <p className="mt-2 rounded-lg bg-surface-2/60 px-3 py-2 text-sm">{entry.notes}</p>}

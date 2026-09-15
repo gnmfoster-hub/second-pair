@@ -24,6 +24,7 @@ import { whoCanBeOffered } from "./offering";
 import { missingDetails } from "./reachable";
 import type { Artist, PriceBand, ServiceOption, Studio } from "@/lib/types";
 import { readyForRealMoney } from "@/lib/payments/stripe";
+import { formForBooking } from "@/lib/forms/forBooking";
 
 export type ToolContext = {
   db: SupabaseClient;
@@ -1335,12 +1336,32 @@ async function makeBooking(
     ctx.studio.timezone,
   );
 
+  /*
+   * A form the service needs signed first — a patch test before colour, a
+   * consent before a tattoo. Made now and given to the assistant to put in the
+   * reply it is already writing, on the channel the customer is using.
+   */
+  const { data: bookedFor } = await ctx.db.from("enquiries").select("service_id").eq("id", ctx.enquiryId).maybeSingle();
+  const form = result.bookingId
+    ? await formForBooking(ctx.db, {
+        studioId: ctx.studio.id,
+        contactId: ctx.contactId,
+        bookingId: result.bookingId,
+        serviceId: (bookedFor?.service_id as string | null) ?? null,
+        title: null,
+        origin: ctx.origin,
+      })
+    : null;
+
   return {
     result:
       `Booked: ${type} with ${artist.name}, ${said}. Confirm it back to them in words.` +
       (takesDeposit
         ? " The slot is held for an hour while the deposit is paid."
-        : " It is confirmed — there is no deposit to take, so do not mention one."),
+        : " It is confirmed — there is no deposit to take, so do not mention one.") +
+      (form
+        ? ` This appointment needs the "${form.name}" form filled in and signed beforehand. Give them this link, and say it takes a couple of minutes on their phone: ${form.url}`
+        : ""),
     moment: {
       kind: "booked",
       person: artist.name,

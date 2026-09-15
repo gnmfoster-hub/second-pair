@@ -23,6 +23,7 @@ import {
 import { LayoutToggle } from "./LayoutToggle";
 import { payableFor } from "@/lib/payments/whoTakes";
 import { wordsFor } from "@/lib/words";
+import { formNeeded } from "@/lib/forms/required";
 import { Find } from "./Find";
 import { FullDiary } from "./FullDiary";
 import { SwipeDates } from "./SwipeDates";
@@ -471,6 +472,38 @@ export default async function DiaryPage({
       actual_minutes: r.actual_minutes,
       outcome_note: r.outcome_note,
     }));
+
+  /*
+   * Forms a service needs signed first, and whether each person on screen has.
+   *
+   * Two small reads, only when some service asks for a form at all — most
+   * businesses never set one, and they pay nothing for the feature existing.
+   */
+  const needsForms = (sellable ?? []).some((row) => (row as { requires_form_id?: string | null }).requires_form_id);
+  if (needsForms) {
+    const contactIds = [...new Set(entries.map((e) => e.contactId).filter((id): id is string => Boolean(id)))];
+    const [{ data: templateRows }, { data: formRows }] = await Promise.all([
+      supabase.from("form_templates").select("id, name").eq("studio_id", studio.id),
+      contactIds.length
+        ? supabase
+            .from("client_forms")
+            .select("id, contact_id, template_id, status, signed_at, created_at")
+            .eq("studio_id", studio.id)
+            .in("contact_id", contactIds)
+        : Promise.resolve({ data: [] as never[] }),
+    ]);
+    const templates = new Map((templateRows ?? []).map((t) => [t.id as string, t.name as string]));
+    const serviceRows = (sellable ?? []) as { id: string; name: string; requires_form_id?: string | null }[];
+    for (const e of entries) {
+      if (!e.contactId || e.category !== "appointment") continue;
+      e.formNeed = formNeeded(
+        { serviceId: e.serviceId, title: e.title, contactId: e.contactId },
+        serviceRows,
+        templates,
+        (formRows ?? []) as { id: string; contact_id: string; template_id: string | null; status: string; signed_at: string | null; created_at: string }[],
+      );
+    }
+  }
 
   /*
    * Everybody's own life, drawn beside their work.

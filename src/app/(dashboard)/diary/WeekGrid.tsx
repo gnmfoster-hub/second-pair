@@ -14,6 +14,7 @@ import { categoryFor, addDays, isoDate } from "@/lib/calendar";
 import { hueFor, initialsOf, colourForName, type ColourMode } from "@/lib/diaryColour";
 import { EntryDialog } from "./EntryDialog";
 import type { Words } from "@/lib/wordsText";
+import type { FormNeed } from "@/lib/forms/required";
 import type { ShelfItem } from "./Complete";
 import type { Bookable } from "./ServicePick";
 import { moveDiaryEntry } from "./actions";
@@ -86,6 +87,8 @@ export type Entry = {
   /** What happened, for the business. Never shown to the client. */
   outcome_note: string | null;
   repeats: string;
+  /** A form this appointment's service needs signed first, and where it stands. */
+  formNeed?: FormNeed | null;
 };
 
 /*

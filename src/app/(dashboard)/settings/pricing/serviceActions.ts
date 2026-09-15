@@ -75,6 +75,25 @@ export async function saveService(_prev: ServiceState, fd: FormData): Promise<Se
       }
     : {};
 
+  /*
+   * The form it needs first, when forms exist and the form field was on the
+   * page. Checked against this business's own forms rather than trusted.
+   */
+  const formFirst: { requires_form_id?: string | null } = {};
+  if (fd.has("requires_form_id") && (await hasColumn(supabase, "services", "requires_form_id"))) {
+    const chosen = str(fd, "requires_form_id");
+    if (!chosen) formFirst.requires_form_id = null;
+    else {
+      const { data: form } = await supabase
+        .from("form_templates")
+        .select("id")
+        .eq("id", chosen)
+        .eq("studio_id", studio.id)
+        .maybeSingle();
+      formFirst.requires_form_id = form ? chosen : null;
+    }
+  }
+
   const row = {
     studio_id: studio.id,
     name,
@@ -87,6 +106,7 @@ export async function saveService(_prev: ServiceState, fd: FormData): Promise<Se
     sort_order: Number(str(fd, "sort_order")) || 0,
     updated_at: new Date().toISOString(),
     ...counts,
+    ...formFirst,
   };
 
   const { error } = id

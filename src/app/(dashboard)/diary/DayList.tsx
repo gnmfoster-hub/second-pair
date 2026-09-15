@@ -522,6 +522,11 @@ export function DayList({
                     {e.attended === false && (
                       <span className="pill bg-warn/10 text-[0.62rem] text-warn">No-show</span>
                     )}
+                    {e.formNeed && e.formNeed.state !== "signed" && e.attended == null && (
+                      <span className="pill bg-warn/10 text-[0.62rem] text-warn">
+                        {e.formNeed.state === "waiting" ? "Form not signed" : "Form needed"}
+                      </span>
+                    )}
                   </span>
                 </span>
               </button>

@@ -55,6 +55,15 @@ export default async function PricingPage() {
 
   const allServices = (serviceRows ?? []) as Service[];
 
+  // The business's forms, for "needs a form signed first". Empty before forms exist.
+  const { data: formRows } = await supabase
+    .from("form_templates")
+    .select("id, name")
+    .eq("studio_id", studio.id)
+    .eq("active", true)
+    .order("sort_order");
+  const forms = (formRows ?? []).map((f) => ({ id: f.id as string, name: f.name as string }));
+
   /*
    * The shop's list, and the lists that belong to one person.
    *
@@ -89,7 +98,7 @@ export default async function PricingPage() {
   if (studio.pricing_model === "services") {
     return (
       <div className="space-y-8">
-        <ServiceList services={services} words={{ customer: words.customer, product: words.exampleProduct, service: words.exampleService }} />
+        <ServiceList services={services} forms={forms} words={{ customer: words.customer, product: words.exampleProduct, service: words.exampleService }} />
 
         {/*
          * Whose own lists exist, said rather than shown.

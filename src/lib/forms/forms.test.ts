@@ -11,6 +11,7 @@ import {
   type Block,
 } from "./blocks.ts";
 import { ALL_STARTERS, startersFor } from "./starters.ts";
+import { formNeeded } from "./required.ts";
 import { VERTICAL_LIST } from "../verticals.ts";
 
 const SIGNATURE = "data:image/png;base64," + "A".repeat(400);
@@ -102,4 +103,49 @@ test("every trade is offered at least one starter, and a tattoo studio is offere
   }
   assert.equal(startersFor({ id: "tattoo", category: "Hair and beauty" }).suggested[0].key, "tattoo_consent");
   assert.ok(!startersFor({ id: "plumber", category: "Trades and home" }).suggested.some((s) => s.key === "tattoo_consent"));
+});
+
+// ───────────────────────────────────────────── a form needed before a service
+
+const services = [
+  { id: "colour", name: "Full head colour", requires_form_id: "patch" },
+  { id: "cut", name: "Cut and finish", requires_form_id: null },
+];
+const templates = new Map([["patch", "Patch test and colour consent"]]);
+const NOW = new Date("2026-09-16T12:00:00Z");
+
+test("a service with no form needs nothing", () => {
+  assert.equal(formNeeded({ serviceId: "cut", title: null, contactId: "jo" }, services, templates, [], NOW), null);
+});
+
+test("a colour with no form on file is missing, found by title when typed into the diary", () => {
+  const need = formNeeded({ serviceId: null, title: "full head colour", contactId: "jo" }, services, templates, [], NOW);
+  assert.deepEqual(need, { templateId: "patch", name: "Patch test and colour consent", state: "missing" });
+});
+
+test("one sent and not signed is waiting; one signed this year counts; last year's does not", () => {
+  const appt = { serviceId: "colour", title: null, contactId: "jo" };
+  assert.equal(
+    formNeeded(appt, services, templates, [{ id: "f1", contact_id: "jo", template_id: "patch", status: "opened", signed_at: null, created_at: "2026-09-15T10:00:00Z" }], NOW)?.state,
+    "waiting",
+  );
+  assert.equal(
+    formNeeded(appt, services, templates, [{ id: "f2", contact_id: "jo", template_id: "patch", status: "signed", signed_at: "2026-03-01T10:00:00Z", created_at: "2026-03-01T09:00:00Z" }], NOW)?.state,
+    "signed",
+  );
+  assert.equal(
+    formNeeded(appt, services, templates, [{ id: "f3", contact_id: "jo", template_id: "patch", status: "signed", signed_at: "2025-08-01T10:00:00Z", created_at: "2025-08-01T09:00:00Z" }], NOW)?.state,
+    "missing",
+  );
+});
+
+test("somebody else's signed form does not count", () => {
+  const need = formNeeded(
+    { serviceId: "colour", title: null, contactId: "jo" },
+    services,
+    templates,
+    [{ id: "f4", contact_id: "sam", template_id: "patch", status: "signed", signed_at: "2026-09-01T10:00:00Z", created_at: "2026-09-01T09:00:00Z" }],
+    NOW,
+  );
+  assert.equal(need?.state, "missing");
 });
