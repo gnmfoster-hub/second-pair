@@ -16,9 +16,12 @@ Last updated: 15 September 2026.
 
 # Migrations
 
-**None waiting.** `20260915080000_prefers.sql` was run on 15 September and
-checked: a client's record can now keep whether they would rather have a text
-or an email. `20260914220000_inbound_log.sql` is run and working.
+**One waiting:** `20260916090000_forms.sql` — forms and signatures: the forms a
+business writes, the copies sent to customers, private storage for paper forms,
+and "needs a form first" on a service. Every forms screen says it is waiting
+until this is run; nothing else is affected.
+
+`20260915080000_prefers.sql` and `20260914220000_inbound_log.sql` are run.
 
 When one is waiting it will be named here. Until it is run the product keeps
 working without it — everything new is written so the deploy and the migration
@@ -418,95 +421,49 @@ on any of it before I build it.
   its width.
 - The diary loads in two round trips rather than five.
 
+## Done on 16 September
+
+- **Sales pitches and spam are no longer answered by email**, for every
+  business: the business name squashed into one word, promises of orders or
+  sales in numbers, a percentage commission, a fake "Re:", throwaway seller
+  addresses, empty greetings, website-seller chasers, and anything the
+  mailbox provider already marked as spam. Ignored before the assistant runs,
+  so no credits spent. Tested on all nine real ones received.
+- **Every screen in the business's own words** — one words helper, about thirty
+  salon and tattoo phrases replaced, examples from the trade's own services.
+- **New businesses are set up the way their trade prices**: a price list for
+  salons, clinics, tutors and the like; size bands for tattoo and trades. They
+  all started on size bands before.
+- **Forms and signatures** — built, waiting on the migration above:
+  Settings → Forms (ready-made forms per trade and an editor), a Forms section
+  on every client's record (send by text or email or just the link; add a
+  photo or PDF of a paper form), Clients → Forms (send to several, or everyone
+  booked on a day; what is still waiting), the customer's signing page, and a
+  printable signed copy that never changes when the form is edited.
+- **Reports in the back office** — `/admin/reports`: any date range, by business
+  and by trade, spreadsheet download. Enquiries and conversion, first reply,
+  messages by channel, assistant and text costs, email verdicts, appointments
+  and no-shows, money through Stripe with fees, forms, failures, last sign-in,
+  days quiet and an at-risk list.
+
 ## Next, in the order I would do them
 
-### 1. Every screen in the business's own words (doing now)
+### 1. The business's own report
 
-You asked that everything we have built fits each business as its trade. The
-assistant already does — it reads the trade's pack. The screens mostly do not:
-a survey found about thirty places still written for a salon or a tattoo
-studio. A cleaner's Complete screen asks "What they had"; a tutor's says
-"Search your clients" when their word is students; the till suggests
-"Shampoo, gift voucher"; a new diary note suggests "Order ink and needles".
+Any date range instead of one week; takings by person, service and how paid;
+deposits; no-shows; new versus returning; busiest times; forms waiting; and the
+weekly email that was promised and never built. About a day.
 
-- One `wordsFor(business)` helper, used everywhere, instead of the same line
-  copied into twelve files.
-- Every hard-coded trade word replaced: the diary sheet, Complete, the
-  appointment view, the add menu, the till, prices, Settings → You, Taking
-  money, the pages a customer sees after paying.
-- **A real setup bug**: every new business starts on size-band pricing, because
-  the trade's own pricing (fixed prices for a salon, hourly for a plumber) is
-  never read when the business is created. Neat & Tidy and Willow & Co were set
-  by hand, which is why nobody noticed.
-- The database still defaults a new business to tattoo. Changed to general.
-- The salon demo's enquiries are labelled "new tattoo". Fixed in the refresh.
-- A test that walks all 34 trades and fails if any screen shows another
-  trade's words.
+### 2. "Needs a form first" on a service
 
-About a day. No migration.
+The column is in the forms migration. Once run: pick a form on a service, the
+customer gets it when they book, and the appointment shows "Form not signed"
+until they have. Half a day.
 
-### 2. Forms and signatures on a client
+### 3. Quotes as forms with priced lines
 
-Nothing exists yet — no forms, signatures or documents anywhere, only the
-marketing-consent tick. What I would build:
-
-- **Forms the business writes**, from simple blocks: a paragraph, a question
-  (short answer, long answer, yes/no, pick one, date), a tick to agree, and a
-  signature. **Starter forms per trade**, ready to edit: tattoo consent and
-  aftercare; salon patch-test record and colour consent; aesthetics medical
-  questionnaire; a health questionnaire (PAR-Q) for a personal trainer; pet
-  details and vaccinations for a groomer; parental consent for a tutor; terms
-  and quote acceptance for trades.
-- **Send to one or many**: from a client's record, from an appointment, or to a
-  list (tick clients, or everyone booked on a day). It goes by text or email as
-  a private link — no login for the customer.
-- **The customer's page**: fill it in, sign with a finger or mouse and type
-  their name, submit. Kept with the time, and a frozen copy of exactly what they
-  agreed to — editing the form later never changes one already signed.
-- **Paper forms**: take a photo or upload a PDF on the client's record, kept
-  privately against them.
-- **A Forms section on the client's record**: sent, opened, signed, waiting;
-  resend; view or download.
-- **Before an appointment**: an optional "must be signed first" on a service,
-  a nudge to the customer if it is not, and a warning on the appointment.
-- **Quotes**: a form with priced lines and an accept-and-sign; an accepted quote
-  can turn into a booking or a payment link. Second, after the rest works.
-- **Privacy**: consent and health answers can be special-category data. Private
-  storage only, readable only by the business, exported with the client, and
-  erased when a client is forgotten.
-
-Three to four days for the first version (forms, send, sign, upload, the
-client's section); quotes after. **Needs one migration**, which I will give you
-when it is ready.
-
-### 3. Reports
-
-Today: the business's own weekly page (enquiries, bookings, takings, no-shows,
-who has not been back, gaps) and eight headline figures in your back office.
-The weekly report email the product promises was never built.
-
-**Your back office — a Reports page**, every report with a date range, a
-filter by business and by trade, and a CSV download:
-
-- **Growth**: businesses by status over time, new and stopped, monthly income
-  and plan mix, trials that became paying.
-- **Use, per business**: enquiries, bookings, conversion, messages by channel,
-  assistant cost, text cost, staff actually logging in, last active — and an
-  **at risk** list of businesses going quiet.
-- **Money through the product**: deposits and payments taken by link, gross,
-  fees, by business and by trade.
-- **The assistant**: time to first reply, how often it hands to a person, spam
-  filtered, email parked at the daily ceiling.
-- **Health**: texts and emails that failed, Stripe messages that failed,
-  reminders sent and failed, mail arriving.
-
-**Each business's own report**: any range (month, quarter, custom) rather than
-one week; takings by person, service and how paid; deposits; no-shows;
-returning versus new; busiest times; forms still to sign once forms exist; and
-the weekly email.
-
-About two days for your Reports page first, then a day for the business side.
-No migration for the first part.
+Accept-and-sign turning into a booking or a payment link. After forms have been
+used for real.
 
 ### 4. Backups, automatically
 
