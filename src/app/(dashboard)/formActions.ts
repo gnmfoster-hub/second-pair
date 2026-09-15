@@ -295,3 +295,17 @@ export async function voidForm(_prev: FormActionState, fd: FormData): Promise<Fo
   revalidatePath(`/clients/${data[0].contact_id}`);
   return { ok: true };
 }
+
+/** The business's forms, for a picker opened on demand. Empty before forms exist. */
+export async function listFormTemplates(): Promise<{ id: string; name: string }[]> {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("form_templates")
+    .select("id, name")
+    .eq("studio_id", studio.id)
+    .eq("active", true)
+    .order("sort_order")
+    .order("created_at");
+  return (data ?? []).map((t) => ({ id: t.id as string, name: t.name as string }));
+}

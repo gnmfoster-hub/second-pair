@@ -51,8 +51,17 @@ export async function saveDiaryEntry(
 
   let ends: Date;
   if (allDay) {
-    const days = Math.min(90, Math.max(1, Number(str(fd, "days")) || 1));
-    ends = new Date(starts.getTime() + days * 86400_000);
+    // From and to, both counted; the old "days" box is still read for anything that sends it.
+    const endDate = str(fd, "end_date");
+    const spanned = /^\d{4}-\d{2}-\d{2}$/.test(endDate) && endDate >= date
+      ? Math.round((Date.parse(`${endDate}T12:00:00Z`) - Date.parse(`${date}T12:00:00Z`)) / 86_400_000) + 1
+      : null;
+    const days = Math.min(90, Math.max(1, spanned ?? (Number(str(fd, "days")) || 1)));
+    ends = instantFrom(
+      new Date(Date.parse(`${date}T12:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10),
+      "00:00",
+      studio.timezone,
+    ) ?? new Date(starts.getTime() + days * 86400_000);
   } else {
     const minutes = Number(str(fd, "minutes"));
     if (!Number.isFinite(minutes) || minutes < 5 || minutes > 1440) {

@@ -24,6 +24,12 @@ import { CATEGORIES, OWNER_CATEGORIES, categoryFor, REPEATS } from "@/lib/calend
 import type { Artist } from "@/lib/types";
 import type { Entry } from "./WeekGrid";
 
+/** Whole days from one date to another, counting both. */
+function daysBetween(from: string, to: string): number {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) return 1;
+  return Math.max(1, Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86_400_000) + 1);
+}
+
 /** The last millisecond of today, in this browser's own day. */
 function endOfToday(): number {
   const end = new Date();
@@ -120,6 +126,11 @@ export function EntryDialog({
    */
   const [contactId, setContactId] = useState<string | null>(entry?.contactId ?? null);
 
+  /** The service picked, which becomes what the appointment says it is for. */
+  const [serviceName, setServiceName] = useState(
+    entry?.title && entry.title.trim().toLowerCase() !== (entry.clientName ?? "").trim().toLowerCase() ? entry.title : "",
+  );
+
   /** What "the usual" put in the service box, relayed from their history. */
   const [usual, setUsual] = useState<string | null>(null);
   const [whoseColumn, setWhoseColumn] = useState<string>(
@@ -207,6 +218,8 @@ export function EntryDialog({
 
   const chooseCategory = (key: string) => {
     setCategory(key);
+    // A holiday is days, not minutes — start it as whole days with a from and a to.
+    if (key === "holiday" && !existing) setAllDay(true);
 
     const label = categoryFor(key).label;
     if (title === filledIn.current) {
@@ -231,6 +244,19 @@ export function EntryDialog({
     entry && (entry.category === "appointment" || entry.category === "consultation"),
   );
   const [allDay, setAllDay] = useState(entry?.all_day ?? false);
+  /*
+   * From and to, for anything that runs over days: a holiday, a course, a
+   * week away. It was a start date and a "Days" box that was easy to miss, so a
+   * five-day holiday went in as one day.
+   */
+  const [fromDate, setFromDate] = useState(startFields.date);
+  const [toDate, setToDate] = useState(() => {
+    if (!entry?.all_day || !startFields.date) return startFields.date;
+    const days = Math.max(1, Math.round((Date.parse(entry.ends_at) - Date.parse(entry.starts_at)) / 86_400_000));
+    const d = new Date(`${startFields.date}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + days - 1);
+    return d.toISOString().slice(0, 10);
+  });
   const [repeats, setRepeats] = useState("none");
   const chosen = categoryFor(category);
   // Appointments and consultations are for a person; a delivery is not.
@@ -528,15 +554,25 @@ export function EntryDialog({
             <ClientSummary contactId={contactId} onUsual={setUsual} />
           )}
 
+          {/*
+            * What the appointment is for, saved as its title.
+            *
+            * The client's name used to be the title, so a booking made by
+            * picking Sarah and a Balayage was saved as "Sarah" — the diary,
+            * the appointment and her history then said who and never what.
+            */}
+          {!fromClient && isClientWork && <input type="hidden" name="title" value={serviceName} />}
+
           {!fromClient && isClientWork && services.length > 0 && (
             <ServicePick
               services={services}
               artistId={whoseColumn}
               contactId={contactId}
               pick={usual}
-              onPick={(mins, pence) => {
+              onPick={(mins, pence, name) => {
                 setLength(mins);
                 if (pence != null) setPrice((pence / 100).toFixed(2));
+                setServiceName(name);
               }}
             />
           )}
@@ -607,11 +643,15 @@ export function EntryDialog({
           </label>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="Date">
+            <Field label={allDay ? "From" : "Date"}>
               <input
                 type="date"
                 name="date"
-                defaultValue={startFields.date}
+                value={fromDate}
+                onChange={(e) => {
+                  setFromDate(e.target.value);
+                  if (toDate < e.target.value) setToDate(e.target.value);
+                }}
                 className="input"
                 required
               />
@@ -643,22 +683,15 @@ export function EntryDialog({
               </>
             )}
             {allDay && (
-              <Field label="Days">
+              <Field label="To" hint={daysBetween(fromDate, toDate) > 1 ? `${daysBetween(fromDate, toDate)} days` : "One day"}>
                 <input
-                  type="number"
-                  name="days"
-                  min={1}
-                  max={90}
-                  defaultValue={Math.max(
-                    1,
-                    entry
-                      ? Math.round(
-                          (Date.parse(entry.ends_at) - Date.parse(entry.starts_at)) /
-                            86400000,
-                        )
-                      : 1,
-                  )}
+                  type="date"
+                  name="end_date"
+                  value={toDate}
+                  min={fromDate}
+                  onChange={(e) => setToDate(e.target.value)}
                   className="input"
+                  required
                 />
               </Field>
             )}

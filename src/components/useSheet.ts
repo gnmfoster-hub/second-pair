@@ -106,7 +106,26 @@ export function useSheet<T extends HTMLElement>() {
     const el = ref.current;
     if (!viewport || !el) return;
 
-    const measure = () => el.style.setProperty("--sheet-room", `${viewport.height}px`);
+    /*
+     * The room left, and where it is.
+     *
+     * Setting a maximum height was half of it. The dark overlay behind the
+     * sheet is fixed to the whole window, and on an iPad the keyboard covers
+     * the window rather than shrinking it — so a sheet centred in that
+     * overlay was centred in a space whose bottom half was keyboard, and on
+     * its side, where the keyboard takes most of the height, the field being
+     * typed into sat underneath it. The overlay now covers exactly the part of
+     * the screen that can be seen, so centred means centred in what is left.
+     */
+    const overlay = el.parentElement;
+    const measure = () => {
+      el.style.setProperty("--sheet-room", `${viewport.height}px`);
+      if (overlay) {
+        overlay.style.top = `${viewport.offsetTop}px`;
+        overlay.style.height = `${viewport.height}px`;
+        overlay.style.bottom = "auto";
+      }
+    };
 
     measure();
     viewport.addEventListener("resize", measure);
@@ -143,7 +162,7 @@ export function useSheet<T extends HTMLElement>() {
       if (!field?.matches?.("input, textarea, select")) return;
 
       setTimeout(() => {
-        field.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        field.scrollIntoView({ block: "center", behavior: "smooth" });
       }, 250);
     };
 

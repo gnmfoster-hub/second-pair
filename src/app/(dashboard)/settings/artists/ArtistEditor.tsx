@@ -233,7 +233,7 @@ export function ArtistEditor({
           <p className="hint mt-3">
             {artist?.stripe_account_id
               ? "They have their own Stripe account, so their money can go straight to them."
-              : "They have no Stripe account of their own. Where a business pays each person directly, theirs cannot be taken until they connect one."}
+              : `They have no Stripe account of their own yet. Only they can connect it, because Stripe asks for their own ID and bank details: they sign in, open Settings, and on their own tab (the first one, with their name) press Connect my Stripe under Getting paid.${artist?.user_id ? "" : " They need a login first — invite them from this page."}`}
           </p>
         </fieldset>
 

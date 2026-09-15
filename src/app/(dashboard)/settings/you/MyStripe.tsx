@@ -92,9 +92,9 @@ export function MyStripe({
             Connect my Stripe
           </a>
           <p className="hint mt-2 max-w-prose">
-            Until you do, {firstName}, a card payment for your work cannot be taken
-            &mdash; it is refused rather than quietly going somewhere else, which is the
-            safer of the two.
+            Until you do, {firstName}, a card payment for your work either goes to the
+            business&rsquo;s own account &mdash; if whoever runs it has allowed that &mdash;
+            or cannot be taken by card at all.
           </p>
         </>
       )}
