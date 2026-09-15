@@ -10,6 +10,8 @@ import { canMessage } from "@/lib/permissions";
 import type { ConvStatus } from "@/lib/types";
 import { replyToFor } from "@/lib/messaging/replyTo";
 import { canRemove } from "@/lib/conversations/removable";
+import { sendingAs } from "@/lib/messaging/connections";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type ReplyState = {
   error?: string;
@@ -68,8 +70,14 @@ export async function sendOwnerReply(
 
   const result = await deliver({
     channel: conversation.channel as Channel,
-    to: conversation.channel === "sms" ? contact?.phone ?? null : conversation.external_ref,
+    // The number the thread is on first; the saved one only if there is none.
+    to:
+      conversation.channel === "sms"
+        ? conversation.external_ref ?? contact?.phone ?? null
+        : conversation.external_ref,
     body: text,
+    // As the business: its own text number, or its own Meta account and token.
+    ...(await sendingAs(createAdminClient(), studio.id, conversation.channel as string)),
     lastInboundAt: conversation.last_inbound_at,
     /*
      * Where to find somebody who asked through the website.
@@ -206,7 +214,11 @@ export async function removeConversation(
    * worse than not deleting at all, because now nobody knows they are there.
    */
   const files = (enquiries ?? []).flatMap((e) => (e.reference_urls as string[] | null) ?? []);
-  if (files.length) await supabase.storage.from("references").remove(files);
+  // The server's client, because the storage rules do not let a member delete.
+  if (files.length) {
+    const { error: photoError } = await createAdminClient().storage.from("references").remove(files);
+    if (photoError) return { error: `Could not remove the photos: ${photoError.message}` };
+  }
 
   const { error } = await supabase
     .from("conversations")

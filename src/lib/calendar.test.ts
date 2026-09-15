@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { startOfWeek, addDays, isoDate, parseIsoDate } from "./calendar.ts";
+import { startOfWeek, addDays, isoDate, parseIsoDate, repeatDates } from "./calendar.ts";
 
 /**
  * The date arithmetic the diary is laid out on.
@@ -134,4 +134,17 @@ test("a month that starts on a Monday needs no days before it", () => {
   const anchor = new Date(2026, 5, 1);
   const first = startOfWeek(new Date(Date.UTC(anchor.getFullYear(), anchor.getMonth(), 1, 12)));
   assert.equal(isoDate(first), "2026-06-01");
+});
+
+test("monthly on the 31st keeps to the end of short months and comes back to the 31st", () => {
+  const dates = repeatDates(new Date(2027, 0, 31), "monthly", new Date(2027, 4, 31));
+  assert.deepEqual(
+    dates.map((d) => `${d.getMonth() + 1}-${d.getDate()}`),
+    ["1-31", "2-28", "3-31", "4-30", "5-31"],
+  );
+});
+
+test("monthly on an ordinary day stays on that day", () => {
+  const dates = repeatDates(new Date(2026, 8, 15), "monthly", new Date(2026, 11, 20));
+  assert.deepEqual(dates.map((d) => d.getDate()), [15, 15, 15, 15]);
 });

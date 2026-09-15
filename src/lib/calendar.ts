@@ -185,9 +185,24 @@ export function repeatDates(first: Date, rule: RepeatRule, until: Date | null): 
       case "fortnightly":
         cursor.setDate(cursor.getDate() + 14);
         break;
-      case "monthly":
-        cursor.setMonth(cursor.getMonth() + 1);
+      case "monthly": {
+        /*
+         * Counted from the first date, and clamped to the month's last day.
+         *
+         * Adding a month to the cursor each time drifted for good: the 31st
+         * of January plus a month is the 3rd of March, and every month after
+         * was the 3rd. The 31st now lands on the 28th or 29th in February and
+         * back on the 31st in March, which is what "monthly" means to anybody.
+         */
+        const months = dates.length;
+        const target = new Date(first);
+        target.setDate(1);
+        target.setMonth(first.getMonth() + months);
+        const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+        target.setDate(Math.min(first.getDate(), lastDay));
+        cursor.setTime(target.getTime());
         break;
+      }
     }
   }
 

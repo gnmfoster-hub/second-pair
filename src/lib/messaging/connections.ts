@@ -69,3 +69,40 @@ export async function smsNumberFor(
 
   return data?.external_id ?? null;
 }
+
+/**
+ * What a message on this channel needs in order to leave as this business.
+ *
+ * A text goes from the business's own number, or a reply to it arrives with
+ * no way of telling whose customer it is. A WhatsApp, Instagram or Messenger
+ * message has to name the account it is sent from and carry that account's
+ * token — which lives in a table only the server can read, so this takes the
+ * server's client. Without these, an owner replying from the inbox sent texts
+ * from our shared number and could not send on Meta at all.
+ */
+export async function sendingAs(
+  admin: SupabaseClient,
+  studioId: string,
+  channel: string,
+): Promise<{ from?: string | null; metaAccountId?: string | null; metaToken?: string | null }> {
+  if (channel === "sms") return { from: await smsNumberFor(admin, studioId) };
+  if (channel !== "whatsapp" && channel !== "instagram" && channel !== "messenger") return {};
+
+  const { data: connection } = await admin
+    .from("channel_connections")
+    .select("id, external_id")
+    .eq("studio_id", studioId)
+    .eq("channel", channel)
+    .eq("active", true)
+    .limit(1)
+    .maybeSingle();
+  if (!connection) return {};
+
+  const { data: secret } = await admin
+    .from("channel_secrets")
+    .select("access_token")
+    .eq("connection_id", connection.id)
+    .maybeSingle();
+
+  return { metaAccountId: connection.external_id, metaToken: secret?.access_token ?? null };
+}

@@ -27,8 +27,24 @@ export async function resolveContact(
     prefers?: string | null;
   },
 ): Promise<string | null> {
+  /*
+   * An id is only taken if it is one of this business's clients.
+   *
+   * It comes from a form, and bookings and payments written with it are read
+   * later by the reminder sweep and the receipt — both on the server's own
+   * client. A doctored id from another business would have had that business's
+   * customer reminded, and receipted, in this one's name.
+   */
   const id = (fields.id ?? "").trim();
-  if (id) return id;
+  if (id) {
+    const { data: ours } = await db
+      .from("contacts")
+      .select("id")
+      .eq("id", id)
+      .eq("studio_id", studioId)
+      .maybeSingle();
+    return (ours as { id?: string } | null)?.id ?? null;
+  }
 
   const name = (fields.name ?? "").trim();
   // No name is a real answer, not a failure: a passer-by who bought a bottle

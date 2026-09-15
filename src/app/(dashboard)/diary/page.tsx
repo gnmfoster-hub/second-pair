@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio, getArtists } from "@/lib/studio";
 import { startOfWeek, addDays, isoDate, parseIsoDate } from "@/lib/calendar";
+import { dayIn } from "@/lib/diaryGaps";
 import { WeekGrid, type Entry } from "./WeekGrid";
 import { MonthGrid } from "./MonthGrid";
 import { DayList } from "./DayList";
@@ -165,7 +166,15 @@ export default async function DiaryPage({
    * desk, a phone is given the day and a wider screen the week, and the choice
    * is undone the moment somebody presses a view button for themselves.
    */
-  const focusDay = dayParam ? parseIsoDate(dayParam) : new Date();
+  /*
+   * Today where the business is, not where the server is.
+   *
+   * The server runs on UTC, so between midnight and one in the morning in
+   * summer "today" was still yesterday — the diary opened on the wrong day
+   * and the strip marked the wrong day as today.
+   */
+  const todayHere = dayIn(new Date().toISOString(), studio.timezone);
+  const focusDay = parseIsoDate(dayParam ?? todayHere);
   const anchor = week ? parseIsoDate(week) : focusDay;
   /*
    * A month is shown as whole weeks, so the grid is rectangular and the days
@@ -737,7 +746,23 @@ export default async function DiaryPage({
     return Math.max(0, to - from);
   }).reduce((a, b) => a + b, 0);
 
-  const bookedMinutes = entries
+  /*
+   * Only what is on screen, and only this business's own work.
+   *
+   * The diary reads a day either side of the view so an appointment crossing
+   * midnight still draws, and it adds each person's own calendar as "Busy"
+   * blocks. Both were summed: the day view's "worth" included yesterday's and
+   * tomorrow's takings, and a stylist's dentist appointment counted as booked.
+   */
+  const firstDay = isoDate(start);
+  const afterLast = isoDate(end);
+  const counted = entries.filter((e) => {
+    if (e.source === "personal") return false;
+    const day = dayIn(e.starts_at, studio.timezone);
+    return day >= firstDay && day < afterLast;
+  });
+
+  const bookedMinutes = counted
     .filter((e) => e.blocks_availability && !e.all_day)
     .reduce(
       (total, e) => total + (Date.parse(e.ends_at) - Date.parse(e.starts_at)) / 60000,
@@ -751,7 +776,7 @@ export default async function DiaryPage({
    * assistant booked. A shop that types its own regulars in saw £0 every week
    * and quite reasonably stopped believing the number.
    */
-  const worth = entries.reduce(
+  const worth = counted.reduce(
     (total, e) => total + (e.price_pence ?? e.quotePence ?? 0),
     0,
   );
@@ -1374,7 +1399,7 @@ export default async function DiaryPage({
               load={strip}
               // Carries whoever is ticked through to tomorrow, as one value.
               who={chosen.length ? chosen.join(",") : "all"}
-              today={isoDate(new Date())}
+              today={todayHere}
             />
           </SwipeDates>
         </div>
@@ -1572,7 +1597,7 @@ export default async function DiaryPage({
             weeks={monthWeeks}
             entries={entries}
             monthIndex={anchor.getMonth()}
-            todayKey={isoDate(new Date())}
+            todayKey={todayHere}
             timezone={studio.timezone}
             colourBy={(studio.diary_colour ?? "category") as ColourMode}
           />

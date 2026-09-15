@@ -134,6 +134,18 @@ export async function createBookingGroup(
      * and a booking with a name on it beats no booking at all.
      */
     let contactId = row.contactId;
+
+    // A picked client has to be one of this business's; anything else is a name.
+    if (contactId) {
+      const { data: ours } = await supabase
+        .from("contacts")
+        .select("id")
+        .eq("id", contactId)
+        .eq("studio_id", studio.id)
+        .maybeSingle();
+      contactId = ours?.id ?? null;
+    }
+
     if (!contactId) {
       const { data: made } = await supabase
         .from("contacts")

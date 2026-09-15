@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { consentPatch, canRecordEvidence } from "@/lib/consent";
 import { requireStudio } from "@/lib/studio";
 
@@ -151,7 +152,15 @@ export async function forgetClient(_prev: ForgetState, fd: FormData): Promise<Fo
     .eq("contact_id", id)
     .not("file_path", "is", null);
   const paperFiles = (paper ?? []).map((f) => f.file_path as string).filter(Boolean);
-  if (paperFiles.length) await supabase.storage.from("forms").remove(paperFiles);
+  /*
+   * With the server's client: the storage rules only let a member read these
+   * files, so a delete made as the signed-in person removed nothing and said
+   * nothing. The paths come from this business's own rows, read above.
+   */
+  if (paperFiles.length) {
+    const { error: formFilesError } = await createAdminClient().storage.from("forms").remove(paperFiles);
+    if (formFilesError) return { error: `Could not remove their paper forms: ${formFilesError.message}` };
+  }
 
   if (convIds.length) {
     /*
@@ -178,7 +187,10 @@ export async function forgetClient(_prev: ForgetState, fd: FormData): Promise<Fo
      * the only part that does not live in this database.
      */
     const files = (theirs ?? []).flatMap((e) => (e.reference_urls as string[] | null) ?? []);
-    if (files.length) await supabase.storage.from("references").remove(files);
+    if (files.length) {
+      const { error: photoError } = await createAdminClient().storage.from("references").remove(files);
+      if (photoError) return { error: `Could not remove their photos: ${photoError.message}` };
+    }
 
     const { error: msgError } = await supabase
       .from("messages")
