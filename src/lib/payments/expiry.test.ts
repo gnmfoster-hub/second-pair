@@ -16,18 +16,23 @@ test("an ordinary few hours is those few hours", () => {
  * error about somebody else's rules.
  */
 test("a week becomes the longest Stripe allows", () => {
-  assert.equal(expiryFor(24 * 7, NOW), at(24 * 3600));
+  assert.equal(expiryFor(24 * 7, NOW), at(24 * 3600 - 300));
 });
 
 test("five minutes becomes the shortest Stripe allows", () => {
-  assert.equal(expiryFor(5 / 60, NOW), at(30 * 60));
+  assert.equal(expiryFor(5 / 60, NOW), at(30 * 60 + 300));
 });
 
 test("nothing, or a mistake, still lands inside the window", () => {
-  assert.equal(expiryFor(0, NOW), at(30 * 60));
-  assert.equal(expiryFor(-3, NOW), at(30 * 60));
+  assert.equal(expiryFor(0, NOW), at(30 * 60 + 300));
+  assert.equal(expiryFor(-3, NOW), at(30 * 60 + 300));
 });
 
-test("exactly a day is exactly a day", () => {
-  assert.equal(expiryFor(24, NOW), at(24 * 3600));
+/*
+ * Five minutes short of Stripe's limit, because Stripe counts from its own
+ * clock a moment after ours — and exactly a day was refused at random.
+ */
+test("a day stays safely inside Stripe's limit", () => {
+  assert.ok(expiryFor(24, NOW) < at(24 * 3600));
+  assert.equal(expiryFor(24, NOW), at(24 * 3600 - 300));
 });
