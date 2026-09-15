@@ -1,8 +1,10 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, after, type NextRequest } from "next/server";
 import { runTurn } from "@/lib/engine/run";
 import { hasAnthropicEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { verifySignature } from "@/lib/messaging/sms";
+import { verifySignature, sendSms } from "@/lib/messaging/sms";
+import { recordDelivery } from "@/lib/messaging/deliver";
+import { handOverAfterFailure } from "@/lib/engine/turnFailed";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -85,36 +87,77 @@ export async function POST(request: NextRequest) {
 
   if (!hasAnthropicEnv()) return empty();
 
-  try {
-    const result = await runTurn({
-      studioSlug: studio.slug,
-      // Their number is the thread. Sessions are scoped per business, so the
-      // same person texting two of our salons gets two conversations.
-      sessionKey: from,
-      channel: "sms",
-      origin: `${proto}://${host}`,
-      message: body || "(sent a picture)",
-      mediaUrls: media,
-      // A number belonging to one person means every text to it is for them,
-      // and the assistant must not ask who they want.
-      forArtistId: connection?.artist_id ?? undefined,
-    });
-
-    /*
-     * Nothing goes back when the assistant is paused.
-     *
-     * Somebody has taken this conversation over by hand, and a text arriving
-     * from the robot in the middle of that is worse than silence — the owner
-     * is already typing.
-     */
-    if (result.paused || !result.reply) return empty();
-
-    return twiml(result.reply);
-  } catch {
-    // Recorded, but unanswerable. Silence is better than an error going to a
-    // customer as a text message.
-    return empty();
+  /*
+   * Once per text, however many times Twilio delivers it.
+   */
+  const sid = params.MessageSid ?? params.SmsSid;
+  if (sid) {
+    const { error: seen } = await db
+      .from("handled_messages")
+      .insert({ message_id: `sms:${sid}`, channel: "sms" });
+    if (seen?.code === "23505") return empty();
   }
+
+  /*
+   * Answered after Twilio has been told "got it", not while it waits.
+   *
+   * The reply used to go back inside this response. Twilio waits fifteen
+   * seconds for one, and a turn that looks at the diary and works out a price
+   * takes longer than that often enough — so Twilio gave up, the reply was
+   * thrown away, and the thread showed the customer as answered while their
+   * phone showed nothing. Now the text is acknowledged at once and the reply
+   * is sent as its own message, from the number they texted.
+   */
+  after(async () => {
+    try {
+      const result = await runTurn({
+        studioSlug: studio.slug,
+        // Their number is the thread. Sessions are scoped per business, so the
+        // same person texting two of our salons gets two conversations.
+        sessionKey: from,
+        channel: "sms",
+        origin: `${proto}://${host}`,
+        message: body || "(sent a picture)",
+        mediaUrls: media,
+        // A number belonging to one person means every text to it is for them,
+        // and the assistant must not ask who they want.
+        forArtistId: connection?.artist_id ?? undefined,
+      });
+
+      /*
+       * Nothing goes back when the assistant is paused.
+       *
+       * Somebody has taken this conversation over by hand, and a text arriving
+       * from the robot in the middle of that is worse than silence — the owner
+       * is already typing.
+       */
+      if (result.paused || !result.reply) return;
+
+      const delivery = await sendSms({ to: from, from: to, body: result.reply });
+
+      const { data: message } = await db
+        .from("messages")
+        .select("id")
+        .eq("conversation_id", result.conversationId)
+        .eq("role", "assistant")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (message) await recordDelivery(db, message.id, delivery);
+
+      if (delivery.status === "failed") {
+        throw new Error(delivery.error ?? "The text did not send.");
+      }
+    } catch (error) {
+      // Silence is better than an error going to a customer as a text message —
+      // but the owner is told, and the thread handed over.
+      if (connection?.studio_id) {
+        await handOverAfterFailure(db, { studioId: connection.studio_id, channel: "sms", externalRef: from, error });
+      }
+    }
+  });
+
+  return empty();
 }
 
 /** Twilio accepts an empty response as "nothing to say". */
@@ -122,26 +165,4 @@ function empty() {
   return new NextResponse('<?xml version="1.0" encoding="UTF-8"?><Response></Response>', {
     headers: { "Content-Type": "text/xml" },
   });
-}
-
-function twiml(message: string) {
-  return new NextResponse(
-    `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${escapeXml(message)}</Message></Response>`,
-    { headers: { "Content-Type": "text/xml" } },
-  );
-}
-
-/**
- * Escapes the five characters XML cares about.
- *
- * A customer writing "table & chairs <3" would otherwise produce a document
- * Twilio cannot parse, and the reply would silently never arrive.
- */
-function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
 }

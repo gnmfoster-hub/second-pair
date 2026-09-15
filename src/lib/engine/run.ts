@@ -580,6 +580,48 @@ async function withAClientNow(db: ReturnType<typeof createAdminClient>, studioId
   return Boolean(data?.length);
 }
 
+/** "Tuesday 15 September 2026, 10:42 pm", in the business's own timezone. */
+function nowIn(timezone: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: timezone,
+  }).format(new Date());
+}
+
+/**
+ * The end of a long conversation, not all of it.
+ *
+ * Every turn sent the whole thread. An email thread carries each earlier
+ * message again in its quoted reply, so the cost grew with the square of its
+ * length and a long enough thread would fail outright — leaving the customer
+ * with no answer. The enquiry's own state (what they want, the quote, their
+ * details) is sent separately every turn, so what falls off the front is
+ * conversation, not facts.
+ *
+ * It has to open on the customer's words, because that is how the model reads
+ * a conversation, and each message is cut to a sensible length.
+ */
+export function recentHistory<M extends { role: string; content: string | null }>(
+  history: M[],
+  keep = 40,
+  maxChars = 4000,
+): M[] {
+  let recent = history.slice(-keep);
+  const firstClient = recent.findIndex((m) => m.role === "client");
+  if (firstClient > 0) recent = recent.slice(firstClient);
+  return recent.map((m) =>
+    m.content && m.content.length > maxChars
+      ? { ...m, content: m.content.slice(0, maxChars) + " …" }
+      : m,
+  );
+}
+
 async function generateReply(
   ctx: ReplyContext,
 ): Promise<{ text: string; moments: Moment[] }> {
@@ -601,7 +643,7 @@ async function generateReply(
     (m) => m.role === "assistant" || m.role === "owner",
   );
 
-  const messages: Anthropic.MessageParam[] = (history ?? []).map((m) => ({
+  const messages: Anthropic.MessageParam[] = recentHistory(history ?? []).map((m) => ({
     // An owner's own reply reads as the assistant's voice to the client.
     role: m.role === "client" ? "user" : "assistant",
     content: m.content || "(no text)",
@@ -611,14 +653,27 @@ async function generateReply(
   // cached prefix, and it cannot be mistaken for something the client typed.
   messages.push({
     role: "system",
-    content: enquiryStateMessage(
-      enquiry as EnquiryState | null,
-      ctx.bands,
-      ctx.artists,
-      contact as ContactState | null,
-      ctx.options,
-      ctx.forArtist ?? null,
-    ),
+    /*
+     * Today, first.
+     *
+     * The assistant was never told the date. Slots come back with a weekday
+     * and no year, search takes YYYY-MM-DD, and "tomorrow", "after the 15th"
+     * or "not this week" were being worked out from whatever the model last
+     * believed the date to be — which is how a customer asking for tomorrow is
+     * offered a Thursday three weeks away.
+     */
+    content:
+      `Right now it is ${nowIn(ctx.studio.timezone)} where the business is.
+
+` +
+      enquiryStateMessage(
+        enquiry as EnquiryState | null,
+        ctx.bands,
+        ctx.artists,
+        contact as ContactState | null,
+        ctx.options,
+        ctx.forArtist ?? null,
+      ),
   } as Anthropic.MessageParam);
 
   /*

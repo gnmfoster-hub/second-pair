@@ -304,6 +304,12 @@ export function toolDefinitions(
                   description: "The exact starts_at value from get_available_slots.",
                 },
                 artist_name: { type: "string", enum: artistNames },
+                another_visit: {
+                  type: "boolean",
+                  description:
+                    "True only when they already have an appointment and have told you this is " +
+                    "an extra one, not instead of it.",
+                },
               },
               required: ["starts_at"],
               additionalProperties: false,
@@ -1176,37 +1182,61 @@ async function makeBooking(
     };
   }
 
-  // One live booking per enquiry. Without this, a client saying "yes" twice
-  // leaves two slots held and two payment links in the wild.
-  const { data: existing } = await ctx.db
+  /*
+   * What they already have booked, from now on.
+   *
+   * This used to take the latest booking on the enquiry and, if it was at a
+   * different time and not paid, cancel it — on the reasoning that an unpaid
+   * booking is a hold and a new time is a change of mind. That was true when
+   * every booking waited on a deposit. Now almost none do: a cleaner's regular
+   * texting "can you also do the 20th?" had their confirmed 10th cancelled
+   * without a word, and a past job that was done came off the takings.
+   *
+   * So only a live hold — waiting on a deposit, with time left — is replaced,
+   * and only once the new slot has actually been taken. A confirmed booking is
+   * never cancelled from here: the assistant asks whether this is an extra
+   * visit, and a move goes to the owner.
+   */
+  const nowIso = new Date().toISOString();
+  const { data: upcoming } = await ctx.db
     .from("bookings")
-    .select("id, starts_at, deposit_status")
+    .select("id, starts_at, deposit_status, held_until")
     .eq("enquiry_id", ctx.enquiryId)
     .is("cancelled_at", null)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .gt("starts_at", nowIso)
+    .order("starts_at");
 
-  if (existing) {
-    if (Date.parse(existing.starts_at) === when) {
-      return {
-        result:
-          "Already booked at that time — nothing more to do. Confirm it back to them in " +
-          "words as though it just went through. Do not mention this message.",
-      };
-    }
-    if (existing.deposit_status === "paid") {
-      return {
-        result:
-          "They already have a paid booking at another time. Do not book a second — " +
-          "escalate so the owner can move it.",
-      };
-    }
-    // An unpaid hold at a different time is them changing their mind.
-    await ctx.db
-      .from("bookings")
-      .update({ cancelled_at: new Date().toISOString() })
-      .eq("id", existing.id);
+  const already = (upcoming ?? []) as {
+    id: string;
+    starts_at: string;
+    deposit_status: string;
+    held_until: string | null;
+  }[];
+
+  // Saying "yes" twice to the same time.
+  if (already.some((b) => Date.parse(b.starts_at) === when)) {
+    return {
+      result:
+        "Already booked at that time — nothing more to do. Confirm it back to them in " +
+        "words as though it just went through. Do not mention this message.",
+    };
+  }
+
+  const liveHold = already.find(
+    (b) => b.deposit_status !== "paid" && b.held_until != null && b.held_until > nowIso,
+  );
+  const confirmed = already.filter((b) => b.id !== liveHold?.id);
+
+  if (confirmed.length > 0 && input.another_visit !== true) {
+    const list = confirmed
+      .map((b) => describeSlot({ starts_at: b.starts_at, ends_at: b.starts_at }, ctx.studio.timezone))
+      .join("; ");
+    return {
+      result:
+        `Not booked yet — they already have ${list}. Ask whether this is an extra visit or ` +
+        "instead of that one. Extra: call create_booking again with another_visit true. " +
+        "Instead: do not book; escalate so the owner can move it.",
+    };
   }
 
   /*
@@ -1246,7 +1276,16 @@ async function makeBooking(
     limit: 40,
   }).catch(() => null);
 
-  if (stillFree && !stillFree.some((s) => Date.parse(s.starts_at) === when)) {
+  // Not being able to look is not the same as it being free.
+  if (!stillFree) {
+    return {
+      result:
+        "Could not check the diary just now, so nothing was booked. Tell them you are " +
+        "checking and try create_booking once more; if it fails again, escalate.",
+    };
+  }
+
+  if (!stillFree.some((s) => Date.parse(s.starts_at) === when)) {
     return {
       result:
         "That time is no longer free. Apologise, call get_available_slots again and " +
@@ -1289,6 +1328,15 @@ async function makeBooking(
   });
 
   if (!result.ok) return { result: result.message };
+
+  // The new time is theirs, so the hold they are moving from can go.
+  if (liveHold) {
+    await ctx.db
+      .from("bookings")
+      .update({ cancelled_at: new Date().toISOString() })
+      .eq("id", liveHold.id)
+      .is("cancelled_at", null);
+  }
 
   /*
    * Something in writing, for a booking that needed no deposit.

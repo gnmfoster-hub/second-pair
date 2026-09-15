@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { tooMuchEmail, sinceMidnight } from "@/lib/messaging/emailBudget";
 import { runTurn } from "@/lib/engine/run";
+import { handOverAfterFailure } from "@/lib/engine/turnFailed";
 import { sendEmail, emailConfigured, fetchReceivedEmail } from "@/lib/messaging/email";
 import { replyToFor } from "@/lib/messaging/replyTo";
 import {
@@ -85,6 +86,21 @@ export async function POST(request: NextRequest) {
   }
 
   const db = createAdminClient();
+
+  /*
+   * Once per email, however many times it is delivered to us.
+   *
+   * Writing a reply takes long enough that the provider can give up waiting
+   * and send the same email again — and each delivery was answered, so the
+   * customer got two replies. The same claim the Meta webhook makes: the
+   * first delivery writes the id, a repeat finds it and stops.
+   */
+  if (emailId) {
+    const { error: seen } = await db
+      .from("handled_messages")
+      .insert({ message_id: `email:${emailId}`, channel: "email" });
+    if (seen?.code === "23505") return ok("already handled");
+  }
 
   /*
    * Which business it was sent to. The local part is the slug, so an address
@@ -240,9 +256,10 @@ export async function POST(request: NextRequest) {
     }
 
     return ok("answered");
-  } catch {
-    // The engine records what it can. Silence beats an error arriving in a
-    // customer's inbox with the business's name on it.
+  } catch (error) {
+    // Silence beats an error arriving in a customer's inbox with the
+    // business's name on it — but the owner is told, and the thread handed over.
+    await handOverAfterFailure(db, { studioId: studio.id, channel: "email", externalRef: sender, error });
     return ok("could not answer");
   }
 }
