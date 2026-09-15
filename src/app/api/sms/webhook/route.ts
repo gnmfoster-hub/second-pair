@@ -4,6 +4,7 @@ import { hasAnthropicEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifySignature, sendSms } from "@/lib/messaging/sms";
 import { recordDelivery } from "@/lib/messaging/deliver";
+import { isStopWord, isStartWord, recordOptOut, clearOptOut } from "@/lib/messaging/optOut";
 import { handOverAfterFailure } from "@/lib/engine/turnFailed";
 
 export const runtime = "nodejs";
@@ -83,6 +84,23 @@ export async function POST(request: NextRequest) {
   for (let i = 0; i < Number(params.NumMedia ?? 0); i++) {
     const url = params[`MediaUrl${i}`];
     if (url) media.push(url);
+  }
+
+  /*
+   * STOP means stop, before anything else looks at it.
+   *
+   * It went to the assistant like any other message and got an answer, and
+   * nothing remembered it, so the reminders kept coming. Now it is recorded
+   * against this business and nothing is said back — the carrier's own
+   * confirmation is the reply. START undoes it.
+   */
+  if (connection?.studio_id && isStopWord(body)) {
+    await recordOptOut(db, connection.studio_id, from);
+    return empty();
+  }
+  if (connection?.studio_id && isStartWord(body)) {
+    await clearOptOut(db, connection.studio_id, from);
+    return empty();
   }
 
   if (!hasAnthropicEnv()) return empty();

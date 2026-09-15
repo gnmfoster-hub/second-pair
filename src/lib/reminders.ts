@@ -6,6 +6,7 @@ import { deliver } from "@/lib/messaging/deliver";
 import { routesFor } from "@/lib/messaging/reach";
 import { connectedChannels, smsNumberFor } from "@/lib/messaging/connections";
 import type { Channel } from "@/lib/types";
+import { isOptedOut } from "@/lib/messaging/optOut";
 
 /**
  * Reminders.
@@ -316,6 +317,16 @@ export async function sendDueReminders(
       email: person?.email ?? null,
       connected,
     }).find((r) => r.open);
+
+    // Somebody who texted STOP is not texted a reminder.
+    if (route?.channel === "sms" && (await isOptedOut(db, studio.id, route.to))) {
+      await db
+        .from("reminders")
+        .update({ status: "skipped", error: "They texted STOP." })
+        .eq("id", row.id);
+      result.skipped++;
+      continue;
+    }
 
     if (route) {
       /*
