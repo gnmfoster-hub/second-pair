@@ -66,6 +66,12 @@ export function StripeNotice({ outcome, detail }: { outcome?: string; detail?: s
       {detail && outcome !== "connected" && (
         <span className="mt-1 block text-xs opacity-80">Stripe said: {detail}</span>
       )}
+      {/* The one refusal that is never the business's to fix, said so. */}
+      {detail && /does not belong to you|no such application/i.test(detail) && (
+        <span className="mt-1 block text-xs">
+          That is a setup mismatch at Second Pair&rsquo;s end, not anything you did.
+        </span>
+      )}
     </p>
   );
 }
