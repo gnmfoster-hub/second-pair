@@ -72,11 +72,34 @@ const OPTIONS: { value: Choice; label: string; icon: string }[] = [
 export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const choice = useSyncExternalStore(subscribe, snapshot, serverSnapshot);
 
+  /*
+   * One button on a phone, pressed round the three.
+   *
+   * Three 44px squares took 132px of the header, and the header's other job is
+   * saying whose business this is — "Willow & Co (de…" was what was left of
+   * the name. A thing set once and rarely touched does not need three targets;
+   * it needs one, still thumb-sized, that says what it is on now.
+   */
+  if (compact) {
+    const at = OPTIONS.findIndex((o) => o.value === choice);
+    const current = OPTIONS[at] ?? OPTIONS[0];
+    const next = OPTIONS[(at + 1) % OPTIONS.length];
+    return (
+      <button
+        type="button"
+        onClick={() => choose(next.value)}
+        title={`Colours: ${current.label}. Press for ${next.label.toLowerCase()}.`}
+        aria-label={`Colours: ${current.label}. Press for ${next.label.toLowerCase()}.`}
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-border text-sm text-foreground"
+      >
+        <span aria-hidden="true">{current.icon}</span>
+      </button>
+    );
+  }
+
   return (
     <div
-      className={`flex overflow-hidden rounded-lg border border-border ${
-        compact ? "shrink-0" : ""
-      }`}
+      className="flex overflow-hidden rounded-lg border border-border"
       role="group"
       aria-label="Colour theme"
     >
@@ -87,17 +110,7 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
           onClick={() => choose(option.value)}
           aria-pressed={choice === option.value}
           title={option.label}
-          /*
-           * The compact one lives in the mobile header, where it is a thumb
-           * rather than a cursor doing the tapping. It was 30x32, which is
-           * under every touch-target guideline and noticeably fiddly on the
-           * narrowest of the three. 44px square is what the rest of the app
-           * uses for anything you press, and there is room: the three of them
-           * take 132px of a 375px header, which holds nothing else.
-           */
-          className={`text-xs transition-colors ${
-            compact ? "grid h-11 w-11 place-items-center text-sm" : "flex-1 px-2.5 py-2"
-          } ${
+          className={`flex-1 px-2.5 py-2 text-xs transition-colors ${
             choice === option.value
               ? "bg-surface-2 text-foreground"
               : "text-muted hover:text-foreground"

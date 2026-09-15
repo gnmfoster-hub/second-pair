@@ -98,6 +98,30 @@ export function PaymentModel({
         </label>
       )}
 
+      {/*
+       * The fallback with nowhere to fall to.
+       *
+       * On the per-person model the owner usually connects their own Stripe
+       * from the list below and reads that as the business being connected.
+       * It is not — the business account is a separate connection — so the
+       * switch above was on, said "take it into the business account", and
+       * everybody without an account of their own still could not be paid.
+       */}
+      {model === "people" && fallback && !connected && (
+        <p className="mt-2 rounded-lg bg-warn/10 px-3 py-2 text-sm text-warn">
+          <strong>The business has no Stripe account of its own yet</strong>, so that switch has
+          nowhere to send the money and anybody without their own account still cannot be paid.{" "}
+          {canConnect ? (
+            <a href="/api/stripe/connect/start" className="underline">
+              Connect the business&rsquo;s Stripe
+            </a>
+          ) : (
+            "Connect one under Taking the money, further down."
+          )}
+          {" "}&mdash; it can be the same Stripe account as your own.
+        </p>
+      )}
+
       <label className="mt-4 flex items-start gap-2.5 text-sm">
         <input type="checkbox" name="takes_payments" defaultChecked={takesPayments} className="mt-0.5" />
         <span>
