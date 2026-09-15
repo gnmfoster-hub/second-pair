@@ -247,7 +247,8 @@ export async function recordSale(_prev: SellState, fd: FormData): Promise<SellSt
       const left = item?.stock as number | null | undefined;
       if (left == null) continue;
 
-      await supabase
+      // The shop's shelf, which only the owner may write to; checked above.
+      await money
         .from("services")
         .update({ stock: Math.max(0, left - line.quantity) })
         .eq("id", line.serviceId)
@@ -268,7 +269,7 @@ export async function recordSale(_prev: SellState, fd: FormData): Promise<SellSt
    * something anybody has to decide about at the counter. The sale is already
    * recorded by this point either way.
    */
-  if (contactId) await sendPaymentReceipt(supabase, payment.id);
+  if (contactId) await sendPaymentReceipt(money, payment.id);
 
   revalidatePath("/diary");
   revalidatePath("/clients");

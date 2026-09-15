@@ -323,7 +323,7 @@ export function toolDefinitions(
      * tool refuses, so handing it over invites the assistant to promise a
      * payment it cannot take.
      */
-    ...(stripeConfigured() && effectiveDepositMode(studio) !== "none"
+    ...(stripeConfigured() && effectiveDepositMode(studio, offerable) !== "none"
       ? [
           {
             name: "send_deposit_link",
@@ -1311,7 +1311,8 @@ async function makeBooking(
    * what a business that does not take deposits already does. Better a firm
    * booking than a held one nobody can release.
    */
-  const canTakeMoney = readyForRealMoney(ctx.studio);
+  // Into whoever is doing it, on a business that pays each person.
+  const canTakeMoney = readyForRealMoney(ctx.studio, artist);
   const takesDeposit = ctx.studio.deposit_mode !== "none" && canTakeMoney;
 
   const result = await createBooking({
@@ -1447,7 +1448,8 @@ async function sendDepositLink(ctx: ToolContext): Promise<ToolOutcome> {
    * its own — the assistant may decide to send a link for a booking made
    * earlier, and by then the reasoning above has been left behind.
    */
-  if (!readyForRealMoney(ctx.studio)) {
+  const doingIt = ctx.artists.find((a) => a.id === booking.artist_id) ?? null;
+  if (!readyForRealMoney(ctx.studio, doingIt)) {
     return {
       result:
         "This business cannot take payments yet, so there is no link to send. The " +

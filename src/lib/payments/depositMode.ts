@@ -18,16 +18,51 @@
 
 export type DepositMode = "required" | "optional" | "none";
 
-/** Only the two fields this decision turns on, so it can be tested on its own. */
+/** Only the fields this decision turns on, so it can be tested on its own. */
 export type TakesDeposits = {
   deposit_mode: DepositMode;
   stripe_account_id: string | null;
+  payment_model?: "business" | "people" | null;
+  payment_fallback?: boolean | null;
 };
 
-/** True once deposits would actually reach the business rather than the platform. */
-export const readyForRealMoney = (studio: TakesDeposits) =>
-  Boolean(studio.stripe_account_id);
+/** A person, as far as where their money goes. */
+export type DepositPerson = {
+  stripe_account_id?: string | null;
+  takes_deposits?: boolean | null;
+};
 
-export function effectiveDepositMode(studio: TakesDeposits): DepositMode {
-  return readyForRealMoney(studio) ? studio.deposit_mode : "none";
+/**
+ * True once a deposit would actually reach somebody's own account.
+ *
+ * On a business paid as one, that is the business's account. On a business
+ * where each person is paid into their own, it is that person's — or the
+ * business's, if the owner chose to catch payments for people without one.
+ * Asked about nobody in particular, it is whether anybody at all could be paid.
+ *
+ * This used to look only at the business's account, so a salon of chair
+ * renters, each with Stripe connected and the shop with none, took no
+ * deposits at all — and one with the shop connected sent every renter's
+ * deposit to the owner.
+ */
+export function readyForRealMoney(
+  studio: TakesDeposits,
+  person?: DepositPerson | null,
+  people: DepositPerson[] = [],
+): boolean {
+  const business = Boolean(studio.stripe_account_id);
+  if (studio.payment_model !== "people") return business;
+
+  const fallback = studio.payment_fallback === true && business;
+  const own = (p: DepositPerson) => p.takes_deposits !== false && Boolean(p.stripe_account_id);
+
+  if (person) return (person.takes_deposits !== false && fallback) || own(person);
+  return fallback || people.some(own);
+}
+
+export function effectiveDepositMode(
+  studio: TakesDeposits,
+  people: DepositPerson[] = [],
+): DepositMode {
+  return readyForRealMoney(studio, null, people) ? studio.deposit_mode : "none";
 }

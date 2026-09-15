@@ -109,6 +109,23 @@ export async function askForPayment(
   if (contactId && !contact) return { error: "That client is not in this business." };
 
   /*
+   * And the appointment, the same way.
+   *
+   * The id rides on the Stripe link and comes back on the webhook, which
+   * writes to that booking with the admin client. Unchecked, a booking id
+   * from anywhere would have been touched on payment.
+   */
+  if (bookingId) {
+    const { data: ours } = await supabase
+      .from("bookings")
+      .select("id, artists!inner(studio_id)")
+      .eq("id", bookingId)
+      .eq("artists.studio_id", studio.id)
+      .maybeSingle();
+    if (!ours) return { error: "That appointment is not in this business." };
+  }
+
+  /*
    * The row first, then the link.
    *
    * Deliberately this way round. The link carries the row's id back on the

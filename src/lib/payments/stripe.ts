@@ -104,6 +104,11 @@ export async function createDepositCheckout(args: {
   heldUntil: string | null;
   origin: string;
   clientEmail?: string | null;
+  /**
+   * Whose account it goes into, when that is not simply the business's — a
+   * person paid into their own. Worked out by whoTakes, never by the caller.
+   */
+  account?: string | null;
 }): Promise<DepositCheckout> {
   const {
     studio,
@@ -118,7 +123,7 @@ export async function createDepositCheckout(args: {
 
   if (amountPence <= 0) throw new Error("Deposit amount must be greater than zero.");
 
-  const connected = studio.stripe_account_id;
+  const connected = args.account ?? studio.stripe_account_id;
 
   /*
    * No connected account, no charge.
@@ -182,21 +187,47 @@ export async function createDepositCheckout(args: {
   return { url: session.url, sessionId: session.id, platformHeld: false };
 }
 
-/** The URL of a checkout session, if it is still open and payable. */
-export async function retrieveOpenCheckout(
+export type CheckoutState =
+  | { state: "open"; url: string }
+  | { state: "paid" }
+  | { state: "gone" };
+
+/**
+ * Where a checkout session has got to.
+ *
+ * This only ever answered "is it open", so a session that had already been
+ * paid read the same as one that had expired — and the short link made a new
+ * checkout for it. A customer who paid, saw "confirming your payment", and
+ * tapped the link in the chat again while they waited was charged twice.
+ */
+export async function checkoutState(
   studio: Studio,
   sessionId: string,
-): Promise<string | null> {
+  account?: string | null,
+): Promise<CheckoutState> {
+  const on = account ?? studio.stripe_account_id;
   try {
     const session = await stripe(modeFor(studio)).checkout.sessions.retrieve(
       sessionId,
       undefined,
-      studio.stripe_account_id ? { stripeAccount: studio.stripe_account_id } : undefined,
+      on ? { stripeAccount: on } : undefined,
     );
-    return session.status === "open" && session.url ? session.url : null;
+    if (session.status === "complete" || session.payment_status === "paid") return { state: "paid" };
+    if (session.status === "open" && session.url) return { state: "open", url: session.url };
+    return { state: "gone" };
   } catch {
-    return null;
+    return { state: "gone" };
   }
+}
+
+/** The URL of a checkout session, if it is still open and payable. */
+export async function retrieveOpenCheckout(
+  studio: Studio,
+  sessionId: string,
+  account?: string | null,
+): Promise<string | null> {
+  const now = await checkoutState(studio, sessionId, account);
+  return now.state === "open" ? now.url : null;
 }
 
 /*

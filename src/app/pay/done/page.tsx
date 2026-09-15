@@ -28,10 +28,15 @@ export const dynamic = "force-dynamic";
 export default async function PaymentDonePage({
   searchParams,
 }: {
-  searchParams: Promise<{ booking?: string; payment?: string }>;
+  searchParams: Promise<{ booking?: string; payment?: string; tries?: string }>;
 }) {
-  const { booking: bookingId, payment: paymentId } = await searchParams;
+  const params = await searchParams;
+  const uuid = (v?: string) => (v && /^[0-9a-f-]{36}$/i.test(v) ? v : undefined);
+  const bookingId = uuid(params.booking);
+  const paymentId = uuid(params.payment);
+  const tries = Math.max(0, Number(params.tries) || 0);
   const db = createAdminClient();
+  let found = false;
 
   let kind: "deposit" | "payment" = "deposit";
   let paid = false;
@@ -54,6 +59,7 @@ export default async function PaymentDonePage({
       .maybeSingle();
 
     if (payment) {
+      found = true;
       const studio = payment.studios as {
         name: string;
         slug: string;
@@ -96,6 +102,7 @@ export default async function PaymentDonePage({
       .select("starts_at, deposit_status, deposit_amount_pence, artists(studios(name, slug, timezone, vertical, vocabulary))")
       .eq("id", bookingId)
       .maybeSingle();
+    found = Boolean(data);
     paid = data?.deposit_status === "paid";
     amount = data?.deposit_amount_pence ?? 0;
     startsAt = (data?.starts_at as string | null) ?? null;
@@ -125,7 +132,25 @@ export default async function PaymentDonePage({
   let heading: string;
   let body: string;
 
-  if (!paid) {
+  /*
+   * Nothing to wait for.
+   *
+   * A link with a missing or mistyped id found no row, read as "not paid yet",
+   * and refreshed every four seconds for as long as the tab was open. And a
+   * genuine payment whose confirmation is slow stops asking after a minute
+   * rather than spinning for ever.
+   */
+  const giveUp = !found || tries >= 15;
+
+  if (!found) {
+    heading = "We could not find that payment";
+    body =
+      "The link may be incomplete. If you have paid, your card statement will show it and the business will have a record — nothing more is needed from you.";
+  } else if (!paid && giveUp) {
+    heading = "Still being confirmed";
+    body =
+      "The payment provider has not confirmed it yet. If your card was charged it has gone through, and you will hear from the business — there is no need to pay again.";
+  } else if (!paid) {
     heading = "Confirming your payment";
     body =
       "Your card has gone through to the payment provider and this page is waiting for them to confirm it. It usually takes a few seconds and updates by itself.";
@@ -144,10 +169,15 @@ export default async function PaymentDonePage({
   return (
     <div className="grid min-h-screen place-items-center px-6 text-center">
       {/* Look again every few seconds until Stripe has confirmed it. */}
-      {!paid && <meta httpEquiv="refresh" content="4" />}
+      {!paid && !giveUp && (
+        <meta
+          httpEquiv="refresh"
+          content={`4;url=/pay/done?${paymentId ? `payment=${paymentId}` : `booking=${bookingId}`}&tries=${tries + 1}`}
+        />
+      )}
       <div className="max-w-sm">
         <div className="text-3xl" aria-hidden>
-          {paid ? "✓" : "⏳"}
+          {paid ? "✓" : giveUp ? "·" : "⏳"}
         </div>
         <h1 className="mt-4 text-lg font-semibold tracking-tight">{heading}</h1>
         <p className="hint mt-2">{body}</p>

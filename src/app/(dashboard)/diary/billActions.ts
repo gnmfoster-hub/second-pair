@@ -240,7 +240,8 @@ export async function takePayment(_prev: BillState, fd: FormData): Promise<BillS
       const left = item?.stock as number | null | undefined;
       if (left == null) continue;
 
-      await supabase
+      // The shop's shelf, which only the owner may write to; checked above.
+      await money
         .from("services")
         .update({ stock: Math.max(0, left - line.quantity) })
         .eq("id", line.serviceId)
@@ -249,7 +250,7 @@ export async function takePayment(_prev: BillState, fd: FormData): Promise<BillS
   }
 
   // Silent where they have no address, which is most walk-ins.
-  if (contactId) await sendPaymentReceipt(supabase, payment.id as string);
+  if (contactId) await sendPaymentReceipt(money, payment.id as string);
 
   revalidatePath("/diary");
   revalidatePath("/clients");

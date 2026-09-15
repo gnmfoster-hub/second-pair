@@ -1,3 +1,4 @@
+import { notifyStudio } from "@/lib/notify";
 import { NextResponse, type NextRequest } from "next/server";
 import type Stripe from "stripe";
 import { stripe, type StripeMode } from "@/lib/payments/stripe";
@@ -172,6 +173,19 @@ export async function POST(request: NextRequest) {
       if (!bookingId) break;
 
       /*
+       * Only a deposit says anything about the booking.
+       *
+       * A balance paid by link after the appointment carries the booking's id
+       * too, so it can be found from the client's record — and it fell through
+       * to here, where it marked the deposit paid, sent the customer a second
+       * "you're booked" email with a calendar invite, and told the owner about
+       * a new booking that was months old. The payment row above is the whole
+       * of what a balance means.
+       */
+      const kind = session.metadata?.kind;
+      if (paymentId && kind !== "deposit") break;
+
+      /*
        * Claimed once, and only once.
        *
        * Stripe retries a webhook whenever it does not get a clean answer
@@ -196,6 +210,8 @@ export async function POST(request: NextRequest) {
         })
         .eq("id", bookingId)
         .neq("deposit_status", "paid")
+        // A booking that was cancelled while they were paying stays cancelled.
+        .is("cancelled_at", null)
         .select("id");
 
       /*
@@ -208,8 +224,40 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Could not record" }, { status: 500 });
       }
 
-      // Already done by an earlier delivery of this same event.
-      if (!claimed?.length) break;
+      if (!claimed?.length) {
+        /*
+         * Either an earlier delivery already did all this, or they paid for a
+         * slot that had gone — the hold ran out or it was cancelled while the
+         * checkout was open. The second is money taken for nothing, and the
+         * owner is the only person who can refund it or book them back in.
+         */
+        const { data: gone } = await db
+          .from("bookings")
+          .select("cancelled_at, artists(studio_id)")
+          .eq("id", bookingId)
+          .maybeSingle();
+        const goneStudio = (gone as { artists?: { studio_id?: string } | null } | null)?.artists
+          ?.studio_id;
+        if (gone?.cancelled_at && goneStudio) {
+          await notifyStudio(db, goneStudio, {
+            title: "Paid for a slot that had gone",
+            body:
+              "A customer paid a deposit after their held slot was released. Book them back in or refund it in Stripe.",
+            url: conversationId ? `/conversations/${conversationId}` : "/diary",
+            tag: `paid-cancelled-${bookingId}`,
+          });
+          if (conversationId) {
+            await db.from("messages").insert({
+              conversation_id: conversationId,
+              role: "system",
+              content:
+                "They paid the deposit after the held slot had been released. Book them back in, or refund it in Stripe.",
+            });
+            await db.from("conversations").update({ status: "needs_human" }).eq("id", conversationId);
+          }
+        }
+        break;
+      }
 
       /*
        * A deposit is a transaction too, and it was in no ledger of ours.
@@ -289,11 +337,15 @@ export async function POST(request: NextRequest) {
        * unable to throw: an email that does not send must never be the reason
        * Stripe retries a payment that has already gone through.
        */
-      await sendBookingConfirmation(db, bookingId);
+      // A deposit asked for later, on a booking that already stood, confirms
+      // nothing new — the customer already has their confirmation.
+      if (!paymentId) {
+        await sendBookingConfirmation(db, bookingId);
 
-      // The deposit landing is the moment the held slot becomes a booking, so
-      // it is the moment the business hears about it — and the only one.
-      await alertNewBooking(db, bookingId);
+        // The deposit landing is the moment the held slot becomes a booking, so
+        // it is the moment the business hears about it — and the only one.
+        await alertNewBooking(db, bookingId);
+      }
       break;
     }
 
@@ -332,6 +384,8 @@ export async function POST(request: NextRequest) {
 
       const bookingId = session.metadata?.booking_id;
       if (!bookingId) break;
+      // A balance link going stale says nothing about the booking's deposit.
+      if (expiredPayment && session.metadata?.kind !== "deposit") break;
 
       // Put it back to unpaid so the hold sweep can release the slot.
       await db
@@ -361,6 +415,19 @@ export async function POST(request: NextRequest) {
        */
       const intent =
         typeof charge.payment_intent === "string" ? charge.payment_intent : null;
+
+      /*
+       * Only a refund of the whole thing is a refund.
+       *
+       * Stripe sends this for a partial refund too, and it marked the whole
+       * payment refunded — £10 back on a £100 colour took £100 off the week.
+       * A partial one is left as paid and logged; the business can see the
+       * detail in Stripe, and overstating by £10 is the smaller wrong.
+       */
+      if (charge.amount_refunded < charge.amount) {
+        console.log("[stripe] partial refund left as paid", intent, charge.amount_refunded, charge.amount);
+        break;
+      }
 
       if (intent) {
         const { error } = await db

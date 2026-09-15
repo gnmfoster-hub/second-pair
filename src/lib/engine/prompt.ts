@@ -74,7 +74,7 @@ export function studioSystemPrompt(
   // What would happen if a customer tried to pay, not what the settings ask
   // for. A business that has switched deposits on without finishing Stripe
   // takes none, and the assistant should not be describing one.
-  const depositMode = effectiveDepositMode(studio);
+  const depositMode = effectiveDepositMode(studio, active);
 
   /*
    * Length, on the one channel where length is charged for.
