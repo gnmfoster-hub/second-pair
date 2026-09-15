@@ -21,6 +21,20 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 const SEPARATOR = ".";
 
+/**
+ * The cookie holding the nonce of the connection being made.
+ *
+ * The signed state proves which business a callback is for; it does not prove
+ * it is the same browser that started. Without that, an owner could be handed
+ * an authorise link and, by approving it, attach their own Stripe or Facebook
+ * page to somebody else's business. Written when the flow starts, checked when
+ * it comes back, and cleared either way.
+ *
+ * Lax rather than strict: the browser is arriving back from Stripe's domain,
+ * and a strict cookie is not sent on that navigation at all.
+ */
+export const CONNECT_NONCE_COOKIE = "sp_connect_nonce";
+
 export type ConnectState = {
   /** Which business is connecting. */
   studio: string;

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireStudio } from "@/lib/studio";
 import { createClient } from "@/lib/supabase/server";
-import { signState, newNonce, authoriseUrl } from "@/lib/payments/connect";
+import { signState, newNonce, authoriseUrl, CONNECT_NONCE_COOKIE } from "@/lib/payments/connect";
 import { modeFor, secretFor, connectClientIdFor } from "@/lib/payments/stripe";
 
 export const runtime = "nodejs";
@@ -78,17 +78,18 @@ export async function GET(request: NextRequest) {
     name = me.name as string;
   }
 
+  const nonce = newNonce();
   const state = signState(
     {
       studio: studio.id,
       ...(artistId ? { artist: artistId } : {}),
-      nonce: newNonce(),
+      nonce,
       at: Date.now(),
     },
     secret,
   );
 
-  return NextResponse.redirect(
+  const away = NextResponse.redirect(
     authoriseUrl({
       clientId,
       redirectUri: new URL("/api/stripe/connect/callback", request.url).toString(),
@@ -97,6 +98,17 @@ export async function GET(request: NextRequest) {
       businessName: name,
     }),
   );
+
+  // Ties the connection to this browser; the callback refuses anything else.
+  away.cookies.set(CONNECT_NONCE_COOKIE, nonce, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 15 * 60,
+  });
+
+  return away;
 }
 
 function back(request: NextRequest, why: string, to = "/settings") {

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { readState } from "@/lib/payments/connect";
+import { readState, CONNECT_NONCE_COOKIE } from "@/lib/payments/connect";
 import { secretFor, type StripeMode } from "@/lib/payments/stripe";
 
 export const runtime = "nodejs";
@@ -46,6 +46,24 @@ export async function GET(request: NextRequest) {
   }
 
   const home = state?.artist ? "/settings/you" : "/settings";
+
+  /*
+   * The same browser that started it.
+   *
+   * The signed state says which business the callback is for and nothing about
+   * who is finishing it — so an owner sent an authorise link by somebody else
+   * could, by approving it, attach their own Stripe account to that person's
+   * business. The nonce written when the flow started has to come back in the
+   * cookie with it.
+   */
+  if (state) {
+    const started = request.cookies.get(CONNECT_NONCE_COOKIE)?.value;
+    if (!started || started !== state.nonce) {
+      const refused = back(request, "wrong-browser", home);
+      refused.cookies.delete(CONNECT_NONCE_COOKIE);
+      return refused;
+    }
+  }
 
   /*
    * Stripe saying no, which is not the same as somebody saying no.
@@ -162,5 +180,8 @@ function back(request: NextRequest, why: string, to = "/settings", detail?: stri
   url.searchParams.set("stripe", why);
   // Stripe's own words, where it gave any. Trimmed: it is shown, not stored.
   if (detail) url.searchParams.set("detail", detail.slice(0, 200));
-  return NextResponse.redirect(url);
+  const answer = NextResponse.redirect(url);
+  // The flow is over, whichever way it went.
+  answer.cookies.delete(CONNECT_NONCE_COOKIE);
+  return answer;
 }

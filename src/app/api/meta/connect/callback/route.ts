@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { readState, accountsFrom, type ConnectedAccount } from "@/lib/messaging/metaConnect";
+import { CONNECT_NONCE_COOKIE } from "@/lib/payments/connect";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,6 +34,10 @@ export async function GET(request: NextRequest) {
 
   const state = readState(params.get("state") ?? "", secret);
   if (!state) return done(request, "expired");
+
+  // Finished in the browser that started it, or not at all.
+  const started = request.cookies.get(CONNECT_NONCE_COOKIE)?.value;
+  if (!started || started !== state.nonce) return done(request, "wrong-browser");
 
   const code = params.get("code");
   if (!code) return done(request, "no-code");
@@ -148,5 +153,8 @@ async function store(studioId: string, accounts: ConnectedAccount[]) {
 function done(request: NextRequest, outcome: string) {
   const url = new URL("/settings/install", request.url);
   url.searchParams.set("meta", outcome);
-  return NextResponse.redirect(url);
+  const answer = NextResponse.redirect(url);
+  // However it went, the flow is finished with.
+  answer.cookies.delete(CONNECT_NONCE_COOKIE);
+  return answer;
 }

@@ -40,6 +40,10 @@ const OUTCOMES: Record<string, { tone: "ok" | "warn"; text: string }> = {
     tone: "warn",
     text: "That took too long, or the link was tampered with. Press connect again.",
   },
+  "wrong-browser": {
+    tone: "warn",
+    text: "That connection was started somewhere else, so nothing was changed. Press connect on this device and follow it through here.",
+  },
   "no-pages": {
     tone: "warn",
     text: "Facebook did not offer a Page. You need a Facebook Page, and an Instagram Professional account linked to it.",

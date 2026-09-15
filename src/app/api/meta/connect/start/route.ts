@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireStudio } from "@/lib/studio";
 import { createClient } from "@/lib/supabase/server";
+import { CONNECT_NONCE_COOKIE } from "@/lib/payments/connect";
 import { signState, newNonce, authoriseUrl } from "@/lib/messaging/metaConnect";
 
 export const runtime = "nodejs";
@@ -47,11 +48,24 @@ export async function GET(request: NextRequest) {
    * signing — it never leaves the server, and it is already required for this
    * to work at all.
    */
-  const state = signState({ studioId, nonce: newNonce(), at: Date.now() }, secret);
+  const nonce = newNonce();
+  const state = signState({ studioId, nonce, at: Date.now() }, secret);
 
-  return NextResponse.redirect(
+  const away = NextResponse.redirect(
     authoriseUrl({ appId, redirectUri: redirectUri(request), state }),
   );
+
+  // And to this browser, so an authorise link passed to somebody else cannot
+  // attach their pages to this business.
+  away.cookies.set(CONNECT_NONCE_COOKIE, nonce, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 15 * 60,
+  });
+
+  return away;
 }
 
 export function redirectUri(request: NextRequest): string {

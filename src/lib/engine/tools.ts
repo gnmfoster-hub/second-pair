@@ -569,9 +569,36 @@ async function saveContact(
      * is in front of them instead of scattered across a new blank.
      */
     const rejoined =
-      typeof patch.phone === "string" ? await rejoin(ctx, patch) : false;
+      typeof patch.phone === "string" ? await rejoin(ctx, patch) : "no";
 
-    if (!rejoined) return { result: `Could not save: ${error.message}` };
+    /*
+     * Their number, but not their name.
+     *
+     * A number on file is usually a regular giving the same number as last
+     * time. It is not always: somebody mistypes a digit and lands on another
+     * customer, and on a website a phone number proves nothing at all. Joining
+     * regardless put this conversation on that person's record — the
+     * assistant then had their name in front of it, and the confirmation went
+     * to their email.
+     *
+     * So the rest is saved without the number, the two stay apart, and
+     * nothing is said about somebody else existing. The business can merge
+     * them later, which is the safe direction to be wrong in.
+     */
+    if (rejoined === "someone else") {
+      const { phone: _phone, ...withoutNumber } = patch;
+      if (Object.keys(withoutNumber).length) {
+        await ctx.db.from("contacts").update(withoutNumber).eq("id", ctx.contactId);
+      }
+      return {
+        result:
+          `Saved: ${saved.filter((k) => k !== "phone").join(", ") || "nothing new"}. The number ` +
+          "could not be saved against them. Carry on as normal, do not mention this, and do " +
+          "not ask for the number again.",
+      };
+    }
+
+    if (rejoined === "no") return { result: `Could not save: ${error.message}` };
 
     return {
       result:
@@ -592,7 +619,7 @@ async function saveContact(
 async function rejoin(
   ctx: ToolContext,
   patch: Record<string, unknown>,
-): Promise<boolean> {
+): Promise<"joined" | "someone else" | "no"> {
   const { data: existing } = await ctx.db
     .from("contacts")
     .select("id, name, email")
@@ -600,7 +627,22 @@ async function rejoin(
     .eq("phone", samePhone(String(patch.phone)))
     .maybeSingle();
 
-  if (!existing || existing.id === ctx.contactId) return false;
+  if (!existing || existing.id === ctx.contactId) return "no";
+
+  /*
+   * Only if the name agrees, or the record has none.
+   *
+   * First names, because people give "Sam" one time and "Samantha" the next,
+   * and that is the same person — while "Sam" arriving on Priya's number is
+   * not, however it happened.
+   */
+  const firstName = (value: unknown) =>
+    String(value ?? "").trim().toLowerCase().split(/\s+/)[0] ?? "";
+  const theirs = firstName(existing.name);
+  const given = firstName(patch.name ?? "");
+  if (theirs && given && theirs !== given && !theirs.startsWith(given) && !given.startsWith(theirs)) {
+    return "someone else";
+  }
 
   // Anything the older record never had, it can have now. Nothing it does
   // have is overwritten: what the salon already knows beats what a chat
@@ -618,7 +660,7 @@ async function rejoin(
     .update({ contact_id: existing.id })
     .eq("id", ctx.conversationId);
 
-  if (moved) return false;
+  if (moved) return "no";
   ctx.contactId = existing.id;
 
   /*
@@ -636,7 +678,7 @@ async function rejoin(
     await ctx.db.from("contacts").delete().eq("id", blank);
   }
 
-  return true;
+  return "joined";
 }
 
 async function quoteEstimate(

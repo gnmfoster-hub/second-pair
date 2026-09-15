@@ -41,6 +41,14 @@ const OUTCOMES: Record<string, { tone: "ok" | "warn"; text: string }> = {
     tone: "warn",
     text: "Card payments are not switched on at our end yet. This one is on Second Pair, not on you.",
   },
+  /*
+   * The connection came back to a different browser from the one that started
+   * it — usually an authorise link that has been passed on to somebody else.
+   */
+  "wrong-browser": {
+    tone: "warn",
+    text: "That connection was started somewhere else, so nothing was changed. Press connect on this device and follow it through here.",
+  },
   "not-in-the-diary": {
     tone: "warn",
     text: "Your sign-in is not linked to one of the team, so there are no takings of your own for an account to receive.",
