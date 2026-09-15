@@ -82,6 +82,9 @@ export function Console({
         <h1 className="page-title">Second Pair</h1>
         <span className="hint">the business behind the businesses</span>
         <div className="ml-auto flex items-center gap-2">
+          <Link href="/admin/reports" className="btn-ghost">
+            Reports
+          </Link>
           <button
             type="button"
             onClick={() => setAdding((a) => !a)}
