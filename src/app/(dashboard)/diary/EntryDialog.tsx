@@ -289,6 +289,34 @@ export function EntryDialog({
     if (state.ok) onClose();
   }, [state.ok, onClose]);
 
+  const categoryPicker = (
+          <Field label="What is it">
+            <div className="flex flex-wrap gap-1.5">
+              {(existing ? CATEGORIES : OWNER_CATEGORIES).map((c) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  onClick={() => chooseCategory(c.key)}
+                  className={`rounded-full px-3 py-1 text-xs transition-colors ${
+                    category === c.key
+                      ? "text-white"
+                      : "border border-border text-muted hover:text-foreground"
+                  }`}
+                  style={category === c.key ? { background: c.hue } : undefined}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+            {chosen.hint && <p className="hint mt-2">{chosen.hint}</p>}
+            {!chosen.blocks && (
+              <p className="hint mt-1 text-warn">
+                A note only — the assistant can still book over this time.
+              </p>
+            )}
+          </Field>
+  );
+
   return asSheet(
     <div
       /*
@@ -511,6 +539,13 @@ export function EntryDialog({
           <input type="hidden" name="category" value={category} />
           <input type="hidden" name="all_day" value={allDay ? "true" : "false"} />
 
+          {/*
+            * For time off, a meeting or a delivery, what it is comes first —
+            * choosing Holiday is the whole point of opening the sheet, and it
+            * also makes it whole days with a from and a to.
+            */}
+          {!fromClient && !isClientWork && categoryPicker}
+
 
           {/*
            * Client work is for somebody; everything else is a title.
@@ -730,7 +765,7 @@ export function EntryDialog({
           <details
             className="sheet-wide rounded-xl border border-border px-3.5 py-2.5"
             open={Boolean(
-              entry?.notes || (entry?.repeats && entry.repeats !== "none") || !isClientWork,
+              entry?.notes || (entry?.repeats && entry.repeats !== "none"),
             )}
           >
             <summary className="cursor-pointer text-sm text-muted">Anything else</summary>
@@ -780,33 +815,7 @@ export function EntryDialog({
             * anything other than ordinary client work, because that is when
             * it is the thing being changed.
             */}
-          {!fromClient && (
-            <Field label="What is it">
-              <div className="flex flex-wrap gap-1.5">
-                {(existing ? CATEGORIES : OWNER_CATEGORIES).map((c) => (
-                  <button
-                    key={c.key}
-                    type="button"
-                    onClick={() => chooseCategory(c.key)}
-                    className={`rounded-full px-3 py-1 text-xs transition-colors ${
-                      category === c.key
-                        ? "text-white"
-                        : "border border-border text-muted hover:text-foreground"
-                    }`}
-                    style={category === c.key ? { background: c.hue } : undefined}
-                  >
-                    {c.label}
-                  </button>
-                ))}
-              </div>
-              {chosen.hint && <p className="hint mt-2">{chosen.hint}</p>}
-              {!chosen.blocks && (
-                <p className="hint mt-1 text-warn">
-                  A note only — the assistant can still book over this time.
-                </p>
-              )}
-            </Field>
-          )}
+          {!fromClient && isClientWork && categoryPicker}
 
 
           <Field label="Notes" hint="Only you see these.">
