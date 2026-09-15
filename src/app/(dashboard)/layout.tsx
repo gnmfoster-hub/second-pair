@@ -18,6 +18,7 @@ import { signOut } from "./actions";
 import { MobileAccount } from "@/components/MobileAccount";
 import { HelpButton } from "@/components/HelpButton";
 import { AdminLink } from "@/components/AdminLink";
+import { SetupReturn } from "@/components/SetupReturn";
 import { inboxScope, scopedTo } from "@/lib/inboxScope";
 import { wordsFor, capital } from "@/lib/words";
 
@@ -204,6 +205,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
          * clients are the business owners.
          */}
         <HelpButton slug={supportSlug} />
+
+        {/* A way back to the walk-through from wherever a step sent them. */}
+        <SetupReturn />
 
         {/* The padding keeps the last row clear of the tab bar. */}
         <main className="min-w-0 flex-1 pb-24 md:pb-0">{children}</main>

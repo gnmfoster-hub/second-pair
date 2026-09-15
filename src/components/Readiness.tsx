@@ -53,8 +53,14 @@ export function Readiness({ capabilities }: { capabilities: Capability[] }) {
               ? "Your assistant is not ready yet"
               : "Your assistant could do more"}
         </h2>
-        <span className="hint num">
-          {ready}/{capabilities.length} working
+        <span className="flex items-baseline gap-3">
+          <span className="hint num">
+            {ready}/{capabilities.length} working
+          </span>
+          {/* The same list as a walk-through, in the order to do it in. */}
+          <Link href="/setup" className="text-sm font-medium text-accent hover:underline">
+            {settingUp ? "Walk me through it" : "See set-up"}
+          </Link>
         </span>
       </div>
 
