@@ -399,9 +399,9 @@ export default async function DiaryPage({
     bookingIds.length
       ? supabase
           .from("payments")
-          .select("booking_id, gross_pence")
+          .select("booking_id, gross_pence, kind")
           .in("booking_id", bookingIds)
-          .in("kind", ["product", "payment"])
+          .in("kind", ["product", "payment", "deposit"])
           .eq("status", "paid")
       : Promise.resolve({ data: null }),
   ]);
@@ -458,9 +458,13 @@ export default async function DiaryPage({
    */
   const soldOn = new Map<string, number>();
 
+  // Deposits kept apart: they are money in advance for the work, not extra taken.
+  const depositOn = new Map<string, number>();
+
   for (const row of sold ?? []) {
     const id = row.booking_id as string;
-    soldOn.set(id, (soldOn.get(id) ?? 0) + ((row.gross_pence as number) ?? 0));
+    const into = row.kind === "deposit" ? depositOn : soldOn;
+    into.set(id, (into.get(id) ?? 0) + ((row.gross_pence as number) ?? 0));
   }
 
   const entries: Entry[] = ((data ?? []) as unknown as RawRow[])
@@ -480,6 +484,16 @@ export default async function DiaryPage({
       deposit_amount_pence: r.deposit_amount_pence,
       price_pence: r.price_pence,
       soldPence: soldOn.get(r.id) ?? null,
+      /*
+       * What was paid up front, so closing it off asks for the rest.
+       *
+       * From the ledger, or — for a deposit taken before deposits were written
+       * to it — from the booking itself. Anything added by hand is marked paid
+       * with nothing due, which reads as nought.
+       */
+      depositPaidPence:
+        depositOn.get(r.id) ??
+        (r.deposit_status === "paid" && r.deposit_amount_pence > 0 ? r.deposit_amount_pence : null),
       // Either route: a conversation's contact, or one attached by hand.
       clientName: r.enquiries?.conversations?.contacts?.name ?? r.contacts?.name ?? null,
       clientPhone: r.enquiries?.conversations?.contacts?.phone ?? r.contacts?.phone ?? null,
@@ -587,6 +601,7 @@ export default async function DiaryPage({
             price_pence: null,
             // Nor has anybody sold a bottle of anything at a dentist appointment.
             soldPence: null,
+            depositPaidPence: null,
             quotePence: null,
             repeats: "none",
             job_address: null,

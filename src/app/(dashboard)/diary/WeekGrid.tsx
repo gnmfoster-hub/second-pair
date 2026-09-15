@@ -64,6 +64,8 @@ export type Entry = {
    * somebody and charging the same customer twice for the same conditioner.
    */
   soldPence: number | null;
+  /** A deposit already paid for this appointment, taken off the bill at Complete. */
+  depositPaidPence?: number | null;
   /**
    * What the client told the assistant, for the person turning up.
    *

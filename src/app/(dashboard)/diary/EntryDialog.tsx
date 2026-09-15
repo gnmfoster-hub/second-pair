@@ -483,6 +483,7 @@ export function EntryDialog({
               travels={travels}
               words={words}
               alreadyPence={entry.soldPence}
+              depositPence={entry.depositPaidPence ?? 0}
               bookedMinutes={Math.round(
                 (Date.parse(entry.ends_at) - Date.parse(entry.starts_at)) / 60000,
               )}

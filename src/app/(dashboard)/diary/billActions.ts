@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { siteOrigin } from "@/lib/origin";
 import { createPaymentLink } from "@/lib/payments/link";
 import { buildBill, readMethod, linesFromForm, penceOf } from "@/lib/sales";
+import { formatPence } from "@/lib/money";
 import { hasColumn } from "@/lib/db/hasColumn";
 import { sendPaymentReceipt } from "@/lib/messaging/receipt";
 import { linkRoutes } from "../payLinkActions";
@@ -71,12 +72,34 @@ export async function takePayment(_prev: BillState, fd: FormData): Promise<BillS
    */
   const { data: booking } = await supabase
     .from("bookings")
-    .select("id, artist_id, contact_id, title, price_pence, artists!inner(studio_id)")
+    .select("id, artist_id, contact_id, title, price_pence, deposit_status, deposit_amount_pence, artists!inner(studio_id)")
     .eq("id", bookingId)
     .eq("artists.studio_id", studio.id)
     .maybeSingle();
 
   if (!booking) return { error: "That appointment is not in this diary." };
+
+  /*
+   * What was paid up front, which this bill is not asked for again.
+   *
+   * Worked out here rather than taken from the screen, because this is the
+   * number that decides what the card is charged. From the ledger, or from the
+   * booking for a deposit taken before deposits were written to it.
+   */
+  const { data: deposits } = await money
+    .from("payments")
+    .select("gross_pence")
+    .eq("studio_id", studio.id)
+    .eq("booking_id", bookingId)
+    .eq("kind", "deposit")
+    .eq("status", "paid");
+  const fromLedger = (deposits ?? []).reduce((sum, d) => sum + ((d.gross_pence as number) ?? 0), 0);
+  const depositPaid =
+    fromLedger > 0
+      ? fromLedger
+      : booking.deposit_status === "paid" && (booking.deposit_amount_pence as number) > 0
+        ? (booking.deposit_amount_pence as number)
+        : 0;
 
   const workPence = penceOf(str(fd, "work"));
   const workName = str(fd, "work_name") || (booking.title as string) || "Appointment";
@@ -97,8 +120,9 @@ export async function takePayment(_prev: BillState, fd: FormData): Promise<BillS
   if (!bill.ok) return { error: bill.because };
 
   const lines = bill.lines;
-  const total = bill.totalPence;
   const products = { lines: lines.filter((l) => l.serviceId != null) };
+  // What is actually being taken today: the bill, less anything paid up front.
+  const total = Math.max(0, bill.totalPence - depositPaid);
 
   /*
    * Whose takings it is: the chair the appointment sits in, not whoever
@@ -108,7 +132,10 @@ export async function takePayment(_prev: BillState, fd: FormData): Promise<BillS
   const artistId = (booking.artist_id as string | null) ?? null;
   const contactId = (booking.contact_id as string | null) ?? null;
 
-  const description = bill.description;
+  const description =
+    depositPaid > 0
+      ? `${bill.description} (less ${formatPence(Math.min(depositPaid, bill.totalPence))} deposit)`
+      : bill.description;
 
   // The diary and the till agree about what this appointment cost.
   if (charging && workPence !== booking.price_pence) {
@@ -117,6 +144,12 @@ export async function takePayment(_prev: BillState, fd: FormData): Promise<BillS
 
   const method = str(fd, "method");
   const asLink = method === "link";
+
+  // The deposit covered all of it: nothing to take, nothing to record twice.
+  if (total <= 0) {
+    revalidatePath("/diary");
+    return { ok: true, total: 0 };
+  }
 
   const { data: payment, error } = await money
     .from("payments")
@@ -153,14 +186,29 @@ export async function takePayment(_prev: BillState, fd: FormData): Promise<BillS
    */
   if (await hasColumn(supabase, "payment_items", "unit_pence")) {
     const { error: lineError } = await money.from("payment_items").insert(
-      lines.map((l, i) => ({
-        payment_id: payment.id,
-        service_id: l.serviceId,
-        name: l.name,
-        quantity: l.quantity,
-        unit_pence: l.unitPence,
-        sort_order: i,
-      })),
+      [
+        ...lines.map((l, i) => ({
+          payment_id: payment.id,
+          service_id: l.serviceId,
+          name: l.name,
+          quantity: l.quantity,
+          unit_pence: l.unitPence,
+          sort_order: i,
+        })),
+        // Said on the receipt, so the lines adding up to more than was paid makes sense.
+        ...(depositPaid > 0
+          ? [
+              {
+                payment_id: payment.id,
+                service_id: null,
+                name: `Deposit already paid (${formatPence(Math.min(depositPaid, bill.totalPence))})`,
+                quantity: 1,
+                unit_pence: 0,
+                sort_order: lines.length,
+              },
+            ]
+          : []),
+      ],
     );
 
     if (lineError) {

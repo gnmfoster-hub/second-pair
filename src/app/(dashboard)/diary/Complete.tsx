@@ -48,6 +48,7 @@ export function Complete({
   travels = false,
   words,
   alreadyPence,
+  depositPence = 0,
   bookedMinutes,
   startOpen = false,
   onCancel,
@@ -72,6 +73,8 @@ export function Complete({
   words: Words;
   /** What has already been taken at this appointment. */
   alreadyPence: number | null;
+  /** Paid up front for this appointment, so only the rest is asked for. */
+  depositPence?: number;
   bookedMinutes: number;
   /** Straight to the questions, when the appointment already offered the button. */
   startOpen?: boolean;
@@ -339,8 +342,32 @@ export function Complete({
 
           <div className="flex items-baseline justify-between border-t border-border pt-3">
             <span className="label">Total</span>
-            <span className="text-xl font-semibold tabular-nums">{formatPence(total)}</span>
+            <span className={`tabular-nums ${depositPence > 0 ? "text-sm" : "text-xl font-semibold"}`}>
+              {formatPence(total)}
+            </span>
           </div>
+
+          {/*
+            * The deposit, taken off.
+            *
+            * A £100 colour with £30 paid when it was booked showed £100 here,
+            * and the button took £100. Unless somebody remembered, the client
+            * paid the deposit twice.
+            */}
+          {depositPence > 0 && (
+            <>
+              <div className="-mt-2 flex items-baseline justify-between text-sm text-muted">
+                <span>Deposit already paid</span>
+                <span className="tabular-nums">−{formatPence(Math.min(depositPence, total))}</span>
+              </div>
+              <div className="flex items-baseline justify-between">
+                <span className="label">Left to pay</span>
+                <span className="text-xl font-semibold tabular-nums">
+                  {formatPence(Math.max(0, total - depositPence))}
+                </span>
+              </div>
+            </>
+          )}
 
           {/* How long it really took — useful, never required, so folded. */}
           <details>
