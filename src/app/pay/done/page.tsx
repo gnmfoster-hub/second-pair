@@ -105,6 +105,7 @@ export default async function PaymentDonePage({
         month: "long",
         hour: "numeric",
         minute: "2-digit",
+        hour12: true,
       }).format(new Date(upcoming))
     : null;
 
