@@ -32,25 +32,23 @@ than breaking.
 Everything here is something I cannot do from this side. Roughly in the order
 it is holding something up.
 
-### 0. Fix the Stripe client ID — Connect cannot work until this is done
+### 0. Connect Stripe on the demo once more, and tell me what it says
 
-Pressing Connect shows `No application matches the supplied client identifier`.
-Checked with Stripe directly: it rejects the client ID on the site. The secret
-key belongs to the sandbox **"Giles Foster Apps sandbox"**
-(`acct_1UA9ENE4qSj2bjI0`), and a sandbox has its own client ID.
+The client ID is fixed — Stripe now accepts it. The last attempt never reached
+Stripe's "authorised" step (no connected account appeared), and the return page
+used to hide why. It now shows **"Stripe said: …"** under the message.
 
-1. Stripe dashboard → switch to **Giles Foster Apps sandbox** (account menu,
-   top left) — the ID must come from the same place as the key
-2. Settings → Connect → Onboarding options → **OAuth**
-3. Switch OAuth **on** for Standard accounts if it is off
-4. Add the redirect URI exactly:
-   `https://www.second-pair.com/api/stripe/connect/callback`
-5. Copy the client ID (starts `ca_`)
-6. Vercel → Environment Variables → replace `STRIPE_CONNECT_CLIENT_ID` → redeploy
-7. `node scripts/check-live.mjs` — it now asks Stripe and says yes or no
+1. Signed in as the Willow & Co **owner**: Settings → Getting paid → **Connect Stripe**
+2. On Stripe's sandbox page press **Skip this form** (top of the page) — do not
+   fill in real details
+3. You should land back on Settings with **Connected**
+4. Diary → any appointment today or earlier → **Complete** → "Send a card link"
+   should now be there, for every stylist (demo falls back to the business account)
+5. If it is not Connected, copy the whole message, including "Stripe said", to me
 
-If there is no OAuth page, or it will not switch on, tell me: Stripe is moving
-new platforms to its newer hosted onboarding, and the fix is then on my side.
+If Stripe itself shows an error page about the redirect URI, check it is listed
+exactly: `https://www.second-pair.com/api/stripe/connect/callback`
+(sandbox → Settings → Connect → Onboarding options → OAuth).
 
 ### 1. Put a test Stripe account on the demo (30 seconds, after step 0)
 
