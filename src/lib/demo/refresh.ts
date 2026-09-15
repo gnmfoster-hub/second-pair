@@ -594,6 +594,8 @@ export async function refreshDemo(db: Db, studioId: string): Promise<DemoRefresh
     .update({ deposit_mode: "optional", takes_payments: true, payment_fallback: true })
     .eq("id", studio.id);
 
+  await ensureDemoPriceList(db, studio.id);
+
   // ------------------------------------------------------- the shelf
   /*
    * Things the shop itself sells, as against one person's own.
@@ -1296,4 +1298,36 @@ async function buildSales(
 function shelfItem(i: number): { name: string; pence: number } {
   const [name, pence] = SHELF[i % SHELF.length];
   return { name, pence };
+}
+
+/**
+ * Every name the demo books is on its price list.
+ *
+ * The diary was filled from its own list of work — "Full head colour",
+ * "Restyle", "Toner" — which was never on the salon's price list, so nothing
+ * on the demo's diary was a real service: Complete could not pick what they
+ * had, "the usual" had nothing to point at, and a form needed before a colour
+ * could never be asked for. Adding the missing names makes the demo behave
+ * like a salon that set itself up properly. Nothing already there is changed.
+ */
+export async function ensureDemoPriceList(db: Db, studioId: string): Promise<number> {
+  const { data: existing } = await db.from("services").select("name").eq("studio_id", studioId);
+  const have = new Set((existing ?? []).map((r) => String(r.name).trim().toLowerCase()));
+  const wanted = new Map<string, [number, number]>();
+  for (const [name, minutes, pence] of [...WORK, ...USUAL]) {
+    if (!wanted.has(name)) wanted.set(name, [minutes, pence]);
+  }
+  const rows = [...wanted.entries()]
+    .filter(([name]) => !have.has(name.toLowerCase()))
+    .map(([name, [minutes, pence]], i) => ({
+      studio_id: studioId,
+      name,
+      kind: "service",
+      minutes,
+      price_pence: pence,
+      sort_order: 100 + i,
+    }));
+  if (!rows.length) return 0;
+  const { error } = await db.from("services").insert(rows);
+  return error ? 0 : rows.length;
 }
