@@ -192,7 +192,15 @@ export async function probeClientIdMatchesKey(
   clientId: string | undefined,
   secret: string | undefined,
 ): Promise<boolean | null> {
-  if (!clientId || !secret) return false;
+  return (await probeClientIdAgainstKey(clientId, secret)).matches;
+}
+
+/** The same question, with Stripe's own sentence kept for whoever is fixing it. */
+export async function probeClientIdAgainstKey(
+  clientId: string | undefined,
+  secret: string | undefined,
+): Promise<{ matches: boolean | null; said: string | null }> {
+  if (!clientId || !secret) return { matches: false, said: null };
 
   try {
     const res = await fetch("https://connect.stripe.com/oauth/deauthorize", {
@@ -204,17 +212,18 @@ export async function probeClientIdMatchesKey(
       body: new URLSearchParams({ client_id: clientId, stripe_user_id: "acct_1SecondPairProbe0" }),
       signal: AbortSignal.timeout(8000),
     });
-    if (res.status >= 500) return null;
-
     const body = (await res.json().catch(() => ({}))) as { error?: string; error_description?: string };
-    const said = `${body.error ?? ""} ${body.error_description ?? ""}`;
+    const said = `${body.error ?? ""}: ${body.error_description ?? ""}`.slice(0, 200);
+    if (res.status >= 500) return { matches: null, said };
 
-    if (/no such application|does not belong|no application matches/i.test(said)) return false;
+    if (/no such application|does not belong|no application matches/i.test(said)) {
+      return { matches: false, said };
+    }
     // Refused over the account, which means the application itself was fine.
-    if (/account/i.test(said)) return true;
-    return null;
+    if (/account|user/i.test(said)) return { matches: true, said };
+    return { matches: null, said };
   } catch {
-    return null;
+    return { matches: null, said: null };
   }
 }
 

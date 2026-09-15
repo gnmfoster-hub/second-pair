@@ -239,7 +239,11 @@ if (!env.CRON_SECRET) {
           `The key belongs to "${can.payments.keyAccount ?? "unknown"}". Somebody can fill in ` +
             "Stripe's whole form and then fail with \"Authorization code provided does not " +
             "belong to you\". Take the client id from that same account: switch to it, then " +
-            "Settings → Connect → Onboarding options → OAuth.",
+            "Settings → Connect → Onboarding options → OAuth. " +
+            `The site has the id ending "${can.payments.clientIdEnds ?? "?"}"` +
+            (can.payments.clientIdPadded ? " (with a stray space or quote around it)" : "") +
+            ` — compare that with the dashboard. Stripe said: ${can.payments.pairingSaid ?? "nothing"}. ` +
+            "A changed Vercel variable only arrives with a Redeploy.",
         );
       } else if (can.payments?.canConnect) {
         pass(

@@ -3,7 +3,7 @@ import { emailConfigured, probeEmail } from "@/lib/messaging/email";
 import { smsConfigured, probeSms } from "@/lib/messaging/sms";
 import { hasAnthropicEnv, canConnectStripe } from "@/lib/env";
 import { testModeReady } from "@/lib/payments/stripe";
-import { probeClientId, probeClientIdMatchesKey, keyAccountName } from "@/lib/payments/connect";
+import { probeClientId, probeClientIdAgainstKey, keyAccountName } from "@/lib/payments/connect";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -75,15 +75,16 @@ export async function GET(request: NextRequest) {
    * day a business pressed Connect and got a black page saying no application
    * matched.
    */
-  const [clientIdAccepted, clientIdMatchesKey, keyAccount] = await Promise.all([
+  const [clientIdAccepted, pairing, keyAccount] = await Promise.all([
     probeClientId(process.env.STRIPE_CONNECT_CLIENT_ID),
     /*
      * And whether the id and the key are the same Stripe's — the fault that
      * only showed itself after somebody had filled in Stripe's whole form.
      */
-    probeClientIdMatchesKey(process.env.STRIPE_CONNECT_CLIENT_ID, process.env.STRIPE_SECRET_KEY),
+    probeClientIdAgainstKey(process.env.STRIPE_CONNECT_CLIENT_ID, process.env.STRIPE_SECRET_KEY),
     keyAccountName(process.env.STRIPE_SECRET_KEY),
   ]);
+  const clientIdMatchesKey = pairing.matches;
 
   return NextResponse.json({
     /*
@@ -149,6 +150,17 @@ export async function GET(request: NextRequest) {
       clientIdMatchesKey,
       /** The name of the Stripe the secret key belongs to — a name, not the key. */
       keyAccount,
+      /*
+       * The last six characters of the client id, to hold up against the one
+       * in Stripe's dashboard. A client id is not a secret — it sits in the
+       * address bar of every Connect link — and "did the new one actually
+       * reach the build" is otherwise unanswerable from outside.
+       */
+      clientIdEnds: process.env.STRIPE_CONNECT_CLIENT_ID?.trim().slice(-6) ?? null,
+      /** Whether the value carries stray spaces or quotes from being pasted. */
+      clientIdPadded: (process.env.STRIPE_CONNECT_CLIENT_ID ?? "") !== (process.env.STRIPE_CONNECT_CLIENT_ID ?? "").trim().replace(/^["']|["']$/g, ""),
+      /** What Stripe answered when asked whether the id and key go together. */
+      pairingSaid: pairing.said,
       /** The only one worth reading on its own: can a business connect today. */
       canConnect:
         canConnectStripe() && clientIdAccepted !== false && clientIdMatchesKey !== false,
