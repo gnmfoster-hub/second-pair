@@ -324,12 +324,28 @@ export function ChatWindow({
 
       setStarted(true);
 
+      /*
+       * The answer to what they actually asked, first.
+       *
+       * A first message with a photo on it takes the branch below, and that
+       * branch used to return — so the reply to the message itself, and any
+       * prices or times it came with, were thrown away and the customer saw
+       * only the answer about the photo.
+       */
+      if (data.reply) {
+        setLines((l) => [
+          ...l,
+          { from: "studio", text: data.reply, moments: data.moments, at: Date.now() },
+        ]);
+        window.parent?.postMessage({ secondPair: "reply" }, "*");
+      }
+
       // Images picked before the conversation existed go up now, and the studio
       // is told about them on the next turn.
       if (attached.length && media.length === 0) {
         const late = await upload(attached);
         if (late.length) {
-          await fetch("/api/widget/chat", {
+          const second = await fetch("/api/widget/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -339,26 +355,22 @@ export function ChatWindow({
               media: late,
               with: forArtistId,
             }),
-          }).then(async (r) => {
-            const d = await r.json();
-            if (r.ok && d.reply) {
-              setLines((l) => [...l, { from: "studio", text: d.reply, at: Date.now() }]);
-              window.parent?.postMessage({ secondPair: "reply" }, "*");
-            }
           });
+          const d = await second.json().catch(() => null);
+          if (!second.ok || !d) {
+            setError("Your photo reached them, but there was no answer. Try again in a moment.");
+          } else if (d.reply) {
+            setLines((l) => [
+              ...l,
+              { from: "studio", text: d.reply, moments: d.moments, at: Date.now() },
+            ]);
+            window.parent?.postMessage({ secondPair: "reply" }, "*");
+          }
           return;
         }
       }
 
-      if (data.reply) {
-        setLines((l) => [
-          ...l,
-          { from: "studio", text: data.reply, moments: data.moments, at: Date.now() },
-        ]);
-        // Tells the launcher on the host page that something arrived, so a
-        // closed widget can show an unread dot instead of sitting silent.
-        window.parent?.postMessage({ secondPair: "reply" }, "*");
-      } else if (data.paused) {
+      if (!data.reply && data.paused) {
         setHandedOver(true);
         setLines((l) => [
           ...l,
@@ -379,16 +391,54 @@ export function ChatWindow({
   async function upload(files: File[]): Promise<string[]> {
     const paths: string[] = [];
     for (const file of files) {
+      const smaller = await shrink(file);
       const form = new FormData();
       form.append("studio", slug);
       form.append("session", session.current);
-      form.append("file", file);
+      form.append("file", smaller);
       const response = await fetch("/api/widget/upload", { method: "POST", body: form });
-      const data = await response.json();
-      if (response.ok) paths.push(data.path);
-      else setError(data.error ?? "That photo would not upload.");
+      /*
+       * A photo too big for the hosting never reaches our own route, so what
+       * comes back is not JSON at all. Reading it as JSON threw, which the
+       * caller caught as "could not reach them" — and the customer's message,
+       * already shown with a tick, had in fact been sent perfectly well.
+       */
+      const data = await response.json().catch(() => null);
+      if (response.ok && data?.path) paths.push(data.path);
+      else if (response.status === 413) setError("That photo is too big — try a smaller one.");
+      else setError(data?.error ?? "That photo would not upload, but your message went.");
     }
     return paths;
+  }
+
+  /**
+   * A phone photo is several megabytes and nothing here needs that.
+   *
+   * Shrunk in the browser to something that always fits, so a modern phone's
+   * camera does not put the message over the size the hosting will carry.
+   * Anything that is not an image, or that will not draw, is sent untouched.
+   */
+  async function shrink(file: File): Promise<File> {
+    if (!file.type.startsWith("image/") || file.type === "image/gif") return file;
+    if (file.size < 900_000) return file;
+    try {
+      const bitmap = await createImageBitmap(file);
+      const longest = Math.max(bitmap.width, bitmap.height);
+      const scale = Math.min(1, 1600 / longest);
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(bitmap.width * scale);
+      canvas.height = Math.round(bitmap.height * scale);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return file;
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise<Blob | null>((done) =>
+        canvas.toBlob(done, "image/jpeg", 0.82),
+      );
+      if (!blob || blob.size >= file.size) return file;
+      return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+    } catch {
+      return file;
+    }
   }
 
   return (
@@ -754,6 +804,8 @@ export function ChatWindow({
           <textarea
             value={draft}
             rows={1}
+            // Named, because a placeholder is not a label to a screen reader.
+            aria-label="Your message"
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {

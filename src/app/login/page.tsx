@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { safeNext } from "@/lib/safeNext";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
 
@@ -36,6 +37,18 @@ const FRIENDLY: Record<string, string> = {
 
 export default function LoginPage() {
   const router = useRouter();
+  /*
+   * Where they were going before they were asked to sign in.
+   *
+   * An invitation says "sign in instead" and links here with the invite in
+   * `next`. This page ignored it and went home, so somebody already on one
+   * business who was invited to a second signed in, landed in their own
+   * dashboard, and was never added to the new one at all.
+   */
+  const [query] = useState(() =>
+    typeof window === "undefined" ? new URLSearchParams() : new URLSearchParams(window.location.search),
+  );
+  const goingTo = safeNext(query.get("next"));
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -45,6 +58,18 @@ export default function LoginPage() {
   const [sent, setSent] = useState<"reset" | "confirm" | null>(null);
 
   const say = (message: string) => FRIENDLY[message] ?? message;
+
+  /*
+   * Why they are back here.
+   *
+   * auth/callback sends somebody whose link has run out to /login?error=auth,
+   * and this page said nothing at all — so an expired invitation or reset
+   * link looked like the site having forgotten them.
+   */
+  const bounced =
+    query.get("error") === "auth"
+      ? "That link has expired or has already been used. Sign in below, or ask for a new one."
+      : null;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -62,7 +87,7 @@ export default function LoginPage() {
       if (error) setError(say(error.message));
       else {
         router.refresh();
-        router.push("/");
+        router.push(goingTo);
       }
     } else {
       /*
@@ -127,6 +152,10 @@ export default function LoginPage() {
         * it collects half-finished accounts on mistyped addresses and gives
         * anybody who wanders in the impression they have started something.
         */}
+
+      {bounced && (
+        <p className="mt-4 rounded-lg bg-warn/10 px-3 py-2 text-sm text-warn">{bounced}</p>
+      )}
 
       <form onSubmit={submit} className="mt-5 space-y-3.5">
         <div>
@@ -242,6 +271,21 @@ export default function LoginPage() {
           className="hint mt-2 inline-flex min-h-11 items-center underline underline-offset-2 hover:text-foreground"
         >
           Forgotten your password?
+        </button>
+      )}
+
+      {/* And a way back, which was a page reload before. */}
+      {mode === "forgot" && (
+        <button
+          type="button"
+          onClick={() => {
+            setMode("signin");
+            setError("");
+            setSent(null);
+          }}
+          className="hint mt-2 inline-flex min-h-11 items-center underline underline-offset-2 hover:text-foreground"
+        >
+          Back to signing in
         </button>
       )}
 

@@ -72,3 +72,24 @@ export async function submitForm(_prev: SignState, fd: FormData): Promise<SignSt
 
   return { done: true };
 }
+
+/**
+ * Somebody has actually opened it.
+ *
+ * Marked from the page itself, not from the request that served it: every
+ * message app fetches a link to draw its preview, so an owner saw "opened"
+ * before the customer had so much as looked at their phone — and then read
+ * their silence as ignoring it.
+ *
+ * Never fails loudly. Being unsure whether a form was opened is a small thing
+ * next to an error on a page somebody is trying to sign.
+ */
+export async function markOpened(token: string): Promise<void> {
+  if (!/^[A-Za-z0-9_-]{16,128}$/.test(token)) return;
+  const db = createAdminClient();
+  await db
+    .from("client_forms")
+    .update({ status: "opened", opened_at: new Date().toISOString() })
+    .eq("token", token)
+    .eq("status", "sent");
+}

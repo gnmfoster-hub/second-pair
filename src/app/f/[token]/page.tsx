@@ -33,14 +33,11 @@ export default async function FormPage({ params }: { params: Promise<{ token: st
   const gone = !form || form.status === "void";
   const expired = Boolean(form?.expires_at && hasPassed(form.expires_at as string) && form.status !== "signed");
 
-  // The first time it is opened, so the business can see it was.
-  if (form && form.status === "sent" && !expired) {
-    await db
-      .from("client_forms")
-      .update({ status: "opened", opened_at: new Date().toISOString() })
-      .eq("id", form.id)
-      .eq("status", "sent");
-  }
+  /*
+   * Marking it opened happens in the browser (see FillForm), because every
+   * messaging app fetches the link to draw a preview and each of those looked
+   * like the customer opening it.
+   */
 
   return (
     <main className="min-h-screen bg-background px-4 py-8">
@@ -57,7 +54,7 @@ export default async function FormPage({ params }: { params: Promise<{ token: st
           </Notice>
         ) : expired ? (
           <Notice heading="This link has run out">
-            Links last thirty days. Ask {business ?? "the business"} to send it again.
+            Ask {business ?? "the business"} to send it again.
           </Notice>
         ) : (
           <>

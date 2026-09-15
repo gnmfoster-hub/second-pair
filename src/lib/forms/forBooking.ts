@@ -36,7 +36,7 @@ export async function formForBooking(
 
     const { data: theirs } = await db
       .from("client_forms")
-      .select("id, contact_id, template_id, status, signed_at, created_at, token")
+      .select("id, contact_id, template_id, status, signed_at, created_at, token, expires_at")
       .eq("studio_id", args.studioId)
       .eq("contact_id", args.contactId);
 
@@ -49,8 +49,22 @@ export async function formForBooking(
     if (!need || need.state === "signed") return null;
 
     if (need.state === "waiting") {
-      const existing = (theirs ?? []).find((f) => f.id === need.formId);
-      if (existing?.token) return { name: need.name, url: `${args.origin}/f/${existing.token}` };
+      /*
+       * The link they already have, as long as it has a week left on it.
+       *
+       * A form sent forty days ago is still "waiting", and sending its link
+       * again hands the customer a page that says the link has run out — at
+       * the exact moment they have just booked and are willing to fill it in.
+       * A fresh one is made below instead.
+       */
+      const existing = (theirs ?? []).find((f) => f.id === need.formId) as
+        | { token?: string | null; expires_at?: string | null }
+        | undefined;
+      const lastsLongEnough =
+        !existing?.expires_at || Date.parse(existing.expires_at) > Date.now() + 7 * 86_400_000;
+      if (existing?.token && lastsLongEnough) {
+        return { name: need.name, url: `${args.origin}/f/${existing.token}` };
+      }
     }
 
     const template = (templateRows ?? []).find((t) => t.id === need.templateId);

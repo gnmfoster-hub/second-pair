@@ -349,16 +349,32 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
    * it arrived, minutes ago, and writing it again would show the customer
    * saying the same thing twice in their own transcript.
    */
+  /*
+   * Photos this conversation actually uploaded, and no others.
+   *
+   * The paths come back from the browser, and anything in the list was
+   * recorded and later turned into a viewable link with the server's own
+   * access. They are uploaded under studio/conversation, so that is what is
+   * required — a path from anywhere else is dropped rather than kept.
+   *
+   * A text or a Meta message carries a link to the platform's own copy
+   * instead, which is a full URL, so those are left alone.
+   */
+  const ours = `${studio.id}/${conversation.id}/`;
+  const mediaUrls = (input.mediaUrls ?? []).filter(
+    (m) => /^https?:\/\//i.test(m) || m.startsWith(ours),
+  );
+
   if (!input.released) {
     await db.from("messages").insert({
       conversation_id: conversation.id,
       role: "client",
       content: input.message,
-      media_urls: input.mediaUrls ?? [],
+      media_urls: mediaUrls,
     });
   }
 
-  if (input.mediaUrls?.length) {
+  if (mediaUrls.length) {
     const { data: current } = await db
       .from("enquiries")
       .select("reference_urls")
@@ -366,7 +382,7 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
       .single();
     await db
       .from("enquiries")
-      .update({ reference_urls: [...(current?.reference_urls ?? []), ...input.mediaUrls] })
+      .update({ reference_urls: [...(current?.reference_urls ?? []), ...mediaUrls] })
       .eq("id", enquiryId);
   }
 

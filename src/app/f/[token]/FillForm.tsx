@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
-import { submitForm, type SignState } from "./actions";
+import { markOpened, submitForm, type SignState } from "./actions";
 import { detailKey, type Block } from "@/lib/forms/blocks";
 import { formatPence } from "@/lib/money";
 
@@ -14,6 +14,16 @@ import { formatPence } from "@/lib/money";
  * have to scroll back through.
  */
 export function FillForm({ token, blocks, business }: { token: string; blocks: Block[]; business: string }) {
+  /*
+   * Say it was opened, from the browser that opened it.
+   *
+   * The server used to mark it while rendering, which counts every preview
+   * fetched by WhatsApp, iMessage or Outlook as the customer looking.
+   */
+  useEffect(() => {
+    void markOpened(token);
+  }, [token]);
+
   const [state, action, pending] = useActionState<SignState, FormData>(submitForm, {});
   const [yes, setYes] = useState<Record<string, boolean>>({});
   const top = useRef<HTMLDivElement>(null);
@@ -231,11 +241,37 @@ function SignatureBox() {
     c.addEventListener("pointermove", move);
     c.addEventListener("pointerup", up);
     c.addEventListener("pointerleave", up);
+
+    /*
+     * Turning the phone resizes the box, and the canvas keeps the old one.
+     *
+     * The drawing surface is set once from the width at the time, so signing
+     * in portrait and then turning the phone left the strokes offset from the
+     * finger — signed, and looking nothing like the signature. Sized again on
+     * a rotate, which clears it, so it is done before rather than during.
+     */
+    const resize = () => {
+      if (c.offsetWidth * ratio === c.width) return;
+      c.width = c.offsetWidth * ratio;
+      c.height = c.offsetHeight * ratio;
+      const again = c.getContext("2d");
+      if (again) {
+        again.scale(ratio, ratio);
+        again.lineWidth = 2.2;
+        again.lineCap = "round";
+        again.lineJoin = "round";
+        again.strokeStyle = "#17150f";
+      }
+      setData("");
+    };
+    window.addEventListener("resize", resize);
+
     return () => {
       c.removeEventListener("pointerdown", down);
       c.removeEventListener("pointermove", move);
       c.removeEventListener("pointerup", up);
       c.removeEventListener("pointerleave", up);
+      window.removeEventListener("resize", resize);
     };
   }, []);
 
