@@ -16,12 +16,8 @@ Last updated: 15 September 2026.
 
 # Migrations
 
-**One waiting:** `20260916150000_weekly_report_email.sql` — the switch for the
-Monday report email, and the date it last went. Until it is run the switch says
-it needs an update and nothing is sent.
-
-`20260916090000_forms.sql`, `20260915080000_prefers.sql` and
-`20260914220000_inbound_log.sql` are run.
+**None waiting.** All run and checked, the last being
+`20260916150000_weekly_report_email.sql` on 16 September.
 
 When one is waiting it will be named here. Until it is run the product keeps
 working without it — everything new is written so the deploy and the migration
@@ -240,8 +236,7 @@ You sent a test to it. Confirm it arrived at the Second Pair address.
 ### 11. The slow ones
 
 - **Meta verification** — weeks, and cannot be hurried. Steps below.
-- **ICO registration** — £52 a year. You are processing personal data on behalf
-  of other businesses, so it is not optional.
+- **ICO registration** — done: ZC241583, from 7 September 2026.
 
 `EMAIL_FROM` has come off this list: it is set on Vercel and the live check
 confirms mail sends from your own domain. `INTEREST_EMAIL` is not worth a line
