@@ -32,28 +32,19 @@ than breaking.
 Everything here is something I cannot do from this side. Roughly in the order
 it is holding something up.
 
-### 0. Stripe on the demo: one thing left to check
+### 0. Stripe on the demo — working end to end
 
-**Working now**, all on Second Pair LTD sandbox: the key, the Connect client
-ID and a Connect webhook I created (`we_1UFurI…`, three payment events). Sarah
-on the demo has her own Stripe connected. Completing her appointment by link
-makes a £95 link into her account in under two seconds, and the link can be
-texted or emailed from the same screen (on the demo it says what it would send
-and sends nothing).
+Second Pair LTD sandbox holds the key, the Connect client ID and the payments
+webhook ("Second Pair payments (connected accounts)", secret ending `PQeJ`).
+Proven on 15 September: Sarah connected her own Stripe, a £55 link was paid
+with a test card, Stripe's message reached the site and the payment is marked
+paid with Stripe's fee (£1.93) and take-home (£53.07).
 
-**Not yet proven: Stripe telling the site a payment happened.** The site
-accepts a correctly signed event (tested with a real one), but Stripe itself
-still lists its four "expired" events as undelivered after several minutes.
+Optional tidy-up in Stripe: delete the Thin destination called **"Webhook
+endpoint"**. Nothing uses it, and its secret is the wrong one to copy.
 
-1. Stripe (Second Pair LTD sandbox) → Workbench → **Webhooks** → the endpoint
-   `https://www.second-pair.com/api/stripe/webhook`
-2. Open **Event deliveries**: what response code does it show (200, 400, 401,
-   timeout)? Tell me.
-3. Then on your phone, as Sarah or the owner: Diary → an appointment of Sarah's
-   today → **Complete** → **Send a payment link** → **Open it here** → Card →
-   `4242 4242 4242 4242`, any future date, any CVC → Pay
-4. Back in the appointment it should say **Completed · £… taken** within a few
-   seconds. If it still says waiting, step 2 is why.
+When you go live, the same three things come from your real Stripe account in
+live mode — see the sheet below.
 
 ### 1b. Stripe, on the sheet
 
