@@ -65,8 +65,14 @@ export async function GET(request: NextRequest) {
     return back(request, "refused", home, detail);
   }
 
-  if (!secret) return back(request, "not-configured", home);
-  if (!code || !state) return back(request, "expired", home);
+  /*
+   * No secret at all is ours to fix; a secret that simply did not sign this
+   * state is a stale or altered link, and pressing connect again fixes it.
+   * These were one answer, so an expired link told the business card payments
+   * were not switched on — which was not true and not theirs to act on.
+   */
+  if (!secretFor("live") && !secretFor("test")) return back(request, "not-configured", home);
+  if (!secret || !code || !state) return back(request, "expired", home);
 
   let accountId: string;
   try {
