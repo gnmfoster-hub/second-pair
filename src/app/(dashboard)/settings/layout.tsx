@@ -94,6 +94,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
         {owns && <TabLink href="/settings/artists">{title(words.practitioners)}</TabLink>}
         {owns && <TabLink href="/settings/pricing">Pricing</TabLink>}
         {owns && <TabLink href="/settings/reminders">Reminders</TabLink>}
+        {owns && <TabLink href="/settings/forms">Forms</TabLink>}
         {owns && <TabLink href="/settings/faqs">FAQs</TabLink>}
         {owns && <TabLink href="/settings/install">Channels</TabLink>}
         <TabLink href="/settings/data">Your data</TabLink>

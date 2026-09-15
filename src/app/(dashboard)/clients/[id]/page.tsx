@@ -12,6 +12,7 @@ import { routesFor } from "@/lib/messaging/reach";
 import { connectedChannels } from "@/lib/messaging/connections";
 import { canMessage } from "@/lib/permissions";
 import { Forget } from "./Forget";
+import { FormsPanel } from "./FormsPanel";
 import { whoseClient } from "@/lib/whoseClient";
 import { Timings, type ClientTiming } from "./Timings";
 import type { Service } from "@/lib/types";
@@ -377,6 +378,17 @@ export default async function ClientPage({
                 .map((r) => ({ channel: r.channel, label: CHANNEL_LABELS[r.channel] }))}
             />
           </section>
+
+          {/* Consents, questionnaires and paper forms, kept with them. */}
+          <FormsPanel
+            studioId={studio.id}
+            contactId={contact.id}
+            firstName={(contact.name ?? "them").split(" ")[0]}
+            channels={routes
+              .filter((r) => r.open && (r.channel === "sms" || r.channel === "email"))
+              .map((r) => ({ channel: r.channel, label: r.channel === "sms" ? "Text" : "Email" }))}
+            mayMessage={mayMessage}
+          />
 
           {pricesByList && (
             <Timings

@@ -140,6 +140,19 @@ export async function forgetClient(_prev: ForgetState, fd: FormData): Promise<Fo
 
   const convIds = (convs ?? []).map((c) => c.id);
 
+  /*
+   * Their forms go with them: the rows by cascade when the contact is
+   * deleted, and the photographed paper forms here, because a file in
+   * storage is not a row and nothing would ever remove it.
+   */
+  const { data: paper } = await supabase
+    .from("client_forms")
+    .select("file_path")
+    .eq("contact_id", id)
+    .not("file_path", "is", null);
+  const paperFiles = (paper ?? []).map((f) => f.file_path as string).filter(Boolean);
+  if (paperFiles.length) await supabase.storage.from("forms").remove(paperFiles);
+
   if (convIds.length) {
     /*
      * The words go. Everything holding them is emptied and kept.

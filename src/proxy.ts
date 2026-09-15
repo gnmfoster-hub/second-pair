@@ -81,6 +81,8 @@ const PUBLIC_PATHS = [
    * went into somebody else's logs.
    */
   "/api/meta",
+  // A form sent to a customer, opened from a text or an email with its own private link.
+  "/f/",
 ];
 
 export async function proxy(request: NextRequest) {
