@@ -132,3 +132,41 @@ export function authoriseUrl({
 
   return url.toString();
 }
+
+/**
+ * Whether Stripe recognises a Connect client id, asked of Stripe.
+ *
+ * Health reported "businesses can connect their Stripe" off the variable merely
+ * being set, and on the day somebody pressed Connect it opened a black page
+ * reading `No application matches the supplied client identifier`. A value can
+ * be present and wrong in several ordinary ways — the live id next to a test
+ * key, an id from the main account next to a key from a sandbox, OAuth never
+ * switched on — and every one of them looks identical to "set" from here.
+ *
+ * So it follows the same authorise URL a business would be sent to and reads
+ * the answer. An unknown id redirects to a 400 with that exact message; a real
+ * one lands on Stripe's sign-in page. Nothing is created and nobody is
+ * connected — it is the first page of the flow, fetched and thrown away.
+ *
+ * Null when Stripe could not be reached to ask, which is not the same as no.
+ */
+export async function probeClientId(clientId: string | undefined): Promise<boolean | null> {
+  if (!clientId) return false;
+
+  try {
+    const url = new URL("https://connect.stripe.com/oauth/authorize");
+    url.searchParams.set("response_type", "code");
+    url.searchParams.set("scope", "read_write");
+    url.searchParams.set("client_id", clientId);
+
+    const res = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(8000) });
+    if (res.status >= 500) return null;
+
+    const body = await res.text();
+    if (/no application matches/i.test(body)) return false;
+
+    return res.status < 400;
+  } catch {
+    return null;
+  }
+}

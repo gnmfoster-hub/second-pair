@@ -226,6 +226,13 @@ if (!env.CRON_SECRET) {
       if (typeof can.payments === "boolean") {
         if (can.payments) pass("Stripe keys are set", "older build — connect not reported");
         else warn("Stripe is not set up", "Deposits cannot be taken.");
+      } else if (can.payments?.clientIdAccepted === false) {
+        fail(
+          "Stripe does not recognise STRIPE_CONNECT_CLIENT_ID",
+          "Pressing Connect opens a page saying no application matches. The id must come from " +
+            "the same Stripe account and mode as STRIPE_SECRET_KEY: Settings → Connect → " +
+            "Onboarding options → OAuth, with OAuth switched on.",
+        );
       } else if (can.payments?.canConnect) {
         pass("businesses can connect their Stripe");
 

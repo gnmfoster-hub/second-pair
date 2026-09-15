@@ -3,6 +3,7 @@ import { emailConfigured, probeEmail } from "@/lib/messaging/email";
 import { smsConfigured, probeSms } from "@/lib/messaging/sms";
 import { hasAnthropicEnv, canConnectStripe } from "@/lib/env";
 import { testModeReady } from "@/lib/payments/stripe";
+import { probeClientId } from "@/lib/payments/connect";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,6 +70,13 @@ export async function GET(request: NextRequest) {
    */
   const sms = await probeSms();
 
+  /*
+   * Asked of Stripe, for the reason the two above are: "set" said yes on the
+   * day a business pressed Connect and got a black page saying no application
+   * matched.
+   */
+  const clientIdAccepted = await probeClientId(process.env.STRIPE_CONNECT_CLIENT_ID);
+
   return NextResponse.json({
     /*
      * Which build is answering.
@@ -127,8 +135,10 @@ export async function GET(request: NextRequest) {
       secretKey: Boolean(process.env.STRIPE_SECRET_KEY),
       connectClientId: Boolean(process.env.STRIPE_CONNECT_CLIENT_ID),
       webhookSecret: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
+      /** Stripe's own answer about the client id. Null means it could not be asked. */
+      clientIdAccepted,
       /** The only one worth reading on its own: can a business connect today. */
-      canConnect: canConnectStripe(),
+      canConnect: canConnectStripe() && clientIdAccepted !== false,
       /*
        * Which Stripe the live keys are, and whether there is a sandbox beside
        * them for demos.
