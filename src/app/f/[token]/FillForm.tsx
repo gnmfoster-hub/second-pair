@@ -17,6 +17,7 @@ export function FillForm({ token, blocks, business }: { token: string; blocks: B
   const [state, action, pending] = useActionState<SignState, FormData>(submitForm, {});
   const [yes, setYes] = useState<Record<string, boolean>>({});
   const top = useRef<HTMLDivElement>(null);
+  const isQuote = blocks.some((b) => b.type === "lines");
 
   useEffect(() => {
     if (state.missing?.length || state.error) top.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -28,9 +29,10 @@ export function FillForm({ token, blocks, business }: { token: string; blocks: B
         <div className="text-3xl" aria-hidden>
           ✓
         </div>
-        <h2 className="mt-3 text-lg font-semibold">Thank you — that&rsquo;s done</h2>
+        <h2 className="mt-3 text-lg font-semibold">{isQuote ? "Thank you — quote accepted" : "Thank you — that’s done"}</h2>
         <p className="hint mt-2">
-          Your form has gone to {business}. You can close this page.
+          {isQuote ? `${business} has your acceptance and will be in touch.` : `Your form has gone to ${business}.`} You can
+          close this page.
         </p>
       </div>
     );
@@ -167,7 +169,7 @@ export function FillForm({ token, blocks, business }: { token: string; blocks: B
       ))}
 
       <button disabled={pending} className="btn w-full bg-accent py-3 text-base text-on-accent disabled:opacity-60">
-        {pending ? "Sending…" : "Submit"}
+        {pending ? "Sending…" : isQuote ? "Accept and sign" : "Submit"}
       </button>
       <p className="hint text-center text-xs">
         By submitting you confirm the answers are yours. {business} keeps this form with your record.

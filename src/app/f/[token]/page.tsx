@@ -66,7 +66,9 @@ export default async function FormPage({ params }: { params: Promise<{ token: st
               {(form.contacts as unknown as { name: string | null } | null)?.name
                 ? `For ${(form.contacts as unknown as { name: string }).name}. `
                 : ""}
-              Takes a couple of minutes. Your answers go privately to {business ?? "the business"}.
+              {(form.blocks as { type?: string }[] | null)?.some((b) => b?.type === "lines")
+                ? `Read it through, then accept and sign below.`
+                : `Takes a couple of minutes. Your answers go privately to ${business ?? "the business"}.`}
             </p>
             <FillForm token={token} blocks={cleanBlocks(form.blocks)} business={business ?? "the business"} />
           </>
