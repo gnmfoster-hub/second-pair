@@ -5,7 +5,7 @@ import { requireStudio } from "@/lib/studio";
 import { createClient } from "@/lib/supabase/server";
 import { siteOrigin } from "@/lib/origin";
 import { createPaymentLink } from "@/lib/payments/link";
-import { readSale, readMethod, linesFromForm, penceOf, type SaleLine } from "@/lib/sales";
+import { buildBill, readMethod, linesFromForm, penceOf } from "@/lib/sales";
 import { hasColumn } from "@/lib/db/hasColumn";
 import { sendPaymentReceipt } from "@/lib/messaging/receipt";
 
@@ -13,6 +13,8 @@ export type BillState = {
   error?: string;
   ok?: boolean;
   total?: number;
+  /** Set by completing: how it ended, for the screen that says so. */
+  completed?: "done" | "no-show";
   /** A link to show them, where that is how it is being taken. */
   url?: string;
 };
@@ -63,29 +65,25 @@ export async function takePayment(_prev: BillState, fd: FormData): Promise<BillS
 
   const workPence = penceOf(str(fd, "work"));
   const workName = str(fd, "work_name") || (booking.title as string) || "Appointment";
-
-  /*
-   * The work is optional on purpose.
-   *
-   * Somebody who paid their balance last week, or whose colour is on an
-   * account, is still buying a bottle on the way out — and a bill that
-   * insisted on charging for the appointment again would be the wrong answer
-   * given confidently.
-   */
   const charging = Number.isFinite(workPence) && workPence > 0;
 
-  const products = readSale(linesFromForm((k) => fd.get(k) as string | null));
-  if (!products.ok) return { error: products.because };
+  /*
+   * Built in lib/sales, where it is tested.
+   *
+   * This read the bottles with readSale, which refuses a sale with nothing in
+   * it — right at the till and exactly wrong here. Somebody has a colour, buys
+   * nothing else, pays: "Nothing has been added to this sale yet", every time,
+   * on the one path the close-out exists for.
+   */
+  const bill = buildBill({
+    work: charging ? { name: workName, pence: workPence } : null,
+    products: linesFromForm((k) => fd.get(k) as string | null),
+  });
+  if (!bill.ok) return { error: bill.because };
 
-  const lines: SaleLine[] = [
-    ...(charging
-      ? [{ serviceId: null, name: workName, quantity: 1, unitPence: workPence }]
-      : []),
-    ...products.lines,
-  ];
-
-  const total = lines.reduce((sum, l) => sum + l.quantity * l.unitPence, 0);
-  if (total <= 0) return { error: "There is nothing on this bill yet." };
+  const lines = bill.lines;
+  const total = bill.totalPence;
+  const products = { lines: lines.filter((l) => l.serviceId != null) };
 
   /*
    * Whose takings it is: the chair the appointment sits in, not whoever
@@ -95,9 +93,7 @@ export async function takePayment(_prev: BillState, fd: FormData): Promise<BillS
   const artistId = (booking.artist_id as string | null) ?? null;
   const contactId = (booking.contact_id as string | null) ?? null;
 
-  const description = lines
-    .map((l) => (l.quantity > 1 ? `${l.quantity} × ${l.name}` : l.name))
-    .join(", ");
+  const description = bill.description;
 
   // The diary and the till agree about what this appointment cost.
   if (charging && workPence !== booking.price_pence) {
@@ -239,4 +235,93 @@ export async function takePayment(_prev: BillState, fd: FormData): Promise<BillS
   if (contactId) revalidatePath(`/clients/${contactId}`);
 
   return { ok: true, total };
+}
+
+/**
+ * Completing an appointment: that it happened, what it came to, and the money
+ * — in one tap.
+ *
+ * Asked for repeatedly as "a complete button", and argued with, wrongly. The
+ * argument was that finishing is several facts — did they come, what did it
+ * cost, how was it paid — and one button would have to guess at them. True, and
+ * beside the point: nobody wanted one button that guessed. They wanted one
+ * place that asks, in order, and one tap at the end that does all of it,
+ * instead of three separate controls on a sheet that each saved something on
+ * their own and left the appointment half finished whenever somebody stopped
+ * after the second.
+ *
+ * So this is the whole close-out. A no-show is one fact and finishes there.
+ * Otherwise: marked as having come, the service and the price written back
+ * onto the appointment if they changed, how long it really took if somebody
+ * said, and then — unless it was already paid for — the bill, through exactly
+ * the same path as taking payment, so there is one way money is recorded and
+ * not two.
+ */
+export async function completeAppointment(
+  _prev: BillState,
+  fd: FormData,
+): Promise<BillState> {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  const bookingId = str(fd, "booking_id");
+  if (!bookingId) return { error: "No appointment." };
+
+  const { data: booking } = await supabase
+    .from("bookings")
+    .select("id, title, contact_id, artists!inner(studio_id)")
+    .eq("id", bookingId)
+    .eq("artists.studio_id", studio.id)
+    .maybeSingle();
+
+  if (!booking) return { error: "That appointment is not in this diary." };
+
+  const came = str(fd, "attended") !== "no";
+
+  if (!came) {
+    await supabase
+      .from("bookings")
+      .update({ attended: false, updated_at: new Date().toISOString() })
+      .eq("id", bookingId);
+
+    revalidatePath("/diary");
+    revalidatePath("/report");
+    return { ok: true, completed: "no-show", total: 0 };
+  }
+
+  /*
+   * What actually happened, written onto the appointment first.
+   *
+   * Before any money, so that an appointment which came and was not charged —
+   * a regular on an account, a freebie, a redo — is still closed off rather
+   * than left looking like nobody had dealt with it.
+   */
+  const patch: Record<string, unknown> = {
+    attended: true,
+    updated_at: new Date().toISOString(),
+  };
+
+  const minutes = Number(str(fd, "actual_minutes"));
+  if (Number.isFinite(minutes) && minutes > 0) patch.actual_minutes = Math.round(minutes);
+
+  // They had something other than what was booked — a cut that became a colour.
+  const workName = str(fd, "work_name");
+  if (workName && workName !== booking.title) patch.title = workName;
+
+  await supabase.from("bookings").update(patch).eq("id", bookingId);
+
+  const method = str(fd, "method");
+
+  // Came, and nothing to take today: already paid, on account, or no charge.
+  if (!method || method === "none") {
+    revalidatePath("/diary");
+    revalidatePath("/report");
+    const contactId = booking.contact_id as string | null;
+    if (contactId) revalidatePath(`/clients/${contactId}`);
+    return { ok: true, completed: "done", total: 0 };
+  }
+
+  // And the money, down the one path money is recorded by.
+  const paid = await takePayment(_prev, fd);
+  return paid.error && !paid.ok ? paid : { ...paid, completed: "done" };
 }

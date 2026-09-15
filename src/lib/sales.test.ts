@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readSale, lineTotal, readMethod, penceOf, linesFromForm } from "./sales.ts";
+import { readSale, lineTotal, readMethod, penceOf, linesFromForm, buildBill } from "./sales.ts";
 
 const shampoo = { serviceId: "s1", name: "Shampoo, 250ml", quantity: 1, unitPence: 1450 };
 
@@ -132,4 +132,69 @@ test("a row nobody touched is not a line", () => {
 test("a gap in the middle does not stop it", () => {
   const form: Record<string, string> = { name_0: "A", price_0: "1", name_5: "B", price_5: "2" };
   assert.equal(linesFromForm((k) => form[k] ?? null).length, 2);
+});
+
+// ──────────────────────────────────────────────── the bill for an appointment
+
+/*
+ * The case that was broken, first. Somebody has a colour, buys nothing, pays.
+ * This failed with "Nothing has been added to this sale yet" every time,
+ * because the bill was built out of the till's rule and the till refuses an
+ * empty sale.
+ */
+test("a bill for the appointment alone, with nothing bought, is a bill", () => {
+  const bill = buildBill({ work: { name: "Full head colour", pence: 9500 }, products: [] });
+  assert.equal(bill.ok, true);
+  if (bill.ok) {
+    assert.equal(bill.totalPence, 9500);
+    assert.equal(bill.lines.length, 1);
+    assert.equal(bill.description, "Full head colour");
+  }
+});
+
+test("a blank product row the form sends does not count as something added", () => {
+  const bill = buildBill({
+    work: { name: "Cut", pence: 4200 },
+    products: [{ name: "", unitPence: Number.NaN, quantity: 1, serviceId: null }],
+  });
+  assert.equal(bill.ok, true);
+});
+
+test("the work and a bottle are one bill, in that order", () => {
+  const bill = buildBill({
+    work: { name: "Full head colour", pence: 9500 },
+    products: [{ name: "Shampoo", unitPence: 1450, quantity: 1, serviceId: "s1" }],
+  });
+  assert.equal(bill.ok, true);
+  if (bill.ok) {
+    assert.equal(bill.totalPence, 10950);
+    assert.equal(bill.description, "Full head colour, Shampoo");
+  }
+});
+
+test("a bottle alone, with the work already paid for, is still a bill", () => {
+  const bill = buildBill({
+    work: null,
+    products: [{ name: "Shampoo", unitPence: 1450, quantity: 2, serviceId: "s1" }],
+  });
+  assert.equal(bill.ok, true);
+  if (bill.ok) assert.equal(bill.totalPence, 2900);
+});
+
+test("a product line that is present and wrong is still refused", () => {
+  const bill = buildBill({
+    work: { name: "Cut", pence: 4200 },
+    products: [{ name: "Shampoo", unitPence: Number.NaN, quantity: 1, serviceId: "s1" }],
+  });
+  assert.equal(bill.ok, false);
+});
+
+test("nothing at all says what to do, not that nothing happened", () => {
+  const bill = buildBill({ work: null, products: [] });
+  assert.equal(bill.ok, false);
+  if (!bill.ok) assert.match(bill.because, /what the appointment came to/);
+});
+
+test("a work price of nought with nothing bought is nothing to take", () => {
+  assert.equal(buildBill({ work: { name: "Cut", pence: 0 }, products: [] }).ok, false);
 });

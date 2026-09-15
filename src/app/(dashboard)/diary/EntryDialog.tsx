@@ -10,18 +10,24 @@ import {
   saveDiaryEntry,
   cancelDiaryEntry,
   cancelSeries,
-  closeBooking,
   type DiaryState,
 } from "./actions";
 import { Field, SubmitButton } from "@/components/Form";
 import { useSheet, asSheet } from "@/components/useSheet";
 import { formatPence } from "@/lib/money";
 import { depositPaid, hasDeposit } from "@/lib/deposit";
-import { Bill } from "./Bill";
-import type { ShelfItem } from "./Bill";
+import { Complete } from "./Complete";
+import type { ShelfItem } from "./Complete";
 import { CATEGORIES, OWNER_CATEGORIES, categoryFor, REPEATS } from "@/lib/calendar";
 import type { Artist } from "@/lib/types";
 import type { Entry } from "./WeekGrid";
+
+/** The last millisecond of today, in this browser's own day. */
+function endOfToday(): number {
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+  return end.getTime();
+}
 
 /** Wall-clock date and time in the studio's zone, for form fields. */
 function localFields(iso: string, timezone: string) {
@@ -105,7 +111,6 @@ export function EntryDialog({
    * a render would give a different answer on every re-render for something
    * that should not change while somebody is looking at it.
    */
-  const [openedAt] = useState(() => Date.now());
 
   /*
    * The length, and who it is for, held here rather than left to the inputs.
@@ -860,278 +865,45 @@ export function EntryDialog({
             </div>
 
             {/*
-              * The bill, which is the whole close-out rather than three of
-              * them.
+              * One button, and the whole of finishing behind it.
               *
-              * The work at what it was booked at and editable, anything they
-              * bought beside it, one total, one payment. Three separate
-              * controls stood here before — amend the price on the form
-              * below, record the bottle as its own sale, then ask for an
-              * amount you had worked out yourself — for a moment that is one
-              * sentence at a desk.
-              */}
-            <Bill
-              bookingId={entry.id}
-              workName={entry.title || "Appointment"}
-              /*
-                * What it was booked at, and failing that what it was quoted
-                * at. An appointment the assistant took carries the quote on
-                * the enquiry rather than a price on the booking, so reading
-                * only the second put an empty box in front of somebody whose
-                * appointment plainly had a number on it.
-                */
-              workPence={entry.price_pence ?? entry.quotePence}
-              shelf={mineToSell}
-              alreadyPence={entry.soldPence}
-              connected={stripeConnected}
-            />
-
-            {/*
-              * From the moment it starts, not from the moment it was due to
-              * end.
+              * Two panels stood here — a bill, and a "did they turn up" — each
+              * saving on its own, so an appointment was finished only if
+              * somebody knew to use both. Asked for again and again as "a
+              * complete button". It is one now: did they come, what did they
+              * have, anything bought, how did they pay, and the last tap does
+              * all of it.
               *
-              * Asking on Tuesday whether somebody turned up to Thursday is
-              * noise on every booking in the diary, and noise on every booking
-              * is how a control gets ignored on the one that matters. Waiting
-              * for the booked end time was the other mistake: a forty-five
-              * minute cut that took half an hour is finished, the client has
-              * gone, and the person closing it off is stood there with fifteen
-              * minutes to spare.
+              * From the morning of the day, not the minute it starts. Waiting
+              * for the start time hid the button on everything later today,
+              * which is exactly where somebody looks for it while the client
+              * is still in the chair.
               */}
-            {Date.parse(entry.starts_at) <= openedAt && (
-              <CloseOff
-                id={entry.id}
+            {Date.parse(entry.starts_at) <= endOfToday() ? (
+              <Complete
+                bookingId={entry.id}
+                clientName={entry.clientName}
+                workName={entry.title || "Appointment"}
+                workPence={entry.price_pence ?? entry.quotePence}
+                services={services}
+                shelf={mineToSell}
+                connected={stripeConnected}
                 attended={entry.attended}
-                booked={Math.round(
+                travels={travels}
+                alreadyPence={entry.soldPence}
+                bookedMinutes={Math.round(
                   (Date.parse(entry.ends_at) - Date.parse(entry.starts_at)) / 60000,
                 )}
-                actualMinutes={entry.actual_minutes}
-                note={entry.outcome_note}
-                canRemember={Boolean(entry.contactId && entry.serviceId)}
-                firstName={(entry.clientName ?? "them").split(" ")[0]}
-                contactId={entry.contactId}
-                travels={travels}
               />
+            ) : (
+              <p className="hint">
+                You can complete this on the day.
+              </p>
             )}
           </div>
         )}
       </div>
     </div>
-  );
-}
-
-/**
- * Did they turn up?
- *
- * Two buttons and a way back, rather than a form with a Save. Closing off a
- * booking happens with somebody's coat half on and the next client waiting; a
- * control that needs a second press to commit is one that gets abandoned
- * halfway, and a half-closed booking is indistinguishable from an unasked one.
- *
- * The answer already given is shown as the pressed state, so the panel says
- * what is recorded rather than asking a question that has been answered.
- */
-function CloseOff({
-  id,
-  attended,
-  booked,
-  actualMinutes,
-  note,
-  canRemember,
-  firstName,
-  contactId,
-  travels,
-}: {
-  id: string;
-  attended: boolean | null;
-  /** How many minutes it was booked for, so the box can say what it beat. */
-  booked: number;
-  actualMinutes: number | null;
-  note: string | null;
-  /**
-   * Whether there is somewhere to keep the real time: a named client, and a
-   * named service they had. Without both there is no record to write it on.
-   */
-  canRemember: boolean;
-  /** What to call them in the offer, so it reads as being about a person. */
-  firstName: string;
-  /** Who it was for, so the till can be opened with them already in it. */
-  contactId: string | null;
-  /** Whether the work happens at the customer's address. */
-  travels: boolean;
-}) {
-  return (
-    <form action={closeBooking} className="mt-3 border-t border-border pt-3">
-      <input type="hidden" name="id" value={id} />
-      <div className="label">Did they turn up?</div>
-
-      <div className="mt-1.5 flex flex-wrap items-center gap-2">
-        <button
-          name="attended"
-          value="yes"
-          className={`btn-ghost text-sm ${
-            attended === true ? "bg-ok/10 text-ok" : ""
-          }`}
-        >
-          {/*
-            * What "it went well" is called depends on who travelled.
-            *
-            * "They came" is right for a salon and plainly wrong for a cleaner,
-            * who went to them — and a screen describing the job backwards is
-            * one somebody stops trusting. The business already records which
-            * way round it works; nothing had ever read it here.
-            */}
-          {travels ? "Job done" : "They came"}
-        </button>
-        <button
-          name="attended"
-          value="no"
-          className={`btn-ghost text-sm ${
-            attended === false ? "bg-warn/10 text-warn" : ""
-          }`}
-        >
-          {travels ? "Nobody in" : "No-show"}
-        </button>
-
-        {/*
-          * The way back from a mis-tap. Without it the only correction for
-          * "no-show" pressed on the wrong appointment is to claim they turned
-          * up, which puts a wrong number in the report rather than no number.
-          */}
-        {attended !== null && (
-          <button name="attended" value="clear" className="text-sm text-muted hover:text-foreground">
-            Neither, yet
-          </button>
-        )}
-      </div>
-
-      {attended === false && (
-        <p className="hint mt-2">
-          Counted on their record and in the report. Nothing happens to the deposit on
-          its own &mdash; keeping it or returning it stays your call.
-        </p>
-      )}
-
-      {/*
-        * How long it really took, and what happened.
-        *
-        * Behind a summary, and only once somebody has said they came, because
-        * it is the one number no diary ever records and the one nobody has
-        * time to be asked for. Somebody closing a booking off at half past
-        * five is answering "did they come"; made to answer "how long exactly"
-        * as well, they stop answering either.
-        *
-        * So it is offered, never required, and the value comes from the times
-        * somebody bothers. Every one of them makes the next estimate better.
-        */}
-      {attended === true && (
-        /*
-         * Open the first time, folded away once it has been answered.
-         *
-         * Marking somebody as having come and then having to find a second
-         * control to say how long it took is two steps where the whole point
-         * is that this happens in the ten seconds after a client leaves. Once
-         * there is a time or a note on it, it folds back up — the question has
-         * been answered and the entry does not need to keep asking.
-         */
-        <details className="mt-3" open={actualMinutes == null && !note}>
-          <summary className="cursor-pointer text-sm text-muted">
-            {actualMinutes != null || note ? "What happened" : "Add what it really took"}
-          </summary>
-
-          <div className="mt-3 space-y-3">
-            <label className="block">
-              <span className="label">How long it actually took</span>
-              <div className="flex items-center gap-2">
-                <input
-                  name="actual_minutes"
-                  type="number"
-                  min={5}
-                  step={5}
-                  defaultValue={actualMinutes ?? ""}
-                  placeholder={String(booked)}
-                  className="input max-w-[7rem]"
-                />
-                <span className="hint">
-                  minutes. It was booked for {booked}.
-                </span>
-              </div>
-            </label>
-
-            {/*
-              * The thing that makes typing the real time worth the trouble.
-              *
-              * A number on one old appointment changes nothing. The same
-              * number kept against this client and this service changes every
-              * booking they make afterwards: the right length is set aside and
-              * the times offered fit it, and they are never told why — nobody
-              * wants to be the appointment that needs extra time.
-              *
-              * Offered only where both halves are known, because the record is
-              * this client for this service and there is nowhere else to put
-              * it. Never ticked by default: one long afternoon is not yet a
-              * fact about somebody, and whoever was stood there is the only
-              * person who knows which of the two this was.
-              */}
-            {canRemember && (
-              <label className="flex items-start gap-2.5 rounded-lg bg-surface-2 p-3 text-sm">
-                <input type="checkbox" name="remember_time" className="mt-0.5" />
-                <span>
-                  Always allow this long for {firstName}
-                  <span className="hint block">
-                    Kept against them for this service, so every booking they make from
-                    now on is the right length. They are never told.
-                  </span>
-                </span>
-              </label>
-            )}
-
-            {/*
-              * And whether they bought anything on the way out.
-              *
-              * This is when a bottle is actually sold — at the end of the
-              * appointment, with the client stood there — and it meant closing
-              * the booking off, walking to the till and typing a name the
-              * screen had on it a second earlier. The link carries them over.
-              *
-              * A link rather than a form: a sale is its own thing with its own
-              * lines and its own way of being paid for, and folding a till
-              * into this sheet would make the commonest action here — saying
-              * somebody turned up — harder in order to make a rarer one
-              * shorter.
-              */}
-            {contactId && (
-              <p className="hint">
-                <Link
-                  href={`/diary/sell?client=${contactId}`}
-                  className="text-accent hover:underline"
-                >
-                  Did {firstName} buy anything?
-                </Link>{" "}
-                It goes on their record and in today&rsquo;s takings.
-              </p>
-            )}
-
-            <label className="block">
-              <span className="label">Anything worth remembering</span>
-              <input
-                name="outcome_note"
-                defaultValue={note ?? ""}
-                placeholder="Ran over — colour needed a second application"
-                className="input"
-              />
-              <span className="hint">
-                For you and whoever has them next. Never shown to the client.
-              </span>
-            </label>
-
-            <button name="attended" value="yes" className="btn-ghost text-sm">
-              Save this
-            </button>
-          </div>
-        </details>
-      )}
-    </form>
   );
 }
 

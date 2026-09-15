@@ -13,7 +13,7 @@ import {
 import { categoryFor, addDays, isoDate } from "@/lib/calendar";
 import { hueFor, initialsOf, colourForName, type ColourMode } from "@/lib/diaryColour";
 import { EntryDialog } from "./EntryDialog";
-import type { ShelfItem } from "./Bill";
+import type { ShelfItem } from "./Complete";
 import type { Bookable } from "./ServicePick";
 import { moveDiaryEntry } from "./actions";
 import { zonedToUtc as toUtc } from "@/lib/booking/tz";
@@ -844,7 +844,7 @@ export function WeekGrid({
                           boxShadow: `inset 2px 0 0 ${hue}`,
                         }}
                       >
-                        {e.title ?? cat.label}
+                        {e.clientName ?? e.title ?? cat.label}
                       </button>
                     );
                   })}
@@ -1230,8 +1230,19 @@ export function WeekGrid({
                               title="Waiting on a deposit"
                             />
                           )}
+                          {/*
+                            * The person first, then what they are having.
+                            *
+                            * This showed the title before the name, and a
+                            * booking typed in by hand always has a title — the
+                            * service. So a week of appointments read "Full head
+                            * colour, Cut and blow dry, Balayage" with not one
+                            * name on it, on the screen whose job is to say who
+                            * is coming in. The day list already had it the
+                            * right way round; the grid never did.
+                            */}
                           <span className="truncate">
-                            {e.title ?? e.clientName ?? cat.label}
+                            {e.clientName ?? e.title ?? cat.label}
                           </span>
                         </div>
                         {/*
@@ -1256,7 +1267,16 @@ export function WeekGrid({
                               : clock(e.starts_at, timezone)}
                           </div>
                         )}
-                        {height > 54 && (e.description || e.notes) && (
+                        {/*
+                          * And the service underneath, where there is room,
+                          * now that the name has the top line.
+                          */}
+                        {height > 54 && e.clientName && (e.title || e.description) && (
+                          <div className="truncate text-foreground/70">
+                            {e.title || e.description}
+                          </div>
+                        )}
+                        {height > 54 && !e.clientName && (e.description || e.notes) && (
                           <div className="truncate text-foreground/70">
                             {e.description ?? e.notes}
                           </div>

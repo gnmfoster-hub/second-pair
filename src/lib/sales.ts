@@ -162,3 +162,73 @@ export function linesFromForm(
 
   return lines;
 }
+
+export type Bill =
+  | { ok: true; lines: SaleLine[]; totalPence: number; description: string }
+  | { ok: false; because: string };
+
+/**
+ * What an appointment comes to when somebody is finished: the work, plus
+ * anything they bought, as one bill.
+ *
+ * This lived inside a server action and was built out of readSale — which is
+ * right for the till and wrong here, because readSale refuses a sale with
+ * nothing in it. At the till that is a mistake; on an appointment it is the
+ * commonest case there is. Somebody has a colour, buys nothing else, and pays.
+ * So taking payment for the appointment alone failed with "Nothing has been
+ * added to this sale yet", every time, on the one path the whole close-out
+ * exists for — and nothing caught it, because nothing could test a server
+ * action.
+ *
+ * Here, pure, so the case that broke is the first one tested.
+ */
+export function buildBill({
+  work,
+  products,
+}: {
+  /** The appointment itself, where it is being charged for. */
+  work: { name: string; pence: number } | null;
+  /** Anything off the shelf. Usually nothing. */
+  products: readonly Partial<SaleLine>[];
+}): Bill {
+  /*
+   * The bottles checked line by line exactly as the till checks them — a line
+   * with no price or a quantity of nought is still somebody's mistake — but an
+   * empty shelf is simply an empty shelf. Only a line that is present and
+   * wrong is refused.
+   */
+  const anyProducts = products.some(
+    (p) => String(p.name ?? "").trim() || Number.isFinite(Number(p.unitPence)),
+  );
+
+  let shelf: SaleLine[] = [];
+  if (anyProducts) {
+    const read = readSale(products);
+    if (!read.ok) return read;
+    shelf = read.lines;
+  }
+
+  const charging = work != null && Number.isInteger(work.pence) && work.pence > 0;
+
+  const lines: SaleLine[] = [
+    ...(charging
+      ? [{ serviceId: null, name: work!.name || "Appointment", quantity: 1, unitPence: work!.pence }]
+      : []),
+    ...shelf,
+  ];
+
+  const totalPence = lines.reduce((sum, line) => sum + lineTotal(line), 0);
+
+  if (totalPence <= 0) {
+    return {
+      ok: false,
+      because: "Put in what the appointment came to, or add something they bought.",
+    };
+  }
+
+  const description = lines
+    .map((l) => (l.quantity > 1 ? `${l.quantity} × ${l.name}` : l.name))
+    .join(", ");
+
+  return { ok: true, lines, totalPence, description };
+}

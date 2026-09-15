@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EntryDialog } from "./EntryDialog";
-import type { ShelfItem } from "./Bill";
+import type { ShelfItem } from "./Complete";
 import type { Entry } from "./WeekGrid";
 import type { Bookable } from "./ServicePick";
 import type { Artist } from "@/lib/types";
