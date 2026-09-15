@@ -257,6 +257,23 @@ export function judge(
     };
   }
 
+  /*
+   * Mail the business's own provider has already called spam.
+   *
+   * Neat & Tidy's forward arrives with "***SPAM***" stamped on the subject by
+   * the mailbox it came through, and the assistant answered two of them — a
+   * judgement somebody else had already made, and made correctly. Their
+   * filter sees the sender's reputation and the message's authentication,
+   * which a forwarded copy no longer carries, so its word is taken.
+   */
+  const flagged =
+    (headers["x-spam-flag"] ?? "").trim().toLowerCase() === "yes" ||
+    /^\s*yes\b/i.test(headers["x-spam-status"] ?? "") ||
+    /^\s*(?:\*{2,}\s*spam\s*\*{2,}|\[spam\]|spam:)/i.test(email.subject ?? "");
+  if (flagged) {
+    return { what: "ignore", because: "the mailbox it came through had already marked it as spam" };
+  }
+
   const machine = fromAMachine(headers);
   if (machine) return { what: "ignore", because: machine };
 

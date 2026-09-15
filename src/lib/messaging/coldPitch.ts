@@ -41,6 +41,8 @@ const PITCH_PHRASES: { pattern: RegExp; sign: string }[] = [
   { pattern: /\bowner of (?:the|this|your) (?:store|shop|business|brand)\b/i, sign: "asks for the owner of the store" },
   { pattern: /\b(?:e-?com(?:merce)?|shopify|dropshipping|seo services?|lead generation|marketing agency)\b/i, sign: "sells online marketing" },
   { pattern: /\b(?:boost|increase|grow|skyrocket|double)\s+(?:your\s+)?(?:sales|orders|revenue|traffic|conversions)\b/i, sign: "promises more sales" },
+  { pattern: /\b(?:may|can|shall) i send (?:you )?(?:a |the |our )?(?:quote|price|proposal|pricing)\b|\bsend you (?:a |the |our )?(?:quote|proposal|price list)\b/i, sign: "offers to send the business a quote" },
+  { pattern: /\b(?:seo|website|site) (?:audit|errors?|issues|report)\b|\baudit errors?\b|\berrors? on your (?:web)?site\b|\brank(?:ing)? (?:on|higher on) google\b/i, sign: "reports problems with the website" },
   { pattern: /\bbest\s+whats\s?app\b|\bwhats\s?app\s+(?:number\s+)?to\s+(?:connect|reach|chat)\b/i, sign: "asks to move to WhatsApp" },
   { pattern: /\b(?:store|shop)\s+(?:stands out|has (?:great|huge|real) potential)|\bproducts? potential\b/i, sign: "flatters the store" },
   { pattern: /\bcollaborat\w*\b[^.?!]{0,80}\b(?:orders|sales|store|brand|promot\w*|marketing)\b|\b(?:orders|sales|store|brand|promot\w*|marketing)\b[^.?!]{0,80}\bcollaborat\w*/i, sign: "offers a sales collaboration" },

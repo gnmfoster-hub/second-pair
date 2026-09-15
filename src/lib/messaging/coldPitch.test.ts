@@ -84,3 +84,28 @@ test("a one-word business name is never matched as squashed", () => {
   const v = coldPitch({ from: "a@b.com", subject: "Inkwell", body: "Hi Inkwell, can I book?" }, { name: "Inkwell" });
   assert.equal(v.pitch, false);
 });
+
+// Two Neat & Tidy received, pitching websites rather than orders.
+test("a web designer offering a quote is a pitch", () => {
+  const v = coldPitch(
+    { from: "tim.webllc58@gmail.com", subject: "Re: Yes, Send Price", body: "Hi, I'm still waiting for your reply May I send you a quote" },
+    { name: "Neat & Tidy Solutions" },
+  );
+  assert.equal(v.pitch, true, v.signs.join("; "));
+});
+
+test("an SEO 'audit errors' chase is a pitch", () => {
+  const v = coldPitch(
+    { from: "nancy.fevor030@gmail.com", subject: "Re: Audit Errors ❗", body: "Hi, info@neatandtidysolutions.co.uk Any Update? Please send" },
+    { name: "Neat & Tidy Solutions" },
+  );
+  assert.equal(v.pitch, true, v.signs.join("; "));
+});
+
+test("a customer asking for a quote is not", () => {
+  const v = coldPitch(
+    { from: "sue77@gmail.com", subject: "Quote please", body: "Could you send me a quote for an end of tenancy clean? 2 bed flat." },
+    { name: "Neat & Tidy Solutions" },
+  );
+  assert.equal(v.pitch, false, v.signs.join("; "));
+});

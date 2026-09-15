@@ -411,3 +411,8 @@ test("a verification code still reaches the owner even if it reads like a pitch"
   );
   assert.equal(v.what, "park");
 });
+
+test("mail the provider already marked as spam is ignored", () => {
+  assert.equal(judge({ from: "x@gmail.com", subject: "***SPAM*** Re: Audit Errors", body: "Any update?" }, shop).what, "ignore");
+  assert.equal(judge({ from: "x@gmail.com", subject: "Hello", body: "Hi", headers: { "X-Spam-Flag": "YES" } }, shop).what, "ignore");
+});
