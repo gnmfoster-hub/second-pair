@@ -233,8 +233,19 @@ if (!env.CRON_SECRET) {
             "the same Stripe account and mode as STRIPE_SECRET_KEY: Settings → Connect → " +
             "Onboarding options → OAuth, with OAuth switched on.",
         );
+      } else if (can.payments?.clientIdMatchesKey === false) {
+        fail(
+          "STRIPE_CONNECT_CLIENT_ID and STRIPE_SECRET_KEY are from different Stripe accounts",
+          `The key belongs to "${can.payments.keyAccount ?? "unknown"}". Somebody can fill in ` +
+            "Stripe's whole form and then fail with \"Authorization code provided does not " +
+            "belong to you\". Take the client id from that same account: switch to it, then " +
+            "Settings → Connect → Onboarding options → OAuth.",
+        );
       } else if (can.payments?.canConnect) {
-        pass("businesses can connect their Stripe");
+        pass(
+          "businesses can connect their Stripe",
+          can.payments.keyAccount ? `into "${can.payments.keyAccount}"` : undefined,
+        );
 
         /*
          * Which Stripe, said out loud.

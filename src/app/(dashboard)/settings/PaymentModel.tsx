@@ -20,6 +20,8 @@ export function PaymentModel({
   takesPayments,
   fallback,
   connected,
+  team = [],
+  canConnect = false,
   words,
 }: {
   model: "business" | "people";
@@ -27,6 +29,13 @@ export function PaymentModel({
   fallback: boolean;
   /** Whether the business has connected its own Stripe. */
   connected: boolean;
+  /**
+   * Everybody who takes money, with whether they have an account of their own
+   * and which of them is the person looking.
+   */
+  team?: { id: string; name: string; connected: boolean; isMe: boolean; canSignIn: boolean }[];
+  /** Whether connecting works at our end at all. */
+  canConnect?: boolean;
   words: { practitioners: string };
 }) {
   const [state, action] = useActionState<FormState, FormData>(setPaymentModel, {});
@@ -100,7 +109,49 @@ export function PaymentModel({
         </span>
       </label>
 
-      {!connected && (
+      {/*
+       * Everybody's account, on the page where the model is chosen.
+       *
+       * "An account each" used to be a radio button and nothing else: each
+       * person's connect button lived on their own You page, and nothing on
+       * this one said so — so it read as a promise with no way to keep it.
+       * Now the list is here, the owner's own row can be connected on the spot,
+       * and everybody else's says exactly where they go to do theirs.
+       */}
+      {model === "people" && team.length > 0 && (
+        <div className="mt-4">
+          <div className="label">Each person&rsquo;s Stripe</div>
+          <ul className="mt-1 divide-y divide-border rounded-lg border border-border">
+            {team.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
+                <span className="min-w-0">
+                  {p.name}
+                  {p.isMe && <span className="hint"> (you)</span>}
+                </span>
+                {p.connected ? (
+                  <span className="pill bg-ok/10 text-ok">Connected</span>
+                ) : p.isMe && canConnect ? (
+                  <a href="/api/stripe/connect/start?mine" className="btn bg-accent text-on-accent">
+                    Connect my Stripe
+                  </a>
+                ) : (
+                  <span className="hint text-xs">
+                    {p.canSignIn
+                      ? "Not yet — they connect it in Settings → You"
+                      : "Not yet — needs a sign-in first, then Settings → You"}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+          <p className="hint mt-1.5 max-w-prose">
+            Only the person themselves can connect theirs, because Stripe asks for their
+            own ID and bank details.
+          </p>
+        </div>
+      )}
+
+      {!connected && model === "business" && (
         <p className="mt-4 rounded-lg bg-warn/10 px-3 py-2 text-sm text-warn">
           <strong>No Stripe account is connected yet.</strong> Nothing can be charged
           until one is, whichever of these is chosen.

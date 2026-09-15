@@ -1,4 +1,4 @@
-import { requireOwner } from "@/lib/studio";
+import { requireOwner, getArtists } from "@/lib/studio";
 import { canConnectStripe } from "@/lib/env";
 import { isPlatformAdmin } from "@/lib/platform";
 import { createClient } from "@/lib/supabase/server";
@@ -16,7 +16,7 @@ export default async function StudioSettingsPage({
 }) {
   // The business itself — the owner's, and the page says so
   // rather than only the tab: hiding a link is not a permission.
-  const { studio } = await requireOwner();
+  const { studio, userId } = await requireOwner();
   const { stripe, detail } = await searchParams;
 
   /*
@@ -79,6 +79,16 @@ export default async function StudioSettingsPage({
         takesPayments={studio.takes_payments === true}
         fallback={studio.payment_fallback === true}
         connected={Boolean(studio.stripe_account_id)}
+        team={(await getArtists(studio.id))
+          .filter((a) => a.active)
+          .map((a) => ({
+            id: a.id,
+            name: a.name,
+            connected: Boolean(a.stripe_account_id),
+            isMe: a.user_id === userId,
+            canSignIn: Boolean(a.user_id),
+          }))}
+        canConnect={canConnectStripe(studio)}
         words={{
           practitioners: {
             ...verticalPack(studio.vertical).vocabulary,

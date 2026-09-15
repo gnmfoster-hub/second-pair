@@ -3,7 +3,7 @@ import { emailConfigured, probeEmail } from "@/lib/messaging/email";
 import { smsConfigured, probeSms } from "@/lib/messaging/sms";
 import { hasAnthropicEnv, canConnectStripe } from "@/lib/env";
 import { testModeReady } from "@/lib/payments/stripe";
-import { probeClientId } from "@/lib/payments/connect";
+import { probeClientId, probeClientIdMatchesKey, keyAccountName } from "@/lib/payments/connect";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -75,7 +75,15 @@ export async function GET(request: NextRequest) {
    * day a business pressed Connect and got a black page saying no application
    * matched.
    */
-  const clientIdAccepted = await probeClientId(process.env.STRIPE_CONNECT_CLIENT_ID);
+  const [clientIdAccepted, clientIdMatchesKey, keyAccount] = await Promise.all([
+    probeClientId(process.env.STRIPE_CONNECT_CLIENT_ID),
+    /*
+     * And whether the id and the key are the same Stripe's — the fault that
+     * only showed itself after somebody had filled in Stripe's whole form.
+     */
+    probeClientIdMatchesKey(process.env.STRIPE_CONNECT_CLIENT_ID, process.env.STRIPE_SECRET_KEY),
+    keyAccountName(process.env.STRIPE_SECRET_KEY),
+  ]);
 
   return NextResponse.json({
     /*
@@ -137,8 +145,13 @@ export async function GET(request: NextRequest) {
       webhookSecret: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
       /** Stripe's own answer about the client id. Null means it could not be asked. */
       clientIdAccepted,
+      /** Whether the client id belongs to the same Stripe as the secret key. */
+      clientIdMatchesKey,
+      /** The name of the Stripe the secret key belongs to — a name, not the key. */
+      keyAccount,
       /** The only one worth reading on its own: can a business connect today. */
-      canConnect: canConnectStripe() && clientIdAccepted !== false,
+      canConnect:
+        canConnectStripe() && clientIdAccepted !== false && clientIdMatchesKey !== false,
       /*
        * Which Stripe the live keys are, and whether there is a sandbox beside
        * them for demos.

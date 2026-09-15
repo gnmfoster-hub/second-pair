@@ -170,3 +170,72 @@ export async function probeClientId(clientId: string | undefined): Promise<boole
     return null;
   }
 }
+
+/**
+ * Whether a Connect client id and a secret key belong to the same Stripe.
+ *
+ * Stripe accepting the id is not enough. A sandbox, the main account's test
+ * mode and every other sandbox each have their own id and their own keys, and
+ * an id from one next to a key from another passes every check right up to
+ * the last step: somebody fills in Stripe's form, comes back, and the exchange
+ * fails with "Authorization code provided does not belong to you".
+ *
+ * Asked by deauthorising an account that does not exist. Stripe checks the
+ * application against the key first — an id the key does not own is refused
+ * as an unknown application — and only then looks for the account, which is
+ * never there. Nothing is connected or disconnected either way.
+ *
+ * Null when Stripe could not be reached, or answered in a way this does not
+ * recognise, which is not the same as no.
+ */
+export async function probeClientIdMatchesKey(
+  clientId: string | undefined,
+  secret: string | undefined,
+): Promise<boolean | null> {
+  if (!clientId || !secret) return false;
+
+  try {
+    const res = await fetch("https://connect.stripe.com/oauth/deauthorize", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Bearer ${secret}`,
+      },
+      body: new URLSearchParams({ client_id: clientId, stripe_user_id: "acct_1SecondPairProbe0" }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (res.status >= 500) return null;
+
+    const body = (await res.json().catch(() => ({}))) as { error?: string; error_description?: string };
+    const said = `${body.error ?? ""} ${body.error_description ?? ""}`;
+
+    if (/no such application|does not belong|no application matches/i.test(said)) return false;
+    // Refused over the account, which means the application itself was fine.
+    if (/account/i.test(said)) return true;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Which Stripe a secret key belongs to, by name — the one thing to compare
+ * against the account switcher when the id and the key do not match.
+ */
+export async function keyAccountName(secret: string | undefined): Promise<string | null> {
+  if (!secret) return null;
+  try {
+    const res = await fetch("https://api.stripe.com/v1/account", {
+      headers: { Authorization: `Bearer ${secret}` },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as {
+      settings?: { dashboard?: { display_name?: string } };
+      business_profile?: { name?: string };
+    };
+    return body.settings?.dashboard?.display_name ?? body.business_profile?.name ?? null;
+  } catch {
+    return null;
+  }
+}
