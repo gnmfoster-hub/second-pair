@@ -173,3 +173,43 @@ export async function nightlyBackup(
     return { ran: false, because: "failed", error: (e as Error).message };
   }
 }
+
+/**
+ * What is actually in the bucket, rather than what ought to be.
+ *
+ * Every check we had asked the environment: is a key set, is it the right
+ * hour. Both can be true for months while nothing is written — the key can be
+ * fine and the write can fail every night at two in the morning, when nobody
+ * is looking. The only honest question is whether a file is there and how old
+ * it is.
+ */
+export async function newestBackup(
+  db: SupabaseClient,
+): Promise<{ name: string; bytes: number; hoursOld: number } | null> {
+  try {
+    const { data, error } = await db.storage
+      .from(BUCKET)
+      .list("", { limit: 100, sortBy: { column: "name", order: "desc" } });
+
+    if (error || !data?.length) return null;
+
+    const ours = data.filter((f) => /^second-pair-\d{4}-\d{2}-\d{2}\.enc$/.test(f.name));
+    const newest = ours[0];
+    if (!newest) return null;
+
+    const day = newest.name.slice("second-pair-".length, -".enc".length);
+    const taken = Date.parse(`${day}T00:00:00Z`);
+
+    return {
+      name: newest.name,
+      bytes: (newest.metadata as { size?: number } | null)?.size ?? 0,
+      hoursOld: Math.round((Date.now() - taken) / 3_600_000),
+    };
+  } catch {
+    // A bucket we cannot read is not a bucket with a backup in it.
+    return null;
+  }
+}
+
+/** A backup older than this has not been taken, whatever the settings say. */
+export const STALE_AFTER_HOURS = 36;

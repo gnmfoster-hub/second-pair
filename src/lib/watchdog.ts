@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { alertPlatform } from "@/lib/platformAlert";
 import { emailConfigured } from "@/lib/messaging/email";
+import { newestBackup, STALE_AFTER_HOURS } from "@/lib/backup";
 
 /**
  * Whether the assistant can still answer, asked of the model rather than of
@@ -65,7 +66,15 @@ export async function watchTheEssentials(
    * gone. It is a standing condition rather than an outage, so it says so once
    * a day and stops the moment a key is set.
    */
-  const backups = (process.env.BACKUP_KEY ?? "").length >= 16;
+  /*
+   * Asked of the bucket, not of the environment.
+   *
+   * "A key is set" was the question, and a key can be perfectly valid while
+   * the write fails every night — wrong permissions, a full bucket, a renamed
+   * table. Nothing anywhere had ever looked to see whether a file was there.
+   */
+  const newest = await newestBackup(db);
+  const backups = newest !== null && newest.hoursOld <= STALE_AFTER_HOURS;
 
   if (model.answers && email && backups) {
     return { assistant: true, email, backups, told: false };
@@ -76,8 +85,12 @@ export async function watchTheEssentials(
   if (!email) wrong.push("Email is not configured, so nothing can be sent or replied to.");
   if (!backups) {
     wrong.push(
-      "Nothing is being backed up. BACKUP_KEY is not set in Vercel, or is shorter than 16 " +
-        "characters, so the nightly copy of every business's book is not being taken.",
+      newest
+        ? `The newest backup is ${newest.name}, ${newest.hoursOld} hours old. Nothing has been ` +
+          "written since, so the nightly job is failing."
+        : "Nothing is being backed up — there is no file in the bucket at all. Either " +
+          "BACKUP_KEY is not set in Vercel (or is shorter than 16 characters), or the nightly " +
+          "write is failing.",
     );
   }
 

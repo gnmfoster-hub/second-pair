@@ -67,6 +67,50 @@ function costOf(usage: {
   );
 }
 
+/**
+ * Put a cache breakpoint on the end of the conversation so far.
+ *
+ * Anthropic caches everything up to and including the marked block, so this
+ * has to move to the newest message each time round rather than being set once
+ * — and the previous one has to come off, because only a few breakpoints are
+ * allowed and a stale one wastes the allowance on a prefix that no longer ends
+ * where the conversation does.
+ */
+function markCacheable(messages: Anthropic.MessageParam[]): void {
+  for (const message of messages) {
+    if (!Array.isArray(message.content)) continue;
+    for (const block of message.content) {
+      if (block && typeof block === "object" && "cache_control" in block) {
+        delete (block as { cache_control?: unknown }).cache_control;
+      }
+    }
+  }
+
+  const last = messages[messages.length - 1];
+  if (!last) return;
+
+  /*
+   * A string content has no block to mark, so it becomes one. Harmless — the
+   * API treats a lone text block and a string identically — and it is the
+   * shape every appended tool result already uses.
+   */
+  if (typeof last.content === "string") {
+    last.content = [{ type: "text", text: last.content }];
+  }
+
+  const blocks = last.content as { cache_control?: unknown }[];
+  const end = blocks[blocks.length - 1];
+  /*
+   * The plain five-minute cache, not the hour the system block uses.
+   *
+   * The rounds of one turn are seconds apart, which is what this is for — and
+   * the longer window is a different thing to ask the API for. The system
+   * prompt, which is the part that has to survive somebody replying tomorrow,
+   * keeps its hour.
+   */
+  if (end && typeof end === "object") end.cache_control = { type: "ephemeral" };
+}
+
 /** A runaway loop would burn tokens and never reply. Real turns use two or three. */
 const MAX_ITERATIONS = 8;
 
@@ -760,6 +804,21 @@ async function generateReply(
   const toolTrace: { name: string; input: unknown; result: string }[] = [];
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
+    /*
+     * Cache the conversation as well as the prompt.
+     *
+     * The system block is cached and that is the big one, but every pass round
+     * this loop appends what the model just said and what the tools answered,
+     * and re-sends the whole conversation at full input price — ten times the
+     * cached rate. A booking turn goes round three or four times, so the
+     * thread is paid for at full price three or four times in a single reply.
+     *
+     * A breakpoint on the last block of the last message means everything
+     * before it is read from cache on the next pass. Measured at 1.8p a reply
+     * today, most of it exactly this.
+     */
+    markCacheable(messages);
+
     const response = await client.messages.create({
       model: MODEL,
       max_tokens: 2000,

@@ -200,20 +200,31 @@ export async function POST(request: NextRequest) {
      */
     console.error("[widget/chat]", error);
 
-    await handOverAfterFailure(createAdminClient(), {
+    const { handed } = await handOverAfterFailure(createAdminClient(), {
       studioId: await studioIdOf(studio),
       channel: "web",
       externalRef: session,
       error,
     });
 
+    /*
+     * Only promise what happened.
+     *
+     * "I've passed this straight to the team" was said whether or not the
+     * handover worked — and it cannot work if the studio could not be looked
+     * up, which is the same failure that would have caused this. A customer
+     * told somebody will come back to them, when nobody has been told
+     * anything, is worse off than one who is asked to try again.
+     */
     return NextResponse.json({
-      reply:
-        "Sorry — I can't get to the diary this minute, so I don't want to guess at times. " +
-        "I've passed this straight to the team and somebody will come back to you shortly. " +
-        "Your message has been saved, so there's no need to write it again.",
+      reply: handed
+        ? "Sorry — I can't get to the diary this minute, so I don't want to guess at times. " +
+          "I've passed this straight to the team and somebody will come back to you shortly. " +
+          "Your message has been saved, so there's no need to write it again."
+        : "Sorry — something is wrong at our end and I can't answer properly just now. " +
+          "Please try again in a few minutes, or contact the business directly if it is urgent.",
       paused: true,
-      handedOver: true,
+      handedOver: handed,
     });
   }
 }

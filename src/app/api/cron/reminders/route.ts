@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendDueReminders } from "@/lib/reminders";
 import { releaseExpiredHolds } from "@/lib/booking";
 import { releaseHeldConversations } from "@/lib/engine/release";
-import { nightlyBackup } from "@/lib/backup";
+import { nightlyBackup, newestBackup } from "@/lib/backup";
 import { siteOrigin } from "@/lib/origin";
 import type { Studio } from "@/lib/types";
 import { forgetOldEnquiries } from "@/lib/retention";
@@ -223,7 +223,18 @@ export async function GET(request: NextRequest) {
    */
   const metered = await meterThisMonth(db);
 
-  const body = { released, due, sent, waiting, failures, answered, forgotten, tidied, weekly, backup, working, metered };
+  /*
+   * And what is genuinely in the bucket, so the check outside can say the date
+   * of the newest file rather than repeating what the job intended to do.
+   */
+  const newest = await newestBackup(db);
+
+  const body = {
+    released, due, sent, waiting, failures, answered, forgotten, tidied, weekly,
+    backup: { ...backup, newest },
+    working,
+    metered,
+  };
 
   /*
    * Said out loud, because nothing downstream will say it.

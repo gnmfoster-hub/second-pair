@@ -18,7 +18,7 @@ import { alertPlatform } from "@/lib/platformAlert";
 export async function handOverAfterFailure(
   db: SupabaseClient,
   args: { studioId: string; channel: string; externalRef: string; error: unknown },
-): Promise<void> {
+): Promise<{ handed: boolean }> {
   try {
     const said = (args.error as Error)?.message ?? String(args.error ?? "");
     console.error(`[${args.channel}] turn failed`, said);
@@ -29,7 +29,15 @@ export async function handOverAfterFailure(
      * them is right and is not enough: when the cause is our account, ours is
      * the only inbox that can act on it.
      */
-    void alertPlatform(db, {
+    /*
+     * Awaited, not fired and forgotten.
+     *
+     * A bare `void` on a serverless function is a promise the platform may
+     * freeze before it finishes — and this is the email that exists because
+     * nobody knew the model account had run dry. The one alert in the product
+     * that must actually leave the building was the one not waited for.
+     */
+    await alertPlatform(db, {
       name: "turn-failed",
       subject: "The assistant could not answer a customer",
       text:
@@ -50,7 +58,9 @@ export async function handOverAfterFailure(
       .limit(1)
       .maybeSingle();
 
-    if (!conversation) return;
+    // Nothing to hand over: said plainly, so a caller cannot promise a customer
+    // that somebody has been told when nobody has.
+    if (!conversation) return { handed: false };
 
     await db.from("conversations").update({ status: "needs_human" }).eq("id", conversation.id);
     await db.from("messages").insert({
@@ -64,7 +74,9 @@ export async function handOverAfterFailure(
       url: `/conversations/${conversation.id}`,
       tag: `failed-${conversation.id}`,
     });
+    return { handed: true };
   } catch (e) {
     console.error("[turnFailed] could not hand over", (e as Error)?.message);
+    return { handed: false };
   }
 }

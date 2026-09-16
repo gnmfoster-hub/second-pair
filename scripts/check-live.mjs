@@ -363,15 +363,39 @@ if (reachable) {
        * check — the job says what it did — and it is the difference between
        * finding out now and finding out the morning something is gone.
        */
+      /*
+       * What is in the bucket, not what the job meant to do.
+       *
+       * This read the job's own account of itself, and "not the hour" — true
+       * for twenty-one hours a day — counted as a pass. A key can be set and
+       * every write can fail; the only honest question is whether a file is
+       * there and how old it is.
+       */
       const backup = body?.backup;
+      const newest = backup?.newest;
+
       if (!backup) warn("no word on backups", "this build is older than the nightly backup");
-      else if (backup.ran) pass("last night's backup was taken", `${backup.rows} rows, ${(backup.bytes / 1024).toFixed(0)} KB, encrypted`);
-      else if (backup.because === "already today") pass("today's backup is already done", "");
-      else if (backup.because === "not the hour") pass("backups are running", "it takes one between 2 and 5am");
-      else if (backup.because === "no key") fail("nothing is backed up", "set BACKUP_KEY in Vercel (16 characters or more) and one is taken tonight");
-      else fail("the backup failed", String(backup.error ?? ""));
+      else if (newest && newest.hoursOld <= 36)
+        pass("there is a backup", `${newest.name}, ${(newest.bytes / 1024).toFixed(0)} KB, ${newest.hoursOld}h old`);
+      else if (newest)
+        fail("the newest backup is stale", `${newest.name} is ${newest.hoursOld} hours old — the nightly job is failing`);
+      else if (backup.because === "no key")
+        fail("nothing is backed up", "set BACKUP_KEY in Vercel (16 characters or more) and one is taken tonight");
+      else fail("nothing is backed up", `no file in the bucket at all${backup.error ? ` — ${backup.error}` : ""}`);
     } else if (authed?.status === 401) {
       warn("your local CRON_SECRET does not match Vercel's", "not fatal, but the two should be the same");
+    } else {
+      /*
+       * There was no else at all, so the one loud signal in the codebase —
+       * the job returning 500 because something went wrong — printed nothing,
+       * counted nothing, skipped the backup checks entirely and finished
+       * "All good." The day reminders were being lost was the day this said
+       * least.
+       */
+      fail(
+        "the scheduled job reported a failure",
+        authed ? `it answered ${authed.status}: ${JSON.stringify(authed.body ?? {}).slice(0, 300)}` : "it did not answer at all",
+      );
     }
   }
 }

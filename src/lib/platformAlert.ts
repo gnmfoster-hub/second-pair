@@ -58,7 +58,19 @@ export async function alertPlatform(
       .from("handled_messages")
       .insert({ message_id: alertKey(alert.name), channel: "email" });
 
-    if (error) return { sent: false, why: "already told this hour" };
+    /*
+     * Only a duplicate key means "already told".
+     *
+     * Any error at all was being reported as deduplication — so if this table
+     * became unwritable during an incident, which is exactly when the database
+     * is the thing misbehaving, every alert for every problem was silently
+     * swallowed with a reassuring reason. The one failure this exists to
+     * report is the one that would have hidden it.
+     */
+    if (error && error.code === "23505") return { sent: false, why: "already told this hour" };
+    if (error) {
+      console.error("[platformAlert] could not claim the hour, sending anyway", error.message);
+    }
 
     const result = await sendEmail({
       to,
