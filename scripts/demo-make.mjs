@@ -260,12 +260,12 @@ const DEMOS = [
     },
     team: [["Dan Whitfield", "#e0913a", "Instructor", 3500, 3000]],
     clients: [
-      ["Ellis Gray", "07700 900331", "Test booked 14 Nov"],
-      ["Tia Mensah", "07700 900332", "Nervous at roundabouts"],
-      ["Josh Peart", "07700 900333", "Block of ten, 4 left"],
-      ["Freya Lomax", "07700 900334", "Manual, started August"],
-      ["Sam Okon", "07700 900335", "Motorway lessons"],
-      ["Kayleigh Best", "07700 900336", "Theory passed"],
+      ["Ellis Gray", "07700 900331", "Test booked 14 Nov", "BS5 8AA"],
+      ["Tia Mensah", "07700 900332", "Nervous at roundabouts", "BS7 8PQ"],
+      ["Josh Peart", "07700 900333", "Block of ten, 4 left", "BS16 2LR"],
+      ["Freya Lomax", "07700 900334", "Manual, started August", "BA2 3TT"],
+      ["Sam Okon", "07700 900335", "Motorway lessons", "BS3 4NN"],
+      ["Kayleigh Best", "07700 900336", "Theory passed", "BS5 9HH"],
     ],
     work: [
       ["Single lesson", 60, 3500],
@@ -473,6 +473,42 @@ for (const demo of doing) {
     continue;
   }
 
+  /*
+   * Where each job is, for a trade that drives to it.
+   *
+   * The report groups the week by postcode area, and a postcode only exists
+   * on an enquiry — the assistant asks for it, and somebody typing a booking
+   * into the diary does not. So the demo builds the same shape the assistant
+   * would: a conversation, an enquiry with the address on it, and the jobs
+   * hung off that.
+   */
+  const enquiries = new Map();
+  const travels = demo.settings.travel_mode !== "at_premises";
+  if (travels) {
+    for (const [i, [name, , note, where]] of demo.clients.entries()) {
+      // Either its own column, or a note that is plainly a postcode.
+      const said = String(where ?? note ?? "").trim();
+      const postcode = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i.test(said) ? said : null;
+      if (!postcode) continue;
+
+      const client = clients.find((c) => c.name === name);
+      if (!client) continue;
+
+      const convId = await upsert(
+        "conversations",
+        { studio_id: studioId, external_ref: `demo-${demo.key}-job-${i}` },
+        { channel: "web", status: "booked", contact_id: client.id, last_message_at: new Date().toISOString() },
+      );
+      const enquiryId = await upsert(
+        "enquiries",
+        { conversation_id: convId },
+        { job_postcode: postcode, intent: "appointment" },
+      );
+      enquiries.set(client.id, enquiryId);
+    }
+    console.log("  addresses:", enquiries.size, "jobs with a postcode");
+  }
+
   // this week, rebuilt
   const { data: mine } = await db.from("artists").select("id").eq("studio_id", studioId);
   const ids = (mine ?? []).map((a) => a.id);
@@ -490,10 +526,20 @@ for (const demo of doing) {
       const starts = at(dayOffset, 8 + ((i * 2 + dayOffset) % 8), (i % 2) * 30);
       const ends = new Date(starts.getTime() + minutes * 60_000);
 
+      /*
+       * How long it really took, on the ones already done.
+       *
+       * Recorded when a job is closed off, and the report reads it back — so
+       * without any the demo cannot show the one number an hourly trade wants.
+       * A spread rather than a constant: some over, some under, most near.
+       */
+      const done = starts.getTime() < Date.now();
+      const drift = [0, 15, -10, 30, 5, -5][(i + dayOffset) % 6];
+
       const { error } = await db.from("bookings").insert({
         artist_id: person.id,
         contact_id: client.id,
-        enquiry_id: null,
+        enquiry_id: enquiries.get(client.id) ?? null,
         source: "manual",
         type: "session",
         category: "appointment",
@@ -506,7 +552,8 @@ for (const demo of doing) {
         starts_at: starts.toISOString(),
         ends_at: ends.toISOString(),
         repeats: "none",
-        attended: dayOffset === 0 && i % 2 === 0 ? true : null,
+        attended: done ? true : null,
+        actual_minutes: done ? Math.max(15, minutes + drift) : null,
       });
       if (!error) made++;
     }
