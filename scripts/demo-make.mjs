@@ -160,6 +160,27 @@ const DEMOS = [
       ["Nails and ears", 20, 1200],
       ["De-shed treatment", 75, 4200],
     ],
+    /*
+     * The one thing a groomer asks for that a salon does not: proof the dog is
+     * vaccinated, before it comes anywhere near the other dogs. It is also the
+     * clearest test of "needs a form first" outside the trade it was built in.
+     */
+    form: {
+      name: "Vaccination record and consent",
+      kind: "consent",
+      requiredFor: ["Full groom", "Puppy first visit"],
+      blocks: [
+        { type: "text", label: "Before your dog's first groom we need their vaccination record and a few details. It takes two minutes and we only ask once." },
+        { type: "short", label: "Your dog's name", required: true },
+        { type: "short", label: "Breed", required: true },
+        { type: "date", label: "Date of last vaccination", required: true },
+        { type: "yesno", label: "Any health conditions, allergies or medication we should know about?", detailOnYes: true, required: true },
+        { type: "yesno", label: "Has your dog ever bitten or snapped at a groomer?", detailOnYes: true, required: true },
+        { type: "choice", label: "If the coat is badly matted, what would you rather we did?", options: ["Clip it short — kindest for the dog", "Ring me first", "Do what you think best"], required: true },
+        { type: "agree", label: "I confirm my dog is vaccinated and the details above are correct.", required: true },
+        { type: "signature", label: "Sign here", required: true },
+      ],
+    },
     asks: [
       "Hi! Bramble is due a full groom, he's a cockapoo and gets matted. Any Saturdays?",
       "Do you take puppies for their first visit? She's 16 weeks.",
@@ -491,6 +512,69 @@ for (const demo of doing) {
     }
   }
   console.log("  diary:", made, "jobs this week");
+
+  /*
+   * A form the business needs signed before certain work, where the demo has
+   * one. Built through the same tables the app writes, so the diary's "needs a
+   * form" flag, the assistant's link and the client's record all behave
+   * exactly as they would for a real business.
+   */
+  if (demo.form) {
+    const blocks = demo.form.blocks.map((b, i) => ({ id: `b${i + 1}`, ...b }));
+    const formId = await upsert(
+      "form_templates",
+      { studio_id: studioId, name: demo.form.name },
+      { kind: demo.form.kind ?? "consent", blocks, active: true, sort_order: 0 },
+    );
+
+    const { data: theirServices } = await db
+      .from("services")
+      .select("id, name")
+      .eq("studio_id", studioId);
+
+    for (const service of theirServices ?? []) {
+      const needs = demo.form.requiredFor.some((what) =>
+        String(service.name).toLowerCase().includes(what.toLowerCase()),
+      );
+      await db
+        .from("services")
+        .update({ requires_form_id: needs ? formId : null })
+        .eq("id", service.id);
+    }
+
+    // One signed, one still waiting, so both states are on the screen.
+    const [signedFor, waitingFor] = clients;
+    if (signedFor) {
+      await upsert(
+        "client_forms",
+        { studio_id: studioId, contact_id: signedFor.id, template_id: formId },
+        {
+          title: demo.form.name,
+          blocks,
+          status: "signed",
+          token: `demo-${demo.key}-signed-${signedFor.id.slice(0, 8)}`,
+          signed_at: new Date(Date.now() - 20 * 86_400_000).toISOString(),
+          signer_name: signedFor.name,
+          answers: { b2: "Bramble", b3: "Cockapoo", b4: "2026-03-14" },
+        },
+      );
+    }
+    if (waitingFor) {
+      await upsert(
+        "client_forms",
+        { studio_id: studioId, contact_id: waitingFor.id, template_id: formId },
+        {
+          title: demo.form.name,
+          blocks,
+          status: "sent",
+          token: `demo-${demo.key}-sent-${waitingFor.id.slice(0, 8)}`,
+          sent_via: "sms",
+          expires_at: new Date(Date.now() + 25 * 86_400_000).toISOString(),
+        },
+      );
+    }
+    console.log("  form:", demo.form.name, "— required on", demo.form.requiredFor.join(" and "));
+  }
 
   // a few enquiries, including one that needs a person
   for (const [i, said] of demo.asks.entries()) {
