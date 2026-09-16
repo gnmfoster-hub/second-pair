@@ -994,6 +994,18 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
       : {}),
 
     /*
+     * Whether this row is a bay rather than a body.
+     *
+     * Same guards as above, and for the same reasons: only from the owner's
+     * view, only when the form carried it, and only once the column exists.
+     * A person's own page never carries it, and reading its absence as "no"
+     * would quietly turn a bay back into a person every time somebody saved.
+     */
+    ...(owns && (await hasColumn(supabase, "artists", "is_resource"))
+      ? { is_resource: ticked(fd, "is_resource") }
+      : {}),
+
+    /*
      * Whether this person takes money, and which kind.
      *
      * Both columns have existed since payments were built and whoTakes has

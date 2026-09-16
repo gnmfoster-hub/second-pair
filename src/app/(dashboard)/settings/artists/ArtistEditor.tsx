@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { saveArtist, type FormState } from "../actions";
 import { Field, FormMessage, SubmitButton } from "@/components/Form";
 import { penceToInput, formatPence } from "@/lib/money";
@@ -47,6 +47,14 @@ export function ArtistEditor({
   roles: string[];
 }) {
   const [state, action] = useActionState<FormState, FormData>(saveArtist, {});
+
+  /*
+   * Whether this row is a bay rather than a body. Held in state so the page
+   * stops asking for an email the moment it is ticked, rather than after a
+   * save — the whole point of the switch is not being asked for things that
+   * cannot exist.
+   */
+  const [isThing, setIsThing] = useState(artist?.is_resource === true);
   const isNew = !artist;
 
   return (
@@ -120,6 +128,40 @@ export function ArtistEditor({
             <input name="name" defaultValue={artist?.name ?? ""} className="input max-w-sm" required />
           </Field>
 
+          {/*
+            * A column in the diary is not always a person.
+            *
+            * A garage books a bay, a hire firm books a room, a driving school
+            * books a car. They have hours, they take bookings and they can be
+            * busy — and they have no email, no login, no phone to be notified
+            * on and no bank account. Everything on this page that assumes a
+            * person was being offered for them anyway: a Stripe account only
+            * they could connect, an invitation to sign in, a voice of their
+            * own in the assistant. Half a screen of things that cannot happen.
+            */}
+          {!isOwner && (
+            <Field label="What this is">
+              <label className="flex items-start gap-2.5 text-sm">
+                <input
+                  type="checkbox"
+                  name="is_resource"
+                  checked={isThing}
+                  onChange={(e) => setIsThing(e.target.checked)}
+                  className="mt-0.5 accent-[var(--accent)]"
+                />
+                <span>
+                  A place or a thing, not a person
+                  <span className="hint block">
+                    A bay, a room, a chair, a van. It keeps its own diary and hours and can be
+                    booked like anybody else — it just has no login, no phone and no bank
+                    account, so none of that is asked for.
+                  </span>
+                </span>
+              </label>
+            </Field>
+          )}
+
+          {!isThing && (
           <Field label="Email" hint="Only used to send them their login.">
             <input
               name="email"
@@ -128,6 +170,7 @@ export function ArtistEditor({
               className="input max-w-sm"
             />
           </Field>
+          )}
 
           <Field
             label="What they do"
@@ -199,6 +242,7 @@ export function ArtistEditor({
           * has to allow it as well — both switches have to agree — so ticking
           * one here does not override a shop that takes no payments at all.
           */}
+        {!isThing && (
         <fieldset className="rounded-xl border border-border p-4">
           <legend className="label px-1">Taking money</legend>
           <input type="hidden" name="touch_money" value="1" />
@@ -248,6 +292,7 @@ export function ArtistEditor({
               : `They have no Stripe account of their own yet. Only they can connect it, because Stripe asks for their own ID and bank details: they sign in, open Settings, and on their own tab (the first one, with their name) press Connect my Stripe under Getting paid.${artist?.user_id ? "" : " They need a login first — invite them from this page."}`}
           </p>
         </fieldset>
+        )}
 
         <Field label="Styles" hint="Used to route enquiries to the right person.">
           <div className="flex flex-wrap gap-x-5 gap-y-2 pt-1">

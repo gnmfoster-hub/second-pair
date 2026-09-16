@@ -380,6 +380,15 @@ export type Artist = {
    */
   assistant_books?: boolean;
   /**
+   * Whether this row is a place or a thing rather than a person.
+   *
+   * A garage books a bay, a hire firm a room, a driving school a car. They
+   * keep hours and take bookings exactly as a person does, and they have no
+   * email, no login, no phone to notify and no bank account — so everything
+   * built around a person is hidden rather than offered and ignored.
+   */
+  is_resource?: boolean;
+  /**
    * Whether this person may take a deposit, and whether they may take the full
    * amount. Two questions, because a tattooist takes a deposit and invoices
    * the rest while a stylist takes the lot on the day and holds nothing.

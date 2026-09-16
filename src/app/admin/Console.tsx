@@ -62,6 +62,13 @@ export function Console({
       )
     : businesses;
 
+  /*
+   * The two kinds, apart. A demonstration is not a customer, and the one place
+   * it must never look like one is the screen where decisions get made.
+   */
+  const real = shown.filter((b) => b.kind !== "demo");
+  const pretend = shown.filter((b) => b.kind === "demo");
+
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
       {/*
@@ -147,16 +154,51 @@ export function Console({
         * borders are the loudest thing on a screen about businesses. Ruled
         * rows read as a book of accounts, which is what this is.
         */}
+      {/*
+        * Real businesses and demonstrations, kept apart.
+        *
+        * They were one list, told apart by a small grey word, and that is the
+        * wrong way round: the whole risk of a demo is somebody acting on it as
+        * though it were a customer — ringing it, reading its takings, worrying
+        * about its week. Real ones first and on their own; the pretend ones
+        * below, on their own ground, where nothing can be mistaken for money
+        * anybody owes.
+        */}
       <div className="card mt-4 px-5 py-1">
         {shown.length === 0 && (
           <p className="hint">
             {businesses.length === 0 ? "Nothing yet. Set the first one up." : "Nobody matches that."}
           </p>
         )}
-        {shown.map((b) => (
+        {real.map((b) => (
           <Business key={b.id} b={b} />
         ))}
+        {real.length === 0 && shown.length > 0 && (
+          <p className="hint py-4">No real businesses match that — only demonstrations, below.</p>
+        )}
       </div>
+
+      {pretend.length > 0 && (
+        <section className="mt-8">
+          <div className="flex flex-wrap items-baseline gap-2">
+            <h2 className="section-title">Demonstrations</h2>
+            <span className="hint">
+              {pretend.length} pretend {pretend.length === 1 ? "business" : "businesses"} — made up
+              people, made up money, safe to break
+            </span>
+          </div>
+          {/*
+            * A different ground and a dashed edge, so it cannot be mistaken at
+            * a glance for the ledger above even when somebody is scrolling
+            * past it looking for something else.
+            */}
+          <div className="mt-3 rounded-xl border border-dashed border-accent/40 bg-accent/[0.04] px-5 py-1">
+            {pretend.map((b) => (
+              <Business key={b.id} b={b} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <Arrivals inbound={inbound} />
 
@@ -409,8 +451,21 @@ function Business({ b }: { b: BusinessSummary }) {
             <StatusPill status={b.status} />
             {b.archivedAt && <span className="pill bg-warn/10 text-warn">Stopped</span>}
             {b.kind !== "customer" && (
-              <span className="pill bg-surface-2 text-muted">
-                {b.kind === "demo" ? "Demo" : "Ours"}
+              /*
+                * A demonstration says so in colour, not in grey.
+                *
+                * Grey is the colour of a detail somebody has already stopped
+                * reading, and this is the one label on the row that changes
+                * what every figure beside it means.
+                */
+              <span
+                className={
+                  b.kind === "demo"
+                    ? "pill bg-accent/15 text-accent"
+                    : "pill bg-surface-2 text-muted"
+                }
+              >
+                {b.kind === "demo" ? "Pretend" : "Ours"}
               </span>
             )}
             {/* A demonstration cannot be badly set up — there is nobody to fail. */}
