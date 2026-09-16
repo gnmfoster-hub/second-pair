@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { renderReminder, unknownPlaceholders } from "./reminderText.ts";
+import { renderReminder, unknownPlaceholders , segments, forOneText } from "./reminderText.ts";
 import { VERTICAL_LIST } from "./verticals.ts";
 
 const values = {
@@ -95,4 +95,40 @@ test("a shipped reminder reads properly with nothing known about the client", ()
       assert.doesNotMatch(out, /\s{2,}/, `${trade.id}/${reminder.label} has a gap in it`);
     }
   }
+});
+
+test("a text is counted the way it is charged", () => {
+  assert.equal(segments(""), 0);
+  assert.equal(segments("a".repeat(160)), 1);
+  assert.equal(segments("a".repeat(161)), 2);
+  // One curly quote drops the whole message to 70 characters a piece.
+  assert.equal(segments("a".repeat(100) + "\u2019"), 2, "a smart apostrophe is not GSM");
+  assert.equal(segments("See you tomorrow, John \u2014 Karen will be with you at 11am."), 1);
+});
+
+/*
+ * Measured on the live database: the earlier reminder carries the trade's prep
+ * advice and runs to about 210 characters, so every one is charged as two.
+ */
+test("a long reminder is cut to one text, and only between sentences", () => {
+  const long =
+    "Hi John, Karen Foster from Neat & Tidy Solutions is booked to come out to you Thursday 17 September at 11:00 am. " +
+    "Please make sure there's somewhere to park and access to the work. Need to move it? Just reply here.";
+  assert.equal(segments(long), 2);
+
+  const short = forOneText(long);
+  assert.equal(segments(short), 1);
+  assert.match(short, /Thursday 17 September at 11:00 am\./, "who and when survive");
+  assert.doesNotMatch(short, /somewhere to park/, "the advice goes, and the email still carries it");
+  assert.equal(short.endsWith("."), true, "it never stops mid-sentence");
+});
+
+test("a reminder that already fits is left exactly as it is", () => {
+  const fine = "See you tomorrow, John - Karen will be with you Thursday at 11:00 am. Reply here if anything's changed.";
+  assert.equal(forOneText(fine), fine);
+});
+
+test("a single sentence too long for one text is sent whole rather than cut off", () => {
+  const one = "Hi " + "a".repeat(200) + ".";
+  assert.equal(forOneText(one), one);
 });

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Studio } from "@/lib/types";
 import { describeSlot } from "@/lib/booking";
-import { renderReminder } from "@/lib/reminderText";
+import { renderReminder, forOneText } from "@/lib/reminderText";
 import { deliver } from "@/lib/messaging/deliver";
 import { routesFor } from "@/lib/messaging/reach";
 import { connectedChannels, smsNumberFor } from "@/lib/messaging/connections";
@@ -360,10 +360,22 @@ export async function sendDueReminders(
         });
       }
 
+      /*
+       * On a text, one text.
+       *
+       * The same reminder goes out on whichever channel is open, and the
+       * trade's preparation advice pushes it past a hundred and sixty
+       * characters — so every one of those is charged as two. Email and the
+       * website carry the whole thing for nothing, and the phone gets who is
+       * coming and when, which is the part somebody reads walking down the
+       * street. See forOneText: it cuts between sentences or not at all.
+       */
+      const forThisChannel = route.channel === "sms" ? forOneText(body) : body;
+
       const sent = await deliver({
         channel: route.channel,
         to: route.to,
-        body,
+        body: forThisChannel,
         lastInboundAt: route.lastInboundAt,
         from: route.channel === "sms" ? smsFrom : undefined,
         subject: `Your appointment with ${studio.name}`,
@@ -378,7 +390,9 @@ export async function sendDueReminders(
         .from("reminders")
         .update({
           status: arrived ? "sent" : "failed",
-          body,
+          // What actually went, not what was composed — so a question about
+          // what somebody was told has the right answer.
+          body: forThisChannel,
           channel: route.channel,
           error: sent.error ?? null,
           sent_at: arrived ? new Date().toISOString() : null,
