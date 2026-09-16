@@ -1,6 +1,7 @@
 import { formatPence } from "@/lib/money";
 import { describeDepositRule } from "@/lib/quote";
 import { effectiveDepositMode } from "@/lib/payments/stripe";
+import { whoCanBeOffered } from "./offering";
 import { DAY_NAMES, labelFor } from "@/lib/types";
 import { verticalPack } from "@/lib/verticals";
 import { describeLength } from "./bandLength";
@@ -67,7 +68,16 @@ export function studioSystemPrompt(
    */
   channel: string = "web",
 ): string {
-  const active = artists.filter((a) => a.active);
+  /*
+   * Only the people this assistant may speak for.
+   *
+   * Filtered the same way the tools filter them, because the prompt is where
+   * the model learns who exists at all. Left as "everybody active", an
+   * apprentice the owner had taken off the channels was still named in the
+   * team list — so the assistant stopped offering him and went on mentioning
+   * him by name, which is most of what the owner was trying to prevent.
+   */
+  const active = whoCanBeOffered(artists, studio, forArtist, channel);
   const pack = verticalPack(studio.vertical);
   const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
 
