@@ -54,6 +54,15 @@ type Line = {
    * them further down.
    */
   moments?: Moment[];
+  /**
+   * Set when the message never reached us.
+   *
+   * The bubble was drawn the moment they pressed send, with the two ticks that
+   * mean it arrived — and if the send failed it kept them. Somebody typed a
+   * question, saw it delivered, and waited for an answer to a message nobody
+   * had.
+   */
+  failed?: boolean;
   at: number;
 };
 
@@ -318,7 +327,28 @@ export function ChatWindow({
 
       const data = await response.json();
       if (!response.ok) {
-        setError(data.error ?? "Something went wrong.");
+        /*
+         * What went wrong at our end is ours to read, not theirs.
+         *
+         * This drew whatever the server put in `error` — "Unknown studio",
+         * "Invalid session", "Slow down", and once an instruction to edit an
+         * environment file. A customer messaging a salon should never meet any
+         * of it. The status decides which of two honest sentences they get,
+         * and the real reason goes to the console.
+         */
+        console.error("[widget]", response.status, data?.error);
+        setError(
+          response.status === 429
+            ? "One moment — that came through very quickly. Try that again."
+            : response.status === 413
+              ? "That message is a bit long for here — could you shorten it?"
+              : "Sorry, that did not send. Try again in a moment.",
+        );
+        // Their words, still theirs: the bubble stays, marked as not sent, so
+        // they can copy it rather than write it twice.
+        setLines((l) =>
+          l.map((line, i) => (i === l.length - 1 && line.from === "client" ? { ...line, failed: true } : line)),
+        );
         return;
       }
 
@@ -584,6 +614,17 @@ export function ChatWindow({
           */}
         <div
           ref={thread}
+          /*
+           * Read out as it arrives.
+           *
+           * Only the typing dots were announced, so somebody using a screen
+           * reader heard "Typing" and then silence — every reply, every price,
+           * every offered time went by unread. This is the whole product for
+           * that customer.
+           */
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions text"
           className={`h-full space-y-1 overflow-y-auto px-3.5 pb-4 ${
             standalone ? "pt-4" : "pt-[4.5rem]"
           }`}
@@ -693,6 +734,7 @@ export function ChatWindow({
                   photoUrl={photoUrl}
                   at={last ? line.at : undefined}
                   photos={line.photos}
+                  failed={line.failed}
                 >
                   {shown}
                 </Bubble>
@@ -736,7 +778,10 @@ export function ChatWindow({
           )}
 
           {error && (
-            <div className="mx-auto w-fit rounded-full bg-warn/10 px-3 py-1.5 text-xs text-warn">
+            <div
+              role="alert"
+              className="mx-auto w-fit rounded-full bg-warn/10 px-3 py-1.5 text-xs text-warn"
+            >
               {error}
             </div>
           )}
@@ -876,6 +921,7 @@ function Bubble({
   photoUrl,
   at,
   photos,
+  failed,
   children,
 }: {
   from: "client" | "studio";
@@ -885,6 +931,8 @@ function Bubble({
   photoUrl: string | null;
   at?: number;
   photos?: string[];
+  /** Their message never reached us: say so rather than showing two ticks. */
+  failed?: boolean;
   children: string;
 }) {
   const mine = from === "client";
@@ -953,11 +1001,13 @@ function Bubble({
             }`}
           >
             <span className="tabular-nums">{clock(at)}</span>
-            {mine && (
+            {mine && failed ? (
+              <span className="text-warn">not sent</span>
+            ) : mine ? (
               <span className="text-[var(--brand)]">
                 <TickIcon />
               </span>
-            )}
+            ) : null}
           </div>
         )}
       </div>

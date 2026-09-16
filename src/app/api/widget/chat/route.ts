@@ -121,14 +121,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Slow down" }, { status: 429 });
   }
 
+  /*
+   * Never a developer's sentence to a customer.
+   *
+   * This said "Add ANTHROPIC_API_KEY to .env.local and restart", and the
+   * widget draws whatever comes back in `error` — so somebody messaging a
+   * salon about their hair was told to edit an environment file. What is
+   * wrong at our end is ours to read in the log; what they get is the same
+   * honest sentence as any other failure, and their message still lands in
+   * the business's inbox.
+   */
   if (!hasAnthropicEnv()) {
-    return NextResponse.json(
-      {
-        error:
-          "The assistant is not connected yet. Add ANTHROPIC_API_KEY to .env.local and restart.",
-      },
-      { status: 503 },
-    );
+    console.error("[widget/chat] ANTHROPIC_API_KEY is not set");
+    return NextResponse.json({
+      reply:
+        "Sorry — I can't get to the diary this minute, so I don't want to guess at times. " +
+        "I've passed this straight to the team and somebody will come back to you shortly.",
+      paused: true,
+      handedOver: true,
+    });
   }
 
   try {

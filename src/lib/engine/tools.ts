@@ -755,9 +755,18 @@ async function quoteEstimate(
   // As above — a quote in the same turn as a diary lookup has to inform it.
   ctx.enquirySizeBandId = band.id;
 
-  const deposit = depositFor(ctx.studio.deposit_rule, quote);
   // What the customer should be told, which is not always what was typed in.
   const shown = withVat(quote, ctx.studio);
+  /*
+   * And the deposit off that same figure.
+   *
+   * It was worked out on the price before VAT while the range read out to the
+   * customer included it — so a VAT-registered business quoting "£300 to £420
+   * including VAT" asked for a deposit calculated on £250 to £350. A fifth
+   * short, every time, and it only shows up when somebody reconciles a card
+   * statement against an invoice.
+   */
+  const deposit = depositFor(ctx.studio.deposit_rule, { ...quote, ...shown });
 
   return {
     result: [
@@ -1257,6 +1266,36 @@ async function makeBooking(
     .select("name, phone, email")
     .eq("id", ctx.contactId)
     .maybeSingle();
+
+  /*
+   * Eighteen, where the law makes it a criminal offence rather than a policy.
+   *
+   * Tattooing somebody under eighteen is strict liability under the Tattooing
+   * of Minors Act 1969, and injectables the same under the 2021 Act. Until now
+   * the only stop was a model that happened to ask and happened to save the
+   * answer: `pack.ageCheck` added a line to the prompt and nothing else read
+   * it. A model that never asked booked the appointment.
+   *
+   * So the tool refuses. It is the one rule in here that cannot be left to
+   * persuasion, because the person who carries the conviction is the owner.
+   */
+  if (verticalPack(ctx.studio.vertical).ageCheck) {
+    const { data: enquiry } = await ctx.db
+      .from("enquiries")
+      .select("age_confirmed")
+      .eq("id", ctx.enquiryId)
+      .maybeSingle();
+
+    if (enquiry?.age_confirmed !== true) {
+      return {
+        result:
+          "Not booked — this trade cannot book anybody under 18 and you have not confirmed " +
+          "their age yet. Ask them outright whether they are 18 or over, save the answer " +
+          "with save_enquiry (age_confirmed), and then create_booking again. If they say " +
+          "no, do not book: it is a criminal offence for the business.",
+      };
+    }
+  }
 
   const missing = missingDetails(who);
   if (missing) {

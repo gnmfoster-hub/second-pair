@@ -202,7 +202,7 @@ export async function sendDueReminders(
   studio: Studio,
   now = new Date(),
 ): Promise<SendResult> {
-  const { data } = await db
+  const { data, error } = await db
     .from("reminders")
     .select(
       "id, due_at, template_id, " +
@@ -224,6 +224,17 @@ export async function sendDueReminders(
     .eq("bookings.artists.studio_id", studio.id)
     .order("due_at")
     .limit(200);
+
+  /*
+   * "Nothing due" and "could not look" are not the same answer.
+   *
+   * The error was not even read, so anything that breaks this embed — a
+   * renamed relationship, a dropped column in the select list, a change to the
+   * policies — comes back as an empty list and reports a quiet evening. The
+   * identical fault stopped every held conversation being answered for a
+   * fortnight, on a query three files away.
+   */
+  if (error) throw new Error(`could not read what is due: ${error.message}`);
 
   const rows = ((data ?? []) as unknown as DueRow[]).filter(
     (r) => r.bookings?.artists?.studio_id === studio.id,
@@ -376,6 +387,15 @@ export async function sendDueReminders(
         channel: route.channel,
         to: route.to,
         body: forThisChannel,
+        /*
+         * A reminder about an appointment they booked is a service message,
+         * so STOP does not silence it here — the sweep already skips anybody
+         * who has opted out, a few lines above, which is the right place for
+         * that decision because it also stops the row being claimed.
+         */
+        db,
+        studioId: studio.id,
+        transactional: true,
         lastInboundAt: route.lastInboundAt,
         from: route.channel === "sms" ? smsFrom : undefined,
         subject: `Your appointment with ${studio.name}`,

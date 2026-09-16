@@ -103,11 +103,28 @@ export async function meterThisMonth(
       }
     }
 
-    const { data: reminders } = await db
+    /*
+     * Through the booking, because a reminder does not know which business it
+     * belongs to.
+     *
+     * This asked for reminders where studio_id matched — and `reminders` has
+     * no such column. PostgREST refuses the whole statement, the error was
+     * discarded by a bare destructure, and the loop below simply never ran. So
+     * every reminder text and email was missing from the month's figures: for
+     * a salon doing two hundred appointments that is most of their texts, and
+     * the bill was quietly short by the biggest number on it.
+     */
+    const { data: reminders, error: reminderError } = await db
       .from("reminders")
-      .select("channel, status")
-      .eq("studio_id", studio.id)
+      .select("channel, status, created_at, bookings!inner(artists!inner(studio_id))")
+      .eq("bookings.artists.studio_id", studio.id)
       .gte("created_at", from);
+
+    if (reminderError) {
+      // Said out loud rather than swallowed. A month that cannot count its
+      // reminders is a month nobody should be invoiced from.
+      console.error("[meter] could not count reminders", reminderError.message);
+    }
 
     for (const r of reminders ?? []) {
       if (r.status !== "sent") continue;

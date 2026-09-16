@@ -170,6 +170,8 @@ export async function releaseHeldConversations(
 
       const delivery = await deliver({
         channel: conversation.channel as Channel,
+        db,
+        studioId: conversation.studio_id as string,
         to: to ?? null,
         /*
          * A cancelled slot offered to somebody who asked through the website

@@ -303,6 +303,10 @@ async function sendLink({
     channel: route.channel,
     to: route.to,
     body,
+    // A payment link for a booking they made. Service, not marketing.
+    db: supabase,
+    studioId: studio.id,
+    transactional: true,
     lastInboundAt: route.lastInboundAt,
     // A text goes out from the business's own number, so the link arrives from
     // the number they already have rather than from a stranger.

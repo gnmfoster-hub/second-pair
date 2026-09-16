@@ -295,6 +295,10 @@ async function deliverCopies({
         channel: route.channel,
         to: route.to,
         body,
+        // A form or a quote they are waiting on: theirs, and asked for.
+        db: supabase,
+        studioId: studio.id,
+        transactional: true,
         lastInboundAt: route.lastInboundAt ?? null,
         from: route.channel === "sms" ? smsFrom : undefined,
         subject: copy.subject,

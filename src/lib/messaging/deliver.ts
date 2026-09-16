@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isOptedOut } from "./optOut.ts";
 import type { Channel } from "@/lib/types";
 import { withinWindow as isWithinWindow, WINDOWED } from "./reach";
 import { sendEmail } from "./email";
@@ -53,6 +54,9 @@ export async function deliver({
   metaAccountId,
   metaToken,
   reachOn,
+  db,
+  studioId,
+  transactional = false,
 }: {
   channel: Channel;
   /** Phone number, page-scoped id, or the widget session — whatever the channel addresses. */
@@ -77,6 +81,30 @@ export async function deliver({
    * connected, which is a different answer from "it failed" and is said
    * differently below.
    */
+  /**
+   * Who is sending, so a text can be checked against their STOP list.
+   *
+   * Somebody who texts STOP is recorded — and until now the only thing that
+   * read that record was the reminder sweep. Every other text went out
+   * regardless: the owner's own message, a form link, a quote, a held reply
+   * answered in the morning, a missed call. Passing these two makes the check
+   * happen here, which is the one place every text in the product goes
+   * through.
+   *
+   * Optional only so a caller that genuinely has neither — a test, a send
+   * before a studio is known — still compiles. When they are absent the check
+   * cannot run, and that is said in the result rather than assumed safe.
+   */
+  db?: Pick<SupabaseClient, "from">;
+  studioId?: string | null;
+  /**
+   * True for a message about something they asked for: a booking they just
+   * made, a form they are waiting on, a payment link they requested. Those are
+   * service messages and STOP does not silence them — STOP is about marketing
+   * and about not being pestered, not about losing the confirmation for an
+   * appointment tomorrow.
+   */
+  transactional?: boolean;
   metaAccountId?: string | null;
   metaToken?: string | null;
   /**
@@ -195,8 +223,23 @@ export async function deliver({
         body,
       });
 
-    case "sms":
+    case "sms": {
+      /*
+       * Not to somebody who has said stop.
+       *
+       * Checked here rather than at each caller, because "every text" is what
+       * the promise means and the callers are six files apart. A message about
+       * something they asked for still goes: see `transactional`.
+       */
+      if (db && studioId && !transactional && (await isOptedOut(db, studioId, to))) {
+        return {
+          status: "not_needed",
+          error: "they have texted STOP, so nothing was sent",
+        };
+      }
+
       return sendSms({ to, body, from });
+    }
 
     case "email": {
       // The same envelope as the widget's email fallback above, for the same

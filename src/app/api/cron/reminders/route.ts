@@ -90,7 +90,25 @@ export async function GET(request: NextRequest) {
     // The table arrives with a migration, and this must not wait for it.
   }
 
-  const { data: studios } = await db.from("studios").select("*");
+  /*
+   * A sweep that cannot list the businesses has not run.
+   *
+   * The error was discarded, so a transient failure here made every loop below
+   * iterate an empty list: no reminders, no released holds, no answers to mail
+   * held overnight, no weekly reports — and the endpoint returned 200 with
+   * "due 0, sent 0", which is exactly what a genuinely quiet night looks like.
+   * The scheduler saw a green tick and the first sign of trouble was an empty
+   * chair.
+   */
+  const { data: studios, error: studioError } = await db.from("studios").select("*");
+
+  if (studioError) {
+    console.error("[cron] could not list businesses", studioError.message);
+    return NextResponse.json(
+      { error: "could not list businesses", detail: studioError.message },
+      { status: 500 },
+    );
+  }
 
   /*
    * Forgetting, on the same schedule as remembering.

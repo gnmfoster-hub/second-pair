@@ -32,17 +32,33 @@ test("the text says who it is and asks something", () => {
   assert.match(t, /CALL/);
 });
 
-test("a number belonging to one person says so", () => {
+test("a number belonging to one person says so, and says it is their assistant", () => {
   assert.equal(
     missedCallText("The Fold Hair", "Sarah"),
-    "Sorry we missed your call — this is Sarah at The Fold Hair. " +
-      "Tell me what you need and I can help here, or say CALL and we'll ring you back.",
+    "Sorry we missed your call — this is Sarah's assistant at The Fold Hair. " +
+      "Tell me what you need and I can help here, or say CALL and we'll ring you back. " +
+      "Reply STOP and we won't text again.",
   );
 });
 
-test("a blank name is the business, not a dangling 'at'", () => {
-  assert.match(missedCallText("Muddy Paws", "  "), /^Sorry we missed your call — this is Muddy Paws\./);
-  assert.match(missedCallText("Muddy Paws", null), /this is Muddy Paws\./);
+test("a blank name is the business's assistant, not a dangling 'at'", () => {
+  assert.match(
+    missedCallText("Muddy Paws", "  "),
+    /^Sorry we missed your call — this is the assistant at Muddy Paws\./,
+  );
+  assert.match(missedCallText("Muddy Paws", null), /this is the assistant at Muddy Paws\./);
+});
+
+/*
+ * The one message in the product that reaches somebody who never wrote to us.
+ * It must say what it is, and it must say how to stop it.
+ */
+test("it never pretends to be a person, and always offers a way out", () => {
+  for (const [business, person] of [["Muddy Paws", null], ["The Fold Hair", "Sarah"]] as const) {
+    const text = missedCallText(business, person);
+    assert.match(text, /assistant/i, `${business} does not say it is an assistant`);
+    assert.match(text, /Reply STOP/, `${business} offers no way to stop`);
+  }
 });
 
 /*
@@ -61,7 +77,8 @@ test("it says who it is, so a stranger is not reading an unsigned text", () => {
 
 test("a named person is who it comes from, because they are who was rung", () => {
   const text = missedCallText("Neat & Tidy", "Karen");
-  assert.match(text, /Karen at Neat & Tidy/);
+  // Karen's, and said to be Karen's assistant rather than Karen.
+  assert.match(text, /Karen's assistant at Neat & Tidy/);
 });
 
 /* A blank name must not produce "  at Neat & Tidy". */

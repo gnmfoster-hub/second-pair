@@ -70,6 +70,8 @@ export async function sendOwnerReply(
 
   const result = await deliver({
     channel: conversation.channel as Channel,
+    db: supabase,
+    studioId: studio.id,
     // The number the thread is on first; the saved one only if there is none.
     to:
       conversation.channel === "sms"

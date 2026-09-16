@@ -58,9 +58,23 @@ export const CALLBACK_WORD = "CALL";
  * rather than to be polite about having missed one.
  */
 export function missedCallText(business: string, person?: string | null): string {
-  const who = person?.trim() ? `${person.trim()} at ${business}` : business;
+  /*
+   * It says it is an assistant, and it says how to stop.
+   *
+   * This read "this is Sarah at Willow & Co" — first person, a named human,
+   * no hint of a machine — and it is the one message in the whole product that
+   * goes to a stranger who never wrote to us. Every other channel discloses on
+   * its first reply; this one introduced itself as somebody's colleague.
+   *
+   * And STOP: the webhook has honoured it since the day it was written, and
+   * nothing ever told a customer it existed. One unasked-for text from a
+   * number they do not know, with no way out of it, is exactly the shape of
+   * message the rules about texting people are written for.
+   */
+  const who = person?.trim() ? `${person.trim()}'s assistant at ${business}` : `the assistant at ${business}`;
   return (
     `Sorry we missed your call — this is ${who}. ` +
-    `Tell me what you need and I can help here, or say ${CALLBACK_WORD} and we'll ring you back.`
+    `Tell me what you need and I can help here, or say ${CALLBACK_WORD} and we'll ring you back. ` +
+    `Reply STOP and we won't text again.`
   );
 }

@@ -91,12 +91,15 @@ for (const studio of live) {
     }
   }
 
-  const { count: remindersSent } = await db
+  // Through the booking: a reminder has no studio of its own.
+  const { count: remindersSent, error: remindersError } = await db
     .from("reminders")
-    .select("id", { count: "exact", head: true })
-    .eq("studio_id", studio.id)
+    .select("id, bookings!inner(artists!inner(studio_id))", { count: "exact", head: true })
+    .eq("bookings.artists.studio_id", studio.id)
     .eq("status", "sent")
     .gte("created_at", since);
+
+  if (remindersError) console.error("  (reminders could not be counted:", remindersError.message + ")");
 
   // A reminder goes by text where there is a number, and email otherwise. The
   // split is not recorded, so it counts as a text — the dearer of the two.

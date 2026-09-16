@@ -175,6 +175,10 @@ export async function messageClient(
     channel: route.channel,
     to: route.to,
     body: text,
+    // The owner's own message. Not transactional: if they have said stop,
+    // the business hears why rather than the customer hearing from them.
+    db: supabase,
+    studioId: studio.id,
     lastInboundAt: route.lastInboundAt,
     /*
      * Email needs a subject and somebody to reply to.
