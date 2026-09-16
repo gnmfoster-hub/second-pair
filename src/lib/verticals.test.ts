@@ -218,3 +218,34 @@ test("where the work happens decides the shape of the question", () => {
   assert.match(verticalPack("electrician").sizing, /how big/);
   assert.match(verticalPack("barber").sizing, /which/);
 });
+
+/*
+ * Two things every trade needs before anybody signs up to it.
+ *
+ * Roles fill the box beside a person's name; without them the picker is empty
+ * and an owner is left typing "electrician" into a field that looked like it
+ * knew. Questions are what the assistant can answer once the owner has written
+ * the answers — and the generic three are the ones every business shares, so a
+ * pack that stops there has nothing of its own trade in it.
+ */
+test("every trade suggests what its people are called", () => {
+  for (const pack of Object.values(VERTICALS)) {
+    assert.ok(pack.roles.length >= 2, `${pack.id} has no roles`);
+    assert.ok(
+      pack.roles.every((role) => role.trim().length > 1),
+      `${pack.id} has an empty role`,
+    );
+  }
+});
+
+test("every trade asks more than the three questions everybody shares", () => {
+  const shared = ["how do i pay?", "what if i need to cancel?", "what areas do you cover?", "where can i park?"];
+  for (const pack of Object.values(VERTICALS)) {
+    const own = pack.faqs.filter((f) => !shared.includes(f.question.trim().toLowerCase()));
+    assert.ok(own.length >= 1, `${pack.id} asks nothing of its own`);
+    assert.ok(
+      pack.faqs.every((f) => f.question.trim().endsWith("?")),
+      `${pack.id} has a question that is not one`,
+    );
+  }
+});

@@ -436,6 +436,15 @@ const HOME: VerticalPack[] = [
 
   trade({
     id: "joiner",
+    faqs: [
+      "What areas do you cover?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "Do you supply the timber, or do I?",
+      "Can you match existing woodwork?",
+      "Do you take away the old units?",
+    ],
+    roles: ["Joiner", "Carpenter", "Bench joiner", "Apprentice"],
     label: "Joiner or carpenter",
     category: "Trades and home",
     blurb: "Doors, floors, fitted furniture and general woodwork.",
@@ -463,6 +472,15 @@ const HOME: VerticalPack[] = [
 
   trade({
     id: "decorator",
+    faqs: [
+      "What areas do you cover?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "Is the paint included in your price?",
+      "Do you move furniture and cover the floors?",
+      "How long does a room take to dry before we can use it?",
+    ],
+    roles: ["Decorator", "Painter", "Spray finisher", "Apprentice"],
     label: "Painter and decorator",
     category: "Trades and home",
     blurb: "Interior and exterior painting and decorating.",
@@ -489,6 +507,15 @@ const HOME: VerticalPack[] = [
 
   trade({
     id: "plasterer",
+    faqs: [
+      "What areas do you cover?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "How long before I can paint it?",
+      "Do you clear up and take the waste away?",
+      "Can you patch, or does the whole wall need doing?",
+    ],
+    roles: ["Plasterer", "Skimmer", "Renderer", "Labourer"],
     label: "Plasterer",
     category: "Trades and home",
     blurb: "Skimming, rendering and plaster repairs.",
@@ -515,6 +542,15 @@ const HOME: VerticalPack[] = [
 
   trade({
     id: "roofer",
+    faqs: [
+      "What areas do you cover?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "Do you work in the rain?",
+      "Do you need scaffolding, and is it in the price?",
+      "What guarantee comes with the work?",
+    ],
+    roles: ["Roofer", "Flat roofer", "Leadworker", "Labourer"],
     label: "Roofer",
     category: "Trades and home",
     blurb: "Roof repairs, replacement, guttering and flat roofs.",
@@ -541,6 +577,15 @@ const HOME: VerticalPack[] = [
 
   trade({
     id: "handyman",
+    faqs: [
+      "What areas do you cover?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "Is there a minimum charge?",
+      "Can I book a half day for a list of small jobs?",
+      "Do you supply the materials?",
+    ],
+    roles: ["Handyman", "Multi-trader", "Apprentice"],
     label: "Handyman",
     category: "Trades and home",
     blurb: "The small jobs nobody else will come out for.",
@@ -567,6 +612,15 @@ const HOME: VerticalPack[] = [
 
   trade({
     id: "locksmith",
+    faqs: [
+      "What areas do you cover?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "How quickly can you get to me if I am locked out?",
+      "Will the door or lock be damaged?",
+      "Do you fit insurance-approved locks?",
+    ],
+    roles: ["Locksmith", "Auto locksmith", "Apprentice"],
     label: "Locksmith",
     category: "Trades and home",
     blurb: "Lockouts, lock changes and security upgrades.",
@@ -595,6 +649,15 @@ const HOME: VerticalPack[] = [
 
   trade({
     id: "gardener",
+    faqs: [
+      "What areas do you cover?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "Do you take the green waste away?",
+      "Do you come regularly, or one visit at a time?",
+      "What happens if it rains on my day?",
+    ],
+    roles: ["Gardener", "Landscaper", "Tree surgeon", "Groundsman"],
     label: "Gardener or landscaper",
     category: "Trades and home",
     blurb: "Garden maintenance, one-off tidies and landscaping.",
@@ -621,6 +684,15 @@ const HOME: VerticalPack[] = [
 
   trade({
     id: "cleaner",
+    faqs: [
+      "What areas do you cover?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "Do you bring your own products and machines?",
+      "Do I need to be in while you clean?",
+      "Is it the same cleaner every time?",
+    ],
+    roles: ["Cleaner", "Team leader", "Deep clean specialist", "Supervisor"],
     label: "Cleaner",
     category: "Trades and home",
     blurb: "Domestic, deep and end-of-tenancy cleaning.",
@@ -815,6 +887,15 @@ const BEAUTY: VerticalPack[] = [
 
   trade({
     id: "mobile_hair",
+    faqs: [
+      "What areas do you cover?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "What do you need me to have ready — a chair, a sink?",
+      "Do you charge for travel?",
+      "Can you do a group at one address?",
+    ],
+    roles: ["Hairdresser", "Stylist", "Colourist", "Barber"],
     label: "Mobile hairdresser",
     category: "Hair and beauty",
     blurb: "Hairdressing at the client's home.",
@@ -845,6 +926,15 @@ const BEAUTY: VerticalPack[] = [
 
   trade({
     id: "barber",
+    faqs: [
+      "Where can I park?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "Do you take walk-ins or is it appointments only?",
+      "Do you cut children's hair?",
+      "Do you do beards and hot towel shaves?",
+    ],
+    roles: ["Barber", "Master barber", "Apprentice barber"],
     label: "Barber",
     category: "Hair and beauty",
     blurb: "Appointment-based barbering.",
@@ -870,6 +960,14 @@ const BEAUTY: VerticalPack[] = [
 
   trade({
     id: "beautician",
+    faqs: [
+      "Where can I park?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "Do I need a patch test, and how far ahead?",
+      "Can I have a treatment while pregnant?",
+      "How long should I leave between appointments?",
+    ],
     label: "Beauty salon",
     category: "Hair and beauty",
     blurb: "Facials, waxing, brows, lashes and treatments.",
@@ -901,6 +999,15 @@ const BEAUTY: VerticalPack[] = [
 
   trade({
     id: "nails",
+    faqs: [
+      "Where can I park?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "Do you do infills on somebody else's work?",
+      "How long do they last, and when should I rebook?",
+      "Do you remove gel or acrylic?",
+    ],
+    roles: ["Nail technician", "Gel specialist", "Trainee"],
     label: "Nail technician",
     category: "Hair and beauty",
     blurb: "Manicures, gel, acrylics and nail art.",
@@ -927,6 +1034,15 @@ const BEAUTY: VerticalPack[] = [
 
   trade({
     id: "aesthetics",
+    faqs: [
+      "Where can I park?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "Do I need a consultation first?",
+      "Who carries out the treatment, and what are they qualified in?",
+      "How long before I see the result, and how long does it last?",
+    ],
+    roles: ["Aesthetic practitioner", "Nurse prescriber", "Dermal therapist", "Clinic assistant"],
     label: "Aesthetics clinic",
     category: "Hair and beauty",
     blurb: "Injectables and advanced skin treatments.",
@@ -958,6 +1074,15 @@ const BEAUTY: VerticalPack[] = [
 
   trade({
     id: "massage",
+    faqs: [
+      "Where can I park?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "What should I wear?",
+      "Can you treat a specific injury?",
+      "Are you insured and qualified?",
+    ],
+    roles: ["Massage therapist", "Sports therapist", "Reflexologist"],
     label: "Massage therapist",
     category: "Hair and beauty",
     blurb: "Massage and bodywork.",
@@ -998,6 +1123,14 @@ const CLINICAL_RULES = [
 const HEALTH: VerticalPack[] = [
   trade({
     id: "physio",
+    faqs: [
+      "Where can I park?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "Do I need a GP referral?",
+      "Can you claim through my insurance?",
+      "What should I wear to the appointment?",
+    ],
     label: "Physiotherapist",
     category: "Health and wellbeing",
     blurb: "Physiotherapy assessment and treatment.",
@@ -1028,6 +1161,14 @@ const HEALTH: VerticalPack[] = [
 
   trade({
     id: "chiro",
+    faqs: [
+      "Where can I park?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "Does the first appointment include treatment, or is it an assessment?",
+      "Are you registered with the GCC or GOsC?",
+      "How many sessions will I need?",
+    ],
     label: "Chiropractor or osteopath",
     category: "Health and wellbeing",
     blurb: "Manual therapy for backs, necks and joints.",
@@ -1052,6 +1193,14 @@ const HEALTH: VerticalPack[] = [
 
   trade({
     id: "pt",
+    faqs: [
+      "Where can I park?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "Do you do blocks of sessions, and do they expire?",
+      "Can we train at my gym, at home or outdoors?",
+      "Do you do nutrition plans as well?",
+    ],
     label: "Personal trainer",
     category: "Health and wellbeing",
     blurb: "One-to-one and small group training.",
@@ -1081,6 +1230,7 @@ const HEALTH: VerticalPack[] = [
 
   trade({
     id: "counsellor",
+    roles: ["Counsellor", "Psychotherapist", "CBT therapist", "Supervisor"],
     label: "Counsellor or therapist",
     category: "Health and wellbeing",
     blurb: "Talking therapy, in person or online.",
@@ -1119,6 +1269,15 @@ const HEALTH: VerticalPack[] = [
 
   trade({
     id: "podiatrist",
+    faqs: [
+      "Where can I park?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "Are you HCPC registered?",
+      "Do I need a referral?",
+      "Do you do home visits?",
+    ],
+    roles: ["Podiatrist", "Chiropodist", "Foot health practitioner"],
     label: "Podiatrist or chiropodist",
     category: "Health and wellbeing",
     blurb: "Foot health, nail care and biomechanics.",
@@ -1199,6 +1358,15 @@ const PETS: VerticalPack[] = [
 
   trade({
     id: "dog_walker",
+    faqs: [
+      "What areas do you cover?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "Are the walks solo or in a group?",
+      "Are you insured and DBS checked?",
+      "Do you have a key safe, or do I need to be in?",
+    ],
+    roles: ["Dog walker", "Pet sitter", "Assistant walker"],
     label: "Dog walker or pet sitter",
     category: "Pets",
     blurb: "Walks, visits and sitting, at the owner's home.",
@@ -1232,6 +1400,15 @@ const PETS: VerticalPack[] = [
 const MOTORING: VerticalPack[] = [
   trade({
     id: "mobile_mechanic",
+    faqs: [
+      "What areas do you cover?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "Can you work on my driveway or the roadside?",
+      "Do you supply the parts?",
+      "What cannot be done at the roadside?",
+    ],
+    roles: ["Mechanic", "Diagnostic technician", "Apprentice"],
     label: "Mobile mechanic",
     category: "Motoring",
     blurb: "Servicing and repairs at the customer's address.",
@@ -1265,6 +1442,14 @@ const MOTORING: VerticalPack[] = [
 
   trade({
     id: "garage",
+    faqs: [
+      "Where can I park?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "Do you do a courtesy car?",
+      "Can I wait while it is done?",
+      "Will you ring me before doing extra work?",
+    ],
     label: "Garage or MOT centre",
     category: "Motoring",
     blurb: "Servicing, MOTs and repairs at the workshop.",
@@ -1297,6 +1482,15 @@ const MOTORING: VerticalPack[] = [
 
   trade({
     id: "valeting",
+    faqs: [
+      "What areas do you cover?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "Do you need power and water at the address?",
+      "How long does a full valet take?",
+      "Can you get pet hair or smoke smell out?",
+    ],
+    roles: ["Valeter", "Detailer", "Trainee"],
     label: "Car valeting or detailing",
     category: "Motoring",
     blurb: "Cleaning and detailing, at the customer's address or the unit.",
@@ -1322,6 +1516,15 @@ const MOTORING: VerticalPack[] = [
 
   trade({
     id: "driving_instructor",
+    faqs: [
+      "What areas do you cover?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "Do you pick up from home, work or college?",
+      "Manual or automatic?",
+      "Can I use your car for the test?",
+    ],
+    roles: ["Instructor", "ADI", "PDI (trainee instructor)"],
     label: "Driving instructor",
     category: "Motoring",
     blurb: "Driving lessons, picked up from the pupil's address.",
@@ -1357,6 +1560,13 @@ const MOTORING: VerticalPack[] = [
 
 const GENERAL = trade({
   id: "general",
+  faqs: [
+    "What areas do you cover?",
+    "How do I pay?",
+    "What if I need to cancel?",
+    "What should I expect at the first appointment?",
+  ],
+  roles: ["Owner", "Assistant", "Apprentice"],
   label: "Something else",
   category: "Everything else",
   blurb: "Any appointment-based business. Set your own services and wording.",
@@ -1375,6 +1585,15 @@ const GENERAL = trade({
 const OTHER: VerticalPack[] = [
   trade({
     id: "photographer",
+    faqs: [
+      "What areas do you cover?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "How many photos do I get, and when?",
+      "Do I get the raw files?",
+      "What happens if the weather is bad?",
+    ],
+    roles: ["Photographer", "Second shooter", "Editor", "Assistant"],
     label: "Photographer",
     category: "Everything else",
     blurb: "Shoots, sessions and events.",
@@ -1401,6 +1620,15 @@ const OTHER: VerticalPack[] = [
 
   trade({
     id: "tutor",
+    faqs: [
+      "What areas do you cover?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "Do you teach online or in person?",
+      "Which exam boards do you cover?",
+      "How often should we have a lesson?",
+    ],
+    roles: ["Tutor", "Subject specialist", "Exam tutor"],
     label: "Tutor",
     category: "Everything else",
     blurb: "One-to-one tuition, online or in person.",
@@ -1436,6 +1664,15 @@ const OTHER: VerticalPack[] = [
 
   trade({
     id: "window_cleaner",
+    faqs: [
+      "What areas do you cover?",
+      "How do I pay?",
+      "What if I need to cancel?",
+      "How often do you come round?",
+      "Do I need to be in?",
+      "Do you do gutters, fascias and conservatory roofs?",
+    ],
+    roles: ["Window cleaner", "Round manager", "Gutter and fascia"],
     label: "Window cleaner",
     category: "Everything else",
     blurb: "Regular rounds and one-off cleans.",
