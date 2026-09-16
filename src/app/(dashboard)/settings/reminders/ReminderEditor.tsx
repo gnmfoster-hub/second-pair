@@ -1,5 +1,7 @@
 "use client";
 
+import { Explain } from "@/components/Explain";
+
 import { useActionState, useState } from "react";
 import { saveReminder } from "./actions";
 import { Field, FormMessage, SubmitButton } from "@/components/Form";
@@ -71,7 +73,14 @@ function Preview({ body, sender }: { body: string; sender: Sender }) {
 
   return (
     <div>
-      <div className="label">How it lands</div>
+      <div className="label">
+        How it lands
+        <Explain label="What this preview is showing">
+          Marie and Sarah are stand-ins. The real name, time and person go in when it sends,
+          and this is filled by the same code that fills the real one — a preview that
+          renders a template its own way is a preview that can be wrong.
+        </Explain>
+      </div>
 
       <div className="mt-1.5 max-w-sm rounded-2xl border border-border bg-surface-2/50 p-3">
         <div className="hint">
@@ -106,7 +115,6 @@ function Preview({ body, sender }: { body: string; sender: Sender }) {
       </div>
 
       <p className="hint mt-2 max-w-prose">
-        Marie and Sarah are stand-ins; the real name, time and person go in when it sends.{" "}
         {sender.number ? (
           <>
             It arrives from the number your customers already have, so it reads as you rather
@@ -182,7 +190,10 @@ export function ReminderEditor({
         </Field>
       </div>
 
-      <Field label="What it says">
+      <Field
+        label="What it says"
+        explain={TOKENS.map(([token, means]) => `${token} is ${means}`).join("; ")}
+      >
         <textarea
           name="body"
           value={body}
@@ -192,14 +203,6 @@ export function ReminderEditor({
           placeholder="See you tomorrow, {{name}} — {{when}} with {{practitioner}}."
           required
         />
-        <p className="hint mt-2">
-          {TOKENS.map(([token, means], i) => (
-            <span key={token}>
-              {i > 0 && " · "}
-              <code className="rounded bg-surface-2 px-1 py-0.5">{token}</code> {means}
-            </span>
-          ))}
-        </p>
       </Field>
 
       <Preview body={body} sender={sender} />
