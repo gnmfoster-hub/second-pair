@@ -175,6 +175,19 @@ export function ourRecipient(to: string, ourDomain: string): string | null {
  * styles go entirely, tags become spaces, and the entities anybody actually
  * types are turned back into characters.
  */
+/**
+ * Whether this is a web page rather than a message.
+ *
+ * Deliberately narrow: a document declaration or an opening <html> tag, which
+ * a person's mail client never puts in the text they typed even when it sends
+ * HTML alongside. A stray angle bracket, a bit of code somebody pasted, or an
+ * email signature in HTML would all fail this test, which is the point.
+ */
+export function isMarkup(text: string): boolean {
+  const start = (text ?? "").trimStart().slice(0, 2000).toLowerCase();
+  return start.includes("<!doctype html") || /<html[\s>]/.test(start);
+}
+
 export function plainTextFrom(html: string): string {
   const BREAK = "\n";
 
@@ -344,6 +357,19 @@ export function judge(
    */
   if (UNSUBSCRIBE_LINK.test(body)) {
     return { what: "ignore", because: "it is a mailing with an unsubscribe link in it" };
+  }
+
+  /*
+   * A whole web page, rather than something somebody typed.
+   *
+   * Nobody writes to a cleaner in a full HTML document with a head and a body
+   * — that is a marketing template, and the ones that arrive with no
+   * unsubscribe header and no machine headers are exactly the ones every other
+   * rule here misses. "Your Advert Statistics" reached Neat & Tidy this way and
+   * was answered in Karen's name.
+   */
+  if (isMarkup(body)) {
+    return { what: "ignore", because: "it is a marketing template rather than a typed message" };
   }
 
   if (/unsubscribe/i.test(body)) {

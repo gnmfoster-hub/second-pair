@@ -13,6 +13,7 @@ import {
   readEmail,
   readInboundMode,
   plainTextFrom,
+  isMarkup,
   type InboundEmail,
 } from "@/lib/messaging/inboundEmail";
 import { hasAnthropicEnv } from "@/lib/env";
@@ -78,7 +79,19 @@ export async function POST(request: NextRequest) {
   if (!email.body?.trim() && emailId) {
     const full = await fetchReceivedEmail(emailId);
     if (full) {
-      email.body = full.text?.trim() || (full.html ? plainTextFrom(full.html) : null);
+      /*
+       * Some senders put the whole HTML document in the text part.
+       *
+       * A classified-ads company's "Your Advert Statistics" arrived at Neat &
+       * Tidy that way — text/plain beginning "<!DOCTYPE html>" — so the
+       * assistant was handed a page of markup and answered it as though
+       * somebody had written in. Anything that looks like a document gets
+       * converted whichever part it came in.
+       */
+      const plain = full.text?.trim() ?? "";
+      email.body = isMarkup(plain)
+        ? plainTextFrom(plain)
+        : plain || (full.html ? plainTextFrom(full.html) : null);
       // Merged rather than replaced: the webhook may have carried some, and
       // the fetched set is the more complete of the two.
       email.headers = { ...(email.headers ?? {}), ...full.headers };

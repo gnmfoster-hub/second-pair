@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { judge, domainOf, ourRecipient, plainTextFrom } from "./inboundEmail.ts";
+import { judge, isMarkup, domainOf, ourRecipient, plainTextFrom } from "./inboundEmail.ts";
 
 const shop = { ownDomains: ["livingcanvastattoo.ink"], ourDomain: "second-pair.com" };
 
@@ -415,4 +415,30 @@ test("a verification code still reaches the owner even if it reads like a pitch"
 test("mail the provider already marked as spam is ignored", () => {
   assert.equal(judge({ from: "x@gmail.com", subject: "***SPAM*** Re: Audit Errors", body: "Any update?" }, shop).what, "ignore");
   assert.equal(judge({ from: "x@gmail.com", subject: "Hello", body: "Hi", headers: { "X-Spam-Flag": "YES" } }, shop).what, "ignore");
+});
+
+/*
+ * A classified-ads company sent Neat & Tidy its advert statistics as a whole
+ * HTML document in the text part — no machine headers, no unsubscribe link
+ * where anything could see it — and the assistant answered it in Karen's name.
+ */
+test("a marketing template is not a message, however it arrives", () => {
+  const v = judge(
+    {
+      from: "freeads@freeads.co.uk",
+      subject: "Your Advert Statistics",
+      body: '<!DOCTYPE html>\n<html lang="en" xmlns="http://www.w3.org/1999/xhtml">\n<head><title>Statistics</title></head>\n<body><table><tr><td>Your advert was viewed 12 times</td></tr></table></body></html>',
+    },
+    shop,
+  );
+  assert.equal(v.what, "ignore");
+  assert.match(v.because, /template/);
+});
+
+test("a person is not caught by the template rule", () => {
+  assert.equal(isMarkup("Hi, is the 10th free? Thanks, Jo"), false);
+  assert.equal(isMarkup("I got an error saying <no such file> when I opened it"), false);
+  assert.equal(isMarkup("Can you clean the <b>whole</b> house?"), false, "a bit of formatting is not a page");
+  assert.equal(isMarkup("<!DOCTYPE html><html><body>hello</body></html>"), true);
+  assert.equal(isMarkup('  \n <html lang="en">'), true);
 });
