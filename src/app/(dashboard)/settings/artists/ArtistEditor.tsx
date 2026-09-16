@@ -19,6 +19,7 @@ export function ArtistEditor({
   noun,
   roles,
   isOwner,
+  viewerOwns = false,
   ownLink,
 }: {
   artist?: Artist;
@@ -28,8 +29,16 @@ export function ArtistEditor({
   /** What this trade calls them: artist, stylist, engineer. */
   noun: string;
   /** The roles this trade usually has. Suggestions, not a fixed list. */
-  /** The person who set the business up. They alone can change it. */
+  /** Whether this record belongs to the person who set the business up. */
   isOwner?: boolean;
+  /**
+   * Whether the person looking is that owner.
+   *
+   * Not the same question, and conflating them is why "you look after their
+   * settings" appeared on the owner's own record — where it means nothing —
+   * and never on the records it was written for.
+   */
+  viewerOwns?: boolean;
   /** Their own booking link, when they have a handle to build one from. */
   ownLink?: string | null;
   roles: string[];
@@ -399,6 +408,39 @@ export function ArtistEditor({
         </label>
 
         {/*
+          * A diary, and whether customers ever reach them.
+          *
+          * Two different questions that "taking bookings" was answering at
+          * once. An apprentice, a second van, a room that gets hired: all have
+          * a diary the business books into, and none of them is somebody a
+          * stranger should be offered when they ask for an appointment. The
+          * only way to say that before was to switch them off entirely, which
+          * took their diary with it.
+          *
+          * The owner's to decide, so it only shows to an owner. Off means the
+          * assistant will not offer them, will not book them, and will not
+          * answer as them even on a number or a link of their own.
+          */}
+        {viewerOwns && (
+          <label className="flex items-start gap-2.5 text-sm">
+            <input
+              type="checkbox"
+              name="assistant_books"
+              defaultChecked={artist?.assistant_books !== false}
+              className="mt-0.5 accent-[var(--accent)]"
+            />
+            <span>
+              The assistant can offer and book them
+              <span className="hint block">
+                Off, they keep their diary and you book them yourself &mdash; a customer is
+                never offered them, on the website or anywhere else. Right for an apprentice,
+                or anybody whose work you hand out.
+              </span>
+            </span>
+          </label>
+        )}
+
+        {/*
           * Employed, or renting a chair.
           *
           * Two kinds of person work in the same salon and the product was
@@ -410,7 +452,7 @@ export function ArtistEditor({
           * The owner's to set, so it is here rather than on their own page. A
           * person who could switch off being managed is not managed.
           */}
-        {isOwner && (
+        {viewerOwns && !isOwner && (
           <label className="flex items-start gap-2.5 text-sm">
             <input
               type="checkbox"

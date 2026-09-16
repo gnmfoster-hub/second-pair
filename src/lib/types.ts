@@ -372,6 +372,14 @@ export type Artist = {
    */
   owner_managed: boolean;
   /**
+   * Whether the assistant may offer and book this person at all.
+   *
+   * Separate from being active: somebody can have a diary the business books
+   * into — an apprentice, a second van, a room — without being somebody a
+   * customer is offered on any channel. Undefined means yes.
+   */
+  assistant_books?: boolean;
+  /**
    * Whether this person may take a deposit, and whether they may take the full
    * amount. Two questions, because a tattooist takes a deposit and invoices
    * the rest while a stylist takes the lot on the day and holds nothing.

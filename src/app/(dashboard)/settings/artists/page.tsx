@@ -130,6 +130,7 @@ export default async function ArtistsPage() {
             noun={words.practitioner}
             roles={pack.roles}
             isOwner={Boolean(artist.user_id) && artist.user_id === ownerUserId}
+            viewerOwns={owns}
             ownLink={
               artist.handle ? `${origin}/widget/${studio.slug}?with=${artist.handle}` : null
             }
@@ -237,6 +238,7 @@ export default async function ArtistsPage() {
           studioHours={studio.hours}
           noun={words.practitioner}
           roles={pack.roles}
+          viewerOwns={owns}
         />
       )}
 

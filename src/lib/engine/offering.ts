@@ -24,7 +24,20 @@ export function whoCanBeOffered(
    */
   channel: string = "web",
 ): Artist[] {
-  const active = artists.filter((a) => a.active);
+  /*
+   * Working here, and somebody the assistant may speak for.
+   *
+   * Two different questions, and only one of them was being asked. An
+   * apprentice has a diary, takes the work the owner books into it, and should
+   * not be offered to a stranger who asks for somebody to come out — and a
+   * receptionist has a login and no diary at all. "In the diary" was doing
+   * both jobs, so the only way to keep somebody off the channels was to take
+   * away their diary with it.
+   *
+   * Absent means yes, so every business that has never touched it is unchanged
+   * and a deploy landing before its migration behaves exactly as before.
+   */
+  const active = artists.filter((a) => a.active && a.assistant_books !== false);
 
   if (forArtist) {
     /*

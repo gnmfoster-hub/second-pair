@@ -123,3 +123,27 @@ test("the business widget still routes when nobody owns the channel", () => {
     "dave", "nadia", "apprentice",
   ]);
 });
+
+/*
+ * The apprentice with a diary and no customers.
+ *
+ * What an owner asks for the moment there are two of them: the second person
+ * takes the work the owner hands them, and is not somebody a stranger books.
+ */
+test("somebody the assistant may not book is never offered, on any channel", () => {
+  const apprentice = person("apprentice", { assistant_books: false });
+  const team = [dave, apprentice];
+
+  assert.deepEqual(names(whoCanBeOffered(team, {})), ["dave"]);
+  assert.deepEqual(names(whoCanBeOffered(team, { offers_artists: [apprentice.id] })), ["dave"]);
+  // Not even on a link or a number of their own.
+  assert.deepEqual(names(whoCanBeOffered(team, {}, apprentice)), []);
+  assert.deepEqual(names(whoCanBeOffered(team, {}, apprentice, "sms")), []);
+});
+
+test("saying nothing about it means yes, as it always did", () => {
+  assert.deepEqual(names(whoCanBeOffered([dave, person("nadia", { assistant_books: true })], {})), [
+    "dave",
+    "nadia",
+  ]);
+});

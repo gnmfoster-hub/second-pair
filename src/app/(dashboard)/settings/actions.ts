@@ -981,6 +981,19 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
     active: ticked(fd, "active"),
 
     /*
+     * Whether a customer is ever offered them, which is the owner's to say.
+     *
+     * Written only when the form carried it — the box is on the owner's view
+     * of somebody's record and nowhere else, so a save from a person's own
+     * page must leave it exactly as it was rather than reading its absence as
+     * "no". Guarded on the column as well, so a deploy landing before its
+     * migration saves the rest of the record instead of failing.
+     */
+    ...(owns && fd.has("assistant_books") && (await hasColumn(supabase, "artists", "assistant_books"))
+      ? { assistant_books: ticked(fd, "assistant_books") }
+      : {}),
+
+    /*
      * Whether this person takes money, and which kind.
      *
      * Both columns have existed since payments were built and whoTakes has
