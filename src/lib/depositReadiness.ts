@@ -77,7 +77,7 @@ export function nameThem(names: string[]): string {
 }
 
 export function depositReadiness(state: DepositReadiness): Verdict {
-  const settled: Verdict = { ready: true, otherwise: "", action: "", href: "/settings" };
+  const settled: Verdict = { ready: true, otherwise: "", action: "", href: "/settings/money" };
 
   // Nothing to be ready for. A business that does not take deposits is not
   // half-configured, it has decided.
@@ -99,7 +99,7 @@ export function depositReadiness(state: DepositReadiness): Verdict {
         "Card payments are not switched on at our end yet, so a deposit cannot be " +
         "taken by anybody. That one is on Second Pair rather than on you.",
       action: "",
-      href: "/settings",
+      href: "/settings/money",
     };
   }
 
@@ -110,7 +110,7 @@ export function depositReadiness(state: DepositReadiness): Verdict {
       otherwise:
         "You take deposits but your own Stripe account is not connected, so nobody can pay one.",
       action: "Connect Stripe",
-      href: "/settings",
+      href: "/settings/money",
     };
   }
 

@@ -75,32 +75,75 @@ export default async function SettingsLayout({ children }: { children: React.Rea
         )}
       </PageHeader>
 
-      <nav className="mt-6 flex flex-wrap gap-6 border-b border-border">
-        {/*
-          * First, and for everybody.
-          *
-          * Six of the eight tabs are the owner's. Somebody who is not the owner
-          * arrived at a list of their colleagues and a page about exporting
-          * data, with nothing on the row that was theirs — and the two things
-          * they most needed, notifications and the app on their phone, were
-          * behind one of the six they could not open.
-          */}
-        <TabLink href="/settings/you">{mine}</TabLink>
-        {owns && <TabLink href="/settings">{title(words.business)}</TabLink>}
-        {owns && <TabLink href="/settings/assistant">Assistant</TabLink>}
-        {/* The team, which is the owner's view of everybody. A worker sees
-            themselves on You instead, where it is not sat under a heading
-            naming the whole salon. */}
-        {owns && <TabLink href="/settings/artists">{title(words.practitioners)}</TabLink>}
-        {owns && <TabLink href="/settings/pricing">Pricing</TabLink>}
-        {owns && <TabLink href="/settings/reminders">Reminders</TabLink>}
-        {owns && <TabLink href="/settings/forms">Forms</TabLink>}
-        {owns && <TabLink href="/settings/faqs">FAQs</TabLink>}
-        {owns && <TabLink href="/settings/install">Channels</TabLink>}
-        <TabLink href="/settings/data">Your data</TabLink>
+      {/*
+        * Grouped, and in the order somebody actually sets a business up.
+        *
+        * Ten tabs in one row is a list you have to read all of to find
+        * anything, and the order was the order they were built in — pricing
+        * after the assistant, the money buried inside the business page, the
+        * team between two things about words. Somebody opening this for the
+        * first time could not tell what belonged to what.
+        *
+        * Four groups, each answering one question, and inside each the thing
+        * you do first comes first: who you are, then how people reach you,
+        * then what happens around a booking, then what is yours alone.
+        */}
+      <nav className="mt-6 border-b border-border pb-1">
+        <div className="flex flex-wrap items-start gap-x-8 gap-y-3">
+          {owns && (
+            <Group title="Your business">
+              <TabLink href="/settings">{title(words.business)}</TabLink>
+              <TabLink href="/settings/pricing">Prices</TabLink>
+              <TabLink href="/settings/artists">{title(words.practitioners)}</TabLink>
+              <TabLink href="/settings/money">Getting paid</TabLink>
+            </Group>
+          )}
+
+          {owns && (
+            <Group title="How people reach you">
+              <TabLink href="/settings/install">Channels</TabLink>
+              <TabLink href="/settings/assistant">Assistant</TabLink>
+              <TabLink href="/settings/faqs">Questions</TabLink>
+            </Group>
+          )}
+
+          {owns && (
+            <Group title="Around a booking">
+              <TabLink href="/settings/reminders">Reminders</TabLink>
+              <TabLink href="/settings/forms">Forms</TabLink>
+            </Group>
+          )}
+
+          {/*
+            * Last, and the only group somebody who is not the owner sees —
+            * which is why it is a group of its own rather than a tab at the
+            * front of somebody else's list.
+            */}
+          <Group title={owns ? "Yours" : "Yours alone"}>
+            <TabLink href="/settings/you">{mine}</TabLink>
+            <TabLink href="/settings/data">Your data</TabLink>
+          </Group>
+        </div>
       </nav>
 
       <div className="mt-8">{children}</div>
     </Page>
+  );
+}
+
+/**
+ * A handful of tabs under a word saying what they are for.
+ *
+ * The heading is the whole point: a tab called "Forms" means nothing on its
+ * own and everything under "Around a booking".
+ */
+function Group({ title: heading, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-muted">
+        {heading}
+      </span>
+      <div className="flex flex-wrap items-baseline gap-x-5">{children}</div>
+    </div>
   );
 }

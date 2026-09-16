@@ -113,7 +113,8 @@ export function ownerSteps(f: SetupFacts): SetupStep[] {
         : !ready("stripe")
           ? cap("stripe")?.otherwise
           : cap("policy")?.otherwise,
-      href: !ready("stripe") ? cap("stripe")?.href ?? "/settings" : "/settings",
+      // Getting paid has a page of its own now, which is where this sends them.
+      href: !ready("stripe") ? cap("stripe")?.href ?? "/settings/money" : "/settings/money",
       action: !f.money.decided
         ? "Decide how you take money"
         : !ready("stripe")

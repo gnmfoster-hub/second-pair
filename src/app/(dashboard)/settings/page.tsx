@@ -1,12 +1,10 @@
-import { requireOwner, getArtists } from "@/lib/studio";
+import { requireOwner } from "@/lib/studio";
 import { canConnectStripe } from "@/lib/env";
 import { isPlatformAdmin } from "@/lib/platform";
 import { createClient } from "@/lib/supabase/server";
 import { SeeItAs } from "./SeeItAs";
 import { StudioForm } from "./StudioForm";
 import { EveryEnquiry } from "./EveryEnquiry";
-import { PaymentModel } from "./PaymentModel";
-import { SameStripe } from "./SameStripe";
 import { wordsFor } from "@/lib/words";
 
 export default async function StudioSettingsPage({
@@ -67,10 +65,6 @@ export default async function StudioSettingsPage({
     views.sort((a, b) => (a.label === "The owner" ? -1 : b.label === "The owner" ? 1 : 0));
   }
 
-  const team = await getArtists(studio.id);
-  const me = team.find((a) => a.user_id === userId) ?? null;
-  const mine = (me?.stripe_account_id as string | null) ?? null;
-  const myFirstName = me?.name.split(" ")[0] ?? "";
 
   return (
     <div className="space-y-3">
@@ -79,37 +73,11 @@ export default async function StudioSettingsPage({
       {/* What the business is told about. Theirs, so it lives here. */}
       <EveryEnquiry on={studio.notify_every_enquiry ?? false} />
 
-      {/* Whose money it is, and who may take it. */}
-      <PaymentModel
-        model={studio.payment_model === "people" ? "people" : "business"}
-        takesPayments={studio.takes_payments === true}
-        fallback={studio.payment_fallback === true}
-        connected={Boolean(studio.stripe_account_id)}
-        team={team
-          .filter((a) => a.active)
-          .map((a) => ({
-            id: a.id,
-            name: a.name,
-            connected: Boolean(a.stripe_account_id),
-            isMe: a.user_id === userId,
-            canSignIn: Boolean(a.user_id),
-          }))}
-        canConnect={canConnectStripe(studio)}
-        words={{
-          practitioners: wordsFor(studio).practitioners,
-          business: wordsFor(studio).business,
-        }}
-      />
-
       {/*
-       * One Stripe account, where the owner is also one of the people working.
-       *
-       * Its own panel rather than part of the one above: that is a form, and a
-       * form inside a form is not a thing a browser will render. Nothing shows
-       * at all until the owner has connected an account of their own.
-       */}
-      <SameStripe mine={mine} business={studio.stripe_account_id} firstName={myFirstName} />
-
+        * Getting paid has a page of its own now — see settings/money. It sat
+        * here, between the name and the VAT question, which is a poor place
+        * for the one decision on this screen that moves real money.
+        */}
       <StudioForm
         studio={studio}
         stripeOutcome={stripe}
