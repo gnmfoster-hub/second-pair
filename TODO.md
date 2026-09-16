@@ -51,6 +51,28 @@ than breaking.
 Everything here is something I cannot do from this side. Roughly in the order
 it is holding something up.
 
+### 0a. The daily Google emails — make them a weekly digest
+
+They are DMARC reports, and they are good news: I opened one and every
+message sent as second-pair.com passed both checks (7 messages, all through
+Resend, DKIM and SPF pass). Nothing is wrong; the format is just written for
+machines.
+
+Ten minutes, on the worklist with the exact steps. In short: sign up free at
+dmarc.postmarkapp.com, copy the address they give you, and in Namecheap →
+Advanced DNS edit the existing `_dmarc` TXT record to
+
+    v=DMARC1; p=none; rua=mailto:YOUR-ADDRESS@inbox.dmarcdigests.com
+
+Edit that record rather than adding a second one. Nothing about your sending
+changes — SPF, DKIM and the policy stay as they are, and no customer email is
+affected.
+
+Later, once a couple of digests have come back clean: move `p=none` to
+`p=quarantine`, which is what actually stops somebody spoofing the domain.
+Worth seeing Zoho's forwarding in a report first — forwarded mail is what
+usually breaks when that is tightened.
+
 ### 0. Stripe on the demo — working end to end
 
 Second Pair LTD sandbox holds the key, the Connect client ID and the payments
