@@ -163,3 +163,87 @@ test("a note on an appointment is disclosed with it", () => {
   );
   assert.match(doc, /Allergic to green ink/);
 });
+
+/*
+ * The document used to say "this is everything held about you by this
+ * business" while leaving out the three most personal things in the record.
+ * A confidently incomplete answer to a legal request is worse than a slow one.
+ */
+test("forms, what they asked about and what they paid are all in it", () => {
+  const doc = subjectAccessDocument(
+    {
+      business: "Living Canvas Tattoo",
+      askedOn: new Date("2026-09-17T09:00:00Z"),
+      contact: {
+        name: "Jo Marsh",
+        phone: "07700 900321",
+        email: null,
+        instagram_handle: null,
+        marketing_consent: false,
+        notes: null,
+        alert: null,
+        created_at: "2026-08-01T10:00:00Z",
+      },
+      conversations: [],
+      bookings: [],
+      forms: [
+        {
+          name: "Consent and medical",
+          status: "signed",
+          signed_at: "2026-09-01T10:00:00Z",
+          signed: true,
+          answers: [
+            { question: "Are you taking blood thinners?", answer: "no" },
+            { question: "Any allergies?", answer: "plasters" },
+          ],
+        },
+      ],
+      enquiries: [
+        {
+          created_at: "2026-08-01T10:00:00Z",
+          description: "Small heron on the forearm",
+          placement: "forearm",
+          address: null,
+          photos: 2,
+        },
+      ],
+      payments: [{ paid_at: "2026-09-01T11:00:00Z", amount: "£50.00", kind: "deposit", status: "paid" }],
+    },
+    "Europe/London",
+  );
+
+  assert.match(doc, /FORMS YOU FILLED IN/);
+  assert.match(doc, /Are you taking blood thinners\?/);
+  assert.match(doc, /plasters/, "their own answers, not just that a form exists");
+  assert.match(doc, /signature was recorded/);
+  assert.match(doc, /WHAT YOU ASKED ABOUT/);
+  assert.match(doc, /Small heron on the forearm/);
+  assert.match(doc, /2 photos/);
+  assert.match(doc, /WHAT YOU PAID/);
+  assert.match(doc, /£50\.00 deposit/);
+});
+
+test("somebody with none of those gets no empty headings", () => {
+  const doc = subjectAccessDocument(
+    {
+      business: "Living Canvas Tattoo",
+      askedOn: new Date("2026-09-17T09:00:00Z"),
+      contact: {
+        name: "Jo Marsh",
+        phone: null,
+        email: null,
+        instagram_handle: null,
+        marketing_consent: false,
+        notes: null,
+        alert: null,
+        created_at: null,
+      },
+      conversations: [],
+      bookings: [],
+    },
+    "Europe/London",
+  );
+
+  assert.doesNotMatch(doc, /FORMS YOU FILLED IN/);
+  assert.doesNotMatch(doc, /WHAT YOU PAID/);
+});

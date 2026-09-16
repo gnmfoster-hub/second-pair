@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { formatPence } from "@/lib/money";
 import { siteOrigin } from "@/lib/origin";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio } from "@/lib/studio";
@@ -85,6 +86,54 @@ export async function GET(
     .filter((b, i, all) => all.findIndex((other) => other.id === b.id) === i)
     .sort((a, b) => String(a.starts_at).localeCompare(String(b.starts_at)));
 
+  /*
+   * Everything else that is theirs.
+   *
+   * The document told them "this is everything held about you by this
+   * business" while leaving out the three things most personal to them: the
+   * forms they signed — medical answers, a signature, sometimes a date of
+   * birth — what they actually asked for, and what they paid. A confidently
+   * incomplete answer to a legal request is worse than a slow one.
+   */
+  const [{ data: forms }, { data: enquiryDetail }, { data: payments }] = await Promise.all([
+    supabase
+      .from("client_forms")
+      .select("title, status, signed_at, answers, blocks, signature, signer_ip")
+      .eq("studio_id", studio.id)
+      .eq("contact_id", id)
+      .order("created_at"),
+    enquiryIds.length
+      ? supabase
+          .from("enquiries")
+          .select("created_at, description, placement, job_address, reference_urls")
+          .in("id", enquiryIds)
+          .order("created_at")
+      : Promise.resolve({ data: [] as never[] }),
+    supabase
+      .from("payments")
+      .select("paid_at, kind, status, gross_pence")
+      .eq("studio_id", studio.id)
+      .eq("contact_id", id)
+      .order("paid_at"),
+  ]);
+
+  /*
+   * A form's answers are stored against the question ids, and the questions
+   * themselves are frozen on the row — so the two are put back together here
+   * rather than handing somebody a list of ids and their own words.
+   */
+  const readable = (blocks: unknown, answers: unknown) => {
+    const asked = Array.isArray(blocks) ? (blocks as { id?: string; label?: string; text?: string }[]) : [];
+    const given = (answers ?? {}) as Record<string, unknown>;
+    return Object.entries(given)
+      .map(([key, value]) => ({
+        question: asked.find((b) => b.id === key)?.label ?? asked.find((b) => b.id === key)?.text ?? key,
+        answer:
+          typeof value === "boolean" ? (value ? "yes" : "no") : String(value ?? "").trim(),
+      }))
+      .filter((a) => a.answer !== "");
+  };
+
   const record: SubjectRecord = {
     business: studio.name,
     askedOn: new Date(),
@@ -109,6 +158,26 @@ export async function GET(
       with: (b.artists as unknown as { name: string } | null)?.name ?? null,
       cancelled_at: b.cancelled_at,
       notes: b.notes,
+    })),
+    forms: (forms ?? []).map((f) => ({
+      name: (f.title as string) ?? "Form",
+      status: f.status as string | null,
+      signed_at: f.signed_at as string | null,
+      answers: readable(f.blocks, f.answers),
+      signed: Boolean(f.signature || f.signer_ip),
+    })),
+    enquiries: (enquiryDetail ?? []).map((e) => ({
+      created_at: e.created_at as string | null,
+      description: e.description as string | null,
+      placement: e.placement as string | null,
+      address: e.job_address as string | null,
+      photos: ((e.reference_urls as string[] | null) ?? []).length,
+    })),
+    payments: (payments ?? []).map((p) => ({
+      paid_at: p.paid_at as string | null,
+      amount: formatPence((p.gross_pence as number) ?? 0),
+      kind: p.kind as string | null,
+      status: p.status as string | null,
     })),
   };
 

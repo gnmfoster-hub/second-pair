@@ -139,6 +139,33 @@ export async function forgetOldEnquiries(
     .filter((e) => goingIds.includes(e.conversation_id))
     .map((e) => e.id);
 
+  /*
+   * The photographs first, and by hand.
+   *
+   * They are the only part of an enquiry that does not live in the database,
+   * so deleting the rows leaves somebody's pictures in our storage with
+   * nothing pointing at them — which is worse than not deleting, because now
+   * nobody knows they are there. The privacy notice says "photos you attach
+   * are deleted when the business deletes the enquiry", and that was true of
+   * the erase-a-client path and not of this one.
+   */
+  if (goingEnquiries.length) {
+    const { data: withPhotos } = await db
+      .from("enquiries")
+      .select("reference_urls")
+      .in("id", goingEnquiries);
+
+    const files = (withPhotos ?? []).flatMap(
+      (e) => (e.reference_urls as string[] | null) ?? [],
+    );
+    if (files.length) {
+      const { error: photoError } = await db.storage.from("references").remove(files);
+      // Said out loud, and not fatal: a picture we could not delete must not
+      // stop the rows going, or nothing is ever forgotten.
+      if (photoError) console.error("[retention] could not remove photos", photoError.message);
+    }
+  }
+
   // Children first, or the foreign keys refuse.
   await db.from("messages").delete().in("conversation_id", goingIds);
   if (goingEnquiries.length) await db.from("enquiries").delete().in("id", goingEnquiries);

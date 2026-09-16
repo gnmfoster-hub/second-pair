@@ -44,6 +44,39 @@ export type SubjectRecord = {
     /** What the business wrote on the appointment itself. */
     notes: string | null;
   }[];
+  /**
+   * Forms they filled in and signed.
+   *
+   * These were left out entirely, while the document told them it was
+   * everything held — and a consent form is the most personal thing in the
+   * record: medical answers, a signature, sometimes a date of birth. An
+   * incomplete answer to a legal request is bad; a confidently incomplete one
+   * is worse.
+   */
+  forms?: {
+    name: string;
+    status: string | null;
+    signed_at: string | null;
+    /** Their own answers, as they filled them in. */
+    answers?: { question: string; answer: string }[];
+    /** Whether a signature and the signing details were recorded. */
+    signed: boolean;
+  }[];
+  /** What they asked about, in the detail the business kept. */
+  enquiries?: {
+    created_at: string | null;
+    description: string | null;
+    placement: string | null;
+    address: string | null;
+    photos: number;
+  }[];
+  /** What they paid, which is theirs as much as it is the business's. */
+  payments?: {
+    paid_at: string | null;
+    amount: string;
+    kind: string | null;
+    status: string | null;
+  }[];
 };
 
 const when = (iso: string | null, timezone: string): string => {
@@ -152,6 +185,42 @@ export function subjectAccessDocument(record: SubjectRecord, timezone: string): 
     // What was written on the appointment is about them as much as the time is.
     if (b.notes?.trim()) {
       for (const line of b.notes.split("\n")) out.push(`    ${line}`);
+    }
+  }
+
+  if (record.enquiries?.length) {
+    out.push("", rule, "WHAT YOU ASKED ABOUT", rule);
+    for (const e of record.enquiries) {
+      out.push("", when(e.created_at, timezone));
+      if (e.description?.trim()) out.push(`    ${e.description.trim()}`);
+      if (e.placement?.trim()) out.push(`    Where: ${e.placement.trim()}`);
+      if (e.address?.trim()) out.push(`    Address given: ${e.address.trim()}`);
+      if (e.photos > 0) {
+        out.push(`    ${e.photos} photo${e.photos === 1 ? "" : "s"} you sent are held with this`);
+      }
+    }
+  }
+
+  if (record.forms?.length) {
+    out.push("", rule, "FORMS YOU FILLED IN", rule);
+    for (const f of record.forms) {
+      const state = f.signed_at ? `signed ${when(f.signed_at, timezone)}` : (f.status ?? "not signed");
+      out.push("", `${f.name} — ${state}`);
+      if (f.signed) {
+        out.push("    Your signature was recorded, with the time and the device it came from.");
+      }
+      for (const a of f.answers ?? []) {
+        out.push(`    ${a.question}`);
+        for (const line of String(a.answer).split(String.fromCharCode(10))) out.push(`        ${line}`);
+      }
+    }
+  }
+
+  if (record.payments?.length) {
+    out.push("", rule, "WHAT YOU PAID", rule);
+    for (const p of record.payments) {
+      const what = p.kind === "deposit" ? "deposit" : (p.kind ?? "payment");
+      out.push("", `${when(p.paid_at, timezone)} — ${p.amount} ${what}${p.status && p.status !== "paid" ? ` (${p.status})` : ""}`);
     }
   }
 

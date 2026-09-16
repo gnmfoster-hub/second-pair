@@ -252,11 +252,42 @@ export async function forgetClient(_prev: ForgetState, fd: FormData): Promise<Fo
    * Anonymising rather than deleting: the diary keeps its shape, the accounts
    * still add up, and nothing personal is left on the row.
    */
+  /*
+   * Their appointments first, so their ids can be used to reach the reminders.
+   */
+  const { data: theirBookings } = await supabase
+    .from("bookings")
+    .select("id")
+    .eq("contact_id", id);
+
   const { error: bookingError } = await supabase
     .from("bookings")
     .update({ contact_id: null, title: "Erased at their request", notes: null })
     .eq("contact_id", id);
   if (bookingError) return { error: `Could not clear their appointments: ${bookingError.message}` };
+
+  /*
+   * And the reminders, which carry their name in the sent text.
+   *
+   * A reminder reads "Hi Sarah, see you Thursday at 2 with Tom" and the text
+   * is kept on purpose, so that "what was somebody actually told" has an
+   * answer weeks later. But reminders hang off the booking, and the booking
+   * deliberately survives an erasure anonymised — so this was the one place a
+   * name lived on after somebody had asked to be forgotten.
+   *
+   * The row stays: when it was due, whether it went, on which channel. Only
+   * the words go.
+   */
+  const bookingIds = (theirBookings ?? []).map((b) => b.id as string);
+  if (bookingIds.length) {
+    const { error: reminderError } = await supabase
+      .from("reminders")
+      .update({ body: null })
+      .in("booking_id", bookingIds);
+    if (reminderError) {
+      return { error: `Could not clear their reminders: ${reminderError.message}` };
+    }
+  }
 
   const { error } = await supabase.from("contacts").delete().eq("id", id).eq("studio_id", studio.id);
   if (error) return { error: error.message };
