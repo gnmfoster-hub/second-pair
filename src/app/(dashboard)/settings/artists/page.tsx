@@ -248,7 +248,7 @@ export default async function ArtistsPage() {
       {/* And somebody who works here without being in the diary, which until
           now could not be expressed at all: every login went through adding
           them as somebody who does the work. */}
-      {owns && <InviteStaff origin={origin} />}
+      {owns && <InviteStaff origin={origin} customers={wordsFor(studio).customers} />}
     </div>
   );
 }

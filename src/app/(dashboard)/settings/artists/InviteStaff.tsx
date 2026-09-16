@@ -16,7 +16,7 @@ import { inviteStaff } from "../actions";
  * what a receptionist actually needs — and nothing that implies they do the
  * work.
  */
-export function InviteStaff({ origin }: { origin: string }) {
+export function InviteStaff({ origin, customers = "customers" }: { origin: string; customers?: string }) {
   const [state, action] = useActionState<
     { token?: string; error?: string; emailedTo?: string },
     FormData
