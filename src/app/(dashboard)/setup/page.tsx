@@ -62,6 +62,18 @@ export default async function SetupPage() {
       conversations: conversations ?? 0,
       fromWebsite: fromWebsite ?? 0,
       words: { practitioners: words.practitioners, customers: words.customers },
+      /*
+       * Decided, rather than merely quiet. Any of these means somebody has
+       * been to the money screens and chosen: an account connected anywhere,
+       * deposits switched on, or payments in full switched on.
+       */
+      money: {
+        decided:
+          Boolean(studio.stripe_account_id) ||
+          studio.deposit_mode !== "none" ||
+          studio.takes_payments === true ||
+          team.some((a) => a.stripe_account_id),
+      },
     });
   } else {
     const { count: phones } = await supabase

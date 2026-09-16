@@ -24,6 +24,7 @@ const facts = (over: Partial<Parameters<typeof ownerSteps>[0]> = {}) => ({
   conversations: 4,
   fromWebsite: 1,
   words: { practitioners: "stylists", customers: "clients" },
+  money: { decided: true },
   ...over,
 });
 
@@ -122,4 +123,17 @@ test("the calendar is optional for staff", () => {
   const p = progressOf(staffSteps(staff({ phoneSignedUp: true, stripeConnected: true })));
   assert.equal(p.done, p.of);
   assert.equal(p.next?.key, "calendar");
+});
+
+test("a business that has not looked at money yet is not ticked off", () => {
+  const steps = ownerSteps(facts({ money: { decided: false } }));
+  const paid = steps.find((s) => s.key === "paid");
+  assert.equal(paid?.done, false);
+  assert.equal(paid?.action, "Decide how you take money");
+  assert.match(paid?.todo ?? "", /take cash or a card machine/);
+});
+
+test("a business that has decided is ticked when nothing is missing", () => {
+  const paid = ownerSteps(facts()).find((s) => s.key === "paid");
+  assert.equal(paid?.done, true);
 });

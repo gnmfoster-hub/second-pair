@@ -45,6 +45,14 @@ export type SetupFacts = {
   conversations: number;
   /** Of those, how many came from the website button. */
   fromWebsite: number;
+  /**
+   * Whether anybody has looked at how money is taken.
+   *
+   * "Nothing switched on" and "we decided not to" look identical from here,
+   * so the business says which: anything connected, or either switch touched,
+   * counts as decided.
+   */
+  money: { decided: boolean };
   words: { practitioners: string; customers: string };
 };
 
@@ -89,10 +97,28 @@ export function ownerSteps(f: SetupFacts): SetupStep[] {
       title: "Getting paid",
       why:
         "Deposits hold a slot, and payment links let people pay on their phone. Money goes straight to your own Stripe, never through us.",
-      done: ready("stripe") && ready("policy"),
-      todo: !ready("stripe") ? cap("stripe")?.otherwise : cap("policy")?.otherwise,
+      /*
+       * A business that has not decided yet is not finished.
+       *
+       * This ticked itself for anybody taking neither deposits nor payments,
+       * because nothing was broken — which is true of a business that has
+       * decided to take money in person, and untrue of one that has not
+       * looked. On the first evening it is the second, and a ticked step is
+       * how somebody never finds the thing that would have let a customer pay
+       * a deposit at midnight.
+       */
+      done: f.money.decided && ready("stripe") && ready("policy"),
+      todo: !f.money.decided
+        ? "Nothing is set up to take money yet — deposits are off, payments in full are off, and there is no Stripe account. That is a fine answer if you take cash or a card machine; it is worth one look either way."
+        : !ready("stripe")
+          ? cap("stripe")?.otherwise
+          : cap("policy")?.otherwise,
       href: !ready("stripe") ? cap("stripe")?.href ?? "/settings" : "/settings",
-      action: !ready("stripe") ? cap("stripe")?.action || "Look at payments" : "Write the policy",
+      action: !f.money.decided
+        ? "Decide how you take money"
+        : !ready("stripe")
+          ? cap("stripe")?.action || "Look at payments"
+          : "Write the policy",
     },
     {
       key: "faqs",
