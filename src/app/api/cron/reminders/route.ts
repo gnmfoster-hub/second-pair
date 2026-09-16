@@ -10,6 +10,7 @@ import { forgetOldEnquiries } from "@/lib/retention";
 import { forgetHandledMessages } from "@/lib/handledMessages";
 import { sweepWentWrong } from "@/lib/cronOutcome";
 import { sendWeeklyReports } from "@/lib/weeklyReports";
+import { watchTheEssentials } from "@/lib/watchdog";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -169,7 +170,16 @@ export async function GET(request: NextRequest) {
   );
   const backup = hour >= 2 && hour < 5 ? await nightlyBackup(db) : { ran: false, because: "not the hour" };
 
-  const body = { released, due, sent, waiting, failures, answered, forgotten, tidied, weekly, backup };
+  /*
+   * And whether any of this could have worked at all.
+   *
+   * Asked last, so a broken model cannot stop the reminders going out — they
+   * do not need it. See watchdog: it emails us, once, and only when something
+   * is wrong for every business rather than for one conversation.
+   */
+  const working = await watchTheEssentials(db);
+
+  const body = { released, due, sent, waiting, failures, answered, forgotten, tidied, weekly, backup, working };
 
   /*
    * Said out loud, because nothing downstream will say it.

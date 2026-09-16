@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { notifyStudio } from "@/lib/notify";
+import { alertPlatform } from "@/lib/platformAlert";
 
 /**
  * The assistant fell over mid-reply. Somebody has to know.
@@ -19,7 +20,25 @@ export async function handOverAfterFailure(
   args: { studioId: string; channel: string; externalRef: string; error: unknown },
 ): Promise<void> {
   try {
-    console.error(`[${args.channel}] turn failed`, (args.error as Error)?.message ?? args.error);
+    const said = (args.error as Error)?.message ?? String(args.error ?? "");
+    console.error(`[${args.channel}] turn failed`, said);
+
+    /*
+     * And us, once an hour, because a turn that fails here usually fails for
+     * everybody. The business owner being told their own conversation needs
+     * them is right and is not enough: when the cause is our account, ours is
+     * the only inbox that can act on it.
+     */
+    void alertPlatform(db, {
+      name: "turn-failed",
+      subject: "The assistant could not answer a customer",
+      text:
+        `A ${args.channel} conversation failed and was handed to the business.\n\n` +
+        `What went wrong: ${said || "no message"}\n\n` +
+        "One email an hour while it keeps happening. If this says anything about " +
+        "credit, billing or a key, every business is affected until it is fixed.\n\n" +
+        "node scripts/check-live.mjs says which part it is.",
+    });
 
     const { data: conversation } = await db
       .from("conversations")
