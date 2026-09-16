@@ -16,7 +16,13 @@ Last updated: 16 September 2026, after the overnight review of the whole site.
 
 # Migrations
 
-**None waiting.** The two from the overnight review were run on 16 September
+**One waiting:** `20260917100000_marketing_preferences.sql` — marketing per
+channel, and the link a customer uses to change it themselves. Until it runs,
+marketing saves exactly as it did before and the preferences panel stays
+hidden. The SQL is in the chat, split into small pieces, because the editor
+truncates a long paste.
+
+The two from the overnight review were run on 16 September
 and checked from here:
 
 - `20260917010000_artist_protected_columns.sql` — proved as Aisha: she cannot
@@ -507,6 +513,28 @@ tests. 45 real faults found; 43 fixed and deployed. The serious ones:
 Left deliberately: Meta message retries (nothing is live on Meta yet), and the
 last day of the 21-day slot window not being checked against personal calendar
 feeds (the database still prevents any double-booking).
+
+## Done on 16 September, from your six
+
+- **One Stripe account, not two.** Settings offers to point the business at the
+  account you have already connected. You had just hit this on the demo: the
+  business is on `acct_1UGDV5Rb…` and Sarah on `acct_1UFux8DZ…`, which is the
+  second account nobody wanted.
+- **Deleting a conversation removes the client too**, unless they have an
+  appointment, a payment, a form or another thread.
+- **VAT is one question with three answers**, the first being "none — we are
+  not VAT registered". Nothing changed underneath; the screen was the problem.
+- **Marketing per channel, with the customer's own preferences page.** Email
+  and text kept apart, when and how it was agreed recorded, and every client
+  has a link they can use to change it without asking. Reminders untouched.
+- **Four more demo businesses, and one brand new one.** An electrician who
+  travels and adds VAT, a groomer who takes deposits and works Tuesday to
+  Saturday, a garage with bays and VAT in the price, a driving instructor with
+  one car and evening lessons — each seeded through its own trade pack, plus
+  Brightwork Plastering with nothing filled in for walking the set-up.
+- **Checked each one talks like its trade**: the electrician asks for the
+  postcode and quotes hours plus VAT, the garage asks for the reg, the groomer
+  prices by breed and offers Saturdays, the instructor offers blocks of ten.
 
 ## Done most recently
 
