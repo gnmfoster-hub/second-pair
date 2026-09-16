@@ -28,7 +28,7 @@ export type ReportRows = {
   messages: { conversation_id: string; role: string; created_at: string; usage: { cost_micros?: number } | null; delivery: string | null }[];
   bookings: { studio_id: string; created_at: string; cancelled_at: string | null; attended: boolean | null; source: string | null; starts_at: string }[];
   payments: { studio_id: string; kind: string | null; status: string | null; gross_pence: number | null; fee_pence: number | null; paid_at: string | null }[];
-  inbound: { studio_id: string | null; verdict: string; at: string }[];
+  inbound: { studio_id: string | null; verdict: string; because: string | null; at: string }[];
   reminders: { studio_id: string; status: string; channel: string | null; created_at: string }[];
   forms?: { studio_id: string; status: string; created_at: string; signed_at: string | null }[];
   /** Most recent sign-in by anybody in each business. */

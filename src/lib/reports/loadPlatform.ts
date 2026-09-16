@@ -48,7 +48,7 @@ export async function loadPlatformRows(db: SupabaseClient, range: { from: string
     all((a, b) =>
       db.from("payments").select("studio_id, kind, status, gross_pence, fee_pence, paid_at").gte("created_at", range.from).range(a, b),
     ),
-    all((a, b) => db.from("inbound_emails").select("studio_id, verdict, at").gte("at", range.from).lt("at", range.to).range(a, b)),
+    all((a, b) => db.from("inbound_emails").select("studio_id, verdict, because, at").gte("at", range.from).lt("at", range.to).range(a, b)),
     all((a, b) =>
       db
         .from("reminders")

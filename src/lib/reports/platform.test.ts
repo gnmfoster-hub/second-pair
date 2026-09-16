@@ -38,8 +38,8 @@ const rows: ReportRows = {
     { studio_id: "lc", kind: "payment", status: "pending", gross_pence: 9900, fee_pence: null, paid_at: null },
   ],
   inbound: [
-    { studio_id: "lc", verdict: "answered", at: "2026-09-05T10:00:00Z" },
-    { studio_id: "lc", verdict: "ignored", at: "2026-09-15T10:00:00Z" },
+    { studio_id: "lc", verdict: "answered", because: null, at: "2026-09-05T10:00:00Z" },
+    { studio_id: "lc", verdict: "ignored", because: "it reads as a sales pitch (a throwaway seller's address)", at: "2026-09-15T10:00:00Z" },
   ],
   reminders: [
     { studio_id: "lc", status: "sent", channel: "sms", created_at: "2026-09-09T10:00:00Z" },

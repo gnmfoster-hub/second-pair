@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (!studio || studio.archived_at) {
-    await note(db, null, email, slug, "refused", "no business has that address", true);
+    await note(db, null, slug, "refused", "no business has that address");
     return ok("no such business");
   }
 
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
   // A machine talking. Nothing is written down, because a newsletter landing
   // in the inbox every Tuesday makes the inbox worth less than it was.
   if (verdict.what === "ignore") {
-    await note(db, studio.id, email, slug, "ignored", verdict.because, false);
+    await note(db, studio.id, slug, "ignored", verdict.because);
     return ok(`ignored: ${verdict.because}`);
   }
 
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
 
   if (verdict.what === "park") {
     await park(db, studio.id, sender, email, verdict.because);
-    await note(db, studio.id, email, slug, "parked", verdict.because, verdict.setup === true);
+    await note(db, studio.id, slug, "parked", verdict.because);
     return ok(`parked: ${verdict.because}`);
   }
 
@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
   const overBudget = tooMuchEmail(answeredToday ?? 0);
   if (overBudget) {
     await park(db, studio.id, sender, email, overBudget);
-    await note(db, studio.id, email, slug, "parked", overBudget, false);
+    await note(db, studio.id, slug, "parked", overBudget);
     return ok(`parked: ${overBudget}`);
   }
 
@@ -241,7 +241,7 @@ export async function POST(request: NextRequest) {
     if ((toThemToday ?? 0) >= 6) {
       const because = "the assistant has already answered this sender six times today";
       await park(db, studio.id, sender, email, because);
-      await note(db, studio.id, email, slug, "parked", because, false);
+      await note(db, studio.id, slug, "parked", because);
       return ok(`parked: ${because}`);
     }
   }
@@ -285,7 +285,7 @@ export async function POST(request: NextRequest) {
      * in the webhook response too, since that is the one place a provider's own
      * delivery log will show it back.
      */
-    await note(db, studio.id, email, slug, "answered", null, false);
+    await note(db, studio.id, slug, "answered", null);
 
     if (sent.status !== "sent") {
       await db.from("messages").insert({
@@ -469,20 +469,9 @@ function sameSecret(given: string | null, expected: string): boolean {
 async function note(
   db: ReturnType<typeof createAdminClient>,
   studioId: string | null,
-  email: InboundEmail,
   slug: string | null,
   verdict: "answered" | "parked" | "ignored" | "refused",
   because: string | null,
-  /**
-   * Whether this one is ours to read.
-   *
-   * True for a verification code and for mail to an address with no business
-   * behind it — the first exists because we asked a provider to point a
-   * mailbox at us, and the second is not addressed to anybody. False for a
-   * customer writing to a business, a newsletter they subscribed to, and
-   * everything else that comes through here.
-   */
-  ours: boolean,
 ) {
   try {
     await db.from("inbound_emails").insert({
@@ -497,8 +486,23 @@ async function note(
        * exists for — and it keeps a back office that can read every customer's
        * subject line from existing in the first place.
        */
-      from_address: ours ? (email.from ?? "").slice(0, 200) : null,
-      subject: ours ? (email.subject ?? "").slice(0, 300) : null,
+      /*
+       * Neither, ever.
+       *
+       * These were kept for one reason: a provider's verification code, sent
+       * while a business points its mailbox at us, and no way to tell "it
+       * never arrived" from "it arrived and was thrown away". But a
+       * verification code is parked, which means it lands in that business's
+       * own inbox with its subject and its text — so it is readable in the
+       * one place it belongs, and keeping a copy here bought nothing.
+       *
+       * What is left is that mail arrived at an address, and what was decided
+       * about it. That answers "is the address working" and "what is being
+       * thrown away", which are the only questions this table exists for,
+       * with no record of who wrote to a business or what they said.
+       */
+      from_address: null,
+      subject: null,
       verdict,
       because,
     });

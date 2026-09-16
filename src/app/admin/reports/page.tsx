@@ -6,6 +6,7 @@ import { VERTICAL_LIST, verticalPack } from "@/lib/verticals";
 import { platformReport, TEXT_PENCE, type BusinessReport } from "@/lib/reports/platform";
 import { loadPlatformRows } from "@/lib/reports/loadPlatform";
 import { rangeFrom, RANGES } from "@/lib/reports/range";
+import { whyTheyWereTreatedThatWay, keptOut } from "@/lib/reports/whyEmail";
 
 export const metadata = { title: "Second Pair — reports" };
 export const dynamic = "force-dynamic";
@@ -68,6 +69,17 @@ export default async function ReportsPage({
     ...(params.business ? { business: params.business } : {}),
     ...(showDemos ? { test: "1" } : {}),
   }).toString();
+
+  /*
+   * What the intake decided, for the businesses on screen. Grouped, because a
+   * fortnight of spam is two hundred lines that say the same six things.
+   */
+  const onScreen = new Set(businesses.map((b) => b.id));
+  const arrivals = (rows.inbound ?? []).filter(
+    (row) => !row.studio_id || onScreen.has(row.studio_id as string),
+  );
+  const reasons = whyTheyWereTreatedThatWay(arrivals);
+  const kept = keptOut(arrivals);
 
   const pounds = (p: number) => `£${(p / 100).toLocaleString("en-GB", { minimumFractionDigits: p % 100 ? 2 : 0, maximumFractionDigits: 2 })}`;
   const costPence = totals.aiCostPence + totals.textCostPence;
@@ -194,6 +206,52 @@ export default async function ReportsPage({
             spam or automatic.
           </p>
         </div>
+      </section>
+
+      {/* ───────────────────────── what arrived by email, and what was decided */}
+      <section className="card mt-6 p-5">
+        <h2 className="section-title">What arrived by email, and what was done with it</h2>
+        <p className="hint mt-1 text-sm">
+          Every email reaching an inbound address leaves a line saying what was decided and why.
+          Nothing about who wrote or what they said &mdash; the reason is the whole record, and a
+          customer&rsquo;s mail lives in that business&rsquo;s own inbox where it belongs.
+        </p>
+
+        {arrivals.length === 0 ? (
+          <p className="hint mt-3 text-sm">Nothing arrived by email in this range.</p>
+        ) : (
+          <>
+            <div className="mt-3 flex flex-wrap gap-4 text-sm">
+              <span>
+                <strong className="tabular-nums">{arrivals.length}</strong> arrived
+              </span>
+              <span>
+                <strong className="tabular-nums">{kept.answered}</strong> answered
+              </span>
+              <span>
+                <strong className="tabular-nums">{kept.parked}</strong> put in front of a person
+              </span>
+              <span>
+                <strong className="tabular-nums">{kept.junk}</strong> never reached anybody
+              </span>
+            </div>
+
+            <ul className="mt-3 divide-y divide-border border-y border-border">
+              {reasons.map((r) => (
+                <li key={`${r.verdict}-${r.reason}`} className="flex flex-wrap items-baseline gap-x-3 py-2 text-sm">
+                  <span className="tabular-nums font-semibold">{r.count}</span>
+                  <span className="pill shrink-0">{r.verdict}</span>
+                  <span className="min-w-0">{r.reason}</span>
+                  {r.examples.length > 0 && (
+                    <span className="hint w-full text-xs">
+                      {r.examples.map((e) => `“${e}”`).join("  ·  ")}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </section>
 
       {/* ─────────────────────────────────────────── every business */}
