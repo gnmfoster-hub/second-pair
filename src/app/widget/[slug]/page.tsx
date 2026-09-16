@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { hasColumn } from "@/lib/db/hasColumn";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { verticalPack } from "@/lib/verticals";
@@ -72,6 +73,34 @@ export default async function WidgetPage({
       .eq("active", true)
       .limit(1),
   ]);
+
+  /*
+   * And whether that person is meant to have a way in of their own.
+   *
+   * A personal link deliberately ignores the business's own rules about who is
+   * offered — right for a chair renter, wrong for somebody employed: the owner
+   * switches the assistant off for them and a link still quietly books them.
+   * Off, the link falls back to the business's own assistant, exactly as a
+   * stale link from somebody who has left already does.
+   *
+   * Asked as a separate question rather than added to the query above, because
+   * a column PostgREST does not recognise makes it refuse the whole query —
+   * which would take every personal link on the product down until the
+   * migration ran, to enforce a rule nobody has set yet. hasColumn remembers
+   * the answer, so this costs one query per deployment rather than one per
+   * customer.
+   */
+  const theirOwn =
+    person && (await hasColumn(db, "artists", "own_link"))
+      ? await db
+          .from("artists")
+          .select("own_link")
+          .eq("id", person.id)
+          .maybeSingle()
+          .then(({ data }) => data?.own_link !== false)
+      : true;
+
+  const whose = theirOwn ? person : null;
 
   /*
    * Both colours arrive on the query string, from a script on the business's
@@ -160,14 +189,14 @@ export default async function WidgetPage({
        * blank line.
        */
       greeting={
-        person?.greeting?.trim() ||
+        whose?.greeting?.trim() ||
         studio.greeting?.trim() ||
         verticalPack(studio.vertical).greeting
       }
       openers={openers}
-      forArtistId={person?.id ?? null}
-      forArtistName={person?.name ?? null}
-      photoUrl={avatarUrl(person?.avatar_path) ?? null}
+      forArtistId={whose?.id ?? null}
+      forArtistName={whose?.name ?? null}
+      photoUrl={avatarUrl(whose?.avatar_path) ?? null}
       privacyUrl={studio.privacy_notice_url ?? null}
       accent={look ? `#${look.fill}` : null}
       onAccent={look ? `#${look.text}` : null}
@@ -184,8 +213,8 @@ export default async function WidgetPage({
    * a customer messaging a tattooist should be in no doubt they are messaging
    * the tattooist.
    */
-  const who = person?.name ?? studio.name;
-  const photo = avatarUrl(person?.avatar_path) ?? null;
+  const who = whose?.name ?? studio.name;
+  const photo = avatarUrl(whose?.avatar_path) ?? null;
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-surface-2 px-4 py-6 sm:gap-5 sm:py-10">
@@ -207,8 +236,8 @@ export default async function WidgetPage({
         <div>
           <h1 className="text-lg font-semibold leading-tight sm:text-xl">{who}</h1>
           <p className="hint mt-1">
-            {person
-              ? `Message ${person.name.split(" ")[0]} — it answers straight away, day or night.`
+            {whose
+              ? `Message ${whose.name.split(" ")[0]} — it answers straight away, day or night.`
               : "Message us — it answers straight away, day or night."}
           </p>
         </div>

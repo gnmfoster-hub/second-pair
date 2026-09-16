@@ -170,7 +170,7 @@ export function ArtistEditor({
           )}
 
           {!isThing && (
-          <Field label="Email" hint="Only used to send them their login.">
+          <Field label="Email" explain="Only used to send them their login. It is never shown to a customer.">
             <input
               name="email"
               type="email"
@@ -182,14 +182,14 @@ export function ArtistEditor({
 
           <Field
             label="What they do"
-            hint={`Optional. Shown to ${customers}${
+            explain={`Optional. Shown to ${customers}${
               asked ? `, and it lets the assistant answer a question like "${asked}"` : ""
-            }`}
+            }.`}
           >
             <RolePicker suggested={roles} value={artist?.role ?? null} />
           </Field>
 
-          <Field label="Photo" hint={`Shown in the diary and to ${customers}. Initials if left blank.`}>
+          <Field label="Photo" explain={`Shown in the diary and to ${customers}. Their initials are used if you leave it blank.`}>
             <div className="flex items-center gap-3">
               {artist && <Avatar person={artist} size="lg" />}
               <input
@@ -304,7 +304,7 @@ export function ArtistEditor({
         </fieldset>
         )}
 
-        <Field label="Styles" hint="Used to route enquiries to the right person.">
+        <Field label="Styles" explain="Used to send an enquiry to the right person. Leave them all off and they are considered for everything.">
           <div className="flex flex-wrap gap-x-5 gap-y-2 pt-1">
             {styles.map((s) => (
               <label key={s.value} className="flex items-center gap-2 text-sm">
@@ -466,18 +466,22 @@ export function ArtistEditor({
         </label>
 
         {/*
-          * A diary, and whether customers ever reach them.
+          * Three separate questions that "taking bookings" used to answer at
+          * once, and conflating them is why this was first written as an
+          * apprentice switch — which is one example of the thing, not the
+          * thing.
           *
-          * Two different questions that "taking bookings" was answering at
-          * once. An apprentice, a second van, a room that gets hired: all have
-          * a diary the business books into, and none of them is somebody a
-          * stranger should be offered when they ask for an appointment. The
-          * only way to say that before was to switch them off entirely, which
-          * took their diary with it.
+          * Having a diary is one question: anybody employed here has one, and
+          * it can be written into by hand by them or by the owner.
           *
-          * The owner's to decide, so it only shows to an owner. Off means the
-          * assistant will not offer them, will not book them, and will not
-          * answer as them even on a number or a link of their own.
+          * Whether the assistant may put customers in it is a second, and it
+          * is entirely the owner's preference — an employed person whose work
+          * is handed out by the owner, a specialist kept for referrals, a
+          * junior being brought on slowly.
+          *
+          * Whether they have a channel of their own is a third: a link they
+          * can send somebody, which reaches them directly and would otherwise
+          * go round the first two.
           */}
         {viewerOwns && (
           <label className="flex items-start gap-2.5 text-sm">
@@ -490,9 +494,29 @@ export function ArtistEditor({
             <span>
               The assistant can offer and book them
               <span className="hint block">
-                Off, they keep their diary and you book them yourself &mdash; a customer is
-                never offered them, on the website or anywhere else. Right for an apprentice,
-                or anybody whose work you hand out.
+                Your choice, per person. Off, they keep their diary and their hours exactly as
+                they are and you or they write into it by hand &mdash; a customer is simply
+                never offered them. On, the assistant treats them like anybody else.
+              </span>
+            </span>
+          </label>
+        )}
+
+        {viewerOwns && !isThing && (
+          <label className="flex items-start gap-2.5 text-sm">
+            <input
+              type="checkbox"
+              name="own_link"
+              defaultChecked={artist?.own_link !== false}
+              className="mt-0.5 accent-[var(--accent)]"
+            />
+            <span>
+              They have a booking link of their own
+              <span className="hint block">
+                A link that reaches them directly, for their own regulars and their own
+                Instagram. Off, there is no way in but through the business &mdash; which is
+                what employing somebody usually means, and it is why switching the assistant
+                off above was not enough on its own.
               </span>
             </span>
           </label>

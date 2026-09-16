@@ -1006,6 +1006,14 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
       : {}),
 
     /*
+     * Whether they have a channel of their own. Owner's view only, same as the
+     * two above, and only once the column exists.
+     */
+    ...(owns && (await hasColumn(supabase, "artists", "own_link"))
+      ? { own_link: ticked(fd, "own_link") }
+      : {}),
+
+    /*
      * Whether this person takes money, and which kind.
      *
      * Both columns have existed since payments were built and whoTakes has

@@ -389,6 +389,18 @@ export type Artist = {
    */
   is_resource?: boolean;
   /**
+   * Whether they have a way in of their own — a link that reaches them
+   * directly, for their own regulars and their own Instagram.
+   *
+   * Deliberately separate from whether the assistant may book them. A personal
+   * link is meant to ignore the business's own offering rules, which is right
+   * for a chair renter and wrong for somebody employed: the owner switches the
+   * assistant off for them and a link still quietly books them. Off means
+   * there is no way in but through the business. Undefined means yes, which is
+   * how everybody who already had one keeps it.
+   */
+  own_link?: boolean;
+  /**
    * Whether this person may take a deposit, and whether they may take the full
    * amount. Two questions, because a tattooist takes a deposit and invoices
    * the rest while a stylist takes the lot on the day and holds nothing.
