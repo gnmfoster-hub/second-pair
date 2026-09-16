@@ -124,6 +124,7 @@ export default async function BillingPage({
       bill,
       cost,
       margin: marginOf(bill.totalPence, cost),
+      byChannel: (u?.by_channel as Record<string, { out: number; in: number; windows: number }> | null) ?? null,
       billedPence: (u?.billed_pence as number | null) ?? null,
       billedAt: (u?.billed_at as string | null) ?? null,
       metered: Boolean(u),
@@ -190,12 +191,13 @@ export default async function BillingPage({
       {/* ─────────────────────────────────────────────────────── each business */}
       <h2 className="mt-8 text-lg font-semibold">Each business</h2>
       <div className="mt-3 overflow-x-auto rounded-lg border border-border">
-        <table className="w-full min-w-[54rem] text-sm">
+        <table className="w-full min-w-[62rem] text-sm">
           <thead className="bg-surface-2">
             <tr className="text-left">
               <th className="px-3 py-2">Business</th>
               <th className="px-3 py-2">Plan</th>
               <th className="px-3 py-2 text-right">Texts sent</th>
+              <th className="px-3 py-2">Every channel</th>
               <th className="px-3 py-2 text-right">Extras</th>
               <th className="px-3 py-2 text-right">To invoice</th>
               <th className="px-3 py-2 text-right">Cost</th>
@@ -226,6 +228,28 @@ export default async function BillingPage({
                   <td className="px-3 py-2 text-right tabular-nums">
                     {r.used.textsOut.toLocaleString()}
                     <div className="hint text-xs">{r.used.textsIn.toLocaleString()} in</div>
+                  </td>
+                  {/*
+                    * Every channel, whether or not anything charges for it yet.
+                    * The model is not decided, and usage nobody recorded cannot
+                    * be recovered later.
+                    */}
+                  <td className="px-3 py-2 text-xs">
+                    {r.byChannel
+                      ? Object.entries(r.byChannel)
+                          .filter(([, v]) => v.out || v.in)
+                          .map(([name, v]) => (
+                            <div key={name} className="whitespace-nowrap">
+                              <span className="hint">{name}</span>{" "}
+                              <span className="tabular-nums">
+                                {v.out}↑ {v.in}↓
+                              </span>
+                              {v.windows > 0 && (
+                                <span className="hint"> · {v.windows} days</span>
+                              )}
+                            </div>
+                          ))
+                      : <span className="hint">—</span>}
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">
                     {extras ? pounds(extras.pence) : "—"}

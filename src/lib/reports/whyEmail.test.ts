@@ -33,6 +33,11 @@ test("the reason is the sentence, the brackets are the detail", () => {
   );
   assert.equal(detailOf("it is a mailing with an unsubscribe link in it"), null);
   assert.equal(reasonOf(null), "no reason recorded");
+  assert.equal(
+    reasonOf(null, "answered"),
+    "it read as somebody getting in touch",
+    "being a customer is the ordinary case, not a missing reason",
+  );
   // An em dash in the middle is part of the sentence, not a bracket.
   assert.equal(
     reasonOf("it looks like a code for setting this address up — read it and carry on"),
@@ -55,6 +60,13 @@ test("commonest first, and the same reason under two verdicts stays apart", () =
   assert.ok(grouped.every((g) => g.verdict), "every line says what was done");
   const verdicts = new Set(grouped.map((g) => g.verdict));
   assert.ok(verdicts.has("ignored") && verdicts.has("answered") && verdicts.has("parked"));
+});
+
+test("answered mail says what it was rather than showing a blank", () => {
+  const grouped = whyTheyWereTreatedThatWay(arrived);
+  const answered = grouped.find((g) => g.verdict === "answered");
+  assert.equal(answered?.reason, "it read as somebody getting in touch");
+  assert.equal(answered?.count, 2);
 });
 
 test("the counts add up to what arrived", () => {

@@ -50,6 +50,26 @@ export async function meterThisMonth(
     let emailsOut = 0;
     let modelMicros = 0;
 
+    /*
+     * Every channel counted separately, whether or not anything charges for it
+     * yet.
+     *
+     * The pricing model is not decided — it may end up split by channel, and
+     * Meta bills per twenty-four-hour conversation rather than per message. All
+     * of that can be priced later from history, but only if the history exists:
+     * usage nobody recorded cannot be recovered afterwards. So this counts
+     * everything now and decides nothing.
+     *
+     * "windows" is the count of conversation-days: one per thread per day that
+     * anything was sent on it, which is the shape Meta and WhatsApp charge in.
+     */
+    const byChannel = new Map<string, { out: number; in: number; windows: Set<string> }>();
+    const channelRow = (name: string) => {
+      const found = byChannel.get(name) ?? { out: 0, in: 0, windows: new Set<string>() };
+      byChannel.set(name, found);
+      return found;
+    };
+
     for (let i = 0; i < ids.length; i += 50) {
       const { data: msgs } = await db
         .from("messages")
@@ -59,12 +79,17 @@ export async function meterThisMonth(
 
       for (const m of msgs ?? []) {
         const channel = channelOf.get(m.conversation_id) ?? "web";
+        const row = channelRow(channel);
         modelMicros += (m.usage as { cost_micros?: number } | null)?.cost_micros ?? 0;
 
         if (m.role === "client") {
+          row.in++;
+          row.windows.add(`${m.conversation_id}:${(m.created_at as string).slice(0, 10)}`);
           if (channel === "sms") textsIn++;
         } else if (m.role === "assistant" || m.role === "owner") {
           // A text that never left is not one we were charged for.
+          if (m.delivery !== "failed") row.out++;
+          row.windows.add(`${m.conversation_id}:${(m.created_at as string).slice(0, 10)}`);
           if (channel === "sms" && m.delivery !== "failed") textsOut++;
           if (channel === "email") emailsOut++;
         }
@@ -79,6 +104,7 @@ export async function meterThisMonth(
 
     for (const r of reminders ?? []) {
       if (r.status !== "sent") continue;
+      if (r.channel) channelRow(r.channel as string).out++;
       if (r.channel === "sms") textsOut++;
       else if (r.channel === "email") emailsOut++;
     }
@@ -91,6 +117,12 @@ export async function meterThisMonth(
         texts_in: textsIn,
         emails_out: emailsOut,
         model_micros: modelMicros,
+        by_channel: Object.fromEntries(
+          [...byChannel].map(([name, row]) => [
+            name,
+            { out: row.out, in: row.in, windows: row.windows.size },
+          ]),
+        ),
         /*
          * How it is priced, copied in as it stands tonight. A plan that
          * changes in March must not silently rewrite February's invoice.
