@@ -49,7 +49,18 @@ export function Explain({
         ?
       </button>
       {open && (
-        <span id={id} className="hint mt-1 block">
+        /*
+          * Set back to ordinary sentence case on purpose.
+          *
+          * These sit inside a field's label, and a label is uppercase with
+          * wide letter-spacing — so the first explanation opened as A WHOLE
+          * SENTENCE SHOUTED AT THE READER. It is a sentence, and it should
+          * look like one wherever it is hung.
+          */
+        <span
+          id={id}
+          className="hint mt-1 block text-[0.8rem] font-normal normal-case leading-snug tracking-normal"
+        >
           {children}
         </span>
       )}

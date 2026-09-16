@@ -265,14 +265,11 @@ export function Appearance({
         </label>
 
         <label className="block">
-          <span className="label">Which corner</span>
+          <span className="label">Which corner<Explain label="What which corner does">Move it if something else on your site already sits in that corner.</Explain></span>
           <select name="widget_position" defaultValue={position} className="input">
             <option value="right">Bottom right</option>
             <option value="left">Bottom left</option>
           </select>
-          <p className="hint mt-1.5">
-            Move it if something else on your site already sits in that corner.
-          </p>
         </label>
       </div>
 
@@ -334,7 +331,7 @@ export function Appearance({
         </label>
 
         <label className="block">
-          <span className="label">The nudge bubble</span>
+          <span className="label">The nudge bubble<Explain label="What the nudge bubble does">Dark, if your site is dark.</Explain></span>
           <select
             name="widget_bubble"
             value={bubble}
@@ -344,7 +341,6 @@ export function Appearance({
             <option value="light">Light</option>
             <option value="dark">Dark</option>
           </select>
-          <p className="hint mt-1.5">Dark, if your site is dark.</p>
         </label>
       </div>
 
@@ -372,7 +368,7 @@ export function Appearance({
         </label>
 
         <label className="block">
-          <span className="label">How heavy</span>
+          <span className="label">How heavy<Explain label="What how heavy does">The nudge stays at a reading weight either way.</Explain></span>
           <select
             name="widget_weight"
             value={weight}
@@ -383,7 +379,6 @@ export function Appearance({
             <option value="medium">Medium</option>
             <option value="bold">Bold</option>
           </select>
-          <p className="hint mt-1.5">The nudge stays at a reading weight either way.</p>
         </label>
 
         <label className="block">
@@ -413,7 +408,7 @@ export function Appearance({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="label">The nudge, in your own colours</span>
+          <span className="label">The nudge, in your own colours<Explain label="What the nudge, in your own colours does">Empty uses the light or dark you picked above.</Explain></span>
           <div className="mt-1 flex items-center gap-2">
             <input
               type="color"
@@ -431,9 +426,6 @@ export function Appearance({
               spellCheck={false}
             />
           </div>
-          <p className="hint mt-1.5">
-            Empty uses the light or dark you picked above.
-          </p>
         </label>
 
         <label className="block">
