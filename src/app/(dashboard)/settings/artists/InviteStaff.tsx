@@ -27,10 +27,9 @@ export function InviteStaff({ origin, customers = "customers" }: { origin: strin
       <div>
         <div className="section-title">Somebody who is not in the diary</div>
         <p className="hint mt-1.5 max-w-prose">
-          A receptionist, a manager, whoever answers the phone. They get the inbox, the
-          clients and everybody&rsquo;s day. They get no column, no hours and no rates,
-          and the assistant will never offer them to a {""}
-          customer as somebody who does the work.
+          A receptionist, a manager, whoever answers the phone. They get the inbox, the{" "}
+          {customers} and everybody&rsquo;s day. They get no column, no hours and no rates,
+          and the assistant will never offer them as somebody who does the work.
         </p>
       </div>
 
