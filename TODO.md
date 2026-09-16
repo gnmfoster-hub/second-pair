@@ -51,6 +51,23 @@ than breaking.
 Everything here is something I cannot do from this side. Roughly in the order
 it is holding something up.
 
+### 0. Switch the nightly backup on (5 minutes)
+
+Built, tested against the live database — 726 rows, 514 KB sealed, read back
+whole, refused with the wrong key — and waiting for a passphrase.
+
+Put `BACKUP_KEY` into Vercel (Settings → Environment Variables, Production), at
+least 16 characters, and keep it in your password manager. If it is lost every
+backup is lost with it: there is no unencrypted path through this on purpose.
+
+The first copy is taken between 2 and 5 the next morning. `node
+scripts/check-live.mjs` then says "last night's backup was taken" with the
+size, and says "nothing is backed up" until you do it.
+
+Once a month, prove one comes back: download the newest from Supabase →
+Storage → backups and run
+`BACKUP_KEY='...' node scripts/restore.mjs <file>`. It only reports.
+
 ### 0a. The daily Google emails — make them a weekly digest
 
 They are DMARC reports, and they are good news: I opened one and every
@@ -589,6 +606,18 @@ feeds (the database still prevents any double-booking).
 - **Fallback with no business account** now says so in Settings, with the button.
 - Needs a form first, quotes with priced lines, holiday From/To, service saved
   on bookings, Stripe for each person — all done earlier.
+
+## Done on 16 September, later
+
+- **Reports for a business that travels** — where the week's work was, by
+  postcode area and by what it came to; and whether jobs ran to time, from the
+  length recorded at Complete against what was booked. Both on the page and in
+  Monday's email, both silent unless they say something.
+- **Backups take themselves** — nightly, encrypted, a fortnight kept, and
+  check-live reports whether last night's happened.
+- **The trade packs** — roles and their own questions for all 34 trades.
+- **Anything still salon-shaped** — the diary's column button, the client list
+  and the team screens now use each trade's own words.
 
 ## Next, in the order I would do them
 
