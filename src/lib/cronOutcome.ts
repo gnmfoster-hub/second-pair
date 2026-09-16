@@ -43,10 +43,22 @@ export type SweepResult = {
    * that is always red is a job nobody looks at.
    */
   waiting: number;
+  /**
+   * Businesses whose weekly report could not be sent.
+   *
+   * A failure counts, because the Monday is claimed on the studio row before
+   * the send — which is right, it stops two instances sending the same report
+   * twice — but it means a failure is never retried. The owner silently loses
+   * that week's report for ever, and nothing was reading this.
+   */
+  weeklyFailed?: string[];
 };
 
 export function sweepWentWrong(result: SweepResult): boolean {
   return (
-    result.failures.length > 0 || result.forgetting.length > 0 || result.unanswered > 0
+    result.failures.length > 0 ||
+    result.forgetting.length > 0 ||
+    result.unanswered > 0 ||
+    (result.weeklyFailed?.length ?? 0) > 0
   );
 }

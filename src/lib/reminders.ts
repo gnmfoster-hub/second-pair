@@ -357,6 +357,20 @@ export async function sendDueReminders(
       if (!mine?.length) continue;
 
       /*
+       * From here the row says "sent" before anything has been sent.
+       *
+       * That is deliberate — it is how two instances cannot send the same
+       * reminder twice — but it means anything that throws between here and
+       * the correction below leaves a reminder recorded as delivered that
+       * nobody received, off `pending` for ever so no sweep will retry it.
+       *
+       * So everything after the claim runs inside a try, and a throw puts the
+       * row back to failed with the reason on it. A lambda killed mid-send can
+       * still strand one; that needs a claimed-at column and is on the list.
+       */
+      try {
+
+      /*
        * Written into the thread as well as sent.
        *
        * On the website that IS the delivery — they read it when they come back.
@@ -419,8 +433,16 @@ export async function sendDueReminders(
         })
         .eq("id", row.id);
 
-      if (arrived) result.sent++;
-      else result.failed++;
+        if (arrived) result.sent++;
+        else result.failed++;
+      } catch (e) {
+        const why = (e as Error)?.message ?? "the send threw";
+        await db
+          .from("reminders")
+          .update({ status: "failed", error: why.slice(0, 300), sent_at: null })
+          .eq("id", row.id);
+        result.failed++;
+      }
       continue;
     }
 

@@ -257,6 +257,10 @@ export async function GET(request: NextRequest) {
       : forgotten.failed,
     unanswered: answered.failed,
     waiting,
+    // A weekly report that failed is never retried — the Monday is already
+    // claimed on the row — so it has to make the run red or it is lost in
+    // silence.
+    weeklyFailed: weekly.failed,
   });
 
   return NextResponse.json(body, { status: wrong ? 500 : 200 });
