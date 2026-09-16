@@ -262,3 +262,67 @@ export async function keyAccountName(secret: string | undefined): Promise<string
     return null;
   }
 }
+
+/**
+ * Whether a connected account can actually take a charge.
+ *
+ * "Connected" was answered by a string being present on the row, and that is
+ * not the same question. A Standard account can come back from Stripe's OAuth
+ * before its owner has finished onboarding — no bank details, no identity
+ * check — and it looks connected from here while every charge on it is
+ * refused. The product then holds a slot for a deposit that can never be paid,
+ * the hold lapses, and the booking is lost; the owner is told everything is
+ * ready throughout.
+ *
+ * Remembered for an hour per account. It changes when somebody finishes
+ * Stripe's form, which is not something that happens twice in an afternoon,
+ * and this is read on screens that redraw constantly.
+ */
+const chargeable = new Map<string, { at: number; can: boolean }>();
+
+export async function canTakeCharges(
+  accountId: string | null | undefined,
+  now = Date.now(),
+): Promise<boolean> {
+  if (!accountId) return false;
+
+  const seen = chargeable.get(accountId);
+  if (seen && now - seen.at < 3_600_000) return seen.can;
+
+  const secret = process.env.STRIPE_SECRET_KEY;
+  if (!secret) return false;
+
+  try {
+    const response = await fetch(`https://api.stripe.com/v1/accounts/${accountId}`, {
+      headers: { Authorization: `Bearer ${secret}` },
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!response.ok) {
+      /*
+       * An account Stripe will not tell us about is not one to send a customer
+       * to. Cached like any other answer, so a deleted or disconnected account
+       * does not cost a call every time somebody opens the page.
+       */
+      chargeable.set(accountId, { at: now, can: false });
+      return false;
+    }
+
+    const account = (await response.json()) as { charges_enabled?: boolean };
+    const can = account.charges_enabled === true;
+    chargeable.set(accountId, { at: now, can });
+    return can;
+  } catch {
+    /*
+     * Unreachable is not refused. Stripe being slow should not make a working
+     * business look broken — and if it really is broken, the charge itself
+     * will say so at the moment it matters.
+     */
+    return true;
+  }
+}
+
+/** Tests only. */
+export function forgetChargeable(): void {
+  chargeable.clear();
+}

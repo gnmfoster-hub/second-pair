@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Studio } from "@/lib/types";
 import { emailReallyWorks } from "@/lib/messaging/email";
+import { canTakeCharges } from "@/lib/payments/connect";
 import { canConnectStripe } from "@/lib/env";
 import { depositReadiness } from "@/lib/depositReadiness";
 
@@ -159,7 +160,14 @@ export async function readinessOf(
   const deposits = depositReadiness({
     takesDeposits,
     model: perPerson ? "people" : "business",
-    businessAccount: Boolean(studio.stripe_account_id),
+    /*
+     * Not "is there an account id", but "will Stripe take a charge on it".
+     *
+     * A Standard account comes back from OAuth before its owner has finished
+     * onboarding, so the id is there and every charge is refused — and the
+     * owner is told deposits are ready while each one fails. See canTakeCharges.
+     */
+    businessAccount: await canTakeCharges(studio.stripe_account_id),
     fallback: studio.payment_fallback === true,
     platformReady: canConnectStripe(studio),
     /*
