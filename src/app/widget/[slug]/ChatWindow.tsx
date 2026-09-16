@@ -244,6 +244,42 @@ export function ChatWindow({
 
   useEffect(() => {
     session.current = sessionId(slug);
+
+    /*
+     * And what was already said, if this is not the first time they have
+     * opened it.
+     *
+     * Without this the window came up empty with the greeting in it, while the
+     * server carried on the same conversation — so somebody who closed the tab
+     * and came back re-asked what they had already asked, and the assistant
+     * answered as though mid-conversation, because it holds the transcript.
+     *
+     * Quietly: a history that will not load is not worth an error message. The
+     * greeting is a perfectly good place to start from, which is exactly what
+     * happened before.
+     */
+    let stale = false;
+    (async () => {
+      try {
+        const response = await fetch(
+          `/api/widget/history?studio=${encodeURIComponent(slug)}&session=${encodeURIComponent(session.current)}`,
+        );
+        if (!response.ok) return;
+        const data = (await response.json()) as { lines?: Line[] };
+        if (stale || !data.lines?.length) return;
+
+        setLines(data.lines);
+        // They have talked to us before, so the openers and the greeting are
+        // not what this is any more.
+        setStarted(true);
+      } catch {
+        // Offline, or a route that is not there yet. Start fresh.
+      }
+    })();
+
+    return () => {
+      stale = true;
+    };
   }, [slug]);
 
   /*
