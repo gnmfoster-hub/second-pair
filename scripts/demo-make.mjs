@@ -356,7 +356,7 @@ for (const demo of doing) {
    * whole point of these demos — if the pack is thin for a trade, it should
    * show up in the demo rather than be papered over.
    */
-  if (!demo.bare) {
+  {
     const { data: services } = await db
       .from("services")
       .select("id")
@@ -378,6 +378,11 @@ for (const demo of doing) {
      * seedFromPack sets the trade's usual answers for deposits, where the work
      * happens and the words — right for a business being created, and it would
      * quietly undo what makes each of these demos different from the others.
+     *
+     * The new-business demo is seeded too: a business created in the back
+     * office always gets its trade pack, so one without it would be a shape no
+     * real owner ever sees. What makes it new is that nobody has filled
+     * anything in — hours shut, no prices of their own, no policy, no Stripe.
      */
     const { error: settingsError } = await db
       .from("studios")
