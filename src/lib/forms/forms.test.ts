@@ -44,7 +44,7 @@ test("what is missing is said in order, in words", () => {
     "Please answer: Photos?",
     "Tick to agree: I agree",
     "Type your full name under the signature.",
-    "Sign in the box.",
+    "Sign in the box, or type your name to sign.",
   ]);
 });
 

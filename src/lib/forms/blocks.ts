@@ -175,7 +175,7 @@ export function whatIsMissing(blocks: Block[], answers: Answers, signing?: Signi
     if (b.type === "text" || b.type === "lines") continue;
     if (b.type === "signature") {
       if (!signing?.name?.trim()) missing.push("Type your full name under the signature.");
-      if (!validSignature(signing?.signature)) missing.push("Sign in the box.");
+      if (!validSignature(signing?.signature)) missing.push("Sign in the box, or type your name to sign.");
       continue;
     }
     if (b.type === "agree" && value !== "yes") {
@@ -196,7 +196,38 @@ export function whatIsMissing(blocks: Block[], answers: Answers, signing?: Signi
   return missing;
 }
 
+/**
+ * What a typed signature looks like on the record.
+ *
+ * A drawn signature is a PNG; this is the other way of signing, for somebody
+ * who cannot draw one. Kept as a distinct, recognisable string so that neither
+ * the form nor anybody reading it later can mistake one for the other — what
+ * matters evidentially is that a person took a deliberate act to sign, and
+ * typing your own name in a box that says so is exactly that.
+ */
+export const TYPED_SIGNATURE = "typed:";
+
+/** A typed signature: the prefix, and the name they typed. */
+export function typedSignature(name: string): string {
+  return `${TYPED_SIGNATURE}${name.trim()}`;
+}
+
+export function isTypedSignature(signature: string | null | undefined): boolean {
+  return Boolean(signature?.startsWith(TYPED_SIGNATURE) && signature.slice(TYPED_SIGNATURE.length).trim().length >= 2);
+}
+
 export function validSignature(signature: string | null | undefined): boolean {
+  /*
+   * Drawn or typed.
+   *
+   * The signature box is a canvas driven by pointer events: not focusable, no
+   * keyboard path, and required. A keyboard-only or screen-reader user could
+   * not complete a consent form or accept a quote at all — on a document that
+   * is legally operative, which is the worst place in the product for a thing
+   * that cannot be done without a mouse.
+   */
+  if (isTypedSignature(signature)) return true;
+
   return Boolean(
     signature &&
       signature.startsWith(SIGNATURE_PREFIX) &&

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requireStudio, getArtists } from "@/lib/studio";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { answerText, cleanBlocks, flagged, quoteTotal } from "@/lib/forms/blocks";
+import { answerText, cleanBlocks, flagged, quoteTotal, isTypedSignature } from "@/lib/forms/blocks";
 import { QuoteTable } from "@/app/f/[token]/FillForm";
 import { AskForPayment } from "@/components/AskForPayment";
 import { payableFor } from "@/lib/payments/whoTakes";
@@ -141,7 +141,22 @@ export default async function ClientFormPage({
             ) : b.type === "signature" ? (
               <div key={b.id} className="px-5 py-4">
                 <div className="label">Signature</div>
-                {form.signature ? (
+                {isTypedSignature(form.signature as string | null) ? (
+                  /*
+                   * Signed by typing rather than drawing.
+                   *
+                   * Shown as what it is, never dressed up as a drawing: the
+                   * business should be able to see at a glance which of the
+                   * two it was, because that is the sort of detail that
+                   * matters if a form is ever questioned.
+                   */
+                  <div className="mt-2 rounded border border-border bg-white px-4 py-3">
+                    <div className="font-serif text-xl italic text-[#1b1b1b]">
+                      {(form.signature as string).slice("typed:".length)}
+                    </div>
+                    <div className="mt-1 text-xs text-muted">Typed as their signature</div>
+                  </div>
+                ) : form.signature ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={form.signature as string}

@@ -199,6 +199,9 @@ export function FillForm({ token, blocks, business }: { token: string; blocks: B
 function SignatureBox() {
   const canvas = useRef<HTMLCanvasElement>(null);
   const [data, setData] = useState("");
+  /** Signing by typing rather than drawing. See the button below. */
+  const [typing, setTyping] = useState(false);
+  const [name, setName] = useState("");
   const drawing = useRef(false);
 
   useEffect(() => {
@@ -292,17 +295,47 @@ function SignatureBox() {
           Clear
         </button>
       </div>
-      <canvas
-        ref={canvas}
-        className="mt-2 h-40 w-full touch-none rounded-lg border border-dashed border-border bg-white"
-        aria-label="Signature box. Draw your signature with your finger or mouse."
-      />
-      <input type="hidden" name="signature" value={data} />
+      {!typing && (
+        <canvas
+          ref={canvas}
+          className="mt-2 h-40 w-full touch-none rounded-lg border border-dashed border-border bg-white"
+          aria-label="Signature box. Draw your signature with your finger or mouse."
+        />
+      )}
+
+      {/*
+        * The other way to sign.
+        *
+        * The box above is a canvas driven by pointer events — not focusable,
+        * no keyboard path — and signing is required. So a keyboard-only or
+        * screen-reader user could not complete a consent form or accept a
+        * quote at all, on the one kind of document in the product that is
+        * legally operative. Typing your own name into a box that says it is
+        * your signature is a deliberate act of signing, which is what matters.
+        */}
+      <button
+        type="button"
+        onClick={() => setTyping((t) => !t)}
+        className="mt-2 text-sm text-muted underline underline-offset-4 hover:text-foreground"
+      >
+        {typing ? "Draw it instead" : "Type my name instead of drawing"}
+      </button>
+
+      <input type="hidden" name="signature" value={typing ? (name.trim() ? `typed:${name.trim()}` : "") : data} />
+
       <label className="mt-3 block">
         <span className="text-sm font-medium">
           Your full name<span className="text-warn"> *</span>
+          {typing && <span className="hint block font-normal">This counts as your signature.</span>}
         </span>
-        <input id="signer_name" name="signer_name" className="input mt-2" autoComplete="name" />
+        <input
+          id="signer_name"
+          name="signer_name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="input mt-2"
+          autoComplete="name"
+        />
       </label>
     </div>
   );
