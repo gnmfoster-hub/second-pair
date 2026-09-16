@@ -16,11 +16,13 @@ Last updated: 16 September 2026, after the overnight review of the whole site.
 
 # Migrations
 
-**One waiting:** `20260917100000_marketing_preferences.sql` — marketing per
-channel, and the link a customer uses to change it themselves. Until it runs,
-marketing saves exactly as it did before and the preferences panel stays
-hidden. The SQL is in the chat, split into small pieces, because the editor
-truncates a long paste.
+**One waiting:** `20260917120000_assistant_books.sql` — one line, so the owner
+can keep somebody in the diary and off the channels. Until it runs, everybody
+is offered exactly as they are today.
+
+**Run on 16 September:** `20260917100000_marketing_preferences.sql` — checked from
+here afterwards: a customer set their own preferences from their link, it
+recorded "they set it themselves" with the date, and a wrong link was refused.
 
 The two from the overnight review were run on 16 September
 and checked from here:
@@ -513,6 +515,20 @@ tests. 45 real faults found; 43 fixed and deployed. The serious ones:
 Left deliberately: Meta message retries (nothing is live on Meta yet), and the
 last day of the 21-day slot window not being checked against personal calendar
 feeds (the database still prevents any double-booking).
+
+## Done on 16 September, after that
+
+- **A diary without the channels.** Each person now has "the assistant can
+  offer and book them", the owner's to set. Off, they keep their diary and you
+  book them yourself — no customer is offered them on the website, on a link of
+  their own or on a number of their own. Ashcroft's apprentice is exactly this.
+- **A gate that was backwards**: "you look after their settings" only ever
+  appeared on the owner's own record, where it means nothing, and never on the
+  records it was written for.
+- **Every trade pack now carries its own roles and its own questions.** Roles
+  were on ten packs and empty on twenty-three; most packs asked only park, pay
+  and cancel. A groomer is now asked about vaccination records, a garage about
+  courtesy cars, an instructor about manual or automatic. Two tests keep it so.
 
 ## Done on 16 September, from your six
 
