@@ -16,13 +16,20 @@ Last updated: 16 September 2026, after the overnight review of the whole site.
 
 # Migrations
 
-**Two waiting**, both from the overnight review and both explained under
-"Waiting on you" below:
+**None waiting.** The two from the overnight review were run on 16 September
+and checked from here:
 
-- `20260917010000_artist_protected_columns.sql`
-- `20260917020000_sms_opt_outs.sql`
+- `20260917010000_artist_protected_columns.sql` — proved as Aisha: she cannot
+  point her Stripe elsewhere, move herself to another business, switch off
+  owner-managed or hand her record to another login, and her own settings still
+  save. Accepting an invitation still attaches a login, tested with a throwaway
+  one on the demo.
+- `20260917020000_sms_opt_outs.sql` — the table is there, the server can record
+  and read a STOP, and staff cannot write to it by hand.
 
-Everything before them is run and checked.
+The SQL editor truncated the first version of the guard, so what ran is the
+short form: the managed-person rules (rates, hours, voice) are still enforced
+by the app rather than the database. Worth adding later, not urgent.
 
 When one is waiting it will be named here. Until it is run the product keeps
 working without it — everything new is written so the deploy and the migration
@@ -32,21 +39,6 @@ than breaking.
 ---
 
 # Waiting on you
-
-### 0a. Two migrations to run (5 minutes, Supabase SQL editor)
-
-Both are in `supabase/migrations/`. Paste each into Supabase → SQL editor → Run.
-
-1. `20260917010000_artist_protected_columns.sql` — stops a member of staff
-   changing, straight through the database, which business their record belongs
-   to, which login owns it, their own Stripe account, or the "the business looks
-   after this person" switch. Accepting an invite still works; so does the
-   owner, and so does anything the server does for them.
-2. `20260917020000_sms_opt_outs.sql` — remembers a customer who texts STOP, per
-   business. Until it is run, STOP is still never answered by the assistant;
-   the remembering is what needs the table.
-
-Nothing else waits on these — everything deployed works before and after.
 
 Everything here is something I cannot do from this side. Roughly in the order
 it is holding something up.

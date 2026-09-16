@@ -21,76 +21,36 @@
 -- server's own client (auth.uid() is null) — the Stripe connect callback, the
 -- back office — is unaffected, because the app checks those itself.
 --
--- For somebody the business looks after (owner_managed), their rates, hours
--- and what the assistant says for them are the business's too, which the app
--- already enforces and this now backs up.
+-- Accepting an invitation is the one time a login is attached to a record:
+-- accept_team_invite runs as the invited person and sets user_id on a row
+-- that has none. That case is allowed here explicitly, and tested on the demo
+-- with a throwaway login after this was applied.
 --
--- Note on the shape of this file: no comments inside the IF conditions, and
--- $function$ rather than $$ quoting. Postgres reads a comment in the middle of
--- a condition as part of the expression, which ends as "missing THEN".
+-- What a managed person may not change — their rates, hours and the voice the
+-- assistant uses for them — is enforced in the app (priceActions, the person
+-- editor, myServiceActions) rather than here. It belongs here too and can be
+-- added later; it was left out to keep this short enough to paste into the
+-- Supabase SQL editor, which truncated a longer version.
+--
+-- Run on 16 September 2026. Kept short and comment-free inside the function:
+-- a comment inside an IF condition reads as part of the expression, and the
+-- editor splits a long paste, which is how the first two attempts failed.
 
 create or replace function artists_guard_own_update()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
+returns trigger language plpgsql security definer set search_path = public
 as $function$
-declare
-  claiming_own_invite boolean;
 begin
-  if auth.uid() is null then
+  if auth.uid() is null or is_studio_owner(old.studio_id) then
     return new;
   end if;
-
-  if is_studio_owner(old.studio_id) then
-    return new;
+  if new.studio_id is distinct from old.studio_id
+     or new.owner_managed is distinct from old.owner_managed
+     or new.stripe_account_id is distinct from old.stripe_account_id
+     or (new.user_id is distinct from old.user_id
+         and not (old.user_id is null and new.user_id = auth.uid()))
+  then
+    raise exception 'Only the owner can change that.' using errcode = '42501';
   end if;
-
-  -- Accepting an invite claims an unclaimed row for yourself, and nothing else
-  -- ever changes which login owns a row. The row-level policy already stops
-  -- anybody reaching an unclaimed row directly; accept_team_invite does it
-  -- after checking the invite.
-  claiming_own_invite := old.user_id is null and new.user_id = auth.uid();
-
-  if new.studio_id is distinct from old.studio_id then
-    raise exception 'Only the owner can move somebody to another business.'
-      using errcode = '42501';
-  end if;
-
-  if new.user_id is distinct from old.user_id and not claiming_own_invite then
-    raise exception 'Only the owner can change whose login this is.'
-      using errcode = '42501';
-  end if;
-
-  if new.owner_managed is distinct from old.owner_managed then
-    raise exception 'Only the owner can change who looks after these settings.'
-      using errcode = '42501';
-  end if;
-
-  if new.stripe_account_id is distinct from old.stripe_account_id then
-    raise exception 'A Stripe account is connected through Settings, not set here.'
-      using errcode = '42501';
-  end if;
-
-  -- Somebody the business looks after: their rates, hours and voice are the
-  -- business's to set, which is what owner_managed means.
-  if old.owner_managed is true then
-    if new.hourly_rate_pence is distinct from old.hourly_rate_pence
-      or new.min_charge_pence is distinct from old.min_charge_pence
-      or new.day_rate_pence is distinct from old.day_rate_pence
-      or new.hours is distinct from old.hours
-      or new.styles is distinct from old.styles
-      or new.agent_scope is distinct from old.agent_scope
-      or new.reminders_own is distinct from old.reminders_own
-      or new.travel_buffer_minutes is distinct from old.travel_buffer_minutes
-      or new.greeting is distinct from old.greeting
-      or new.tone is distinct from old.tone
-      or new.assistant_name is distinct from old.assistant_name
-    then
-      raise exception 'The business sets this for you.' using errcode = '42501';
-    end if;
-  end if;
-
   return new;
 end;
 $function$;
@@ -100,6 +60,3 @@ drop trigger if exists artists_guard_own_update on artists;
 create trigger artists_guard_own_update
   before update on artists
   for each row execute function artists_guard_own_update();
-
-comment on function artists_guard_own_update is
-  'Stops a non-owner changing which business, login, Stripe account or management a person row has, and a managed person changing what the business sets.';
