@@ -31,6 +31,17 @@ export function Remove({ id, who }: { id: string; who: string | null }) {
         </p>
         <p className="hint max-w-prose">
           {/*
+            * Said here because it is what somebody expects and did not get: the
+            * thread went and the name stayed in the client list, so deleting
+            * spam left the spammer filed as a customer.
+            */}
+          {called === "this person" ? "They" : called} will be taken off your{" "}
+          <strong className="text-foreground">Clients</strong> list too, unless there is
+          something else of theirs &mdash; an appointment, a payment, a form or another
+          conversation &mdash; in which case only this thread goes.
+        </p>
+        <p className="hint max-w-prose">
+          {/*
             * The distinction between the two destructive things in the product,
             * said where somebody is about to pick one. They sound alike and do
             * opposite things to the diary.

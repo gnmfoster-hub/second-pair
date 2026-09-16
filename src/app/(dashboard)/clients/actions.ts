@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { consentPatch, canRecordEvidence } from "@/lib/consent";
+import { marketingPatch, canRecordEvidence } from "@/lib/consent";
+import { hasColumn } from "@/lib/db/hasColumn";
 import { requireStudio } from "@/lib/studio";
 
 export type NewClientState = { error?: string };
@@ -50,11 +51,14 @@ export async function addClient(
       notes: str(fd, "notes") || null,
       alert: str(fd, "alert") || null,
       // A new client has nothing recorded yet, so agreeing now is agreeing now.
-      ...consentPatch(
-        fd.get("marketing_consent") === "on",
+      ...marketingPatch(
+        {
+          email: fd.get("marketing_email") === "on",
+          sms: fd.get("marketing_sms") === "on",
+        },
         null,
         "recorded by the business",
-        await canRecordEvidence(supabase),
+        (await canRecordEvidence(supabase)) && (await hasColumn(supabase, "contacts", "marketing_email")),
       ),
     })
     .select("id")

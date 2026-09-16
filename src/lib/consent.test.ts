@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { consentPatch, describeConsent } from "./consent.ts";
+import { consentPatch, describeConsent, mayMarket, marketingPatch, marketingChoiceOf } from "./consent.ts";
 
 const NOW = new Date("2026-09-14T10:00:00Z");
 
@@ -102,4 +102,43 @@ test("with no evidence columns yet, it writes the tick and nothing else", () => 
 test("and clearing still works without them", () => {
   const p = consentPatch(false, { marketing_consent: true }, "unticked", false, NOW);
   assert.deepEqual(p, { marketing_consent: false });
+});
+
+test("marketing is asked per channel, and a tick from before counts as email", () => {
+  assert.equal(mayMarket({ marketing_consent: true, marketing_consent_at: "2026-01-01" }, "email"), true);
+  assert.equal(mayMarket({ marketing_consent: true, marketing_consent_at: "2026-01-01" }, "sms"), false);
+  assert.equal(
+    mayMarket({ marketing_consent: true, marketing_consent_at: "2026-01-01", marketing_email: false, marketing_sms: true }, "email"),
+    false,
+  );
+  assert.equal(
+    mayMarket({ marketing_consent: true, marketing_consent_at: "2026-01-01", marketing_email: false, marketing_sms: true }, "sms"),
+    true,
+  );
+});
+
+test("agreed with no date is never marketable", () => {
+  assert.equal(mayMarket({ marketing_consent: true, marketing_email: true }, "email"), false);
+});
+
+test("turning both off clears the evidence, turning one on stamps it", () => {
+  const off = marketingPatch({ email: false, sms: false }, { marketing_consent: true, marketing_consent_at: "2026-01-01" }, "they set it themselves");
+  assert.equal(off.marketing_consent, false);
+  assert.equal(off.marketing_consent_at, null);
+  assert.equal(off.marketing_email, false);
+
+  const on = marketingPatch({ email: true, sms: false }, null, "they set it themselves", true, new Date("2026-09-16T10:00:00Z"));
+  assert.equal(on.marketing_consent, true);
+  assert.equal(on.marketing_consent_at, "2026-09-16T10:00:00.000Z");
+  assert.equal(on.marketing_consent_source, "they set it themselves");
+});
+
+test("an existing dated agreement is not restamped by an unrelated save", () => {
+  const same = marketingPatch(
+    { email: true, sms: true },
+    { marketing_consent: true, marketing_consent_at: "2026-01-01T00:00:00.000Z" },
+    "the salon",
+  );
+  assert.equal(same.marketing_consent_at, undefined);
+  assert.equal(same.marketing_sms, true);
 });

@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { consentPatch, canRecordEvidence } from "@/lib/consent";
+import { marketingPatch, canRecordEvidence } from "@/lib/consent";
+import { hasColumn } from "@/lib/db/hasColumn";
 import { requireStudio } from "@/lib/studio";
 import { canMessage } from "@/lib/permissions";
 import { deliver, recordDelivery } from "@/lib/messaging/deliver";
@@ -44,11 +45,24 @@ export async function saveClient(_prev: ClientState, fd: FormData): Promise<Clie
       email: str(fd, "email") || null,
       notes: str(fd, "notes") || null,
       alert: str(fd, "alert") || null,
-      ...consentPatch(
-        fd.get("marketing_consent") === "on",
-        before as { marketing_consent?: boolean; marketing_consent_at?: string | null } | null,
+      /*
+       * Per channel, with the evidence beside it. The single tick is still
+       * written underneath, so anything reading "may we market to them at all"
+       * keeps working — including the export an owner takes to a mail service.
+       */
+      ...marketingPatch(
+        {
+          email: fd.get("marketing_email") === "on",
+          sms: fd.get("marketing_sms") === "on",
+        },
+        before as {
+          marketing_consent?: boolean;
+          marketing_consent_at?: string | null;
+          marketing_email?: boolean;
+          marketing_sms?: boolean;
+        } | null,
         "recorded by the business",
-        await canRecordEvidence(supabase),
+        (await canRecordEvidence(supabase)) && (await hasColumn(supabase, "contacts", "marketing_email")),
       ),
     })
     .eq("id", id)

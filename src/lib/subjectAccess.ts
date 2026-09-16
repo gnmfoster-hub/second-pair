@@ -21,6 +21,10 @@ export type SubjectRecord = {
     email: string | null;
     instagram_handle: string | null;
     marketing_consent: boolean | null;
+    marketing_email?: boolean | null;
+    marketing_sms?: boolean | null;
+    /** Their own preferences page, where the business can give them one. */
+    prefsUrl?: string | null;
     notes: string | null;
     /** The standing flag the business sees on every enquiry from them. */
     alert: string | null;
@@ -78,14 +82,18 @@ export function subjectAccessDocument(record: SubjectRecord, timezone: string): 
     ["Email", c.email],
     ["Instagram", c.instagram_handle],
     ["First recorded", c.created_at ? when(c.created_at, timezone) : null],
+    /*
+     * Per channel, because that is what was agreed to and what they can
+     * change. The link is the point of saying any of it: somebody reading
+     * their own record should be able to act on it without asking anybody.
+     */
     [
       "Marketing",
       c.marketing_consent == null
         ? null
-        : c.marketing_consent
-          ? "You agreed to hear about offers"
-          : "You have not agreed to marketing",
+        : describeMarketing(c),
     ],
+    ["Change it yourself", c.prefsUrl ?? null],
   ];
   for (const [label, value] of details) {
     if (value) out.push(`${label.padEnd(16)}${value}`);
@@ -154,4 +162,18 @@ export function subjectAccessDocument(record: SubjectRecord, timezone: string): 
   );
 
   return out.join("\n");
+}
+
+/** What somebody hears from this business, in their own words. */
+function describeMarketing(c: {
+  marketing_consent?: boolean | null;
+  marketing_email?: boolean | null;
+  marketing_sms?: boolean | null;
+}): string {
+  const email = c.marketing_email ?? c.marketing_consent ?? false;
+  const sms = c.marketing_sms ?? false;
+  if (email && sms) return "You agreed to hear about offers by email and by text";
+  if (email) return "You agreed to hear about offers by email";
+  if (sms) return "You agreed to hear about offers by text";
+  return "You have not agreed to marketing. Appointment reminders are not marketing and still reach you";
 }

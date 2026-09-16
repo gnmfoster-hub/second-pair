@@ -37,7 +37,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("contacts")
-    .select("name, phone, email, instagram_handle, marketing_consent, notes, created_at")
+    .select("name, phone, email, instagram_handle, marketing_consent, marketing_email, marketing_sms, marketing_consent_at, notes, created_at")
     .eq("studio_id", studio.id)
     .order("name");
 
@@ -53,13 +53,16 @@ export async function GET() {
   }
 
   const csv = toCsv(
-    ["Name", "Phone", "Email", "Instagram", "Marketing", "Notes", "First seen"],
+    ["Name", "Phone", "Email", "Instagram", "Email marketing", "Text marketing", "Agreed on", "Notes", "First seen"],
     (data ?? []).map((c) => [
       c.name,
       c.phone,
       c.email,
       c.instagram_handle,
-      c.marketing_consent ? "Agreed" : "No",
+      // Per channel, because that is how a mail service will ask for it.
+      c.marketing_email ?? c.marketing_consent ? "Agreed" : "No",
+      c.marketing_sms ? "Agreed" : "No",
+      c.marketing_consent_at ? new Date(c.marketing_consent_at as string).toLocaleDateString("en-GB") : "",
       c.notes,
       c.created_at ? new Date(c.created_at).toLocaleDateString("en-GB") : null,
     ]),

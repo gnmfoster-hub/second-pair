@@ -162,7 +162,7 @@ export async function removeConversation(
 
   const { data: conversation } = await supabase
     .from("conversations")
-    .select("id")
+    .select("id, contact_id")
     .eq("id", id)
     .eq("studio_id", studio.id)
     .maybeSingle();
@@ -227,6 +227,39 @@ export async function removeConversation(
     .eq("studio_id", studio.id);
 
   if (error) return { error: `Could not remove it: ${error.message}` };
+
+  /*
+   * And the person, when this was all there ever was of them.
+   *
+   * Removing a thread left the client behind, so a test enquiry, a wrong
+   * number or a spammer stayed in the client list for good and the only way
+   * out was to find them there and erase them separately. Nobody did, so the
+   * list filled up with people who had never been customers.
+   *
+   * Only where nothing else of theirs remains: another conversation, an
+   * appointment, a payment or a form all mean this is a real client who
+   * happened to have one thread deleted.
+   */
+  const contactId = conversation.contact_id as string | null;
+  if (contactId) {
+    const [
+      { count: otherThreads },
+      { count: bookings },
+      { count: payments },
+      { count: forms },
+    ] = await Promise.all([
+      supabase.from("conversations").select("id", { count: "exact", head: true }).eq("contact_id", contactId),
+      supabase.from("bookings").select("id", { count: "exact", head: true }).eq("contact_id", contactId),
+      supabase.from("payments").select("id", { count: "exact", head: true }).eq("contact_id", contactId),
+      supabase.from("client_forms").select("id", { count: "exact", head: true }).eq("contact_id", contactId),
+    ]);
+
+    if (!otherThreads && !bookings && !payments && !forms) {
+      await supabase.from("contacts").delete().eq("id", contactId).eq("studio_id", studio.id);
+    }
+  }
+
+  revalidatePath("/clients");
 
   /*
    * Back to the inbox, which is the dashboard.

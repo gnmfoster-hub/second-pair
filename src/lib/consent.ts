@@ -124,3 +124,78 @@ export function describeConsent(contact: {
     evidenced: true,
   };
 }
+
+/**
+ * Which channels somebody may be marketed on.
+ *
+ * Kept per channel because the rules are per channel: agreeing to hear about
+ * an offer by email is not agreeing to a text at nine on a Sunday. The old
+ * single tick is still written, as "may we market at all", so everything that
+ * reads it keeps working and a list export still means something.
+ */
+export type MarketingChoice = { email: boolean; sms: boolean };
+
+export function marketingPatch(
+  choice: MarketingChoice,
+  existing: {
+    marketing_consent?: boolean;
+    marketing_consent_at?: string | null;
+    marketing_email?: boolean;
+    marketing_sms?: boolean;
+  } | null,
+  recordedBy: string,
+  /** Whether the per-channel columns exist yet. */
+  canChannels = true,
+  now: Date = new Date(),
+): Record<string, unknown> {
+  const any = choice.email || choice.sms;
+  const was = Boolean(existing?.marketing_consent);
+  const evidence =
+    any && !(was && existing?.marketing_consent_at)
+      ? { marketing_consent_at: now.toISOString(), marketing_consent_source: recordedBy }
+      : !any
+        ? { marketing_consent_at: null, marketing_consent_source: null }
+        : {};
+
+  return {
+    marketing_consent: any,
+    ...evidence,
+    ...(canChannels ? { marketing_email: choice.email, marketing_sms: choice.sms } : {}),
+  };
+}
+
+/**
+ * May this business market to this person on this channel?
+ *
+ * One place to ask, so that when there is something to send, nobody has to
+ * remember which column meant what. A record from before the channels existed
+ * counts as email only: that is what those ticks were collected for.
+ */
+export function mayMarket(
+  contact: {
+    marketing_consent?: boolean;
+    marketing_consent_at?: string | null;
+    marketing_email?: boolean;
+    marketing_sms?: boolean;
+  },
+  channel: "email" | "sms",
+): boolean {
+  // Agreed with no date is not evidence, and is treated as no.
+  if (!contact.marketing_consent || !contact.marketing_consent_at) return false;
+  if (contact.marketing_email === undefined && contact.marketing_sms === undefined) {
+    return channel === "email";
+  }
+  return channel === "email" ? contact.marketing_email === true : contact.marketing_sms === true;
+}
+
+/** What their own preferences page should show, and what the record says. */
+export function marketingChoiceOf(contact: {
+  marketing_consent?: boolean;
+  marketing_email?: boolean;
+  marketing_sms?: boolean;
+}): MarketingChoice {
+  if (contact.marketing_email === undefined && contact.marketing_sms === undefined) {
+    return { email: Boolean(contact.marketing_consent), sms: false };
+  }
+  return { email: contact.marketing_email === true, sms: contact.marketing_sms === true };
+}

@@ -4,10 +4,14 @@ import { useActionState } from "react";
 import { saveClient, type ClientState } from "./actions";
 import { Field, SubmitButton } from "@/components/Form";
 import { describeConsent } from "@/lib/consent";
+import { CopyLink } from "@/components/CopyLink";
 
 export function ClientForm({
   client,
+  prefsUrl,
 }: {
+  /** Their own preferences page, where the database has a token for it. */
+  prefsUrl?: string | null;
   client: {
     id: string;
     name: string | null;
@@ -16,6 +20,8 @@ export function ClientForm({
     notes: string | null;
     alert: string | null;
     marketing_consent: boolean;
+    marketing_email?: boolean | null;
+    marketing_sms?: boolean | null;
     marketing_consent_at?: string | null;
     marketing_consent_source?: string | null;
   };
@@ -56,15 +62,36 @@ export function ClientForm({
         <textarea name="notes" defaultValue={client.notes ?? ""} rows={4} className="input" />
       </Field>
 
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          name="marketing_consent"
-          defaultChecked={client.marketing_consent}
-          className="accent-[var(--accent)]"
-        />
-        Happy to receive marketing
-      </label>
+      {/*
+        * Per channel, because the rules are per channel.
+        *
+        * Agreeing to an email about an offer is not agreeing to a text on a
+        * Sunday, and one tick covering both is what makes a list unusable the
+        * day somebody wants to use it.
+        */}
+      <fieldset>
+        <legend className="label">Marketing</legend>
+
+        <label className="mt-2 flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="marketing_email"
+            defaultChecked={client.marketing_email ?? client.marketing_consent}
+            className="accent-[var(--accent)]"
+          />
+          Happy to be emailed offers and news
+        </label>
+
+        <label className="mt-2 flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="marketing_sms"
+            defaultChecked={client.marketing_sms ?? false}
+            className="accent-[var(--accent)]"
+          />
+          Happy to be texted offers and news
+        </label>
+      </fieldset>
       {/*
         * What is actually recorded, rather than what the tick implies.
         *
@@ -80,6 +107,22 @@ export function ClientForm({
         booking messages &mdash; reminders are sent regardless. When it was agreed is
         recorded, because a tick on its own is not evidence of anything.
       </p>
+
+      {/*
+        * Their own link, which is the half that makes this lawful rather than
+        * merely recorded: consent has to be as easy to withdraw as it was to
+        * give, and "ring us and ask" is not that.
+        */}
+      {prefsUrl && (
+        <div className="rounded-lg bg-surface-2 p-3 text-sm">
+          <div className="font-medium">Their own preferences page</div>
+          <p className="hint mt-1">
+            Send them this and they set it themselves, without asking you. The link keeps
+            working, so it belongs at the bottom of anything you send them.
+          </p>
+          <CopyLink url={prefsUrl} />
+        </div>
+      )}
 
       <div className="flex items-center gap-4">
         <SubmitButton />

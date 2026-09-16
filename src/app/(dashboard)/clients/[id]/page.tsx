@@ -7,6 +7,7 @@ import { formatPence } from "@/lib/money";
 import { Timeline, type TimelineReminder } from "./Timeline";
 import { CHANNEL_LABELS, CONV_STATUS_LABELS, type Channel, type ConvStatus } from "@/lib/types";
 import { ClientForm } from "./ClientForm";
+import { siteOrigin } from "@/lib/origin";
 import { MessageClient } from "./MessageClient";
 import { routesFor } from "@/lib/messaging/reach";
 import { connectedChannels } from "@/lib/messaging/connections";
@@ -29,6 +30,9 @@ type ContactRow = {
   notes: string | null;
   alert: string | null;
   marketing_consent: boolean;
+  marketing_email?: boolean | null;
+  marketing_sms?: boolean | null;
+  marketing_token?: string | null;
   /** Absent until the migration runs, which reads as "agreed, date unknown". */
   marketing_consent_at?: string | null;
   marketing_consent_source?: string | null;
@@ -346,7 +350,19 @@ export default async function ClientPage({
               marketing_consent: contact.marketing_consent,
               marketing_consent_at: contact.marketing_consent_at ?? null,
               marketing_consent_source: contact.marketing_consent_source ?? null,
+              marketing_email: contact.marketing_email ?? null,
+              marketing_sms: contact.marketing_sms ?? null,
             }}
+            /*
+             * Their own preferences page, where the database has a token for
+             * it. Absent until that migration runs, and the panel simply does
+             * not appear rather than offering a link that goes nowhere.
+             */
+            prefsUrl={
+              contact.marketing_token
+                ? `${await siteOrigin()}/prefs/${contact.marketing_token}`
+                : null
+            }
           />
         </div>
 

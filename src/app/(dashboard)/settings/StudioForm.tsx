@@ -45,7 +45,14 @@ export function StudioForm({
    * include VAT, and neither answer is true — there is no VAT in them at all,
    * and being made to pick one reads as the product not believing you.
    */
-  const [vatRegistered, setVatRegistered] = useState(studio.vat_registered);
+  /*
+   * Three answers in one value: none, included, added. Kept as one piece of
+   * state so the screen cannot show a half-answered question — registered with
+   * neither "included" nor "added" chosen was possible before.
+   */
+  const [vatMode, setVatMode] = useState<"none" | "included" | "added">(
+    !studio.vat_registered ? "none" : studio.prices_include_vat ? "included" : "added",
+  );
   const pack = verticalPack(studio.vertical);
   const packGreeting = pack.greeting;
   const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
@@ -493,85 +500,97 @@ export function StudioForm({
           that is your accountant&rsquo;s job, not ours.
         </p>
 
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            name="vat_registered"
-            checked={vatRegistered}
-            onChange={(e) => setVatRegistered(e.target.checked)}
-            className="accent-[var(--accent)]"
-          />
-          We are VAT registered
-        </label>
-
         {/*
-          * Nothing else, when there is nothing else.
+          * One question with three answers, rather than a tick box and then a
+          * choice between two things that are both wrong when it is not ticked.
           *
-          * Below this used to show regardless: a rate, a VAT number, and a
-          * choice between "prices already include VAT" and "add it before
-          * quoting". For a business that is not registered neither is true —
-          * there is no VAT in the price and none to add — and a required
-          * choice between two wrong answers is how somebody concludes they are
-          * being charged VAT they do not charge.
-          *
-          * The assistant has always said nothing about VAT for an unregistered
-          * business, which is correct and was impossible to believe from this
-          * screen.
+          * Most small businesses are under the threshold and charge no VAT at
+          * all; being shown "prices include VAT" and "add VAT before quoting"
+          * as the only options reads as though VAT is assumed and they are
+          * picking how it is applied.
           */}
-        {!vatRegistered && (
-          <p className="hint">
-            Nothing here applies to you, so the assistant never mentions VAT and your
-            prices are quoted exactly as you enter them. Tick the box above if that
-            changes.
-          </p>
+        <fieldset>
+          <legend className="label">What VAT do you charge?</legend>
+
+          <label className="mt-2 flex items-start gap-2.5 text-sm">
+            <input
+              type="radio"
+              name="vat_mode"
+              value="none"
+              checked={vatMode === "none"}
+              onChange={() => setVatMode("none")}
+              className="mt-0.5 accent-[var(--accent)]"
+            />
+            <span>
+              None &mdash; we are not VAT registered
+              <span className="hint block">
+                The usual answer under the threshold. Your prices are quoted exactly as you
+                enter them and the assistant never mentions VAT.
+              </span>
+            </span>
+          </label>
+
+          <label className="mt-3 flex items-start gap-2.5 text-sm">
+            <input
+              type="radio"
+              name="vat_mode"
+              value="included"
+              checked={vatMode === "included"}
+              onChange={() => setVatMode("included")}
+              className="mt-0.5 accent-[var(--accent)]"
+            />
+            <span>
+              Registered &mdash; the prices I enter already include VAT
+              <span className="hint block">
+                Quoted as they are, with a line saying VAT is included. Usual where you sell
+                to the public.
+              </span>
+            </span>
+          </label>
+
+          <label className="mt-3 flex items-start gap-2.5 text-sm">
+            <input
+              type="radio"
+              name="vat_mode"
+              value="added"
+              checked={vatMode === "added"}
+              onChange={() => setVatMode("added")}
+              className="mt-0.5 accent-[var(--accent)]"
+            />
+            <span>
+              Registered &mdash; add VAT to the prices I enter
+              <span className="hint block">
+                The assistant adds it before quoting and says so. Usual where you work for
+                other businesses.
+              </span>
+            </span>
+          </label>
+        </fieldset>
+
+        {vatMode !== "none" && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Rate (%)">
+              <input
+                name="vat_rate_percent"
+                type="number"
+                min={0}
+                max={100}
+                step={0.5}
+                defaultValue={studio.vat_rate_percent}
+                className="input"
+              />
+            </Field>
+            <Field label="VAT number" hint="Optional. Shown on receipts.">
+              <input
+                name="vat_number"
+                defaultValue={studio.vat_number ?? ""}
+                placeholder="GB123456789"
+                className="input font-mono text-xs"
+              />
+            </Field>
+          </div>
         )}
 
-        {vatRegistered && <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Rate (%)">
-            <input
-              name="vat_rate_percent"
-              type="number"
-              min={0}
-              max={100}
-              step={0.5}
-              defaultValue={studio.vat_rate_percent}
-              className="input"
-            />
-          </Field>
-          <Field label="VAT number" hint="Optional.">
-            <input
-              name="vat_number"
-              defaultValue={studio.vat_number ?? ""}
-              placeholder="GB123456789"
-              className="input font-mono text-xs"
-            />
-          </Field>
-        </div>}
-
-        {vatRegistered && <Field label="The prices you have entered">
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="radio"
-                name="prices_include_vat"
-                value="on"
-                defaultChecked={studio.prices_include_vat}
-                className="accent-[var(--accent)]"
-              />
-              Already include VAT — quote them as they are
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="radio"
-                name="prices_include_vat"
-                value="off"
-                defaultChecked={!studio.prices_include_vat}
-                className="accent-[var(--accent)]"
-              />
-              Exclude VAT — add it before quoting
-            </label>
-          </div>
-        </Field>}
       </section>
 
       <section className="card space-y-5 p-6">

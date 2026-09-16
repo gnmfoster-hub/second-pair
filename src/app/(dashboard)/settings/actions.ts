@@ -614,7 +614,17 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
       ),
       ...(deposit === studioDepositUnchanged ? {} : { deposit_rule: deposit }),
       deposit_mode: depositMode,
-      vat_registered: fd.get("vat_registered") === "on",
+      /*
+       * One answer, unpacked into the two columns behind it. "None" leaves the
+       * rate and number alone rather than clearing them, so switching off for a
+       * quarter and back on again does not lose the number.
+       */
+      ...(fd.has("vat_mode")
+        ? {
+            vat_registered: str(fd, "vat_mode") !== "none",
+            prices_include_vat: str(fd, "vat_mode") !== "added",
+          }
+        : {}),
       /*
        * Fields the form only shows some of the time are only written when
        * they were shown.
@@ -636,7 +646,6 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
             })(),
           }
         : {}),
-      ...(fd.has("prices_include_vat") ? { prices_include_vat: fd.get("prices_include_vat") !== "off" } : {}),
       ...(fd.has("vat_number") ? { vat_number: str(fd, "vat_number") || null } : {}),
       travel_mode: str(fd, "travel_mode") || "at_premises",
       ...(fd.has("travel_buffer_minutes")
@@ -2066,5 +2075,65 @@ export async function disconnectMeta(_prev: FormState, fd: FormData): Promise<Fo
   // The token goes with it: channel_secrets is keyed on the connection and
   // cascades, so there is nothing left to leak.
   revalidatePath("/settings/install");
+  return { ok: true };
+}
+
+/**
+ * Use the owner's own Stripe as the business's, or stop doing so.
+ *
+ * On a business where the owner is also one of the people doing the work —
+ * most of them — there is one Stripe account, not two. The product asked for
+ * the business's account and each person's separately, so an owner who had
+ * connected their own was told the business had none, and the honest way out
+ * was to go through Stripe's onboarding a second time for the same account.
+ *
+ * Nothing is created here: it points the business at an account this owner has
+ * already connected and can see, and it can be undone.
+ */
+export async function useMyStripeForTheBusiness(
+  _prev: FormState,
+  fd: FormData,
+): Promise<FormState> {
+  const { studio, userId } = await requireOwner();
+  const supabase = await createClient();
+
+  const use = fd.get("use") !== "off";
+
+  if (!use) {
+    const { error } = await supabase
+      .from("studios")
+      .update({ stripe_account_id: null })
+      .eq("id", studio.id);
+    if (error) return { error: error.message };
+    revalidatePath("/settings");
+    return { ok: true };
+  }
+
+  const { data: me } = await supabase
+    .from("artists")
+    .select("stripe_account_id")
+    .eq("studio_id", studio.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const mine = (me?.stripe_account_id as string | null) ?? null;
+  if (!mine) {
+    return {
+      error:
+        "You have not connected a Stripe account of your own yet. Connect one under " +
+        "Settings → You, and this will point the business at the same one.",
+    };
+  }
+
+  const { error } = await supabase
+    .from("studios")
+    .update({ stripe_account_id: mine })
+    .eq("id", studio.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings");
+  revalidatePath("/settings/you");
+  revalidatePath("/");
   return { ok: true };
 }

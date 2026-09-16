@@ -6,7 +6,7 @@ import { SeeItAs } from "./SeeItAs";
 import { StudioForm } from "./StudioForm";
 import { EveryEnquiry } from "./EveryEnquiry";
 import { PaymentModel } from "./PaymentModel";
-import { verticalPack } from "@/lib/verticals";
+import { SameStripe } from "./SameStripe";
 import { wordsFor } from "@/lib/words";
 
 export default async function StudioSettingsPage({
@@ -67,6 +67,11 @@ export default async function StudioSettingsPage({
     views.sort((a, b) => (a.label === "The owner" ? -1 : b.label === "The owner" ? 1 : 0));
   }
 
+  const team = await getArtists(studio.id);
+  const me = team.find((a) => a.user_id === userId) ?? null;
+  const mine = (me?.stripe_account_id as string | null) ?? null;
+  const myFirstName = me?.name.split(" ")[0] ?? "";
+
   return (
     <div className="space-y-3">
       {showViews && <SeeItAs studioId={studio.id} views={views} />}
@@ -80,7 +85,7 @@ export default async function StudioSettingsPage({
         takesPayments={studio.takes_payments === true}
         fallback={studio.payment_fallback === true}
         connected={Boolean(studio.stripe_account_id)}
-        team={(await getArtists(studio.id))
+        team={team
           .filter((a) => a.active)
           .map((a) => ({
             id: a.id,
@@ -95,6 +100,15 @@ export default async function StudioSettingsPage({
           business: wordsFor(studio).business,
         }}
       />
+
+      {/*
+       * One Stripe account, where the owner is also one of the people working.
+       *
+       * Its own panel rather than part of the one above: that is a form, and a
+       * form inside a form is not a thing a browser will render. Nothing shows
+       * at all until the owner has connected an account of their own.
+       */}
+      <SameStripe mine={mine} business={studio.stripe_account_id} firstName={myFirstName} />
 
       <StudioForm
         studio={studio}

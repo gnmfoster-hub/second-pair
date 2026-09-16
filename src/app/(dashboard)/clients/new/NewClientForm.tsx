@@ -35,10 +35,17 @@ export function NewClientForm() {
         <textarea name="notes" rows={3} className="input" />
       </Field>
 
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" name="marketing_consent" className="accent-[var(--accent)]" />
-        Happy to receive marketing
-      </label>
+      <fieldset>
+          <legend className="label">Marketing</legend>
+          <label className="mt-2 flex items-center gap-2 text-sm">
+            <input type="checkbox" name="marketing_email" className="accent-[var(--accent)]" />
+            Happy to be emailed offers and news
+          </label>
+          <label className="mt-2 flex items-center gap-2 text-sm">
+            <input type="checkbox" name="marketing_sms" className="accent-[var(--accent)]" />
+            Happy to be texted offers and news
+          </label>
+        </fieldset>
       <p className="hint">
         Off unless they have actually said so. Reminders about their own booking are
         sent regardless — this is only for anything else.

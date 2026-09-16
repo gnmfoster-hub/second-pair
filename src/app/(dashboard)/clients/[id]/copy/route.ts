@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { siteOrigin } from "@/lib/origin";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio } from "@/lib/studio";
 import { subjectAccessDocument, type SubjectRecord } from "@/lib/subjectAccess";
@@ -28,7 +29,7 @@ export async function GET(
 
   const { data: contact, error } = await supabase
     .from("contacts")
-    .select("name, phone, email, instagram_handle, marketing_consent, notes, alert, created_at")
+    .select("name, phone, email, instagram_handle, marketing_consent, marketing_email, marketing_sms, marketing_token, notes, alert, created_at")
     .eq("id", id)
     .eq("studio_id", studio.id)
     .maybeSingle();
@@ -87,7 +88,13 @@ export async function GET(
   const record: SubjectRecord = {
     business: studio.name,
     askedOn: new Date(),
-    contact,
+    contact: {
+      ...contact,
+      // So the copy they are sent can be acted on without asking anybody.
+      prefsUrl: contact.marketing_token
+        ? `${await siteOrigin()}/prefs/${contact.marketing_token}`
+        : null,
+    },
     conversations: (conversations ?? []).map((c) => ({
       channel: c.channel,
       created_at: c.created_at,
