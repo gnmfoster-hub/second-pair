@@ -1615,6 +1615,19 @@ async function bookTheRest(args: {
   }
 
   /*
+   * The first one is part of the series too.
+   *
+   * It is made before the rest, so it cannot carry the rule at the time — and
+   * a diary where visits two to six say "weekly" and the first says nothing is
+   * a series that appears to start a week late. Set afterwards, and only once
+   * something actually followed it: a lone booking marked weekly would be a
+   * repeat with nothing repeating.
+   */
+  if (made.length > 1) {
+    await ctx.db.from("bookings").update({ repeats: rule }).eq("id", firstId);
+  }
+
+  /*
    * One message to the business about the series, not six. The first booking
    * already tells them somebody has booked; this says what else went in.
    */

@@ -54,6 +54,9 @@ for (const line of script) await say(line);
 // Whatever it just offered, ask for it every week.
 await say("Can I have the first one you said, and then the same time every week for 6 weeks?");
 
+// It will ask which of the times, because it never books one nobody picked.
+await say("The earlier one please — and yes, same time every week for six weeks.");
+
 // ---------------------------------------------------------------- what landed
 const { data: studio } = await db.from("studios").select("id").eq("slug", SLUG).single();
 const { data: conv } = await db
