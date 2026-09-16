@@ -39,7 +39,8 @@ export function WhoItOffers({
         <h2 className="section-title">Who the website assistant books</h2>
         <p className="hint mt-1">
           Everybody it offers to a customer who has never met you. Somebody left out is
-          still in your diary, and their own link still works.
+          still in your diary, and their own link still works &mdash; to take somebody off
+          every channel instead, there is a switch on their own record under the team.
         </p>
       </div>
 

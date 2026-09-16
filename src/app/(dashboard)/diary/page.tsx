@@ -23,7 +23,7 @@ import {
 } from "@/lib/diaryLayout";
 import { LayoutToggle } from "./LayoutToggle";
 import { payableFor } from "@/lib/payments/whoTakes";
-import { wordsFor } from "@/lib/words";
+import { wordsFor, capital } from "@/lib/words";
 import { formNeeded } from "@/lib/forms/required";
 import { Find } from "./Find";
 import { FullDiary } from "./FullDiary";
@@ -1178,6 +1178,8 @@ export default async function DiaryPage({
                */
               current={weekEveryone ? "list" : layout}
               view={view}
+              // A salon's columns are people; a garage's are bays.
+              columns={capital(words.practitioners)}
               /* Columns in a week are one person's; if nobody is chosen, the
                  button chooses the first rather than appearing to do nothing. */
               pickHref={

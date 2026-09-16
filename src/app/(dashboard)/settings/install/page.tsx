@@ -302,7 +302,13 @@ export default async function ChannelsPage({
       {/* Who it books comes before how it looks — one decides whether the
           answer is right, the other decides whether it matches their sign. */}
       <WhoItOffers
-        people={artists}
+        /*
+         * Only people the assistant may book at all.
+         *
+         * Somebody switched off on their own record is not a website question
+         * any more — offering them here would be a tick that does nothing.
+         */
+        people={artists.filter((a) => a.assistant_books !== false)}
         chosen={studio.offers_artists ?? null}
         noun={words.practitioner}
       />

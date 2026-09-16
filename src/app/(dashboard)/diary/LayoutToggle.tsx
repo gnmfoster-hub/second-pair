@@ -23,8 +23,17 @@ export function LayoutToggle({
   current,
   view,
   pickHref,
+  columns = "People",
 }: {
   current: DiaryLayout | null;
+  /**
+   * What a column is in this business, already capitalised.
+   *
+   * A salon's columns are people; a garage's are bays, a hire place's are
+   * rooms, a firm with three vans has vans. "People" was written into the
+   * button, so a garage owner was offered a view of people it does not have.
+   */
+  columns?: string;
   /*
    * Which view, because the columns are not the same thing in both.
    *
@@ -129,10 +138,10 @@ export function LayoutToggle({
           },
           {
             value: "grid" as const,
-            label: view === "day" ? "People" : "Days",
+            label: view === "day" ? columns : "Days",
             hint:
               view === "day"
-                ? "A column each, to drag someone to another person"
+                ? `A column each, to drag a job from one to another`
                 : "The seven days side by side",
             icon: (
               <>
