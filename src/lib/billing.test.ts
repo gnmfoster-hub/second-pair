@@ -8,6 +8,9 @@ import {
   monthOf,
   monthBefore,
   monthName,
+  costByChannel,
+  addUpChannels,
+  RATES,
   DEFAULT_PLAN,
   type Used,
 } from "./billing.ts";
@@ -74,4 +77,61 @@ test("a month is the first of it, wherever the clock is", () => {
   assert.equal(monthBefore("2026-01-01"), "2025-12-01");
   assert.equal(monthBefore("2026-09-01"), "2026-08-01");
   assert.equal(monthName("2026-09-01"), "September 2026");
+});
+
+const channels = {
+  sms: { out: 527, in: 160, windows: 140, micros: 6_000_000 },
+  email: { out: 60, in: 70, windows: 40, micros: 2_000_000 },
+  web: { out: 210, in: 190, windows: 96, micros: 8_000_000 },
+  whatsapp: { out: 44, in: 51, windows: 22, micros: 1_500_000 },
+};
+
+test("each channel is costed the way it is actually charged", () => {
+  const costs = costByChannel(channels);
+  const of = (name: string) => costs.find((c) => c.channel === name)!;
+
+  // Texts: per message, both ways.
+  assert.equal(of("sms").carriagePence, 527 * 4 + 160 * 0.75);
+  // Email: per message, and barely anything.
+  assert.ok(of("email").carriagePence < 5);
+  // The website carries nothing — its whole cost is the model.
+  assert.equal(of("web").carriagePence, 0);
+  assert.equal(of("web").pence, 800);
+  // Meta is per conversation, not per message.
+  assert.equal(of("whatsapp").windows, 22);
+});
+
+test("the dearest channel comes first, which is the point of the table", () => {
+  const costs = costByChannel(channels);
+  assert.equal(costs[0].channel, "sms");
+  for (let i = 1; i < costs.length; i++) {
+    assert.ok(costs[i - 1].pence >= costs[i].pence, "sorted by what it costs");
+  }
+});
+
+/*
+ * Nothing is live on Meta yet, so its rate is zero — and a zero that is really
+ * "we do not know" has to say so, or a margin quietly looks better than it is.
+ */
+test("a channel with no rate yet says so rather than costing nothing", () => {
+  const costs = costByChannel(channels);
+  assert.equal(costs.find((c) => c.channel === "whatsapp")?.unpriced, true);
+  assert.equal(costs.find((c) => c.channel === "sms")?.unpriced, false);
+
+  const priced = costByChannel(channels, { ...RATES, metaConversationPence: 6 });
+  const meta = priced.find((c) => c.channel === "whatsapp")!;
+  assert.equal(meta.carriagePence, 22 * 6);
+  assert.equal(meta.unpriced, false);
+});
+
+test("several businesses add up channel by channel", () => {
+  const both = addUpChannels([channels, channels]);
+  const sms = both.find((c) => c.channel === "sms")!;
+  assert.equal(sms.out, 527 * 2);
+  assert.equal(sms.carriagePence, (527 * 4 + 160 * 0.75) * 2);
+});
+
+test("a month with nothing on it is an empty table, not a crash", () => {
+  assert.deepEqual(costByChannel(null), []);
+  assert.deepEqual(addUpChannels([null, undefined]), []);
 });

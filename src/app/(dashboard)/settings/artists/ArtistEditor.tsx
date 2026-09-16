@@ -11,6 +11,7 @@ import { LateNights } from "./LateNights";
 import { RolePicker } from "./RolePicker";
 import type { Artist, OpeningHours, ServiceOption } from "@/lib/types";
 import { Snippet } from "../install/Snippet";
+import { askAboutRole } from "@/lib/roleQuestion";
 
 export function ArtistEditor({
   artist,
@@ -55,6 +56,13 @@ export function ArtistEditor({
    * cannot exist.
    */
   const [isThing, setIsThing] = useState(artist?.is_resource === true);
+
+  /*
+   * The example beside "what they do", in this trade's own words. It was one
+   * hardcoded sentence about MOTs, shown to electricians and hairdressers
+   * alike. See roleQuestion.
+   */
+  const asked = askAboutRole(roles, noun);
   const isNew = !artist;
 
   return (
@@ -174,7 +182,9 @@ export function ArtistEditor({
 
           <Field
             label="What they do"
-            hint={`Optional. Shown to ${customers}, and it lets the assistant answer a question like "who does the MOTs?"`}
+            hint={`Optional. Shown to ${customers}${
+              asked ? `, and it lets the assistant answer a question like "${asked}"` : ""
+            }`}
           >
             <RolePicker suggested={roles} value={artist?.role ?? null} />
           </Field>

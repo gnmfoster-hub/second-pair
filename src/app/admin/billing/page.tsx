@@ -9,7 +9,11 @@ import {
   monthOf,
   monthBefore,
   monthName,
+  addUpChannels,
+  costByChannel,
+  RATES,
   type Used,
+  type ChannelUse,
 } from "@/lib/billing";
 import { setPlan, markBilled, recordCost, removeCost, remeter } from "./actions";
 
@@ -124,7 +128,7 @@ export default async function BillingPage({
       bill,
       cost,
       margin: marginOf(bill.totalPence, cost),
-      byChannel: (u?.by_channel as Record<string, { out: number; in: number; windows: number }> | null) ?? null,
+      byChannel: (u?.by_channel as Record<string, ChannelUse> | null) ?? null,
       billedPence: (u?.billed_pence as number | null) ?? null,
       billedAt: (u?.billed_at as string | null) ?? null,
       metered: Boolean(u),
@@ -137,6 +141,9 @@ export default async function BillingPage({
   const left = revenue - serving - suppliers;
 
   const months = [thisMonth, monthBefore(thisMonth), monthBefore(monthBefore(thisMonth))];
+
+  // Where the money actually goes, across everybody.
+  const channels = addUpChannels(rows.map((r) => r.byChannel));
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -188,6 +195,77 @@ export default async function BillingPage({
         ))}
       </div>
 
+      {/* ────────────────────────────────────────────── where the money goes */}
+      <h2 className="mt-8 text-lg font-semibold">What each channel costs you</h2>
+      <p className="hint mt-1 text-sm">
+        Everything that scales with use, split by how it actually arrives. A text is charged per
+        message both ways, Meta per twenty-four-hour conversation, email per message and barely
+        anything, and the website carries nothing at all — its whole cost is the model answering.
+        This is the table to read before deciding what a channel is worth charging for.
+      </p>
+
+      {channels.length === 0 ? (
+        <p className="hint mt-3 text-sm">Nothing used yet this month.</p>
+      ) : (
+        <div className="mt-3 overflow-x-auto rounded-lg border border-border">
+          <table className="w-full min-w-[40rem] text-sm">
+            <thead className="bg-surface-2">
+              <tr className="text-left">
+                <th className="px-3 py-2">Channel</th>
+                <th className="px-3 py-2 text-right">Out</th>
+                <th className="px-3 py-2 text-right">In</th>
+                <th className="px-3 py-2 text-right">Conversation days</th>
+                <th className="px-3 py-2 text-right">Carrying it</th>
+                <th className="px-3 py-2 text-right">The model</th>
+                <th className="px-3 py-2 text-right">Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              {channels.map((c) => (
+                <tr key={c.channel} className="border-t border-border">
+                  <td className="px-3 py-2 font-medium">
+                    {c.channel}
+                    {c.unpriced && (
+                      <span className="hint block text-xs">
+                        no rate set yet — put Meta&rsquo;s price in when the first invoice comes
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">{c.out.toLocaleString()}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{c.in.toLocaleString()}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{c.windows.toLocaleString()}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {c.carriagePence > 0 ? pounds(c.carriagePence) : "—"}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">{pounds(c.modelPence)}</td>
+                  <td className="px-3 py-2 text-right font-medium tabular-nums">{pounds(c.pence)}</td>
+                </tr>
+              ))}
+              <tr className="border-t border-border bg-surface-2">
+                <td className="px-3 py-2 font-semibold" colSpan={4}>
+                  Everything, every business
+                </td>
+                <td className="px-3 py-2 text-right font-semibold tabular-nums">
+                  {pounds(channels.reduce((t, c) => t + c.carriagePence, 0))}
+                </td>
+                <td className="px-3 py-2 text-right font-semibold tabular-nums">
+                  {pounds(channels.reduce((t, c) => t + c.modelPence, 0))}
+                </td>
+                <td className="px-3 py-2 text-right font-semibold tabular-nums">
+                  {pounds(channels.reduce((t, c) => t + c.pence, 0))}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="hint mt-2 text-xs">
+        Rates: {RATES.smsOutPence}p a text out, {RATES.smsInPence}p in, {RATES.emailPence}p an
+        email, {RATES.metaConversationPence}p a Meta conversation. Phone numbers are £1 a month
+        each and sit in the per-business figures rather than here. Change them in{" "}
+        <code>src/lib/billing.ts</code>.
+      </p>
+
       {/* ─────────────────────────────────────────────────────── each business */}
       <h2 className="mt-8 text-lg font-semibold">Each business</h2>
       <div className="mt-3 overflow-x-auto rounded-lg border border-border">
@@ -197,7 +275,7 @@ export default async function BillingPage({
               <th className="px-3 py-2">Business</th>
               <th className="px-3 py-2">Plan</th>
               <th className="px-3 py-2 text-right">Texts sent</th>
-              <th className="px-3 py-2">Every channel</th>
+              <th className="px-3 py-2">Every channel, and what it cost</th>
               <th className="px-3 py-2 text-right">Extras</th>
               <th className="px-3 py-2 text-right">To invoice</th>
               <th className="px-3 py-2 text-right">Cost</th>
@@ -235,21 +313,21 @@ export default async function BillingPage({
                     * be recovered later.
                     */}
                   <td className="px-3 py-2 text-xs">
-                    {r.byChannel
-                      ? Object.entries(r.byChannel)
-                          .filter(([, v]) => v.out || v.in)
-                          .map(([name, v]) => (
-                            <div key={name} className="whitespace-nowrap">
-                              <span className="hint">{name}</span>{" "}
-                              <span className="tabular-nums">
-                                {v.out}↑ {v.in}↓
-                              </span>
-                              {v.windows > 0 && (
-                                <span className="hint"> · {v.windows} days</span>
-                              )}
-                            </div>
-                          ))
-                      : <span className="hint">—</span>}
+                    {r.byChannel ? (
+                      costByChannel(r.byChannel)
+                        .filter((c) => c.out || c.in)
+                        .map((c) => (
+                          <div key={c.channel} className="whitespace-nowrap">
+                            <span className="hint">{c.channel}</span>{" "}
+                            <span className="tabular-nums">
+                              {c.out}↑ {c.in}↓
+                            </span>{" "}
+                            <span className="tabular-nums font-medium">{pounds(c.pence)}</span>
+                          </div>
+                        ))
+                    ) : (
+                      <span className="hint">—</span>
+                    )}
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">
                     {extras ? pounds(extras.pence) : "—"}

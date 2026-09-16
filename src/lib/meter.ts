@@ -63,9 +63,12 @@ export async function meterThisMonth(
      * "windows" is the count of conversation-days: one per thread per day that
      * anything was sent on it, which is the shape Meta and WhatsApp charge in.
      */
-    const byChannel = new Map<string, { out: number; in: number; windows: Set<string> }>();
+    const byChannel = new Map<
+      string,
+      { out: number; in: number; windows: Set<string>; micros: number }
+    >();
     const channelRow = (name: string) => {
-      const found = byChannel.get(name) ?? { out: 0, in: 0, windows: new Set<string>() };
+      const found = byChannel.get(name) ?? { out: 0, in: 0, windows: new Set<string>(), micros: 0 };
       byChannel.set(name, found);
       return found;
     };
@@ -80,7 +83,11 @@ export async function meterThisMonth(
       for (const m of msgs ?? []) {
         const channel = channelOf.get(m.conversation_id) ?? "web";
         const row = channelRow(channel);
-        modelMicros += (m.usage as { cost_micros?: number } | null)?.cost_micros ?? 0;
+        // What the model charged, attributed to the channel it was answering —
+        // a WhatsApp conversation and a website one do not cost the same.
+        const micros = (m.usage as { cost_micros?: number } | null)?.cost_micros ?? 0;
+        modelMicros += micros;
+        row.micros += micros;
 
         if (m.role === "client") {
           row.in++;
@@ -120,7 +127,7 @@ export async function meterThisMonth(
         by_channel: Object.fromEntries(
           [...byChannel].map(([name, row]) => [
             name,
-            { out: row.out, in: row.in, windows: row.windows.size },
+            { out: row.out, in: row.in, windows: row.windows.size, micros: row.micros },
           ]),
         ),
         /*
