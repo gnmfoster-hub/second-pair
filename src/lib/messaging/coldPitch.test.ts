@@ -121,3 +121,66 @@ test("a customer called Brandon or Devon forwarding something is not a seller", 
     assert.equal(verdict.pitch, false, from);
   }
 });
+
+/*
+ * And the four that arrived on 16 September, after the rules above were
+ * written — every one answered in the studio's name again. Each got through on
+ * a detail: "the store owner" rather than "owner of the store", "3 percent"
+ * rather than "3%", "200+ orders" rather than "200-400 orders", and an agency's
+ * own domain, which nothing looked at.
+ */
+const laterOnes = [
+  {
+    from: "support@vantagecoreagency.com",
+    subject: "",
+    body: "Is anyone available to chat with regarding this store,\nlivingcanvastattoo.ink",
+  },
+  {
+    from: "yuslovecontact01@gmail.com",
+    subject: "",
+    body: "If I bring your store 200+ orders in  24–48 hours window, I’d expect a 3 percent commission. If that works with you kindly share your WhatsApp",
+  },
+  {
+    from: "dreymary.info@gmail.com",
+    subject: "New visitor livingcanvastattoo.ink",
+    body: "Hello there,\nMay I know if I'm speaking with the store owner?",
+  },
+  { from: "beebsales105@gmail.com", subject: "(no subject)", body: "Hey 👋" },
+];
+
+for (const [i, email] of laterOnes.entries()) {
+  test(`the second day's pitch #${i + 1} (${email.from}) is caught`, () => {
+    const v = coldPitch(email, { ...studio, sites: ["livingcanvastattoo.ink"] });
+    assert.equal(v.pitch, true, `score ${v.score}: ${v.signs.join("; ")}`);
+  });
+}
+
+/*
+ * The other half of the job. Every one of these is a real thing to write to a
+ * tattoo studio, and silencing any of them costs the business a customer —
+ * which is worse than a pitch in the inbox.
+ */
+const realOnes = [
+  {
+    from: "hannah.p@gmail.com",
+    subject: "Cover up",
+    body: "Hi, I emailed info@livingcanvastattoo.ink last week about covering an old tattoo on my forearm — did it come through?",
+  },
+  {
+    from: "dave1987@hotmail.com",
+    subject: "Re: your reply",
+    body: "Thanks — Saturday works. Is the deposit still 50?",
+  },
+  {
+    from: "j.okafor@gmail.com",
+    subject: "Quote",
+    body: "Could you give me a price for a half sleeve? I found you on livingcanvastattoo.ink and wanted to check before I book.",
+  },
+];
+
+for (const [i, email] of realOnes.entries()) {
+  test(`a real customer #${i + 1} is left alone`, () => {
+    const v = coldPitch(email, { ...studio, sites: ["livingcanvastattoo.ink"] });
+    assert.equal(v.pitch, false, `score ${v.score}: ${v.signs.join("; ")}`);
+  });
+}

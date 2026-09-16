@@ -53,24 +53,61 @@ function sellerName(local: string): boolean {
   );
 }
 
+/*
+ * A number of orders, however it is written.
+ *
+ * The range form was all this looked for, so "200+ orders in 24–48 hours"
+ * scored nothing at all and the assistant answered it in the studio's name.
+ * A bare figure in front of orders or sales is the same promise and is just as
+ * safe to match: a customer of a tattoo studio does not mention two hundred
+ * orders under any circumstances.
+ */
 const NUMBERED_PROMISE =
-  /\b\d{1,4}\s*(?:[–—-]|to)\s*\d{1,4}\s*(?:\+\s*)?(?:new\s+)?(?:orders|sales|customers|clients|leads|bookings|commandes|ventes)\b/i;
+  /\b\d{1,4}\s*(?:[–—-]|to)\s*\d{1,4}\s*(?:\+\s*)?(?:new\s+)?(?:orders|sales|customers|clients|leads|bookings|commandes|ventes)\b|\b\d{2,4}\s*\+?\s*(?:new\s+)?(?:orders|sales|leads)\b/i;
 const RATE_PROMISE =
   /\b(?:orders|sales|leads|commandes|ventes)\s+(?:per|a|each|every|par)\s+(?:day|week|month|jour|semaine|mois)\b|\b(?:orders|sales)\s+(?:daily|weekly|monthly)\b/i;
-const PERCENT_COMMISSION = /\b\d{1,2}\s*%\s*(?:commission|of (?:the )?(?:sales|revenue|profit))\b/i;
+// "3%" and "3 percent" are the same offer. Only the first was being read.
+const PERCENT_COMMISSION =
+  /\b\d{1,2}\s*(?:%|per\s?cent(?:age)?)\s*(?:commission|of (?:the )?(?:sales|revenue|profit))\b/i;
 
 const PITCH_PHRASES: { pattern: RegExp; sign: string }[] = [
-  { pattern: /\bowner of (?:the|this|your) (?:store|shop|business|brand)\b/i, sign: "asks for the owner of the store" },
+  /*
+   * Asking whether it has reached the owner, in any of the ways they write it.
+   *
+   * "May I know if I'm speaking with the store owner?" arrived at Living Canvas
+   * and scored nothing, because only "owner of the store" was looked for and
+   * this says "the store owner". Both are the opening line of somebody working
+   * down a list; a customer writes to the business, not to whoever runs it.
+   */
+  { pattern: /\bowner of (?:the|this|your) (?:store|shop|business|brand)\b|\b(?:the|this|your) (?:store|shop|business|brand) owner\b|\b(?:speaking|talking|chatting) (?:with|to) (?:the|your) (?:owner|manager|boss|person in charge)\b/i, sign: "asks whether it has reached the owner" },
+  /*
+   * "This store" — the word an e-commerce list buys by, and one nobody uses to
+   * a tattooist, a cleaner or an electrician about their own business.
+   */
+  { pattern: /\b(?:regarding|about|concerning|re)\s+(?:this|your|the)\s+(?:store|shop|website|site|brand)\b|\bnew visitor\b/i, sign: "writes to the business as an online store" },
   { pattern: /\b(?:e-?com(?:merce)?|shopify|dropshipping|seo services?|lead generation|marketing agency)\b/i, sign: "sells online marketing" },
   { pattern: /\b(?:boost|increase|grow|skyrocket|double)\s+(?:your\s+)?(?:sales|orders|revenue|traffic|conversions)\b/i, sign: "promises more sales" },
   { pattern: /\b(?:may|can|shall) i send (?:you )?(?:a |the |our )?(?:quote|price|proposal|pricing)\b|\bsend you (?:a |the |our )?(?:quote|proposal|price list)\b/i, sign: "offers to send the business a quote" },
   { pattern: /\b(?:seo|website|site) (?:audit|errors?|issues|report)\b|\baudit errors?\b|\berrors? on your (?:web)?site\b|\brank(?:ing)? (?:on|higher on) google\b/i, sign: "reports problems with the website" },
-  { pattern: /\bbest\s+whats\s?app\b|\bwhats\s?app\s+(?:number\s+)?to\s+(?:connect|reach|chat)\b/i, sign: "asks to move to WhatsApp" },
+  // Including "kindly share your WhatsApp", which is how the last one asked.
+  { pattern: /\bbest\s+whats\s?app\b|\bwhats\s?app\s+(?:number\s+)?to\s+(?:connect|reach|chat)\b|\b(?:share|send|drop|give)\s+(?:me\s+)?(?:your\s+|the\s+)?whats\s?app\b/i, sign: "asks to move to WhatsApp" },
   { pattern: /\b(?:store|shop)\s+(?:stands out|has (?:great|huge|real) potential)|\bproducts? potential\b/i, sign: "flatters the store" },
   { pattern: /\bcollaborat\w*\b[^.?!]{0,80}\b(?:orders|sales|store|brand|promot\w*|marketing)\b|\b(?:orders|sales|store|brand|promot\w*|marketing)\b[^.?!]{0,80}\bcollaborat\w*/i, sign: "offers a sales collaboration" },
 ];
 
 const GREETING_ONLY = /^\s*(?:hi|hey|hello|hiya|good (?:morning|afternoon|day)|bonjour|hola)[\s!.,]*(?:there)?[\s!.,]*[\p{Extended_Pictographic}‍️\s]*$/iu;
+
+/**
+ * The subject, with the ways a mail system writes "there wasn't one".
+ *
+ * "(no subject)" arrived as the literal subject of a one-word pitch, so the
+ * rule about a greeting with no subject never fired on the one email it was
+ * written for.
+ */
+function subjectOf(raw: string | null | undefined): string {
+  const subject = (raw ?? "").trim();
+  return /^\(?\s*(?:no|without)\s+subject\s*\)?$/i.test(subject) ? "" : subject;
+}
 
 function squashed(name: string): string | null {
   const words = name.toLowerCase().match(/[a-z0-9]+/g) ?? [];
@@ -81,9 +118,21 @@ function squashed(name: string): string | null {
 
 export function coldPitch(
   email: { from?: string | null; subject?: string | null; body?: string | null; headers?: Record<string, string> | null },
-  business: { name?: string | null } = {},
+  business: {
+    name?: string | null;
+    /**
+     * The business's own domains — their website, which is their email's
+     * domain in nearly every case.
+     *
+     * A list is bought as web addresses, so the opening line quotes one back:
+     * "Is anyone available to chat with regarding this store,
+     * livingcanvastattoo.ink". A customer has no reason to write the address
+     * of the website they are already looking at, and never does.
+     */
+    sites?: string[];
+  } = {},
 ): Pitch {
-  const subject = (email.subject ?? "").trim();
+  const subject = subjectOf(email.subject);
   const body = (email.body ?? "").trim();
   const text = `${subject}\n${body}`;
   const from = (email.from ?? "").toLowerCase();
@@ -106,6 +155,29 @@ export function coldPitch(
     if (asWord.test(text)) add(2, "writes the business name as one word, like a scraper");
   }
 
+  /*
+   * The business's own web address, written out at them.
+   *
+   * Not as part of an email address — somebody writing "I sent this to
+   * info@livingcanvastattoo.ink last week" is a customer chasing a reply, and
+   * that is the one shape of message this must never touch.
+   */
+  for (const site of business.sites ?? []) {
+    const domain = (site ?? "").trim().toLowerCase().replace(/^www\./, "");
+    if (!domain.includes(".")) continue;
+    const written = new RegExp(`(^|[^@\\w.])(?:www\\.)?${domain.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+    if (written.test(text)) {
+      /*
+       * One point, not two. A customer does write it occasionally — "I found
+       * you on livingcanvastattoo.ink and wanted to check before I book" — and
+       * that sentence must survive on its own. Every pitch that quotes the
+       * address has something else wrong with it as well.
+       */
+      add(1, "quotes the business's own web address, which is how a list is bought");
+      break;
+    }
+  }
+
   if (NUMBERED_PROMISE.test(text) || RATE_PROMISE.test(text)) add(2, "promises orders or sales in numbers");
   if (PERCENT_COMMISSION.test(text)) add(2, "asks for a percentage commission");
 
@@ -116,6 +188,19 @@ export function coldPitch(
   // A reply to a conversation that never happened.
   if (/^(?:re|fw|fwd)\s*:/i.test(subject) && !headers["in-reply-to"] && !headers["references"]) {
     add(1, "says Re: to a message nobody sent");
+  }
+
+  /*
+   * A domain made of the same words as the throwaway inboxes.
+   *
+   * vantagecoreagency.com wrote to Living Canvas and nothing looked at the
+   * domain at all — only the part in front of the @, and only on free mail. An
+   * agency writing from its own agency-shaped domain is the commonest pitch
+   * there is, and a real business's domain is its own name.
+   */
+  const senderDomain = address.split("@")[1] ?? "";
+  if (senderDomain && !FREEMAIL.test(address) && sellerName(senderDomain.split(".")[0] ?? "")) {
+    add(1, "written from a marketing agency's own domain");
   }
 
   if (FREEMAIL.test(address)) {

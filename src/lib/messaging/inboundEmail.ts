@@ -386,7 +386,13 @@ export function judge(
    * email is still in the business's own mailbox, which only ever forwarded
    * a copy. See coldPitch for how it is told apart from a customer.
    */
-  const pitch = coldPitch(email, { name: business.name });
+  const pitch = coldPitch(email, {
+    name: business.name,
+    // Their own domain is their website, and quoting it back is the surest
+    // sign the address came off a scraped list rather than out of a customer's
+    // head.
+    sites: (business.ownDomains ?? []).filter(Boolean),
+  });
   if (pitch.pitch) {
     return { what: "ignore", because: `it reads as a sales pitch (${pitch.signs.join("; ")})` };
   }
