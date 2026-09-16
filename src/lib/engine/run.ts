@@ -738,7 +738,18 @@ async function generateReply(
    */
   const inOrder = [...(history ?? [])].reverse();
 
-  const isFirstReply = !inOrder.some((m) => m.role === "assistant" || m.role === "owner");
+  /*
+   * Whether this is the first thing the assistant has said to them.
+   *
+   * It used to count the owner's own messages too, so a thread the owner
+   * started — a "your appointment is tomorrow" sent from the client's record —
+   * suppressed the disclosure on the assistant's first reply. The customer
+   * then talked to something they had never been told was not a person.
+   *
+   * The owner writing to somebody is not the assistant introducing itself, and
+   * only the second one is the disclosure.
+   */
+  const isFirstReply = !inOrder.some((m) => m.role === "assistant");
 
   const messages: Anthropic.MessageParam[] = recentHistory(inOrder).map((m) => ({
     // An owner's own reply reads as the assistant's voice to the client.

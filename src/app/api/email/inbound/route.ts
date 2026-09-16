@@ -285,7 +285,21 @@ export async function POST(request: NextRequest) {
      * in the webhook response too, since that is the one place a provider's own
      * delivery log will show it back.
      */
-    await note(db, studio.id, slug, "answered", null);
+    /*
+     * What actually happened, not what was attempted.
+     *
+     * This wrote "answered" before looking at whether the reply had left the
+     * building — so a send that failed was logged as answered, and the daily
+     * budget counted it as one of the business's replies. Both wrong in the
+     * same direction: it looks like the customer was dealt with.
+     */
+    await note(
+      db,
+      studio.id,
+      slug,
+      sent.status === "sent" ? "answered" : "parked",
+      sent.status === "sent" ? null : `the reply would not send: ${sent.error ?? "unknown"}`,
+    );
 
     if (sent.status !== "sent") {
       await db.from("messages").insert({

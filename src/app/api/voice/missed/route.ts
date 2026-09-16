@@ -110,6 +110,16 @@ export async function POST(request: NextRequest) {
     content: delivered ? body : `${body}
 
 (Not delivered: ${sent.error ?? "unknown"})`,
+    /*
+     * Marked failed where it failed.
+     *
+     * The words said "not delivered" and the row did not, so everything that
+     * counts messages — the meter that bills for texts, the figures on the
+     * report — counted a text that never left as one that went. Billing a
+     * business for a message their customer never got is the kind of small
+     * wrong that is very hard to argue with later.
+     */
+    delivery: delivered ? "sent" : "failed",
   });
 
   /*
