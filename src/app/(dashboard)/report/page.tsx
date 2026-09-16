@@ -10,6 +10,8 @@ import { WeeklyEmailSwitch } from "./WeeklyEmailSwitch";
 import { wordsFor } from "@/lib/words";
 import { takingsFor, takingsByService } from "@/lib/takings";
 import { Takings } from "./Takings";
+import { WhereTheWork } from "./WhereTheWork";
+import { whereTheWorkIs, howJobsRan } from "@/lib/reportShape";
 import { formatPence } from "@/lib/money";
 import { whoHasNotBeenBack } from "@/lib/lapsed";
 import { NotBeenBack } from "./NotBeenBack";
@@ -222,6 +224,41 @@ export default async function ReportPage({
       .map((v) => v.starts_at),
     studio.timezone,
   );
+  /*
+   * The two questions a business that drives to people asks about its week,
+   * and that a salon never does: where the work was, and whether the jobs
+   * took as long as they were given.
+   *
+   * One read, and only where there is something to read. A business whose
+   * customers come to it has no postcodes worth grouping, and a business
+   * where nobody records how long a job really took has nothing to compare.
+   */
+  const travels = studio.travel_mode !== "at_premises";
+  const { data: jobRows } = await supabase
+    .from("bookings")
+    .select("price_pence, starts_at, ends_at, actual_minutes, artists!inner(studio_id), enquiries(job_postcode)")
+    .eq("artists.studio_id", studio.id)
+    .is("cancelled_at", null)
+    .eq("blocks_availability", true)
+    .gte("starts_at", from.toISOString())
+    .lt("starts_at", to.toISOString());
+
+  const jobs = ((jobRows ?? []) as unknown as {
+    price_pence: number | null;
+    starts_at: string;
+    ends_at: string;
+    actual_minutes: number | null;
+    enquiries: { job_postcode: string | null } | null;
+  }[]).map((j) => ({
+    postcode: j.enquiries?.job_postcode ?? null,
+    pence: j.price_pence ?? 0,
+    booked: Math.round((Date.parse(j.ends_at) - Date.parse(j.starts_at)) / 60000),
+    actual: j.actual_minutes,
+  }));
+
+  const areas = travels ? whereTheWorkIs(jobs) : { areas: [], unknown: 0 };
+  const running = howJobsRan(jobs);
+
   const forms = formRows
     ? {
         waiting: formRows.filter((f) => f.status === "sent" || f.status === "opened").length,
@@ -386,6 +423,8 @@ export default async function ReportPage({
       <Takings figures={takings} byService={byService} runningLow={runningLow} />
 
       <MoneyAndPeople paid={paid} people={people} busy={busy} forms={forms} customers={words.customers} />
+
+      <WhereTheWork areas={areas.areas} unknown={areas.unknown} running={running} words={{ service: words.service }} />
 
       <NotBeenBack people={notBeenBack} />
 
