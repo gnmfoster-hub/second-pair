@@ -4,6 +4,8 @@ import { hasAnthropicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { NotAnswering } from "@/lib/engine/errors";
 import { Limiter } from "@/lib/askingTooMuch";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { handOverAfterFailure } from "@/lib/engine/turnFailed";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -171,13 +173,53 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.visitorMessage }, { status: 503 });
     }
 
-    // The studio slug and any database detail stay server-side.
+    /*
+     * Everything else: answer like a business, not like a website.
+     *
+     * A red error box under a message somebody has just typed tells the
+     * customer the company is broken, and tells the owner nothing at all. It
+     * happened for real — the model's account ran out of credit and every
+     * business on here showed "Something went wrong. Please try again." to
+     * every customer, for as long as it took somebody to notice.
+     *
+     * So the customer is told, in words, that their message has landed and
+     * somebody will come back to them — which is true, because the same call
+     * hands the conversation to the owner and buzzes their phone. Their words
+     * are already saved; the reply is the only thing missing.
+     */
     console.error("[widget/chat]", error);
-    return NextResponse.json(
-      { error: "Something went wrong. Please try again." },
-      { status: 500 },
-    );
+
+    await handOverAfterFailure(createAdminClient(), {
+      studioId: await studioIdOf(studio),
+      channel: "web",
+      externalRef: session,
+      error,
+    });
+
+    return NextResponse.json({
+      reply:
+        "Sorry — I can't get to the diary this minute, so I don't want to guess at times. " +
+        "I've passed this straight to the team and somebody will come back to you shortly. " +
+        "Your message has been saved, so there's no need to write it again.",
+      paused: true,
+      handedOver: true,
+    });
   }
+}
+
+/**
+ * The id behind the slug, for handing a failed conversation over.
+ *
+ * Its own small query because by the time it is needed the turn has already
+ * thrown, so nothing it looked up can be trusted to have come back.
+ */
+async function studioIdOf(slug: string): Promise<string> {
+  const { data } = await createAdminClient()
+    .from("studios")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle();
+  return (data?.id as string) ?? "";
 }
 
 /**

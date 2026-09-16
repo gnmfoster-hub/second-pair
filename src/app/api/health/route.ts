@@ -37,6 +37,49 @@ function keyMode(key: string | undefined): "test" | "live" | "none" | "unrecogni
   return "unrecognised";
 }
 
+/**
+ * Ask the model for one token, and see what comes back.
+ *
+ * The cheapest question there is, and it distinguishes the three states that
+ * matter: it answers, the key is refused, or the account has nothing left on
+ * it. The message is returned as the provider worded it — "your credit balance
+ * is too low" is the whole answer to "why has the assistant stopped", and
+ * paraphrasing it would only get in the way.
+ */
+async function modelAnswers(): Promise<{ answers: boolean; detail: string | null }> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) return { answers: false, detail: "no key is set" };
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5-20250929",
+        max_tokens: 1,
+        messages: [{ role: "user", content: "hi" }],
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+
+    if (response.ok) return { answers: true, detail: null };
+
+    const said = (await response.json().catch(() => null)) as
+      | { error?: { message?: string } }
+      | null;
+    return {
+      answers: false,
+      detail: said?.error?.message?.slice(0, 200) ?? `the model answered ${response.status}`,
+    };
+  } catch (error) {
+    return { answers: false, detail: (error as Error)?.message?.slice(0, 200) ?? "no answer" };
+  }
+}
+
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
@@ -50,6 +93,9 @@ export async function GET(request: NextRequest) {
   if (provided !== secret) {
     return NextResponse.json({ error: "Not authorised" }, { status: 401 });
   }
+
+  // Whether to spend anything finding out. See assistantAnswers below.
+  const deep = request.nextUrl.searchParams.get("deep") === "1";
 
   /*
    * Asked of Resend, not of the environment.
@@ -127,7 +173,19 @@ export async function GET(request: NextRequest) {
       sendsMail:
         emailConfigured() && email.keyAccepted === true && email.senderVerified === true,
     },
+    /*
+     * Not "is there a key" — whether the model will actually answer.
+     *
+     * A key can be perfectly valid against an account with no credit on it,
+     * and that is not a theory: it happened, and every business on here showed
+     * every customer an error for as long as it took a person to notice. The
+     * key check said yes throughout, because the key was fine.
+     *
+     * Only when asked for (?deep=1), because it costs a call. The ordinary
+     * ping stays free for anything watching this endpoint by the minute.
+     */
     assistant: hasAnthropicEnv(),
+    assistantAnswers: deep ? await modelAnswers() : null,
     /*
      * Three keys, not one, because "payments" was a single boolean off the
      * secret key — and that is the half that gates the least.

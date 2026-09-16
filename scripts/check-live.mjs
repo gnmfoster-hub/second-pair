@@ -157,7 +157,7 @@ if (!env.CRON_SECRET) {
   warn("cannot check the keys", "CRON_SECRET is not in .env.local, so /api/health cannot be read.");
 } else {
   try {
-    const res = await get(`/api/health?key=${encodeURIComponent(env.CRON_SECRET)}`);
+    const res = await get(`/api/health?deep=1&key=${encodeURIComponent(env.CRON_SECRET)}`);
     if (res.status === 404) {
       warn("the health endpoint is not deployed yet", "Push and redeploy, then run this again.");
     } else if (!res.ok) {
@@ -205,8 +205,18 @@ if (!env.CRON_SECRET) {
         fail("RESEND_API_KEY is missing", "The sender address is set, but there is no key to send with.");
       else fail("the app cannot send email", "Neither RESEND_API_KEY nor EMAIL_FROM is set in Vercel.");
 
-      if (can.assistant) pass("the assistant is connected");
-      else fail("the assistant is not connected", "ANTHROPIC_API_KEY is missing.");
+      /*
+       * Whether it will answer, not whether a key is present.
+       *
+       * A valid key on an account with no credit left reads as connected and
+       * answers nothing, and that is exactly what happened: every business
+       * showed every customer an error while this line said ok.
+       */
+      if (!can.assistant) fail("the assistant is not connected", "ANTHROPIC_API_KEY is missing.");
+      else if (can.assistantAnswers?.answers) pass("the assistant answers");
+      else if (can.assistantAnswers)
+        fail("the assistant will not answer", can.assistantAnswers.detail ?? "no reason given");
+      else pass("the assistant is connected");
 
       if (can.supportStudio) pass("the help assistant is pointed at a studio");
       else warn("no support studio", "The floating help button will not appear at all.");
