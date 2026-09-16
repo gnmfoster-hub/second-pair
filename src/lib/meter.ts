@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { monthOf } from "@/lib/billing";
+import { monthOf } from "./billing.ts";
 
 /**
  * Writing down what a month has used so far.

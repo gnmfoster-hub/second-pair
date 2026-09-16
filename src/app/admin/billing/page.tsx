@@ -16,8 +16,18 @@ import { setPlan, markBilled, recordCost, removeCost, remeter } from "./actions"
 export const metadata = { title: "Second Pair — billing" };
 export const dynamic = "force-dynamic";
 
-const pounds = (p: number) =>
-  `£${(p / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+/*
+ * Money, with the minus in front of the pound sign rather than after it.
+ * "£-4.40" is how a computer writes a loss; "−£4.40" is how anybody reading a
+ * set of books writes one.
+ */
+const pounds = (p: number) => {
+  const amount = (Math.abs(p) / 100).toLocaleString("en-GB", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${p < 0 ? "−" : ""}£${amount}`;
+};
 
 /**
  * What each business owes this month, what it cost to serve them, and what we
@@ -164,7 +174,9 @@ export default async function BillingPage({
           {
             label: "Left",
             value: pounds(left),
-            hint: revenue ? `${Math.round((left / revenue) * 100)}% of what you take` : "—",
+            hint: revenue
+              ? `${Math.round((left / revenue) * 100)}% of what you take`
+              : "nothing invoiced yet",
           },
         ].map((f) => (
           <div key={f.label} className="bg-surface p-4">
@@ -224,7 +236,7 @@ export default async function BillingPage({
                   <td className="px-3 py-2 text-right tabular-nums">{pounds(r.cost)}</td>
                   <td
                     className={`px-3 py-2 text-right font-medium tabular-nums ${
-                      r.margin.pence < 0 ? "text-danger" : ""
+                      r.margin.pence < 0 ? "text-warn" : ""
                     }`}
                   >
                     {pounds(r.margin.pence)}
@@ -334,7 +346,7 @@ export default async function BillingPage({
                 <td className="px-3 py-2 text-right">
                   <form action={removeCost}>
                     <input type="hidden" name="id" value={c.id as string} />
-                    <button className="hint text-xs hover:text-danger">Remove</button>
+                    <button className="hint text-xs hover:text-warn">Remove</button>
                   </form>
                 </td>
               </tr>
