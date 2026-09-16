@@ -1,4 +1,4 @@
-import { TabLink } from "@/components/NavLink";
+import { RailLink, TabLink } from "@/components/NavLink";
 import { Page, PageHeader } from "@/components/PageHeader";
 import { requireStudio } from "@/lib/studio";
 import { createClient } from "@/lib/supabase/server";
@@ -55,6 +55,50 @@ export default async function SettingsLayout({ children }: { children: React.Rea
   // office manager — has no name to use here, and "You" is right for them.
   const mine = (me?.name as string | undefined)?.trim().split(/\s+/)[0] || "You";
 
+  /*
+   * One list, drawn twice. The order is the order a business is set up in:
+   * who you are, then how people reach you, then what happens around a
+   * booking, then what is yours alone.
+   */
+  const groups = [
+    ...(owns
+      ? [
+          {
+            title: "Your business",
+            links: [
+              { href: "/settings", label: title(words.business) },
+              { href: "/settings/pricing", label: "Prices" },
+              { href: "/settings/artists", label: title(words.practitioners) },
+              { href: "/settings/money", label: "Getting paid" },
+            ],
+          },
+          {
+            title: "How people reach you",
+            links: [
+              { href: "/settings/install", label: "Channels" },
+              { href: "/settings/assistant", label: "Assistant" },
+              { href: "/settings/faqs", label: "Questions" },
+            ],
+          },
+          {
+            title: "Around a booking",
+            links: [
+              { href: "/settings/reminders", label: "Reminders" },
+              { href: "/settings/forms", label: "Forms" },
+            ],
+          },
+        ]
+      : []),
+    {
+      // Last, and the only group somebody who is not the owner sees.
+      title: owns ? "Yours" : "Yours alone",
+      links: [
+        { href: "/settings/you", label: mine },
+        { href: "/settings/data", label: "Your data" },
+      ],
+    },
+  ];
+
   return (
     <Page>
       <PageHeader title="Settings">
@@ -76,74 +120,60 @@ export default async function SettingsLayout({ children }: { children: React.Rea
       </PageHeader>
 
       {/*
-        * Grouped, and in the order somebody actually sets a business up.
+        * Down the side, grouped, in the order somebody sets a business up.
         *
-        * Ten tabs in one row is a list you have to read all of to find
-        * anything, and the order was the order they were built in — pricing
-        * after the assistant, the money buried inside the business page, the
-        * team between two things about words. Somebody opening this for the
-        * first time could not tell what belonged to what.
+        * It was ten tabs along the top, which wrapped onto a second line and
+        * dropped each group wherever there happened to be room — so "Around a
+        * booking" sat under "Prices" and read as belonging to it. A rail
+        * cannot wrap: the headings stay with what they head, the eye runs down
+        * one column instead of hunting along two rows, and another page can be
+        * added without the shape of the screen changing.
         *
-        * Four groups, each answering one question, and inside each the thing
-        * you do first comes first: who you are, then how people reach you,
-        * then what happens around a booking, then what is yours alone.
+        * On a phone it is still a row, because a rail down the side of a
+        * four-hundred-pixel screen is most of the screen. Same groups, same
+        * order, scrolling sideways with the headings kept in.
         */}
-      <nav className="mt-6 border-b border-border pb-1">
-        <div className="flex flex-wrap items-start gap-x-8 gap-y-3">
-          {owns && (
-            <Group title="Your business">
-              <TabLink href="/settings">{title(words.business)}</TabLink>
-              <TabLink href="/settings/pricing">Prices</TabLink>
-              <TabLink href="/settings/artists">{title(words.practitioners)}</TabLink>
-              <TabLink href="/settings/money">Getting paid</TabLink>
-            </Group>
-          )}
+      <div className="mt-6 lg:grid lg:grid-cols-[12.5rem_minmax(0,1fr)] lg:gap-10">
+        <nav aria-label="Settings" className="lg:sticky lg:top-6 lg:self-start">
+          {/* Sideways on anything narrow. */}
+          <div className="-mx-4 flex gap-6 overflow-x-auto border-b border-border px-4 pb-3 lg:hidden">
+            {groups.map((group) => (
+              <div key={group.title} className="flex shrink-0 flex-col gap-1">
+                <span className="text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-muted">
+                  {group.title}
+                </span>
+                <div className="flex items-baseline gap-4">
+                  {group.links.map((link) => (
+                    <TabLink key={link.href} href={link.href}>
+                      {link.label}
+                    </TabLink>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
 
-          {owns && (
-            <Group title="How people reach you">
-              <TabLink href="/settings/install">Channels</TabLink>
-              <TabLink href="/settings/assistant">Assistant</TabLink>
-              <TabLink href="/settings/faqs">Questions</TabLink>
-            </Group>
-          )}
+          {/* Down the side, from a laptop upwards. */}
+          <div className="hidden lg:flex lg:flex-col lg:gap-6">
+            {groups.map((group) => (
+              <div key={group.title}>
+                <div className="px-2.5 pb-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-muted">
+                  {group.title}
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  {group.links.map((link) => (
+                    <RailLink key={link.href} href={link.href}>
+                      {link.label}
+                    </RailLink>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </nav>
 
-          {owns && (
-            <Group title="Around a booking">
-              <TabLink href="/settings/reminders">Reminders</TabLink>
-              <TabLink href="/settings/forms">Forms</TabLink>
-            </Group>
-          )}
-
-          {/*
-            * Last, and the only group somebody who is not the owner sees —
-            * which is why it is a group of its own rather than a tab at the
-            * front of somebody else's list.
-            */}
-          <Group title={owns ? "Yours" : "Yours alone"}>
-            <TabLink href="/settings/you">{mine}</TabLink>
-            <TabLink href="/settings/data">Your data</TabLink>
-          </Group>
-        </div>
-      </nav>
-
-      <div className="mt-8">{children}</div>
+        <div className="mt-8 min-w-0 lg:mt-0">{children}</div>
+      </div>
     </Page>
-  );
-}
-
-/**
- * A handful of tabs under a word saying what they are for.
- *
- * The heading is the whole point: a tab called "Forms" means nothing on its
- * own and everything under "Around a booking".
- */
-function Group({ title: heading, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-muted">
-        {heading}
-      </span>
-      <div className="flex flex-wrap items-baseline gap-x-5">{children}</div>
-    </div>
   );
 }

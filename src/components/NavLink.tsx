@@ -80,3 +80,33 @@ export function TabLink({ href, children }: { href: string; children: React.Reac
     </Link>
   );
 }
+
+/**
+ * A link in a settings rail: grouped down the side rather than along the top.
+ *
+ * Ten tabs in a row wrapped onto a second line and the groups landed wherever
+ * there happened to be space, so "Around a booking" sat under "Prices" and
+ * read as belonging to it. Down the side they cannot wrap, the headings stay
+ * with what they head, and the list can grow without the page changing shape.
+ *
+ * The active one is filled rather than underlined: on a vertical list an
+ * underline reads as a divider between two rows rather than as a state.
+ */
+export function RailLink({ href, children }: { href: string; children: React.ReactNode }) {
+  const pathname = usePathname();
+  const active = pathname === href;
+
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={`block rounded-lg px-2.5 py-1.5 text-sm transition-colors ${
+        active
+          ? "bg-surface-2 font-medium text-foreground"
+          : "text-muted hover:bg-surface-2/60 hover:text-foreground"
+      }`}
+    >
+      {children}
+    </Link>
+  );
+}
