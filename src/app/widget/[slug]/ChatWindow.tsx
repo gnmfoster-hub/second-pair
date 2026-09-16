@@ -283,6 +283,48 @@ export function ChatWindow({
   }, [slug]);
 
   /*
+   * Once a person has been asked for, watch for them answering.
+   *
+   * "Someone will reply here shortly" was a promise the window could not keep:
+   * nothing ever looked again, so an owner's reply — which goes out by text or
+   * email as well — never appeared in the chat the customer was told to wait
+   * in. Now that there is a history endpoint it can, and only then: this polls
+   * solely after a handover, slowly, and gives up after ten minutes rather
+   * than sitting on somebody's phone all day.
+   */
+  useEffect(() => {
+    if (!handedOver) return;
+
+    let stop = false;
+    let rounds = 0;
+
+    const look = async () => {
+      if (stop || rounds > 20) return;
+      rounds++;
+      try {
+        const response = await fetch(
+          `/api/widget/history?studio=${encodeURIComponent(slug)}&session=${encodeURIComponent(session.current)}`,
+        );
+        if (response.ok) {
+          const data = (await response.json()) as { lines?: Line[] };
+          // Only ever grows: replacing the list would drop the optimistic
+          // bubbles and the moment cards drawn on this turn.
+          if (!stop && data.lines && data.lines.length > lines.length) setLines(data.lines);
+        }
+      } catch {
+        // Offline for a moment. The next round will pick it up.
+      }
+      if (!stop) timer = setTimeout(look, 30_000);
+    };
+
+    let timer = setTimeout(look, 30_000);
+    return () => {
+      stop = true;
+      clearTimeout(timer);
+    };
+  }, [handedOver, slug, lines.length]);
+
+  /*
    * Tell the launcher the chat is really up.
    *
    * On a phone the panel is a sheet across the whole screen and the launcher
@@ -437,15 +479,26 @@ export function ChatWindow({
       }
 
       if (!data.reply && data.paused) {
-        setHandedOver(true);
-        setLines((l) => [
-          ...l,
-          {
-            from: "studio",
-            text: `Thanks — someone at ${studioName} will reply here shortly.`,
-            at: Date.now(),
-          },
-        ]);
+        /*
+         * Said once, not once a message.
+         *
+         * Three messages after a handover produced three copies of the same
+         * sentence, which reads as a machine repeating itself at somebody who
+         * has just asked for a person.
+         */
+        setHandedOver((was) => {
+          if (!was) {
+            setLines((l) => [
+              ...l,
+              {
+                from: "studio",
+                text: `Thanks — someone at ${studioName} will reply here shortly.`,
+                at: Date.now(),
+              },
+            ]);
+          }
+          return true;
+        });
       }
     } catch {
       setError("Could not reach them. Please try again.");
