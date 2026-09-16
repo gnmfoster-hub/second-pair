@@ -85,14 +85,14 @@ export function StudioForm({
 
         <Field
           label="Tone of voice"
-          hint="Written into the assistant's system prompt. Be specific: how you greet people, what you never say."
+          explain="Written into the assistant's system prompt. Be specific: how you greet people, what you never say."
         >
           <textarea name="tone" defaultValue={studio.tone} rows={3} className="input" />
         </Field>
 
         <Field
           label="What the assistant calls itself"
-          hint={`A name gives somebody something to say back to — "thanks Robin" is a different conversation from "thanks". Blank uses ${DEFAULT_ASSISTANT_NAME}. It always says it is an assistant when asked, name or no name.`}
+          explain={`A name gives somebody something to say back to — "thanks Robin" is a different conversation from "thanks". Blank uses ${DEFAULT_ASSISTANT_NAME}. It always says it is an assistant when asked, name or no name.`}
         >
           <input
             name="assistant_name"
@@ -105,7 +105,7 @@ export function StudioForm({
 
         <Field
           label="Opening line in the chat"
-          hint={`The first thing someone reads before they have typed anything. Leave it blank and it uses your trade's: "${packGreeting}"`}
+          explain={`The first thing someone reads before they have typed anything. Leave it blank and it uses your trade's: "${packGreeting}"`}
         >
           <input
             name="greeting"
@@ -461,7 +461,7 @@ export function StudioForm({
           <>
             <Field
               label="Travelling time (minutes)"
-              hint="Left either side of every job, so two cannot be booked back to back across town."
+              explain="Left either side of every job, so two cannot be booked back to back across town."
             >
               <input
                 name="travel_buffer_minutes"
@@ -580,7 +580,7 @@ export function StudioForm({
                 className="input"
               />
             </Field>
-            <Field label="VAT number" hint="Optional. Shown on receipts.">
+            <Field label="VAT number" explain="Optional. Shown on receipts.">
               <input
                 name="vat_number"
                 defaultValue={studio.vat_number ?? ""}
@@ -598,7 +598,7 @@ export function StudioForm({
 
         <Field
           label="Full terms URL"
-          hint="Optional. The full booking and cancellation terms on your own site — the assistant links it if someone wants the detail."
+          explain="Optional. The full booking and cancellation terms on your own site — the assistant links it if someone wants the detail."
         >
           <input
             name="terms_url"

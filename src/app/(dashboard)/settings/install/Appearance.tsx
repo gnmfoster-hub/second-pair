@@ -1,5 +1,7 @@
 "use client";
 
+import { Explain } from "@/components/Explain";
+
 import { useActionState, useEffect, useState } from "react";
 import { saveWidgetLook, type FormState } from "../actions";
 import { paint, readHex, autoText } from "@/lib/widget/colour";
@@ -210,7 +212,7 @@ export function Appearance({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="label">Your colour</span>
+          <span className="label">Your colour<Explain label="What your colour does">The button on your site and anything the customer taps.</Explain></span>
           <div className="mt-1 flex items-center gap-2">
             {/*
               * A swatch and the code together. The picker is how anybody
@@ -234,9 +236,6 @@ export function Appearance({
               spellCheck={false}
             />
           </div>
-          <p className="hint mt-1.5">
-            The button on your site and anything the customer taps.
-          </p>
         </label>
 
         <label className="block">
@@ -279,7 +278,7 @@ export function Appearance({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="label">Its shape</span>
+          <span className="label">Its shape<Explain label="What its shape does">Match whatever your own buttons do.</Explain></span>
           <select
             name="widget_shape"
             value={shape}
@@ -290,11 +289,10 @@ export function Appearance({
             <option value="soft">Softly squared</option>
             <option value="square">Squared</option>
           </select>
-          <p className="hint mt-1.5">Match whatever your own buttons do.</p>
         </label>
 
         <label className="block">
-          <span className="label">Its size</span>
+          <span className="label">Its size<Explain label="What its size does">Larger gets noticed. Smaller gets out of the way.</Explain></span>
           <select
             name="widget_size"
             value={size}
@@ -305,7 +303,6 @@ export function Appearance({
             <option value="medium">Medium</option>
             <option value="large">Large</option>
           </select>
-          <p className="hint mt-1.5">Larger gets noticed. Smaller gets out of the way.</p>
         </label>
 
         <label className="block">
@@ -440,7 +437,7 @@ export function Appearance({
         </label>
 
         <label className="block">
-          <span className="label">And its writing</span>
+          <span className="label">And its writing<Explain label="What and its writing does">Left empty, it picks whichever reads on the colour beside it.</Explain></span>
           <div className="mt-1 flex items-center gap-2">
             <input
               type="color"
@@ -458,15 +455,12 @@ export function Appearance({
               spellCheck={false}
             />
           </div>
-          <p className="hint mt-1.5">
-            Left empty, it picks whichever reads on the colour beside it.
-          </p>
         </label>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="label">What it says when you are open</span>
+          <span className="label">What it says when you are open<Explain label="What what it says when you are open does">Leave it empty and it says &ldquo;Answering now&rdquo;.</Explain></span>
           <input
             name="widget_line_open"
             value={openLine}
@@ -475,13 +469,10 @@ export function Appearance({
             maxLength={48}
             placeholder="Answering now"
           />
-          <p className="hint mt-1.5">
-            Leave it empty and it says &ldquo;Answering now&rdquo;.
-          </p>
         </label>
 
         <label className="block">
-          <span className="label">And when you are closed</span>
+          <span className="label">And when you are closed<Explain label="What and when you are closed does">This is the one that earns its keep. Somebody reading it at ten at night is being told they can still get booked in, which is the whole point of paying for this. Say it in your words if ours are not yours.</Explain></span>
           <input
             name="widget_line_closed"
             value={closedLine}
@@ -490,16 +481,11 @@ export function Appearance({
             maxLength={48}
             placeholder="Closed — I can still book you"
           />
-          <p className="hint mt-1.5">
-            This is the one that earns its keep. Somebody reading it at ten at night
-            is being told they can still get booked in, which is the whole point of
-            paying for this. Say it in your words if ours are not yours.
-          </p>
         </label>
       </div>
 
       <label className="block">
-        <span className="label">The nudge</span>
+        <span className="label">The nudge<Explain label="What the nudge does">Appears a few seconds after somebody lands, and types itself out. Say what you would say if you looked up and saw them in the doorway.</Explain></span>
         <input
           name="widget_teaser"
           defaultValue={teaser ?? ""}
@@ -507,10 +493,6 @@ export function Appearance({
           maxLength={140}
           placeholder="Hi — anything I can help you with?"
         />
-        <p className="hint mt-1.5">
-          Appears a few seconds after somebody lands, and types itself out. Say what you
-          would say if you looked up and saw them in the doorway.
-        </p>
       </label>
 
       {/*
