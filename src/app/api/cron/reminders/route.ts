@@ -169,7 +169,23 @@ export async function GET(request: NextRequest) {
     new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: "Europe/London" })
       .format(new Date()),
   );
-  const backup = hour >= 2 && hour < 5 ? await nightlyBackup(db) : { ran: false, because: "not the hour" };
+  /*
+   * "No key" beats "not the hour", and that ordering is the whole point.
+   *
+   * It was the other way round, so at any hour but three in the morning the
+   * job reported "not the hour" and stopped — and the check read that as
+   * "backups are running" and passed. Every look at it said everything was
+   * fine while the bucket was empty and nothing could ever be written to it.
+   * A guard that answers all clear without looking is worse than no guard,
+   * because it is believed.
+   */
+  const key = process.env.BACKUP_KEY ?? "";
+  const backup =
+    key.length < 16
+      ? { ran: false as const, because: "no key" as const }
+      : hour >= 2 && hour < 5
+        ? await nightlyBackup(db)
+        : { ran: false as const, because: "not the hour" as const };
 
   /*
    * And whether any of this could have worked at all.

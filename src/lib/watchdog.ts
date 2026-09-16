@@ -54,15 +54,32 @@ export async function askTheModel(): Promise<{ answers: boolean; because: string
  */
 export async function watchTheEssentials(
   db: SupabaseClient,
-): Promise<{ assistant: boolean; email: boolean; told: boolean }> {
+): Promise<{ assistant: boolean; email: boolean; backups: boolean; told: boolean }> {
   const model = await askTheModel();
   const email = emailConfigured();
+  /*
+   * And whether anything is being backed up at all.
+   *
+   * The one fault here that costs everything and shows nothing: the product
+   * works perfectly with no backups, right up until the morning something is
+   * gone. It is a standing condition rather than an outage, so it says so once
+   * a day and stops the moment a key is set.
+   */
+  const backups = (process.env.BACKUP_KEY ?? "").length >= 16;
 
-  if (model.answers && email) return { assistant: true, email, told: false };
+  if (model.answers && email && backups) {
+    return { assistant: true, email, backups, told: false };
+  }
 
   const wrong: string[] = [];
   if (!model.answers) wrong.push(`The assistant cannot answer: ${model.because}`);
   if (!email) wrong.push("Email is not configured, so nothing can be sent or replied to.");
+  if (!backups) {
+    wrong.push(
+      "Nothing is being backed up. BACKUP_KEY is not set in Vercel, or is shorter than 16 " +
+        "characters, so the nightly copy of every business's book is not being taken.",
+    );
+  }
 
   const { sent } = await alertPlatform(db, {
     name: "watchdog",
@@ -73,5 +90,5 @@ export async function watchTheEssentials(
       "until it is fixed.\n\nnode scripts/check-live.mjs says more.",
   });
 
-  return { assistant: model.answers, email, told: sent };
+  return { assistant: model.answers, email, backups, told: sent };
 }
