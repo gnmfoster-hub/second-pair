@@ -17,7 +17,12 @@ export function PageHeader({
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div className="min-w-0">
         <h1 className="page-title">{title}</h1>
-        {children && <p className="hint mt-1">{children}</p>}
+        {/*
+          * Held to a readable measure. A subtitle running the full width of a
+          * wide screen is a line the eye loses its place in halfway along, and
+          * these are the sentences that explain what a page is for.
+          */}
+        {children && <p className="hint mt-1 max-w-[62ch]">{children}</p>}
       </div>
       {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
     </div>

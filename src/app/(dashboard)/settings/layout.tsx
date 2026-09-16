@@ -134,7 +134,16 @@ export default async function SettingsLayout({ children }: { children: React.Rea
         * order, scrolling sideways with the headings kept in.
         */}
       <div className="mt-6 lg:grid lg:grid-cols-[12.5rem_minmax(0,1fr)] lg:gap-10">
-        <nav aria-label="Settings" className="lg:sticky lg:top-6 lg:self-start">
+        {/*
+          * A hairline between the rail and the work, and the rail sits against
+          * it. Without it the two columns float side by side and the eye has
+          * to decide where one ends — which is the difference between a page
+          * that looks arranged and one that looks like two lists.
+          */}
+        <nav
+          aria-label="Settings"
+          className="lg:sticky lg:top-6 lg:self-start lg:border-r lg:border-border lg:pr-6"
+        >
           {/* Sideways on anything narrow. */}
           <div className="-mx-4 flex gap-6 overflow-x-auto border-b border-border px-4 pb-3 lg:hidden">
             {groups.map((group) => (
@@ -172,7 +181,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
           </div>
         </nav>
 
-        <div className="mt-8 min-w-0 lg:mt-0">{children}</div>
+        <div className="mt-8 min-w-0 lg:mt-0 lg:pl-1">{children}</div>
       </div>
     </Page>
   );
