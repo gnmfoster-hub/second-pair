@@ -238,6 +238,20 @@ export default async function DiaryPage({
       "*, contacts(id, name, phone), " +
         "enquiries(service_id, description, job_address, job_postcode, quote_low_pence, conversation_id, conversations(contacts(name, phone)))",
     )
+    /*
+     * This business's people, named.
+     *
+     * The query filtered only on the dates and leaned on row-level security to
+     * keep it to this business — which is correct and is not an index. The one
+     * usable index is (artist_id, starts_at), and with no artist in the
+     * predicate Postgres cannot reach for it, so the diary scanned every
+     * booking on the platform. Fine at three businesses; not at three hundred,
+     * on the screen somebody opens twenty times a day.
+     *
+     * The team is already loaded a hundred lines above, so this costs nothing
+     * to add.
+     */
+    .in("artist_id", artists.map((a) => a.id))
     .is("cancelled_at", null)
     .lt("starts_at", addDays(end, 1).toISOString())
     .gt("ends_at", addDays(start, -1).toISOString())
@@ -259,6 +273,8 @@ export default async function DiaryPage({
       ? supabase
           .from("bookings")
           .select("starts_at, ends_at, artist_id")
+          // Same reasoning as the query above: named people let the index work.
+          .in("artist_id", artists.map((a) => a.id))
           .is("cancelled_at", null)
           .eq("blocks_availability", true)
           .gte("starts_at", startOfWeek(focusDay).toISOString())

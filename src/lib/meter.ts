@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { monthOf } from "./billing.ts";
+import { hasColumn } from "./db/hasColumn.ts";
 
 /**
  * Writing down what a month has used so far.
@@ -36,10 +37,28 @@ export async function meterThisMonth(
   let wrote = 0;
 
   for (const studio of live) {
-    const { data: convos } = await db
+    /*
+     * Only the threads that have moved this month.
+     *
+     * This asked for every conversation a business has ever had, with no date
+     * bound at all, and then paged their messages fifty threads at a time — so
+     * a business with a thousand old threads cost twenty round trips a night
+     * to count a month in which most of them said nothing, and the number grew
+     * for ever.
+     *
+     * last_message_at moves whenever anybody sends, so a thread with nothing
+     * this month cannot have anything to count.
+     */
+    const { data: convos, error: convoError } = await db
       .from("conversations")
       .select("id, channel, is_test")
-      .eq("studio_id", studio.id);
+      .eq("studio_id", studio.id)
+      .gte("last_message_at", from);
+
+    if (convoError) {
+      console.error("[meter] could not read conversations", convoError.message);
+      continue;
+    }
 
     const real = (convos ?? []).filter((c) => !c.is_test);
     const channelOf = new Map(real.map((c) => [c.id, c.channel]));
@@ -133,6 +152,14 @@ export async function meterThisMonth(
       else if (r.channel === "email") emailsOut++;
     }
 
+    /*
+     * The per-channel column arrives with a migration, and until it is run the
+     * whole upsert is rejected for naming a column that does not exist — so
+     * the meter wrote nothing at all, every night, silently. Exactly the fault
+     * the reviews kept turning up, introduced by the fix for one of them.
+     */
+    const perChannel = await hasColumn(db, "usage_months", "by_channel");
+
     const { error } = await db.from("usage_months").upsert(
       {
         studio_id: studio.id,
@@ -141,12 +168,16 @@ export async function meterThisMonth(
         texts_in: textsIn,
         emails_out: emailsOut,
         model_micros: modelMicros,
-        by_channel: Object.fromEntries(
-          [...byChannel].map(([name, row]) => [
-            name,
-            { out: row.out, in: row.in, windows: row.windows.size, micros: row.micros },
-          ]),
-        ),
+        ...(perChannel
+          ? {
+              by_channel: Object.fromEntries(
+                [...byChannel].map(([name, row]) => [
+                  name,
+                  { out: row.out, in: row.in, windows: row.windows.size, micros: row.micros },
+                ]),
+              ),
+            }
+          : {}),
         /*
          * How it is priced, copied in as it stands tonight. A plan that
          * changes in March must not silently rewrite February's invoice.
@@ -159,7 +190,8 @@ export async function meterThisMonth(
       { onConflict: "studio_id,month" },
     );
 
-    if (!error) wrote++;
+    if (error) console.error("[meter] could not write the month", error.message);
+    else wrote++;
   }
 
   return { month, businesses: live.length, wrote };
