@@ -43,11 +43,23 @@ const PUBLIC_PATHS = [
   "/widget",
   "/api/widget",
   "/pay",
+  /*
+   * Somebody setting what they hear about, from the link on their own record.
+   * No login by design: consent has to be as easy to withdraw as to give, and
+   * an account is not something a customer of a salon has.
+   */
+  "/prefs",
   "/api/stripe",
   // Guarded by CRON_SECRET rather than a session, because a scheduler calls it.
   "/api/cron",
   // Same secret, same reason: a deploy check has no session to sign in with.
   "/api/health",
+  /*
+   * Making a demo business's trade pack, called by the demo script with the
+   * scheduled job's secret. It refuses anything not marked as a demo, and it
+   * has to be reachable without a session because a script has none.
+   */
+  "/api/demo",
   // A calendar app cannot log in. The 64-character token in the URL is the
   // credential, and the route refuses anything that is not one.
   "/api/calendar",
