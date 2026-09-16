@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CheckAgain } from "./CheckAgain";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatPence } from "@/lib/money";
 import { stripe, modeFor } from "@/lib/payments/stripe";
@@ -168,13 +169,6 @@ export default async function PaymentDonePage({
 
   return (
     <div className="grid min-h-screen place-items-center px-6 text-center">
-      {/* Look again every few seconds until Stripe has confirmed it. */}
-      {!paid && !giveUp && (
-        <meta
-          httpEquiv="refresh"
-          content={`4;url=/pay/done?${paymentId ? `payment=${paymentId}` : `booking=${bookingId}`}&tries=${tries + 1}`}
-        />
-      )}
       <div className="max-w-sm">
         <div className="text-3xl" aria-hidden>
           {paid ? "✓" : giveUp ? "·" : "⏳"}
@@ -186,6 +180,13 @@ export default async function PaymentDonePage({
             Your card statement will show the payment. You can close this page.
           </p>
         )}
+
+        {/*
+          * Waiting, without the document reloading under them. See CheckAgain:
+          * it refreshes this server component in place, backs off as it goes,
+          * and can be stopped.
+          */}
+        {!paid && !giveUp && <CheckAgain />}
 
         {/* Somewhere to go, rather than a page of ours with nothing on it. */}
         {business?.slug && (

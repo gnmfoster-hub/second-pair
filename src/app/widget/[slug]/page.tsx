@@ -251,7 +251,7 @@ export default async function WidgetPage({
   const photo = avatarUrl(whose?.avatar_path) ?? null;
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-surface-2 px-4 py-6 sm:gap-5 sm:py-10">
+    <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-surface-2 px-4 py-6 sm:h-auto sm:min-h-dvh sm:gap-5 sm:py-10">
       <header className="flex w-full max-w-[34rem] flex-col items-center gap-2.5 text-center">
         <span
           className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl text-base font-semibold shadow-[var(--shadow-card)]"
