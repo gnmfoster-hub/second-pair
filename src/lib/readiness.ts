@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Studio } from "@/lib/types";
-import { emailConfigured } from "@/lib/messaging/email";
+import { emailReallyWorks } from "@/lib/messaging/email";
 import { canConnectStripe } from "@/lib/env";
 import { depositReadiness } from "@/lib/depositReadiness";
 
@@ -47,7 +47,12 @@ export async function readinessOf(
    * A text number is theirs, and either one is enough — a business whose
    * customers all arrive by text does not need email.
    */
-  const canSendEmail = emailConfigured();
+  /*
+   * Whether email will actually send, asked of Resend and remembered for ten
+   * minutes — not "are two variables set", which is what this was and which
+   * says yes on the evening every send is being refused.
+   */
+  const canSendEmail = await emailReallyWorks();
   const { count: numbers } = await db
     .from("channel_connections")
     .select("id", { count: "exact", head: true })

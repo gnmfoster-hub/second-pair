@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { alertPlatform } from "@/lib/platformAlert";
-import { emailConfigured } from "@/lib/messaging/email";
+import { emailReallyWorks } from "@/lib/messaging/email";
 import { newestBackup, STALE_AFTER_HOURS } from "@/lib/backup";
 
 /**
@@ -57,7 +57,8 @@ export async function watchTheEssentials(
   db: SupabaseClient,
 ): Promise<{ assistant: boolean; email: boolean; backups: boolean; told: boolean }> {
   const model = await askTheModel();
-  const email = emailConfigured();
+  // Asked of Resend, not of the environment. See emailReallyWorks.
+  const email = await emailReallyWorks();
   /*
    * And whether anything is being backed up at all.
    *
@@ -82,7 +83,7 @@ export async function watchTheEssentials(
 
   const wrong: string[] = [];
   if (!model.answers) wrong.push(`The assistant cannot answer: ${model.because}`);
-  if (!email) wrong.push("Email is not configured, so nothing can be sent or replied to.");
+  if (!email) wrong.push("Email will not send: the key is missing, refused, or the sending domain is not verified.");
   if (!backups) {
     wrong.push(
       newest

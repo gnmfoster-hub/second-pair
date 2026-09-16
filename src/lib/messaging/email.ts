@@ -337,3 +337,39 @@ export async function fetchReceivedEmail(
     return null;
   }
 }
+
+/**
+ * The same probe, asked at most once every ten minutes.
+ *
+ * `emailConfigured()` is "two variables are not empty", which is the check
+ * `probeEmail` was written to replace — and the readiness screen and the
+ * nightly watchdog both still used it. So an invalid key or a sending domain
+ * that never finished its DNS read as "confirmations and reminders can reach
+ * people", and the owner had no reason to look while customers booked on a
+ * Tuesday evening and never heard another word.
+ *
+ * Cached because the answer is the same for every business and every screen —
+ * it is one account of ours — and asking Resend on every page load would be a
+ * round trip to another company to draw a tick.
+ */
+let lastProbe: { at: number; sends: boolean } | null = null;
+
+export async function emailReallyWorks(now = Date.now()): Promise<boolean> {
+  if (lastProbe && now - lastProbe.at < 600_000) return lastProbe.sends;
+
+  if (!emailConfigured()) {
+    lastProbe = { at: now, sends: false };
+    return false;
+  }
+
+  const probe = await probeEmail().catch(() => null);
+  /*
+   * Unreachable is not broken. If Resend cannot be asked, the honest answer is
+   * the one the configuration gives — otherwise a blip at their end turns
+   * every business's readiness screen red for ten minutes.
+   */
+  const sends = probe ? probe.keyAccepted !== false && probe.senderVerified !== false : true;
+
+  lastProbe = { at: now, sends };
+  return sends;
+}
