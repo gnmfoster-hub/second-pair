@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendDueReminders } from "@/lib/reminders";
 import { releaseExpiredHolds } from "@/lib/booking";
 import { releaseHeldConversations } from "@/lib/engine/release";
+import { nightlyBackup } from "@/lib/backup";
 import { siteOrigin } from "@/lib/origin";
 import type { Studio } from "@/lib/types";
 import { forgetOldEnquiries } from "@/lib/retention";
@@ -154,7 +155,21 @@ export async function GET(request: NextRequest) {
     failed: [(e as Error).message],
   }));
 
-  const body = { released, due, sent, waiting, failures, answered, forgotten, tidied, weekly };
+  /*
+   * Tonight's copy of the book.
+   *
+   * Last, because it is the one thing here nobody is waiting on, and quiet:
+   * it takes one a day and says so, and without a key it does nothing at all
+   * rather than pretending. The early hours because that is when the diary is
+   * least likely to be written to mid-copy.
+   */
+  const hour = Number(
+    new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: "Europe/London" })
+      .format(new Date()),
+  );
+  const backup = hour >= 2 && hour < 5 ? await nightlyBackup(db) : { ran: false, because: "not the hour" };
+
+  const body = { released, due, sent, waiting, failures, answered, forgotten, tidied, weekly, backup };
 
   /*
    * Said out loud, because nothing downstream will say it.

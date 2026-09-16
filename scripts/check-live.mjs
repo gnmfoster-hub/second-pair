@@ -345,6 +345,21 @@ if (reachable) {
     if (authed?.status === 200) {
       const body = await authed.json().catch(() => null);
       pass("the job runs", body ? `due ${body.due}, sent ${body.sent}, waiting ${body.waiting}` : "");
+
+      /*
+       * Whether last night's copy of the book was taken.
+       *
+       * A backup nobody checks is a hope. This is the cheapest possible
+       * check — the job says what it did — and it is the difference between
+       * finding out now and finding out the morning something is gone.
+       */
+      const backup = body?.backup;
+      if (!backup) warn("no word on backups", "this build is older than the nightly backup");
+      else if (backup.ran) pass("last night's backup was taken", `${backup.rows} rows, ${(backup.bytes / 1024).toFixed(0)} KB, encrypted`);
+      else if (backup.because === "already today") pass("today's backup is already done", "");
+      else if (backup.because === "not the hour") pass("backups are running", "it takes one between 2 and 5am");
+      else if (backup.because === "no key") fail("nothing is backed up", "set BACKUP_KEY in Vercel (16 characters or more) and one is taken tonight");
+      else fail("the backup failed", String(backup.error ?? ""));
     } else if (authed?.status === 401) {
       warn("your local CRON_SECRET does not match Vercel's", "not fatal, but the two should be the same");
     }
