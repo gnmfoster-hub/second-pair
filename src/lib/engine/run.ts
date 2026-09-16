@@ -5,6 +5,7 @@ import { whoAnswers, type AnsweringMode } from "@/lib/answering";
 import { isOutOfHours } from "@/lib/report";
 import { notifyStudio } from "@/lib/notify";
 import { whoOffers } from "./whoOffers";
+import { reachableFrom } from "./reachableFrom";
 import Anthropic from "@anthropic-ai/sdk";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -1025,11 +1026,57 @@ async function findOrCreateConversation(
     throw new Error(`Could not start enquiry: ${clash?.message ?? "unknown"}`);
   }
 
-  const { data: contact } = await db
+  /*
+   * On email and text, we already know how to reach them.
+   *
+   * The session key on those channels is the address they wrote from — it is
+   * what the reply goes to. It was being thrown away: every client started
+   * life with no name, no number and no address, and was filled in later only
+   * if the assistant got round to asking and they got round to answering.
+   *
+   * So a real customer who emailed in and went quiet left a blank row in the
+   * client list, and the business could see that somebody had written and had
+   * no way to write back. Seven of those were sitting on Living Canvas's list
+   * this morning. The address is the one thing about them that is certain.
+   */
+  const known = reachableFrom(channel, sessionKey);
+
+  let { data: contact } = await db
     .from("contacts")
-    .insert({ studio_id: studioId, channel, is_test: isTest })
+    .insert({ studio_id: studioId, channel, is_test: isTest, ...known })
     .select("id")
     .single();
+
+  /*
+   * That number is already somebody's.
+   *
+   * A studio may only hold a number once, so a regular texting in after being
+   * added to the client list by hand would have had this insert refused — and
+   * a refused insert here is a customer getting no reply at all, which is far
+   * worse than the blank row this is trying to avoid. Their existing record is
+   * used instead, which is also the right answer: on a text the number is who
+   * they are.
+   */
+  if (!contact && known.phone) {
+    const { data: already } = await db
+      .from("contacts")
+      .select("id")
+      .eq("studio_id", studioId)
+      .eq("phone", known.phone)
+      .limit(1)
+      .maybeSingle();
+    contact = already ?? null;
+  }
+
+  // And if it still could not be made, one with nothing on it rather than none.
+  if (!contact) {
+    const { data: bare } = await db
+      .from("contacts")
+      .insert({ studio_id: studioId, channel, is_test: isTest })
+      .select("id")
+      .single();
+    contact = bare ?? null;
+  }
 
   const { data: conversation, error } = await db
     .from("conversations")
