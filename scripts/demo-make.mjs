@@ -45,6 +45,21 @@ const weekdays = (open, close) => [
 ];
 
 /*
+ * Opening hours are part of the shape of a business, not decoration.
+ *
+ * A groomer works Tuesday to Saturday and is shut on a Monday; a garage opens
+ * early and does Saturday mornings; an instructor teaches after work and at
+ * weekends. Left as Monday-to-Friday, every one of these demos quietly became
+ * an office, and the first thing anybody asks a groomer is "any Saturdays?".
+ */
+const open = (spec) => [0, 1, 2, 3, 4, 5, 6].map((day) => {
+  const said = spec[day];
+  return said
+    ? { day, open: said[0], close: said[1], closed: false }
+    : { day, open: "09:00", close: "17:00", closed: true };
+});
+
+/*
  * Five businesses, chosen because they work differently from each other
  * rather than because they are different trades. Between them they cover:
  * going to the customer and having them come to you, pricing by the hour and
@@ -60,6 +75,7 @@ const DEMOS = [
     vertical: "electrician",
     email: "demo-sparks@second-pair.com",
     settings: {
+      hours: open({ 1: ["07:30", "17:00"], 2: ["07:30", "17:00"], 3: ["07:30", "17:00"], 4: ["07:30", "17:00"], 5: ["07:30", "16:00"] }),
       travel_mode: "at_customer",
       service_areas: ["BS", "BA", "GL"],
       deposit_mode: "none",
@@ -111,6 +127,7 @@ const DEMOS = [
     vertical: "dog_groomer",
     email: "demo-paws@second-pair.com",
     settings: {
+      hours: open({ 2: ["08:30", "17:00"], 3: ["08:30", "17:00"], 4: ["08:30", "17:00"], 5: ["08:30", "17:00"], 6: ["08:30", "15:00"] }),
       travel_mode: "at_premises",
       deposit_mode: "required",
       takes_payments: true,
@@ -156,6 +173,7 @@ const DEMOS = [
     vertical: "garage",
     email: "demo-cogs@second-pair.com",
     settings: {
+      hours: open({ 1: ["08:00", "17:30"], 2: ["08:00", "17:30"], 3: ["08:00", "17:30"], 4: ["08:00", "17:30"], 5: ["08:00", "17:30"], 6: ["08:30", "12:30"] }),
       travel_mode: "at_premises",
       deposit_mode: "none",
       takes_payments: true,
@@ -205,6 +223,7 @@ const DEMOS = [
     vertical: "driving_instructor",
     email: "demo-dan@second-pair.com",
     settings: {
+      hours: open({ 1: ["09:00", "20:00"], 2: ["09:00", "20:00"], 3: ["09:00", "20:00"], 4: ["09:00", "20:00"], 5: ["09:00", "18:00"], 6: ["09:00", "15:00"] }),
       travel_mode: "at_customer",
       service_areas: ["BS", "BA"],
       deposit_mode: "optional",
@@ -340,13 +359,31 @@ for (const demo of doing) {
   if (!demo.bare) {
     const { data: services } = await db
       .from("services")
-      .select("id", { count: "exact", head: false })
+      .select("id")
       .eq("studio_id", studioId)
       .limit(1);
-    if (!services?.length) {
+    const { data: bands } = await db
+      .from("price_bands")
+      .select("id")
+      .eq("studio_id", studioId)
+      .limit(1);
+    if (!services?.length && !bands?.length) {
       console.log("  seeding from the trade pack…");
       await seedFromPackViaApi(studioId, demo.vertical);
     }
+
+    /*
+     * And then the settings again, because seeding writes some of them.
+     *
+     * seedFromPack sets the trade's usual answers for deposits, where the work
+     * happens and the words — right for a business being created, and it would
+     * quietly undo what makes each of these demos different from the others.
+     */
+    const { error: settingsError } = await db
+      .from("studios")
+      .update({ ...demo.settings, hours: demo.settings.hours ?? weekdays("08:00", "17:30") })
+      .eq("id", studioId);
+    if (settingsError) throw new Error(settingsError.message);
   }
 
   // the team
@@ -367,6 +404,32 @@ for (const demo of doing) {
     team.push({ id, name });
   }
   console.log("  team:", team.map((t) => t.name).join(", "));
+
+  /*
+   * A login, so the demo can actually be opened.
+   *
+   * One owner account per demo, linked to the first person on the team, the
+   * same shape every real business has. The password is not used — the back
+   * office signs in with a link — but the account has to exist to be signed
+   * in as.
+   */
+  const { data: users } = await db.auth.admin.listUsers({ perPage: 200 });
+  let login = users.users.find((u) => u.email === demo.email);
+  if (!login) {
+    const { data: made, error } = await db.auth.admin.createUser({
+      email: demo.email,
+      email_confirm: true,
+    });
+    if (error) throw new Error(`${demo.email}: ${error.message}`);
+    login = made.user;
+  }
+
+  await db
+    .from("studio_members")
+    .upsert({ studio_id: studioId, user_id: login.id, role: "owner" }, { onConflict: "studio_id,user_id" });
+
+  if (team[0]) await db.from("artists").update({ user_id: login.id }).eq("id", team[0].id);
+  console.log("  login:", demo.email);
 
   // the people they look after
   const clients = [];
