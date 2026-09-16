@@ -7,6 +7,7 @@ import { whoHasNotBeenBack } from "@/lib/lapsed";
 import { gapsAhead } from "@/lib/gapsAhead";
 import { formatPence } from "@/lib/money";
 import { wordsFor } from "@/lib/words";
+import { whereTheWorkIs, howJobsRan, weekShapeLines } from "@/lib/reportShape";
 
 /**
  * A business's report, as an email somebody reads over a coffee on Monday.
@@ -26,7 +27,7 @@ export async function buildReportEmail(
   const words = wordsFor(studio);
   const { from, to, title } = range;
 
-  const [report, takings, payments, visitRows, slots, forms] = await Promise.all([
+  const [report, takings, payments, visitRows, slots, forms, jobRows] = await Promise.all([
     weeklyReport(db, studio, from, to),
     takingsFor(db, studio.id, from, to).catch(() => null),
     db
@@ -44,6 +45,21 @@ export async function buildReportEmail(
       .gte("starts_at", new Date(now.getTime() - 730 * 86_400_000).toISOString()),
     gapsAhead(db, studio, now).catch(() => []),
     db.from("client_forms").select("status").eq("studio_id", studio.id).in("status", ["sent", "opened"]),
+    /*
+     * The week's jobs, with where they were and how long they really took.
+     *
+     * The same two facts the report page grew: an owner who reads the email
+     * on a Monday and never opens the page is exactly the one who should be
+     * told that every job ran twenty minutes over.
+     */
+    db
+      .from("bookings")
+      .select("price_pence, starts_at, ends_at, actual_minutes, artists!inner(studio_id), enquiries(job_postcode)")
+      .eq("artists.studio_id", studio.id)
+      .is("cancelled_at", null)
+      .eq("blocks_availability", true)
+      .gte("starts_at", from.toISOString())
+      .lt("starts_at", to.toISOString()),
   ]);
 
   const paid = howPaid((payments.data ?? []) as PaymentRow[], from, to);
@@ -61,6 +77,22 @@ export async function buildReportEmail(
   );
   const freeHours = Math.round(slots.reduce((n, s) => n + s.minutes, 0) / 60);
 
+  const jobs = ((jobRows.data ?? []) as unknown as {
+    price_pence: number | null;
+    starts_at: string;
+    ends_at: string;
+    actual_minutes: number | null;
+    enquiries: { job_postcode: string | null } | null;
+  }[]).map((j) => ({
+    postcode: j.enquiries?.job_postcode ?? null,
+    pence: j.price_pence ?? 0,
+    booked: Math.round((Date.parse(j.ends_at) - Date.parse(j.starts_at)) / 60000),
+    actual: j.actual_minutes,
+  }));
+
+  const where = studio.travel_mode !== "at_premises" ? whereTheWorkIs(jobs, 3) : { areas: [], unknown: 0 };
+  const running = howJobsRan(jobs);
+
   const lines: string[] = [];
   lines.push(`Here is ${title.toLowerCase().startsWith("this") || title.toLowerCase().startsWith("last") ? title.toLowerCase() : title} at ${studio.name}.`);
   lines.push("");
@@ -76,6 +108,18 @@ export async function buildReportEmail(
   if (report.needsHuman) lines.push(`• ${report.needsHuman} conversation${report.needsHuman === 1 ? "" : "s"} waiting for you`);
   if (paid.waitingCount) lines.push(`• ${paid.waitingCount} payment link${paid.waitingCount === 1 ? "" : "s"} not paid yet (${formatPence(paid.waitingPence)})`);
   if (forms.data?.length) lines.push(`• ${forms.data.length} form${forms.data.length === 1 ? "" : "s"} still to be signed`);
+
+  /* Where the work was, and whether it ran to time. Both worded in
+     reportShape, where they are tested. */
+  lines.push(
+    ...weekShapeLines({
+      where,
+      running,
+      service: words.service,
+      services: plural(words.service, 2),
+      money: formatPence,
+    }),
+  );
 
   if (lapsed.length) {
     lines.push("");

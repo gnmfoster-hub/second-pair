@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { areaOf, whereTheWorkIs, howJobsRan } from "./reportShape.ts";
+import { areaOf, whereTheWorkIs, howJobsRan, weekShapeLines } from "./reportShape.ts";
 
 test("a postcode becomes the bit that means a place", () => {
   assert.equal(areaOf("BS7 9QT"), "BS7");
@@ -74,4 +74,65 @@ test("five minutes either way is on time", () => {
   ]);
   assert.equal(ran.onTime, 2);
   assert.equal(ran.over, 0);
+});
+
+const money = (p: number) => `£${(p / 100).toFixed(0)}`;
+
+test("the email says where the work was, once there is a pattern", () => {
+  const lines = weekShapeLines({
+    where: { areas: [{ area: "BS16", jobs: 2, pence: 64500 }, { area: "GL5", jobs: 1, pence: 48000 }] },
+    running: { measured: 0, over: 0, under: 0, onTime: 0, typicalMinutes: 0 },
+    service: "job",
+    services: "jobs",
+    money,
+  });
+  assert.deepEqual(lines, [
+    "",
+    "Where the work was:",
+    "• BS16 — £645 across 2 jobs",
+    "• GL5 — £480 across 1 job",
+  ]);
+});
+
+test("one area on its own is not a pattern worth an email line", () => {
+  const lines = weekShapeLines({
+    where: { areas: [{ area: "BS16", jobs: 4, pence: 90000 }] },
+    running: { measured: 0, over: 0, under: 0, onTime: 0, typicalMinutes: 0 },
+    service: "job",
+    services: "jobs",
+    money,
+  });
+  assert.deepEqual(lines, []);
+});
+
+test("running over is worth saying; running to time is not", () => {
+  const over = weekShapeLines({
+    where: { areas: [] },
+    running: { measured: 6, over: 4, under: 1, onTime: 1, typicalMinutes: 20 },
+    service: "groom",
+    services: "grooms",
+    money,
+  });
+  assert.match(over.join("\n"), /Grooms ran about 20 minutes over, 4 of 6 of them/);
+
+  const fine = weekShapeLines({
+    where: { areas: [] },
+    running: { measured: 9, over: 2, under: 2, onTime: 5, typicalMinutes: 3 },
+    service: "job",
+    services: "jobs",
+    money,
+  });
+  assert.deepEqual(fine, []);
+});
+
+test("finishing early is said as an opportunity, not a fault", () => {
+  const early = weekShapeLines({
+    where: { areas: [] },
+    running: { measured: 6, over: 1, under: 4, onTime: 1, typicalMinutes: -15 },
+    service: "lesson",
+    services: "lessons",
+    money,
+  });
+  assert.match(early.join("\n"), /Lessons finished about 15 minutes early, 4 of 6 of them/);
+  assert.match(early.join("\n"), /quote less time and win more of the work/);
 });

@@ -118,3 +118,49 @@ export function howJobsRan(jobs: Job[], slack = 5): Running {
     typicalMinutes: middle,
   };
 }
+
+/**
+ * The same two facts as sentences, for the Monday email.
+ *
+ * An owner who reads the email and never opens the page is the one who most
+ * needs telling that every job ran twenty minutes over. Kept here, beside the
+ * arithmetic and the tests, because the wording is the part that has to be
+ * right — an email nobody can act on is worse than no email.
+ *
+ * Says nothing when there is nothing to say: one area is not a pattern, and
+ * "about right" is not news.
+ */
+export function weekShapeLines(input: {
+  where: { areas: Area[] };
+  running: Running;
+  /** The trade's own word for a job, and for several. */
+  service: string;
+  services: string;
+  money: (pence: number) => string;
+}): string[] {
+  const lines: string[] = [];
+  const { where, running, service, services, money } = input;
+
+  if (where.areas.length > 1) {
+    lines.push("");
+    lines.push("Where the work was:");
+    for (const area of where.areas) {
+      lines.push(
+        `• ${area.area} — ${money(area.pence)} across ${area.jobs} ${area.jobs === 1 ? service : services}`,
+      );
+    }
+  }
+
+  if (running.measured >= 3 && Math.abs(running.typicalMinutes) > 5) {
+    lines.push("");
+    lines.push(
+      running.typicalMinutes > 0
+        ? `${capitalise(services)} ran about ${running.typicalMinutes} minutes over, ${running.over} of ${running.measured} of them. Booking that time in is the difference between a day that works and one that is late by the afternoon.`
+        : `${capitalise(services)} finished about ${Math.abs(running.typicalMinutes)} minutes early, ${running.under} of ${running.measured} of them. You could fit more in, or quote less time and win more of the work.`,
+    );
+  }
+
+  return lines;
+}
+
+const capitalise = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
