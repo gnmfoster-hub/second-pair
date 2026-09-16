@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { emailConfigured, probeEmail } from "@/lib/messaging/email";
 import { smsConfigured, probeSms } from "@/lib/messaging/sms";
 import { hasAnthropicEnv, canConnectStripe } from "@/lib/env";
@@ -77,6 +78,26 @@ async function modelAnswers(): Promise<{ answers: boolean; detail: string | null
     };
   } catch (error) {
     return { answers: false, detail: (error as Error)?.message?.slice(0, 200) ?? "no answer" };
+  }
+}
+
+/** Whether the help widget actually has a business behind it. */
+async function supportStudioExists(): Promise<boolean> {
+  const slug = process.env.NEXT_PUBLIC_SUPPORT_SLUG?.trim();
+  if (!slug) return false;
+
+  try {
+    const { data } = await createAdminClient()
+      .from("studios")
+      .select("id")
+      .eq("slug", slug)
+      .is("archived_at", null)
+      .maybeSingle();
+    return Boolean(data);
+  } catch {
+    // A database it cannot reach is not the same as a missing studio, but from
+    // outside they look alike and both want somebody to look.
+    return false;
   }
 }
 
@@ -260,6 +281,15 @@ export async function GET(request: NextRequest) {
         sms.fromNumberOwned === true,
     },
     push: Boolean(process.env.VAPID_PRIVATE_KEY && process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
-    supportStudio: Boolean(process.env.NEXT_PUBLIC_SUPPORT_SLUG),
+    /*
+     * Not "is a slug set" — whether there is a business behind it.
+     *
+     * The slug said "help", no studio had that slug, and the chat on the front
+     * of our own website was a 404 in an iframe for anybody who pressed "ask
+     * ours anything". This line said everything was fine throughout, because
+     * the variable was set. The same shape of fault as the backups: a check
+     * that asks the easy question and gets believed.
+     */
+    supportStudio: await supportStudioExists(),
   });
 }

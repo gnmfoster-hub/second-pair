@@ -218,7 +218,7 @@ if (!env.CRON_SECRET) {
         fail("the assistant will not answer", can.assistantAnswers.detail ?? "no reason given");
       else pass("the assistant is connected");
 
-      if (can.supportStudio) pass("the help assistant is pointed at a studio");
+      if (can.supportStudio) pass("the help assistant has a business behind it");
       else warn("no support studio", "The floating help button will not appear at all.");
 
       if (can.push) pass("push notifications are configured");
