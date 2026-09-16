@@ -462,10 +462,17 @@ export function enquiryStateMessage(
     value ? known.push(`${label}: ${value}`) : missing.push(label);
 
   note("Name", contact?.name ?? null);
-  note(
-    "Contact",
-    contact?.phone ?? contact?.email ?? null,
-  );
+  /*
+   * Whether we can reach them, not how.
+   *
+   * This wrote the actual number — "Contact: 07700 900321" — into the system
+   * message of every turn of every conversation, and sent it to a model in
+   * another country each time. The assistant never uses the value: it needs to
+   * know whether one is on file, so that it asks when it is missing and does
+   * not ask when it is not. The booking tool reads the real thing from the
+   * database, where it belongs.
+   */
+  note("Contact", contact?.phone || contact?.email ? "on file" : null);
   note("Intent", state.intent);
   note("Description", state.description);
   note("Placement", state.placement);

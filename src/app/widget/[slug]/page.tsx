@@ -38,11 +38,45 @@ export default async function WidgetPage({
   const db = createAdminClient();
   const { data: studio } = await db
     .from("studios")
-    .select("id, name, slug, vertical, greeting, privacy_notice_url, widget_accent, widget_text")
+    .select("id, name, slug, vertical, greeting, privacy_notice_url, widget_accent, widget_text, archived_at, email")
     .eq("slug", slug)
     .maybeSingle();
 
   if (!studio) notFound();
+
+  /*
+   * A business that has stopped says so before anybody types.
+   *
+   * The page rendered in full for an archived business — greeting, opening
+   * buttons, "answering now", a composer — and only refused once the customer
+   * had written their message, as a small amber pill floating in the thread.
+   * They had no idea how to reach the business instead, which is the whole
+   * reason they opened a chat.
+   *
+   * Whatever contact details the business left behind are shown, because the
+   * script is usually still on a website somebody is still looking at.
+   */
+  if (studio.archived_at) {
+    return (
+      <div className="grid min-h-dvh place-items-center px-6 text-center">
+        <div className="max-w-sm">
+          <h1 className="text-lg font-semibold tracking-tight">
+            {studio.name} is not taking messages here
+          </h1>
+          <p className="hint mt-2">
+            This chat has been switched off. Nothing you write here would reach anybody, so it is
+            better to say so now.
+          </p>
+          {studio.email && (
+            <p className="hint mt-3">
+              You can still reach them at{" "}
+              <a href={`mailto:${studio.email}`}>{studio.email}</a>.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   /*
    * A link with somebody's handle in it means the enquiry is theirs.
