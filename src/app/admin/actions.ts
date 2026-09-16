@@ -93,7 +93,7 @@ export async function createBusiness(_prev: Result, fd: FormData): Promise<Resul
 
   // Does this person already have a login? Two businesses under one email is
   // legitimate — somebody with a salon and a barber — so this is not an error.
-  const { data: existing } = await db.auth.admin.listUsers();
+  const { data: existing } = await db.auth.admin.listUsers({ perPage: 1000 });
   let userId = existing?.users.find((u) => u.email?.toLowerCase() === email)?.id ?? null;
   let created = false;
 

@@ -713,18 +713,34 @@ async function generateReply(
     .select("role, content, media_urls")
     .eq("conversation_id", ctx.conversationId)
     .in("role", ["client", "assistant", "owner"])
-    .order("created_at");
+    /*
+     * The last sixty, newest first, then turned back round.
+     *
+     * Every message of the thread was loaded and then all but the last forty
+     * thrown away by recentHistory — and on email, where each reply quotes the
+     * whole thread back, the discarded ones are the big ones. The index on
+     * (conversation_id, created_at) serves this directly.
+     */
+    .order("created_at", { ascending: false })
+    .limit(60);
 
   const [{ data: enquiry }, { data: contact }] = await Promise.all([
     ctx.db.from("enquiries").select("*").eq("id", ctx.enquiryId).single(),
     ctx.db.from("contacts").select("name, phone, email").eq("id", ctx.contactId).single(),
   ]);
 
-  const isFirstReply = !(history ?? []).some(
-    (m) => m.role === "assistant" || m.role === "owner",
-  );
+  /*
+   * Back into the order it was said in.
+   *
+   * The query asks newest first so the database can stop at sixty; everything
+   * downstream — the transcript handed to the model, recentHistory's idea of
+   * "recent" — reads it as a conversation, which only makes sense forwards.
+   */
+  const inOrder = [...(history ?? [])].reverse();
 
-  const messages: Anthropic.MessageParam[] = recentHistory(history ?? []).map((m) => ({
+  const isFirstReply = !inOrder.some((m) => m.role === "assistant" || m.role === "owner");
+
+  const messages: Anthropic.MessageParam[] = recentHistory(inOrder).map((m) => ({
     // An owner's own reply reads as the assistant's voice to the client.
     role: m.role === "client" ? "user" : "assistant",
     content: m.content || "(no text)",

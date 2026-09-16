@@ -41,7 +41,14 @@ export default async function ConversationPage({
   const [{ data: messages }, { data: enquiry }, artists, bands, options] = await Promise.all([
     supabase
       .from("messages")
-      .select("*")
+    /*
+     * Not select("*").
+     *
+     * That shipped `tool_calls` — the raw blocks the engine replays, every
+     * slot list and quote payload it has ever produced — and `usage`, neither
+     * of which this page reads, into the browser on every conversation.
+     */
+    .select("id, role, content, media_urls, created_at, delivery, delivered_at")
       .eq("conversation_id", id)
       .order("created_at"),
     supabase.from("enquiries").select("*, bookings(*)").eq("conversation_id", id).maybeSingle(),

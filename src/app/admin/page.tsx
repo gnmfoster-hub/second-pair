@@ -67,7 +67,7 @@ export default async function AdminPage() {
       )
       .order("created_at"),
     db.from("studio_members").select("studio_id, user_id, role").eq("role", "owner"),
-    db.auth.admin.listUsers(),
+    db.auth.admin.listUsers({ perPage: 1000 }),
   ]);
 
   /*

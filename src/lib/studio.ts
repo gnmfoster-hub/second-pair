@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Artist, Faq, PriceBand, ServiceOption, Studio } from "@/lib/types";
@@ -6,8 +7,14 @@ import { isPlatformAdmin } from "./platform";
 /**
  * The studio the signed-in user belongs to. MVP assumes one studio per user;
  * when that stops being true this reads a cookie instead of taking the first row.
+ *
+ * Wrapped in React's `cache`, so the three round trips it makes — who is
+ * signed in, which business they belong to, the business itself — happen once
+ * per request rather than once per caller. The dashboard layout and the page
+ * inside it both call this, so every screen was doing all of it twice before
+ * it drew anything.
  */
-export async function requireStudio(): Promise<{
+export const requireStudio = cache(async function requireStudio(): Promise<{
   studio: Studio;
   userEmail: string;
   /** Who is asking. Needed wherever a row belongs to a person, not the business. */
@@ -64,7 +71,7 @@ export async function requireStudio(): Promise<{
   if (!studio) redirect("/onboarding");
 
   return { studio: studio as Studio, userEmail: user.email ?? "", userId: user.id };
-}
+});
 
 export async function getArtists(studioId: string): Promise<Artist[]> {
   const supabase = await createClient();
@@ -118,7 +125,7 @@ export async function getFaqs(studioId: string): Promise<Faq[]> {
  * Sent home rather than shown an error: they have not done anything wrong,
  * they have opened a page that is not theirs.
  */
-export async function requireOwner(): Promise<{ studio: Studio; userId: string }> {
+export const requireOwner = cache(async function requireOwner(): Promise<{ studio: Studio; userId: string }> {
   const { studio, userId } = await requireStudio();
   const supabase = await createClient();
 
@@ -133,4 +140,4 @@ export async function requireOwner(): Promise<{ studio: Studio; userId: string }
   if (membership?.role !== "owner") redirect("/settings/artists");
 
   return { studio, userId };
-}
+});
