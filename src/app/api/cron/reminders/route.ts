@@ -11,6 +11,7 @@ import { forgetHandledMessages } from "@/lib/handledMessages";
 import { sweepWentWrong } from "@/lib/cronOutcome";
 import { sendWeeklyReports } from "@/lib/weeklyReports";
 import { watchTheEssentials } from "@/lib/watchdog";
+import { meterThisMonth } from "@/lib/meter";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -179,7 +180,16 @@ export async function GET(request: NextRequest) {
    */
   const working = await watchTheEssentials(db);
 
-  const body = { released, due, sent, waiting, failures, answered, forgotten, tidied, weekly, backup, working };
+  /*
+   * And what the month has used, written down.
+   *
+   * Nightly rather than at month end: a job that only matters once a month is
+   * a job nobody notices has been failing. See meter.ts for why it is stored
+   * at all rather than counted when somebody looks.
+   */
+  const metered = await meterThisMonth(db);
+
+  const body = { released, due, sent, waiting, failures, answered, forgotten, tidied, weekly, backup, working, metered };
 
   /*
    * Said out loud, because nothing downstream will say it.

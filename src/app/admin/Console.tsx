@@ -85,6 +85,9 @@ export function Console({
           <Link href="/admin/reports" className="btn-ghost">
             Reports
           </Link>
+          <Link href="/admin/billing" className="btn-ghost">
+            Billing
+          </Link>
           <button
             type="button"
             onClick={() => setAdding((a) => !a)}
