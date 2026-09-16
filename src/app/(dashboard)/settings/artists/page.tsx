@@ -220,7 +220,11 @@ export default async function ArtistsPage() {
               plenty of people here will never sign in at all. Handing out a
               login is the owner's, which the action already enforces; showing
               it to anybody else only offers something that will be refused. */}
-          <div className={`flex justify-end px-1 ${owns ? "" : "hidden"}`}>
+          {/* Only where there is something to press. Somebody who can already
+              sign in says so beside their name instead. */}
+          <div
+            className={`flex justify-end px-1 ${owns && !artist.user_id ? "" : "hidden"}`}
+          >
             <InviteButton
               artistId={artist.id}
               name={artist.name}

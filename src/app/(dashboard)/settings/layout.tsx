@@ -133,7 +133,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
         * four-hundred-pixel screen is most of the screen. Same groups, same
         * order, scrolling sideways with the headings kept in.
         */}
-      <div className="mt-6 lg:grid lg:grid-cols-[12.5rem_minmax(0,1fr)] lg:gap-10">
+      <div className="mt-6 lg:grid lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:gap-9">
         {/*
           * A hairline between the rail and the work, and the rail sits against
           * it. Without it the two columns float side by side and the eye has

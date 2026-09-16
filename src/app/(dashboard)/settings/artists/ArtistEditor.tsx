@@ -96,6 +96,22 @@ export function ArtistEditor({
             {isOwner && (
               <span className="ml-2 pill bg-accent/10 text-accent align-middle">Owner</span>
             )}
+            {/*
+              * Beside the name, where every other fact about them is.
+              *
+              * It used to sit on its own line under the whole card, right
+              * aligned, with nothing near it — so it read as a stray label
+              * belonging to whatever came next rather than as a fact about
+              * this person.
+              */}
+            {artist?.user_id && !isOwner && (
+              <span
+                className="ml-2 pill bg-ok/10 text-ok align-middle"
+                title={`${artist.name.split(" ")[0]} can sign in`}
+              >
+                Has a login
+              </span>
+            )}
             {artist && !artist.active && (
               <span className="ml-2 text-xs text-muted">(inactive)</span>
             )}
