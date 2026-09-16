@@ -146,10 +146,13 @@ export default async function ClientsPage({
     return query ? `/clients?${query}` : "/clients";
   };
 
+  // What this trade calls them: clients, customers, pupils, owners.
+  const words = wordsFor(studio);
+
   return (
     <div className="mx-auto max-w-4xl px-8 py-9">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
-        <h1 className="page-title">{capital(wordsFor(studio).customers)}</h1>
+        <h1 className="page-title">{capital(words.customers)}</h1>
         <span className="hint">
           {clients.length}
           {clients.length === 200 ? "+" : ""} {term ? "matching" : "in total"}
@@ -161,7 +164,7 @@ export default async function ClientsPage({
           Forms
         </Link>
         <Link href="/clients/new" className="btn-highlight px-3.5 py-2 text-xs">
-          Add a client
+          Add a {words.customer}
         </Link>
       </div>
 
@@ -174,7 +177,7 @@ export default async function ClientsPage({
           defaultValue={term}
           placeholder="Search by name, number or email…"
           className="input max-w-md"
-          aria-label="Search clients"
+          aria-label={`Search ${words.customers}`}
         />
       </form>
 
@@ -231,7 +234,7 @@ export default async function ClientsPage({
             ) : (
               <>
                 <Waiting className="mx-auto mb-4 size-14" />
-                <div className="empty-title">No clients yet</div>
+                <div className="empty-title">No {words.customers} yet</div>
                 <p className="empty-body">
                   They arrive on their own with the first enquiry — the assistant keeps
                   their details as it books them in. You can add somebody yourself if you

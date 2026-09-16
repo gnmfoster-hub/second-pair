@@ -1,5 +1,6 @@
 import { requireStudio, getArtists, getServiceOptions } from "@/lib/studio";
 import { verticalPack } from "@/lib/verticals";
+import { wordsFor } from "@/lib/words";
 import { ArtistEditor } from "./ArtistEditor";
 import { MyServices } from "../you/MyServices";
 import type { Service } from "@/lib/types";
@@ -131,6 +132,7 @@ export default async function ArtistsPage() {
             roles={pack.roles}
             isOwner={Boolean(artist.user_id) && artist.user_id === ownerUserId}
             viewerOwns={owns}
+            customers={wordsFor(studio).customers}
             ownLink={
               artist.handle ? `${origin}/widget/${studio.slug}?with=${artist.handle}` : null
             }
@@ -239,6 +241,7 @@ export default async function ArtistsPage() {
           noun={words.practitioner}
           roles={pack.roles}
           viewerOwns={owns}
+          customers={wordsFor(studio).customers}
         />
       )}
 

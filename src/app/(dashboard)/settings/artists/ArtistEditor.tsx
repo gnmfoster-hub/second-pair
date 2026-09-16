@@ -21,6 +21,7 @@ export function ArtistEditor({
   isOwner,
   viewerOwns = false,
   ownLink,
+  customers = "customers",
 }: {
   artist?: Artist;
   /** Shown as the fallback when this person has no week of their own. */
@@ -41,6 +42,8 @@ export function ArtistEditor({
   viewerOwns?: boolean;
   /** Their own booking link, when they have a handle to build one from. */
   ownLink?: string | null;
+  /** What this trade calls the people it serves. */
+  customers?: string;
   roles: string[];
 }) {
   const [state, action] = useActionState<FormState, FormData>(saveArtist, {});
@@ -128,12 +131,12 @@ export function ArtistEditor({
 
           <Field
             label="What they do"
-            hint="Optional. Shown to clients, and it lets the assistant answer &ldquo;who does piercings?&rdquo;"
+            hint={`Optional. Shown to ${customers}, and it lets the assistant answer a question like "who does the MOTs?"`}
           >
             <RolePicker suggested={roles} value={artist?.role ?? null} />
           </Field>
 
-          <Field label="Photo" hint="Shown in the diary and to clients. Initials if left blank.">
+          <Field label="Photo" hint={`Shown in the diary and to ${customers}. Initials if left blank.`}>
             <div className="flex items-center gap-3">
               {artist && <Avatar person={artist} size="lg" />}
               <input
