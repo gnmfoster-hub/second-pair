@@ -319,8 +319,25 @@ export async function createBooking(args: {
   depositPence: number;
   /** Null confirms outright, for businesses that take no deposit. */
   holdMinutes?: number | null;
+  /**
+   * A standing slot: the same two columns the diary writes when the owner
+   * types in a repeating job, so a series booked over chat looks like any
+   * other series on the screen and can be moved or ended the same way.
+   */
+  repeats?: string | null;
+  repeatParentId?: string | null;
 }): Promise<BookResult> {
-  const { db, artist, enquiryId, slot, type, depositPence, holdMinutes = 60 } = args;
+  const {
+    db,
+    artist,
+    enquiryId,
+    slot,
+    type,
+    depositPence,
+    holdMinutes = 60,
+    repeats = null,
+    repeatParentId = null,
+  } = args;
 
   if (!capabilitiesFor(artist).writesBookings) {
     return {
@@ -344,6 +361,8 @@ export async function createBooking(args: {
         holdMinutes == null
           ? null
           : new Date(Date.now() + holdMinutes * 60_000).toISOString(),
+      ...(repeats ? { repeats } : {}),
+      ...(repeatParentId ? { repeat_parent_id: repeatParentId } : {}),
     })
     .select("id")
     .single();

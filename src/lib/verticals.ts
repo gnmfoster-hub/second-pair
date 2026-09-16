@@ -127,6 +127,16 @@ export type VerticalPack = {
   location: "at_premises" | "at_customer" | "both";
   /** Whether services are timed and charged by the hour, or flat-priced. */
   pricing: "hourly" | "fixed";
+  /**
+   * Whether customers of this trade normally keep a standing slot.
+   *
+   * A cleaner's week is the same week every week, and a driving pupil has
+   * Tuesdays at five. A tattooist's customer books one sitting and thinks
+   * about the next one afterwards. The assistant only offers to set up a
+   * regular slot where it is the ordinary thing to want — offering a barber's
+   * customer "the same time every week" reads as a machine reciting options.
+   */
+  regulars: boolean;
   /** Extra hard rules, on top of the universal one. */
   rules: string[];
   styles: { value: string; label: string }[];
@@ -162,6 +172,7 @@ type TradeInput = {
   deposits?: VerticalPack["deposits"];
   location?: VerticalPack["location"];
   pricing?: VerticalPack["pricing"];
+  regulars?: boolean;
   /** How to ask the one question that places a job. See VerticalPack.sizing. */
   sizing?: string;
   roles?: string[];
@@ -268,6 +279,8 @@ function trade(input: TradeInput): VerticalPack {
     deposits: input.deposits ?? "none",
     location,
     pricing,
+    // Most work is one job at a time. The trades where it is not say so.
+    regulars: input.regulars ?? false,
     rules: [UNIVERSAL_RULE, ...(input.rules ?? [])],
     styles: input.styles ?? [],
     intents: input.intents ?? [
@@ -649,6 +662,7 @@ const HOME: VerticalPack[] = [
 
   trade({
     id: "gardener",
+    regulars: true,
     faqs: [
       "What areas do you cover?",
       "How do I pay?",
@@ -684,6 +698,7 @@ const HOME: VerticalPack[] = [
 
   trade({
     id: "cleaner",
+    regulars: true,
     faqs: [
       "What areas do you cover?",
       "How do I pay?",
@@ -1193,6 +1208,7 @@ const HEALTH: VerticalPack[] = [
 
   trade({
     id: "pt",
+    regulars: true,
     faqs: [
       "Where can I park?",
       "How do I pay?",
@@ -1230,6 +1246,7 @@ const HEALTH: VerticalPack[] = [
 
   trade({
     id: "counsellor",
+    regulars: true,
     roles: ["Counsellor", "Psychotherapist", "CBT therapist", "Supervisor"],
     label: "Counsellor or therapist",
     category: "Health and wellbeing",
@@ -1358,6 +1375,7 @@ const PETS: VerticalPack[] = [
 
   trade({
     id: "dog_walker",
+    regulars: true,
     faqs: [
       "What areas do you cover?",
       "How do I pay?",
@@ -1516,6 +1534,7 @@ const MOTORING: VerticalPack[] = [
 
   trade({
     id: "driving_instructor",
+    regulars: true,
     faqs: [
       "What areas do you cover?",
       "How do I pay?",
@@ -1620,6 +1639,7 @@ const OTHER: VerticalPack[] = [
 
   trade({
     id: "tutor",
+    regulars: true,
     faqs: [
       "What areas do you cover?",
       "How do I pay?",
@@ -1664,6 +1684,7 @@ const OTHER: VerticalPack[] = [
 
   trade({
     id: "window_cleaner",
+    regulars: true,
     faqs: [
       "What areas do you cover?",
       "How do I pay?",

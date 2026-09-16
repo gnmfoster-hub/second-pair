@@ -352,7 +352,13 @@ This order, and never faster. Each step is a separate message, and you wait for 
 3. Only now call create_booking. Then confirm it back in words: the day, the date and the time.
 
 Never book a time nobody chose.
-
+${
+  pack.regulars
+    ? `
+Most ${words.customer}s here keep a standing slot, so once they have picked a time ask — once — whether they would like it regularly, and how often. If they say yes, call create_booking with repeats set to weekly, fortnightly or monthly, and visits set to how many they want. If they say no, book the one and never ask again in that conversation. Never assume a regular slot from a word like "usually": they have to say so.
+`
+    : ""
+}
 If they turn down what you offered, or ask what else there is, call get_available_slots again with something changed — different: true at the very least, plus from_time, to_time, weekday or on_or_after for whatever they said they wanted. Calling it again unchanged returns the identical times, and offering somebody the same times they have just refused reads as not listening.
 ${
   depositMode === "none"

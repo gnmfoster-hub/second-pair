@@ -249,3 +249,31 @@ test("every trade asks more than the three questions everybody shares", () => {
     );
   }
 });
+
+/*
+ * A standing slot is offered where it is normal and nowhere else. The cost of
+ * getting this wrong is not a crash: it is a barber's assistant asking a man
+ * having his hair cut whether he wants the same time every week for the next
+ * three months.
+ */
+test("only the trades people book regularly offer a standing slot", () => {
+  const regular = Object.values(VERTICALS)
+    .filter((p) => p.regulars)
+    .map((p) => p.id)
+    .sort();
+
+  assert.deepEqual(regular, [
+    "cleaner",
+    "counsellor",
+    "driving_instructor",
+    "dog_walker",
+    "gardener",
+    "pt",
+    "tutor",
+    "window_cleaner",
+  ].sort());
+
+  for (const id of ["salon", "barber", "electrician", "garage", "dog_groomer", "photographer"]) {
+    assert.equal(VERTICALS[id].regulars, false, `${id} should not be offering standing slots`);
+  }
+});

@@ -20,6 +20,13 @@ import {
   bookingTypeFor,
   capabilitiesFor,
 } from "@/lib/booking";
+import {
+  isRegularRule,
+  howManyVisits,
+  regularInstants,
+  regularSummary,
+  type RegularRule,
+} from "@/lib/booking/regular";
 import { whoCanBeOffered } from "./offering";
 import { missingDetails } from "./reachable";
 import type { Artist, PriceBand, ServiceOption, Studio } from "@/lib/types";
@@ -310,6 +317,32 @@ export function toolDefinitions(
                     "True only when they already have an appointment and have told you this is " +
                     "an extra one, not instead of it.",
                 },
+                /*
+                 * A standing slot, for the trades that live on them.
+                 *
+                 * Only offered where it is the ordinary thing to want. See
+                 * VerticalPack.regulars: a cleaner's customer expects the same
+                 * morning every week and would rather not be asked twelve
+                 * times; a barber's customer would find the question odd.
+                 */
+                ...(pack.regulars
+                  ? {
+                      repeats: {
+                        type: "string",
+                        enum: ["weekly", "fortnightly", "monthly"],
+                        description:
+                          "Only when they have asked for a regular slot in so many words — " +
+                          "\"every week\", \"same time each fortnight\". Books the same time " +
+                          "on each date. Leave it out for a one-off.",
+                      },
+                      visits: {
+                        type: "number",
+                        description:
+                          "How many visits to put in, including the first. Between 2 and 12; " +
+                          "6 if they have not said. Only used with repeats.",
+                      },
+                    }
+                  : {}),
               },
               required: ["starts_at"],
               additionalProperties: false,
@@ -1383,6 +1416,33 @@ async function makeBooking(
 
   if (!result.ok) return { result: result.message };
 
+  /*
+   * The rest of a standing slot — every Tuesday at five, the second Friday
+   * morning of the month.
+   *
+   * Put in after the first one has actually landed, so a customer never ends
+   * up with visits two to six of an appointment that was refused. Each date is
+   * checked against the live diary on its own: the business may be shut that
+   * week, or the slot may already be somebody else's, and a date that cannot
+   * be done is skipped and named rather than quietly dropped.
+   */
+  const rule = isRegularRule(input.repeats) ? input.repeats : null;
+  const wantsRegular = rule != null && verticalPack(ctx.studio.vertical).regulars;
+  let series: { rule: RegularRule; made: string[]; skipped: string[] } | null = null;
+
+  if (wantsRegular && rule && !takesDeposit && result.bookingId) {
+    series = await bookTheRest({
+      ctx,
+      artist,
+      rule,
+      visits: howManyVisits(input.visits),
+      firstIso: startsAt,
+      firstId: result.bookingId,
+      minutes,
+      type,
+    });
+  }
+
   // The new time is theirs, so the hold they are moving from can go.
   if (liveHold) {
     await ctx.db
@@ -1461,6 +1521,22 @@ async function makeBooking(
       (takesDeposit
         ? " The slot is held for an hour while the deposit is paid."
         : " It is confirmed — there is no deposit to take, so do not mention one.") +
+      (series
+        ? " " +
+          regularSummary({
+            rule: series.rule,
+            made: series.made,
+            skipped: series.skipped,
+            timezone: ctx.studio.timezone,
+          }) +
+          (series.made.length > 1
+            ? ` The dates are: ${series.made
+                .map((iso) => describeSlot({ starts_at: iso, ends_at: iso }, ctx.studio.timezone))
+                .join("; ")}.`
+            : "")
+        : wantsRegular && takesDeposit
+          ? " They asked for a regular slot: only this first one is booked, because it is waiting on a deposit. Say you will set the rest up as soon as the deposit is paid."
+          : "") +
       (form
         ? ` This appointment needs the "${form.name}" form filled in and signed beforehand. Give them this link, and say it takes a couple of minutes on their phone: ${form.url}`
         : ""),
@@ -1474,6 +1550,102 @@ async function makeBooking(
       held: takesDeposit,
     },
   };
+}
+
+/**
+ * Visits two onwards of a standing slot.
+ *
+ * Each date is offered to the same availability query that produced the first
+ * one, so a bank holiday, a week the business is shut, or a slot taken in the
+ * meantime is skipped rather than forced in. Nothing here can undo the first
+ * booking: the worst case is one appointment and an honest sentence about the
+ * rest.
+ */
+async function bookTheRest(args: {
+  ctx: ToolContext;
+  artist: Artist;
+  rule: RegularRule;
+  visits: number;
+  firstIso: string;
+  firstId: string;
+  minutes: number;
+  type: "consultation" | "session";
+}): Promise<{ rule: RegularRule; made: string[]; skipped: string[] }> {
+  const { ctx, artist, rule, visits, firstIso, firstId, minutes, type } = args;
+
+  const wanted = regularInstants(firstIso, rule, visits, ctx.studio.timezone);
+  const made = [firstIso];
+  const skipped: string[] = [];
+
+  for (const iso of wanted.slice(1)) {
+    const free = await availableSlots({
+      db: ctx.db,
+      studio: ctx.studio,
+      artist,
+      durationMinutes: minutes,
+      onOrAfter: dayIn(iso, ctx.studio.timezone),
+      limit: 40,
+    }).catch(() => null);
+
+    if (!free || !free.some((s) => Date.parse(s.starts_at) === Date.parse(iso))) {
+      skipped.push(iso);
+      continue;
+    }
+
+    const at = await createBooking({
+      db: ctx.db,
+      studio: ctx.studio,
+      artist,
+      enquiryId: ctx.enquiryId,
+      slot: {
+        starts_at: iso,
+        ends_at: new Date(Date.parse(iso) + minutes * 60_000).toISOString(),
+      },
+      type,
+      // The deposit, if there is one, is taken once on the first visit. Nobody
+      // pays six deposits to book six cleans.
+      depositPence: 0,
+      holdMinutes: null,
+      repeats: rule,
+      repeatParentId: firstId,
+    });
+
+    if (at.ok) made.push(iso);
+    else skipped.push(iso);
+  }
+
+  /*
+   * One message to the business about the series, not six. The first booking
+   * already tells them somebody has booked; this says what else went in.
+   */
+  if (made.length > 1) {
+    const from = describeSlot(
+      { starts_at: firstIso, ends_at: firstIso },
+      ctx.studio.timezone,
+    );
+    void notifyStudio(ctx.db, ctx.studio.id, {
+      title: "A regular slot has been booked",
+      body: `${made.length} visits with ${artist.name}, ${rule} from ${from}.`,
+      url: "/diary",
+      tag: `regular-${firstId}`,
+      email: {
+        subject: `${made.length} regular visits booked with ${artist.name}`,
+        text:
+          `${made.length} visits, ${rule}, starting ${from}.\n\n` +
+          made
+            .map((iso) => describeSlot({ starts_at: iso, ends_at: iso }, ctx.studio.timezone))
+            .join("\n") +
+          (skipped.length > 0
+            ? `\n\nThese dates could not be booked and were skipped — the diary was full or you were shut:\n` +
+              skipped
+                .map((iso) => describeSlot({ starts_at: iso, ends_at: iso }, ctx.studio.timezone))
+                .join("\n")
+            : ""),
+      },
+    }).catch(() => {});
+  }
+
+  return { rule, made, skipped };
 }
 
 async function sendDepositLink(ctx: ToolContext): Promise<ToolOutcome> {
