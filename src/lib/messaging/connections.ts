@@ -18,11 +18,23 @@ export async function connectedChannels(
   supabase: SupabaseClient,
   studioId: string,
 ): Promise<Channel[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("channel_connections")
     .select("channel")
     .eq("studio_id", studioId)
     .eq("active", true);
+
+  /*
+   * "Could not read" is not "nothing connected".
+   *
+   * The error was discarded, so an unreadable table said this business has no
+   * channels — and everything downstream treats that as a business that is
+   * not set up rather than as a failure. Reminders fall to "waiting", which
+   * the nightly job deliberately does not count as going wrong, and the whole
+   * run reports a healthy evening while a fully configured business's
+   * reminders stop dead.
+   */
+  if (error) throw new Error(`could not read the channels: ${error.message}`);
 
   const found = new Set<Channel>((data ?? []).map((r) => r.channel as Channel));
 
@@ -58,7 +70,7 @@ export async function smsNumberFor(
   supabase: SupabaseClient,
   studioId: string,
 ): Promise<string | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("channel_connections")
     .select("external_id")
     .eq("studio_id", studioId)
@@ -66,6 +78,11 @@ export async function smsNumberFor(
     .eq("active", true)
     .limit(1)
     .maybeSingle();
+
+  // Same reasoning as above: a number we could not look up is not the same as
+  // a business without one, and sending from the wrong number is worse than
+  // not sending.
+  if (error) throw new Error(`could not read the SMS number: ${error.message}`);
 
   return data?.external_id ?? null;
 }

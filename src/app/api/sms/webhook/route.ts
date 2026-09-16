@@ -68,13 +68,27 @@ export async function POST(request: NextRequest) {
    * No row, no business — and 200 rather than an error, because Twilio retries
    * a failure and there is nothing here that a retry would fix.
    */
-  const { data: connection } = await db
+  const { data: connection, error: lookupFailed } = await db
     .from("channel_connections")
     .select("studio_id, artist_id, studios(slug)")
     .eq("channel", "sms")
     .eq("external_id", to)
     .eq("active", true)
     .maybeSingle();
+
+  /*
+   * A database we could not read is worth a retry; a number nobody owns is
+   * not.
+   *
+   * Both came back as the same silent 200 with empty TwiML, so a connection
+   * blip meant a customer's text was never recorded, never answered, and
+   * never counted anywhere. Twilio will redeliver a 500, which is exactly
+   * what should happen to a message we failed to take.
+   */
+  if (lookupFailed) {
+    console.error("[sms] could not look up the number", lookupFailed.message);
+    return new NextResponse("could not look up the number", { status: 500 });
+  }
 
   const studio = connection?.studios as unknown as { slug: string } | null;
   if (!studio?.slug) return empty();
@@ -113,7 +127,15 @@ export async function POST(request: NextRequest) {
     const { error: seen } = await db
       .from("handled_messages")
       .insert({ message_id: `sms:${sid}`, channel: "sms" });
+
+    // A duplicate means we have already answered this one. Any other error
+    // means the claim did not happen, and answering anyway risks replying
+    // twice to the same text — so it goes back for a retry instead.
     if (seen?.code === "23505") return empty();
+    if (seen) {
+      console.error("[sms] could not claim the message", seen.message);
+      return new NextResponse("could not claim the message", { status: 500 });
+    }
   }
 
   /*

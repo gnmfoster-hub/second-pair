@@ -330,13 +330,27 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
    * so a services business leaves it empty and everybody does everything —
    * which is right until somebody asks for the other thing.
    */
-  const { data: providerRows } =
+  const { data: providerRows, error: providersFailed } =
     studio.pricing_model === "services"
-      ? { data: null }
+      ? { data: null, error: null }
       : await db
           .from("service_providers")
           .select("band_id, artist_id")
           .in("band_id", bands.map((b) => b.id));
+
+  /*
+   * A read that failed must never widen what may be offered.
+   *
+   * These two tables are the ones that say who does not do something, and an
+   * empty answer means "nobody is named, so everybody does it". So a
+   * transient error here does not degrade gracefully — it hands the junior
+   * balayage at a price she never set, and the first anybody hears of it is a
+   * customer arriving for it. The guarded set a hundred lines up exists for
+   * exactly this reasoning and these two were simply not in it.
+   */
+  if (providersFailed) {
+    throw new Error(`could not read who does what: ${providersFailed.message}`);
+  }
 
   const providers: Record<string, string[]> = {};
   for (const row of providerRows ?? []) {
@@ -360,11 +374,17 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
    * everybody" is untouched and still the one under test.
    */
   if (studio.pricing_model === "services" && bands.length) {
-    const { data: notOffered } = await db
+    const { data: notOffered, error: exceptionsFailed } = await db
       .from("service_people")
       .select("service_id, artist_id")
       .in("service_id", bands.map((b) => b.id))
       .eq("offered", false);
+
+    // Same as above: an unread exception list reads as "no exceptions", which
+    // is the widest possible answer and the wrong way to fail.
+    if (exceptionsFailed) {
+      throw new Error(`could not read who does not do what: ${exceptionsFailed.message}`);
+    }
 
     Object.assign(
       providers,
