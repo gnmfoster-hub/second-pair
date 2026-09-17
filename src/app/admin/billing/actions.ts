@@ -27,7 +27,7 @@ export async function setPlan(fd: FormData): Promise<void> {
 
   const includedRaw = String(fd.get("texts_included") ?? "").trim();
 
-  await db
+  const { error } = await db
     .from("studios")
     .update({
       plan: String(fd.get("plan") ?? "").trim() || null,
@@ -37,6 +37,20 @@ export async function setPlan(fd: FormData): Promise<void> {
       text_overage_pence: Math.max(0, Math.round(Number(fd.get("overage") ?? 0) || 0)),
     })
     .eq("id", id);
+
+  /*
+   * Said out loud, because these forms have nowhere to say it quietly.
+   *
+   * Every write on this page threw its answer away. Pressing Save on a plan
+   * that failed — a constraint, a policy, a typo in a column — revalidated the
+   * page, redrew the old figure, and looked exactly like a save that worked
+   * and had nothing to change. This is the screen the prices are set on and
+   * the suppliers' bills are typed into; a number silently not saved here is a
+   * business invoiced wrongly, or a cost that never reaches the margin.
+   *
+   * An error page is ugly. It is also the truth, and this screen has one user.
+   */
+  if (error) throw new Error(`Could not save the plan: ${error.message}`);
 
   revalidatePath("/admin/billing");
 }
@@ -54,7 +68,7 @@ export async function markBilled(fd: FormData): Promise<void> {
   const month = String(fd.get("month") ?? "");
   if (!studio || !month) return;
 
-  await db
+  const { error } = await db
     .from("usage_months")
     .update({
       billed_pence: pence(fd.get("amount")),
@@ -63,6 +77,8 @@ export async function markBilled(fd: FormData): Promise<void> {
     })
     .eq("studio_id", studio)
     .eq("month", month);
+
+  if (error) throw new Error(`Could not mark that month as billed: ${error.message}`);
 
   revalidatePath("/admin/billing");
 }
@@ -74,12 +90,14 @@ export async function recordCost(fd: FormData): Promise<void> {
   const month = String(fd.get("month") ?? "").trim();
   if (!supplier || !/^\d{4}-\d{2}-01$/.test(month)) return;
 
-  await db.from("platform_costs").insert({
+  const { error } = await db.from("platform_costs").insert({
     month,
     supplier,
     pence: pence(fd.get("amount")),
     note: String(fd.get("note") ?? "").trim() || null,
   });
+
+  if (error) throw new Error(`Could not record that bill: ${error.message}`);
 
   revalidatePath("/admin/billing");
 }
@@ -87,7 +105,10 @@ export async function recordCost(fd: FormData): Promise<void> {
 export async function removeCost(fd: FormData): Promise<void> {
   const db = await ours();
   const id = String(fd.get("id") ?? "");
-  if (id) await db.from("platform_costs").delete().eq("id", id);
+  if (id) {
+    const { error } = await db.from("platform_costs").delete().eq("id", id);
+    if (error) throw new Error(`Could not remove that bill: ${error.message}`);
+  }
   revalidatePath("/admin/billing");
 }
 

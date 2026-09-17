@@ -318,10 +318,24 @@ export async function POST(request: NextRequest) {
       }
 
       if (conversationId) {
-        await db
+        /*
+         * Logged, not thrown, and not silent either.
+         *
+         * Stripe retries a webhook that fails, and the money has already been
+         * taken — throwing here would have it delivered again and the deposit
+         * recorded twice. But a conversation left unbooked after a customer
+         * has paid is the one state nobody will notice: the payment is in
+         * Stripe, the thread still says "deposit sent", and the owner chases
+         * somebody who has already paid them.
+         */
+        const { error: notBooked } = await db
           .from("conversations")
           .update({ status: "booked" })
           .eq("id", conversationId);
+
+        if (notBooked) {
+          console.error("[stripe] paid but the conversation is still not booked", notBooked.message);
+        }
 
         await db.from("messages").insert({
           conversation_id: conversationId,

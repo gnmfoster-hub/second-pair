@@ -237,12 +237,23 @@ export async function cancelSeries(fd: FormData) {
   const now = new Date().toISOString();
 
   // Past occurrences stay as history; only what is still to come is dropped.
-  await supabase
+  const { error } = await supabase
     .from("bookings")
     .update({ cancelled_at: now })
     .or(`id.eq.${rootId},repeat_parent_id.eq.${rootId}`)
     .gte("starts_at", entry.starts_at)
     .is("cancelled_at", null);
+
+  /*
+   * A cancellation that failed must not look like one that worked.
+   *
+   * The reminders are dropped first, so a swallowed failure here leaves the
+   * appointments in the diary with nothing to remind anybody about them: the
+   * customer turns up to a slot the business thinks is cancelled, or does not
+   * turn up to one it thinks is live. Silence is the worst of the three
+   * possible answers.
+   */
+  if (error) throw new Error(`Could not cancel those appointments: ${error.message}`);
 
   revalidatePath("/diary");
 }
@@ -253,10 +264,13 @@ export async function cancelDiaryEntry(fd: FormData) {
   await dropReminders(supabase, str(fd, "id"));
   // Cancelled rather than deleted: the slot frees up, the history stays, and a
   // paid deposit remains traceable for a refund.
-  await supabase
+  const { error } = await supabase
     .from("bookings")
     .update({ cancelled_at: new Date().toISOString() })
     .eq("id", str(fd, "id"));
+
+  // Same reason as the repeat above: the reminders have already gone.
+  if (error) throw new Error(`Could not cancel that appointment: ${error.message}`);
 
   revalidatePath("/diary");
   revalidatePath("/");
