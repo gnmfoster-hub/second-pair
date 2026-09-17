@@ -74,10 +74,23 @@ export default async function ConversationPage({
     );
   }
 
+  /*
+   * A label and a value, and the value is allowed to be long.
+   *
+   * An email address is one unbroken word. In a flex row a span will not
+   * shrink below its content unless it is told it may, so
+   * laibakhan0091@outlook.com pushed this row wider than the card, the card
+   * wider than the column and the whole page ten pixels past the edge of a
+   * phone — taking the conversation beside it with it.
+   *
+   * min-w-0 lets it shrink, break-words lets it wrap mid-address rather than
+   * sit in a line of its own, and on a narrow screen the label goes above the
+   * value instead of taking a third of the width to say "Email".
+   */
   const detail = (label: string, value: React.ReactNode) => (
-    <div className="flex gap-3 py-1.5 text-sm">
-      <span className="w-32 shrink-0 text-muted">{label}</span>
-      <span className={value ? "" : "text-muted/50"}>{value || "—"}</span>
+    <div className="flex flex-col gap-0.5 py-1.5 text-sm sm:flex-row sm:gap-3">
+      <span className="text-muted sm:w-32 sm:shrink-0">{label}</span>
+      <span className={`min-w-0 break-words ${value ? "" : "text-muted/50"}`}>{value || "—"}</span>
     </div>
   );
 
