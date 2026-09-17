@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { createElement, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 /**
@@ -18,13 +18,33 @@ import { createPortal } from "react-dom";
  * would do it again. So the sheet goes to the body, where its z-index is
  * compared against the things it actually has to beat.
  *
- * Guarded for the server, where there is no body. Both sheets only render
- * after somebody has tapped something, so in practice this is always the
- * browser — the check is for the one render where it is not.
+ * Held back until after the first paint, which is not the same as guarding for
+ * the server.
+ *
+ * It used to return null when there was no document and portal when there was,
+ * on the assumption that a sheet only ever renders after somebody has tapped
+ * something and is therefore always in a browser. That assumption is wrong the
+ * moment anybody opens an appointment by its address — a link in a
+ * notification, a bookmark, a diary URL with ?entry= on it. Then the server
+ * renders nothing and the browser renders the whole sheet, React finds a tree
+ * that does not match, and regenerates it: exactly the "server/client branch"
+ * its own error message warns about, written down here as a comment explaining
+ * why it was safe.
+ *
+ * Both sides now render nothing on the first pass and the sheet appears on the
+ * next, which they can agree on. The delay is one frame and nobody can see it;
+ * a regenerated tree loses focus and anything half-typed in it.
  */
-export function asSheet(children: ReactNode): ReactNode {
-  if (typeof document === "undefined") return null;
+function Sheet({ children }: { children: ReactNode }): ReactNode {
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
+
+  if (!ready || typeof document === "undefined") return null;
   return createPortal(children, document.body);
+}
+
+export function asSheet(children: ReactNode): ReactNode {
+  return createElement(Sheet, null, children);
 }
 
 /**
