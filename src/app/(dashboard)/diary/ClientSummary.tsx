@@ -49,7 +49,13 @@ export function ClientSummary({
   // under a newly picked name.
   const summary = found?.id === contactId ? found.summary : null;
 
-  if (!contactId || !summary || summary.total === 0) return null;
+  /*
+   * Nothing to say about a stranger — but a blocking fact is worth saying even
+   * about somebody whose visits are all still ahead of them, because that is
+   * exactly who is being booked when this panel is on screen.
+   */
+  if (!contactId || !summary) return null;
+  if (summary.total === 0 && summary.blocked.length === 0) return null;
 
   const when = (iso: string) =>
     new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
@@ -58,7 +64,9 @@ export function ClientSummary({
     <div className="rounded-xl border border-border bg-surface-2/40 p-3.5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <span className="text-sm font-medium">
-          Been in {summary.total} {summary.total === 1 ? "time" : "times"}
+          {summary.total === 0
+            ? "Not been in yet"
+            : `Been in ${summary.total} ${summary.total === 1 ? "time" : "times"}`}
         </span>
         {summary.noShows > 0 && (
           <span className="hint">
@@ -75,6 +83,22 @@ export function ClientSummary({
         <p className="mt-2 rounded-lg bg-warn/10 px-3 py-2 text-sm text-warn">
           {summary.alert}
         </p>
+      )}
+
+      {/*
+       * What this trade has to know before they sit down: the breed, the
+       * registration, the vaccination. A blocking one that has run out or was
+       * never given comes first and in the warning colour, because it is the
+       * only thing on this panel that changes what happens next.
+       */}
+      {summary.blocked.length > 0 && (
+        <p className="mt-2 rounded-lg bg-warn/10 px-3 py-2 text-sm text-warn">
+          {summary.blocked.join(". ")}. The assistant will not book them until this is sorted.
+        </p>
+      )}
+
+      {summary.facts.length > 0 && (
+        <p className="mt-2 text-xs text-muted">{summary.facts.join(" · ")}</p>
       )}
 
       {summary.usual && (

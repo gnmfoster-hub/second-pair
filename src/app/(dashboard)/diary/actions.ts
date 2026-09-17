@@ -5,6 +5,8 @@ import { resolveContact } from "@/lib/clients/resolve";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { whatBlocks, describeFact, type FactValues } from "@/lib/tradeFacts";
+import { verticalPack } from "@/lib/verticals";
 import { requireStudio, getArtists } from "@/lib/studio";
 import { instantFrom } from "@/lib/booking/tz";
 import { samePhone } from "@/lib/channels/phoneNumbers";
@@ -597,9 +599,14 @@ export async function clientSummary(contactId: string) {
 
   if (!contactId) return null;
 
+  /*
+   * Everything, because the trade's own fields live in a column that does not
+   * exist until its migration is run and PostgREST refuses the whole query for
+   * one unknown name — which here would blank the panel for every business.
+   */
   const { data: contact } = await supabase
     .from("contacts")
-    .select("id, name, alert")
+    .select("*")
     .eq("id", contactId)
     .eq("studio_id", studio.id)
     .maybeSingle();
@@ -707,9 +714,28 @@ export async function clientSummary(contactId: string) {
 
   const usual = [...counts.values()].sort((a, b) => b.times - a.times)[0] ?? null;
 
+  /*
+   * What this trade needs to know before somebody sits down.
+   *
+   * The breed and the vaccination for a groomer, the registration and the MOT
+   * for a garage. Only the facts the pack marks as worth seeing here: a
+   * customer's vet is worth keeping and is not worth a line on a booking.
+   *
+   * A blocking one that is missing or run out is said whether or not it has a
+   * value, because that is the one the person booking has to act on.
+   */
+  const pack = verticalPack(studio.vertical);
+  const onTheDay = pack.facts.filter((f) => f.onAppointment);
+  const values = ((contact as unknown as { trade_facts?: FactValues | null }).trade_facts ?? {});
+  const blocked = whatBlocks(pack.facts, values);
+
   return {
     name: contact.name as string | null,
     alert: (contact.alert as string | null) ?? null,
+    facts: onTheDay
+      .map((f) => describeFact(f, values[f.key]))
+      .filter((line): line is string => Boolean(line)),
+    blocked,
     visits: visits.slice(0, 4),
     total: visits.length,
     noShows: visits.filter((v) => v.attended === false).length,
