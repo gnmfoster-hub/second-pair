@@ -561,51 +561,6 @@ async function saveEnquiry(
     if (unclaimed) console.error("[tools] could not assign the conversation", unclaimed.message);
   }
 
-  /*
-   * And this trade's own facts, read into the shape they are kept in.
-   *
-   * Merged rather than replaced: a customer who gives their MOT date today
-   * must not lose the registration they gave in March. Anything unusable — a
-   * date nobody could parse, a field this trade does not have — is dropped
-   * silently, because a half-understood answer stored as if it were understood
-   * is worse than no answer.
-   */
-  const packFacts = verticalPack(ctx.studio.vertical).facts;
-  const given = (input.facts ?? null) as Record<string, unknown> | null;
-
-  if (packFacts.length && given && typeof given === "object") {
-    const clean: FactValues = {};
-    for (const fact of packFacts) {
-      if (!(fact.key in given)) continue;
-      const value = readFact(fact, given[fact.key]);
-      if (value !== null) clean[fact.key] = value;
-    }
-
-    if (Object.keys(clean).length) {
-      const { data: already } = await ctx.db
-        .from("contacts")
-        .select("trade_facts")
-        .eq("id", ctx.contactId)
-        .maybeSingle();
-
-      const merged = { ...((already?.trade_facts as FactValues | null) ?? {}), ...clean };
-      const { error: factError } = await ctx.db
-        .from("contacts")
-        .update({ trade_facts: merged })
-        .eq("id", ctx.contactId);
-
-      // The column arrives with a migration; a deploy that lands first must
-      // still save a name and a number.
-      if (!factError) {
-        saved.push(
-          ...Object.keys(clean).map(
-            (key) => packFacts.find((f) => f.key === key)?.label.toLowerCase() ?? key,
-          ),
-        );
-      }
-    }
-  }
-
   if (saved.length === 0) return { result: "Nothing to save." };
 
   const { error } = await ctx.db.from("enquiries").update(patch).eq("id", ctx.enquiryId);
@@ -622,7 +577,84 @@ async function saveEnquiry(
     };
   }
 
-  return { result: `Saved: ${saved.join(", ")}.` };
+  /*
+   * And the trade's own fields, after the contact is settled rather than
+   * before — a returning customer's conversation is moved onto the record
+   * they already had, and facts written to the blank first would be deleted
+   * along with it.
+   */
+  const facts = await saveFacts(ctx, (input.facts ?? null) as Record<string, unknown> | null);
+
+  if (facts.failed) {
+    return {
+      result:
+        `Saved: ${saved.join(", ")}. Could not save the extra details ` +
+        `(${facts.failed}) — do not tell them those are on file.`,
+    };
+  }
+
+  return { result: `Saved: ${[...saved, ...facts.saved].join(", ")}.` };
+}
+
+/**
+ * This trade's own facts, written onto the customer.
+ *
+ * Merged rather than replaced: somebody giving their MOT date today must not
+ * lose the registration they gave in March. Anything unusable — a date nobody
+ * could parse, a field this trade does not have — is dropped, because a
+ * half-understood answer stored as though it were understood is worse than no
+ * answer at all.
+ *
+ * This lived inside save_enquiry for a day, which is a function that has no
+ * facts to save. The model was doing its part perfectly — it sent the breed,
+ * the vaccination date and whether the dog was neutered, all from one sentence
+ * — and they went into a branch that could never run. The tool then reported
+ * "Saved: name, phone" and everything looked right. A misplaced block that
+ * reports success is worse than one that throws.
+ *
+ * Returns what was written, for the tool to say out loud.
+ */
+async function saveFacts(
+  ctx: ToolContext,
+  given: Record<string, unknown> | null,
+): Promise<{ saved: string[]; failed: string | null }> {
+  const packFacts = verticalPack(ctx.studio.vertical).facts;
+  if (!packFacts.length || !given || typeof given !== "object") return { saved: [], failed: null };
+
+  const clean: FactValues = {};
+  for (const fact of packFacts) {
+    if (!(fact.key in given)) continue;
+    const value = readFact(fact, given[fact.key]);
+    if (value !== null) clean[fact.key] = value;
+  }
+  if (!Object.keys(clean).length) return { saved: [], failed: null };
+
+  const { data: already } = await ctx.db
+    .from("contacts")
+    .select("trade_facts")
+    .eq("id", ctx.contactId)
+    .maybeSingle();
+
+  const merged = { ...((already?.trade_facts as FactValues | null) ?? {}), ...clean };
+  const { error } = await ctx.db
+    .from("contacts")
+    .update({ trade_facts: merged })
+    .eq("id", ctx.contactId);
+
+  /*
+   * Said, not swallowed. The column arrives with a migration and a deploy that
+   * lands first must still save a name and a number — but the assistant is
+   * about to tell somebody their vaccination is on file, so if it is not, the
+   * tool has to know.
+   */
+  if (error) return { saved: [], failed: error.message };
+
+  return {
+    saved: Object.keys(clean).map(
+      (key) => packFacts.find((f) => f.key === key)?.label.toLowerCase() ?? key,
+    ),
+    failed: null,
+  };
 }
 
 async function saveContact(
