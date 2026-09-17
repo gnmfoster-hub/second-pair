@@ -151,29 +151,46 @@ export default async function ClientsPage({
 
   return (
     <div className="mx-auto max-w-4xl px-8 py-9">
-      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
-        <h1 className="page-title">{capital(words.customers)}</h1>
-        <span className="hint">
-          {clients.length}
-          {clients.length === 200 ? "+" : ""} {term ? "matching" : "in total"}
-        </span>
+      {/*
+        * The title on one line and the things you can do on another.
+        *
+        * All four sat in one wrapping row, which is fine on a laptop and falls
+        * apart everywhere else: a third control was added and "Add a client" —
+        * the one somebody actually came here to press — dropped onto a line of
+        * its own, orphaned and left-aligned under the heading while the other
+        * two stayed up on the right. Wrapping is not a layout, it is what a
+        * layout does when it runs out of room.
+        *
+        * Two rows that are each allowed to be a row, and the actions keep
+        * their own order and their own alignment at every width.
+        */}
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+        <div className="flex flex-wrap items-baseline gap-x-3">
+          <h1 className="page-title">{capital(words.customers)}</h1>
+          <span className="hint">
+            {clients.length}
+            {clients.length === 200 ? "+" : ""} {term ? "matching" : "in total"}
+          </span>
+        </div>
 
-        {/* Somebody who has never messaged you still needs a record — the
-            walk-in regular, and anybody you want to reach out to first. */}
-        <Link href="/clients/forms" className="ml-auto text-xs text-accent hover:underline">
-          Forms
-        </Link>
-        {/*
-          * Next to adding one, because the two are the same job at different
-          * sizes: a business arriving from another system has four hundred to
-          * add, and typing them in is not an answer anybody accepts.
-          */}
-        <Link href="/clients/import" className="btn-ghost px-3.5 py-2 text-xs">
-          Bring in a list
-        </Link>
-        <Link href="/clients/new" className="btn-highlight px-3.5 py-2 text-xs">
-          Add a {words.customer}
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Somebody who has never messaged you still needs a record — the
+              walk-in regular, and anybody you want to reach out to first. */}
+          <Link href="/clients/forms" className="px-1 text-xs text-accent hover:underline">
+            Forms
+          </Link>
+          {/*
+            * Next to adding one, because the two are the same job at different
+            * sizes: a business arriving from another system has four hundred
+            * to add, and typing them in is not an answer anybody accepts.
+            */}
+          <Link href="/clients/import" className="btn-ghost px-3.5 py-2 text-xs">
+            Bring in a list
+          </Link>
+          <Link href="/clients/new" className="btn-highlight px-3.5 py-2 text-xs">
+            Add a {words.customer}
+          </Link>
+        </div>
       </div>
 
       <form className="mt-5">
