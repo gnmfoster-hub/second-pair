@@ -22,6 +22,7 @@ const STATUSES: ConvStatus[] = [
   "deposit_paid",
   "needs_human",
   "lost",
+  "spam",
 ];
 
 const TONE: Record<ConvStatus, string> = {
@@ -31,6 +32,7 @@ const TONE: Record<ConvStatus, string> = {
   booked: "bg-ok/10 text-ok",
   needs_human: "bg-warn/15 text-warn",
   lost: "bg-surface-2 text-muted/60",
+  spam: "bg-surface-2 text-muted/60",
 };
 
 export function StatusPicker({

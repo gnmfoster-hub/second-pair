@@ -16,7 +16,15 @@ export type ConvStatus =
   | "deposit_paid"
   | "booked"
   | "needs_human"
-  | "lost";
+  | "lost"
+  /**
+   * Not an enquiry at all — an agency, a list seller, somebody selling SEO.
+   *
+   * Separate from "lost" on purpose. Lost is somebody real who went elsewhere,
+   * which is a number worth watching; spam is a number worth removing, and
+   * putting the two together makes both useless.
+   */
+  | "spam";
 /** Was a Postgres enum; now a key into the studio's own service_options. */
 export type StyleKey = string;
 export type IntentKey = string;
@@ -43,6 +51,7 @@ export const CONV_STATUS_LABELS: Record<ConvStatus, string> = {
   booked: "Booked",
   needs_human: "Needs human",
   lost: "Lost",
+  spam: "Spam",
 };
 
 export const CHANNEL_LABELS: Record<Channel, string> = {

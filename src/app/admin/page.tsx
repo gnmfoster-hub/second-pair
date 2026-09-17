@@ -243,9 +243,9 @@ export default async function AdminPage() {
   const [everyArtist, everyBand, everyConversation, everyBooking, everyMember] = await Promise.all([
     pageAll<Record<string, unknown>>("artists", "*"),
     pageAll<{ studio_id: string }>("price_bands", "studio_id"),
-    pageAll<{ studio_id: string; last_message_at: string | null }>(
+    pageAll<{ studio_id: string; last_message_at: string | null; status: string | null }>(
       "conversations",
-      "studio_id, last_message_at",
+      "studio_id, last_message_at, status",
     ),
     pageAll<{ source: string | null; cancelled_at: string | null; artists: { studio_id: string } }>(
       "bookings",
@@ -272,7 +272,15 @@ export default async function AdminPage() {
 
   const artistsOf = group(everyArtist, (a) => a.studio_id as string);
   const bandsOf = group(everyBand, (b) => b.studio_id);
-  const conversationsOf = group(everyConversation, (c) => c.studio_id);
+  /*
+   * Spam is not an enquiry, here either. It is left out of the count and out
+   * of "last thing that happened", because a list seller writing in at
+   * midnight should not make a quiet business look active.
+   */
+  const conversationsOf = group(
+    everyConversation.filter((c) => c.status !== "spam"),
+    (c) => c.studio_id,
+  );
   const bookingsOf = group(everyBooking, (b) => b.artists?.studio_id);
   const membersOf = group(everyMember, (m) => m.studio_id);
 

@@ -26,6 +26,7 @@ const STATUS_STYLES: Record<ConvStatus, string> = {
   booked: "bg-ok/10 text-ok",
   needs_human: "bg-warn/15 text-warn",
   lost: "bg-surface-2 text-muted/60",
+  spam: "bg-surface-2 text-muted/60",
 };
 
 type Row = {
@@ -135,6 +136,16 @@ export default async function InboxPage({
     // Rehearsals by the owner never appear here, or every figure below is a
     // lie about how much work the assistant actually did.
     .eq("is_test", false)
+    /*
+     * And nothing somebody has already marked as spam.
+     *
+     * Marking it is the act of dismissing it: an agency that got through is
+     * not a conversation anybody needs to see again, and leaving it in the
+     * list means the same list seller is read twice. It is still on the
+     * customer's record and still in the database — this only stops it
+     * queueing for attention.
+     */
+    .neq("status", "spam")
     .order("last_message_at", { ascending: false })
     .limit(50);
 
@@ -186,11 +197,13 @@ export default async function InboxPage({
     } | null;
   };
 
+  /* The week's figures, with spam out of them for the same reason. */
   let counted = supabase
     .from("conversations")
     .select("created_at, enquiries(quote_low_pence, bookings(cancelled_at))")
     .eq("studio_id", studio.id)
     .eq("is_test", false)
+    .neq("status", "spam")
     .gte("created_at", sevenDaysAgo);
   counted = scopedTo(counted, scope);
 

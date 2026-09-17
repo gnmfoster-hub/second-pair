@@ -117,7 +117,15 @@ export async function weeklyReport(
     } | null;
   };
 
-  const rows = (conversations ?? []) as unknown as Row[];
+  /*
+   * Spam never reaches the figures, starting with the headline count.
+   *
+   * Filtered here rather than skipped in the loop below so that "enquiries"
+   * itself is right — it is read off the length, and a business told it had
+   * fifty enquiries and converted four, when eleven of the fifty were list
+   * sellers, has been given a worse number than no number.
+   */
+  const rows = ((conversations ?? []) as unknown as Row[]).filter((r) => r.status !== "spam");
 
   const report: WeeklyReport = {
     from: from.toISOString(),

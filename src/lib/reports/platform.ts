@@ -123,7 +123,17 @@ export function platformReport(
   const convStudio = new Map(rows.conversations.map((c) => [c.id, c]));
 
   const businesses = rows.studios.map((s): BusinessReport => {
-    const convs = rows.conversations.filter((c) => c.studio_id === s.id && !c.is_test);
+    /*
+     * Test conversations were never real and spam was never an enquiry.
+     *
+     * Both are dropped at the same point and for the same reason: a figure
+     * that counts them is a figure somebody will quote. Spam especially — it
+     * only ever converts at nought per cent, so leaving it in makes a busy
+     * inbox look like a failing one.
+     */
+    const convs = rows.conversations.filter(
+      (c) => c.studio_id === s.id && !c.is_test && c.status !== "spam",
+    );
     const convIds = new Set(convs.map((c) => c.id));
     const newConvs = convs.filter((c) => inRange(c.created_at, from, to));
 
