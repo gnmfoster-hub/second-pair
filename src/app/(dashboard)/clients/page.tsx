@@ -163,6 +163,14 @@ export default async function ClientsPage({
         <Link href="/clients/forms" className="ml-auto text-xs text-accent hover:underline">
           Forms
         </Link>
+        {/*
+          * Next to adding one, because the two are the same job at different
+          * sizes: a business arriving from another system has four hundred to
+          * add, and typing them in is not an answer anybody accepts.
+          */}
+        <Link href="/clients/import" className="btn-ghost px-3.5 py-2 text-xs">
+          Bring in a list
+        </Link>
         <Link href="/clients/new" className="btn-highlight px-3.5 py-2 text-xs">
           Add a {words.customer}
         </Link>
