@@ -234,3 +234,35 @@ test("a real export, start to finish", () => {
   assert.equal(meg.marketingSms, null);
   assert.equal(meg.name, "Meg O'Shea", "an apostrophe is a name, not a quote");
 });
+
+/*
+ * Our own export, read back by our own import.
+ *
+ * A business exporting its list and putting it back — moving between two of
+ * our screens, or sending it to us to fix something — must not lose anything.
+ * It did: the export writes "Agreed" in the marketing columns and the import
+ * had never heard the word, so everybody arrived as nothing-said.
+ */
+test("what we write out, we can read back", () => {
+  const ours = [
+    "Name,Phone,Email,Instagram,Email marketing,Text marketing,Agreed on,Notes,First seen",
+    "Dave Bone,07700 900301,dave@example.com,@davebone,Agreed,Agreed,03/01/2023,Prefers Kerry,03/01/2023",
+    "Jo Okafor,07700 900302,jo@example.com,,No,Agreed,,,17/03/2023",
+  ].join("\n");
+
+  const { headers, rows } = readCsv(ours);
+  const mapping = guessColumns(headers);
+
+  const dave = readRow(headers, mapping, rows[0]);
+  assert.equal(dave.name, "Dave Bone");
+  assert.equal(dave.marketingEmail, true, '"Agreed" is the word our own export writes');
+  assert.equal(dave.marketingSms, true);
+  assert.match(dave.notes ?? "", /Prefers Kerry/);
+  // The evidence of when they agreed is kept rather than dropped.
+  assert.match(dave.notes ?? "", /Agreed on: 03\/01\/2023/);
+  assert.match(dave.notes ?? "", /Instagram: @davebone/);
+
+  const jo = readRow(headers, mapping, rows[1]);
+  assert.equal(jo.marketingEmail, false);
+  assert.equal(jo.marketingSms, true);
+});

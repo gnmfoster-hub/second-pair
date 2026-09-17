@@ -87,7 +87,8 @@ export const FIELDS: FieldSpec[] = [
   {
     target: "keep",
     label: "Keep, in their notes",
-    matches: /^(d\.?o\.?b\.?|date\s*of\s*birth|birth|address|post\s*code|postcode|zip|town|city|county|gender|tags?|referr?al(\s*source)?|source|added)/i,
+    matches:
+      /^(d\.?o\.?b\.?|date\s*of\s*birth|birth|address|post\s*code|postcode|zip|town|city|county|gender|tags?|referr?al(\s*source)?|source|added|agreed\s*on|first\s*seen|instagram|last\s*(seen|visit))/i,
     hint: "We have nowhere typed for this, so it is written into their notes rather than lost.",
   },
   { target: "ignore", label: "Do not import", matches: /^(id|client\s*id|customer\s*id)$/i },
@@ -176,8 +177,22 @@ export function guessColumns(headers: string[]): Target[] {
 export function readTick(raw: string | undefined): boolean | null {
   const value = (raw ?? "").trim().toLowerCase();
   if (!value) return null;
-  if (["yes", "y", "true", "1", "on", "subscribed", "opted in", "opted-in"].includes(value)) return true;
-  if (["no", "n", "false", "0", "off", "unsubscribed", "opted out", "opted-out"].includes(value)) {
+
+  /*
+   * "Agreed" is in this list because it is the word we write ourselves.
+   *
+   * Our own export puts "Agreed" in the two marketing columns. Our own import
+   * did not know it, so a business exporting its list and putting it back —
+   * moving between two of our own screens, or sending it to us to fix
+   * something — lost everybody's consent to "nothing said". Two halves of the
+   * same product disagreeing about a word one of them wrote.
+   */
+  if (["yes", "y", "true", "1", "on", "agreed", "subscribed", "opted in", "opted-in"].includes(value)) {
+    return true;
+  }
+  if (
+    ["no", "n", "false", "0", "off", "declined", "unsubscribed", "opted out", "opted-out"].includes(value)
+  ) {
     return false;
   }
   return null;
