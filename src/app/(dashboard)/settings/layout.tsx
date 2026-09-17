@@ -1,4 +1,5 @@
-import { RailLink, TabLink } from "@/components/NavLink";
+import { RailLink } from "@/components/NavLink";
+import { SettingsPicker } from "./SettingsPicker";
 import { Page, PageHeader } from "@/components/PageHeader";
 import { requireStudio } from "@/lib/studio";
 import { createClient } from "@/lib/supabase/server";
@@ -129,9 +130,10 @@ export default async function SettingsLayout({ children }: { children: React.Rea
         * one column instead of hunting along two rows, and another page can be
         * added without the shape of the screen changing.
         *
-        * On a phone it is still a row, because a rail down the side of a
-        * four-hundred-pixel screen is most of the screen. Same groups, same
-        * order, scrolling sideways with the headings kept in.
+        * Narrower than a laptop it is a picker rather than a rail, because a
+        * rail down the side of a four-hundred-pixel screen is most of the
+        * screen and a row that scrolls sideways strands each heading over a
+        * gap the moment anybody moves it. See SettingsPicker.
         */}
       <div className="mt-6 lg:grid lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:gap-9">
         {/*
@@ -144,23 +146,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
           aria-label="Settings"
           className="lg:sticky lg:top-6 lg:self-start lg:border-r lg:border-border lg:pr-6"
         >
-          {/* Sideways on anything narrow. */}
-          <div className="-mx-4 flex gap-6 overflow-x-auto border-b border-border px-4 pb-3 lg:hidden">
-            {groups.map((group) => (
-              <div key={group.title} className="flex shrink-0 flex-col gap-1">
-                <span className="text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-muted">
-                  {group.title}
-                </span>
-                <div className="flex items-baseline gap-4">
-                  {group.links.map((link) => (
-                    <TabLink key={link.href} href={link.href}>
-                      {link.label}
-                    </TabLink>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+          <SettingsPicker groups={groups} />
 
           {/* Down the side, from a laptop upwards. */}
           <div className="hidden lg:flex lg:flex-col lg:gap-6">
