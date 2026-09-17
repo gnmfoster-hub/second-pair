@@ -136,16 +136,6 @@ export default async function InboxPage({
     // Rehearsals by the owner never appear here, or every figure below is a
     // lie about how much work the assistant actually did.
     .eq("is_test", false)
-    /*
-     * And nothing somebody has already marked as spam.
-     *
-     * Marking it is the act of dismissing it: an agency that got through is
-     * not a conversation anybody needs to see again, and leaving it in the
-     * list means the same list seller is read twice. It is still on the
-     * customer's record and still in the database — this only stops it
-     * queueing for attention.
-     */
-    .neq("status", "spam")
     .order("last_message_at", { ascending: false })
     .limit(50);
 
@@ -191,19 +181,19 @@ export default async function InboxPage({
    */
   type WeekRow = {
     created_at: string;
+    status: ConvStatus;
     enquiries: {
       quote_low_pence: number | null;
       bookings: { cancelled_at: string | null }[];
     } | null;
   };
 
-  /* The week's figures, with spam out of them for the same reason. */
+  /* The week's figures. Spam is taken out below, in code, not in the query. */
   let counted = supabase
     .from("conversations")
-    .select("created_at, enquiries(quote_low_pence, bookings(cancelled_at))")
+    .select("created_at, status, enquiries(quote_low_pence, bookings(cancelled_at))")
     .eq("studio_id", studio.id)
     .eq("is_test", false)
-    .neq("status", "spam")
     .gte("created_at", sevenDaysAgo);
   counted = scopedTo(counted, scope);
 
@@ -236,8 +226,23 @@ export default async function InboxPage({
     flagged as unknown as Rows<{ id: string }>,
   ]);
 
-  const conversations = data ?? [];
-  const week = weekRows ?? [];
+  /*
+   * Spam is dropped here, in code, and deliberately not in the query.
+   *
+   * Asking PostgREST for "status is not spam" names a value the database has
+   * never heard of until its migration is run — and it does not ignore an
+   * unknown enum value, it refuses the whole statement. So the inbox came back
+   * empty on every business while the badge, which is a different query, went
+   * on counting. An empty inbox with a number on the icon, everywhere, from
+   * one line meant to hide list sellers.
+   *
+   * The same mistake as the trade fields and the by-channel meter, and the
+   * lesson is the same one: a new value is optional until its migration has
+   * definitely run, and the safe place to use it is in code, where an unknown
+   * word is simply a word nothing matches.
+   */
+  const conversations = (data ?? []).filter((c) => c.status !== "spam");
+  const week = (weekRows ?? []).filter((c) => c.status !== "spam");
 
   // Framed as what the assistant did, not as what happened — that is the thing
   // being paid for, and the reason to open this page at all.
