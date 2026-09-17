@@ -8,6 +8,7 @@ import {
   stillToAsk,
   dueSoon,
   describeFact,
+  blockedBy,
   type TradeFact,
 } from "./tradeFacts.ts";
 
@@ -130,4 +131,20 @@ test("a reminder can count forward from something that already happened", () => 
   assert.equal(due[0].daysAway, -335);
 
   assert.deepEqual(dueSoon([serviced], { serviced: "2026-01-01" }, now), [], "only months old yet");
+});
+
+/*
+ * The one that nearly shipped. Before the migration the column does not exist,
+ * PostgREST refuses the query, and an error read as "nothing recorded" refuses
+ * every booking a groomer tries to make. Same shape as the backup check that
+ * passed on an empty bucket.
+ */
+test("a read that failed blocks nobody", () => {
+  assert.deepEqual(blockedBy([vaccination], { values: {}, failed: true }, now), []);
+
+  assert.equal(
+    blockedBy([vaccination], { values: {}, failed: false }, now).length,
+    1,
+    "a read that worked and found nothing still blocks",
+  );
 });

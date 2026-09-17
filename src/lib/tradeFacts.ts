@@ -208,3 +208,24 @@ export function describeFact(fact: TradeFact, value: unknown): string | null {
 
   return `${fact.label}: ${String(value)}`;
 }
+
+/**
+ * What blocks, given a read that may not have worked.
+ *
+ * Separated out and named because the rule is easy to get backwards and
+ * expensive when you do: a failed read is not an empty answer. Until the
+ * migration runs the column does not exist and the query is refused, and
+ * treating that as "no vaccination recorded" refuses every appointment a
+ * groomer tries to make. After the migration the same applies to any transient
+ * failure — turning a customer away because the database blinked is worse than
+ * taking a booking we could not check, and the owner sees the record either
+ * way. When we cannot tell, we do not stand in the way.
+ */
+export function blockedBy(
+  facts: TradeFact[],
+  read: { values: FactValues; failed: boolean },
+  now: Date = new Date(),
+): string[] {
+  if (read.failed) return [];
+  return whatBlocks(facts, read.values, now);
+}

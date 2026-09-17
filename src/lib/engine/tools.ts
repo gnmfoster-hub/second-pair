@@ -27,7 +27,7 @@ import {
   regularSummary,
   type RegularRule,
 } from "@/lib/booking/regular";
-import { whatBlocks, stillToAsk, readFact, type FactValues } from "@/lib/tradeFacts";
+import { blockedBy, stillToAsk, readFact, type FactValues } from "@/lib/tradeFacts";
 import { whoCanBeOffered } from "./offering";
 import { missingDetails } from "./reachable";
 import type { Artist, PriceBand, ServiceOption, Studio } from "@/lib/types";
@@ -1380,17 +1380,27 @@ async function makeBooking(
    * with, rather than booking and leaving the owner to notice on the day.
    */
   const packFacts = verticalPack(ctx.studio.vertical).facts;
-  if (packFacts.length) {
-    const { data: theirFacts } = await ctx.db
+  if (packFacts.some((f) => f.blocks)) {
+    const { data: theirFacts, error: factsError } = await ctx.db
       .from("contacts")
       .select("trade_facts")
       .eq("id", ctx.contactId)
       .maybeSingle();
 
-    const blocked = whatBlocks(
-      packFacts,
-      ((theirFacts?.trade_facts as FactValues | null) ?? {}) as FactValues,
-    );
+    /*
+     * A failed read is not an empty answer, and here the difference is a
+     * business that cannot take a booking.
+     *
+     * Until the migration runs the column does not exist, PostgREST refuses
+     * the query, and reading that as "no vaccination recorded" refuses every
+     * appointment a groomer tries to make. The same shape as the backup check
+     * that passed on an empty bucket: an error quietly answering a question
+     * nobody asked. When we cannot tell, we do not stand in the way.
+     */
+    const blocked = blockedBy(packFacts, {
+      values: ((theirFacts?.trade_facts as FactValues | null) ?? {}) as FactValues,
+      failed: Boolean(factsError),
+    });
 
     if (blocked.length) {
       const asks = stillToAsk(packFacts, ((theirFacts?.trade_facts as FactValues | null) ?? {}) as FactValues);
