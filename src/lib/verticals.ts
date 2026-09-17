@@ -80,6 +80,8 @@ export const TRADE_CATEGORIES = [
 
 export type TradeCategory = (typeof TRADE_CATEGORIES)[number];
 
+import type { TradeFact } from "./tradeFacts";
+
 export type VerticalPack = {
   id: string;
   label: string;
@@ -137,6 +139,14 @@ export type VerticalPack = {
    * customer "the same time every week" reads as a machine reciting options.
    */
   regulars: boolean;
+  /**
+   * The few things this trade keeps about a customer that nothing else does.
+   *
+   * A vaccination expiry, an MOT date, a theory-test pass. See tradeFacts:
+   * these are typed, so they can stop a booking, fire a reminder and read as a
+   * sentence — which a paragraph of free text cannot. Most trades have none.
+   */
+  facts: TradeFact[];
   /** Extra hard rules, on top of the universal one. */
   rules: string[];
   styles: { value: string; label: string }[];
@@ -173,6 +183,7 @@ type TradeInput = {
   location?: VerticalPack["location"];
   pricing?: VerticalPack["pricing"];
   regulars?: boolean;
+  facts?: TradeFact[];
   /** How to ask the one question that places a job. See VerticalPack.sizing. */
   sizing?: string;
   roles?: string[];
@@ -281,6 +292,8 @@ function trade(input: TradeInput): VerticalPack {
     pricing,
     // Most work is one job at a time. The trades where it is not say so.
     regulars: input.regulars ?? false,
+    // Almost every trade keeps nothing special. The few that do say so.
+    facts: input.facts ?? [],
     rules: [UNIVERSAL_RULE, ...(input.rules ?? [])],
     styles: input.styles ?? [],
     intents: input.intents ?? [
@@ -1208,6 +1221,16 @@ const HEALTH: VerticalPack[] = [
 
   trade({
     id: "pt",
+    facts: [
+      {
+        key: "parq",
+        label: "Health questionnaire",
+        type: "date",
+        ask: "whether they have filled in a health questionnaire",
+        onAppointment: true,
+      },
+      { key: "injuries", label: "Injuries to work around", type: "text", onAppointment: true },
+    ],
     regulars: true,
     faqs: [
       "Where can I park?",
@@ -1324,6 +1347,19 @@ const HEALTH: VerticalPack[] = [
 const PETS: VerticalPack[] = [
   trade({
     id: "dog_groomer",
+    facts: [
+      {
+        key: "vaccination_due",
+        label: "Vaccination expires",
+        type: "date",
+        ask: "when the dog's vaccinations run out",
+        blocks: "expired",
+        onAppointment: true,
+      },
+      { key: "breed", label: "Breed", type: "text", onAppointment: true },
+      { key: "neutered", label: "Neutered", type: "yesno" },
+      { key: "vet", label: "Their vet", type: "text" },
+    ],
     label: "Dog groomer",
     category: "Pets",
     blurb: "Grooming, priced by breed and coat.",
@@ -1375,6 +1411,18 @@ const PETS: VerticalPack[] = [
 
   trade({
     id: "dog_walker",
+    facts: [
+      {
+        key: "vaccination_due",
+        label: "Vaccination expires",
+        type: "date",
+        ask: "when the dog's vaccinations run out",
+        blocks: "expired",
+        onAppointment: true,
+      },
+      { key: "breed", label: "Breed", type: "text", onAppointment: true },
+      { key: "recall", label: "Can be let off the lead", type: "yesno" },
+    ],
     regulars: true,
     faqs: [
       "What areas do you cover?",
@@ -1418,6 +1466,11 @@ const PETS: VerticalPack[] = [
 const MOTORING: VerticalPack[] = [
   trade({
     id: "mobile_mechanic",
+    facts: [
+      { key: "registration", label: "Registration", type: "text", ask: "the registration", onAppointment: true },
+      { key: "mot_due", label: "MOT due", type: "date", remindBefore: 45, onAppointment: true },
+      { key: "mileage", label: "Mileage last seen", type: "number" },
+    ],
     faqs: [
       "What areas do you cover?",
       "How do I pay?",
@@ -1460,6 +1513,19 @@ const MOTORING: VerticalPack[] = [
 
   trade({
     id: "garage",
+    facts: [
+      { key: "registration", label: "Registration", type: "text", ask: "the registration", onAppointment: true },
+      /*
+       * Earlier than the government.
+       *
+       * The DVSA texts every motorist free, one month before the MOT runs out.
+       * A garage's reminder is worth nothing unless it arrives first and
+       * carries a slot — so six weeks, which is a fortnight ahead of theirs.
+       */
+      { key: "mot_due", label: "MOT due", type: "date", ask: "when the MOT runs out", remindBefore: 45, onAppointment: true },
+      { key: "service_due", label: "Service due", type: "date", remindBefore: 30 },
+      { key: "mileage", label: "Mileage last seen", type: "number" },
+    ],
     faqs: [
       "Where can I park?",
       "How do I pay?",
@@ -1534,6 +1600,24 @@ const MOTORING: VerticalPack[] = [
 
   trade({
     id: "driving_instructor",
+    facts: [
+      {
+        key: "theory_passed",
+        label: "Theory passed",
+        type: "date",
+        ask: "when they passed their theory, if they have",
+        /*
+         * A theory pass lasts two years to the day. A pupil who lets it lapse
+         * sits the whole thing again, and the first they usually hear of it is
+         * when they try to book the practical — so this is said at eighteen
+         * months, with six months still to use it.
+         */
+        remindBefore: 548,
+        onAppointment: true,
+      },
+      { key: "test_booked", label: "Practical test", type: "date", remindBefore: 14, onAppointment: true },
+      { key: "licence", label: "Provisional licence", type: "yesno", ask: "whether they have their provisional yet" },
+    ],
     regulars: true,
     faqs: [
       "What areas do you cover?",
@@ -1639,6 +1723,10 @@ const OTHER: VerticalPack[] = [
 
   trade({
     id: "tutor",
+    facts: [
+      { key: "exam_board", label: "Exam board", type: "text", ask: "which exam board they are on", onAppointment: true },
+      { key: "exam_date", label: "Exam date", type: "date", remindBefore: 60 },
+    ],
     regulars: true,
     faqs: [
       "What areas do you cover?",

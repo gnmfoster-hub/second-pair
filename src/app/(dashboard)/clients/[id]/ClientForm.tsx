@@ -6,10 +6,23 @@ import { Field, SubmitButton } from "@/components/Form";
 import { describeConsent } from "@/lib/consent";
 import { CopyLink } from "@/components/CopyLink";
 
+/** One field this trade keeps, already worked out on the server. */
+export type FactField = {
+  key: string;
+  label: string;
+  type: "date" | "text" | "number" | "yesno";
+  /** Why it matters right now — an expiry that has passed, or one never given. */
+  hint: string | null;
+  value: string;
+};
+
 export function ClientForm({
   client,
+  facts = [],
   prefsUrl,
 }: {
+  /** The trade's own fields. Empty for most trades; a groomer has three. */
+  facts?: FactField[];
   /** Their own preferences page, where the database has a token for it. */
   prefsUrl?: string | null;
   client: {
@@ -57,6 +70,36 @@ export function ClientForm({
           className="input"
         />
       </Field>
+
+      {/*
+        * What this trade keeps, and nothing another trade would.
+        *
+        * A groomer's vaccination expiry sits here rather than in the notes,
+        * because a date in a paragraph is a sentence — nothing can compare it,
+        * so nothing can stop a booking with it or get a reminder out before it.
+        */}
+      {facts.length > 0 && (
+        <fieldset className="grid gap-4 sm:grid-cols-2">
+          {facts.map((fact) => (
+            <Field key={fact.key} label={fact.label} hint={fact.hint ?? undefined}>
+              {fact.type === "yesno" ? (
+                <select name={`fact_${fact.key}`} defaultValue={fact.value} className="input">
+                  <option value="">Not known</option>
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+              ) : (
+                <input
+                  name={`fact_${fact.key}`}
+                  type={fact.type === "date" ? "date" : fact.type === "number" ? "number" : "text"}
+                  defaultValue={fact.value}
+                  className="input"
+                />
+              )}
+            </Field>
+          ))}
+        </fieldset>
+      )}
 
       <Field label="Notes" hint="Only your team sees these.">
         <textarea name="notes" defaultValue={client.notes ?? ""} rows={4} className="input" />

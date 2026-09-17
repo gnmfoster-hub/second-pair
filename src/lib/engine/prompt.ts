@@ -104,6 +104,22 @@ export function studioSystemPrompt(
 
   const qualificationLines = pack.qualification.map((q) => `- ${q.prompt}`).join("\n");
   const ageLine = pack.ageCheck ? "\n- That they are 18 or over" : "";
+
+  /*
+   * The few things this trade keeps, asked in its own words.
+   *
+   * Only the ones the pack says to ask about, and a blocking one says so —
+   * an assistant that knows a booking will be refused asks before offering
+   * times, rather than after somebody has chosen one.
+   */
+  const factLines = pack.facts
+    .filter((f) => f.ask)
+    .map((f) => `- ${f.ask}${f.blocks ? " — you cannot book without this" : ""}`)
+    .join("\n");
+  const factSection = factLines ? `\n${factLines}` : "";
+  const factSaving = pack.facts.length
+    ? "\n\nSave any of those with save_contact the moment they say it — a date can be written however they said it. Do not ask for them all at once; they come up on their own."
+    : "";
   const ruleLines = pack.rules.map((r) => `- ${r}`).join("\n");
 
   // Work at the customer's address changes what has to be asked, and adds a
@@ -307,9 +323,9 @@ Get their first name early — ask for it in your first or second message, and u
 
 Work out, over the course of the conversation:
 - Their name, and a phone number or email
-${qualificationLines}${locationLine}
+${qualificationLines}${factSection}${locationLine}
 ${photoLine}
-${teamLine}${ageLine}
+${teamLine}${ageLine}${factSaving}
 - Which days and times suit them
 
 Ask only for what you do not already have. The known-so-far note tells you what has been answered. Never ask twice.

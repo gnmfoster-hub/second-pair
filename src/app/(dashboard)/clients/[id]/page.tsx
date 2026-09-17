@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { describeFact, type TradeFact } from "@/lib/tradeFacts";
+import { verticalPack } from "@/lib/verticals";
 import { requireStudio, getArtists } from "@/lib/studio";
 import { payableFor } from "@/lib/payments/whoTakes";
 import { formatPence } from "@/lib/money";
@@ -30,6 +32,8 @@ type ContactRow = {
   notes: string | null;
   alert: string | null;
   marketing_consent: boolean;
+  /** Absent until the trade-facts migration runs; then the pack's own fields. */
+  trade_facts?: Record<string, unknown> | null;
   marketing_email?: boolean | null;
   marketing_sms?: boolean | null;
   marketing_token?: string | null;
@@ -264,6 +268,45 @@ export default async function ClientPage({
     }
   }
 
+  /*
+   * The trade's own facts about this person, in the pack's order, with
+   * anything expired marked — see tradeFacts. Empty for almost every trade.
+   */
+  const today = new Date().toISOString().slice(0, 10);
+  const facts = verticalPack(studio.vertical)
+    .facts.map((fact: TradeFact) => {
+      const value = (contact.trade_facts ?? {})[fact.key];
+      const shown = describeFact(fact, value)?.replace(`${fact.label}: `, "") ?? null;
+      return {
+        fact,
+        shown,
+        expired: fact.type === "date" && typeof value === "string" && value < today,
+      };
+    })
+    .map(({ fact, shown, expired }) => ({
+      key: fact.key,
+      label: fact.label,
+      type: fact.type,
+      hint: expired
+        ? `Ran out ${shown}. No more appointments until this is renewed.`
+        : fact.blocks && !shown
+          ? "Needed before an appointment can be made."
+          : null,
+      /*
+       * A date box wants the ISO form and a yes/no box wants the word, so a
+       * stored false comes back as "no" rather than as the string "false",
+       * which would match no option and quietly read as not known.
+       */
+      value:
+        fact.type === "yesno"
+          ? typeof (contact.trade_facts ?? {})[fact.key] === "boolean"
+            ? (contact.trade_facts ?? {})[fact.key]
+              ? "yes"
+              : "no"
+            : ""
+          : String((contact.trade_facts ?? {})[fact.key] ?? ""),
+    }));
+
   return (
     <div className="mx-auto max-w-4xl px-8 py-9">
       <Link href="/clients" className="hint hover:text-foreground">
@@ -340,6 +383,7 @@ export default async function ClientPage({
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_18rem]">
         <div className="min-w-0 space-y-6">
           <ClientForm
+            facts={facts}
             client={{
               id: contact.id,
               name: contact.name,

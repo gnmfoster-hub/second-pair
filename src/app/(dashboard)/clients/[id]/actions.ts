@@ -12,6 +12,8 @@ import { connectedChannels, smsNumberFor } from "@/lib/messaging/connections";
 import type { Channel } from "@/lib/types";
 import { replyToFor } from "@/lib/messaging/replyTo";
 import { sendPaymentReceipt } from "@/lib/messaging/receipt";
+import { verticalPack } from "@/lib/verticals";
+import { readFact } from "@/lib/tradeFacts";
 
 export type ClientState = { error?: string; ok?: boolean };
 
@@ -37,9 +39,39 @@ export async function saveClient(_prev: ClientState, fd: FormData): Promise<Clie
     .eq("studio_id", studio.id)
     .maybeSingle();
 
+  /*
+   * The trade's own fields, if this trade has any.
+   *
+   * Only keys the pack defines are read — a posted field name that no pack
+   * knows is not a way to write arbitrary json onto a customer. Each answer
+   * goes through readFact, so a date typed the British way in a browser box is
+   * stored the same way as one the assistant heard on WhatsApp.
+   *
+   * Left out entirely until the column exists, because PostgREST refuses the
+   * whole update for one unknown column and the rest of this form matters more.
+   */
+  const packFacts = verticalPack(studio.vertical).facts;
+  let factPatch: Record<string, unknown> = {};
+  if (packFacts.length && fd.has(`fact_${packFacts[0].key}`)) {
+    if (await hasColumn(supabase, "contacts", "trade_facts")) {
+      const kept: Record<string, unknown> = {
+        ...((before as { trade_facts?: Record<string, unknown> | null } | null)?.trade_facts ?? {}),
+      };
+      for (const fact of packFacts) {
+        const raw = fd.get(`fact_${fact.key}`);
+        if (raw == null) continue;
+        const value = readFact(fact, raw);
+        if (value == null) delete kept[fact.key];
+        else kept[fact.key] = value;
+      }
+      factPatch = { trade_facts: kept };
+    }
+  }
+
   const { error } = await supabase
     .from("contacts")
     .update({
+      ...factPatch,
       name: str(fd, "name") || null,
       phone: str(fd, "phone") || null,
       email: str(fd, "email") || null,

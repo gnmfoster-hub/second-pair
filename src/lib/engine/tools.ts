@@ -27,6 +27,7 @@ import {
   regularSummary,
   type RegularRule,
 } from "@/lib/booking/regular";
+import { whatBlocks, stillToAsk, readFact, type FactValues } from "@/lib/tradeFacts";
 import { whoCanBeOffered } from "./offering";
 import { missingDetails } from "./reachable";
 import type { Artist, PriceBand, ServiceOption, Studio } from "@/lib/types";
@@ -186,6 +187,34 @@ export function toolDefinitions(
           name: { type: "string", description: "First name is enough." },
           phone: { type: "string", description: "As they typed it. Do not reformat." },
           email: { type: "string" },
+          /*
+           * And the few things this trade keeps that nothing else does.
+           *
+           * Offered only where the pack defines them, and named rather than
+           * left open, so the model cannot invent a field nobody reads. Dates
+           * are stored as dates, so a vaccination can expire and an MOT can
+           * fall due — which is the whole reason these are not free text.
+           */
+          ...(pack.facts.length
+            ? {
+                facts: {
+                  type: "object" as const,
+                  description:
+                    "What this business keeps about a customer. Save each one as soon as they " +
+                    "say it. Dates can be written however they said them.",
+                  properties: Object.fromEntries(
+                    pack.facts.map((f) => [
+                      f.key,
+                      {
+                        type: f.type === "yesno" ? "boolean" : f.type === "number" ? "number" : "string",
+                        description: f.label + (f.type === "date" ? " (a date)" : ""),
+                      },
+                    ]),
+                  ),
+                  additionalProperties: false,
+                },
+              }
+            : {}),
         },
         additionalProperties: false,
       },
@@ -530,6 +559,51 @@ async function saveEnquiry(
       .is("artist_id", null);
 
     if (unclaimed) console.error("[tools] could not assign the conversation", unclaimed.message);
+  }
+
+  /*
+   * And this trade's own facts, read into the shape they are kept in.
+   *
+   * Merged rather than replaced: a customer who gives their MOT date today
+   * must not lose the registration they gave in March. Anything unusable — a
+   * date nobody could parse, a field this trade does not have — is dropped
+   * silently, because a half-understood answer stored as if it were understood
+   * is worse than no answer.
+   */
+  const packFacts = verticalPack(ctx.studio.vertical).facts;
+  const given = (input.facts ?? null) as Record<string, unknown> | null;
+
+  if (packFacts.length && given && typeof given === "object") {
+    const clean: FactValues = {};
+    for (const fact of packFacts) {
+      if (!(fact.key in given)) continue;
+      const value = readFact(fact, given[fact.key]);
+      if (value !== null) clean[fact.key] = value;
+    }
+
+    if (Object.keys(clean).length) {
+      const { data: already } = await ctx.db
+        .from("contacts")
+        .select("trade_facts")
+        .eq("id", ctx.contactId)
+        .maybeSingle();
+
+      const merged = { ...((already?.trade_facts as FactValues | null) ?? {}), ...clean };
+      const { error: factError } = await ctx.db
+        .from("contacts")
+        .update({ trade_facts: merged })
+        .eq("id", ctx.contactId);
+
+      // The column arrives with a migration; a deploy that lands first must
+      // still save a name and a number.
+      if (!factError) {
+        saved.push(
+          ...Object.keys(clean).map(
+            (key) => packFacts.find((f) => f.key === key)?.label.toLowerCase() ?? key,
+          ),
+        );
+      }
+    }
   }
 
   if (saved.length === 0) return { result: "Nothing to save." };
@@ -1293,6 +1367,38 @@ async function makeBooking(
           "their age yet. Ask them outright whether they are 18 or over, save the answer " +
           "with save_enquiry (age_confirmed), and then create_booking again. If they say " +
           "no, do not book: it is a criminal offence for the business.",
+      };
+    }
+  }
+
+  /*
+   * And whatever this trade cannot book without.
+   *
+   * A groomer cannot take a dog whose vaccinations have run out — or one where
+   * nobody knows, which is the same risk. The pack says which facts block, and
+   * tradeFacts says why; this refuses and hands the assistant the words to ask
+   * with, rather than booking and leaving the owner to notice on the day.
+   */
+  const packFacts = verticalPack(ctx.studio.vertical).facts;
+  if (packFacts.length) {
+    const { data: theirFacts } = await ctx.db
+      .from("contacts")
+      .select("trade_facts")
+      .eq("id", ctx.contactId)
+      .maybeSingle();
+
+    const blocked = whatBlocks(
+      packFacts,
+      ((theirFacts?.trade_facts as FactValues | null) ?? {}) as FactValues,
+    );
+
+    if (blocked.length) {
+      const asks = stillToAsk(packFacts, ((theirFacts?.trade_facts as FactValues | null) ?? {}) as FactValues);
+      return {
+        result:
+          `Not booked — ${blocked.join("; ")}. Ask them` +
+          (asks.length ? ` ${asks.join(", and ")}` : " about it") +
+          ", save it with save_contact, then create_booking again. Do not book until it is sorted.",
       };
     }
   }
