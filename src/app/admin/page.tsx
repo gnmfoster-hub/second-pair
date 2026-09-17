@@ -213,6 +213,70 @@ export default async function AdminPage() {
   const emailFor = new Map((users?.users ?? []).map((u) => [u.id, u.email ?? null]));
 
   /*
+   * Once for every business, not once per business.
+   *
+   * This asked Postgres nine separate questions about each business, in order,
+   * and with nine businesses that is over eighty round trips before the page
+   * can render — two of them fetching the same artists twice over. The counts
+   * were done with `head: true` so that nothing anybody wrote crossed the
+   * wire, which was the right instinct and is kept: everything read below is
+   * an id, a timestamp or a setting. No message, no note, no customer.
+   *
+   * Paged, because PostgREST answers with a thousand rows at a time and a
+   * count that silently stops at a thousand is the fault this month keeps
+   * turning up. Four queries, however many businesses there are.
+   */
+  const pageAll = async <T,>(table: string, columns: string): Promise<T[]> => {
+    const rows: T[] = [];
+    for (let page = 0; page < 200; page++) {
+      const { data, error } = await db
+        .from(table)
+        .select(columns)
+        .range(page * 1000, page * 1000 + 999);
+      if (error) throw new Error(`${table}: ${error.message}`);
+      rows.push(...((data ?? []) as T[]));
+      if ((data ?? []).length < 1000) break;
+    }
+    return rows;
+  };
+
+  const [everyArtist, everyBand, everyConversation, everyBooking, everyMember] = await Promise.all([
+    pageAll<Record<string, unknown>>("artists", "*"),
+    pageAll<{ studio_id: string }>("price_bands", "studio_id"),
+    pageAll<{ studio_id: string; last_message_at: string | null }>(
+      "conversations",
+      "studio_id, last_message_at",
+    ),
+    pageAll<{ source: string | null; cancelled_at: string | null; artists: { studio_id: string } }>(
+      "bookings",
+      "source, cancelled_at, artists!inner(studio_id)",
+    ),
+    pageAll<{ studio_id: string; user_id: string; role: string }>(
+      "studio_members",
+      "studio_id, user_id, role",
+    ),
+  ]);
+
+  /** Everything belonging to one business, gathered once. */
+  const group = <T,>(rows: T[], of: (row: T) => string | null | undefined) => {
+    const by = new Map<string, T[]>();
+    for (const row of rows) {
+      const key = of(row);
+      if (!key) continue;
+      const found = by.get(key) ?? [];
+      found.push(row);
+      by.set(key, found);
+    }
+    return by;
+  };
+
+  const artistsOf = group(everyArtist, (a) => a.studio_id as string);
+  const bandsOf = group(everyBand, (b) => b.studio_id);
+  const conversationsOf = group(everyConversation, (c) => c.studio_id);
+  const bookingsOf = group(everyBooking, (b) => b.artists?.studio_id);
+  const membersOf = group(everyMember, (m) => m.studio_id);
+
+  /*
    * Counted per business rather than fetched.
    *
    * `head: true` asks Postgres for the number and no rows, so nothing anybody
@@ -229,14 +293,7 @@ export default async function AdminPage() {
        * busy it was. A metric that silently reads zero is worse than no metric:
        * it is a number somebody will believe.
        */
-      const count = async (table: string) => {
-        const { count: n, error } = await db
-          .from(table)
-          .select("id", { count: "exact", head: true })
-          .eq("studio_id", s.id);
-        if (error) throw new Error(`${table}: ${error.message}`);
-        return n ?? 0;
-      };
+      const mine = artistsOf.get(s.id) ?? [];
 
       /*
        * Bookings belong to a person, and the person belongs to the business.
@@ -253,26 +310,21 @@ export default async function AdminPage() {
        * number of enquiries. Willow has three hundred appointments and thirteen
        * conversations, and "2,315% of enquiries book" was on the front page.
        */
-      const bookings = async (from?: string) => {
-        let q = db
-          .from("bookings")
-          .select("id, artists!inner(studio_id)", { count: "exact", head: true })
-          .eq("artists.studio_id", s.id)
-          .is("cancelled_at", null)
-          .neq("source", "block");
-        if (from) q = q.eq("source", from);
-        const { count: n, error } = await q;
-        if (error) throw new Error(`bookings: ${error.message}`);
-        return n ?? 0;
-      };
+      /*
+       * Time off is not an appointment, and only what the assistant made out
+       * of an enquiry can honestly be set against the number of enquiries.
+       * Willow has three hundred appointments and thirteen conversations, and
+       * "2,315% of enquiries book" was on the front page until this split.
+       */
+      const theirs = (bookingsOf.get(s.id) ?? []).filter(
+        (b) => !b.cancelled_at && b.source !== "block",
+      );
 
-      const { data: latest } = await db
-        .from("conversations")
-        .select("last_message_at")
-        .eq("studio_id", s.id)
-        .order("last_message_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const latest = (conversationsOf.get(s.id) ?? []).reduce<string | null>(
+        (newest, c) =>
+          c.last_message_at && (!newest || c.last_message_at > newest) ? c.last_message_at : newest,
+        null,
+      );
 
       const hours = (s.hours ?? []) as { day: number; open: string; close: string; closed: boolean }[];
 
@@ -293,10 +345,8 @@ export default async function AdminPage() {
       const views: BusinessSummary["views"] = [];
 
       if ((s.kind ?? "customer") === "demo") {
-        const [{ data: everyone }, { data: linked }] = await Promise.all([
-          db.from("studio_members").select("user_id, role").eq("studio_id", s.id),
-          db.from("artists").select("user_id, name, role, owner_managed").eq("studio_id", s.id),
-        ]);
+        const everyone = membersOf.get(s.id) ?? [];
+        const linked = mine;
 
         const asArtist = new Map(
           (linked ?? [])
@@ -342,14 +392,11 @@ export default async function AdminPage() {
           .filter((m) => m.studio_id === s.id)
           .map((m) => ({ userId: m.user_id, email: emailFor.get(m.user_id) ?? null })),
         views,
-        people: await count("artists"),
-        team: (
-          await db
-            .from("artists")
-            .select("*")
-            .eq("studio_id", s.id)
-            .order("created_at")
-        ).data?.map((a) => ({
+        /* The same rows that make the team below — it counted them twice. */
+        people: mine.length,
+        team: [...mine]
+          .sort((a, b) => String(a.created_at ?? "").localeCompare(String(b.created_at ?? "")))
+          .map((a) => ({
           id: a.id as string,
           name: a.name as string,
           role: (a.role as string | null) ?? null,
@@ -364,13 +411,13 @@ export default async function AdminPage() {
           personalIcalUrl: (a.personal_ical_url as string | null) ?? null,
           personalCalendarError: (a.personal_calendar_error as string | null) ?? null,
           hasLogin: Boolean(a.user_id),
-        })) ?? [],
-        services: await count("price_bands"),
+        })),
+        services: (bandsOf.get(s.id) ?? []).length,
         hasHours: hours.some((h) => !h.closed),
-        conversations: await count("conversations"),
-        bookings: await bookings(),
-        bookedByAssistant: await bookings("assistant"),
-        lastActivityAt: latest?.last_message_at ?? null,
+        conversations: (conversationsOf.get(s.id) ?? []).length,
+        bookings: theirs.length,
+        bookedByAssistant: theirs.filter((b) => b.source === "assistant").length,
+        lastActivityAt: latest,
         plan: s.plan ?? null,
         planPence: s.plan_pence ?? 0,
         seatLimit: s.seat_limit ?? null,
@@ -473,9 +520,7 @@ export default async function AdminPage() {
           diaryColour: s.diary_colour ?? "category",
           hours: hours as { day: number; open: string; close: string; closed: boolean }[],
         },
-        quietDays: latest?.last_message_at
-          ? Math.floor((asOf - new Date(latest.last_message_at).getTime()) / 86_400_000)
-          : null,
+        quietDays: latest ? Math.floor((asOf - new Date(latest).getTime()) / 86_400_000) : null,
       };
     }),
   );
