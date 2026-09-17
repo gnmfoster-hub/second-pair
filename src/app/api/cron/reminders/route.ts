@@ -12,6 +12,7 @@ import { sweepWentWrong } from "@/lib/cronOutcome";
 import { sendWeeklyReports } from "@/lib/weeklyReports";
 import { watchTheEssentials } from "@/lib/watchdog";
 import { askForReviews } from "@/lib/askForReviews";
+import { sayWhatsDue } from "@/lib/sayWhatsDue";
 import { meterThisMonth } from "@/lib/meter";
 
 export const runtime = "nodejs";
@@ -232,6 +233,28 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  /*
+   * And anybody whose MOT, theory pass or exam is coming up.
+   *
+   * After the reminders, because an appointment tomorrow matters more than a
+   * date in six weeks, and a failure here must not stop those going out. Almost
+   * every business does no work at all: only a handful of trades define a fact
+   * with a reminder on it. See sayWhatsDue.
+   */
+  const dues = { sent: 0, failed: 0, skipped: 0 };
+  for (const studio of (studios ?? []) as Studio[]) {
+    if (studio.archived_at) continue;
+    try {
+      const one = await sayWhatsDue(db, studio);
+      dues.sent += one.sent;
+      dues.failed += one.failed;
+      dues.skipped += one.skipped;
+    } catch (e) {
+      dues.failed++;
+      failures.push(`saying what is due at ${studio.slug}: ${(e as Error)?.message ?? e}`);
+    }
+  }
+
   const working = await watchTheEssentials(db);
 
   /*
@@ -252,6 +275,7 @@ export async function GET(request: NextRequest) {
   const body = {
     released, due, sent, waiting, failures, answered, forgotten, tidied, weekly,
     reviews,
+    dues,
     backup: { ...backup, newest },
     working,
     metered,

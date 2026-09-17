@@ -1,0 +1,129 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { deliver } from "@/lib/messaging/deliver";
+import { routesFor } from "@/lib/messaging/reach";
+import { smsNumberFor, connectedChannels } from "@/lib/messaging/connections";
+import { replyToFor } from "@/lib/messaging/replyTo";
+import { verticalPack } from "@/lib/verticals";
+import { dueSoon, type FactValues } from "@/lib/tradeFacts";
+import { dueMessage, dueKey } from "@/lib/dueReminders";
+import { hasColumn } from "@/lib/db/hasColumn";
+import type { Studio } from "@/lib/types";
+
+/**
+ * The nightly look for anybody whose date is coming up.
+ *
+ * A garage's MOT, a driving pupil's theory pass, a tutor's exam. Runs from the
+ * same job as the reminders and the review asks, and for the same reason: once
+ * a day is the right frequency for something measured in weeks, and a job that
+ * only matters occasionally is a job nobody notices has stopped.
+ *
+ * Almost every business skips this on the first line — only a handful of trades
+ * define a fact with a reminder on it, and a business with none does no work
+ * here at all.
+ */
+export async function sayWhatsDue(
+  db: SupabaseClient,
+  studio: Studio,
+  now: Date = new Date(),
+): Promise<{ sent: number; failed: number; skipped: number }> {
+  const result = { sent: 0, failed: 0, skipped: 0 };
+
+  const facts = verticalPack(studio.vertical).facts.filter((f) => f.remindBefore);
+  if (!facts.length) return result;
+
+  const off = (studio as unknown as { fact_reminders?: boolean | null }).fact_reminders === false;
+  if (off) return result;
+
+  /*
+   * Nothing to read until the migration has run, and asking anyway would take
+   * the whole nightly job down rather than this one part of it — PostgREST
+   * refuses an entire query for one unknown column.
+   */
+  if (!(await hasColumn(db, "contacts", "trade_facts"))) return result;
+
+  const { data, error } = await db
+    .from("contacts")
+    .select("id, name, phone, email, trade_facts, marketing_sms, marketing_email")
+    .eq("studio_id", studio.id)
+    .neq("trade_facts", "{}")
+    .limit(2000);
+
+  if (error) throw new Error(`could not read customers: ${error.message}`);
+
+  const smsFrom = await smsNumberFor(db, studio.id);
+  const connected = await connectedChannels(db, studio.id);
+
+  for (const person of (data ?? []) as {
+    id: string;
+    name: string | null;
+    phone: string | null;
+    email: string | null;
+    trade_facts: FactValues | null;
+    marketing_sms?: boolean | null;
+    marketing_email?: boolean | null;
+  }[]) {
+    for (const { fact, on } of dueSoon(facts, person.trade_facts ?? {}, now)) {
+      /*
+       * Once per person per date, whatever happens next — claimed before the
+       * send rather than after, so two instances of the job cannot both text
+       * somebody about their MOT. The same table and unique index that stop a
+       * webhook being handled twice. See dueKey for why the date is in it.
+       */
+      const { error: claimed } = await db
+        .from("handled_messages")
+        .insert({ message_id: dueKey(person.id, fact, on), channel: "sms" });
+      if (claimed) {
+        result.skipped++;
+        continue;
+      }
+
+      const route = routesFor({
+        conversations: [],
+        phone: person.phone,
+        email: person.email,
+        connected,
+      }).find((r) => r.open);
+
+      if (!route?.to) {
+        result.skipped++;
+        continue;
+      }
+
+      /*
+       * An explicit no is an explicit no.
+       *
+       * PECR's soft opt-in covers this — their own garage, about their own car,
+       * with a way out in every message — but somebody who has actually
+       * unticked the box has said more than the law assumes, and that beats it.
+       */
+      const refused =
+        route.channel === "sms"
+          ? person.marketing_sms === false
+          : person.marketing_email === false;
+      if (refused) {
+        result.skipped++;
+        continue;
+      }
+
+      const sent = await deliver({
+        channel: route.channel,
+        to: route.to,
+        body: dueMessage(fact, on, { name: person.name, business: studio.name }),
+        from: route.channel === "sms" ? smsFrom : undefined,
+        subject: fact.label,
+        fromName: studio.name,
+        replyTo: replyToFor(studio),
+        db,
+        studioId: studio.id,
+        /* Marketing, so STOP applies. deliver() enforces it; this is the call. */
+        transactional: false,
+      });
+
+      if (sent.status === "sent" || sent.status === "delivered") result.sent++;
+      else if (sent.status === "not_needed") result.skipped++;
+      else result.failed++;
+    }
+  }
+
+  return result;
+}

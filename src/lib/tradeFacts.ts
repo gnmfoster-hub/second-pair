@@ -39,6 +39,14 @@ export type TradeFact = {
   blocks?: "missing" | "expired";
   /** Say something this many days before the date. Dates only. */
   remindBefore?: number;
+  /**
+   * How that reminder is worded, with {date} where the date goes.
+   *
+   * "your MOT runs out on 1 November" rather than "your MOT due is due on
+   * 1 November" — a label that reads fine above a box reads like a machine in
+   * a text message. See dueReminders.
+   */
+  remindText?: string;
   /** Worth seeing on the appointment itself, not only on the record. */
   onAppointment?: boolean;
 };

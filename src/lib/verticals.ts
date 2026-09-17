@@ -1468,7 +1468,7 @@ const MOTORING: VerticalPack[] = [
     id: "mobile_mechanic",
     facts: [
       { key: "registration", label: "Registration", type: "text", ask: "the registration", onAppointment: true },
-      { key: "mot_due", label: "MOT due", type: "date", remindBefore: 45, onAppointment: true },
+      { key: "mot_due", label: "MOT due", type: "date", remindBefore: 45, remindText: "your MOT runs out on {date}", onAppointment: true },
       { key: "mileage", label: "Mileage last seen", type: "number" },
     ],
     faqs: [
@@ -1522,8 +1522,8 @@ const MOTORING: VerticalPack[] = [
        * A garage's reminder is worth nothing unless it arrives first and
        * carries a slot — so six weeks, which is a fortnight ahead of theirs.
        */
-      { key: "mot_due", label: "MOT due", type: "date", ask: "when the MOT runs out", remindBefore: 45, onAppointment: true },
-      { key: "service_due", label: "Service due", type: "date", remindBefore: 30 },
+      { key: "mot_due", label: "MOT due", type: "date", ask: "when the MOT runs out", remindBefore: 45, remindText: "your MOT runs out on {date}", onAppointment: true },
+      { key: "service_due", label: "Service due", type: "date", remindBefore: 30, remindText: "your car is due a service around {date}" },
       { key: "mileage", label: "Mileage last seen", type: "number" },
     ],
     faqs: [
@@ -1613,9 +1613,10 @@ const MOTORING: VerticalPack[] = [
          * months, with six months still to use it.
          */
         remindBefore: 548,
+        remindText: "your theory pass runs out on {date} — after that it is the whole test again",
         onAppointment: true,
       },
-      { key: "test_booked", label: "Practical test", type: "date", remindBefore: 14, onAppointment: true },
+      { key: "test_booked", label: "Practical test", type: "date", remindBefore: 14, remindText: "your practical is on {date}", onAppointment: true },
       { key: "licence", label: "Provisional licence", type: "yesno", ask: "whether they have their provisional yet" },
     ],
     regulars: true,
@@ -1725,7 +1726,7 @@ const OTHER: VerticalPack[] = [
     id: "tutor",
     facts: [
       { key: "exam_board", label: "Exam board", type: "text", ask: "which exam board they are on", onAppointment: true },
-      { key: "exam_date", label: "Exam date", type: "date", remindBefore: 60 },
+      { key: "exam_date", label: "Exam date", type: "date", remindBefore: 60, remindText: "your exam is on {date}" },
     ],
     regulars: true,
     faqs: [

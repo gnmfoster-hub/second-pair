@@ -685,6 +685,14 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
             review_ask: ticked(fd, "review_ask") && Boolean(reviewUrl),
           }
         : {}),
+      /*
+       * Unticked means off; a form that does not carry the box at all — an
+       * older page, or a trade with no such dates — must not read as off.
+       */
+      ...(fd.has("fact_reminders_shown") &&
+      (await hasColumn(supabase, "studios", "fact_reminders"))
+        ? { fact_reminders: ticked(fd, "fact_reminders") }
+        : {}),
       terms_url: terms || null,
       /* Not from this form any more: it is set by the Connect callback,
          and a text box that could blank it would be a way to lose a

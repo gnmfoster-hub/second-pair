@@ -55,6 +55,10 @@ export function StudioForm({
   );
   const pack = verticalPack(studio.vertical);
   const packGreeting = pack.greeting;
+  /* The dates this trade keeps that can be said in advance — often none. */
+  const dueLabels = pack.facts
+    .filter((f) => f.remindBefore)
+    .map((f) => f.label.toLowerCase());
   const words = { ...pack.vocabulary, ...(studio.vocabulary ?? {}) };
   const title = (word: string) => word.replace(/^./, (c) => c.toUpperCase());
 
@@ -658,6 +662,39 @@ export function StudioForm({
             </span>
           </label>
         </Field>
+
+        {/*
+          * The dates this trade keeps, said before they fall due.
+          *
+          * Only shown to a trade that has any — a plasterer has no MOT, and a
+          * switch for something that can never happen is clutter with a
+          * question attached.
+          */}
+        {dueLabels.length > 0 && (
+          <Field
+            label="Remind them what's coming up"
+            hint={`Sent once, well before the day, by text or email. Never to somebody who has texted STOP.`}
+            explain={`We keep ${dueLabels.join(" and ")} on a customer's record. This tells them before it falls due, and offers them a slot — which is the part the reminder they get from anybody else is missing.`}
+          >
+            <input type="hidden" name="fact_reminders_shown" value="1" />
+            <label className="flex items-start gap-2.5 text-sm">
+              <input
+                type="checkbox"
+                name="fact_reminders"
+                defaultChecked={
+                  (studio as unknown as { fact_reminders?: boolean | null }).fact_reminders !== false
+                }
+                className="mt-0.5 accent-[var(--accent)]"
+              />
+              <span>
+                Send it
+                <span className="hint block">
+                  Only to people whose date you have filled in on their record.
+                </span>
+              </span>
+            </label>
+          </Field>
+        )}
       </section>
 
       {/*
