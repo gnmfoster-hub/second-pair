@@ -1,8 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { deliver } from "@/lib/messaging/deliver";
-import { routesFor } from "@/lib/messaging/reach";
-import { smsNumberFor, connectedChannels } from "@/lib/messaging/connections";
-import { replyToFor } from "@/lib/messaging/replyTo";
+import { reachOut } from "@/lib/messaging/reachOut";
 import { worthAsking, reviewMessage, yesterdayIn, type Finished } from "@/lib/reviews";
 import type { Studio } from "@/lib/types";
 
@@ -50,9 +47,6 @@ export async function askForReviews(
     contacts: { name: string | null; phone: string | null; email: string | null } | null;
   })[];
 
-  const smsFrom = await smsNumberFor(db, studio.id);
-  const connected = await connectedChannels(db, studio.id);
-
   for (const booking of worthAsking(finished, now)) {
     const person = (booking as unknown as { contacts: { name: string | null; phone: string | null; email: string | null } | null }).contacts;
     if (!person) {
@@ -69,25 +63,6 @@ export async function askForReviews(
       continue;
     }
 
-    /*
-     * Cold, by text or email.
-     *
-     * No conversation is passed in on purpose: a review request is not a reply
-     * to anything, and the Meta window will have shut long before the morning
-     * after. Those are the two channels that are open whenever we want them.
-     */
-    const route = routesFor({
-      conversations: [],
-      phone: person.phone,
-      email: person.email,
-      connected,
-    }).find((r) => r.open);
-
-    if (!route?.to) {
-      result.skipped++;
-      continue;
-    }
-
     const text = reviewMessage({
       firstName: person.name?.split(" ")[0] ?? null,
       business: studio.name,
@@ -95,16 +70,21 @@ export async function askForReviews(
       url,
     });
 
-    const sent = await deliver({
-      channel: route.channel,
-      to: route.to,
-      body: text,
-      from: route.channel === "sms" ? smsFrom : undefined,
-      subject: `How did it go?`,
-      fromName: studio.name,
-      replyTo: replyToFor(studio),
+    /*
+     * Through the customer's own thread, and written down.
+     *
+     * This used to call deliver() with no conversation at all, on the grounds
+     * that a review ask is not a reply to anything. True, and it meant the ask
+     * appeared nowhere, counted towards nothing, and left anybody who answered
+     * it — "sorry, the colour went wrong" — starting a cold conversation the
+     * assistant had no reason for. See reachOut.
+     */
+    const sent = await reachOut({
       db,
-      studioId: studio.id,
+      studio,
+      contact: { ...person, id: (booking as unknown as { contact_id: string }).contact_id },
+      body: text,
+      subject: "How did it go?",
       /*
        * Not transactional.
        *
@@ -116,7 +96,7 @@ export async function askForReviews(
     });
 
     if (sent.status === "sent" || sent.status === "delivered") result.asked++;
-    else if (sent.status === "not_needed") result.skipped++;
+    else if (sent.status === "not_needed" || sent.status === "no_route") result.skipped++;
     else result.failed++;
   }
 

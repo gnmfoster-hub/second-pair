@@ -2,6 +2,7 @@ import { requireOwner, getArtists } from "@/lib/studio";
 import { canConnectStripe } from "@/lib/env";
 import { PaymentModel } from "../PaymentModel";
 import { SameStripe } from "../SameStripe";
+import { BusinessStripe } from "../BusinessStripe";
 import { wordsFor } from "@/lib/words";
 
 export const metadata = { title: "Getting paid" };
@@ -16,7 +17,12 @@ export const metadata = { title: "Getting paid" };
  * six months and then starts, and that is a thing to go and find, not a thing
  * to come across.
  */
-export default async function MoneySettingsPage() {
+export default async function MoneySettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ stripe?: string; detail?: string }>;
+}) {
+  const back = await searchParams;
   const { studio, userId } = await requireOwner();
   const team = await getArtists(studio.id);
   const me = team.find((a) => a.user_id === userId) ?? null;
@@ -24,6 +30,20 @@ export default async function MoneySettingsPage() {
 
   return (
     <div className="space-y-3">
+      {/*
+       * Connecting comes before the switches about it.
+       *
+       * A business with no account can set the model and the deposits and
+       * still take nothing, so the thing that makes the rest work goes first —
+       * and it is what somebody opening this page is usually looking for.
+       */}
+      <BusinessStripe
+        accountId={studio.stripe_account_id}
+        canConnect={canConnectStripe(studio)}
+        outcome={back.stripe}
+        detail={back.detail}
+      />
+
       <PaymentModel
         model={studio.payment_model === "people" ? "people" : "business"}
         takesPayments={studio.takes_payments === true}

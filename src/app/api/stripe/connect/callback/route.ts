@@ -45,7 +45,15 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const home = state?.artist ? "/settings/you" : "/settings";
+  /*
+   * Back to the page they pressed the button on.
+   *
+   * The business's connection moved onto Getting paid when the settings were
+   * grouped; sending the outcome to /settings would leave "connected" sitting
+   * on a screen nobody is looking at, which is the same fault this line was
+   * written to fix for somebody's own page.
+   */
+  const home = state?.artist ? "/settings/you" : "/settings/money";
 
   /*
    * The same browser that started it.

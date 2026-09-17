@@ -80,8 +80,6 @@ export default async function StudioSettingsPage({
         */}
       <StudioForm
         studio={studio}
-        stripeOutcome={stripe}
-        stripeDetail={detail}
         /*
          * Whether there is anything behind the connect button at all.
          *

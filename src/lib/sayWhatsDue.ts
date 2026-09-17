@@ -1,8 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { deliver } from "@/lib/messaging/deliver";
-import { routesFor } from "@/lib/messaging/reach";
-import { smsNumberFor, connectedChannels } from "@/lib/messaging/connections";
-import { replyToFor } from "@/lib/messaging/replyTo";
+import { reachOut } from "@/lib/messaging/reachOut";
 import { verticalPack } from "@/lib/verticals";
 import { dueSoon, type FactValues } from "@/lib/tradeFacts";
 import { dueMessage, dueKey } from "@/lib/dueReminders";
@@ -58,9 +55,6 @@ export async function sayWhatsDue(
 
   if (error) throw new Error(`could not read customers: ${error.message}`);
 
-  const smsFrom = await smsNumberFor(db, studio.id);
-  const connected = await connectedChannels(db, studio.id);
-
   for (const person of (data ?? []) as {
     id: string;
     name: string | null;
@@ -88,50 +82,32 @@ export async function sayWhatsDue(
         continue;
       }
 
-      const route = routesFor({
-        conversations: [],
-        phone: person.phone,
-        email: person.email,
-        connected,
-      }).find((r) => r.open);
-
-      if (!route?.to) {
-        result.skipped++;
-        continue;
-      }
-
       /*
        * An explicit no is an explicit no.
        *
        * PECR's soft opt-in covers this — their own garage, about their own car,
        * with a way out in every message — but somebody who has actually
-       * unticked the box has said more than the law assumes, and that beats it.
+       * unticked both boxes has said more than the law assumes, and that beats
+       * it. Checked before the send rather than per route, because refusing one
+       * channel and falling through to the other is not honouring a refusal.
        */
-      const refused =
-        route.channel === "sms"
-          ? person.marketing_sms === false
-          : person.marketing_email === false;
-      if (refused) {
+      if (person.marketing_sms === false && person.marketing_email === false) {
         result.skipped++;
         continue;
       }
 
-      const sent = await deliver({
-        channel: route.channel,
-        to: route.to,
-        body: dueMessage(fact, on, { name: person.name, business: studio.name }, now),
-        from: route.channel === "sms" ? smsFrom : undefined,
-        subject: fact.label,
-        fromName: studio.name,
-        replyTo: replyToFor(studio),
+      const sent = await reachOut({
         db,
-        studioId: studio.id,
+        studio,
+        contact: person,
+        body: dueMessage(fact, on, { name: person.name, business: studio.name }, now),
+        subject: fact.label,
         /* Marketing, so STOP applies. deliver() enforces it; this is the call. */
         transactional: false,
       });
 
       if (sent.status === "sent" || sent.status === "delivered") result.sent++;
-      else if (sent.status === "not_needed") result.skipped++;
+      else if (sent.status === "not_needed" || sent.status === "no_route") result.skipped++;
       else result.failed++;
     }
   }
