@@ -93,3 +93,23 @@ test("an empty name falls back to the business rather than leaving a gap", () =>
 test("it asks for something rather than only apologising", () => {
   assert.match(missedCallText("Neat & Tidy"), /Tell me what you need/);
 });
+
+/*
+ * The text goes out as the call is handed to the answerphone, so it lands
+ * while the caller is still talking. Telling somebody to type out what they
+ * need in the same second they are saying it out loud reads as though nobody
+ * is listening.
+ */
+test("it does not ask them to type what they are busy saying", () => {
+  const speaking = missedCallText("Cogs & Co Garage", null, true);
+  assert.match(speaking, /Leave your message and I'll text you straight back/);
+  assert.doesNotMatch(speaking, /Tell me what you need/);
+
+  // And it still works for somebody who rings off at the beep.
+  assert.match(speaking, /tell me here instead/);
+  assert.match(speaking, new RegExp(CALLBACK_WORD));
+  assert.match(speaking, /Reply STOP/);
+
+  // Unchanged where there is no answerphone.
+  assert.match(missedCallText("Cogs & Co Garage"), /Tell me what you need and I can help here/);
+});

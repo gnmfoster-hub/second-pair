@@ -70,7 +70,36 @@ export async function POST(request: NextRequest) {
 
   const studio = connection.studios as unknown as { name: string } | null;
   const person = connection.artists as unknown as { name: string } | null;
-  const body = missedCallText(studio?.name ?? "us", person?.name?.split(" ")[0] ?? null);
+
+  /*
+   * Whether they are about to be offered the answerphone, decided before a
+   * word of the text is written.
+   *
+   * The text goes out as the call is handed over, so it lands while the caller
+   * is still speaking — and it used to tell them to type out what they need,
+   * in the same second they were saying it. It now offers both and asks for
+   * neither twice, which it can only do if this is known first.
+   *
+   * Read with its own query rather than joined above: the column does not
+   * exist until its migration is run, and naming it in the join would have
+   * PostgREST refuse the whole lookup — which is every missed call on the
+   * platform, on two real businesses, going nowhere.
+   */
+  const voicemail =
+    (await hasColumn(db, "studios", "voicemail")) &&
+    (
+      await db
+        .from("studios")
+        .select("voicemail")
+        .eq("id", connection.studio_id)
+        .maybeSingle()
+    ).data?.voicemail === true;
+
+  const body = missedCallText(
+    studio?.name ?? "us",
+    person?.name?.split(" ")[0] ?? null,
+    voicemail,
+  );
 
   /*
    * The thread first, because whether to say anything depends on it.
@@ -133,29 +162,6 @@ export async function POST(request: NextRequest) {
    * and nothing else in the product would ever say so.
    */
   if (!delivered) await flag(db, thread.id);
-
-  /*
-   * And then let them say it, if this business has asked for that.
-   *
-   * The text above still goes first and unchanged, so nobody ever comes off
-   * this line having heard and received nothing — a recording that is never
-   * made produces no callback, and a caller who hung up at the beep would
-   * otherwise get silence where today they get a text.
-   *
-   * Read with its own query rather than joined above: the column does not
-   * exist until its migration is run, and naming it in the join would have
-   * PostgREST refuse the whole lookup — which is every missed call on the
-   * platform, on two real businesses, going nowhere.
-   */
-  const voicemail =
-    (await hasColumn(db, "studios", "voicemail")) &&
-    (
-      await db
-        .from("studios")
-        .select("voicemail")
-        .eq("id", connection.studio_id)
-        .maybeSingle()
-    ).data?.voicemail === true;
 
   if (!voicemail) return empty();
 

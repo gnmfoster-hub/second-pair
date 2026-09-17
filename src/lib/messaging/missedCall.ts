@@ -57,7 +57,24 @@ export const CALLBACK_WORD = "CALL";
  * only apologises invites no answer, and the point is to start a conversation
  * rather than to be polite about having missed one.
  */
-export function missedCallText(business: string, person?: string | null): string {
+export function missedCallText(
+  business: string,
+  person?: string | null,
+  /**
+   * Whether they are, at this moment, being invited to leave a message.
+   *
+   * The text goes out as the call is handed to the answerphone, so on a
+   * business with that switched on it lands while the caller is still
+   * speaking. Asking them to type out what they need, in the same second they
+   * are saying it out loud, reads as though nobody is listening — which is
+   * precisely the impression the whole feature exists to avoid.
+   *
+   * It has to work both ways round, because at this point nobody knows whether
+   * they will leave a message or ring off at the beep. So it offers both and
+   * asks for neither twice.
+   */
+  canLeaveMessage = false,
+): string {
   /*
    * It says it is an assistant, and it says how to stop.
    *
@@ -72,9 +89,11 @@ export function missedCallText(business: string, person?: string | null): string
    * message the rules about texting people are written for.
    */
   const who = person?.trim() ? `${person.trim()}'s assistant at ${business}` : `the assistant at ${business}`;
-  return (
-    `Sorry we missed your call — this is ${who}. ` +
-    `Tell me what you need and I can help here, or say ${CALLBACK_WORD} and we'll ring you back. ` +
-    `Reply STOP and we won't text again.`
-  );
+
+  const middle = canLeaveMessage
+    ? `Leave your message and I'll text you straight back, or tell me here instead. ` +
+      `Say ${CALLBACK_WORD} for a call.`
+    : `Tell me what you need and I can help here, or say ${CALLBACK_WORD} and we'll ring you back.`;
+
+  return `Sorry we missed your call — this is ${who}. ${middle} Reply STOP and we won't text again.`;
 }
