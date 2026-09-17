@@ -621,6 +621,43 @@ export function StudioForm({
             className="input max-w-md"
           />
         </Field>
+
+        {/*
+          * Asking for a review, which is the cheapest marketing a small
+          * business has and the one nobody remembers to do.
+          *
+          * Off until a link is given, deliberately: a switch that is on with
+          * nowhere to send people would send a message with a hole in it. The
+          * text goes the morning after, once, and never to somebody who has
+          * said stop.
+          */}
+        <Field
+          label="Ask for a review"
+          hint="Sent the morning after an appointment, once, by text or email. Never to somebody who has texted STOP."
+        >
+          <input
+            name="review_url"
+            type="url"
+            defaultValue={(studio as unknown as { review_url?: string | null }).review_url ?? ""}
+            placeholder="https://g.page/r/your-google-review-link"
+            className="input max-w-md"
+          />
+          <label className="mt-2 flex items-start gap-2.5 text-sm">
+            <input
+              type="checkbox"
+              name="review_ask"
+              defaultChecked={(studio as unknown as { review_ask?: boolean | null }).review_ask === true}
+              className="mt-0.5 accent-[var(--accent)]"
+            />
+            <span>
+              Send it
+              <span className="hint block">
+                Paste your Google review link above first &mdash; in Google Business Profile, under
+                Ask for reviews. Nothing is sent until both are set.
+              </span>
+            </span>
+          </label>
+        </Field>
       </section>
 
       {/*

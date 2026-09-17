@@ -72,14 +72,20 @@ const PERCENT_COMMISSION =
 
 const PITCH_PHRASES: { pattern: RegExp; sign: string }[] = [
   /*
-   * Asking whether it has reached the owner, in any of the ways they write it.
+   * Asking for the owner, in any of the ways they write it.
    *
-   * "May I know if I'm speaking with the store owner?" arrived at Living Canvas
-   * and scored nothing, because only "owner of the store" was looked for and
-   * this says "the store owner". Both are the opening line of somebody working
-   * down a list; a customer writes to the business, not to whoever runs it.
+   * Every version of this has needed widening once. It began as "owner of
+   * the store", then "the store owner", then "am I speaking with the
+   * owner" — and the next one through the door was four words with none of
+   * those in it: "Is the owner here?" followed by the web address. Nobody
+   * writing to a tattooist about a tattoo asks for the owner; they ask
+   * about the tattoo.
    */
-  { pattern: /\bowner of (?:the|this|your) (?:store|shop|business|brand)\b|\b(?:the|this|your) (?:store|shop|business|brand) owner\b|\b(?:speaking|talking|chatting) (?:with|to) (?:the|your) (?:owner|manager|boss|person in charge)\b/i, sign: "asks whether it has reached the owner" },
+  {
+    pattern:
+      /\bowner of (?:the|this|your) (?:store|shop|business|brand)\b|\b(?:the|this|your) (?:store|shop|business|brand) owner\b|\b(?:speaking|talking|chatting) (?:with|to) (?:the|your) (?:owner|manager|boss|person in charge)\b|\b(?:is|are)\s+(?:the|there)\s+(?:a\s+|an\s+)?(?:owner|manager|boss)\b|\bare\s+you\s+the\s+(?:owner|manager|boss)\b|\b(?:owner|manager|boss)\s+(?:here|there|around|available|in)\b|\b(?:can|may|could)\s+i\s+(?:speak|talk|chat)\s+(?:to|with)\s+(?:the\s+)?(?:owner|manager|boss)\b|\bwho(?:'s|\u2019s| is)\s+(?:the\s+)?(?:owner|manager)\b/i,
+    sign: "asks whether it has reached the owner",
+  },
   /*
    * "This store" — the word an e-commerce list buys by, and one nobody uses to
    * a tattooist, a cleaner or an electrician about their own business.

@@ -560,6 +560,7 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
     return { error: "Terms URL must start with http:// or https://" };
 
   const privacy = str(fd, "privacy_notice_url");
+  const reviewUrl = str(fd, "review_url");
   if (privacy && !/^https?:\/\//i.test(privacy))
     return { error: "Privacy notice URL must start with http:// or https://" };
 
@@ -668,6 +669,22 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
         ? { cancellation_policy: str(fd, "cancellation_policy") }
         : {}),
       privacy_notice_url: privacy || null,
+
+      /*
+       * Asking for a review, and where to send them.
+       *
+       * Guarded on the column so a deploy that lands before the migration
+       * saves the rest of the business's settings rather than failing the lot
+       * — the same reasoning as every other column added since August.
+       */
+      ...((await hasColumn(supabase, "studios", "review_url"))
+        ? {
+            review_url: reviewUrl || null,
+            // Never on without somewhere to send them: a message with a hole
+            // in it is worse than no message.
+            review_ask: ticked(fd, "review_ask") && Boolean(reviewUrl),
+          }
+        : {}),
       terms_url: terms || null,
       /* Not from this form any more: it is set by the Connect callback,
          and a text box that could blank it would be a way to lose a

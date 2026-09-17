@@ -184,3 +184,47 @@ for (const [i, email] of realOnes.entries()) {
     assert.equal(v.pitch, false, `score ${v.score}: ${v.signs.join("; ")}`);
   });
 }
+
+/*
+ * 17 September, 7.18am. Four words and a web address, and it got through
+ * because every "asking for the owner" pattern so far has needed either a shop
+ * word or a speaking verb.
+ */
+test("the one from the morning of the 17th is caught", () => {
+  const v = coldPitch(
+    { from: "supreme.hikmart@gmail.com", subject: "", body: "Is the owner here?\n\n\nlivingcanvastattoo.ink" },
+    { name: "Living Canvas Tattoo", sites: ["livingcanvastattoo.ink"] },
+  );
+  assert.equal(v.pitch, true, `score ${v.score}: ${v.signs.join("; ")}`);
+});
+
+test("every way a list-seller asks for the owner", () => {
+  const asks = [
+    "Is the owner here?",
+    "Is there an owner I can speak to?",
+    "Is the manager around?",
+    "Can I speak to the owner please",
+    "Who is the owner of this lovely place",
+    "May I talk with the boss?",
+    "Are you the owner?",
+  ];
+  for (const ask of asks) {
+    const v = coldPitch(
+      { from: "x@gmail.com", subject: "", body: `${ask} livingcanvastattoo.ink` },
+      { name: "Living Canvas Tattoo", sites: ["livingcanvastattoo.ink"] },
+    );
+    assert.equal(v.pitch, true, `"${ask}" scored ${v.score}: ${v.signs.join("; ")}`);
+  }
+});
+
+test("a customer mentioning the owner by name is still a customer", () => {
+  const v = coldPitch(
+    {
+      from: "hannah.p@gmail.com",
+      subject: "Thursday",
+      body: "Hi, is the owner Sarah in on Thursday? She did my last tattoo and I'd like her to do this one.",
+    },
+    { name: "Living Canvas Tattoo", sites: ["livingcanvastattoo.ink"] },
+  );
+  assert.equal(v.pitch, false, `score ${v.score}: ${v.signs.join("; ")}`);
+});

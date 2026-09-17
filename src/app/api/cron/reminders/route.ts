@@ -11,6 +11,7 @@ import { forgetHandledMessages } from "@/lib/handledMessages";
 import { sweepWentWrong } from "@/lib/cronOutcome";
 import { sendWeeklyReports } from "@/lib/weeklyReports";
 import { watchTheEssentials } from "@/lib/watchdog";
+import { askForReviews } from "@/lib/askForReviews";
 import { meterThisMonth } from "@/lib/meter";
 
 export const runtime = "nodejs";
@@ -212,6 +213,25 @@ export async function GET(request: NextRequest) {
    * do not need it. See watchdog: it emails us, once, and only when something
    * is wrong for every business rather than for one conversation.
    */
+  /*
+   * Yesterday's appointments, asked about once — for the businesses that have
+   * switched it on and given us a link. See askForReviews: the morning after,
+   * never minutes after, and never to somebody who has said stop.
+   */
+  const reviews = { asked: 0, failed: 0, skipped: 0 };
+  for (const studio of (studios ?? []) as Studio[]) {
+    if (studio.archived_at) continue;
+    try {
+      const one = await askForReviews(db, studio);
+      reviews.asked += one.asked;
+      reviews.failed += one.failed;
+      reviews.skipped += one.skipped;
+    } catch (e) {
+      reviews.failed++;
+      failures.push(`asking for reviews at ${studio.slug}: ${(e as Error)?.message ?? e}`);
+    }
+  }
+
   const working = await watchTheEssentials(db);
 
   /*
@@ -231,6 +251,7 @@ export async function GET(request: NextRequest) {
 
   const body = {
     released, due, sent, waiting, failures, answered, forgotten, tidied, weekly,
+    reviews,
     backup: { ...backup, newest },
     working,
     metered,
