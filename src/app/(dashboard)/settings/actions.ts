@@ -1626,6 +1626,21 @@ export async function saveCallForwarding(
 
   if (error) return { error: error.message };
 
+  /*
+   * And whether an unanswered call may leave a message.
+   *
+   * Written separately from the number above, because it lives on the business
+   * rather than on the line, and skipped entirely until its column exists —
+   * PostgREST refuses a whole update for one unknown name, and losing the
+   * ring-me number to save a tick box is the wrong way round.
+   */
+  if (fd.has("voicemail_shown") && (await hasColumn(supabase, "studios", "voicemail"))) {
+    await supabase
+      .from("studios")
+      .update({ voicemail: fd.get("voicemail") === "on" })
+      .eq("id", studio.id);
+  }
+
   revalidatePath("/settings/install");
   return { ok: true };
 }

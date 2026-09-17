@@ -27,6 +27,7 @@ export function TextNumber({
   forwardTo,
   savedAt,
   sendingReady,
+  voicemail = false,
 }: {
   number: string | null;
   /** Where a call to it rings first. Null texts the caller straight away. */
@@ -43,6 +44,8 @@ export function TextNumber({
   savedAt: string | null;
   /** Whether the platform can send at all. Nothing they can do about it. */
   sendingReady: boolean;
+  /** Whether an unanswered call may leave a message. Off until asked for. */
+  voicemail?: boolean;
 }) {
   const [state, action] = useActionState<{ error?: string; ok?: boolean }, FormData>(
     saveCallForwarding,
@@ -110,6 +113,31 @@ export function TextNumber({
               inputMode="tel"
             />
           </Field>
+
+          {/*
+            * Letting them say what they want, rather than asking them to type
+            * it out again. See voicemail.ts — the caller is told before the
+            * tone, the words go to the assistant, and the recording is deleted
+            * as soon as it has been read.
+            */}
+          <input type="hidden" name="voicemail_shown" value="1" />
+          <label className="flex items-start gap-2.5 text-sm">
+            <input
+              type="checkbox"
+              name="voicemail"
+              defaultChecked={voicemail}
+              className="mt-0.5 accent-[var(--accent)]"
+            />
+            <span>
+              Let them leave a message
+              <span className="hint block">
+                Instead of only texting &ldquo;what can we do for you?&rdquo;, the caller can
+                say it. We write down what they said, the assistant answers it by text with a
+                real time or price, and the recording is deleted the moment it is read. They
+                are told all of that before the tone. A few pence a call.
+              </span>
+            </span>
+          </label>
 
           <div className="flex flex-wrap items-center gap-4">
             <SubmitButton />

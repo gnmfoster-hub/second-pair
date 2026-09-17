@@ -111,6 +111,8 @@ export default async function ChannelsPage({
         <TextNumber
           number={smsNumber}
           forwardTo={line?.forward_to ?? null}
+          /* Absent until the migration; absent reads as off, which it is. */
+          voicemail={(studio as unknown as { voicemail?: boolean | null }).voicemail === true}
           /*
            * Worked out here, in the business's own zone, because a date turned
            * into words in the browser is a date the server rendered
