@@ -95,8 +95,28 @@ export async function askForReviews(
       transactional: false,
     });
 
+    /*
+     * A claim spent on somebody we could not reach is given back.
+     *
+     * reachOut works the route out for itself, so "there is no way to reach
+     * this person" is only known after the claim. Left claimed it is lost for
+     * good — a booking is asked about once, and the key is the booking, so it
+     * never comes round again. A business connecting a number next week would
+     * silently never ask about any of this week's work.
+     *
+     * The same fault the MOT sweep had, in the place it matters more.
+     *
+     * A refusal stays claimed: somebody who has said STOP has not asked to be
+     * asked again tomorrow.
+     */
+    if (sent.status === "no_route") {
+      await db.from("handled_messages").delete().eq("message_id", `review:${booking.id}`);
+      result.skipped++;
+      continue;
+    }
+
     if (sent.status === "sent" || sent.status === "delivered") result.asked++;
-    else if (sent.status === "not_needed" || sent.status === "no_route") result.skipped++;
+    else if (sent.status === "not_needed") result.skipped++;
     else result.failed++;
   }
 
