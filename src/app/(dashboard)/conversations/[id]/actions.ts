@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { CONV_STATUS_LABELS } from "@/lib/types";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { deliver, recordDelivery } from "@/lib/messaging/deliver";
@@ -124,15 +125,39 @@ export async function setPaused(fd: FormData) {
   revalidatePath("/");
 }
 
-export async function setStatus(fd: FormData) {
+/**
+ * Where a conversation has got to.
+ *
+ * Returns the failure rather than swallowing it. This wrote the status and
+ * ignored the answer, so picking "Spam" before its migration had run did
+ * nothing at all and said nothing at all — the pill went back to what it was
+ * and the only honest reading was that the feature was broken. A control that
+ * fails silently is worse than one that is missing, because somebody tries it
+ * twice and then stops trusting the rest of the screen.
+ */
+export async function setStatus(fd: FormData): Promise<{ error?: string }> {
   const supabase = await createClient();
   const id = String(fd.get("conversation_id") ?? "");
   const status = String(fd.get("status") ?? "") as ConvStatus;
 
-  await supabase.from("conversations").update({ status }).eq("id", id);
+  const { error } = await supabase.from("conversations").update({ status }).eq("id", id);
+
+  if (error) {
+    /*
+     * The status is a fixed list in the database, so a word it has not been
+     * told about is refused outright. Said in the words of the person who has
+     * to do something about it rather than the database's.
+     */
+    return {
+      error: /invalid input value for enum/.test(error.message)
+        ? `"${CONV_STATUS_LABELS[status] ?? status}" is not switched on in the database yet.`
+        : error.message,
+    };
+  }
 
   revalidatePath(`/conversations/${id}`);
   revalidatePath("/");
+  return {};
 }
 
 export type RemoveState = { error?: string };

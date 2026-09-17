@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { setStatus } from "./actions";
 import { CONV_STATUS_LABELS, type ConvStatus } from "@/lib/types";
 
@@ -43,8 +43,16 @@ export function StatusPicker({
   current: ConvStatus;
 }) {
   const [saving, save] = useTransition();
+  const [failed, setFailed] = useState<string | null>(null);
 
+  /*
+   * Shown where the pill is, because that is what was just pressed. The pill
+   * itself goes back to the real value on its own — nothing was written, so
+   * the page re-renders with what is actually stored, and a control that
+   * quietly reverts with no explanation is the thing being fixed here.
+   */
   return (
+    <span className="inline-flex flex-col items-start gap-1">
     <label
       className={`relative inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-opacity ${TONE[current]} ${
         saving ? "opacity-60" : ""
@@ -68,7 +76,8 @@ export function StatusPicker({
             const form = new FormData();
             form.set("conversation_id", conversationId);
             form.set("status", next);
-            await setStatus(form);
+            const result = await setStatus(form);
+            setFailed(result?.error ?? null);
           });
         }}
         className="absolute inset-0 cursor-pointer opacity-0"
@@ -80,5 +89,7 @@ export function StatusPicker({
         ))}
       </select>
     </label>
+      {failed && <span className="text-xs text-warn">{failed}</span>}
+    </span>
   );
 }

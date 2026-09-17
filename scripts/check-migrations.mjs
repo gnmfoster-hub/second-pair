@@ -113,6 +113,59 @@ for (const file of files) {
   }
 }
 
+/*
+ * And the fixed lists, which fail in a nastier way than a missing column.
+ *
+ * A status is a Postgres enum. Naming a value it has not been told about does
+ * not return nothing — PostgREST refuses the whole statement, so a query that
+ * mentions it loses every row it would have returned. That emptied every inbox
+ * on the platform for an hour: one filter, added the same day as the value,
+ * against a database that had not had the migration run yet.
+ *
+ * Three times this month the same shape — the trade fields, the per-channel
+ * meter, and this. So it is checked rather than remembered: every value in the
+ * TypeScript union is asked for, and any the database does not know is named
+ * here before anybody finds it on a live screen.
+ */
+const ENUMS = [
+  { type: "ConvStatus", table: "conversations", column: "status" },
+  { type: "DepositStatus", table: "bookings", column: "deposit_status" },
+];
+
+const types = fs.readFileSync("src/lib/types.ts", "utf8");
+const unknown = [];
+
+for (const { type, table, column } of ENUMS) {
+  /*
+   * Up to the semicolon that ends the line, not the first one anywhere.
+   *
+   * These unions carry comments, and a comment carries prose — "a number worth
+   * watching; spam is a number worth removing" ended the declaration four
+   * values early, so the one value that was actually missing was the one this
+   * never looked at. The check passed while the thing it checks was broken,
+   * which is the fault it was written to catch, in the check itself.
+   */
+  const declared = new RegExp("export type " + type + " =([\\s\\S]*?);\\s*\\n").exec(types);
+  if (!declared) continue;
+
+  // Quoted values only, so a word out of a comment is never mistaken for one.
+  const values = [...declared[1].matchAll(/\|\s*"([a-z_]+)"/g)].map((m) => m[1]);
+  for (const value of values) {
+    const { error } = await db.from(table).select("id").eq(column, value).limit(0);
+    if (error && /invalid input value for enum/.test(error.message)) {
+      unknown.push(`${table}.${column} has no "${value}" — ${type} says it should`);
+    }
+  }
+}
+
+if (unknown.length) {
+  console.log("\n✗ values the code uses and the database has never heard of");
+  for (const u of unknown) console.log(`    ${u}`);
+  console.log("\n  These are worse than a missing column: a query naming one is refused");
+  console.log("  whole, so it loses every row rather than one field.");
+  missing += unknown.length;
+}
+
 console.log("");
 if (missing) {
   console.log(`${missing} migration${missing === 1 ? "" : "s"} not applied.`);
