@@ -411,6 +411,12 @@ const HOME: VerticalPack[] = [
 
   trade({
     id: "plumber",
+    factsTitle: "Getting in",
+    facts: [
+      { key: "access", label: "Getting in", type: "text", ask: "how they will get in — somebody home, a key safe, a code", onAppointment: true },
+      { key: "parking", label: "Parking", type: "text", ask: "where to park, and whether it is a permit street" },
+      { key: "stopcock", label: "Stopcock", type: "text" },
+    ],
     label: "Plumber",
     category: "Trades and home",
     blurb: "Plumbing repairs and installation, at the customer's address.",
@@ -515,6 +521,11 @@ const HOME: VerticalPack[] = [
 
   trade({
     id: "joiner",
+    factsTitle: "Getting in",
+    facts: [
+      { key: "access", label: "Getting in", type: "text", ask: "how they will get in — somebody home, a key safe, a code", onAppointment: true },
+      { key: "parking", label: "Parking", type: "text", ask: "where to park, and whether it is a permit street" },
+    ],
     faqs: [
       "What areas do you cover?",
       "How do I pay?",
@@ -551,6 +562,11 @@ const HOME: VerticalPack[] = [
 
   trade({
     id: "decorator",
+    factsTitle: "Getting in",
+    facts: [
+      { key: "access", label: "Getting in", type: "text", ask: "how they will get in — somebody home, a key safe, a code", onAppointment: true },
+      { key: "parking", label: "Parking", type: "text", ask: "where to park, and whether it is a permit street" },
+    ],
     faqs: [
       "What areas do you cover?",
       "How do I pay?",
@@ -586,6 +602,11 @@ const HOME: VerticalPack[] = [
 
   trade({
     id: "plasterer",
+    factsTitle: "Getting in",
+    facts: [
+      { key: "access", label: "Getting in", type: "text", ask: "how they will get in — somebody home, a key safe, a code", onAppointment: true },
+      { key: "parking", label: "Parking", type: "text", ask: "where to park, and whether it is a permit street" },
+    ],
     faqs: [
       "What areas do you cover?",
       "How do I pay?",
@@ -621,6 +642,12 @@ const HOME: VerticalPack[] = [
 
   trade({
     id: "roofer",
+    factsTitle: "Getting in",
+    facts: [
+      { key: "access", label: "Getting in", type: "text", ask: "how they will get in — somebody home, a key safe, a code", onAppointment: true },
+      { key: "parking", label: "Parking", type: "text", ask: "where to park, and whether it is a permit street" },
+      { key: "storeys", label: "Storeys", type: "number", ask: "how many storeys, because it decides the access equipment" },
+    ],
     faqs: [
       "What areas do you cover?",
       "How do I pay?",
@@ -656,6 +683,11 @@ const HOME: VerticalPack[] = [
 
   trade({
     id: "handyman",
+    factsTitle: "Getting in",
+    facts: [
+      { key: "access", label: "Getting in", type: "text", ask: "how they will get in — somebody home, a key safe, a code", onAppointment: true },
+      { key: "parking", label: "Parking", type: "text", ask: "where to park, and whether it is a permit street" },
+    ],
     faqs: [
       "What areas do you cover?",
       "How do I pay?",
@@ -691,6 +723,11 @@ const HOME: VerticalPack[] = [
 
   trade({
     id: "locksmith",
+    factsTitle: "Getting in",
+    facts: [
+      { key: "address_proof", label: "Proof of address seen", type: "yesno" },
+      { key: "lock_type", label: "Lock", type: "text", ask: "what sort of lock it is, if they know" },
+    ],
     faqs: [
       "What areas do you cover?",
       "How do I pay?",
@@ -1141,6 +1178,10 @@ const BEAUTY: VerticalPack[] = [
 
   trade({
     id: "nails",
+    factsTitle: "Health",
+    facts: [
+      { key: "allergies", label: "Allergies and reactions", type: "text", ask: "any allergies or past reactions to gel, acrylic or removers", onAppointment: true },
+    ],
     faqs: [
       "Where can I park?",
       "How do I pay?",
@@ -1176,6 +1217,24 @@ const BEAUTY: VerticalPack[] = [
 
   trade({
     id: "aesthetics",
+    factsTitle: "Before treatment",
+    facts: [
+      /*
+       * A consultation before injectables is not optional, and neither is a
+       * patch test before some of it. Both are dates because both expire, and
+       * a clinic that cannot say when either happened has no defence.
+       */
+      {
+        key: "consultation",
+        label: "Consultation",
+        type: "date",
+        ask: "when they had their consultation",
+        blocks: "missing",
+        onAppointment: true,
+      },
+      { key: "patch_test", label: "Patch test", type: "date", onAppointment: true },
+      { key: "health_form", label: "Health questionnaire", type: "date", onAppointment: true },
+    ],
     faqs: [
       "Where can I park?",
       "How do I pay?",
@@ -1216,6 +1275,10 @@ const BEAUTY: VerticalPack[] = [
 
   trade({
     id: "massage",
+    factsTitle: "Health",
+    facts: [
+      { key: "health_form", label: "Health questionnaire", type: "date", ask: "whether they have filled in a health questionnaire", onAppointment: true },
+    ],
     faqs: [
       "Where can I park?",
       "How do I pay?",
@@ -1265,6 +1328,11 @@ const CLINICAL_RULES = [
 const HEALTH: VerticalPack[] = [
   trade({
     id: "physio",
+    factsTitle: "Health",
+    facts: [
+      { key: "health_form", label: "Health questionnaire", type: "date", ask: "whether they have filled in a health questionnaire", onAppointment: true },
+      { key: "referred_by", label: "Referred by", type: "text" },
+    ],
     faqs: [
       "Where can I park?",
       "How do I pay?",
@@ -1303,6 +1371,10 @@ const HEALTH: VerticalPack[] = [
 
   trade({
     id: "chiro",
+    factsTitle: "Health",
+    facts: [
+      { key: "health_form", label: "Health questionnaire", type: "date", ask: "whether they have filled in a health questionnaire", onAppointment: true },
+    ],
     faqs: [
       "Where can I park?",
       "How do I pay?",
@@ -1424,6 +1496,11 @@ const HEALTH: VerticalPack[] = [
 
   trade({
     id: "podiatrist",
+    factsTitle: "Health",
+    facts: [
+      { key: "health_form", label: "Health questionnaire", type: "date", ask: "whether they have filled in a health questionnaire", onAppointment: true },
+      { key: "diabetic", label: "Diabetic", type: "yesno", onAppointment: true },
+    ],
     faqs: [
       "Where can I park?",
       "How do I pay?",
