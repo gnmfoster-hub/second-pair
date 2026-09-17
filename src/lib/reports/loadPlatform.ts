@@ -25,7 +25,7 @@ async function all<T>(query: (from: number, to: number) => PromiseLike<{ data: T
 export async function loadPlatformRows(db: SupabaseClient, range: { from: string; to: string }): Promise<ReportRows> {
   const quarterAgo = new Date(Date.now() - 90 * 86_400_000).toISOString();
 
-  const [studios, conversations, messages, bookings, payments, inbound, reminders, forms, members, users] = await Promise.all([
+  const [studios, conversations, messages, bookings, payments, inbound, reminders, forms, calls, members, users] = await Promise.all([
     all((a, b) => db.from("studios").select("id, name, vertical, kind, account_status, plan_pence, created_at, archived_at").range(a, b)),
     all((a, b) =>
       db.from("conversations").select("id, studio_id, channel, is_test, created_at, first_response_ms, status, last_message_at").range(a, b),
@@ -59,6 +59,16 @@ export async function loadPlatformRows(db: SupabaseClient, range: { from: string
     ),
     // Forms may not exist yet; a failed query is simply no forms.
     all((a, b) => db.from("client_forms").select("studio_id, status, created_at, signed_at").gte("created_at", quarterAgo).range(a, b)),
+    // Nor calls, until their migration runs. `all` stops on the first error,
+    // so an absent table is an empty list rather than a broken report.
+    all((a, b) =>
+      db
+        .from("calls")
+        .select("studio_id, at, rang_seconds, forwarded, answered, recorded_seconds, transcribed")
+        .gte("at", range.from)
+        .lt("at", range.to)
+        .range(a, b),
+    ),
     all((a, b) => db.from("studio_members").select("studio_id, user_id").range(a, b)),
     db.auth.admin.listUsers({ perPage: 1000 }),
   ]);
@@ -99,6 +109,7 @@ export async function loadPlatformRows(db: SupabaseClient, range: { from: string
       studio_id: r.bookings.artists.studio_id,
     })),
     forms: forms as ReportRows["forms"],
+    calls: calls as ReportRows["calls"],
     lastSignIn,
     lastActivity,
   };

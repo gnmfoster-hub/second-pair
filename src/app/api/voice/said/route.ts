@@ -6,6 +6,7 @@ import { runTurn } from "@/lib/engine/run";
 import { hasAnthropicEnv } from "@/lib/env";
 import { readTranscript, asMessage, voicemailKey } from "@/lib/voice/voicemail";
 import { handOverAfterFailure } from "@/lib/engine/turnFailed";
+import { writeCall, seconds } from "@/lib/voice/writeCall";
 
 export const runtime = "nodejs";
 
@@ -70,6 +71,35 @@ export async function POST(request: NextRequest) {
   await deleteRecording(params.RecordingSid);
 
   const said = readTranscript(params.TranscriptionStatus, params.TranscriptionText);
+
+  const { data: connection } = await db
+    .from("channel_connections")
+    .select("studio_id, artist_id, studios(slug)")
+    .in("channel", ["sms", "voice"])
+    .eq("external_id", to)
+    .eq("active", true)
+    .limit(1)
+    .maybeSingle();
+
+  if (!connection) return empty();
+
+  /*
+   * The recording's own meter, whatever the words turned out to be.
+   *
+   * Written before the transcript is judged: a message that transcribed to
+   * nothing still cost us a recorded minute and a transcribed one, and those
+   * are the two dearest rates on the platform. Counting only the useful ones
+   * would understate the telephone exactly where it matters.
+   */
+  await writeCall(db, {
+    studioId: connection.studio_id,
+    callSid: params.CallSid,
+    from: caller,
+    to,
+    recordedSeconds: seconds(params.RecordingDuration),
+    transcribed: true,
+  });
+
   if (!said) return empty();
 
   /*
@@ -90,16 +120,6 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const { data: connection } = await db
-    .from("channel_connections")
-    .select("studio_id, artist_id, studios(slug)")
-    .in("channel", ["sms", "voice"])
-    .eq("external_id", to)
-    .eq("active", true)
-    .limit(1)
-    .maybeSingle();
-
-  if (!connection) return empty();
   if (!hasAnthropicEnv()) return empty();
 
   const studio = connection.studios as unknown as { slug: string } | null;

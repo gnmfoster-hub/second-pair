@@ -70,6 +70,8 @@ export function textsLeft(plan: Plan, used: Used): number | null {
   return Math.max(0, plan.textsIncluded - used.textsOut);
 }
 
+import { CALL_RATES, type CallRates } from "./voice/callCost.ts";
+
 /** Rates we are charged. Pence, except the model, which is measured. */
 export type Rates = {
   smsOutPence: number;
@@ -78,6 +80,13 @@ export type Rates = {
   numberPence: number;
   /** Per twenty-four-hour conversation, which is how Meta bills. */
   metaConversationPence: number;
+  /**
+   * The telephone, which bills four things at once. See callCost.
+   *
+   * Published list prices rather than invoiced ones, so anything worked out
+   * from them is marked as an estimate wherever it is shown.
+   */
+  call: CallRates;
 };
 
 export const RATES: Rates = {
@@ -92,9 +101,29 @@ export const RATES: Rates = {
    * because a gap is visible. Set it the day the first Meta invoice arrives.
    */
   metaConversationPence: 0,
+  call: CALL_RATES,
 };
 
-export type ChannelUse = { out: number; in: number; windows: number; micros: number };
+export type ChannelUse = {
+  out: number;
+  in: number;
+  windows: number;
+  micros: number;
+  /*
+   * The telephone only, and already rounded up per call.
+   *
+   * Every carrier bills whole minutes per leg, so the rounding has to happen
+   * on each call and not on the month's total — a hundred fifteen-second rings
+   * is a hundred minutes, not twenty-five. Rounding at the end would understate
+   * the dearest channel by four times, which is precisely the number this
+   * exists to get right.
+   */
+  calls?: number;
+  connectedMinutes?: number;
+  forwardedMinutes?: number;
+  recordedMinutes?: number;
+  transcribedMinutes?: number;
+};
 
 export type ChannelCost = {
   channel: string;
@@ -108,6 +137,16 @@ export type ChannelCost = {
   windows: number;
   /** Said out loud where a rate is not known yet rather than quietly zero. */
   unpriced: boolean;
+  /**
+   * Worked out from published prices rather than an invoice.
+   *
+   * True for the telephone until a Twilio bill with calls on it has been typed
+   * in. A figure of roughly the right size, marked as roughly, beats a
+   * confident zero — but it must not be quoted at a customer as fact.
+   */
+  estimated?: boolean;
+  /** Calls, for the telephone. Nothing for any other channel. */
+  calls?: number;
 };
 
 /**
@@ -136,8 +175,20 @@ export function costByChannel(
     } else if (channel === "whatsapp" || channel === "instagram") {
       carriage = use.windows * rates.metaConversationPence;
       unpriced = rates.metaConversationPence === 0 && use.windows > 0;
+    } else if (channel === "voice") {
+      /*
+       * Four meters, not one. The leg in, the leg out to the owner's mobile,
+       * the recording and the transcription — and the leg out is six times the
+       * leg in, which is why a missed call costs more than a dozen texts
+       * before anybody has said a word.
+       */
+      carriage =
+        (use.connectedMinutes ?? 0) * rates.call.inPence +
+        (use.forwardedMinutes ?? 0) * rates.call.outPence +
+        (use.recordedMinutes ?? 0) * rates.call.recordingPence +
+        (use.transcribedMinutes ?? 0) * rates.call.transcriptionPence;
     }
-    // The website and a phone call carry nothing of their own here.
+    // The website carries nothing of its own here: its whole cost is the model.
 
     const modelPence = use.micros / 10_000;
     out.push({
@@ -149,6 +200,8 @@ export function costByChannel(
       in: use.in,
       windows: use.windows,
       unpriced,
+      estimated: channel === "voice" && carriage > 0,
+      calls: use.calls,
     });
   }
 
@@ -166,6 +219,11 @@ export function addUpChannels(all: (Record<string, ChannelUse> | null | undefine
       found.in += use.in;
       found.windows += use.windows;
       found.micros += use.micros;
+      found.calls = (found.calls ?? 0) + (use.calls ?? 0);
+      found.connectedMinutes = (found.connectedMinutes ?? 0) + (use.connectedMinutes ?? 0);
+      found.forwardedMinutes = (found.forwardedMinutes ?? 0) + (use.forwardedMinutes ?? 0);
+      found.recordedMinutes = (found.recordedMinutes ?? 0) + (use.recordedMinutes ?? 0);
+      found.transcribedMinutes = (found.transcribedMinutes ?? 0) + (use.transcribedMinutes ?? 0);
     }
   }
 

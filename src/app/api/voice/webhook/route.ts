@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
   const db = createAdminClient();
   const { data: connection } = await db
     .from("channel_connections")
-    .select("forward_to, studios(name)")
+    .select("forward_to, studios(name, channels_allowed)")
     .in("channel", ["sms", "voice"])
     .eq("external_id", to)
     .eq("active", true)
@@ -69,7 +69,31 @@ export async function POST(request: NextRequest) {
   // answering, and Twilio retries nothing that returns cleanly.
   if (!connection) return hangUp();
 
-  const studio = connection.studios as unknown as { name: string } | null;
+  const studio = connection.studios as unknown as {
+    name: string;
+    channels_allowed: string[] | null;
+  } | null;
+
+  /*
+   * Whether this number does anything with a call at all.
+   *
+   * The telephone is its own channel and its own price, and unlike the others
+   * it costs money before a word is said: the caller's leg, and then the far
+   * dearer leg out to the owner's mobile, both rounded up to a whole minute.
+   * Ringing a mobile for fifteen seconds costs more than a text.
+   *
+   * So without it, this is a texting number and says so. Not a hang-up, which
+   * reads as broken, and not a forward either — forwarding is the expensive
+   * half, and quietly doing the costly part of a channel nobody bought is how
+   * a margin disappears.
+   */
+  if (!(studio?.channels_allowed ?? ["web"]).includes("voice")) {
+    return twiml(
+      `<Say voice="alice">Thanks for calling${studio?.name ? " " + escapeXml(studio.name) : ""}. ` +
+        `This number takes text messages only. Send us a text and we will come straight back to you.</Say>` +
+        `<Hangup/>`,
+    );
+  }
 
   /*
    * Nowhere to ring, so say so and text them.

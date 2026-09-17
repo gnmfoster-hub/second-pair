@@ -274,7 +274,7 @@ export default async function ReportsPage({
           <table className="w-full min-w-[1100px] text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide text-muted">
-                {["Business", "Plan", "Enquiries", "Booked", "Conv.", "To a person", "First reply", "Appts", "No-shows", "Taken", "Fees", "Assistant", "Texts", "Forms signed", "Last sign-in", "Quiet"].map((h) => (
+                {["Business", "Plan", "Enquiries", "Booked", "Conv.", "To a person", "First reply", "Appts", "No-shows", "Taken", "Fees", "Assistant", "Texts", "Calls", "Calls cost", "Forms signed", "Last sign-in", "Quiet"].map((h) => (
                   <th key={h} className="whitespace-nowrap px-2 py-2 font-semibold">
                     {h}
                   </th>
@@ -299,6 +299,8 @@ export default async function ReportsPage({
                 <td className="px-2 py-2">{pounds(totals.feesPence)}</td>
                 <td className="px-2 py-2">{pounds(totals.aiCostPence)}</td>
                 <td className="px-2 py-2">{totals.textsSent}</td>
+                <td className="px-2 py-2">{totals.calls}</td>
+                <td className="px-2 py-2">{pounds(totals.callCostPence)}</td>
                 <td className="px-2 py-2">{totals.formsSigned}</td>
                 <td className="px-2 py-2" />
                 <td className="px-2 py-2" />
@@ -424,6 +426,17 @@ function Row({ b, pounds }: { b: BusinessReport; pounds: (p: number) => string }
       <td className="px-2 py-2">{pounds(b.feesPence)}</td>
       <td className="px-2 py-2">{pounds(b.aiCostPence)}</td>
       <td className="px-2 py-2">{b.textsSent}</td>
+      <td className="px-2 py-2">{b.calls}</td>
+      {/*
+        * What the telephone cost, on its own.
+        *
+        * The only channel billed by the minute, and the dearest per use:
+        * ringing an owner's mobile for fifteen seconds bills a whole minute at
+        * about six times the inbound rate. It sits beside texts rather than
+        * inside them because "should we sell calls, and for how much" is a
+        * different question from "what should a text cost".
+        */}
+      <td className="px-2 py-2">{b.callCostPence > 0 ? pounds(b.callCostPence) : "—"}</td>
       <td className="px-2 py-2">
         {b.formsSigned}/{b.formsSent}
       </td>

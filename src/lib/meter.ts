@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { monthOf } from "./billing.ts";
+import { minutes as upToMinutes, SPOKEN_SECONDS } from "./voice/callCost.ts";
 import { hasColumn } from "./db/hasColumn.ts";
 
 /**
@@ -82,11 +83,26 @@ export async function meterThisMonth(
      * "windows" is the count of conversation-days: one per thread per day that
      * anything was sent on it, which is the shape Meta and WhatsApp charge in.
      */
-    const byChannel = new Map<
-      string,
-      { out: number; in: number; windows: Set<string>; micros: number }
-    >();
-    const channelRow = (name: string) => {
+    /*
+     * Windows are a Set here and a count in the stored shape: two messages on
+     * the same day are one conversation-day, which is how Meta bills. The
+     * telephone's minutes are plain numbers because each call is rounded on
+     * its own before it gets here.
+     */
+    type Row = {
+      out: number;
+      in: number;
+      windows: Set<string>;
+      micros: number;
+      calls?: number;
+      connectedMinutes?: number;
+      forwardedMinutes?: number;
+      recordedMinutes?: number;
+      transcribedMinutes?: number;
+    };
+
+    const byChannel = new Map<string, Row>();
+    const channelRow = (name: string): Row => {
       const found = byChannel.get(name) ?? { out: 0, in: 0, windows: new Set<string>(), micros: 0 };
       byChannel.set(name, found);
       return found;
@@ -153,6 +169,54 @@ export async function meterThisMonth(
     }
 
     /*
+     * And the telephone, which is the only channel that bills by the minute.
+     *
+     * Four meters on one call: the leg in, the leg out to the owner's mobile,
+     * the recording and the transcription. Rounded up per call rather than
+     * per month, because that is how a carrier bills — a hundred fifteen-
+     * second rings is a hundred minutes, not twenty-five, and rounding at the
+     * end would understate the dearest channel by four times.
+     *
+     * Nothing until the migration adds the table. See writeCall.
+     */
+    if (await hasColumn(db, "calls", "call_sid")) {
+      const { data: calls, error: callError } = await db
+        .from("calls")
+        .select("rang_seconds, forwarded, answered, recorded_seconds, transcribed")
+        .eq("studio_id", studio.id)
+        .gte("at", from);
+
+      if (callError) {
+        // Said out loud rather than swallowed: a month that cannot count its
+        // calls is a month nobody should be invoiced from.
+        console.error("[meter] could not count calls", callError.message);
+      }
+
+      if (calls?.length) {
+        const row = channelRow("voice");
+        row.calls = (row.calls ?? 0) + calls.length;
+
+        for (const call of calls as {
+          rang_seconds: number;
+          forwarded: boolean;
+          recorded_seconds: number;
+          transcribed: boolean;
+        }[]) {
+          const rang = call.rang_seconds ?? 0;
+          const recorded = call.recorded_seconds ?? 0;
+          const spoken = call.forwarded || recorded > 0 ? SPOKEN_SECONDS : 0;
+
+          row.connectedMinutes = (row.connectedMinutes ?? 0) + upToMinutes(rang + recorded + spoken);
+          if (call.forwarded) row.forwardedMinutes = (row.forwardedMinutes ?? 0) + upToMinutes(rang);
+          row.recordedMinutes = (row.recordedMinutes ?? 0) + upToMinutes(recorded);
+          if (call.transcribed) {
+            row.transcribedMinutes = (row.transcribedMinutes ?? 0) + upToMinutes(recorded);
+          }
+        }
+      }
+    }
+
+    /*
      * The per-channel column arrives with a migration, and until it is run the
      * whole upsert is rejected for naming a column that does not exist — so
      * the meter wrote nothing at all, every night, silently. Exactly the fault
@@ -173,7 +237,22 @@ export async function meterThisMonth(
               by_channel: Object.fromEntries(
                 [...byChannel].map(([name, row]) => [
                   name,
-                  { out: row.out, in: row.in, windows: row.windows.size, micros: row.micros },
+                  {
+                    out: row.out,
+                    in: row.in,
+                    windows: row.windows.size,
+                    micros: row.micros,
+                    /* Left off entirely for every channel but the telephone. */
+                    ...(row.calls
+                      ? {
+                          calls: row.calls,
+                          connectedMinutes: row.connectedMinutes ?? 0,
+                          forwardedMinutes: row.forwardedMinutes ?? 0,
+                          recordedMinutes: row.recordedMinutes ?? 0,
+                          transcribedMinutes: row.transcribedMinutes ?? 0,
+                        }
+                      : {}),
+                  },
                 ]),
               ),
             }

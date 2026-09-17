@@ -5,6 +5,7 @@ import { sendSms } from "@/lib/messaging/sms";
 import { wasMissed, missedCallText } from "@/lib/messaging/missedCall";
 import { whatTheyHear } from "@/lib/voice/voicemail";
 import { hasColumn } from "@/lib/db/hasColumn";
+import { writeCall, seconds } from "@/lib/voice/writeCall";
 
 export const runtime = "nodejs";
 
@@ -45,10 +46,6 @@ export async function POST(request: NextRequest) {
     return new NextResponse("Signature did not match.", { status: 403 });
   }
 
-  // Somebody picked the phone up. Nothing to do, and a text after a call they
-  // just had would be an odd thing to receive.
-  if (!wasMissed(params.DialCallStatus)) return empty();
-
   const caller = params.From;
   const to = request.nextUrl.searchParams.get("to") ?? params.To;
   if (!caller || !to) return empty();
@@ -56,7 +53,7 @@ export async function POST(request: NextRequest) {
   const db = createAdminClient();
   const { data: connection } = await db
     .from("channel_connections")
-    .select("studio_id, artist_id, studios(name), artists(name)")
+    .select("studio_id, artist_id, studios(name, channels_allowed), artists(name)")
     .in("channel", ["sms", "voice"])
     .eq("external_id", to)
     .eq("active", true)
@@ -68,8 +65,55 @@ export async function POST(request: NextRequest) {
 
   if (!connection) return empty();
 
-  const studio = connection.studios as unknown as { name: string } | null;
+  const studio = connection.studios as unknown as {
+    name: string;
+    channels_allowed: string[] | null;
+  } | null;
   const person = connection.artists as unknown as { name: string } | null;
+
+  /*
+   * What the call cost us, written down before anything else can fail.
+   *
+   * The leg out to the owner's mobile is the dear one and it has been running
+   * since this feature was built, on every business with a ring-me number,
+   * appearing on no screen anywhere. A cost nobody can see is a cost nobody
+   * can price, and what to charge for the telephone is the open question.
+   */
+  const answered = !wasMissed(params.DialCallStatus);
+
+  await writeCall(db, {
+    studioId: connection.studio_id,
+    callSid: params.CallSid,
+    from: caller,
+    to,
+    rangSeconds: seconds(params.DialCallDuration),
+    forwarded: Boolean(params.DialCallStatus),
+    answered,
+  });
+
+  /*
+   * Somebody picked the phone up. Nothing more to do — a text after a call
+   * they have just had would be an odd thing to receive.
+   *
+   * It is counted first, and that is the change: this used to return before
+   * anything was written down, and an answered call is the dearest of the lot.
+   * Two legs running for the length of an actual conversation, where a missed
+   * one is two rounded-up minutes. The cheapest outcome to read about was the
+   * most expensive one to have, and it was the one we had no record of.
+   */
+  if (answered) return empty();
+
+  /*
+   * Whether the telephone is part of what this business bought.
+   *
+   * Voice is its own channel and its own price: a call costs more than a dozen
+   * texts before anybody speaks. Without it the number still rings their phone
+   * — that is their line, not ours to switch off — but nothing else happens:
+   * no text back, no answerphone, and none of the model or carriage that go
+   * with them.
+   */
+  const sold = (studio?.channels_allowed ?? ["web"]).includes("voice");
+  if (!sold) return empty();
 
   /*
    * Whether they are about to be offered the answerphone, decided before a

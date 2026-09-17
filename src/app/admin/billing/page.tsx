@@ -202,6 +202,10 @@ export default async function BillingPage({
         message both ways, Meta per twenty-four-hour conversation, email per message and barely
         anything, and the website carries nothing at all — its whole cost is the model answering.
         This is the table to read before deciding what a channel is worth charging for.
+        The telephone is the one to look at hardest: it is the only channel billed by the
+        minute, every leg rounds up to a whole one, and ringing an owner&rsquo;s mobile for
+        fifteen seconds costs more than a text does. Its figures are worked out from
+        published prices until a Twilio invoice with calls on it has been typed in below.
       </p>
 
       {channels.length === 0 ? (
@@ -230,9 +234,25 @@ export default async function BillingPage({
                         no rate set yet — put Meta&rsquo;s price in when the first invoice comes
                       </span>
                     )}
+                    {/*
+                      * The telephone says what it is made of, because the
+                      * answer is surprising: ringing the owner's mobile is
+                      * usually most of it, and it happens before the customer
+                      * has said a word.
+                      */}
+                    {c.calls != null && c.calls > 0 && (
+                      <span className="hint block text-xs">
+                        {c.calls.toLocaleString()} call{c.calls === 1 ? "" : "s"}
+                        {c.estimated && " · estimated from published rates, not an invoice"}
+                      </span>
+                    )}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums">{c.out.toLocaleString()}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{c.in.toLocaleString()}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {c.channel === "voice" ? "—" : c.out.toLocaleString()}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {c.channel === "voice" ? "—" : c.in.toLocaleString()}
+                  </td>
                   <td className="px-3 py-2 text-right tabular-nums">{c.windows.toLocaleString()}</td>
                   <td className="px-3 py-2 text-right tabular-nums">
                     {c.carriagePence > 0 ? pounds(c.carriagePence) : "—"}

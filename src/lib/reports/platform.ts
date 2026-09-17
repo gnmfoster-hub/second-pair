@@ -11,6 +11,8 @@
  * the assistant's cost arrives in millionths and is turned into pence once.
  */
 
+import { addUpCalls } from "../voice/callCost.ts";
+
 export type StudioRow = {
   id: string;
   name: string;
@@ -31,6 +33,16 @@ export type ReportRows = {
   inbound: { studio_id: string | null; verdict: string; because: string | null; at: string }[];
   reminders: { studio_id: string; status: string; channel: string | null; created_at: string }[];
   forms?: { studio_id: string; status: string; created_at: string; signed_at: string | null }[];
+  /** Durations and outcomes only, never words. Absent until the migration. */
+  calls?: {
+    studio_id: string;
+    at: string;
+    rang_seconds: number;
+    forwarded: boolean;
+    answered: boolean;
+    recorded_seconds: number;
+    transcribed: boolean;
+  }[];
   /** Most recent sign-in by anybody in each business. */
   lastSignIn?: Record<string, string | null>;
   /** Most recent thing that happened in each business, over all time. */
@@ -53,6 +65,18 @@ export type BusinessReport = {
   aiCostPence: number;
   textsSent: number;
   textCostPence: number;
+  /** Calls taken on this business's number in the window. */
+  calls: number;
+  /**
+   * What they cost us, from published rates rather than an invoice.
+   *
+   * The telephone is the only channel billed by the minute and by far the
+   * dearest per use: ringing an owner's mobile for fifteen seconds bills a
+   * whole minute at roughly six times the inbound rate. Shown separately from
+   * texts because the decision it informs — whether to sell calls at all, and
+   * for how much — is a different decision.
+   */
+  callCostPence: number;
   emailAnswered: number;
   emailParked: number;
   emailIgnored: number;
@@ -120,6 +144,16 @@ export function platformReport(
       aiMicros += m.usage?.cost_micros ?? 0;
     }
 
+    const calls = (rows.calls ?? []).filter((c) => c.studio_id === s.id && inRange(c.at, from, to));
+    const callMoney = addUpCalls(
+      calls.map((c) => ({
+        rangSeconds: c.rang_seconds ?? 0,
+        forwarded: Boolean(c.forwarded),
+        recordedSeconds: c.recorded_seconds ?? 0,
+        transcribed: Boolean(c.transcribed),
+      })),
+    );
+
     const reminders = rows.reminders.filter((r) => r.studio_id === s.id && inRange(r.created_at, from, to));
     textsSent += reminders.filter((r) => r.status === "sent" && r.channel === "sms").length;
     const failedReminders = reminders.filter((r) => r.status === "failed").length;
@@ -167,6 +201,8 @@ export function platformReport(
       aiCostPence: Math.round(aiMicros / 10_000),
       textsSent,
       textCostPence: textsSent * TEXT_PENCE,
+      calls: callMoney.calls,
+      callCostPence: Math.round(callMoney.pence),
       emailAnswered: inbound.filter((i) => i.verdict === "answered").length,
       emailParked: inbound.filter((i) => i.verdict === "parked").length,
       emailIgnored: inbound.filter((i) => i.verdict === "ignored").length,
@@ -212,6 +248,8 @@ export function platformReport(
     repliesByChannel: mergeChannels("repliesByChannel"),
     aiCostPence: sumBy("aiCostPence"),
     textsSent: sumBy("textsSent"),
+    calls: sumBy("calls"),
+    callCostPence: sumBy("callCostPence"),
     textCostPence: sumBy("textCostPence"),
     emailAnswered: sumBy("emailAnswered"),
     emailParked: sumBy("emailParked"),
