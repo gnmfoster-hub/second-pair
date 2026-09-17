@@ -353,6 +353,26 @@ const JOB_ADDRESS: QualificationField = {
 const HOME: VerticalPack[] = [
   trade({
     id: "electrician",
+    factsTitle: "Certificates",
+    facts: [
+      /*
+       * A rented home needs an electrical safety report every five years, and
+       * letting without one carries a fine up to thirty thousand pounds. The
+       * date is the whole job: an electrician who knows it wins the work
+       * before anybody advertises for it.
+       */
+      {
+        key: "eicr_due",
+        label: "Electrical report (EICR) due",
+        type: "date",
+        ask: "when their electrical safety report is due, if they are a landlord",
+        remindBefore: 60,
+        remindText: "your electrical safety report (EICR) is due by {date}",
+        onAppointment: true,
+      },
+      { key: "landlord", label: "Landlord", type: "yesno" },
+      { key: "fuse_board", label: "Fuse board", type: "text" },
+    ],
     label: "Electrician",
     category: "Trades and home",
     blurb: "Domestic and commercial electrical work, at the customer's address.",
@@ -428,6 +448,35 @@ const HOME: VerticalPack[] = [
 
   trade({
     id: "gas_heating",
+    factsTitle: "Boiler and certificates",
+    facts: [
+      { key: "boiler", label: "Boiler", type: "text", ask: "the make and model of the boiler, if they know it", onAppointment: true },
+      /*
+       * The one a landlord cannot let the date pass on.
+       *
+       * A gas safety certificate lasts twelve months and letting a property
+       * without a valid one is an offence, so this is the reminder a landlord
+       * actually wants — a month out, with a slot attached, rather than a
+       * letter from the council.
+       */
+      {
+        key: "cp12_due",
+        label: "Gas safety certificate due",
+        type: "date",
+        ask: "when their gas safety certificate runs out, if they are a landlord",
+        remindBefore: 30,
+        remindText: "your landlord gas safety certificate (CP12) runs out on {date}",
+        onAppointment: true,
+      },
+      {
+        key: "serviced",
+        label: "Last serviced",
+        type: "date",
+        remindBefore: -335,
+        remindText: "your boiler is about due its yearly service",
+      },
+      { key: "landlord", label: "Landlord", type: "yesno" },
+    ],
     label: "Heating and gas engineer",
     category: "Trades and home",
     blurb: "Boilers, servicing and gas work. Gas Safe registered.",
@@ -679,6 +728,11 @@ const HOME: VerticalPack[] = [
 
   trade({
     id: "gardener",
+    factsTitle: "Getting in",
+    facts: [
+      { key: "access", label: "How to get in", type: "text", ask: "how to reach the garden — a side gate, a code, somebody home", onAppointment: true },
+      { key: "waste", label: "Takes the waste away", type: "yesno" },
+    ],
     regulars: true,
     faqs: [
       "What areas do you cover?",
@@ -715,6 +769,12 @@ const HOME: VerticalPack[] = [
 
   trade({
     id: "cleaner",
+    factsTitle: "Getting in",
+    facts: [
+      { key: "access", label: "How to get in", type: "text", ask: "how to get in — a key safe, somebody home, a code", onAppointment: true },
+      { key: "alarm", label: "Alarm", type: "yesno", ask: "whether there is an alarm" },
+      { key: "pets", label: "Pets", type: "text", ask: "whether there are pets in the house" },
+    ],
     regulars: true,
     faqs: [
       "What areas do you cover?",
@@ -850,6 +910,25 @@ const BEAUTY: VerticalPack[] = [
 
   trade({
     id: "salon",
+    factsTitle: "Patch test",
+    facts: [
+      /*
+       * Not a formality. Every colour manufacturer and every salon insurer
+       * wants an allergy alert test 48 hours before a tint, and a salon that
+       * cannot say when one was done is a salon that cannot claim.
+       *
+       * It does not block, because most appointments are not colour and a
+       * blanket refusal would stop a dry cut. It is shown wherever the booking
+       * is made, which is where somebody can act on it.
+       */
+      {
+        key: "patch_test",
+        label: "Patch test",
+        type: "date",
+        ask: "when they last had a patch test, if they are having colour",
+        onAppointment: true,
+      },
+    ],
     label: "Hair salon",
     category: "Hair and beauty",
     blurb: "Cutting, colouring and treatments, priced per service.",
@@ -919,6 +998,17 @@ const BEAUTY: VerticalPack[] = [
 
   trade({
     id: "mobile_hair",
+    factsTitle: "Patch test",
+    facts: [
+      {
+        key: "patch_test",
+        label: "Patch test",
+        type: "date",
+        ask: "when they last had a patch test, if they are having colour",
+        onAppointment: true,
+      },
+      { key: "parking", label: "Parking", type: "text", ask: "where to park" },
+    ],
     faqs: [
       "What areas do you cover?",
       "How do I pay?",
@@ -958,6 +1048,16 @@ const BEAUTY: VerticalPack[] = [
 
   trade({
     id: "barber",
+    factsTitle: "Patch test",
+    facts: [
+      {
+        key: "patch_test",
+        label: "Patch test",
+        type: "date",
+        ask: "when they last had a patch test, if they are having colour",
+        onAppointment: true,
+      },
+    ],
     faqs: [
       "Where can I park?",
       "How do I pay?",
@@ -992,6 +1092,16 @@ const BEAUTY: VerticalPack[] = [
 
   trade({
     id: "beautician",
+    factsTitle: "Patch test",
+    facts: [
+      {
+        key: "patch_test",
+        label: "Patch test",
+        type: "date",
+        ask: "when they last had a patch test, if they are having tinting or lashes",
+        onAppointment: true,
+      },
+    ],
     faqs: [
       "Where can I park?",
       "How do I pay?",
@@ -1575,6 +1685,11 @@ const MOTORING: VerticalPack[] = [
 
   trade({
     id: "valeting",
+    factsTitle: "About the vehicle",
+    facts: [
+      { key: "registration", label: "Registration", type: "text", ask: "the registration", onAppointment: true },
+      { key: "vehicle", label: "Make and model", type: "text", ask: "what they drive, so the right size is quoted", onAppointment: true },
+    ],
     faqs: [
       "What areas do you cover?",
       "How do I pay?",
@@ -1784,6 +1899,11 @@ const OTHER: VerticalPack[] = [
 
   trade({
     id: "window_cleaner",
+    factsTitle: "Getting in",
+    facts: [
+      { key: "access", label: "How to get in", type: "text", ask: "how to reach the back — a side gate, a code", onAppointment: true },
+      { key: "outside_tap", label: "Outside tap", type: "yesno" },
+    ],
     regulars: true,
     faqs: [
       "What areas do you cover?",

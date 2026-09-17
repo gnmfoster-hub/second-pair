@@ -61,3 +61,28 @@ test("the date is part of the claim", () => {
   assert.notEqual(dueKey("c1", mot, "2026-11-01"), dueKey("c1", mot, "2027-11-01"));
   assert.equal(dueKey("c1", mot, "2026-11-01"), "due:c1:mot_due:2026-11-01");
 });
+
+/*
+ * Two of these count backwards. A boiler serviced eleven months ago is due
+ * another one, and a negative remindBefore is how that is said — so the
+ * sentence must not tell somebody to book in before a date last November.
+ */
+test("a date already past does not say before then", () => {
+  const serviced = {
+    key: "serviced",
+    label: "Last serviced",
+    type: "date" as const,
+    remindBefore: -335,
+    remindText: "your boiler is about due its yearly service",
+  };
+  const now = new Date("2026-09-17T09:00:00Z");
+  const text = dueMessage(serviced, "2025-10-17", { name: "Jo", business: "Ashcroft" }, now);
+  assert.match(text, /want me to book you in\? Reply STOP/);
+  assert.doesNotMatch(text, /before then/);
+
+  const mot2 = { key: "mot_due", label: "MOT due", type: "date" as const, remindBefore: 45 };
+  assert.match(
+    dueMessage(mot2, "2026-11-01", { business: "Cogs" }, now),
+    /book you in before then/,
+  );
+});

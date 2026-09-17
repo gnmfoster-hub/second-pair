@@ -41,6 +41,7 @@ export function dueMessage(
   fact: TradeFact,
   on: string,
   who: { name?: string | null; business: string },
+  now: Date = new Date(),
 ): string {
   const first = (who.name ?? "").trim().split(/\s+/)[0] ?? "";
   const hello = first ? `Hi ${first} — ` : "";
@@ -49,7 +50,18 @@ export function dueMessage(
     ? fact.remindText.replace("{date}", sayDate(on))
     : `your ${fact.label.toLowerCase()} is due on ${sayDate(on)}`;
 
-  return `${hello}${what}. ${who.business} here — want me to book you in before then? Reply STOP to opt out.`;
+  /*
+   * "Before then" is only true of a date still ahead.
+   *
+   * A couple of these count backwards from something that already happened —
+   * a boiler serviced eleven months ago is due another one — and telling
+   * somebody to book in before a date last November reads as a mistake, which
+   * is all it takes for the text to be ignored.
+   */
+  const ahead = on >= now.toISOString().slice(0, 10);
+  const offer = ahead ? "want me to book you in before then?" : "want me to book you in?";
+
+  return `${hello}${what}. ${who.business} here — ${offer} Reply STOP to opt out.`;
 }
 
 /**

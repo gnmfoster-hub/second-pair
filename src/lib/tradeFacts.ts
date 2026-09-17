@@ -37,7 +37,13 @@ export type TradeFact = {
    * an unknown vaccination is exactly as risky as an expired one.
    */
   blocks?: "missing" | "expired";
-  /** Say something this many days before the date. Dates only. */
+  /**
+   * Say something this many days before the date. Dates only.
+   *
+   * Negative counts the other way, from a date that has already happened: a
+   * boiler serviced 335 days ago is about due another one, and "last serviced"
+   * is the only date anybody writes down for it.
+   */
   remindBefore?: number;
   /**
    * How that reminder is worded, with {date} where the date goes.

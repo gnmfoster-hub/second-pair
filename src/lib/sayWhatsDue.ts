@@ -41,12 +41,20 @@ export async function sayWhatsDue(
    */
   if (!(await hasColumn(db, "contacts", "trade_facts"))) return result;
 
+  /*
+   * Everybody, and the empty ones dropped here rather than in the query.
+   *
+   * Asking the database for "trade_facts is not {}" is a jsonb comparison I
+   * cannot prove until the migration is run, and the way it fails is silent:
+   * it matches nothing, sends nothing, and reports success every night. The
+   * saving was never worth that — a business has hundreds of customers, not
+   * hundreds of thousands, and this runs once a day.
+   */
   const { data, error } = await db
     .from("contacts")
     .select("id, name, phone, email, trade_facts, marketing_sms, marketing_email")
     .eq("studio_id", studio.id)
-    .neq("trade_facts", "{}")
-    .limit(2000);
+    .limit(5000);
 
   if (error) throw new Error(`could not read customers: ${error.message}`);
 
@@ -62,7 +70,10 @@ export async function sayWhatsDue(
     marketing_sms?: boolean | null;
     marketing_email?: boolean | null;
   }[]) {
-    for (const { fact, on } of dueSoon(facts, person.trade_facts ?? {}, now)) {
+    const values = person.trade_facts ?? {};
+    if (!Object.keys(values).length) continue;
+
+    for (const { fact, on } of dueSoon(facts, values, now)) {
       /*
        * Once per person per date, whatever happens next — claimed before the
        * send rather than after, so two instances of the job cannot both text
@@ -108,7 +119,7 @@ export async function sayWhatsDue(
       const sent = await deliver({
         channel: route.channel,
         to: route.to,
-        body: dueMessage(fact, on, { name: person.name, business: studio.name }),
+        body: dueMessage(fact, on, { name: person.name, business: studio.name }, now),
         from: route.channel === "sms" ? smsFrom : undefined,
         subject: fact.label,
         fromName: studio.name,

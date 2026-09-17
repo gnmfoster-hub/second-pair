@@ -110,3 +110,24 @@ test("it reads as a sentence, not as a field", () => {
   );
   assert.equal(describeFact(vaccination, null), null, "nothing known says nothing at all");
 });
+
+/*
+ * A boiler is the other way round: nobody writes down when the next service is
+ * due, they write down when the last one happened. A negative remindBefore is
+ * how that is said, and it has to land eleven months later rather than never.
+ */
+test("a reminder can count forward from something that already happened", () => {
+  const serviced: TradeFact = {
+    key: "serviced",
+    label: "Last serviced",
+    type: "date",
+    remindBefore: -335,
+  };
+
+  // Serviced on 17 October last year: 335 days ago as at 17 September.
+  const due = dueSoon([serviced], { serviced: "2025-10-17" }, now);
+  assert.equal(due.length, 1);
+  assert.equal(due[0].daysAway, -335);
+
+  assert.deepEqual(dueSoon([serviced], { serviced: "2026-01-01" }, now), [], "only months old yet");
+});
