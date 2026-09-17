@@ -54,9 +54,17 @@ test("nobody rung is a leg we never paid for", () => {
   assert.ok(cost.inPence > 0, "they were still connected to us");
 });
 
-test("a call that never connected costs nothing", () => {
+/*
+ * The cheapest possible call is not a free one. A business with no ring-me
+ * number has its callers hear a sentence and get texted — nobody is rung, no
+ * message is taken, and it still costs an inbound minute. Pricing that at zero
+ * is how a channel comes to look free.
+ */
+test("the cheapest call still costs a connected minute", () => {
   const cost = callCost({ rangSeconds: 0, forwarded: false, recordedSeconds: 0, transcribed: false });
-  assert.equal(cost.pence, 0);
+  assert.equal(cost.outPence, 0, "nobody was rung");
+  assert.equal(cost.recordingPence, 0);
+  assert.equal(cost.pence, CALL_RATES.inPence);
 });
 
 /*

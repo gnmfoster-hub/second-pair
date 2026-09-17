@@ -92,8 +92,17 @@ export function callCost(
   call: CallShape,
   rates: CallRates = CALL_RATES,
 ): { inPence: number; outPence: number; recordingPence: number; transcriptionPence: number; pence: number } {
-  const connected =
-    call.rangSeconds + call.recordedSeconds + (call.forwarded || call.recordedSeconds > 0 ? SPOKEN_SECONDS : 0);
+  /*
+   * Every call that reaches us is connected, so every call costs at least one
+   * inbound minute — the carrier's floor, not ours.
+   *
+   * This only added the spoken seconds when somebody was rung or a message was
+   * left, which priced a business with no ring-me number at nothing a call.
+   * Those callers still reach us and still hear a sentence; the cheapest
+   * possible outcome is a minute, not free. A channel that reads as free is
+   * the exact mistake this file exists to stop.
+   */
+  const connected = call.rangSeconds + call.recordedSeconds + SPOKEN_SECONDS;
 
   const inPence = minutes(connected) * rates.inPence;
   const outPence = call.forwarded ? minutes(call.rangSeconds) * rates.outPence : 0;

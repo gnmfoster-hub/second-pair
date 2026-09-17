@@ -204,9 +204,9 @@ export async function meterThisMonth(
         }[]) {
           const rang = call.rang_seconds ?? 0;
           const recorded = call.recorded_seconds ?? 0;
-          const spoken = call.forwarded || recorded > 0 ? SPOKEN_SECONDS : 0;
-
-          row.connectedMinutes = (row.connectedMinutes ?? 0) + upToMinutes(rang + recorded + spoken);
+          /* Every call that reached us was connected. See callCost. */
+          row.connectedMinutes =
+            (row.connectedMinutes ?? 0) + upToMinutes(rang + recorded + SPOKEN_SECONDS);
           if (call.forwarded) row.forwardedMinutes = (row.forwardedMinutes ?? 0) + upToMinutes(rang);
           row.recordedMinutes = (row.recordedMinutes ?? 0) + upToMinutes(recorded);
           if (call.transcribed) {
