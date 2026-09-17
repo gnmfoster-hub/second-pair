@@ -246,3 +246,20 @@ export async function retrieveOpenCheckout(
  * from the client's record, which is the useful half — the slow part of a
  * refund is finding the payment among three hundred.
  */
+
+/**
+ * Whether what this business would connect to is really a sandbox.
+ *
+ * A demo is meant to be on test keys and says so elsewhere. This is the other
+ * case: a real business, on the live path, where the platform's live key has
+ * not been swapped over yet — so "Connect Stripe" sends the owner off to
+ * attach a sandbox account that can never take a real card, and nothing on the
+ * screen says so until somebody tries to be paid.
+ *
+ * Read off the key itself rather than a flag somebody has to remember to set,
+ * because the flag and the key are exactly what drift apart.
+ */
+export function wouldConnectSandbox(business: { kind?: string | null }): boolean {
+  if (modeFor(business) === "test") return false;
+  return (process.env.STRIPE_SECRET_KEY ?? "").startsWith("sk_test");
+}

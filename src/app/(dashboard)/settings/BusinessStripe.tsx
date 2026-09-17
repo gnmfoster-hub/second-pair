@@ -16,6 +16,7 @@ import { StripeNotice } from "./StripeNotice";
 export function BusinessStripe({
   accountId,
   canConnect,
+  sandbox = false,
   outcome,
   detail,
 }: {
@@ -27,6 +28,12 @@ export function BusinessStripe({
    * straight back.
    */
   canConnect: boolean;
+  /**
+   * True when the account this would connect is a sandbox one, on a real
+   * business. Second Pair's own switch to live keys, not anything the owner
+   * can do — so it is said plainly rather than hidden behind a disabled button.
+   */
+  sandbox?: boolean;
   /** The ?stripe= word, when they have just come back from Stripe. */
   outcome?: string;
   detail?: string;
@@ -43,6 +50,15 @@ export function BusinessStripe({
 
       <div className="mt-4 space-y-2.5">
         <StripeNotice outcome={outcome} detail={detail} />
+
+        {sandbox && (
+          <p className="rounded-lg bg-warn/10 px-3 py-2 text-sm text-warn">
+            <strong>Card payments are still in test mode at our end.</strong> Connecting now
+            attaches a practice account, and no real card can be charged through it — you
+            would have to connect again once we switch over. We will tell you when that is;
+            everything else here works in the meantime.
+          </p>
+        )}
 
         {accountId ? (
           <div className="flex flex-wrap items-center gap-3">

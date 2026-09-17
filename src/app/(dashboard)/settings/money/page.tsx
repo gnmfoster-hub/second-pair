@@ -1,5 +1,6 @@
 import { requireOwner, getArtists } from "@/lib/studio";
 import { canConnectStripe } from "@/lib/env";
+import { wouldConnectSandbox } from "@/lib/payments/stripe";
 import { PaymentModel } from "../PaymentModel";
 import { SameStripe } from "../SameStripe";
 import { BusinessStripe } from "../BusinessStripe";
@@ -40,6 +41,7 @@ export default async function MoneySettingsPage({
       <BusinessStripe
         accountId={studio.stripe_account_id}
         canConnect={canConnectStripe(studio)}
+        sandbox={wouldConnectSandbox(studio)}
         outcome={back.stripe}
         detail={back.detail}
       />
