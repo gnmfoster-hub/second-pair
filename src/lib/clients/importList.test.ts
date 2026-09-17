@@ -170,3 +170,67 @@ test("the same person written twice is the same person", () => {
     null,
   );
 });
+
+/*
+ * A whole file, with everything a real export has in it: quoted commas inside
+ * an address, a doubled quote inside a note, the same person twice in two
+ * different phone formats, a blank row, somebody with no name, somebody with
+ * no number, and two columns of marketing ticks where one person left both
+ * blank.
+ *
+ * Written after running an actual Fresha-shaped file through it, because the
+ * per-function tests above all passed while none of them proved a file works.
+ */
+const MESSY = [
+  "ID,First Name,Last Name,Full Name,Blocked,Block reason,Mobile Number,Email,Accepts Marketing,Accepts SMS,Address,DOB,Tags",
+  '1001,Dave,Bone,Dave Bone,No,,07700 900301,dave@example.com,Yes,Yes,"12 Mill Lane, Bath",14/02/1981,"regular, prefers Kerry"',
+  "1002,Tom,Whitfield,Tom Whitfield,Yes,Three no-shows,07700 900304,,No,No,,,",
+  "1003,Nula,Byrne,Nula Byrne,No,,,nula@example.com,Yes,Yes,,30/07/1988,",
+  "1004,,,,No,,,,No,No,,,",
+  "1005,Dave,Bone,Dave Bone,No,,+44 7700 900301,dave@example.com,Yes,Yes,,,duplicate",
+  `1006,Meg,O'Shea,Meg O'Shea,No,,07700 900309,meg@example.com,,,"22 Larkhall",,`,
+].join("\n");
+
+test("a real export, start to finish", () => {
+  const { headers, rows } = readCsv(MESSY);
+  const mapping = guessColumns(headers);
+  assert.equal(rows.length, 6, "the blank row is still a row until it is read");
+
+  const seen = new Set<string>();
+  const brought: string[] = [];
+  let skipped = 0;
+  let already = 0;
+
+  for (const row of rows) {
+    const contact = readRow(headers, mapping, row);
+    if (whyNot(contact)) {
+      skipped++;
+      continue;
+    }
+    const key = keyOf(contact);
+    if (key && seen.has(key)) {
+      already++;
+      continue;
+    }
+    if (key) seen.add(key);
+    brought.push(contact.name ?? "(no name)");
+  }
+
+  assert.deepEqual(brought, ["Dave Bone", "Tom Whitfield", "Nula Byrne", "Meg O'Shea"]);
+  assert.equal(already, 1, "the same Dave, written two ways, is one Dave");
+  assert.equal(skipped, 1, "the row with nothing in it");
+
+  // And the details that are easy to get wrong.
+  const dave = readRow(headers, mapping, rows[0]);
+  assert.match(dave.notes ?? "", /Address: 12 Mill Lane, Bath/, "a comma inside an address survives");
+  assert.match(dave.notes ?? "", /Tags: regular, prefers Kerry/);
+
+  const tom = readRow(headers, mapping, rows[1]);
+  assert.equal(tom.alert, "Blocked in their old system: Three no-shows");
+  assert.equal(tom.email, null);
+
+  const meg = readRow(headers, mapping, rows[5]);
+  assert.equal(meg.marketingEmail, null, "blank is not a no");
+  assert.equal(meg.marketingSms, null);
+  assert.equal(meg.name, "Meg O'Shea", "an apostrophe is a name, not a quote");
+});
