@@ -520,13 +520,23 @@ export default async function AdminPage() {
     summaries.filter((b) => b.kind === "customer" && !b.archivedAt).map((b) => b.id),
   );
 
+  /*
+   * And the wider one, for what the assistant has actually done.
+   *
+   * Work won at a real business is work won whether or not that business pays
+   * us for it, and a demonstration's is not work at all.
+   */
+  const forWork = new Set(
+    summaries.filter((b) => b.kind !== "demo" && !b.archivedAt).map((b) => b.id),
+  );
+
   const wonPence = (won ?? [])
     .filter((e) => {
       const conversation = e.conversations as unknown as {
         status: string;
         studio_id: string;
       } | null;
-      return conversation?.status === "booked" && forCustomers.has(conversation.studio_id);
+      return conversation?.status === "booked" && forWork.has(conversation.studio_id);
     })
     .reduce((sum, e) => sum + (e.quote_low_pence ?? 0), 0);
 
@@ -551,6 +561,23 @@ export default async function AdminPage() {
    */
   const counted = summaries.filter((b) => forCustomers.has(b.id));
 
+  /*
+   * Real work, whoever it was for.
+   *
+   * The commercial figures count paying customers and nothing else, which is
+   * right: "we have two customers" has to be true. But the same filter was
+   * applied to enquiries and appointments, and Living Canvas and Neat & Tidy
+   * are marked internal — they are Giles's own businesses, not customers of
+   * his. So the front page said nought enquiries answered while those two had
+   * eighteen between them and the report, which only hides demonstrations,
+   * showed all eighteen. Two screens, the same word, different populations:
+   * exactly what "the reports do not match the back office" turned out to be.
+   *
+   * Activity now counts every real business. A demonstration is still nobody's
+   * enquiry, and a stopped business is nobody's either.
+   */
+  const working = summaries.filter((b) => b.kind !== "demo" && !b.archivedAt);
+
   const kpis: PlatformKpis = {
     businesses: counted.length,
     live: counted.filter((b) => b.conversations > 0).length,
@@ -559,9 +586,9 @@ export default async function AdminPage() {
       .filter((b) => b.status === "active" || b.status === "overdue")
       .reduce((sum, b) => sum + b.planPence, 0),
     paying: counted.filter((b) => b.status === "active").length,
-    enquiries: counted.reduce((sum, b) => sum + b.conversations, 0),
-    booked: counted.reduce((sum, b) => sum + b.bookedByAssistant, 0),
-    appointments: counted.reduce((sum, b) => sum + b.bookings, 0),
+    enquiries: working.reduce((sum, b) => sum + b.conversations, 0),
+    booked: working.reduce((sum, b) => sum + b.bookedByAssistant, 0),
+    appointments: working.reduce((sum, b) => sum + b.bookings, 0),
     wonPence,
     // Micros are millionths of a dollar-equivalent; a hundredth of that is a
     // penny, which is the unit everything else on this screen is in.

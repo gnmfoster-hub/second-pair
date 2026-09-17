@@ -282,12 +282,12 @@ function Kpis({ k }: { k: PlatformKpis }) {
         <Figure
           value={String(k.businesses)}
           label="Paying customers"
-          note={`${k.live} have had an enquiry · demos not counted`}
+          note={`${k.live} have had an enquiry · your own and demos not counted`}
         />
         <Figure
           value={String(k.enquiries)}
           label="Enquiries answered"
-          note={`Since day one · ${k.booked} of them booked in · ${k.appointments} appointments in all`}
+          note={`Every real business, since day one · ${k.booked} booked by the assistant · ${k.appointments} appointments in all`}
         />
         <Figure
           value={converts == null ? "—" : `${converts}%`}
