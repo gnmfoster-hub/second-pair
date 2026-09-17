@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireStudio, getArtists } from "@/lib/studio";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -94,9 +95,23 @@ export default async function DashboardLayout({ children }: { children: React.Re
    * it, and the page it points at is somebody else's route.
    */
   const wanted = process.env.NEXT_PUBLIC_SUPPORT_SLUG?.trim() || null;
+  /*
+   * Asked with our own client, not the signed-in one.
+   *
+   * The support business belongs to us, not to the business looking at this
+   * screen — so row-level security quite correctly hid it, the lookup returned
+   * nothing, and the help button rendered for nobody at all except whoever
+   * happened to own the support studio. Every other business had no way to ask
+   * for help from inside the product, and nothing said so: the feature is
+   * written to render nothing when it is not configured, and this looked
+   * exactly like that.
+   *
+   * Nothing sensitive is read — a slug we already have in an environment
+   * variable, and whether it exists.
+   */
   const supportSlug = wanted
     ? (
-        await supabase
+        await createAdminClient()
           .from("studios")
           .select("slug")
           .eq("slug", wanted)
