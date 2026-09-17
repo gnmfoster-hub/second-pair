@@ -577,23 +577,7 @@ async function saveEnquiry(
     };
   }
 
-  /*
-   * And the trade's own fields, after the contact is settled rather than
-   * before — a returning customer's conversation is moved onto the record
-   * they already had, and facts written to the blank first would be deleted
-   * along with it.
-   */
-  const facts = await saveFacts(ctx, (input.facts ?? null) as Record<string, unknown> | null);
-
-  if (facts.failed) {
-    return {
-      result:
-        `Saved: ${saved.join(", ")}. Could not save the extra details ` +
-        `(${facts.failed}) — do not tell them those are on file.`,
-    };
-  }
-
-  return { result: `Saved: ${[...saved, ...facts.saved].join(", ")}.` };
+  return { result: `Saved: ${saved.join(", ")}.` };
 }
 
 /**
@@ -746,7 +730,22 @@ async function saveContact(
     };
   }
 
-  return { result: `Saved: ${saved.join(", ")}.` };
+  /*
+   * And the trade's own fields, after the contact is settled rather than
+   * before — a returning customer's conversation is moved onto the record
+   * they already had, and facts written to the blank first would go with it.
+   */
+  const facts = await saveFacts(ctx, (input.facts ?? null) as Record<string, unknown> | null);
+
+  if (facts.failed) {
+    return {
+      result:
+        `Saved: ${saved.join(", ")}. Could not save the extra details ` +
+        `(${facts.failed}) — do not tell them those are on file.`,
+    };
+  }
+
+  return { result: `Saved: ${[...saved, ...facts.saved].join(", ")}.` };
 }
 
 /**
