@@ -151,5 +151,8 @@ function shortTime(iso: string, timezone: string): string {
       hour12: true,
     })
     .replace(":00", "")
-    .replace(" ", "");
+    /* Every kind of space: Intl uses a narrow no-break one in a browser and a
+       plain one in Node, which is a hydration mismatch waiting to happen. See
+       Glance. */
+    .replace(/\s+/g, "");
 }

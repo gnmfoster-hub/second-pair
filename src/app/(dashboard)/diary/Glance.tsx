@@ -59,7 +59,20 @@ export function Glance({
       hour12: true,
     })
       .format(d)
-      .replace(" ", "")
+      /*
+       * Every kind of space, not just the ordinary one.
+       *
+       * Intl puts a narrow no-break space before "am" in a browser and a plain
+       * one in Node, so stripping " " worked on the server and did nothing in
+       * the browser: the page arrived saying "10:00am" and React hydrated it
+       * to "10:00 am". That is a text mismatch, and React throws #418 and
+       * re-renders the branch — which showed up as an error on three
+       * businesses' appointment dialogs and on nobody else's, because it
+       * depends on the hour being formatted.
+       *
+       * \s covers U+202F, so this is the whole of the fix.
+       */
+      .replace(/\s+/g, "")
       .toLowerCase();
 
   const length =
