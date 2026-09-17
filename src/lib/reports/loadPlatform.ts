@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ReportRows } from "./platform";
+import { everyUser } from "@/lib/auth/everyUser";
 
 /**
  * Every row the platform report reads, for a range, with the service key.
@@ -27,8 +28,24 @@ export async function loadPlatformRows(db: SupabaseClient, range: { from: string
 
   const [studios, conversations, messages, bookings, payments, inbound, reminders, forms, calls, members, users] = await Promise.all([
     all((a, b) => db.from("studios").select("id, name, vertical, kind, account_status, plan_pence, created_at, archived_at").range(a, b)),
+    /*
+     * The ones this report can actually say something about.
+     *
+     * Every conversation ever made was read on every run, to produce a report
+     * about thirty days. At nineteen conversations that is invisible; at a
+     * hundred businesses it is the report timing out, and the failure arrives
+     * all at once on the day it arrives.
+     *
+     * Either started in the window, or spoken on in it — a thread opened in
+     * March that got a reply yesterday belongs in yesterday's figures, and
+     * filtering on created_at alone would drop its messages on the floor.
+     */
     all((a, b) =>
-      db.from("conversations").select("id, studio_id, channel, is_test, created_at, first_response_ms, status, last_message_at").range(a, b),
+      db
+        .from("conversations")
+        .select("id, studio_id, channel, is_test, created_at, first_response_ms, status, last_message_at")
+        .or(`created_at.gte.${range.from},last_message_at.gte.${range.from}`)
+        .range(a, b),
     ),
     all((a, b) =>
       db
@@ -70,10 +87,26 @@ export async function loadPlatformRows(db: SupabaseClient, range: { from: string
         .range(a, b),
     ),
     all((a, b) => db.from("studio_members").select("studio_id, user_id").range(a, b)),
-    db.auth.admin.listUsers({ perPage: 1000 }),
+    everyUser(db),
   ]);
 
-  const signIn = new Map((users.data?.users ?? []).map((u) => [u.id, u.last_sign_in_at ?? null]));
+  /*
+   * When each business was last heard from, over all time.
+   *
+   * "Quiet for fourteen days" is the at-risk signal, and it cannot be worked
+   * out from a thirty-day window — a business silent since June has nothing in
+   * it at all. Its own query, two columns wide, newest first: whatever the
+   * newest few thousand are, they contain the latest for every business that
+   * has ever said anything.
+   */
+  const { data: heardFrom } = await db
+    .from("conversations")
+    .select("studio_id, last_message_at, is_test")
+    .not("last_message_at", "is", null)
+    .order("last_message_at", { ascending: false })
+    .limit(3000);
+
+  const signIn = new Map(users.map((u) => [u.id, u.last_sign_in_at ?? null]));
   const lastSignIn: Record<string, string | null> = {};
   for (const m of members as { studio_id: string; user_id: string }[]) {
     const at = signIn.get(m.user_id) ?? null;
@@ -90,7 +123,7 @@ export async function loadPlatformRows(db: SupabaseClient, range: { from: string
   const later = (id: string, at: string | null | undefined) => {
     if (at && (!lastActivity[id] || at > lastActivity[id]!)) lastActivity[id] = at;
   };
-  for (const c of conversations as { studio_id: string; last_message_at: string | null; is_test: boolean | null }[]) {
+  for (const c of (heardFrom ?? []) as { studio_id: string; last_message_at: string | null; is_test: boolean | null }[]) {
     if (!c.is_test) later(c.studio_id, c.last_message_at);
   }
   for (const b of bookingRows) if (b.source !== "block") later(b.studio_id, b.created_at);
