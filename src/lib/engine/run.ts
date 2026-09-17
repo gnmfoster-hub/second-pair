@@ -29,6 +29,7 @@ import type {
   Studio,
 } from "@/lib/types";
 import { NotAnswering } from "./errors";
+import { hasColumn } from "@/lib/db/hasColumn";
 
 /**
  * Overridable so a cheaper model can be measured against the guardrail suite
@@ -825,6 +826,15 @@ async function generateReply(
     ctx.forArtist,
     ctx.channel,
   );
+  /*
+   * Whether the trade's own fields have anywhere to go yet.
+   *
+   * Cheap and cached, and it decides whether the assistant asks for them at
+   * all. Before the migration it must not: it would ask when the vaccinations
+   * run out, be told, fail to write it down, and ask again next message.
+   */
+  const keepsFacts = await hasColumn(ctx.db, "contacts", "trade_facts");
+
   const system = studioSystemPrompt(
     ctx.studio,
     ctx.artists,
@@ -836,6 +846,7 @@ async function generateReply(
     ctx.forArtist ?? null,
     ctx.signedIn ?? null,
     ctx.channel,
+    keepsFacts,
   );
 
   /*

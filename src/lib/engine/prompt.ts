@@ -67,6 +67,15 @@ export function studioSystemPrompt(
    * pays by the 153 characters. Everywhere else a reply can breathe.
    */
   channel: string = "web",
+  /**
+   * Whether there is anywhere to put the trade's own fields yet.
+   *
+   * False before the migration that adds the column. Asking for something that
+   * cannot be saved is worse than not asking: a groomer's assistant would ask
+   * when the vaccinations run out, be told, fail to write it down, and ask
+   * again on the next message — for ever, with the booking held behind it.
+   */
+  keepsFacts: boolean = true,
 ): string {
   /*
    * Only the people this assistant may speak for.
@@ -112,12 +121,13 @@ export function studioSystemPrompt(
    * an assistant that knows a booking will be refused asks before offering
    * times, rather than after somebody has chosen one.
    */
-  const factLines = pack.facts
+  const packFacts = keepsFacts ? pack.facts : [];
+  const factLines = packFacts
     .filter((f) => f.ask)
     .map((f) => `- ${f.ask}${f.blocks ? " — you cannot book without this" : ""}`)
     .join("\n");
   const factSection = factLines ? `\n${factLines}` : "";
-  const factSaving = pack.facts.length
+  const factSaving = packFacts.length
     ? "\n\nSave any of those with save_contact the moment they say it — a date can be written however they said it. Do not ask for them all at once; they come up on their own."
     : "";
   const ruleLines = pack.rules.map((r) => `- ${r}`).join("\n");
