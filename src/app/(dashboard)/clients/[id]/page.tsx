@@ -384,6 +384,7 @@ export default async function ClientPage({
         <div className="min-w-0 space-y-6">
           <ClientForm
             facts={facts}
+            factsTitle={verticalPack(studio.vertical).factsTitle}
             client={{
               id: contact.id,
               name: contact.name,

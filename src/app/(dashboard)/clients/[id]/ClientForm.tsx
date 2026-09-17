@@ -19,10 +19,13 @@ export type FactField = {
 export function ClientForm({
   client,
   facts = [],
+  factsTitle,
   prefsUrl,
 }: {
-  /** The trade's own fields. Empty for most trades; a groomer has three. */
+  /** The trade's own fields. Empty for most trades; a groomer has four. */
   facts?: FactField[];
+  /** What to call them, in the trade's words — "About the vehicle". */
+  factsTitle?: string;
   /** Their own preferences page, where the database has a token for it. */
   prefsUrl?: string | null;
   client: {
@@ -79,25 +82,28 @@ export function ClientForm({
         * so nothing can stop a booking with it or get a reminder out before it.
         */}
       {facts.length > 0 && (
-        <fieldset className="grid gap-4 sm:grid-cols-2">
-          {facts.map((fact) => (
-            <Field key={fact.key} label={fact.label} hint={fact.hint ?? undefined}>
-              {fact.type === "yesno" ? (
-                <select name={`fact_${fact.key}`} defaultValue={fact.value} className="input">
-                  <option value="">Not known</option>
-                  <option value="yes">Yes</option>
-                  <option value="no">No</option>
-                </select>
-              ) : (
-                <input
-                  name={`fact_${fact.key}`}
-                  type={fact.type === "date" ? "date" : fact.type === "number" ? "number" : "text"}
-                  defaultValue={fact.value}
-                  className="input"
-                />
-              )}
-            </Field>
-          ))}
+        <fieldset>
+          <legend className="label">{factsTitle ?? "Details"}</legend>
+          <div className="mt-2 grid gap-4 sm:grid-cols-2">
+            {facts.map((fact) => (
+              <Field key={fact.key} label={fact.label} hint={fact.hint ?? undefined}>
+                {fact.type === "yesno" ? (
+                  <select name={`fact_${fact.key}`} defaultValue={fact.value} className="input">
+                    <option value="">Not known</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </select>
+                ) : (
+                  <input
+                    name={`fact_${fact.key}`}
+                    type={fact.type === "date" ? "date" : fact.type === "number" ? "number" : "text"}
+                    defaultValue={fact.value}
+                    className="input"
+                  />
+                )}
+              </Field>
+            ))}
+          </div>
         </fieldset>
       )}
 

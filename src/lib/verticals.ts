@@ -147,6 +147,8 @@ export type VerticalPack = {
    * sentence — which a paragraph of free text cannot. Most trades have none.
    */
   facts: TradeFact[];
+  /** The heading above them on a record — "About the vehicle". */
+  factsTitle: string;
   /** Extra hard rules, on top of the universal one. */
   rules: string[];
   styles: { value: string; label: string }[];
@@ -184,6 +186,7 @@ type TradeInput = {
   pricing?: VerticalPack["pricing"];
   regulars?: boolean;
   facts?: TradeFact[];
+  factsTitle?: string;
   /** How to ask the one question that places a job. See VerticalPack.sizing. */
   sizing?: string;
   roles?: string[];
@@ -294,6 +297,7 @@ function trade(input: TradeInput): VerticalPack {
     regulars: input.regulars ?? false,
     // Almost every trade keeps nothing special. The few that do say so.
     facts: input.facts ?? [],
+    factsTitle: input.factsTitle ?? "Details",
     rules: [UNIVERSAL_RULE, ...(input.rules ?? [])],
     styles: input.styles ?? [],
     intents: input.intents ?? [
@@ -1221,6 +1225,7 @@ const HEALTH: VerticalPack[] = [
 
   trade({
     id: "pt",
+    factsTitle: "Health",
     facts: [
       {
         key: "parq",
@@ -1347,6 +1352,7 @@ const HEALTH: VerticalPack[] = [
 const PETS: VerticalPack[] = [
   trade({
     id: "dog_groomer",
+    factsTitle: "About the dog",
     facts: [
       {
         key: "vaccination_due",
@@ -1411,6 +1417,7 @@ const PETS: VerticalPack[] = [
 
   trade({
     id: "dog_walker",
+    factsTitle: "About the dog",
     facts: [
       {
         key: "vaccination_due",
@@ -1466,6 +1473,7 @@ const PETS: VerticalPack[] = [
 const MOTORING: VerticalPack[] = [
   trade({
     id: "mobile_mechanic",
+    factsTitle: "About the vehicle",
     facts: [
       { key: "registration", label: "Registration", type: "text", ask: "the registration", onAppointment: true },
       { key: "mot_due", label: "MOT due", type: "date", remindBefore: 45, remindText: "your MOT runs out on {date}", onAppointment: true },
@@ -1513,6 +1521,7 @@ const MOTORING: VerticalPack[] = [
 
   trade({
     id: "garage",
+    factsTitle: "About the vehicle",
     facts: [
       { key: "registration", label: "Registration", type: "text", ask: "the registration", onAppointment: true },
       /*
@@ -1600,6 +1609,7 @@ const MOTORING: VerticalPack[] = [
 
   trade({
     id: "driving_instructor",
+    factsTitle: "Licence and tests",
     facts: [
       {
         key: "theory_passed",
@@ -1724,6 +1734,7 @@ const OTHER: VerticalPack[] = [
 
   trade({
     id: "tutor",
+    factsTitle: "Exams",
     facts: [
       { key: "exam_board", label: "Exam board", type: "text", ask: "which exam board they are on", onAppointment: true },
       { key: "exam_date", label: "Exam date", type: "date", remindBefore: 60, remindText: "your exam is on {date}" },
