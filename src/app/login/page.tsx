@@ -319,7 +319,15 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className="relative flex min-h-dvh items-center justify-center overflow-hidden px-6 py-10">
       <div className="aura" aria-hidden />
       <div className="relative w-full max-w-sm">
-        <Logo height={56} lockup="flush-right" />
+        {/*
+          * The brand promise, not the product line.
+          *
+          * Everywhere inside the app says "you work, we answer", which is what
+          * it does. This is the first screen anybody sees and the one the
+          * installed app opens on, so it says what it is instead: the pack's
+          * own introduction line, and the reason somebody bought it.
+          */}
+        <Logo height={56} lockup="flush-right" tagline="hands" />
         <p className="hint mt-3">
           Answers your enquiries, quotes from your prices, and books people in — while
           your hands are full.

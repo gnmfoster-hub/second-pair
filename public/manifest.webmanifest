@@ -1,7 +1,7 @@
 {
-  "name": "Second Pair",
+  "name": "Second Pair — your second pair of hands",
   "short_name": "Second Pair",
-  "description": "You work, we answer.",
+  "description": "Your second pair of hands. You work, we answer.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -9,9 +9,24 @@
   "background_color": "#EFEEE9",
   "theme_color": "#14243F",
   "icons": [
-    { "src": "/brand/png/app-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/brand/png/app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/brand/png/app-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/brand/png/app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/png/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/png/app-icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
   "shortcuts": [
     {
@@ -19,28 +34,52 @@
       "short_name": "Today",
       "description": "Today's appointments, in order",
       "url": "/diary?view=day",
-      "icons": [{ "src": "/brand/png/app-icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "/brand/png/app-icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "Add an appointment",
       "short_name": "Add",
       "description": "Put something in the diary",
       "url": "/diary?view=day&add=1",
-      "icons": [{ "src": "/brand/png/app-icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "/brand/png/app-icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "Who needs you",
       "short_name": "Waiting",
       "description": "Conversations waiting on a person",
       "url": "/",
-      "icons": [{ "src": "/brand/png/app-icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "/brand/png/app-icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "Clients",
       "short_name": "Clients",
       "description": "Look somebody up",
       "url": "/clients",
-      "icons": [{ "src": "/brand/png/app-icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "/brand/png/app-icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }
