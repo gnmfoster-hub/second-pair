@@ -232,6 +232,15 @@ export function Console({
  */
 function Kpis({ k }: { k: PlatformKpis }) {
   const margin = k.wonPence > 0 && k.costPence > 0 ? Math.round(k.wonPence / k.costPence) : null;
+  /*
+   * Of enquiries, not of everything in the diary.
+   *
+   * This divided every appointment ever made — including ones typed in by
+   * hand, and until today including time off — by the number of conversations,
+   * and printed the answer as a percentage. Willow & Co has three hundred
+   * appointments and thirteen conversations, so the front page said 2,315% of
+   * enquiries book. Now both halves count the same thing.
+   */
   const converts = k.enquiries ? Math.round((k.booked / k.enquiries) * 100) : null;
 
   /*
@@ -275,11 +284,15 @@ function Kpis({ k }: { k: PlatformKpis }) {
           label="Paying customers"
           note={`${k.live} have had an enquiry · demos not counted`}
         />
-        <Figure value={String(k.enquiries)} label="Enquiries answered" note={`${k.booked} booked in`} />
+        <Figure
+          value={String(k.enquiries)}
+          label="Enquiries answered"
+          note={`Since day one · ${k.booked} of them booked in · ${k.appointments} appointments in all`}
+        />
         <Figure
           value={converts == null ? "—" : `${converts}%`}
           label="Enquiries that book"
-          note="Across the platform"
+          note="Of enquiries the assistant answered"
         />
         <Figure
           value={`${k.seatsUsed}/${k.seatsSold}`}

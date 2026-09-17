@@ -3,6 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { verifySignature } from "@/lib/messaging/sms";
 import { sendSms } from "@/lib/messaging/sms";
 import { wasMissed, missedCallText } from "@/lib/messaging/missedCall";
+import { whatTheyHear } from "@/lib/voice/voicemail";
+import { hasColumn } from "@/lib/db/hasColumn";
 
 export const runtime = "nodejs";
 
@@ -132,7 +134,61 @@ export async function POST(request: NextRequest) {
    */
   if (!delivered) await flag(db, thread.id);
 
-  return empty();
+  /*
+   * And then let them say it, if this business has asked for that.
+   *
+   * The text above still goes first and unchanged, so nobody ever comes off
+   * this line having heard and received nothing — a recording that is never
+   * made produces no callback, and a caller who hung up at the beep would
+   * otherwise get silence where today they get a text.
+   *
+   * Read with its own query rather than joined above: the column does not
+   * exist until its migration is run, and naming it in the join would have
+   * PostgREST refuse the whole lookup — which is every missed call on the
+   * platform, on two real businesses, going nowhere.
+   */
+  const voicemail =
+    (await hasColumn(db, "studios", "voicemail")) &&
+    (
+      await db
+        .from("studios")
+        .select("voicemail")
+        .eq("id", connection.studio_id)
+        .maybeSingle()
+    ).data?.voicemail === true;
+
+  if (!voicemail) return empty();
+
+  const said = whatTheyHear(studio?.name ?? null, person?.name?.split(" ")[0] ?? null);
+
+  /*
+   * ninety seconds, and hash to finish.
+   *
+   * Long enough for somebody to describe a job and short enough that a phone
+   * left in a pocket does not record the drive home. `playBeep` because people
+   * wait for one, and a four-second silence ends it for anybody who rang off.
+   */
+  return twiml(
+    `<Say voice="alice">${escapeXml(said)}</Say>` +
+      `<Record maxLength="90" timeout="4" finishOnKey="#" playBeep="true" ` +
+      `transcribe="true" transcribeCallback="/api/voice/said?to=${encodeURIComponent(to)}" />` +
+      `<Say voice="alice">Thanks, we will be in touch.</Say>`,
+  );
+}
+
+function twiml(body: string) {
+  return new NextResponse(`<?xml version="1.0" encoding="UTF-8"?><Response>${body}</Response>`, {
+    headers: { "Content-Type": "text/xml" },
+  });
+}
+
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }
 
 /**

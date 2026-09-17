@@ -257,6 +257,19 @@ export default async function ReportsPage({
       {/* ─────────────────────────────────────────── every business */}
       <section className="card mt-6 p-5">
         <h2 className="section-title">Business by business</h2>
+        {/*
+          * The window, said again here.
+          *
+          * The front page counts everything since day one and this counts a
+          * range, and both used the words "enquiries" and "booked" with
+          * nothing on either screen saying which was which. Two honest numbers
+          * that disagree look exactly like one wrong one.
+          */}
+        <p className="hint mt-1">
+          {range.label}. Appointments are the ones starting in that window, and enquiries the
+          conversations started in it &mdash; the front page counts everything since day one,
+          which is why the two disagree.
+        </p>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[1100px] text-sm">
             <thead>

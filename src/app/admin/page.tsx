@@ -238,13 +238,30 @@ export default async function AdminPage() {
         return n ?? 0;
       };
 
-      /** Bookings belong to a person, and the person belongs to the business. */
-      const bookings = async () => {
-        const { count: n, error } = await db
+      /*
+       * Bookings belong to a person, and the person belongs to the business.
+       *
+       * Time off is not an appointment. A holiday, a lunch and a day off are
+       * rows in this table with source "block", and counting them made a salon
+       * with three days off look three appointments busier — while the report,
+       * which excludes them, showed a different number for the same business.
+       * That is the mismatch: two screens, both saying "booked", counting two
+       * different things.
+       *
+       * `from` is narrower still: only what the assistant made out of an
+       * enquiry, which is the only figure that can honestly be divided by the
+       * number of enquiries. Willow has three hundred appointments and thirteen
+       * conversations, and "2,315% of enquiries book" was on the front page.
+       */
+      const bookings = async (from?: string) => {
+        let q = db
           .from("bookings")
           .select("id, artists!inner(studio_id)", { count: "exact", head: true })
           .eq("artists.studio_id", s.id)
-          .is("cancelled_at", null);
+          .is("cancelled_at", null)
+          .neq("source", "block");
+        if (from) q = q.eq("source", from);
+        const { count: n, error } = await q;
         if (error) throw new Error(`bookings: ${error.message}`);
         return n ?? 0;
       };
@@ -352,6 +369,7 @@ export default async function AdminPage() {
         hasHours: hours.some((h) => !h.closed),
         conversations: await count("conversations"),
         bookings: await bookings(),
+        bookedByAssistant: await bookings("assistant"),
         lastActivityAt: latest?.last_message_at ?? null,
         plan: s.plan ?? null,
         planPence: s.plan_pence ?? 0,
@@ -542,7 +560,8 @@ export default async function AdminPage() {
       .reduce((sum, b) => sum + b.planPence, 0),
     paying: counted.filter((b) => b.status === "active").length,
     enquiries: counted.reduce((sum, b) => sum + b.conversations, 0),
-    booked: counted.reduce((sum, b) => sum + b.bookings, 0),
+    booked: counted.reduce((sum, b) => sum + b.bookedByAssistant, 0),
+    appointments: counted.reduce((sum, b) => sum + b.bookings, 0),
     wonPence,
     // Micros are millionths of a dollar-equivalent; a hundredth of that is a
     // penny, which is the unit everything else on this screen is in.

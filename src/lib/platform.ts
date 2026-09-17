@@ -107,7 +107,16 @@ export type BusinessSummary = {
   hasHours: boolean;
   /** For billing and for knowing whether it is being used at all. */
   conversations: number;
+  /** Appointments ever made and not cancelled. Time off is not an appointment. */
   bookings: number;
+  /**
+   * Of those, the ones the assistant made from an enquiry.
+   *
+   * The only figure that can honestly be set against conversations: a diary
+   * full of appointments typed in by hand says nothing about whether the
+   * assistant converts anything.
+   */
+  bookedByAssistant: number;
   lastActivityAt: string | null;
 
   /*
@@ -243,7 +252,10 @@ export type PlatformKpis = {
   mrr: number;
   paying: number;
   enquiries: number;
+  /** Appointments the assistant made, so the rate beside it means something. */
   booked: number;
+  /** Every appointment on the platform, ever, time off excluded. */
+  appointments: number;
   /** What the assistant booked, in pence, at the quoted value. */
   wonPence: number;
   /*
