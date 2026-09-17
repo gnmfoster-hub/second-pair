@@ -465,7 +465,7 @@ export async function savePersonalCalendar(
   const url = str(fd, "personal_ical_url").trim();
 
   if (!url) {
-    await supabase
+    const { error: notCleared } = await supabase
       .from("artists")
       .update({
         personal_ical_url: null,
@@ -473,6 +473,11 @@ export async function savePersonalCalendar(
         personal_calendar_read_at: null,
       })
       .eq("id", me.id);
+
+    // Somebody disconnecting a calendar has to know whether it disconnected:
+    // the whole point is that their own diary stops being read.
+    if (notCleared) return { error: notCleared.message };
+
     revalidatePath("/settings/you");
     revalidatePath("/diary");
     return { ok: true };
@@ -1377,9 +1382,19 @@ export async function setServiceProviders(bandId: string, artistIds: string[]) {
     const team = await getArtists(studio.id);
     const owned = artistIds.filter((id) => team.some((a) => a.id === id));
     if (owned.length) {
-      await supabase
+      const { error: notLinked } = await supabase
         .from("service_providers")
         .insert(owned.map((artist_id) => ({ band_id: bandId, artist_id })));
+
+      /*
+       * Who may be offered for a service is the whole point of the setting.
+       *
+       * Failing quietly leaves the service saved and nobody attached to it,
+       * which the assistant reads as "anybody can do this" — so the owner
+       * ticks three people, sees the service appear, and the fourth gets
+       * booked for a treatment they do not do.
+       */
+      if (notLinked) return { error: `Saved, but who does it did not: ${notLinked.message}` };
     }
   }
 
@@ -1635,10 +1650,14 @@ export async function saveCallForwarding(
    * ring-me number to save a tick box is the wrong way round.
    */
   if (fd.has("voicemail_shown") && (await hasColumn(supabase, "studios", "voicemail"))) {
-    await supabase
+    const { error: notSaved } = await supabase
       .from("studios")
       .update({ voicemail: fd.get("voicemail") === "on" })
       .eq("id", studio.id);
+
+    // Whether a member of the public's voice is recorded is not a setting to
+    // fail quietly in either direction.
+    if (notSaved) return { error: `The number saved, the answerphone did not: ${notSaved.message}` };
   }
 
   revalidatePath("/settings/install");
