@@ -500,11 +500,33 @@ export default async function AdminPage() {
    * swallowed query became a plausible number, which is the argument for not
    * swallowing them.
    */
-  const [{ data: won }, { data: spend, error: spendError }] = await Promise.all([
-    db.from("enquiries").select("quote_low_pence, conversations!inner(status, studio_id)"),
-    db.from("messages").select("usage").eq("role", "assistant").not("usage", "is", null),
-  ]);
-  if (spendError) throw new Error(`cost: ${spendError.message}`);
+  /*
+   * Paged, and told which business each one was for.
+   *
+   * Two faults in one line. It asked for every assistant message ever and
+   * PostgREST returns a thousand at a time — so the moment the platform passed
+   * a thousand answered messages, "what it cost to run" quietly stopped
+   * growing, and nobody would ever have noticed a number that only goes wrong
+   * slowly. And it counted demonstrations, while the work it is set against
+   * does not, so the return per pound was understated by whatever the demos
+   * had cost that week.
+   */
+  const spend: { usage: unknown; conversations: { studio_id: string } | null }[] = [];
+  for (let page = 0; page < 200; page++) {
+    const { data, error } = await db
+      .from("messages")
+      .select("usage, conversations!inner(studio_id)")
+      .eq("role", "assistant")
+      .not("usage", "is", null)
+      .range(page * 1000, page * 1000 + 999);
+    if (error) throw new Error(`cost: ${error.message}`);
+    spend.push(...((data ?? []) as unknown as typeof spend));
+    if (!data || data.length < 1000) break;
+  }
+
+  const { data: won } = await db
+    .from("enquiries")
+    .select("quote_low_pence, conversations!inner(status, studio_id)");
 
   /*
    * Counted for customers, like everything else on this screen.
@@ -593,10 +615,12 @@ export default async function AdminPage() {
     // Micros are millionths of a dollar-equivalent; a hundredth of that is a
     // penny, which is the unit everything else on this screen is in.
     costPence: Math.round(
-      (spend ?? []).reduce(
-        (sum, m) => sum + ((m.usage as { cost_micros?: number } | null)?.cost_micros ?? 0),
-        0,
-      ) / 10_000,
+      spend
+        .filter((m) => m.conversations && forWork.has(m.conversations.studio_id))
+        .reduce(
+          (sum, m) => sum + ((m.usage as { cost_micros?: number } | null)?.cost_micros ?? 0),
+          0,
+        ) / 10_000,
     ),
     seatsUsed: counted.reduce((sum, b) => sum + b.people, 0),
     seatsSold: counted.reduce((sum, b) => sum + (b.seatLimit ?? b.people), 0),

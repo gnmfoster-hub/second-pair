@@ -269,7 +269,7 @@ function Kpis({ k }: { k: PlatformKpis }) {
         <Figure
           value={formatPence(k.costPence)}
           label="What it cost to run"
-          note={margin ? `${margin}× that in work won` : "Across every business"}
+          note={margin ? `${margin}× that in work won` : "Every real business, since day one"}
         />
       </Band>
 
