@@ -69,20 +69,6 @@ export async function sayWhatsDue(
 
     for (const { fact, on } of dueSoon(facts, values, now)) {
       /*
-       * Once per person per date, whatever happens next — claimed before the
-       * send rather than after, so two instances of the job cannot both text
-       * somebody about their MOT. The same table and unique index that stop a
-       * webhook being handled twice. See dueKey for why the date is in it.
-       */
-      const { error: claimed } = await db
-        .from("handled_messages")
-        .insert({ message_id: dueKey(person.id, fact, on), channel: "sms" });
-      if (claimed) {
-        result.skipped++;
-        continue;
-      }
-
-      /*
        * An explicit no is an explicit no.
        *
        * PECR's soft opt-in covers this — their own garage, about their own car,
@@ -92,6 +78,27 @@ export async function sayWhatsDue(
        * channel and falling through to the other is not honouring a refusal.
        */
       if (person.marketing_sms === false && person.marketing_email === false) {
+        result.skipped++;
+        continue;
+      }
+
+      /*
+       * Claimed last, immediately before the send.
+       *
+       * It used to be claimed first, which is the safe order for stopping two
+       * instances texting the same person twice — and it quietly threw the
+       * reminder away for anybody we could not reach. A garage with no text
+       * number burned its one chance at every customer's MOT: claimed,
+       * skipped, and never eligible again, because the key has the date in it
+       * and that date only comes round once.
+       *
+       * Everything that can refuse has refused by here, so the window between
+       * claiming and sending is one call wide.
+       */
+      const { error: claimed } = await db
+        .from("handled_messages")
+        .insert({ message_id: dueKey(person.id, fact, on), channel: "sms" });
+      if (claimed) {
         result.skipped++;
         continue;
       }
@@ -106,8 +113,26 @@ export async function sayWhatsDue(
         transactional: false,
       });
 
+      /*
+       * A reminder nobody could be reached about is given back.
+       *
+       * reachOut works the route out for itself, so "there is no way to text
+       * this person" only becomes known after the claim. Left claimed, a
+       * garage with no text number would burn its one chance at every
+       * customer's MOT — claimed, skipped, and never eligible again, because
+       * the key carries the date and that date comes round once.
+       *
+       * A refusal is different and stays claimed: somebody who has said STOP
+       * has not asked to be asked again tomorrow.
+       */
+      if (sent.status === "no_route") {
+        await db.from("handled_messages").delete().eq("message_id", dueKey(person.id, fact, on));
+        result.skipped++;
+        continue;
+      }
+
       if (sent.status === "sent" || sent.status === "delivered") result.sent++;
-      else if (sent.status === "not_needed" || sent.status === "no_route") result.skipped++;
+      else if (sent.status === "not_needed") result.skipped++;
       else result.failed++;
     }
   }
