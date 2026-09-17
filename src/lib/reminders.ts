@@ -197,11 +197,79 @@ export type SendResult = {
  * Safe to call repeatedly: each reminder is one row, moved off `pending` the
  * moment it is handled, so a cron firing twice cannot send twice.
  */
+/**
+ * Reminders claimed by a run that never came back.
+ *
+ * The claim marks a row "sent" before anything is sent — deliberately, because
+ * that is what stops two overlapping sweeps sending the same reminder twice.
+ * Everything after it runs in a try, so a throw writes the row back as failed.
+ * What that cannot catch is the process itself dying: a lambda killed
+ * mid-send leaves a row saying sent, off `pending` for ever, that nobody
+ * received. The first anybody knows is an empty chair.
+ *
+ * It needs no column to find. `sent_at` is written only once something has
+ * actually arrived, so "sent with no sent_at, and due a while ago" is exactly
+ * a claim nobody finished — the review said this wanted a claimed-at column,
+ * and it turned out the row already said it.
+ *
+ * Put back to pending once. If it strands a second time the row says so and
+ * is failed instead, because something is wrong with that reminder rather than
+ * with the run, and a loop that retries for ever is a worse fault than the one
+ * it is fixing.
+ *
+ * The risk taken deliberately: a send that went out and died before recording
+ * will be sent again. A duplicate reminder is an awkward text; a missing one
+ * is somebody not turning up.
+ */
+const STRANDED_AFTER_MS = 15 * 60 * 1000;
+const RECOVERED = "put back after an interrupted send";
+
+async function recoverStranded(db: SupabaseClient, studio: Studio, now: Date): Promise<void> {
+  const { data: stuck } = await db
+    .from("reminders")
+    .select("id, error, bookings!inner(starts_at, cancelled_at, artists!inner(studio_id))")
+    .eq("status", "sent")
+    .is("sent_at", null)
+    .eq("bookings.artists.studio_id", studio.id)
+    .lte("due_at", new Date(now.getTime() - STRANDED_AFTER_MS).toISOString())
+    .limit(100);
+
+  for (const row of (stuck ?? []) as unknown as {
+    id: string;
+    error: string | null;
+    bookings: { starts_at: string; cancelled_at: string | null };
+  }[]) {
+    /* No use reminding anybody about an appointment that has been and gone. */
+    const past = new Date(row.bookings.starts_at) <= now;
+    const gone = Boolean(row.bookings.cancelled_at);
+
+    if (past || gone || row.error === RECOVERED) {
+      await db
+        .from("reminders")
+        .update({
+          status: "failed",
+          error: past || gone ? "the send was interrupted and the time has passed" : "interrupted twice",
+        })
+        .eq("id", row.id);
+      continue;
+    }
+
+    await db
+      .from("reminders")
+      .update({ status: "pending", error: RECOVERED })
+      .eq("id", row.id)
+      .eq("status", "sent")
+      .is("sent_at", null);
+  }
+}
+
 export async function sendDueReminders(
   db: SupabaseClient,
   studio: Studio,
   now = new Date(),
 ): Promise<SendResult> {
+  await recoverStranded(db, studio, now);
+
   const { data, error } = await db
     .from("reminders")
     .select(
