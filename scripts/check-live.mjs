@@ -13,6 +13,15 @@
  * studio, so it is off by default.
  */
 import fs from "node:fs";
+/*
+ * The DMARC reader lives in src with its tests. Node strips the types on the
+ * way in; the one warning it emits about doing so is not news to anybody.
+ */
+process.removeAllListeners("warning");
+process.on("warning", (w) => {
+  if (w.code !== "MODULE_TYPELESS_PACKAGE_JSON") console.warn(w);
+});
+const { readDmarc, isAPersonsInbox } = await import("../src/lib/dns/dmarc.ts");
 
 const SITE = process.env.SITE_URL ?? "https://www.second-pair.com";
 const ASK = process.argv.includes("--ask");
@@ -112,13 +121,48 @@ else fail("DKIM holds the wrong value", `found "${dkimValue.slice(0, 40)}" — c
  * 2024. Without it the mail is not rejected — it is scored worse, which is the
  * hardest kind of problem to notice, because everything looks like it worked.
  */
+/*
+ * Read rather than recognised.
+ *
+ * This asked whether the record contained the letters "v=DMARC" and printed
+ * the first forty-eight characters, and it passed a record that had a whole
+ * second record pasted into the middle of its reporting address. Forty-eight
+ * characters is exactly long enough for the wreckage to look fine.
+ *
+ * The same fault as everywhere else this week: asking whether a thing is
+ * there instead of whether it can be used. See lib/dns/dmarc, where the
+ * broken record is a test.
+ */
 const dmarc = ((await lookup(`_dmarc.${apex}`, "TXT")) ?? []).join("");
-if (/v=DMARC/i.test(dmarc)) pass("DMARC is published", dmarc.slice(0, 48));
-else
+if (!/v=DMARC/i.test(dmarc)) {
   warn(
     "DMARC is not published",
-    'Add a TXT record at _dmarc with "v=DMARC1; p=none; rua=mailto:info@second-pair.com".',
+    'Add a TXT record at _dmarc with "v=DMARC1; p=none; rua=mailto:<your report address>".',
   );
+} else {
+  const read = readDmarc(dmarc);
+  if (read.faults.length) {
+    fail(`the DMARC record will not be read`, read.faults.join("; "));
+  } else {
+    const inboxes = read.reportTo.filter(isAPersonsInbox);
+    if (inboxes.length) {
+      /*
+       * Not broken, but it is the daily flood: every receiver that honours
+       * DMARC posts one XML report a day per domain to every address named.
+       */
+      warn(
+        "DMARC reports go to a person's inbox",
+        `${inboxes.join(", ")} — one XML attachment a day from every mail provider. ` +
+          "A report service turns them into one readable summary a week.",
+      );
+    } else {
+      pass(
+        "DMARC is published and readable",
+        `p=${read.tags.p}${read.reportTo.length ? ` · reports to ${read.reportTo.join(", ")}` : " · no reports"}`,
+      );
+    }
+  }
+}
 
 // -------------------------------------------------------------------- the app
 heading("The application");
