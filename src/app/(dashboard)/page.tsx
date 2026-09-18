@@ -19,14 +19,31 @@ import {
 } from "@/lib/types";
 import { inboxScope, scopedTo } from "@/lib/inboxScope";
 
+/*
+ * What state a conversation is in, readable without reading it.
+ *
+ * Four of these seven were the same grey — including Qualified, which is the
+ * assistant having done the job the business pays for. A whole inbox of grey
+ * pills is a column of words you have to read one at a time, and it is the
+ * single biggest thing a list like this can do for somebody glancing at their
+ * phone between jobs.
+ *
+ * Three meanings and no more, or it becomes bunting:
+ *   green   money is coming, or has
+ *   orange  you have to do something — the only place orange appears
+ *   grey    nothing to do here
+ *
+ * New keeps the accent rather than a fourth colour: it is not yet good news
+ * and it is not yet a job, it is just recent.
+ */
 const STATUS_STYLES: Record<ConvStatus, string> = {
-  new: "bg-surface-2 text-muted",
-  qualified: "bg-surface-2 text-foreground",
-  deposit_paid: "bg-ok/10 text-ok",
-  booked: "bg-ok/10 text-ok",
-  needs_human: "bg-warn/15 text-warn",
-  lost: "bg-surface-2 text-muted/60",
-  spam: "bg-surface-2 text-muted/60",
+  new: "bg-accent/8 text-accent",
+  qualified: "bg-ok/12 text-ok",
+  deposit_paid: "bg-ok/15 text-ok",
+  booked: "bg-ok/15 text-ok",
+  needs_human: "bg-highlight/15 text-highlight-strong",
+  lost: "bg-surface-2 text-muted/70",
+  spam: "bg-surface-2 text-muted/70",
 };
 
 type Row = {

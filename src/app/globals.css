@@ -37,10 +37,23 @@
    * eight hours should do. The orange is untouched and now has the only warm
    * note on the page, which is the whole point of a highlight.
    */
-  --background: #f4f5f7;
+  /*
+   * Three planes, far enough apart to be three planes.
+   *
+   * These were #f4f5f7, #ffffff and #eceef2 — a page, a card and an inset
+   * inside four per cent of each other in lightness, with the sidebar painted
+   * the same colour as the page. Nothing advanced, nothing receded, and a
+   * screen with no depth and almost no colour on it reads as washed out. Giles
+   * called it beige, which is exactly right: not the hue, the flatness.
+   *
+   * So the ground goes down far enough that white genuinely lifts off it, and
+   * the sidebar takes the white — the ground is the desk, the panels are the
+   * paper on it. That is the whole trick and it costs one shade.
+   */
+  --background: #e8ecf2;
   --surface: #ffffff;
-  --surface-2: #eceef2;
-  --border: #e2e5ea;
+  --surface-2: #f0f3f8;
+  --border: #dde3ec;
   --foreground: #141824;
   --muted: #59626f;
   --accent: #14243f;
@@ -59,10 +72,17 @@
 
   --logo-bubble: #14243f;
 
+  /*
+   * Soft enough to be depth rather than decoration.
+   *
+   * A card had no shadow at all, which was an over-correction: the fault was
+   * everything being lifted equally, and the cure was to lift nothing, which
+   * flattened the whole product. One quiet shadow against a deeper ground
+   * gives the separation without any block shouting.
+   */
   --shadow-card:
-    0 1px 1px rgba(20, 36, 63, 0.04),
-    0 3px 8px -2px rgba(20, 36, 63, 0.06),
-    0 12px 24px -12px rgba(20, 36, 63, 0.10);
+    0 1px 2px rgba(19, 30, 51, 0.05),
+    0 4px 12px -4px rgba(19, 30, 51, 0.07);
   --shadow-pop:
     0 2px 4px rgba(20, 36, 63, 0.06),
     0 12px 28px -6px rgba(20, 36, 63, 0.16),
@@ -290,8 +310,25 @@ body {
     @apply text-xs leading-relaxed text-muted;
   }
 
-  /* Money, times, counts. Anywhere digits sit above other digits. */
+  /*
+   * Money, times, counts. Anywhere digits sit above other digits.
+   *
+   * This was IBM Plex Mono, and it put "5h ago", "yesterday", "£40" and every
+   * phone number in the product into a typewriter face sitting next to a clean
+   * grotesque. It was reached for to keep columns aligned — but alignment
+   * comes from tabular figures, which the interface face already has, and
+   * which cost nothing in character. A monospace face is for things a machine
+   * wrote; a time somebody's customer got in touch is not one of them.
+   *
+   * Mono survives where it means something: an API key, an embed snippet, a
+   * column heading out of somebody's old spreadsheet. See .code.
+   */
   .num {
+    @apply tabular-nums;
+  }
+
+  /* Genuinely machine text: keys, snippets, headings from another system. */
+  .code {
     font-family: var(--font-mono), ui-monospace, monospace;
     @apply tabular-nums;
   }
@@ -313,6 +350,7 @@ body {
    */
   .card {
     @apply rounded-xl border border-border bg-surface;
+    box-shadow: var(--shadow-card);
   }
 
   /* For the rare block that really is raised off the page. */
