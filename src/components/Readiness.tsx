@@ -27,6 +27,17 @@ export function Readiness({ capabilities }: { capabilities: Capability[] }) {
   if (missing.length === 0) return null;
 
   const blocking = missing.filter((c) => c.blocking);
+
+  /*
+   * Which of these are worth a paragraph on the inbox, and which are a line.
+   *
+   * Anything that stops the assistant doing its job keeps its row and its
+   * button. Where nothing is blocking, the first two still get rows — a panel
+   * that is only ever one grey line is a panel nobody reads — and the rest
+   * become the line underneath.
+   */
+  const shown = blocking.length ? blocking : missing.slice(0, 2);
+  const quieter = missing.filter((c) => !shown.includes(c));
   const ready = capabilities.length - missing.length;
 
   /*
@@ -162,12 +173,26 @@ export function Readiness({ capabilities }: { capabilities: Capability[] }) {
 
       {settingUp && <div className="h-5" />}
 
+      {/*
+        * What is stopping it, and then a line about the rest.
+        *
+        * This listed every unfinished thing in full, which on a business part
+        * way through set-up is four or five paragraphs — and it sits above the
+        * enquiries on the one screen somebody keeps open all day. Measured on
+        * the demo: the first conversation started 825 pixels down a 950 pixel
+        * screen, so an inbox showed two of them.
+        *
+        * Anything that stops the assistant working still gets its own row and
+        * its own button. The nudges that do not — a phone not signed up for
+        * notifications — become one line underneath, because they are worth
+        * knowing and not worth a paragraph every time you open the inbox.
+        */}
       <ul
         className={`mt-4 divide-y divide-border border-t border-border ${
           settingUp ? "hidden" : ""
         }`}
       >
-        {missing.map((capability) => (
+        {shown.map((capability) => (
           <li
             key={capability.key}
             className="flex flex-wrap items-start gap-x-4 gap-y-2 px-5 py-3.5"
@@ -195,6 +220,19 @@ export function Readiness({ capabilities }: { capabilities: Capability[] }) {
             )}
           </li>
         ))}
+
+        {quieter.length > 0 && (
+          <li className="px-5 py-3">
+            <p className="hint">
+              Also worth doing:{" "}
+              {quieter.map((c) => c.can.toLowerCase()).join(", ")}.{" "}
+              <Link href="/setup" className="text-accent hover:underline">
+                Set-up
+              </Link>{" "}
+              walks through them.
+            </p>
+          </li>
+        )}
       </ul>
 
       {/* What already works, so the list is not only a telling-off. */}
