@@ -67,7 +67,15 @@ export async function UpNext({
 
   if (!row) {
     return (
-      <div className={`rounded-xl border border-dashed border-border px-3.5 py-4 ${className}`}>
+      /*
+       * A solid edge, not a dashed one.
+       *
+       * Dashed borders mean "drop something here" or "not finished yet" in
+       * every other piece of software, and this is neither: it is a real panel
+       * saying there is nothing booked. On a sidebar somebody looks at all day
+       * it read as a bit of the product that had not been built.
+       */
+      <div className={`rounded-xl border border-border bg-surface-2/60 px-3.5 py-4 ${className}`}>
         <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
           Up next
         </div>

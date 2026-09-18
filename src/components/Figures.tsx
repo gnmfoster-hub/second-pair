@@ -94,9 +94,18 @@ export function Figure({
   if (inline) {
     return (
       <span className="inline-flex items-baseline gap-1.5 whitespace-nowrap">
+        {/*
+          * Big enough to be the headline it is.
+          *
+          * "£40 won while you were busy" is the sentence this product exists
+          * to say back to somebody every morning, and it was set at the size
+          * of a caption in a thin grey strip. One line was the right call —
+          * it was taking a hundred and ten pixels of the screen people keep
+          * open all day — but one line does not have to mean quiet.
+          */}
         <span
-          className={`font-display font-bold tabular-nums tracking-[-0.02em] ${
-            act ? "text-lg text-highlight-strong" : warn ? "text-lg text-warn" : "text-lg"
+          className={`font-display text-xl font-bold tabular-nums tracking-[-0.02em] ${
+            act ? "text-highlight-strong" : warn ? "text-warn" : ""
           }`}
         >
           {children ?? value}
