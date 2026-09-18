@@ -301,25 +301,6 @@ export async function POST(request: NextRequest) {
         // would deliver the whole thing at once and undo the entire point.
         "X-Accel-Buffering": "no",
         /*
-         * And this is the one that actually did it.
-         *
-         * With X-Accel-Buffering alone the stream reached node in twenty-six
-         * pieces and reached Chrome in exactly one, six seconds in — every
-         * word correct, in order, nothing missing, and the customer waiting
-         * precisely as long as before. The difference is that a browser asks
-         * for compression and node does not, and the compressor at the edge
-         * holds the whole body to compress it.
-         *
-         * Saying the body is already encoded stops it being compressed again,
-         * so it goes out as it is written. A reply is a few hundred bytes of
-         * text; there was nothing worth compressing anyway.
-         *
-         * Worth knowing because the failure is invisible: it looks exactly
-         * like success unless you time the first piece against the last, which
-         * is what check-stream.mjs now does.
-         */
-        "Content-Encoding": "none",
-        /*
          * And this is the one that fixed Chrome specifically.
          *
          * With the compression stopped the stream reached node in thirty-six
