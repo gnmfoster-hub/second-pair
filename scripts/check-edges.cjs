@@ -150,25 +150,47 @@ const WIDTHS = [
           if (style.width === "auto" || style.width.includes("%")) continue;
 
           /*
-           * Ask the text itself how many lines it is on.
+           * Measure the text's own box, not the element's and not its rects.
            *
-           * The first try compared the element's height against its
-           * line-height, and reported thirty-eight buttons — a button is
-           * taller than one line because it has padding, not because anything
-           * wrapped. Tuning that threshold would only have moved the guess.
+           * Two wrong answers before this one. Comparing the element's height
+           * to its line-height reported thirty-eight buttons, which are tall
+           * because they have padding. Counting the rectangles of a Range
+           * reported another twenty that were visibly on one line — a Range
+           * returns a rectangle per text fragment, and a browser splits text
+           * into fragments for reasons of its own.
            *
-           * A Range over the text gives one rectangle per line box, which is
-           * the actual question and has no threshold in it at all.
+           * A Range's *bounding* rectangle is the box the text actually
+           * occupies: no padding in it, and one number however many fragments
+           * the browser felt like making. Taller than one and a half lines
+           * means it is on two.
            */
           const range = document.createRange();
           range.selectNodeContents(el);
-          const lines = range.getClientRects().length;
-          if (lines < 2) continue;
+          const box = range.getBoundingClientRect();
+          const rects = [...range.getClientRects()];
+          if (!box.height || !rects.length) continue;
+
+          /*
+           * Calibrate against the text's own first line, not against a guess.
+           *
+           * The previous version estimated a line as font-size times 1.4 when
+           * the computed line-height came back "normal", and then reported
+           * eighty-four pixels of text inside an eighty-eight pixel box as
+           * having wrapped — which cannot happen. The estimate was simply
+           * short, so one tall line looked like two.
+           *
+           * A rectangle from the range is a real line box with the real line
+           * height in it, so the text measures itself and there is no constant
+           * left to be wrong.
+           */
+          const line = Math.max(...rects.map((r) => r.height));
+          if (box.height < line * 1.5) continue;
 
           if (seen.has(text)) continue;
           seen.add(text);
-          const r = el.getBoundingClientRect();
-          out.push(`on ${lines} lines in ${Math.round(r.width)}px · "${text}"`);
+          out.push(
+            `wrapped · ${Math.round(box.width)}px of text in a ${style.width} box · "${text}"`,
+          );
         }
         return out.slice(0, 3);
       });

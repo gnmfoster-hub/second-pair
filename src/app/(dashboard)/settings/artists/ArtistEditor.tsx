@@ -224,7 +224,18 @@ export function ArtistEditor({
           </Field>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        {/*
+          * Stacked on a phone, three across from a tablet up.
+          *
+          * These were three columns at every width, which on a 390px screen
+          * is 88 pixels a field — narrow enough that "Hourly rate (£)" broke
+          * across two lines and left the "(£)" sitting on its own underneath,
+          * and narrow enough that the box you type the number into was barely
+          * wider than the number. Found by measuring rather than by eye: the
+          * label was inside its box the whole time, the box had just grown a
+          * line to hold it.
+          */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label="Hourly rate (£)">
             <input
               name="hourly_rate"
