@@ -43,6 +43,8 @@ export async function POST(request: NextRequest) {
     media?: string[];
     with?: string | null;
     test?: boolean;
+    /** Send the reply a piece at a time rather than all at the end. */
+    stream?: boolean;
   };
   try {
     body = await request.json();
@@ -143,104 +145,179 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  try {
-    const result = await runTurn({
-      studioSlug: studio,
-      sessionKey: session,
-      channel: "web",
-      origin: request.nextUrl.origin,
-      message: message || "(sent an image)",
-      mediaUrls: media,
-      // Which person this link belongs to. Validated as a uuid rather than
-      // trusted: it arrives from the browser, and it decides whose diary gets
-      // booked.
-      forArtistId: forArtist,
-      isTest,
-      signedIn,
-      raisedFor,
-    });
+  /*
+   * One answer, however it is delivered.
+   *
+   * The words a customer gets when the model falls over are careful, and they
+   * were written once. Streaming the reply meant a second route to the same
+   * outcome, and a second copy of those sentences is a second copy to keep
+   * right — the sort of duplication that ends with one path apologising
+   * properly and the other showing a stack trace. So the turn is run in one
+   * place and both paths ask it for the same object.
+   */
+  async function answer(onText?: (chunk: string) => void): Promise<{
+    payload: Record<string, unknown>;
+    status: number;
+    timing?: string;
+  }> {
+    try {
+      const result = await runTurn({
+        studioSlug: studio,
+        sessionKey: session,
+        channel: "web",
+        origin: request.nextUrl.origin,
+        message: message || "(sent an image)",
+        mediaUrls: media,
+        // Which person this link belongs to. Validated as a uuid rather than
+        // trusted: it arrives from the browser, and it decides whose diary gets
+        // booked.
+        forArtistId: forArtist,
+        isTest,
+        signedIn,
+        raisedFor,
+        onText,
+      });
 
-    return NextResponse.json(
-      {
-        reply: result.reply,
-        paused: result.paused,
-        /*
-         * What it did, so the widget can draw it instead of asking the customer
-         * to type the answer back. Nothing here grants the browser anything: it
-         * describes decisions already written to the database, and a tapped time
-         * comes back as an ordinary message and is booked the ordinary way.
-         */
-        moments: result.moments,
-      },
-      {
-        /*
-         * Where the wait went, on the one channel where somebody is watching.
-         *
-         * A browser draws this in its network tab as bars against the request,
-         * so a slow reply can be taken apart by anybody who opens dev tools —
-         * no instrumentation to switch on and nothing to remember to run. It
-         * carries no customer data, only durations in milliseconds.
-         */
-        headers: result.spent ? { "Server-Timing": serverTiming(result.spent) } : undefined,
-      },
-    );
-  } catch (error) {
-    /*
-     * One kind of failure is worth explaining.
-     *
-     * "Try again" is right for almost everything, because trying again is
-     * genuinely what to do. It is wrong for a business that has been stopped:
-     * nothing is broken, retrying will never work, and the script is often
-     * still on a website whose owner is no longer a customer.
-     */
-    if (error instanceof NotAnswering) {
-      console.warn("[widget/chat]", error.message);
-      return NextResponse.json({ error: error.visitorMessage }, { status: 503 });
+      return {
+        payload: {
+          reply: result.reply,
+          paused: result.paused,
+          /*
+           * What it did, so the widget can draw it instead of asking the
+           * customer to type the answer back. Nothing here grants the browser
+           * anything: it describes decisions already written to the database,
+           * and a tapped time comes back as an ordinary message and is booked
+           * the ordinary way.
+           */
+          moments: result.moments,
+        },
+        status: 200,
+        timing: result.spent ? serverTiming(result.spent) : undefined,
+      };
+    } catch (error) {
+      /*
+       * One kind of failure is worth explaining.
+       *
+       * "Try again" is right for almost everything, because trying again is
+       * genuinely what to do. It is wrong for a business that has been stopped:
+       * nothing is broken, retrying will never work, and the script is often
+       * still on a website whose owner is no longer a customer.
+       */
+      if (error instanceof NotAnswering) {
+        console.warn("[widget/chat]", error.message);
+        return { payload: { error: error.visitorMessage }, status: 503 };
+      }
+
+      /*
+       * Everything else: answer like a business, not like a website.
+       *
+       * A red error box under a message somebody has just typed tells the
+       * customer the company is broken, and tells the owner nothing at all. It
+       * happened for real — the model's account ran out of credit and every
+       * business on here showed "Something went wrong. Please try again." to
+       * every customer, for as long as it took somebody to notice.
+       *
+       * So the customer is told, in words, that their message has landed and
+       * somebody will come back to them — which is true, because the same call
+       * hands the conversation to the owner and buzzes their phone. Their words
+       * are already saved; the reply is the only thing missing.
+       */
+      console.error("[widget/chat]", error);
+
+      const { handed } = await handOverAfterFailure(createAdminClient(), {
+        studioId: await studioIdOf(studio),
+        channel: "web",
+        externalRef: session,
+        error,
+      });
+
+      /*
+       * Only promise what happened.
+       *
+       * "I've passed this straight to the team" was said whether or not the
+       * handover worked — and it cannot work if the studio could not be looked
+       * up, which is the same failure that would have caused this. A customer
+       * told somebody will come back to them, when nobody has been told
+       * anything, is worse off than one who is asked to try again.
+       */
+      return {
+        payload: {
+          reply: handed
+            ? "Sorry — I can't get to the diary this minute, so I don't want to guess at times. " +
+              "I've passed this straight to the team and somebody will come back to you shortly. " +
+              "Your message has been saved, so there's no need to write it again."
+            : "Sorry — something is wrong at our end and I can't answer properly just now. " +
+              "Please try again in a few minutes, or contact the business directly if it is urgent.",
+          paused: true,
+          handedOver: handed,
+        },
+        status: 200,
+      };
     }
+  }
 
-    /*
-     * Everything else: answer like a business, not like a website.
-     *
-     * A red error box under a message somebody has just typed tells the
-     * customer the company is broken, and tells the owner nothing at all. It
-     * happened for real — the model's account ran out of credit and every
-     * business on here showed "Something went wrong. Please try again." to
-     * every customer, for as long as it took somebody to notice.
-     *
-     * So the customer is told, in words, that their message has landed and
-     * somebody will come back to them — which is true, because the same call
-     * hands the conversation to the owner and buzzes their phone. Their words
-     * are already saved; the reply is the only thing missing.
-     */
-    console.error("[widget/chat]", error);
+  /*
+   * The words as they are written, for the one channel with somebody watching.
+   *
+   * Measured: ninety per cent of the eight seconds a customer waits is the
+   * model writing the reply. Nothing about that is fixable by being cleverer
+   * with the database — the only thing that shortens the wait from where the
+   * customer sits is not making them wait for the full stop.
+   *
+   * Asked for rather than assumed. An old widget script cached on somebody's
+   * website carries on posting without `stream` and carries on getting the
+   * single JSON object it has always got, so nobody's site breaks on a deploy
+   * they did not make.
+   *
+   * One JSON object per line: `{"t":"…"}` for each piece of the reply and a
+   * final `{"done":{…}}` carrying everything the plain answer carries. A line
+   * at a time because a half-received line is easy to hold onto and finish,
+   * which matters on a phone changing masts halfway through a sentence.
+   */
+  if (body.stream === true) {
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const line = (value: unknown) => {
+          try {
+            controller.enqueue(encoder.encode(JSON.stringify(value) + "\n"));
+          } catch {
+            // The customer closed the tab mid-reply. The turn still finishes
+            // and is still saved; there is simply nobody left to send it to.
+          }
+        };
 
-    const { handed } = await handOverAfterFailure(createAdminClient(), {
-      studioId: await studioIdOf(studio),
-      channel: "web",
-      externalRef: session,
-      error,
+        const { payload } = await answer((chunk) => line({ t: chunk }));
+        line({ done: payload });
+        controller.close();
+      },
     });
 
-    /*
-     * Only promise what happened.
-     *
-     * "I've passed this straight to the team" was said whether or not the
-     * handover worked — and it cannot work if the studio could not be looked
-     * up, which is the same failure that would have caused this. A customer
-     * told somebody will come back to them, when nobody has been told
-     * anything, is worse off than one who is asked to try again.
-     */
-    return NextResponse.json({
-      reply: handed
-        ? "Sorry — I can't get to the diary this minute, so I don't want to guess at times. " +
-          "I've passed this straight to the team and somebody will come back to you shortly. " +
-          "Your message has been saved, so there's no need to write it again."
-        : "Sorry — something is wrong at our end and I can't answer properly just now. " +
-          "Please try again in a few minutes, or contact the business directly if it is urgent.",
-      paused: true,
-      handedOver: handed,
+    return new NextResponse(stream, {
+      headers: {
+        "Content-Type": "application/x-ndjson; charset=utf-8",
+        "Cache-Control": "no-store",
+        // Vercel and most proxies hold a response back to buffer it, which
+        // would deliver the whole thing at once and undo the entire point.
+        "X-Accel-Buffering": "no",
+      },
     });
   }
+
+  const { payload, status, timing } = await answer();
+  return NextResponse.json(payload, {
+    status,
+    /*
+     * Where the wait went, on the one channel where somebody is watching.
+     *
+     * A browser draws this in its network tab as bars against the request, so
+     * a slow reply can be taken apart by anybody who opens dev tools — no
+     * instrumentation to switch on and nothing to remember to run. It carries
+     * no customer data, only durations in milliseconds.
+     */
+    headers: timing ? { "Server-Timing": timing } : undefined,
+  });
+
 }
 
 /**

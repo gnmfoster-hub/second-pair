@@ -63,8 +63,37 @@ type Line = {
    * had.
    */
   failed?: boolean;
+  /**
+   * Still being written.
+   *
+   * The reply arrives a few words at a time, so this bubble exists before
+   * there is a whole answer in it. It is marked because a half-written line
+   * must not offer buttons or be read out as finished to a screen reader.
+   */
+  writing?: boolean;
   at: number;
 };
+
+/**
+ * Everything an answer can carry, however it arrived.
+ *
+ * Written down once because it is now read from two shapes — a whole JSON
+ * body, and the `done` object at the end of a stream — and a field that only
+ * one of them sets is exactly the sort of thing to find out about at runtime.
+ */
+type Answer = {
+  reply?: string;
+  paused?: boolean;
+  moments?: Moment[];
+  handedOver?: boolean;
+  /** Ours to read in the console, never theirs to see. */
+  error?: string;
+};
+
+/** A JSON body, or an empty object where there is not one. Never throws. */
+async function readJson(response: Response): Promise<Answer> {
+  return (await response.json().catch(() => ({}))) as Answer;
+}
 
 /**
  * Turns URLs in a reply into links you can actually tap.
@@ -190,6 +219,92 @@ export function ChatWindow({
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
+
+  /**
+   * Sends a message and shows the answer as it is written.
+   *
+   * Measured on the live site: ninety per cent of the eight seconds a customer
+   * waits is the model writing the reply. Nothing about that is fixable by
+   * being quicker with the database — the tools are one per cent — so the only
+   * thing that shortens the wait from where the customer sits is not making
+   * them wait for the full stop.
+   *
+   * The reply comes back as one JSON object per line: `{"t":"…"}` for each
+   * piece and a final `{"done":{…}}` carrying exactly what the plain answer
+   * carries. A half-received line is held onto and finished with the next
+   * chunk, which is the ordinary case on a phone rather than an edge one.
+   *
+   * If anything about the stream goes wrong — a proxy that buffers it into
+   * nonsense, a connection that dies — this falls back to asking again without
+   * streaming. A customer getting their answer eight seconds later is a bad
+   * day; a customer getting no answer is a lost enquiry.
+   */
+  async function ask(payload: Record<string, unknown>): Promise<{
+    response: Response;
+    data: Answer;
+  }> {
+    const send = (stream: boolean) =>
+      fetch("/api/widget/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, stream }),
+      });
+
+    let response = await send(true);
+    if (!response.ok || !response.body) return { response, data: await readJson(response) };
+
+    let rest = "";
+    let done: Answer | null = null;
+    const reader = response.body.getReader();
+    const decode = new TextDecoder();
+
+    try {
+      for (;;) {
+        const { value, done: finished } = await reader.read();
+        if (finished) break;
+        rest += decode.decode(value, { stream: true });
+
+        const parts = rest.split("\n");
+        // Whatever follows the last newline is half a line; keep it.
+        rest = parts.pop() ?? "";
+
+        for (const part of parts) {
+          if (!part.trim()) continue;
+          let event: { t?: string; done?: Answer };
+          try {
+            event = JSON.parse(part);
+          } catch {
+            continue;
+          }
+          if (event.done) done = event.done;
+          if (typeof event.t === "string") grow(event.t);
+        }
+      }
+    } catch {
+      done = null;
+    }
+
+    if (done) return { response, data: done };
+
+    /*
+     * Nothing usable came back. Clear the half-written bubble and ask again
+     * the old way, so the customer gets an answer rather than an explanation.
+     */
+    setLines((l) => l.filter((line) => !line.writing));
+    response = await send(false);
+    return { response, data: await readJson(response) };
+  }
+
+  /** Adds a piece of the reply to the bubble being written, starting one if needed. */
+  function grow(chunk: string) {
+    setLines((l) => {
+      const at = l.findIndex((line) => line.writing);
+      if (at === -1) {
+        return [...l, { from: "studio", text: chunk, writing: true, at: Date.now() }];
+      }
+      return l.map((line, i) => (i === at ? { ...line, text: line.text + chunk } : line));
+    });
+  }
 
   /*
    * Saying something after a long wait, because the dots stop meaning anything.
@@ -415,19 +530,13 @@ export function ChatWindow({
       let media: string[] = [];
       if (attached.length && started) media = await upload(attached);
 
-      const response = await fetch("/api/widget/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          studio: slug,
-          session: session.current,
-          message: message || "(sent a photo)",
-          media,
-          with: forArtistId,
-        }),
+      const { response, data } = await ask({
+        studio: slug,
+        session: session.current,
+        message: message || "(sent a photo)",
+        media,
+        with: forArtistId,
       });
-
-      const data = await response.json();
       if (!response.ok) {
         /*
          * What went wrong at our end is ours to read, not theirs.
@@ -464,11 +573,28 @@ export function ChatWindow({
        * prices or times it came with, were thrown away and the customer saw
        * only the answer about the photo.
        */
-      if (data.reply) {
-        setLines((l) => [
-          ...l,
-          { from: "studio", text: data.reply, moments: data.moments, at: Date.now() },
-        ]);
+      const said = data.reply;
+      if (said) {
+        /*
+         * The finished line replaces the one that was being written, rather
+         * than being added under it.
+         *
+         * What streamed is the same words — but only the finished answer knows
+         * what it did, so the times and the price buttons can only be attached
+         * now. Replacing in place means the customer sees the buttons appear
+         * under the words they have already read, which is what they would
+         * expect, rather than the whole reply arriving a second time.
+         */
+        setLines((l) => {
+          const done: Line = {
+            from: "studio",
+            text: said,
+            moments: data.moments,
+            at: Date.now(),
+          };
+          const at = l.findIndex((line) => line.writing);
+          return at === -1 ? [...l, done] : l.map((line, i) => (i === at ? done : line));
+        });
         window.parent?.postMessage({ secondPair: "reply" }, "*");
       }
 
@@ -881,7 +1007,14 @@ export function ChatWindow({
             );
           })}
 
-          {sending && (
+          {/*
+            * Dots until the first words, then the words.
+            *
+            * Both at once would be the assistant apparently typing underneath
+            * a reply it has already started giving. The dots are for the wait
+            * before anything is written, which is now the only wait there is.
+            */}
+          {sending && !lines.some((line) => line.writing) && (
             <div className="flex items-end gap-2 pt-1">
               <Face who={who} photoUrl={photoUrl} />
               {/* No bubble here either — the assistant has none, and a box

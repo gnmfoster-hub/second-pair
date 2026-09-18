@@ -157,6 +157,15 @@ export type TurnInput = {
    * answered 14 enquiries" is worthless if nine were the owner rehearsing.
    */
   isTest?: boolean;
+  /**
+   * Somebody is watching this one arrive.
+   *
+   * Given only by web chat, where a person is sitting looking at a typing
+   * dot. Everything else — email, text, Meta, a voicemail being read — is
+   * answered into a queue nobody is staring at, and streaming to nobody
+   * would be complication with no reader.
+   */
+  onText?: (chunk: string) => void;
 };
 
 export type TurnResult = {
@@ -587,6 +596,7 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
 
   const { text: reply, moments } = await generateReply({
     watch,
+    onText: input.onText,
     db,
     studio: studio as Studio,
     artists: (artists ?? []) as Artist[],
@@ -646,6 +656,11 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
 type ReplyContext = Omit<ToolContext, "db"> & {
   db: ToolContext["db"];
   faqs: Faq[];
+  /**
+   * Called with each piece of the reply as it is written, where anybody is
+   * watching it arrive. Web chat passes one; email, text and voice do not.
+   */
+  onText?: (chunk: string) => void;
   /** Verified on the server; see TurnInput. Null for an ordinary business. */
   signedIn?: boolean | null;
 };
@@ -914,8 +929,24 @@ async function generateReply(
     markCacheable(messages);
 
     ctx.watch.round();
-    const response = await ctx.watch.time("model", () =>
-      client.messages.create({
+    /*
+     * Streamed, so the words can be shown as they are written.
+     *
+     * Measured on the live site: ninety per cent of the eight seconds a
+     * customer waits is this call. The tools are one per cent and the database
+     * either side is nine, so there was nothing cheaper to fix first — the
+     * wait is the model writing, and the only thing that shortens it from the
+     * customer's side is not making them wait for the full stop.
+     *
+     * Always streamed, not just when somebody is listening. A second code path
+     * for the channels nobody watches would be a path exercised by nothing
+     * until the day it broke on a real customer's email; this way every text,
+     * every email and every missed call goes down the same one. Without an
+     * `onText` the deltas simply go nowhere and `finalMessage` hands back the
+     * identical message `create` would have.
+     */
+    const response = await ctx.watch.time("model", async () => {
+      const streamed = client.messages.stream({
       model: MODEL,
       max_tokens: 2000,
       output_config: { effort: EFFORT },
@@ -931,8 +962,18 @@ async function generateReply(
       ],
       tools,
       messages,
-      }),
-    );
+      });
+
+      if (ctx.onText) {
+        /*
+         * Only what it says out loud. A tool call is written as a stream of
+         * JSON fragments too, and a customer must never see the machinery.
+         */
+        streamed.on("text", (chunk) => ctx.onText?.(chunk));
+      }
+
+      return streamed.finalMessage();
+    });
 
     spend.input += response.usage.input_tokens;
     spend.output += response.usage.output_tokens;
