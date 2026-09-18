@@ -137,6 +137,31 @@ export async function readinessOf(
     ? offerable.filter((r) => (r as Record<string, unknown>).price_pence == null)
     : [];
 
+  /*
+   * Whether anything here can actually produce a number.
+   *
+   * Counting that price bands exist is not the same as being able to quote
+   * from them, and this counted only their existence. A business priced by
+   * size has every band sitting at no price and nobody with an hourly rate
+   * until somebody fills them in — so it was told "What you charge: Done"
+   * while the assistant could not put a figure on a single job, and the owner
+   * had no reason to look. The nearest thing to a symptom was a customer being
+   * told the price would be confirmed, for ever.
+   *
+   * A band is priceable if it carries its own price, or if somebody has an
+   * hourly rate for its hours to be multiplied by. Either is enough; neither
+   * is a business that can quote.
+   */
+  const someoneHasARate = (roster ?? []).some(
+    (a) => Number((a as Record<string, unknown>).hourly_rate_pence ?? 0) > 0,
+  );
+  const someBandHasAPrice = offerable.some(
+    (r) => Number((r as Record<string, unknown>).price_low_pence ?? 0) > 0,
+  );
+  const canQuote = byList
+    ? offerable.length > unpriced.length
+    : someBandHasAPrice || someoneHasARate;
+
   // Work that has to be looked at first is booked for consultation_minutes,
   // whatever the job is. Right when somebody chose that, and absurd when it is
   // still sitting at a default nobody read.
@@ -197,15 +222,25 @@ export async function readinessOf(
     {
       key: "quote",
       can: "Give people a price",
-      ready: people > 0 && (services ?? 0) > 0,
+      ready: people > 0 && (services ?? 0) > 0 && canQuote,
       otherwise:
         people > 0
-          ? "No services are set up, so it cannot put a number on anything."
+          ? (services ?? 0) === 0
+            ? "No services are set up, so it cannot put a number on anything."
+            : "Nothing has a price on it and nobody has an hourly rate, so every price " +
+              "comes back to you — the assistant will take the enquiry and say you will confirm."
           : nobodyAtAll
             ? "Nobody has rates set, so every pricing question comes to you."
             : "Nobody is taking bookings, so it cannot quote or book anybody in.",
       href: people === 0 ? "/settings/artists" : "/settings/pricing",
-      action: people === 0 ? (nobodyAtAll ? "Add rates" : "Take bookings again") : "Add services",
+      action:
+        people === 0
+          ? nobodyAtAll
+            ? "Add rates"
+            : "Take bookings again"
+          : (services ?? 0) === 0
+            ? "Add services"
+            : "Put prices on",
       blocking: true,
     },
     {
