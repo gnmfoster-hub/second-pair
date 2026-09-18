@@ -22,12 +22,27 @@
    * sizes — so it is the highlight only: one call to action per screen, and
    * the second dot in the mark.
    */
-  --background: #efeee9;
+  /*
+   * A ground that gets out of the way.
+   *
+   * This was a warm cream, #efeee9, with the mark's orange on top of it — and
+   * warm cream with a terracotta accent is the most-drawn interface of the
+   * last two years. It also disagreed with the brand: the mark is navy, the
+   * muted text is a blue-grey, and both were sitting on a beige that pulled
+   * the other way, which is what made the greys look slightly dirty.
+   *
+   * So the ground is now a very quiet cool neutral, a shade off white, with
+   * the same blue in it as the navy. It reads as paper under a window rather
+   * than as a colour choice, which is what a screen somebody looks at for
+   * eight hours should do. The orange is untouched and now has the only warm
+   * note on the page, which is the whole point of a highlight.
+   */
+  --background: #f4f5f7;
   --surface: #ffffff;
-  --surface-2: #e6e5df;
-  --border: #d6d5ce;
-  --foreground: #17150f;
-  --muted: #5a6577;
+  --surface-2: #eceef2;
+  --border: #e2e5ea;
+  --foreground: #141824;
+  --muted: #59626f;
   --accent: #14243f;
   --accent-strong: #0c1729;
   --highlight: #f07818;
@@ -256,8 +271,26 @@ body {
 
   /* ------------------------------------------------------------- surfaces */
 
+  /*
+   * A card is a container, not an event.
+   *
+   * Every block on every screen was the same object: sixteen-pixel corners, a
+   * border, a white fill and a drop shadow — the stat tiles, the warnings, the
+   * list of conversations, the note about the demo. When everything is lifted
+   * off the page nothing is, and the eye has no way to tell what matters.
+   *
+   * So a card is now a hairline and a fill, with corners tight enough to read
+   * as an instrument rather than a greetings card. The shadow is kept for the
+   * two things that genuinely float above the page — a sheet and a popover —
+   * where lifting means something.
+   */
   .card {
-    @apply rounded-2xl border border-border bg-surface;
+    @apply rounded-xl border border-border bg-surface;
+  }
+
+  /* For the rare block that really is raised off the page. */
+  .card-raised {
+    @apply rounded-xl border border-border bg-surface;
     box-shadow: var(--shadow-card);
   }
 
