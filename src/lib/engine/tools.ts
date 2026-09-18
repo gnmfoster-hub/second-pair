@@ -873,6 +873,33 @@ async function quoteEstimate(
    */
   const deposit = depositFor(ctx.studio.deposit_rule, { ...quote, ...shown });
 
+  /*
+   * A price of nothing is not a price.
+   *
+   * A business that has not put its rates in yet has bands with nought in
+   * them, and this read that as "free" and told the assistant to give the
+   * numbers exactly as written — so a brand new business, on the first day
+   * anybody used it, quoted real customers "£0 to £0" and was told to say it
+   * with confidence. Found on the empty demo, which is exactly the state every
+   * business is in for its first hour.
+   *
+   * Nothing quoted at all is the honest answer, and it is also the useful one:
+   * the assistant can still take the enquiry, still book a consultation, and
+   * the owner gives the figure. Saying so plainly stops the model inventing a
+   * number to fill the gap.
+   */
+  if (shown.low_pence <= 0 && shown.high_pence <= 0) {
+    return {
+      result: [
+        `No price is set for ${band.size_label} yet, so there is no estimate to give.`,
+        "Do NOT say a price, do not say it is free, and do not guess one.",
+        `Tell them ${ctx.studio.name} will confirm the price, and carry on —`,
+        "take the enquiry and offer times as normal.",
+        `Typically ${band.hours_low} to ${band.hours_high} hours.`,
+      ].join(" "),
+    };
+  }
+
   return {
     result: [
       `Estimate for ${band.size_label}${named ? ` with ${named.name}` : ""}: ` +
