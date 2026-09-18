@@ -9,6 +9,7 @@ import { depositFor } from "@/lib/quote";
 import { CHANNEL_LABELS, labelFor, type ConvStatus, type Channel } from "@/lib/types";
 import { AskForPayment } from "@/components/AskForPayment";
 import { verticalPack } from "@/lib/verticals";
+import { splitQuoted } from "@/lib/messaging/quotedReply";
 import { ReplyBox } from "./ReplyBox";
 import { setPaused } from "./actions";
 import { StatusPicker } from "./StatusPicker";
@@ -186,7 +187,41 @@ export default async function ConversationPage({
                         {m.role === "owner" ? "You" : "Your assistant"}
                       </div>
                     )}
-                    {m.content}
+                    {(() => {
+                      /*
+                       * What they wrote, with what their mail client quoted
+                       * back folded away behind a line.
+                       *
+                       * An email arrives carrying its own history: a rule of
+                       * thirty underscores and a block of From/Sent/Subject
+                       * headers, which Giles rightly said looked like code.
+                       * Every mail client ever written hides that, and we were
+                       * printing it whole, so a two-sentence message filled the
+                       * screen with a conversation the reader already knew.
+                       *
+                       * Shut by default and never thrown away — it is still the
+                       * record of what arrived, and a trimmer that guesses
+                       * wrong must not be able to lose anybody's words.
+                       */
+                      const { said, quoted } = splitQuoted(m.content ?? "");
+                      if (!quoted) return m.content;
+                      return (
+                        <>
+                          {said}
+                          <details className="group mt-2">
+                            <summary className="hint inline-flex cursor-pointer list-none items-center gap-1.5 rounded-lg border border-border px-2 py-0.5 text-[11px] transition-colors hover:text-foreground">
+                              <span className="tracking-[0.2em]" aria-hidden>
+                                &middot;&middot;&middot;
+                              </span>
+                              what they were replying to
+                            </summary>
+                            <div className="mt-2 border-l-2 border-border pl-3 text-[13px] text-muted">
+                              {quoted}
+                            </div>
+                          </details>
+                        </>
+                      );
+                    })()}
                     {m.media_urls?.length > 0 && (
                       <div className="mt-1 text-xs opacity-80">
                         📎 {m.media_urls.length} image
