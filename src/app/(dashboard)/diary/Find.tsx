@@ -134,10 +134,14 @@ export function Find() {
      * Stopping short also leaves Add reachable while a search is running,
      * which is the better behaviour anyway: looking somebody up and then
      * adding them is one of the likelier pairs of things to do in a diary.
+     *
+     * How far short is a measurement, not a guess, and it depends on how wide
+     * the word on the button is — so scripts/check-find.cjs measures the gap
+     * on every run rather than trusting this number to stay right.
      */
     <div
       ref={wrap}
-      className="absolute inset-y-0 left-0 right-0 z-30 flex items-center gap-2 bg-background px-4 sm:right-28 sm:px-8"
+      className="absolute inset-y-0 left-0 right-0 z-30 flex items-center gap-2 bg-background px-4 sm:right-32 sm:px-8"
     >
       <input
         ref={box}
