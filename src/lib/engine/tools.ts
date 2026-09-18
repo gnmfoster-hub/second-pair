@@ -30,7 +30,7 @@ import {
 import { blockedBy, stillToAsk, readFact, type FactValues } from "@/lib/tradeFacts";
 import { whoCanBeOffered } from "./offering";
 import { missingDetails } from "./reachable";
-import type { Artist, PriceBand, ServiceOption, Studio } from "@/lib/types";
+import type { Artist, OpeningHours, PriceBand, ServiceOption, Studio } from "@/lib/types";
 import { readyForRealMoney } from "@/lib/payments/stripe";
 import { formForBooking } from "@/lib/forms/forBooking";
 
@@ -1245,6 +1245,33 @@ async function getSlots(
           `Nothing free that matches ${narrowed.join(" and ")}. That is not a full ` +
           "diary — it is only what they asked for. Say so, and offer to look wider: " +
           "call this again without that restriction and offer what comes back.",
+      };
+    }
+
+    /*
+     * A diary nobody has opened is not a diary that is full.
+     *
+     * A business between signing up and finishing set-up has no opening hours
+     * on it, so every search comes back empty — and the assistant, told only
+     * "nothing free", says what anybody would: fully booked for three weeks.
+     * That is a lie, it is a lie the business never authorised, and it turns
+     * their very first enquiries away at the door. Found on the empty demo,
+     * which is the state every business is in for its first hour.
+     *
+     * Their own hours win where they keep them; otherwise the business's.
+     */
+    const theirs = (artist as { hours?: OpeningHours[] | null }).hours;
+    const week = theirs?.length ? theirs : ctx.studio.hours ?? [];
+    const everOpen = week.some((day) => !day.closed);
+
+    if (!everOpen) {
+      return {
+        result:
+          "There are no opening hours set on this business yet, so the diary cannot be " +
+          "searched. Do NOT say they are busy or fully booked — that is not true and it " +
+          "would turn a customer away. Say you cannot see the diary just now, ask which " +
+          "days and times generally suit them, take the rest of their details as normal, " +
+          "and say somebody will confirm.",
       };
     }
 
