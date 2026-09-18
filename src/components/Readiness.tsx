@@ -32,11 +32,12 @@ export function Readiness({ capabilities }: { capabilities: Capability[] }) {
    * Which of these are worth a paragraph on the inbox, and which are a line.
    *
    * Anything that stops the assistant doing its job keeps its row and its
-   * button. Where nothing is blocking, the first two still get rows — a panel
-   * that is only ever one grey line is a panel nobody reads — and the rest
-   * become the line underneath.
+   * button. Where nothing is blocking the assistant is working, so the panel
+   * is advice rather than a fault: one row for the most useful thing, and the
+   * rest as a line. One row rather than none, because a panel that is only
+   * ever a line of grey text is a panel nobody reads.
    */
-  const shown = blocking.length ? blocking : missing.slice(0, 2);
+  const shown = blocking.length ? blocking : missing.slice(0, 1);
   const quieter = missing.filter((c) => !shown.includes(c));
   const ready = capabilities.length - missing.length;
 
