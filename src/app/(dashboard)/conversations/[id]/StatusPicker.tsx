@@ -38,12 +38,34 @@ const TONE: Record<ConvStatus, string> = {
 export function StatusPicker({
   conversationId,
   current,
+  hasBooking,
 }: {
   conversationId: string;
   current: ConvStatus;
+  /**
+   * There is a booking in the diary off the back of this conversation.
+   *
+   * Spam means "this was never a customer". Somebody with an appointment is a
+   * customer by definition, so the option is not offered — and it is not a
+   * hypothetical: John had a deep clean booked with Karen for the Thursday,
+   * two reminders sent, and a second clean half-arranged, and the thread was
+   * marked spam by a mis-tap. Spam hides a conversation from the inbox and
+   * every figure, so he simply vanished from the business he was booked with
+   * while the assistant carried on talking to him.
+   *
+   * Hidden rather than confirmed with a dialog. There is no good reason to
+   * mark a booked customer as spam, and a warning somebody has to read is a
+   * warning somebody clicks through.
+   */
+  hasBooking?: boolean;
 }) {
   const [saving, save] = useTransition();
   const [failed, setFailed] = useState<string | null>(null);
+
+  // Still listed if it is somehow already set, or the box would show a blank.
+  const choices = STATUSES.filter(
+    (s) => s !== "spam" || !hasBooking || current === "spam",
+  );
 
   /*
    * Shown where the pill is, because that is what was just pressed. The pill
@@ -82,7 +104,7 @@ export function StatusPicker({
         }}
         className="absolute inset-0 cursor-pointer opacity-0"
       >
-        {STATUSES.map((status) => (
+        {choices.map((status) => (
           <option key={status} value={status}>
             {CONV_STATUS_LABELS[status]}
           </option>

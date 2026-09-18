@@ -131,6 +131,14 @@ export default async function ConversationPage({
         <StatusPicker
           conversationId={conversation.id}
           current={conversation.status as ConvStatus}
+          /*
+           * Somebody in the diary is not spam. See StatusPicker — a live
+           * customer with a booking was marked spam by a mis-tap and vanished
+           * from the inbox he was booked through.
+           */
+          hasBooking={(enquiry?.bookings ?? []).some(
+            (b: { cancelled_at: string | null }) => !b.cancelled_at,
+          )}
         />
       </div>
 
