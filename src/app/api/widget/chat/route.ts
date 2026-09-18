@@ -319,6 +319,23 @@ export async function POST(request: NextRequest) {
          * is what check-stream.mjs now does.
          */
         "Content-Encoding": "none",
+        /*
+         * And this is the one that fixed Chrome specifically.
+         *
+         * With the compression stopped the stream reached node in thirty-six
+         * pieces and still reached Chrome in exactly one. The reason is that a
+         * browser holds the first kilobyte of a response back to sniff what
+         * type it is — and a reply to "what would a ceiling cost" is about
+         * three hundred bytes, so the entire answer fits inside the buffer and
+         * nothing is released until the connection closes. It would have
+         * streamed correctly for a long answer and not for a short one, which
+         * is a miserable thing to debug.
+         *
+         * Telling it not to sniff means it takes the content type we gave it
+         * and passes bytes through as they arrive. It is also simply the right
+         * header to send on anything a browser should not be guessing about.
+         */
+        "X-Content-Type-Options": "nosniff",
       },
     });
   }
