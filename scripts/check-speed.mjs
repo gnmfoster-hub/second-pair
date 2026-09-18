@@ -19,13 +19,23 @@
  * session, which lands in the demo's inbox like any other enquiry, so point it
  * at a demo rather than at Living Canvas or Neat & Tidy.
  */
+import { db, tidyUp } from "./_tidy.mjs";
+
 const SITE = process.env.SITE ?? "https://www.second-pair.com";
-const slug = process.argv[2] ?? "brightwork-demo";
+/*
+ * Pawfect rather than Brightwork.
+ *
+ * Brightwork is deliberately empty so it can be used to walk somebody through
+ * setting a business up from nothing, and these checks had quietly put
+ * twenty-four conversations about skimming a ceiling into it. A demo that is
+ * supposed to be empty is a thing to leave alone.
+ */
+const slug = process.argv[2] ?? "pawfect-demo";
 const session = "speed" + Math.random().toString(36).slice(2, 14) + "abcdefgh";
 
 const asks = [
-  "hi, do you do ceiling skimming?",
-  "how much would one room be?",
+  "hi, do you groom cocker spaniels?",
+  "how much would a full groom be?",
   "what have you got free next week?",
 ];
 
@@ -98,3 +108,13 @@ if (share("model") > 0.7) {
 } else if (share("setup") + share("save") > 0.35) {
   console.log("A third of it is database work either side. Look there before streaming.");
 }
+
+/*
+ * Clear up after ourselves.
+ *
+ * These ask real questions and so leave real enquiries in a real inbox, and
+ * the residue only ever grows. Cleared at the end and, because a run can die
+ * halfway, cleared by prefix so the next run tidies whatever the last one
+ * could not.
+ */
+await tidyUp(db(), slug);

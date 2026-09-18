@@ -18,9 +18,19 @@
  * cached on a customer's website will keep using it for as long as their
  * browser holds onto it.
  */
+import { db, tidyUp } from "./_tidy.mjs";
+
 const SITE = process.env.SITE ?? "https://www.second-pair.com";
-const slug = process.argv[2] ?? "brightwork-demo";
-const ask = "hi, roughly what would it cost to skim one ceiling?";
+/*
+ * Pawfect rather than Brightwork.
+ *
+ * Brightwork is deliberately empty so it can be used to walk somebody through
+ * setting a business up from nothing, and these checks had quietly put
+ * twenty-four conversations about skimming a ceiling into it. A demo that is
+ * supposed to be empty is a thing to leave alone.
+ */
+const slug = process.argv[2] ?? "pawfect-demo";
+const ask = "hi, roughly what would a full groom for a cocker spaniel cost?";
 
 /*
  * Asking for compression, because a browser does.
@@ -65,6 +75,7 @@ let faults = 0;
   }
 
   let first = null;
+  let last = null;
   let pieces = 0;
   let words = "";
   let done = null;
@@ -83,6 +94,7 @@ let faults = 0;
       const event = JSON.parse(part);
       if (typeof event.t === "string") {
         first ??= Date.now() - began;
+        last = Date.now() - began;
         pieces++;
         words += event.t;
       }
@@ -108,18 +120,27 @@ let faults = 0;
   }
 
   /*
-   * Buffered looks exactly like working, except for this.
+   * Buffered looks exactly like working, except for this: it all lands at once.
    *
-   * Half the total is generous; in practice the first words come in under two
-   * seconds against a ten-second reply. Anything later than halfway means the
-   * response was held somewhere and handed over in one go.
+   * The test here was first-words against the total, and it was wrong. How
+   * soon the first word arrives depends on whether the model says anything
+   * before it looks something up — ask a groomer what a full groom costs and
+   * it checks the price list before it speaks, so nothing is said for seven of
+   * the nine seconds, streaming perfectly, and the check called it broken.
+   *
+   * What buffering actually looks like is every piece arriving in the same
+   * instant, however late or early that instant is. So the spread is what is
+   * measured: twenty-six pieces inside a fifth of a second is a body that was
+   * held somewhere and handed over in one go.
    */
   if (first === null) {
     console.log("  nothing streamed at all");
     faults++;
-  } else if (first > whole * 0.5) {
-    console.log(`  held back: the first words did not arrive until halfway through`);
+  } else if (pieces > 3 && last - first < 200) {
+    console.log(`  held back: all ${pieces} pieces arrived within ${last - first}ms of each other`);
     faults++;
+  } else {
+    console.log(`  spread over ${((last - first) / 1000).toFixed(1)}s, so it is genuinely streaming`);
   }
 }
 
@@ -137,6 +158,19 @@ let faults = 0;
     console.log(`  plain still answers, ${took}s, ${body.reply.length} characters`);
   }
 }
+
+/*
+ * Clear up after ourselves, before saying how it went.
+ *
+ * These ask real questions and so leave real enquiries in a real inbox, and
+ * the residue only ever grows. Cleared by prefix rather than by id, so a run
+ * that dies halfway is tidied by the next one instead of leaving a deposit.
+ *
+ * Before the exit, not after it, which is where this first went — a line after
+ * process.exit is a line that never runs, so the check would have gone on
+ * filling an inbox while carrying the code that claimed to empty it.
+ */
+await tidyUp(db(), slug);
 
 console.log(faults ? `\n${faults} fault${faults > 1 ? "s" : ""}.` : "\nThe reply arrives as it is written.");
 process.exit(faults ? 1 : 0);
