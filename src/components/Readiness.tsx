@@ -222,32 +222,66 @@ export function Readiness({ capabilities }: { capabilities: Capability[] }) {
           </li>
         ))}
 
+        {/*
+          * Things to do, as things, rather than as a sentence about them.
+          *
+          * This was `.join(", ")` over everything outstanding, which reads as
+          * one long comma-run somebody has to parse a clause at a time to find
+          * the one that concerns them. They are separate jobs and each goes
+          * somewhere different, so they are separate objects you can click.
+          */}
         {quieter.length > 0 && (
           <li className="px-5 py-3">
-            <p className="hint">
-              Also worth doing:{" "}
-              {quieter.map((c) => c.can.toLowerCase()).join(", ")}.{" "}
-              <Link href="/setup" className="text-accent hover:underline">
-                Set-up
-              </Link>{" "}
-              walks through them.
-            </p>
+            <p className="hint mb-2">Also worth doing</p>
+            <div className="flex flex-wrap gap-1.5">
+              {quieter.map((c) => (
+                <Link
+                  key={c.key}
+                  href={c.href || "/setup"}
+                  className="pill border border-border bg-surface text-muted transition-colors hover:border-accent/30 hover:text-foreground"
+                >
+                  {c.can}
+                </Link>
+              ))}
+            </div>
           </li>
         )}
       </ul>
 
-      {/* What already works, so the list is not only a telling-off. */}
+      {/*
+        * What already works — folded away, because the count is the point.
+        *
+        * This listed all eleven in prose: a sixty-word run-on sentence that
+        * took a third of the inbox and duplicated the "11/13 working" already
+        * sitting in the heading four inches above it. The names are worth
+        * something once, while you are setting the business up, and are noise
+        * every morning after that.
+        *
+        * So the number stays where it was and the names go behind a line you
+        * can open. Shut by default: nobody opening their inbox at seven in the
+        * morning needs to be told the assistant can still take a deposit.
+        */}
       {ready > 0 && (
-        <div className="border-t border-border bg-surface-2/40 px-5 py-3">
-          <p className="hint">
-            Already working:{" "}
+        <details className="group border-t border-border">
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-3 text-xs text-muted transition-colors hover:text-foreground">
+            <span className="text-ok" aria-hidden>
+              &#10003;
+            </span>
+            {ready} {ready === 1 ? "thing is" : "things are"} already working
+            <span className="ml-auto text-[10px] transition-transform group-open:rotate-180" aria-hidden>
+              &#9662;
+            </span>
+          </summary>
+          <div className="flex flex-wrap gap-1.5 px-5 pb-4">
             {capabilities
               .filter((c) => c.ready)
-              .map((c) => c.can.toLowerCase())
-              .join(", ")}
-            .
-          </p>
-        </div>
+              .map((c) => (
+                <span key={c.key} className="pill bg-ok/10 text-ok">
+                  {c.can}
+                </span>
+              ))}
+          </div>
+        </details>
       )}
     </div>
   );
