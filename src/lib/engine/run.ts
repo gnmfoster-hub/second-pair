@@ -7,6 +7,7 @@ import { notifyStudio } from "@/lib/notify";
 import { whoOffers } from "./whoOffers";
 import { reachableFrom } from "./reachableFrom";
 import Anthropic from "@anthropic-ai/sdk";
+import { stopwatch, type Spent } from "./clock";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   studioSystemPrompt,
@@ -171,10 +172,17 @@ export type TurnResult = {
   moments: Moment[];
   /** Set when the assistant stood back: when it will answer if nobody else has. */
   held?: Date;
+  /**
+   * Where the seconds went. See clock.ts — the widget turns it into a
+   * Server-Timing header, and every other caller can ignore it.
+   */
+  spent?: Spent;
 };
 
 export async function runTurn(input: TurnInput): Promise<TurnResult> {
   const db = createAdminClient();
+  const watch = stopwatch();
+  const turnBegan = Date.now();
 
   const { data: studio } = await db
     .from("studios")
@@ -569,7 +577,16 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     }
   }
 
+  /*
+   * Everything up to here is setup: reading the business, its people, its
+   * prices, the thread so far, and writing the customer's message down. It is
+   * a handful of queries and it either matters or it does not — which is the
+   * whole reason for measuring rather than guessing.
+   */
+  watch.spent.setup = Date.now() - turnBegan;
+
   const { text: reply, moments } = await generateReply({
+    watch,
     db,
     studio: studio as Studio,
     artists: (artists ?? []) as Artist[],
@@ -608,12 +625,21 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
   patch.hold_until = null;
   await db.from("conversations").update(patch).eq("id", conversation.id);
 
+  /*
+   * Whatever is left over is writing it back down: the reply, the status, the
+   * spend. Worked out by subtraction rather than timed, so it cannot drift
+   * away from the total the customer actually waited.
+   */
+  const { setup = 0, model = 0, tools = 0 } = watch.spent;
+  watch.spent.save = Date.now() - turnBegan - setup - model - tools;
+
   return {
     conversationId: conversation.id,
     reply,
     status: after?.status ?? conversation.status,
     paused: Boolean(after?.ai_paused),
     moments,
+    spent: watch.spent,
   };
 }
 
@@ -706,7 +732,7 @@ export function recentHistory<M extends { role: string; content: string | null }
 }
 
 async function generateReply(
-  ctx: ReplyContext,
+  ctx: ReplyContext & { watch: ReturnType<typeof stopwatch> },
 ): Promise<{ text: string; moments: Moment[] }> {
   const client = new Anthropic();
 
@@ -887,7 +913,9 @@ async function generateReply(
      */
     markCacheable(messages);
 
-    const response = await client.messages.create({
+    ctx.watch.round();
+    const response = await ctx.watch.time("model", () =>
+      client.messages.create({
       model: MODEL,
       max_tokens: 2000,
       output_config: { effort: EFFORT },
@@ -903,7 +931,8 @@ async function generateReply(
       ],
       tools,
       messages,
-    });
+      }),
+    );
 
     spend.input += response.usage.input_tokens;
     spend.output += response.usage.output_tokens;
@@ -940,10 +969,8 @@ async function generateReply(
 
     const results: Anthropic.ToolResultBlockParam[] = [];
     for (const call of toolUses) {
-      const outcome = await executeTool(
-        call.name,
-        call.input as Record<string, unknown>,
-        ctx,
+      const outcome = await ctx.watch.time("tools", () =>
+        executeTool(call.name, call.input as Record<string, unknown>, ctx),
       );
       if (outcome.escalated) escalated = true;
       /*

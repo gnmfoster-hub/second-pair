@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { runTurn } from "@/lib/engine/run";
+import { serverTiming } from "@/lib/engine/clock";
 import { hasAnthropicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { NotAnswering } from "@/lib/engine/errors";
@@ -159,17 +160,30 @@ export async function POST(request: NextRequest) {
       raisedFor,
     });
 
-    return NextResponse.json({
-      reply: result.reply,
-      paused: result.paused,
-      /*
-       * What it did, so the widget can draw it instead of asking the customer
-       * to type the answer back. Nothing here grants the browser anything: it
-       * describes decisions already written to the database, and a tapped time
-       * comes back as an ordinary message and is booked the ordinary way.
-       */
-      moments: result.moments,
-    });
+    return NextResponse.json(
+      {
+        reply: result.reply,
+        paused: result.paused,
+        /*
+         * What it did, so the widget can draw it instead of asking the customer
+         * to type the answer back. Nothing here grants the browser anything: it
+         * describes decisions already written to the database, and a tapped time
+         * comes back as an ordinary message and is booked the ordinary way.
+         */
+        moments: result.moments,
+      },
+      {
+        /*
+         * Where the wait went, on the one channel where somebody is watching.
+         *
+         * A browser draws this in its network tab as bars against the request,
+         * so a slow reply can be taken apart by anybody who opens dev tools —
+         * no instrumentation to switch on and nothing to remember to run. It
+         * carries no customer data, only durations in milliseconds.
+         */
+        headers: result.spent ? { "Server-Timing": serverTiming(result.spent) } : undefined,
+      },
+    );
   } catch (error) {
     /*
      * One kind of failure is worth explaining.
