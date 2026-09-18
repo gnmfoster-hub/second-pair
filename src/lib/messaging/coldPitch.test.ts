@@ -346,3 +346,26 @@ test("a customer who found them through their website is not a pitch", () => {
   );
   assert.equal(v.pitch, false, `score ${v.score}: ${v.signs.join("; ")}`);
 });
+
+/*
+ * The next one through the door, exactly as the comment above the rule
+ * predicted. Two misses in one short sentence: "please" between the pronoun
+ * and the verb, and "connect" not being one of the verbs listed.
+ */
+test("asking to be connected to the person who owns the store", () => {
+  for (const ask of [
+    "Hello,can I please connect to the person who owned the store?.",
+    "Can I kindly speak to the owner please",
+    "Could you connect me with the business owner",
+    "May I talk to the person who runs this place",
+  ]) {
+    const v = coldPitch(
+      { from: "raufsalaudeen666@gmail.com", subject: "Enquiry", body: ask },
+      { name: "Living Canvas Tattoo", sites: ["livingcanvastattoo.ink"] },
+    );
+    assert.ok(
+      v.signs.includes("asks whether it has reached the owner"),
+      `"${ask}" gave ${v.signs.join("; ") || "nothing"}`,
+    );
+  }
+});

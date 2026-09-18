@@ -80,10 +80,18 @@ const PITCH_PHRASES: { pattern: RegExp; sign: string }[] = [
    * those in it: "Is the owner here?" followed by the web address. Nobody
    * writing to a tattooist about a tattoo asks for the owner; they ask
    * about the tattoo.
+   *
+   * And the one after that was "Hello, can I please connect to the person who
+   * owned the store?" \u2014 which missed on two words at once: "please" sitting
+   * between "I" and the verb, and "connect" not being one of the three verbs
+   * listed. So this stopped being a list of sentences and became two ideas:
+   * any way of asking to be put through to somebody, and any way of naming
+   * the person who owns or runs the place. Adverbs are allowed to sit in the
+   * middle, because they always do.
    */
   {
     pattern:
-      /\bowner of (?:the|this|your) (?:store|shop|business|brand)\b|\b(?:the|this|your) (?:store|shop|business|brand) owner\b|\b(?:speaking|talking|chatting) (?:with|to) (?:the|your) (?:owner|manager|boss|person in charge)\b|\b(?:is|are)\s+(?:the|there)\s+(?:a\s+|an\s+)?(?:owner|manager|boss)\b|\bare\s+you\s+the\s+(?:owner|manager|boss)\b|\b(?:owner|manager|boss)\s+(?:here|there|around|available|in)\b|\b(?:can|may|could)\s+i\s+(?:speak|talk|chat)\s+(?:to|with)\s+(?:the\s+)?(?:owner|manager|boss)\b|\bwho(?:'s|\u2019s| is)\s+(?:the\s+)?(?:owner|manager)\b/i,
+      /\bowner of (?:the|this|your) (?:store|shop|business|brand)\b|\b(?:the|this|your) (?:store|shop|business|brand) owner\b|\bperson who (?:owns?|owned|runs?|ran|manages?) (?:the|this|your)\b|\b(?:speaking|talking|chatting) (?:with|to) (?:the|your) (?:owner|manager|boss|person in charge)\b|\b(?:is|are)\s+(?:the|there)\s+(?:a\s+|an\s+)?(?:owner|manager|boss)\b|\bare\s+you\s+the\s+(?:owner|manager|boss)\b|\b(?:owner|manager|boss)\s+(?:here|there|around|available|in)\b|\b(?:can|may|could|would)\s+(?:i|you)\s+(?:\w+ly\s+|please\s+|kindly\s+)*(?:speak|talk|chat|connect|link|put me through|get in touch)\b[^.?!]{0,30}\b(?:owner|manager|boss|person)\b|\bwho(?:'s|\u2019s| is)\s+(?:the\s+)?(?:owner|manager)\b/i,
     sign: "asks whether it has reached the owner",
   },
   /*
