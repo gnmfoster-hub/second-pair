@@ -352,12 +352,18 @@ export default async function InboxPage({
             <Figure
               inline
               label="Won while you were busy"
-              accent={recovered > 0}
               note={whileShut.length > 0 ? `${whileShut.length} came in out of hours` : undefined}
             >
               <Ticker value={recovered} money />
             </Figure>
-            <Figure inline label="Need you" warn={waiting.length > 0}>
+            {/*
+              * The one figure on this row that is asking for something.
+              *
+              * It had the warn brown, which recedes, while the two figures
+              * either side of it — money already won — had the orange. The
+              * screen was pointing at the good news and mumbling the job.
+              */}
+            <Figure inline label="Need you" act={waiting.length > 0}>
               <Ticker value={waiting.length} />
             </Figure>
           </Band>

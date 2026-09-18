@@ -65,18 +65,27 @@ export function Figure({
   note,
   lead,
   warn,
-  accent,
+  act,
   children,
   inline,
 }: {
   value?: string;
   label: string;
   note?: string;
-  /** The one figure the row is about. */
+  /** The one figure the row is about. Bigger, not coloured — size is enough. */
   lead?: boolean;
   warn?: boolean;
-  /** Carries the brand colour without being the lead figure. */
-  accent?: boolean;
+  /**
+   * Something here wants doing.
+   *
+   * This is the only thing the orange means anywhere in the product, and it
+   * was being spent on good news: the money won while they were shut, and the
+   * day's takings, both in orange, while the figure labelled "Need you" was
+   * the dullest of the three. Orange on the takings does not tell anybody
+   * anything — a big bold number is already the loudest thing on the row —
+   * and every place it is spent is a place it stops meaning "act".
+   */
+  act?: boolean;
   /** For a live number that counts up; used instead of `value`. */
   children?: React.ReactNode;
   /** On one line with its label, for a Band that is a line. */
@@ -87,7 +96,7 @@ export function Figure({
       <span className="inline-flex items-baseline gap-1.5 whitespace-nowrap">
         <span
           className={`font-display font-bold tabular-nums tracking-[-0.02em] ${
-            lead || accent ? "text-lg text-highlight-strong" : warn ? "text-lg text-warn" : "text-lg"
+            act ? "text-lg text-highlight-strong" : warn ? "text-lg text-warn" : "text-lg"
           }`}
         >
           {children ?? value}
@@ -110,7 +119,7 @@ export function Figure({
       <div
         className={`font-display font-bold tabular-nums leading-none tracking-[-0.03em] ${
           lead ? "text-4xl" : "text-2xl"
-        } ${warn ? "text-warn" : lead || accent ? "text-highlight-strong" : ""}`}
+        } ${warn ? "text-warn" : act ? "text-highlight-strong" : ""}`}
       >
         {children ?? value}
       </div>

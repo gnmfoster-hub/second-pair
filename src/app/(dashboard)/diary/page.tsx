@@ -1305,7 +1305,7 @@ export default async function DiaryPage({
         */}
       <div className="hidden items-center gap-x-4 overflow-x-auto whitespace-nowrap border-b border-border px-4 py-2 text-xs sm:flex sm:flex-wrap sm:gap-x-6 sm:py-2.5 sm:text-sm">
         <Figure label="booked" value={asHours(bookedMinutes)} />
-        <Figure label="worth" value={formatPence(worth)} accent={worth > 0} />
+        <Figure label="worth" value={formatPence(worth)} />
         {/*
           * "0h free" is a lie when nobody has said when they are open.
           *
