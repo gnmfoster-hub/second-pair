@@ -85,13 +85,27 @@ export async function watchTheEssentials(
   if (!model.answers) wrong.push(`The assistant cannot answer: ${model.because}`);
   if (!email) wrong.push("Email will not send: the key is missing, refused, or the sending domain is not verified.");
   if (!backups) {
+    /*
+     * Three different states, and telling somebody the wrong one costs the
+     * alert its credibility.
+     *
+     * "BACKUP_KEY is not set" went out whenever the bucket was empty — which
+     * includes the night after somebody sets the key, because the first copy
+     * is not taken until between two and five. An alarm telling you to do the
+     * thing you did that afternoon is an alarm you stop reading.
+     */
+    const keySet = (process.env.BACKUP_KEY ?? "").length >= 16;
+
     wrong.push(
       newest
         ? `The newest backup is ${newest.name}, ${newest.hoursOld} hours old. Nothing has been ` +
           "written since, so the nightly job is failing."
-        : "Nothing is being backed up — there is no file in the bucket at all. Either " +
-          "BACKUP_KEY is not set in Vercel (or is shorter than 16 characters), or the nightly " +
-          "write is failing.",
+        : keySet
+          ? "No backup has been written yet. The key is set, so the first copy is taken " +
+            "on the next run between 2 and 5am. If this says the same thing tomorrow, " +
+            "the write itself is failing rather than waiting."
+          : "Nothing is being backed up — there is no file in the bucket at all, and " +
+            "BACKUP_KEY is not set in Vercel or is shorter than 16 characters.",
     );
   }
 

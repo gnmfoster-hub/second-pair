@@ -381,6 +381,19 @@ if (reachable) {
         fail("the newest backup is stale", `${newest.name} is ${newest.hoursOld} hours old — the nightly job is failing`);
       else if (backup.because === "no key")
         fail("nothing is backed up", "set BACKUP_KEY in Vercel (16 characters or more) and one is taken tonight");
+      /*
+       * A key that is set with no file yet is waiting, not broken.
+       *
+       * The job reports why it did not run, and "not the hour" means the key
+       * is there and the window has not come round — which is every hour of
+       * the day but three. Calling that a failure sends somebody to Vercel to
+       * fix a setting they already got right.
+       */
+      else if (backup.because === "not the hour")
+        warn(
+          "no backup taken yet",
+          "the key is set and the first copy is taken between 2 and 5am — check again tomorrow",
+        );
       else fail("nothing is backed up", `no file in the bucket at all${backup.error ? ` — ${backup.error}` : ""}`);
     } else if (authed?.status === 401) {
       warn("your local CRON_SECRET does not match Vercel's", "not fatal, but the two should be the same");
