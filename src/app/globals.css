@@ -167,6 +167,21 @@
 }
 
 @theme inline {
+  /*
+   * Everything a shade tighter, from one number.
+   *
+   * Tailwind works every padding, margin and gap off this, so moving it moves
+   * the whole product together instead of a hundred files drifting apart. At
+   * the default the inbox put its first enquiry 825 pixels down a laptop
+   * screen and showed two; a tenth off every measurement is the difference
+   * between a page laid out for looking at and one laid out for working in.
+   *
+   * A tenth, not a quarter. The gaps are what stop a dense screen reading as a
+   * spreadsheet, and this is a product people open at seven in the morning
+   * with their hands full.
+   */
+  --spacing: 0.225rem;
+
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);

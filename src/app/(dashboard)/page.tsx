@@ -344,19 +344,20 @@ export default async function InboxPage({
        * pass contrast as text on paper.
        */}
       {recent.length > 0 && (
-        <div className="card settle mt-7 overflow-hidden p-0">
-          <Band>
-            <Figure label="Booked in">
+        <div className="card settle mt-5 overflow-hidden p-0">
+          <Band inline>
+            <Figure inline label="Booked in">
               <Ticker value={booked.length} />
             </Figure>
             <Figure
+              inline
               label="Won while you were busy"
               accent={recovered > 0}
               note={whileShut.length > 0 ? `${whileShut.length} came in out of hours` : undefined}
             >
               <Ticker value={recovered} money />
             </Figure>
-            <Figure label="Need you" warn={waiting.length > 0}>
+            <Figure inline label="Need you" warn={waiting.length > 0}>
               <Ticker value={waiting.length} />
             </Figure>
           </Band>

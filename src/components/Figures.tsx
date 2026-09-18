@@ -11,7 +11,36 @@ import type React from "react";
  * give them all equal weight, which is exactly wrong for a row that is meant
  * to be read left to right as one sentence about how things are going.
  */
-export function Band({ children, divided }: { children: React.ReactNode; divided?: boolean }) {
+export function Band({
+  children,
+  divided,
+  inline,
+}: {
+  children: React.ReactNode;
+  divided?: boolean;
+  /**
+   * One line rather than a band of tiles.
+   *
+   * The three figures on the inbox took a hundred and ten pixels of the one
+   * screen a business keeps open all day, to say three numbers — and they sat
+   * above the enquiries, which are what somebody opened the page for. Read as
+   * a line they say the same thing in a fifth of the room, and the money can
+   * still be the loud part of it.
+   */
+  inline?: boolean;
+}) {
+  if (inline) {
+    return (
+      <div
+        className={`flex flex-wrap items-baseline gap-x-6 gap-y-1 px-4 py-2.5 ${
+          divided ? "border-t border-border" : ""
+        }`}
+      >
+        {children}
+      </div>
+    );
+  }
+
   /*
    * The gap is the rule.
    *
@@ -38,6 +67,7 @@ export function Figure({
   warn,
   accent,
   children,
+  inline,
 }: {
   value?: string;
   label: string;
@@ -49,7 +79,25 @@ export function Figure({
   accent?: boolean;
   /** For a live number that counts up; used instead of `value`. */
   children?: React.ReactNode;
+  /** On one line with its label, for a Band that is a line. */
+  inline?: boolean;
 }) {
+  if (inline) {
+    return (
+      <span className="inline-flex items-baseline gap-1.5 whitespace-nowrap">
+        <span
+          className={`font-display font-bold tabular-nums tracking-[-0.02em] ${
+            lead || accent ? "text-lg text-highlight-strong" : warn ? "text-lg text-warn" : "text-lg"
+          }`}
+        >
+          {children ?? value}
+        </span>
+        <span className="text-[13px] text-muted">{label.toLowerCase()}</span>
+        {note && <span className="text-[12px] text-muted/70">&middot; {note}</span>}
+      </span>
+    );
+  }
+
   /*
    * Painted on the card's own surface, not the page behind it.
    *
