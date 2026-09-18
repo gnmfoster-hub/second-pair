@@ -190,6 +190,30 @@ export function ChatWindow({
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
+
+  /*
+   * Saying something after a long wait, because the dots stop meaning anything.
+   *
+   * A reply takes eight seconds on average and ten when it has to look at the
+   * diary — measured, not guessed. Three bouncing dots are right for two
+   * seconds and start to read as broken by eight, which is where somebody on a
+   * phone closes the tab and rings the next name on the list.
+   *
+   * Deliberately vague: this side does not know whether it is working out a
+   * price or reading the diary, and inventing one to sound busy would be a
+   * small lie told to somebody about to become a customer. "Still here" is the
+   * true part and the reassuring part.
+   */
+  const [slow, setSlow] = useState(false);
+
+  useEffect(() => {
+    if (!sending) {
+      setSlow(false);
+      return;
+    }
+    const waited = setTimeout(() => setSlow(true), 5000);
+    return () => clearTimeout(waited);
+  }, [sending]);
   /*
    * Is there a frame around us?
    *
@@ -873,6 +897,9 @@ export function ChatWindow({
                     />
                   ))}
                 </span>
+                {slow && (
+                  <p className="hint mt-1 text-xs">Still here &mdash; just checking a few things.</p>
+                )}
               </div>
             </div>
           )}
