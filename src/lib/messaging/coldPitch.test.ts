@@ -287,3 +287,62 @@ test("a real enquiry is never a pitch, however short", () => {
     assert.equal(v.pitch, false, `"${ask}" scored ${v.score}: ${v.signs.join("; ")}`);
   }
 });
+
+/*
+ * The one that got a reply.
+ *
+ * This reached Neat & Tidy on 18 September and the assistant answered it
+ * politely, which tells a list its address is live and reads as the business
+ * being unable to tell a customer from a salesman. It scored one: only the
+ * throwaway address matched, because it had a real In-Reply-To header — it
+ * was a genuine follow-up to their own earlier send — so the "Re: to nobody"
+ * sign did not fire either.
+ *
+ * Nothing in the words counted at all, and the words were the giveaway.
+ */
+test("the SEO pitch that got a polite answer out of a cleaning company", () => {
+  const v = coldPitch(
+    {
+      from: "ayerakhan789@outlook.com",
+      subject: "Re: Yes",
+      // Threaded, so it is a real reply and the Re: sign correctly stays quiet.
+      headers: { "in-reply-to": "<abc@outlook.com>", references: "<abc@outlook.com>" },
+      body: `Hi
+
+I sent you an email a few days ago. I didn't get any response back from you.
+
+May I send an Proposal and Pricing?
+
+thanks,
+
+From: Ayera Khan
+Sent: Thursday, September 17, 2026 12:55 PM
+Subject: Re: Yes
+
+Hi,
+
+I was going through your website, which isn't doing well but has a lot of potential in your business.
+
+We can place your website on Google's first page.
+
+May I send an Proposal and Pricing?
+
+Thanks,`,
+    },
+    { name: "Neat & Tidy Solutions", sites: ["neatandtidysolutions.co.uk"] },
+  );
+  assert.equal(v.pitch, true, `score ${v.score}: ${v.signs.join("; ")}`);
+});
+
+/* A customer may mention a website without being sold one. */
+test("a customer who found them through their website is not a pitch", () => {
+  const v = coldPitch(
+    {
+      from: "hannah.p@gmail.com",
+      subject: "Cleaning",
+      body: "Hi, I found your website on Google and wanted to ask what you charge for a deep clean. Could I send you a few photos of the kitchen?",
+    },
+    { name: "Neat & Tidy Solutions", sites: ["neatandtidysolutions.co.uk"] },
+  );
+  assert.equal(v.pitch, false, `score ${v.score}: ${v.signs.join("; ")}`);
+});

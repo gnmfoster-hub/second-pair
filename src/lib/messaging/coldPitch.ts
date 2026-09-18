@@ -93,8 +93,34 @@ const PITCH_PHRASES: { pattern: RegExp; sign: string }[] = [
   { pattern: /\b(?:regarding|about|concerning|re)\s+(?:this|your|the)\s+(?:store|shop|website|site|brand)\b|\bnew visitor\b/i, sign: "writes to the business as an online store" },
   { pattern: /\b(?:e-?com(?:merce)?|shopify|dropshipping|seo services?|lead generation|marketing agency)\b/i, sign: "sells online marketing" },
   { pattern: /\b(?:boost|increase|grow|skyrocket|double)\s+(?:your\s+)?(?:sales|orders|revenue|traffic|conversions)\b/i, sign: "promises more sales" },
-  { pattern: /\b(?:may|can|shall) i send (?:you )?(?:a |the |our )?(?:quote|price|proposal|pricing)\b|\bsend you (?:a |the |our )?(?:quote|proposal|price list)\b/i, sign: "offers to send the business a quote" },
-  { pattern: /\b(?:seo|website|site) (?:audit|errors?|issues|report)\b|\baudit errors?\b|\berrors? on your (?:web)?site\b|\brank(?:ing)? (?:on|higher on) google\b/i, sign: "reports problems with the website" },
+  /*
+   * "an" as well as "a".
+   *
+   * This read /(?:a |the |our )?/ and missed "May I send an Proposal and
+   * Pricing?" — asked twice in the same email, which then got a polite reply
+   * from a cleaning company's assistant. The article is exactly the word a
+   * pitch written in second-language English gets wrong, so insisting on the
+   * grammatical one narrows the net at precisely the wrong moment.
+   */
+  { pattern: /\b(?:may|can|shall|could) i send (?:you )?(?:an? |the |our )?(?:quote|price|proposal|pricing)\b|\bsend you (?:an? |the |our )?(?:quote|proposal|price list)\b/i, sign: "offers to send the business a quote" },
+  /*
+   * Google's first page, as well as ranking on it.
+   *
+   * "We can place your website on Google's first page" is the same offer as
+   * "rank higher on Google" and matched none of this. Both are here now, along
+   * with the top-of-Google phrasing that sits between them.
+   */
+  { pattern: /\b(?:seo|website|site) (?:audit|errors?|issues|report)\b|\baudit errors?\b|\berrors? on your (?:web)?site\b|\brank(?:ing)? (?:on|higher on) google\b|\b(?:first page|page one|top) of google\b|\bgoogle(?:'|’)?s (?:first page|top)\b/i, sign: "reports problems with the website" },
+  /*
+   * Telling a business its own website is failing.
+   *
+   * The opener in this one was "I was going through your website, which isn't
+   * doing well but has a lot of potential in your business" — an insult and a
+   * compliment in one sentence, which is a selling move and not something a
+   * customer has any reason to say. There was a rule for flattering an online
+   * store and none for this.
+   */
+  { pattern: /\byour (?:web)?site\b[^.?!]{0,60}\b(?:isn'?t|is not|not) doing (?:well|great|very well)\b|\bgoing through your (?:web)?site\b|\byour (?:web)?site\b[^.?!]{0,40}\bhas (?:a lot of |huge |great |real )?potential\b/i, sign: "tells the business its website is failing" },
   // Including "kindly share your WhatsApp", which is how the last one asked.
   { pattern: /\bbest\s+whats\s?app\b|\bwhats\s?app\s+(?:number\s+)?to\s+(?:connect|reach|chat)\b|\b(?:share|send|drop|give)\s+(?:me\s+)?(?:your\s+|the\s+)?whats\s?app\b/i, sign: "asks to move to WhatsApp" },
   { pattern: /\b(?:store|shop)\s+(?:stands out|has (?:great|huge|real) potential)|\bproducts? potential\b/i, sign: "flatters the store" },
