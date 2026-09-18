@@ -369,6 +369,11 @@ export default async function InboxPage({
             <Figure
               inline
               label="Won while you were busy"
+              /*
+               * The one number on the row that is the reason to pay for this.
+               * Everything else on the line is context for it.
+               */
+              lead
               note={whileShut.length > 0 ? `${whileShut.length} came in out of hours` : undefined}
             >
               <Ticker value={recovered} money />

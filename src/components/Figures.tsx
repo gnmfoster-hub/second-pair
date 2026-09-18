@@ -104,9 +104,9 @@ export function Figure({
           * open all day — but one line does not have to mean quiet.
           */}
         <span
-          className={`font-display text-xl font-bold tabular-nums tracking-[-0.02em] ${
-            act ? "text-highlight-strong" : warn ? "text-warn" : ""
-          }`}
+          className={`font-display font-bold tabular-nums tracking-[-0.02em] ${
+            lead ? "text-3xl" : "text-xl"
+          } ${act ? "text-highlight-strong" : warn ? "text-warn" : ""}`}
         >
           {children ?? value}
         </span>

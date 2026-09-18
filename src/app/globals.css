@@ -306,8 +306,18 @@ body {
     @apply font-normal tracking-[-0.02em];
   }
 
+  /*
+   * Secondary text, at thirteen pixels rather than twelve.
+   *
+   * There are six hundred uses of this, so it is most of the words in the
+   * product — every caption, every under-line on a row, every explanation on
+   * a settings page. At twelve pixels a screen somebody has open for eight
+   * hours reads as cramped, and cramped is most of what "doesn't look
+   * professional" actually means. One pixel across six hundred places is the
+   * cheapest lift available anywhere in here.
+   */
   .hint {
-    @apply text-xs leading-relaxed text-muted;
+    @apply text-[13px] leading-relaxed text-muted;
   }
 
   /*
