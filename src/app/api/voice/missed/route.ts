@@ -4,6 +4,7 @@ import { verifySignature } from "@/lib/messaging/sms";
 import { sendSms } from "@/lib/messaging/sms";
 import { wasMissed, missedCallText } from "@/lib/messaging/missedCall";
 import { whatTheyHear } from "@/lib/voice/voicemail";
+import { takeAMessage } from "@/lib/voice/twiml";
 import { hasColumn } from "@/lib/db/hasColumn";
 import { writeCall, seconds } from "@/lib/voice/writeCall";
 
@@ -218,29 +219,13 @@ export async function POST(request: NextRequest) {
    * left in a pocket does not record the drive home. `playBeep` because people
    * wait for one, and a four-second silence ends it for anybody who rang off.
    */
-  return twiml(
-    `<Say voice="alice">${escapeXml(said)}</Say>` +
-      `<Record maxLength="90" timeout="4" finishOnKey="#" playBeep="true" ` +
-      `transcribe="true" transcribeCallback="/api/voice/said?to=${encodeURIComponent(to)}" />` +
-      `<Say voice="alice">Thanks, we will be in touch.</Say>`,
-  );
+  return twiml(takeAMessage(said, to));
 }
 
+/** The only place a TwiML string becomes an answer. See lib/voice/twiml. */
 function twiml(body: string) {
-  return new NextResponse(`<?xml version="1.0" encoding="UTF-8"?><Response>${body}</Response>`, {
-    headers: { "Content-Type": "text/xml" },
-  });
+  return new NextResponse(body, { headers: { "Content-Type": "text/xml" } });
 }
-
-function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
-
 /**
  * The thread this caller belongs to, started if there is not one yet.
  *

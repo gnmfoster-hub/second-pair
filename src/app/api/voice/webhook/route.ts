@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { shouldRing } from "@/lib/channels/phoneNumbers";
 import { verifySignature } from "@/lib/messaging/sms";
+import { hangUp, textsOnly, cannotTakeIt, ringThem } from "@/lib/voice/twiml";
 
 export const runtime = "nodejs";
 
@@ -20,7 +21,7 @@ export const runtime = "nodejs";
  */
 export async function POST(request: NextRequest) {
   const token = process.env.TWILIO_AUTH_TOKEN;
-  if (!token) return hangUp();
+  if (!token) return xml(hangUp());
 
   const form = await request.formData();
   const params: Record<string, string> = {};
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
   }
 
   const to = params.To;
-  if (!to) return hangUp();
+  if (!to) return xml(hangUp());
 
   const db = createAdminClient();
   const { data: connection } = await db
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
 
   // A number nobody has claimed. Hanging up is better than a wrong business
   // answering, and Twilio retries nothing that returns cleanly.
-  if (!connection) return hangUp();
+  if (!connection) return xml(hangUp());
 
   const studio = connection.studios as unknown as {
     name: string;
@@ -88,11 +89,7 @@ export async function POST(request: NextRequest) {
    * a margin disappears.
    */
   if (!(studio?.channels_allowed ?? ["web"]).includes("voice")) {
-    return twiml(
-      `<Say voice="alice">Thanks for calling${studio?.name ? " " + escapeXml(studio.name) : ""}. ` +
-        `This number takes text messages only. Send us a text and we will come straight back to you.</Say>` +
-        `<Hangup/>`,
-    );
+    return xml(textsOnly(studio?.name ?? null));
   }
 
   /*
@@ -112,55 +109,13 @@ export async function POST(request: NextRequest) {
    * the carrier says the call was diverted from.
    */
   if (!shouldRing(connection.forward_to, params.ForwardedFrom, to)) {
-    return twiml(
-      `<Say voice="alice">Thanks for calling${studio?.name ? " " + escapeXml(studio.name) : ""}. ` +
-        `We cannot take your call right now, so I will text you straight back.</Say>` +
-        `<Redirect method="POST">/api/voice/missed?to=${encodeURIComponent(to)}</Redirect>`,
-    );
+    return xml(cannotTakeIt(studio?.name ?? null, to));
   }
 
-  /*
-   * Fifteen seconds, because the real competition is their voicemail.
-   *
-   * Twilio cannot tell a person from an answerphone: voicemail picking up is
-   * reported as "completed", which reads as answered, so no text is sent and
-   * the caller leaves a message nobody listens to. That is the exact outcome
-   * this feature exists to prevent, and at twenty seconds it was a race
-   * against a UK mobile's voicemail — which usually starts between fifteen and
-   * twenty.
-   *
-   * Fifteen is still three or four rings, which is long enough to reach a
-   * phone in a pocket and short enough to get there first. Anybody who wants
-   * no ring at all clears the ring-me number instead, and the text goes out
-   * immediately.
-   *
-   * callerId is the number they dialled, so the business sees its own line
-   * calling and knows to answer it as work.
-   */
-  return twiml(
-    `<Dial timeout="15" callerId="${escapeXml(to)}" ` +
-      `action="/api/voice/missed?to=${encodeURIComponent(to)}" method="POST">` +
-      `<Number>${escapeXml(connection.forward_to)}</Number>` +
-      `</Dial>`,
-  );
+  return xml(ringThem(connection.forward_to, to));
 }
 
-function twiml(body: string) {
-  return new NextResponse(`<?xml version="1.0" encoding="UTF-8"?><Response>${body}</Response>`, {
-    headers: { "Content-Type": "text/xml" },
-  });
-}
-
-/** Nothing to say and nobody to say it to. */
-function hangUp() {
-  return twiml("<Hangup/>");
-}
-
-function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
+/** The only place a TwiML string becomes an answer. See lib/voice/twiml. */
+function xml(body: string) {
+  return new NextResponse(body, { headers: { "Content-Type": "text/xml" } });
 }
