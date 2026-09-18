@@ -381,7 +381,18 @@ export default async function ClientsPage({
                       </div>
                     )}
 
-                    <div className="hint w-20 shrink-0 text-right">
+                    {/*
+                      * Sized by its words, not by a guess at them.
+                      *
+                      * This was a fixed w-20, and "enquiry only" wrapped onto
+                      * two lines on every row of the list — twenty-three rows
+                      * each two lines deep to say one short phrase. A fixed
+                      * width holding text is a bet that nothing about the text
+                      * will ever change, and two things had: the spacing scale
+                      * came down, taking every w-* with it, and secondary text
+                      * went up a pixel.
+                      */}
+                    <div className="hint shrink-0 whitespace-nowrap text-right">
                       {bookings.length
                         ? `${bookings.length} booking${bookings.length === 1 ? "" : "s"}`
                         : "enquiry only"}

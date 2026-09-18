@@ -99,6 +99,73 @@ const PITCH_PHRASES: { pattern: RegExp; sign: string }[] = [
   { pattern: /\bbest\s+whats\s?app\b|\bwhats\s?app\s+(?:number\s+)?to\s+(?:connect|reach|chat)\b|\b(?:share|send|drop|give)\s+(?:me\s+)?(?:your\s+|the\s+)?whats\s?app\b/i, sign: "asks to move to WhatsApp" },
   { pattern: /\b(?:store|shop)\s+(?:stands out|has (?:great|huge|real) potential)|\bproducts? potential\b/i, sign: "flatters the store" },
   { pattern: /\bcollaborat\w*\b[^.?!]{0,80}\b(?:orders|sales|store|brand|promot\w*|marketing)\b|\b(?:orders|sales|store|brand|promot\w*|marketing)\b[^.?!]{0,80}\bcollaborat\w*/i, sign: "offers a sales collaboration" },
+
+  /*
+   * The next three come from mail Giles marked as spam himself, on the two
+   * live businesses, and all three scored nothing on the rules as they stood.
+   * The emails are in the tests word for word.
+   */
+
+  /*
+   * "Reply Yes."
+   *
+   * An agency wrote to the tattooist asking it to reply with a single word to
+   * be sent a portfolio. Nobody enquiring about a tattoo, a clean or a rewire
+   * asks the business to reply "yes" — it is a device for getting a reply out
+   * of a list before anything has been offered, and it survives every rewrite
+   * of the pitch around it.
+   */
+  {
+    pattern: /\breply\s+(?:with\s+)?["“']?\s*yes\b/i,
+    sign: "asks for a one-word reply",
+  },
+
+  /*
+   * Somebody else is beating you to it.
+   *
+   * The same email: "before a competitor gets there first", "someone else in
+   * your space already closed the deal", "losing ground right here, one day at
+   * a time". Manufactured urgency about a rival is a selling posture. A
+   * customer has no idea who the competitors are and would never mention them.
+   */
+  {
+    pattern:
+      /\bbefore (?:a |your |the )?competitors?\b|\bcompetitors? (?:are|is|has|have) (?:already|getting|taking)\b|\blosing ground\b|\bsomeone else in your (?:space|market|area) (?:already|has)\b/i,
+    sign: "warns that a competitor is winning",
+  },
+
+  /*
+   * Lead-generation platforms selling work to a trade.
+   *
+   * "Are you ready for more work? A new job is posted every 60 seconds. Only
+   * three tradespeople can quote each job." This is the commonest pitch a
+   * tradesperson gets and the rules had nothing for it, because they were
+   * written by reading e-commerce spam sent to a tattooist.
+   *
+   * "Tradespeople" is the tell. It is what these platforms call their users
+   * and what nobody calls the person they are hiring — a customer says "you",
+   * or "the cleaner", never "only three tradespeople can quote".
+   *
+   * Three rules rather than one, because they are three separate tells and a
+   * phrase is worth a point. Bundled into a single pattern, an email carrying
+   * all of them scored one and sailed through — the threshold is two on
+   * purpose, so that no single phrase can condemn a real customer, and a rule
+   * that hides its own corroboration defeats that.
+   */
+  {
+    pattern: /\btrades(?:people|person|men)\b/i,
+    sign: "calls the business a tradesperson",
+  },
+  {
+    pattern:
+      /\bready for more work\b|\b(?:steady )?stream of leads\b|\bmore leads\b|\bnew leads\b/i,
+    sign: "offers to sell leads",
+  },
+  {
+    pattern:
+      /\bjobs? (?:is |are )?posted every\b|\bbrowse (?:the )?(?:latest |new )?jobs\b|\bquote (?:each|every) job\b/i,
+    sign: "describes a jobs marketplace",
+  },
 ];
 
 const GREETING_ONLY = /^\s*(?:hi|hey|hello|hiya|good (?:morning|afternoon|day)|bonjour|hola)[\s!.,]*(?:there)?[\s!.,]*[\p{Extended_Pictographic}‍️\s]*$/iu;

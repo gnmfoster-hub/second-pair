@@ -228,3 +228,62 @@ test("a customer mentioning the owner by name is still a customer", () => {
   );
   assert.equal(v.pitch, false, `score ${v.score}: ${v.signs.join("; ")}`);
 });
+
+/*
+ * The three below came out of real inboxes on the two live businesses, marked
+ * as spam by Giles himself. They are here word for word because a rule written
+ * from a remembered paraphrase is a rule that matches the paraphrase.
+ */
+
+test("an agency pitch that asks for a one-word reply", () => {
+  const v = coldPitch(
+    {
+      from: "sabid.k@atolynus.com",
+      subject: "Ink",
+      body: `I wanted to bring something to Ink's attention before a competitor gets there first.
+
+While you're deciding what to post next, someone else in your space already closed the deal.
+Ink, losing ground right here, one day at a time.
+We don't want Ink watching from behind. Let's build the system that keeps you ahead website, content, ads, moving together, every month.
+
+Reply "Yes" portfolio first, then a plan made only for Ink.`,
+    },
+    { name: "Living Canvas Tattoo", sites: ["livingcanvastattoo.ink"] },
+  );
+  assert.equal(v.pitch, true, `score ${v.score}: ${v.signs.join("; ")}`);
+});
+
+test("a lead-generation platform selling work to a trade", () => {
+  const v = coldPitch(
+    {
+      from: "support@myjobquote.co.uk",
+      subject: "Ready for more work, Karen?",
+      body: `Hi Karen, A new job is posted every 60 seconds, so there's always work waiting. Remember, only three tradespeople can quote each job, so don't miss your chance. The sooner you browse and quote new leads, the better your chances of securing the work. Browse Latest Jobs. More Leads, On Your Terms. Steady stream of leads ready for when you need them.`,
+    },
+    { name: "Neat & Tidy Solutions", sites: ["neatandtidysolutions.co.uk"] },
+  );
+  assert.equal(v.pitch, true, `score ${v.score}: ${v.signs.join("; ")}`);
+});
+
+/*
+ * This one was marked as spam too, and it is not spam — it is somebody asking
+ * a cleaner when they can clean, which is the entire thing the product exists
+ * to catch. It is kept as a test precisely because it was mislabelled: the
+ * rules must go on letting it through no matter what else is added.
+ *
+ * A wrong spam label is worse than no label. It is one lost job on its own,
+ * and if rules were fitted to it, it would be every job like it after that.
+ */
+test("a real enquiry is never a pitch, however short", () => {
+  for (const ask of [
+    "Hi when could you do cleaning",
+    "hi do you have any availability next week",
+    "how much for a tattoo",
+  ]) {
+    const v = coldPitch(
+      { from: "+447711774029", subject: "", body: ask },
+      { name: "Neat & Tidy Solutions", sites: ["neatandtidysolutions.co.uk"] },
+    );
+    assert.equal(v.pitch, false, `"${ask}" scored ${v.score}: ${v.signs.join("; ")}`);
+  }
+});

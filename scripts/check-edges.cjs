@@ -119,9 +119,64 @@ const WIDTHS = [
         return out.slice(0, 3);
       });
 
-      if (over.length) {
+      /*
+       * Short labels that have wrapped onto two lines.
+       *
+       * A different fault from going over the edge, and invisible to the test
+       * above: the text stays inside its box, the box just grows a line to
+       * hold it. "enquiry only" did exactly this on every row of the customer
+       * list — twenty-three rows two lines deep to say one short phrase —
+       * because it sat in a fixed w-20 and two things had moved underneath it:
+       * the spacing scale came down, taking every w-* with it, and secondary
+       * text went up a pixel. Neither change touched that file.
+       *
+       * Only two or three words, and only where a width was actually set. A
+       * sentence wrapping is a sentence doing its job; a fixed box holding a
+       * label that no longer fits is somebody's guess having expired.
+       */
+      const wrapped = await page.evaluate(() => {
+        const out = [];
+        const seen = new Set();
+        for (const el of document.querySelectorAll("body *")) {
+          if (el.children.length) continue;
+          const text = (el.textContent || "").replace(/\s+/g, " ").trim();
+          if (!text || text.split(" ").length > 3 || text.length > 22) continue;
+
+          const style = getComputedStyle(el);
+          if (style.whiteSpace === "nowrap" || style.whiteSpace === "pre") continue;
+
+          // Only where somebody fixed the width. Anything free to be as wide
+          // as it likes and still wrapping is being squeezed by a real layout.
+          if (style.width === "auto" || style.width.includes("%")) continue;
+
+          /*
+           * Ask the text itself how many lines it is on.
+           *
+           * The first try compared the element's height against its
+           * line-height, and reported thirty-eight buttons — a button is
+           * taller than one line because it has padding, not because anything
+           * wrapped. Tuning that threshold would only have moved the guess.
+           *
+           * A Range over the text gives one rectangle per line box, which is
+           * the actual question and has no threshold in it at all.
+           */
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          const lines = range.getClientRects().length;
+          if (lines < 2) continue;
+
+          if (seen.has(text)) continue;
+          seen.add(text);
+          const r = el.getBoundingClientRect();
+          out.push(`on ${lines} lines in ${Math.round(r.width)}px · "${text}"`);
+        }
+        return out.slice(0, 3);
+      });
+
+      const all = [...over, ...wrapped];
+      if (all.length) {
         faults++;
-        console.log(`  ${name.padEnd(14)} ${over.join("\n                 ")}`);
+        console.log(`  ${name.padEnd(14)} ${all.join("\n                 ")}`);
         await page.screenshot({ path: path.join(OUT, `edge-${label}-${name.replace(/\s+/g, "-")}.png`) });
       }
     }
@@ -129,7 +184,11 @@ const WIDTHS = [
   }
 
   await browser.close();
-  console.log(faults ? `\n${faults} screens with something over the edge.` : "\nNothing over the edge anywhere.");
+  console.log(
+    faults
+      ? `\n${faults} screens with text over an edge or wrapped in a box too small for it.`
+      : "\nNothing over the edge, and no label wrapped in a box too small for it.",
+  );
 })().catch((e) => {
   console.error(e.message || e);
   process.exit(1);
