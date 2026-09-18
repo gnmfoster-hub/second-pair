@@ -308,10 +308,25 @@ export async function POST(request: NextRequest) {
         content: `The reply could not be emailed to ${sender}: ${sent.error}`,
       });
 
-      await db
+      /*
+       * The one flag that decides whether a person ever looks.
+       *
+       * The assistant has answered and the answer did not leave the building.
+       * If this write fails too, the conversation sits in the inbox looking
+       * handled, the customer has heard nothing, and nobody is told — the
+       * exact shape of the fault that had every text and email held for the
+       * owner and then answered by nobody. Said out loud rather than
+       * swallowed; the reply above is already lost, and a second silent
+       * failure on top of it is how it stays lost.
+       */
+      const { error: notFlagged } = await db
         .from("conversations")
         .update({ status: "needs_human" })
         .eq("id", result.conversationId);
+
+      if (notFlagged) {
+        console.error("[email] reply failed AND could not be flagged", notFlagged.message);
+      }
 
       return ok(`answered, but the reply would not send: ${sent.error}`);
     }

@@ -238,7 +238,7 @@ async function answer(db: Db, event: MetaEvent, origin: string) {
 
   if (!line) return;
 
-  await db
+  const { error } = await db
     .from("messages")
     .update({
       delivery: sent.status === "sent" ? "sent" : "failed",
@@ -247,6 +247,13 @@ async function answer(db: Db, event: MetaEvent, origin: string) {
       external_id: sent.externalId ?? null,
     })
     .eq("id", line.id);
+
+  /*
+   * Whether a message arrived is what the month is billed from and what the
+   * report counts. A delivery nobody recorded is a message that was sent and
+   * charged for and appears nowhere.
+   */
+  if (error) console.error("[meta] could not record whether it arrived", error.message);
 }
 
 /**
