@@ -40,7 +40,10 @@ export function Takings({
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="section-title">What it came to</h2>
         <span className="hint tabular-nums">
-          {figures.bookings} appointments
+          {/* "1 appointments" was on the report until a check went looking
+              for short labels wrapping in fixed boxes and found this one
+              taking two lines to be wrong. */}
+          {figures.bookings} {figures.bookings === 1 ? "appointment" : "appointments"}
         </span>
       </div>
 
