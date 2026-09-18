@@ -301,6 +301,25 @@ export async function POST(request: NextRequest) {
         // would deliver the whole thing at once and undo the entire point.
         "X-Accel-Buffering": "no",
         /*
+         * Not compressed, which is the whole ball game.
+         *
+         * The headers on a real request said `Content-Encoding: br`: the edge
+         * was brotli-compressing the reply, and a compressor has to hold the
+         * body to compress it. That is why it streamed to curl and arrived in
+         * Chrome in one piece at the end — every word right, in order, nothing
+         * missing, and the customer waiting exactly as long as before.
+         *
+         * `identity` is the standard way to say "already as it is going to be"
+         * and it stops the edge compressing. The first attempt at this said
+         * `none`, which is not a real encoding: it did stop the compression,
+         * and then Chrome sat holding the body trying to decode something it
+         * had never heard of, which looked identical from the outside.
+         *
+         * A reply is a few hundred bytes of text. There was nothing worth
+         * compressing here in the first place.
+         */
+        "Content-Encoding": "identity",
+        /*
          * And this is the one that fixed Chrome specifically.
          *
          * With the compression stopped the stream reached node in thirty-six
