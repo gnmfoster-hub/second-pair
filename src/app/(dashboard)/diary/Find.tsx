@@ -20,6 +20,7 @@ import { findInDiary, type Found } from "./findActions";
  */
 export function Find() {
   const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
   const [term, setTerm] = useState("");
   /*
    * The answer and the question it was asked, together.
@@ -65,6 +66,29 @@ export function Find() {
     };
   }, [term, open]);
 
+  /*
+   * Clicking away closes it, like every other search box anybody has used.
+   *
+   * There was Escape and a Close button and nothing else, so the only ways out
+   * were the two a mouse does not reach for. It stayed open over the date and
+   * the view controls until somebody found the word Close — which is the sort
+   * of thing that reads as the page being stuck.
+   *
+   * pointerdown rather than click, so it closes as the finger goes down and
+   * does not swallow the first tap on whatever was being reached for.
+   */
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => {
+      if (!wrap.current?.contains(e.target as Node)) {
+        setOpen(false);
+        setTerm("");
+      }
+    };
+    document.addEventListener("pointerdown", away);
+    return () => document.removeEventListener("pointerdown", away);
+  }, [open]);
+
   // Escape closes it, like every other search box anybody has used.
   useEffect(() => {
     if (!open) return;
@@ -96,11 +120,25 @@ export function Find() {
 
   return (
     /*
-     * Over the row rather than in it. `absolute inset-0` against the header's
-     * own box, so the date and the buttons underneath are covered for as long
-     * as this is open and the page does not move by a pixel.
+     * Over the row rather than in it, and stopping short of the right edge.
+     *
+     * Covering the row is the point: the date and the view buttons go under
+     * this for as long as it is open and the page does not move by a pixel.
+     *
+     * But it covered the whole row, and Add is a sibling of the row rather
+     * than part of it, so Add painted straight over the search field with no
+     * gap between them — measured, the button sat a hundred and six pixels
+     * inside the field. Two controls in the same space reads as something
+     * broken rather than as something open.
+     *
+     * Stopping short also leaves Add reachable while a search is running,
+     * which is the better behaviour anyway: looking somebody up and then
+     * adding them is one of the likelier pairs of things to do in a diary.
      */
-    <div className="absolute inset-0 z-30 flex items-center gap-2 bg-background px-4 sm:px-8">
+    <div
+      ref={wrap}
+      className="absolute inset-y-0 left-0 right-0 z-30 flex items-center gap-2 bg-background px-4 sm:right-28 sm:px-8"
+    >
       <input
         ref={box}
         value={term}
