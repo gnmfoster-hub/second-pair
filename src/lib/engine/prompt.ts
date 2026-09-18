@@ -76,6 +76,17 @@ export function studioSystemPrompt(
    * again on the next message — for ever, with the booking held behind it.
    */
   keepsFacts: boolean = true,
+  /**
+   * The ways this business can actually reach somebody afterwards.
+   *
+   * Not what it is allowed to use — what is connected and working. A business
+   * may be authorised for text messages and have no number, which is the
+   * ordinary state between being set up and being finished, and the assistant
+   * has no way to know it: a customer gives a mobile, asks to be texted, and
+   * "yes, we will text you" is the obvious answer and a promise nobody can
+   * keep.
+   */
+  canReach: string[] = [],
 ): string {
   /*
    * Only the people this assistant may speak for.
@@ -127,6 +138,35 @@ export function studioSystemPrompt(
     .map((f) => `- ${f.ask}${f.blocks ? " — you cannot book without this" : ""}`)
     .join("\n");
   const factSection = factLines ? `\n${factLines}` : "";
+  /*
+   * What it may promise, and what it must not.
+   *
+   * Only written when something is missing, because a list of what works is
+   * noise in a prompt that is already long — the useful half is the one thing
+   * that does not.
+   */
+  const reachLine = (() => {
+    if (!canReach.length) return "";
+    const missing = ["sms", "whatsapp", "instagram", "messenger"].filter((c) => !canReach.includes(c));
+    if (!missing.length) return "";
+
+    const words: Record<string, string> = {
+      sms: "text messages",
+      whatsapp: "WhatsApp",
+      instagram: "Instagram",
+      messenger: "Messenger",
+    };
+
+    return (
+      `
+
+This business cannot send ${missing.map((c) => words[c]).join(", ")}. ` +
+      "Never say you will text them or message them there, and never promise a reply on " +
+      "one of those. You can still take their number — it is how the business rings them " +
+      "— but say the confirmation comes by email, or that somebody will be in touch."
+    );
+  })();
+
   const factSaving = packFacts.length
     ? "\n\nSave any of those with save_contact the moment they say it — a date can be written however they said it. Do not ask for them all at once; they come up on their own."
     : "";
@@ -335,7 +375,7 @@ Work out, over the course of the conversation:
 - Their name, and a phone number or email
 ${qualificationLines}${factSection}${locationLine}
 ${photoLine}
-${teamLine}${ageLine}${factSaving}
+${teamLine}${ageLine}${factSaving}${reachLine}
 - Which days and times suit them
 
 Ask only for what you do not already have. The known-so-far note tells you what has been answered. Never ask twice.

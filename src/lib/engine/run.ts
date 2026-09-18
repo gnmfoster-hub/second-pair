@@ -30,6 +30,7 @@ import type {
 } from "@/lib/types";
 import { NotAnswering } from "./errors";
 import { hasColumn } from "@/lib/db/hasColumn";
+import { connectedChannels } from "@/lib/messaging/connections";
 
 /**
  * Overridable so a cheaper model can be measured against the guardrail suite
@@ -835,6 +836,14 @@ async function generateReply(
    */
   const keepsFacts = await hasColumn(ctx.db, "contacts", "trade_facts");
 
+  /*
+   * What this business can actually send on, so the assistant stops promising
+   * what it cannot. Both halves matter: allowed by the account, and connected.
+   */
+  const mayUse = (ctx.studio.channels_allowed ?? ["web"]) as string[];
+  const connected = await connectedChannels(ctx.db, ctx.studio.id);
+  const canReach = connected.filter((c) => mayUse.includes(c));
+
   const system = studioSystemPrompt(
     ctx.studio,
     ctx.artists,
@@ -847,6 +856,7 @@ async function generateReply(
     ctx.signedIn ?? null,
     ctx.channel,
     keepsFacts,
+    canReach,
   );
 
   /*
