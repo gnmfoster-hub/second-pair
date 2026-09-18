@@ -74,7 +74,19 @@
   --cal-work: #6b4a9e;
   --cal-note: #16697a;
   --cal-off: #7b8598;
-  --cal-grid: #e2e0d9;
+  /*
+   * The lines inside the diary, quieter than the lines around a card.
+   *
+   * This was #e2e0d9 — a warm beige left over from when the whole app sat on
+   * cream. The ground went neutral and this did not, so the diary was ruled in
+   * a different colour temperature from every other edge on the screen: not
+   * something anybody would name, but it is why a page full of grid reads as
+   * slightly off. The dark palette had already been corrected and this had not.
+   *
+   * Lighter than --border on purpose. A grid line is scaffolding you look
+   * through; the edge of a card is a thing you look at.
+   */
+  --cal-grid: #e6e9ee;
   /* Hours the business is shut. Must read as recessed in both themes, which
      the page background cannot do — it is paper in one and near-black in the other. */
   --cal-closed: rgba(20, 36, 63, 0.055);
