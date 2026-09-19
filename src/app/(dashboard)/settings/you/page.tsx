@@ -14,6 +14,8 @@ import { PersonalCalendar } from "./PersonalCalendar";
 import { YourPrices } from "./YourPrices";
 import { MyBookings } from "./MyBookings";
 import { MyStripe } from "./MyStripe";
+import { MyChannels } from "./MyChannels";
+import type { Channel } from "@/lib/types";
 import { MyServices } from "./MyServices";
 import { MyTravel } from "./MyTravel";
 import { MyReminders } from "./MyReminders";
@@ -149,6 +151,23 @@ export default async function YouPage({
    * shop's. A chair renter is a business inside a business. Read once here so
    * the page cannot half-apply it and leave one panel editable.
    */
+  /*
+   * How this person is reached, which their own page has never said.
+   *
+   * Two lists: what is theirs by name, and what belongs to the business and
+   * therefore reaches everybody including them. Both are needed to say
+   * anything true — "you have nothing" is not the same sentence as "you have
+   * nothing and nobody can reach you".
+   */
+  const { data: links } = await supabase
+    .from("channel_connections")
+    .select("channel, label, external_id, artist_id")
+    .eq("studio_id", studio.id)
+    .eq("active", true);
+
+  const myChannels = (links ?? []).filter((c) => me && c.artist_id === me.id);
+  const sharedChannels = (links ?? []).filter((c) => !c.artist_id);
+
   const managed = me?.owner_managed === true;
 
   const words = wordsFor(studio);
@@ -182,6 +201,15 @@ export default async function YouPage({
         * the business's, which on the per-person model meant nobody's payments
         * could be taken at all.
         */}
+      {me && (
+        <MyChannels
+          firstName={me.name.split(" ")[0]}
+          business={words.business}
+          mine={myChannels as { channel: Channel; label: string | null; external_id: string | null }[]}
+          shared={sharedChannels as { channel: Channel }[]}
+        />
+      )}
+
       {me && (
         <MyStripe
           business={words.business}
