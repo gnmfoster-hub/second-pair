@@ -47,10 +47,16 @@ export function MyReminders({
         Sent before an appointment so people turn up. At the moment{" "}
         {on ? (
           <>you send your own.</>
-        ) : (
+        ) : businessCount > 0 ? (
           <>
             yours go out with everybody else&rsquo;s &mdash; the {businessCount} the
             business has set up.
+          </>
+        ) : (
+          /* "the 0 the business has set up" was the sentence here. */
+          <>
+            <strong>your clients are sent nothing</strong> &mdash; the business has none
+            set up, and you are on the business&rsquo;s.
           </>
         )}
       </p>
@@ -81,11 +87,27 @@ export function MyReminders({
        * switch because that is the order somebody reads it in, and phrased as
        * what is happening now rather than what might.
        */}
+      {/*
+       * Turning the switch off is only a way out if there is something to fall
+       * back to. It told people to use "the business's 0" — which is not a
+       * fix, it is the same silence by another route, and it is the state the
+       * salon was actually in.
+       */}
       {on && mine.length === 0 && (
         <p className="mt-4 rounded-lg bg-warn/10 px-3 py-2 text-sm text-warn">
           <strong>Your clients are getting no reminders at all.</strong> You have asked
-          for your own and written none. Add one below, or turn the switch back off to
-          use the business&rsquo;s {businessCount}.
+          for your own and written none.{" "}
+          {businessCount > 0 ? (
+            <>
+              Add one below, or turn the switch back off to use the business&rsquo;s{" "}
+              {businessCount}.
+            </>
+          ) : (
+            <>
+              Add one below. Turning the switch off would not help — the business has
+              none either, so nobody here is reminding anybody.
+            </>
+          )}
         </p>
       )}
 
