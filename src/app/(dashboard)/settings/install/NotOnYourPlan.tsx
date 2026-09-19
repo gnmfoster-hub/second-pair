@@ -51,13 +51,6 @@ export function NotOnYourPlan({ channel, business }: { channel: Channel; busines
   );
 }
 
-/**
- * What each one buys them, in their terms.
- *
- * Deliberately not a feature list. A business weighing up whether to pay for
- * texts is asking what texts would get them, and the honest answer for that one
- * is the only channel that can reach somebody who has not written first.
- */
 /** What the panel is called where a business does have it, so the two agree. */
 const HEADING: Partial<Record<Channel, string>> = {
   sms: "Text messages and missed calls",
@@ -66,6 +59,13 @@ const HEADING: Partial<Record<Channel, string>> = {
   messenger: "Facebook and Instagram",
 };
 
+/**
+ * What each one buys them, in their terms.
+ *
+ * Deliberately not a feature list. A business weighing up whether to pay for
+ * texts is asking what texts would get them, and the honest answer for that one
+ * is the only channel that can reach somebody who has not written first.
+ */
 const WHAT_IT_WOULD_DO: Record<Channel, string> = {
   web: "The assistant on your own website, answering while you work.",
   sms: "The only channel that reaches somebody who has not written to you first. Reminders before an appointment, and a text straight back when you miss a call, both need it.",
