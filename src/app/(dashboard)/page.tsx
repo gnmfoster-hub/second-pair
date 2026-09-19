@@ -449,12 +449,14 @@ export default async function InboxPage({
            * other and from the page — Giles: "the boxes seem to all blend into
            * one". Right on both counts, and they are different problems.
            *
-           * So the sheet comes back but the box does not: full width, square
-           * top where the rule already is, and the divider at full strength
-           * rather than seventy per cent of it. It reads as a page of work
-           * rather than as another component.
+           * Then the page itself became paper, and the sheet stopped being
+           * needed at all: there is nothing for a white panel to stand out
+           * against any more. What is left is what a printed page would do —
+           * a rule under the heading, a rule between each row, and the work.
+           * No panel, and nothing blending into anything, because the rules
+           * are doing the separating rather than a change of colour.
            */
-          <ul className="divide-y divide-border rounded-b-lg border-x border-b border-border bg-surface">
+          <ul className="divide-y divide-border">
             {conversations.map((c) => {
               const contact = c.contacts;
               const enquiry = c.enquiries;
