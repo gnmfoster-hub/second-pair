@@ -138,6 +138,41 @@ export default async function DashboardLayout({ children }: { children: React.Re
         * and white on the cards gives one clear order: frame, page, thing.
         */}
       {/*
+        * The ink for the stamps.
+        *
+        * A stamp that is only rotated is not a stamp, it is a wonky rectangle
+        * — Giles said exactly that and he is right. What makes rubber read as
+        * rubber is the edge: ink does not reach the whole shape, so the border
+        * and the letters come out broken and uneven rather than cut.
+        *
+        * Turbulence displaced by a pixel and a half does that, and only that.
+        * It roughens edges and leaves the middle of a letterform alone, so the
+        * word is still perfectly readable at ten and a half pixels — which it
+        * would not be at any larger a displacement.
+        *
+        * Defined once here rather than per stamp: a filter is referenced by id
+        * and forty references to one definition cost forty references.
+        */}
+      <svg width="0" height="0" aria-hidden focusable="false" className="absolute">
+        <filter id="stamp-ink" x="-6%" y="-20%" width="112%" height="140%">
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.62"
+            numOctaves="2"
+            seed="7"
+            result="grain"
+          />
+          <feDisplacementMap
+            in="SourceGraphic"
+            in2="grain"
+            scale="1.6"
+            xChannelSelector="R"
+            yChannelSelector="G"
+          />
+        </filter>
+      </svg>
+
+      {/*
        * Stays put while the page moves.
        *
        * It was an ordinary flex child, so it was as tall as whatever it sat

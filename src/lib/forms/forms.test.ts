@@ -121,7 +121,8 @@ test("a service with no form needs nothing", () => {
 
 test("a colour with no form on file is missing, found by title when typed into the diary", () => {
   const need = formNeeded({ serviceId: null, title: "full head colour", contactId: "jo" }, services, templates, [], NOW);
-  assert.deepEqual(need, { templateId: "patch", name: "Patch test and colour consent", state: "missing" });
+  // reason rides along now, and is null where nobody wrote one.
+  assert.deepEqual(need, { templateId: "patch", name: "Patch test and colour consent", state: "missing", reason: null });
 });
 
 test("one sent and not signed is waiting; one signed this year counts; last year's does not", () => {
