@@ -15,6 +15,15 @@ export type ReminderTemplateRow = {
   body: string;
   enabled: boolean;
   sort_order: number;
+  /**
+   * Whose it is — null for the business's.
+   *
+   * Here because the owner's page listed everybody's in one editable list, and
+   * saving somebody else's from there wrote artist_id back to null: a stylist's
+   * own reminder quietly became the shop's, and she would only find out when
+   * her clients stopped getting the one she wrote.
+   */
+  artist_id?: string | null;
 };
 
 /** Substitutions the owner can use, explained where they are typed. */

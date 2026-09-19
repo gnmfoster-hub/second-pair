@@ -6,6 +6,7 @@ import { verticalPack } from "@/lib/verticals";
 import { smsNumberFor } from "@/lib/messaging/connections";
 import { smsConfigured } from "@/lib/messaging/sms";
 import { readableNumber } from "@/lib/channels/phoneNumbers";
+import { reminderCover, whatIsMissing } from "@/lib/reminderCover";
 
 export default async function RemindersPage() {
   // What customers are sent — the owner's, and the page says so
@@ -20,6 +21,39 @@ export default async function RemindersPage() {
     .order("hours_before", { ascending: false });
 
   const reminders = (data ?? []) as ReminderTemplateRow[];
+
+  /*
+   * Who this page is actually reminding, which it never used to say.
+   *
+   * A template belongs to the business or to one person, and this page listed
+   * both the same way — so a salon with one stylist's own reminder and nothing
+   * for the business looked set up, while five other stylists' clients were
+   * sent nothing at all. Willow & Co was in that state and nothing on any
+   * screen said so.
+   *
+   * select("*") because reminders_own arrived in a migration and a named
+   * column PostgREST does not know refuses the whole query.
+   */
+  const { data: people } = await supabase
+    .from("artists")
+    .select("*")
+    .eq("studio_id", studio.id)
+    .order("name");
+
+  const cover = reminderCover(
+    reminders,
+    (people ?? []).map((p) => ({
+      id: p.id as string,
+      name: (p.name as string) ?? "",
+      active: p.active !== false,
+      ownReminders: (p as { reminders_own?: boolean }).reminders_own === true,
+    })),
+  );
+
+  const missing = whatIsMissing(cover);
+
+  /** Only the business's are the owner's to write from here. */
+  const ours = reminders.filter((r) => !r.artist_id);
 
   /*
    * Who these arrive from.
@@ -47,18 +81,49 @@ export default async function RemindersPage() {
       </p>
 
       {/*
-        * Nothing set up means nobody is being reminded, which is worth saying
-        * out loud rather than showing an empty page that looks finished.
+        * Who is not covered, said before anything else on the page.
+        *
+        * Not a decoration: a business can reach this screen, see a reminder
+        * listed, and have nobody reminded at all — which is what "no reminder
+        * for the business, one of Aisha's" looks like from here.
         */}
-      {reminders.length === 0 && (
+      {missing && (
+        <p className="rounded-lg border border-warn/30 bg-warn/8 px-4 py-3 text-[13px] text-foreground">
+          {missing}
+        </p>
+      )}
+
+      {/*
+        * Nothing set up means nobody is being reminded, which is worth saying
+        * out loud rather than showing an empty page that looks finished — and
+        * a page holding only somebody's own reminder looks exactly that way.
+        */}
+      {cover.businessWide === 0 && (
         <SeedReminders trade={verticalPack(studio.vertical).label} />
       )}
 
-      {reminders.map((reminder, i) => (
+      {ours.map((reminder, i) => (
         <ReminderEditor key={reminder.id} reminder={reminder} index={i} sender={sender} />
       ))}
 
-      <ReminderEditor index={reminders.length} sender={sender} />
+      <ReminderEditor index={ours.length} sender={sender} />
+
+      {/*
+        * Other people's, named but not editable here.
+        *
+        * They used to be in the list above, indistinguishable from the
+        * business's — and saving one from this page wrote it back to the
+        * business, taking it off the person who wrote it. Whoever it belongs to
+        * changes it in their own settings; the owner needs to know it exists,
+        * not to be able to rewrite what goes out under somebody else's name.
+        */}
+      {cover.onTheirOwn.length > 0 && (
+        <p className="hint">
+          {cover.onTheirOwn.length === 1
+            ? `${cover.onTheirOwn[0]} writes their own, and changes it in their own settings.`
+            : `${cover.onTheirOwn.join(", ")} write their own, and change them in their own settings.`}
+        </p>
+      )}
     </div>
   );
 }

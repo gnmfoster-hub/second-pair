@@ -40,6 +40,28 @@ export async function seedFromPack(
     return (count ?? 0) > 0;
   };
 
+  /*
+   * Whether the business has reminders of its own, which is not the same as
+   * the table having a row.
+   *
+   * A reminder belongs to the business or to one person, and only the
+   * business's reach everybody. One stylist writing her own made has() true,
+   * so the salon could never be given the trade's — and the other five sent
+   * their clients nothing, while the settings page showed a reminder and
+   * looked finished. Willow & Co sat like that.
+   *
+   * Errs the same way as has(): a failed read leaves it alone.
+   */
+  const hasBusinessWideReminders = async () => {
+    const { count, error } = await db
+      .from("reminder_templates")
+      .select("*", { count: "exact", head: true })
+      .eq("studio_id", studioId)
+      .is("artist_id", null);
+    if (error) return true;
+    return (count ?? 0) > 0;
+  };
+
   // --- vocabulary and trade
   const { error: studioError } = await db
     .from("studios")
@@ -123,7 +145,7 @@ export async function seedFromPack(
   }
 
   // --- reminders
-  if (!(await has("reminder_templates"))) {
+  if (!(await hasBusinessWideReminders())) {
     const reminders = pack.reminders.map((r, i) => ({
       studio_id: studioId,
       label: r.label,
