@@ -70,12 +70,31 @@ export async function smsNumberFor(
   supabase: SupabaseClient,
   studioId: string,
 ): Promise<string | null> {
+  /*
+   * The business's own line, not whichever row came back first.
+   *
+   * This is what the business sends from when it sends on its own account: a
+   * reminder, a released hold, a cancelled slot offered on. With one number
+   * that is the only number and the limit picked it by default. With two —
+   * which is the whole point of being able to give one to a person — it picked
+   * arbitrarily, so a reminder for the shop could go out from a stylist's own
+   * line, and the customer would reply to her about somebody else's haircut.
+   *
+   * Ordered as well as narrowed, so the same business always sends from the
+   * same number rather than from whatever the planner felt like returning.
+   *
+   * Still to do: a message about one person's own conversation should leave
+   * from their number where they have one. That needs the conversation, which
+   * this does not have, so it is a change to the callers rather than to this.
+   */
   const { data, error } = await supabase
     .from("channel_connections")
     .select("external_id")
     .eq("studio_id", studioId)
     .eq("channel", "sms")
     .eq("active", true)
+    .is("artist_id", null)
+    .order("created_at")
     .limit(1)
     .maybeSingle();
 

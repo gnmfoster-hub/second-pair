@@ -1612,11 +1612,26 @@ export async function saveCallForwarding(
   const { studio } = await requireStudio();
   const supabase = await createClient();
 
+  /*
+   * The business's own line, and only it.
+   *
+   * This asked for the single sms row and would have thrown the moment a
+   * business had two — which is the whole point of being able to give one to a
+   * person, and is about to happen as soon as a second number is bought. A
+   * "not one row" error here reads as the settings page being broken.
+   *
+   * Ordered oldest first so it is always the same line on every read, and
+   * narrowed to the one with nobody's name on it: this panel is the business's
+   * own number, and a stylist's is hers to see on her own screen.
+   */
   const { data: existing } = await supabase
     .from("channel_connections")
     .select("id, external_id")
     .eq("studio_id", studio.id)
     .eq("channel", "sms")
+    .is("artist_id", null)
+    .order("created_at")
+    .limit(1)
     .maybeSingle();
 
   /*

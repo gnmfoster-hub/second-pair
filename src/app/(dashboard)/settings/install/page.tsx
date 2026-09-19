@@ -102,11 +102,19 @@ export default async function ChannelsPage({
 
   // Where a call to that number rings before it becomes a text, and when that
   // was last decided.
+  /*
+   * The business's own line. See the save action beside this — the same
+   * single-row assumption, which throws outright the moment a business has two
+   * numbers, and giving one to a person is exactly how that happens.
+   */
   const { data: line } = await supabaseForNumbers
     .from("channel_connections")
     .select("forward_to, updated_at")
     .eq("studio_id", studio.id)
     .eq("channel", "sms")
+    .is("artist_id", null)
+    .order("created_at")
+    .limit(1)
     .maybeSingle();
 
   return (
