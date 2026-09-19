@@ -579,10 +579,27 @@ function Business({ b }: { b: BusinessSummary }) {
         * working" call — the assistant cannot offer a time without hours, or a
         * price without rates, or anything at all without a person.
         */}
+      {/*
+        * A business that books nothing cannot be badly set up for booking.
+        *
+        * The support assistant is a business in the database — it has an inbox
+        * and answers people — and it has no chairs, no price list and no
+        * opening hours, because it takes no appointments. Three amber figures
+        * said it was broken, every time, for ever. Amber that is always on is
+        * amber nobody reads, including on the businesses where it means
+        * something.
+        *
+        * Only our own internal ones. A demonstration with nobody in it is a
+        * demonstration that will embarrass somebody, so those keep the warning.
+        */}
       <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-5">
-        <Stat label="People" value={b.people} warn={b.people === 0} />
-        <Stat label="Services" value={b.services} warn={b.services === 0} />
-        <Stat label="Hours" value={b.hasHours ? "set" : "none"} warn={!b.hasHours} />
+        <Stat label="People" value={b.people} warn={b.kind !== "internal" && b.people === 0} />
+        <Stat label="Services" value={b.services} warn={b.kind !== "internal" && b.services === 0} />
+        <Stat
+          label="Hours"
+          value={b.hasHours ? "set" : b.kind === "internal" ? "n/a" : "none"}
+          warn={b.kind !== "internal" && !b.hasHours}
+        />
         <Stat
           label="Seats"
           value={b.seatLimit == null ? `${b.people} / any` : `${b.people} / ${b.seatLimit}`}
