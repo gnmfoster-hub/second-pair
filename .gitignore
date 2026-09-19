@@ -57,4 +57,12 @@ next-env.d.ts
 # eventually decrypt on a laptop and leave there.
 backups/
 *.enc
+
+# Scratch scripts for reading the live database are written and deleted a dozen
+# times a session, and one of them was caught by a git add -A. That is what this
+# is for — not for the shared helper four committed checks import, which it also
+# caught. Every one of them crashes on a fresh clone, because the file they
+# import is not in the repository. It holds no keys; it reads .env.local, which
+# stays ignored.
 scripts/_*.mjs
+!scripts/_tidy.mjs
