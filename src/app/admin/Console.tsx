@@ -22,6 +22,7 @@ import {
   type Result,
 } from "./actions";
 import { formatPence } from "@/lib/money";
+import { colourForName, initialsOf } from "@/lib/diaryColour";
 import { readableNumber } from "@/lib/channels/phoneNumbers";
 import { Band, Figure } from "@/components/Figures";
 import type { PlatformKpis } from "@/lib/platform";
@@ -421,7 +422,7 @@ function NeedsYou({ businesses }: { businesses: BusinessSummary[] }) {
         * read "Foster Electrical has asked something" and then went hunting
         * for Foster Electrical in fifteen rows underneath.
         */}
-      <ul className="mt-2.5 divide-y divide-border">
+      <ul className="mt-2.5 space-y-2.5">
         {rows.map(({ b, why, urgent }) => (
           <li key={b.id} className="flex items-baseline gap-3 py-2 text-sm">
             <a
@@ -456,8 +457,34 @@ function Business({ b }: { b: BusinessSummary }) {
   const owner = b.owners[0]?.email ?? null;
 
   return (
-    <div id={`b-${b.id}`} className="scroll-mt-6 border-b border-border py-5 last:border-b-0">
+    /*
+     * One business, one object.
+     *
+     * Nine of these were separated by a hairline and nothing else, and each is
+     * a name, an owner, an address and five figures — so the page read as one
+     * wall of small print with faint lines through it. Giles: they all blend
+     * into one. They do.
+     *
+     * A card each, and a mark each. The mark is the business's initials in a
+     * colour worked out from its own name, which is the same thing the diary
+     * and the inbox already do for a person — so a business becomes a thing
+     * you recognise from across the page rather than a line you have to read
+     * to identify. On a screen that exists to be scanned for the one business
+     * that is in trouble, that is most of the job.
+     */
+    <div
+      id={`b-${b.id}`}
+      className="card scroll-mt-6 p-4 transition-colors hover:border-accent/25 sm:p-5"
+    >
       <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
+        <span
+          className="grid size-10 shrink-0 place-items-center rounded-xl text-[13px] font-bold text-white"
+          style={{ background: colourForName(b.name) }}
+          aria-hidden
+        >
+          {initialsOf(b.name)}
+        </span>
+
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-base font-semibold">{b.name}</h2>
@@ -606,7 +633,7 @@ function OpenRequests({ businesses }: { businesses: BusinessSummary[] }) {
           <span className="ml-2 pill bg-warn/10 text-warn">{waiting} waiting on you</span>
         )}
       </h2>
-      <ul className="mt-2.5 divide-y divide-border">
+      <ul className="mt-2.5 space-y-2.5">
         {all.map(({ t, b, last }) => (
           <li key={t.id} className="py-2 text-sm">
             <a
@@ -1351,7 +1378,7 @@ function Channels({ b }: { b: BusinessSummary }) {
           * should not be asked to. Both answers keep it; the second has a trap
           * in it that is easier to name here than to diagnose afterwards.
           */}
-        <div className="rounded-lg border border-dashed border-border p-3">
+        <div className="rounded-lg border border-border p-3">
           <div className="label">&ldquo;I&rsquo;m not changing my number&rdquo;</div>
           <p className="hint mt-1">
             They do not have to. Two answers, and the second is the one that catches
