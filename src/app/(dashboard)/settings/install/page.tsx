@@ -12,6 +12,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Appearance } from "./Appearance";
 import { MetaChannels } from "./MetaChannels";
 import { WhoseChannel } from "./WhoseChannel";
+import { NotOnYourPlan } from "./NotOnYourPlan";
+import type { Channel } from "@/lib/types";
 import { WhoItOffers } from "./WhoItOffers";
 
 /**
@@ -97,6 +99,21 @@ export default async function ChannelsPage({
 
   const onChannel = (channel: string) => (allLinks ?? []).filter((l) => l.channel === channel);
 
+  /*
+   * What this business is signed up for.
+   *
+   * Enforced everywhere already — the engine refuses a message on a channel a
+   * business has not bought, and the voice webhook ends the call politely —
+   * and said nowhere. So the page offered the connect button for everything,
+   * and an owner could wire up an Instagram they had not paid for, see it say
+   * Connected, and watch every message arriving on it go nowhere with no error
+   * and nothing on any screen to explain it.
+   *
+   * Web when nothing is set, which is what every business started with.
+   */
+  const sold = (studio.channels_allowed ?? ["web"]) as Channel[];
+  const has = (channel: Channel) => sold.includes(channel);
+
   const supabaseForNumbers = await createClient();
   const smsNumber = await smsNumberFor(supabaseForNumbers, studio.id);
 
@@ -132,6 +149,10 @@ export default async function ChannelsPage({
 
       {/* --------------------------------------------------- text messages */}
       <section>
+        {!has("sms") ? (
+          <NotOnYourPlan channel="sms" business={words.business} />
+        ) : (
+        <>
         <TextNumber
           number={smsNumber}
           forwardTo={line?.forward_to ?? null}
@@ -166,10 +187,15 @@ export default async function ChannelsPage({
             noun="text"
           />
         ))}
+        </>
+        )}
       </section>
 
       {/* ---------------------------------------------------------- email */}
       <section>
+        {!has("email") ? (
+          <NotOnYourPlan channel="email" business={words.business} />
+        ) : (
         <div className="card p-5">
           <div className="section-title">Email</div>
           <p className="hint mt-1 max-w-prose">
@@ -223,6 +249,7 @@ export default async function ChannelsPage({
             </p>
           </div>
         </div>
+        )}
       </section>
 
       {/* ------------------------------------------------------ the business */}
@@ -266,6 +293,10 @@ export default async function ChannelsPage({
 
       {/* --------------------------------------------- facebook and instagram */}
       <section>
+        {!has("instagram") && !has("messenger") ? (
+          <NotOnYourPlan channel="instagram" business={words.business} />
+        ) : (
+        <>
         <MetaChannels connections={metaLinks ?? []} outcome={meta} isOwner />
 
         {(metaLinks ?? []).map((link) => (
@@ -280,6 +311,8 @@ export default async function ChannelsPage({
             noun="message"
           />
         ))}
+        </>
+        )}
       </section>
 
       {/* ------------------------------------------------------- each person */}
