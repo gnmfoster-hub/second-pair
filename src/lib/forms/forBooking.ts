@@ -1,7 +1,19 @@
 import { randomBytes } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { formNeeded } from "./required";
-import { hasColumn } from "@/lib/db/hasColumn";
+import { formNeeded } from "./required.ts";
+/*
+ * Relative and with the extension, so node can load this file.
+ *
+ * It read "@/lib/db/hasColumn", which the bundler resolves and node does not —
+ * so the one module that decides whether a customer gets a patch test could
+ * not be loaded by a script and exercised against the real database. Its
+ * logic has tests; the join between that logic and the rows underneath it was
+ * the part nobody could run.
+ *
+ * The convention already exists in here: pure libraries import each other
+ * relatively, with the extension, exactly so they stay runnable outside Next.
+ */
+import { hasColumn } from "../db/hasColumn.ts";
 
 /**
  * The form a new booking needs, made and handed back as a link.
