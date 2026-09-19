@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formNeeded } from "./required";
+import { hasColumn } from "@/lib/db/hasColumn";
 
 /**
  * The form a new booking needs, made and handed back as a link.
@@ -17,15 +18,58 @@ import { formNeeded } from "./required";
  */
 export async function formForBooking(
   db: SupabaseClient,
-  args: { studioId: string; contactId: string; bookingId: string; serviceId: string | null; title: string | null; origin: string },
+  args: {
+    studioId: string;
+    contactId: string;
+    bookingId: string;
+    serviceId: string | null;
+    title: string | null;
+    origin: string;
+    /** Whose appointment it is, so their own requirement can apply. */
+    artistId?: string | null;
+  },
 ): Promise<{ name: string; url: string } | null> {
   try {
+    /*
+     * The business's requirements, and the reason it gives for them.
+     *
+     * form_reason is asked for only once its column exists. PostgREST refuses
+     * a whole query for one unknown name, and a deploy that arrives before its
+     * migration would therefore stop every form being sent rather than lose
+     * one optional sentence.
+     */
+    const explains = await hasColumn(db, "services", "form_reason");
     const { data: services } = await db
       .from("services")
-      .select("id, name, requires_form_id")
-      .eq("studio_id", args.studioId)
-      .not("requires_form_id", "is", null);
-    if (!services?.length) return null;
+      .select(explains ? "id, name, requires_form_id, form_reason" : "id, name, requires_form_id")
+      .eq("studio_id", args.studioId);
+
+    /*
+     * What the person doing the work asks for on top.
+     *
+     * One stylist wants a patch test before every colour; the one at the next
+     * chair asks at the consultation. Guarded the same way, and skipped
+     * entirely when nobody is named — a business with one diary has nobody to
+     * differ from.
+     */
+    const personal =
+      args.artistId && (await hasColumn(db, "service_people", "requires_form_id"))
+        ? ((
+            await db
+              .from("service_people")
+              .select("service_id, artist_id, requires_form_id, form_reason")
+              .eq("artist_id", args.artistId)
+              .not("requires_form_id", "is", null)
+          ).data ?? [])
+        : [];
+
+    const wanted = (services ?? []) as unknown as {
+      id: string;
+      name: string;
+      requires_form_id: string | null;
+      form_reason?: string | null;
+    }[];
+    if (!wanted.some((s) => s.requires_form_id) && personal.length === 0) return null;
 
     const { data: templateRows } = await db
       .from("form_templates")
@@ -41,10 +85,17 @@ export async function formForBooking(
       .eq("contact_id", args.contactId);
 
     const need = formNeeded(
-      { serviceId: args.serviceId, title: args.title, contactId: args.contactId },
-      services as { id: string; name: string; requires_form_id: string | null }[],
+      {
+        serviceId: args.serviceId,
+        title: args.title,
+        contactId: args.contactId,
+        artistId: args.artistId ?? null,
+      },
+      wanted,
       templates,
       (theirs ?? []) as { id: string; contact_id: string; template_id: string | null; status: string; signed_at: string | null; created_at: string }[],
+      new Date(),
+      personal as { service_id: string; artist_id: string; requires_form_id?: string | null; form_reason?: string | null }[],
     );
     if (!need || need.state === "signed") return null;
 

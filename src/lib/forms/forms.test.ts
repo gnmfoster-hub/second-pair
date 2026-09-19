@@ -175,3 +175,83 @@ test("a quote's lines are kept, cleaned and totalled; the customer cannot answer
 test("a quote with no priced lines is not a quote", () => {
   assert.equal(cleanBlocks([{ type: "lines", label: "Quote", items: [] }]).length, 0);
 });
+
+/*
+ * One person asking for something the business does not.
+ *
+ * A salon where one stylist wants a patch test before every colour and the one
+ * at the next chair has been doing it twenty years and asks at the
+ * consultation. Before this the team had to agree on a single answer for
+ * everybody, because the requirement lived on the service.
+ */
+const noFormServices = [
+  { id: "colour", name: "Full head colour", requires_form_id: null },
+  { id: "cut", name: "Cut and finish", requires_form_id: null },
+];
+
+test("a stylist can ask for a form the business does not", () => {
+  const need = formNeeded(
+    { serviceId: "colour", title: null, contactId: "jo", artistId: "stevie" },
+    noFormServices,
+    templates,
+    [],
+    NOW,
+    [{ service_id: "colour", artist_id: "stevie", requires_form_id: "patch", form_reason: "I patch test everyone." }],
+  );
+  assert.equal(need?.templateId, "patch");
+  assert.equal(need?.state, "missing");
+  assert.equal(need?.reason, "I patch test everyone.");
+});
+
+test("and the stylist at the next chair is unaffected", () => {
+  const need = formNeeded(
+    { serviceId: "colour", title: null, contactId: "jo", artistId: "mark" },
+    noFormServices,
+    templates,
+    [],
+    NOW,
+    [{ service_id: "colour", artist_id: "stevie", requires_form_id: "patch" }],
+  );
+  assert.equal(need, null);
+});
+
+test("their requirement is for that service, not for everything they do", () => {
+  const need = formNeeded(
+    { serviceId: "cut", title: null, contactId: "jo", artistId: "stevie" },
+    noFormServices,
+    templates,
+    [],
+    NOW,
+    [{ service_id: "colour", artist_id: "stevie", requires_form_id: "patch" }],
+  );
+  assert.equal(need, null);
+});
+
+/*
+ * The rule that matters. If the business requires a patch test, nobody on the
+ * team can quietly replace it with something of their own — that is a safety
+ * decision and it belongs to whoever runs the place.
+ */
+test("a person adds a requirement and can never remove or replace one", () => {
+  const need = formNeeded(
+    { serviceId: "colour", title: null, contactId: "jo", artistId: "stevie" },
+    services,
+    templates,
+    [],
+    NOW,
+    [{ service_id: "colour", artist_id: "stevie", requires_form_id: "other" }],
+  );
+  assert.equal(need?.templateId, "patch", "the business's form must win");
+});
+
+test("nobody named means nothing personal applies", () => {
+  const need = formNeeded(
+    { serviceId: "colour", title: null, contactId: "jo" },
+    noFormServices,
+    templates,
+    [],
+    NOW,
+    [{ service_id: "colour", artist_id: "stevie", requires_form_id: "patch" }],
+  );
+  assert.equal(need, null);
+});

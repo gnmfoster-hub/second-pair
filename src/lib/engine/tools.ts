@@ -1752,6 +1752,9 @@ async function makeBooking(
         serviceId: (bookedFor?.service_id as string | null) ?? null,
         title: null,
         origin: ctx.origin,
+        /* Whose chair it is, so their own requirement applies as well as the
+           business's. See lib/forms/required. */
+        artistId: artist.id,
       })
     : null;
 
