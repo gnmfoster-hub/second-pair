@@ -4,6 +4,7 @@ import {
   quoteForBand,
   quoteForStudio,
   depositFor,
+  describeDepositRule,
   withVat,
   FULL_DAY_HOURS,
   type VatSettings,
@@ -229,4 +230,30 @@ test("a range has VAT applied to both ends", () => {
   );
   assert.equal(shown.low_pence, 36000);
   assert.equal(shown.high_pence, 60000);
+});
+
+/*
+ * A business that has not set a deposit rule, which is every business on the
+ * day it signs up. This printed "undefined% of the estimate, minimum £NaN" on
+ * its own pricing page — found by the screen sweep on the one business still in
+ * that state, and it would have greeted every new customer identically.
+ */
+test("no deposit rule reads as no deposit, not as NaN", () => {
+  assert.equal(describeDepositRule(null), "no deposit");
+  assert.equal(describeDepositRule(undefined), "no deposit");
+  assert.equal(describeDepositRule({} as never), "no deposit");
+  assert.equal(describeDepositRule({ type: "percent" } as never), "no deposit");
+});
+
+test("a half-written rule says what it can and no more", () => {
+  assert.equal(describeDepositRule({ type: "percent", percent: 25 } as never), "25% of the estimate");
+  assert.equal(describeDepositRule({ type: "fixed" } as never), "no deposit");
+});
+
+test("a real rule is unchanged", () => {
+  assert.equal(
+    describeDepositRule({ type: "percent", percent: 20, min_pence: 5000 } as never),
+    "20% of the estimate, minimum £50",
+  );
+  assert.equal(describeDepositRule({ type: "fixed", amount_pence: 2500 } as never), "£25 fixed");
 });

@@ -126,6 +126,9 @@ const BAD = /Application error|Something went wrong|Internal Server Error|Unhand
   console.log(
     `\n${pages.length * 2} looked at. ${problems ? `${problems} with something wrong.` : "Nothing wrong anywhere."}`,
   );
+
+  // Said in the exit code too, so the suite above cannot report a pass over it.
+  process.exitCode = problems ? 1 : 0;
 })().catch((e) => {
   console.error(e.message || e);
   process.exit(1);

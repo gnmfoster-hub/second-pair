@@ -84,11 +84,35 @@ export function depositFor(rule: DepositRule, quote: Quote): number {
   return Math.max(ceilTo(pct, ROUND_TO_PENCE), rule.min_pence);
 }
 
-export function describeDepositRule(rule: DepositRule): string {
+export function describeDepositRule(rule: DepositRule | null | undefined): string {
+  /*
+   * A business that has not set one.
+   *
+   * This trusted the shape it was given and read the numbers straight out of
+   * it, so a business with no deposit rule — which is every business on the day
+   * it signs up — got "undefined% of the estimate, minimum £NaN" printed on its
+   * own pricing page. Found by the screen sweep on the support business, which
+   * is the only one still in that state; it would have greeted every new
+   * customer the same way.
+   *
+   * Said as a fact rather than as a gap: no deposit is a perfectly ordinary way
+   * to run a business, and most of these take none.
+   */
+  if (!rule) return "no deposit";
+
   if (rule.type === "fixed") {
-    return `£${(rule.amount_pence / 100).toFixed(0)} fixed`;
+    const amount = Number(rule.amount_pence);
+    if (!Number.isFinite(amount)) return "no deposit";
+    return `£${(amount / 100).toFixed(0)} fixed`;
   }
-  return `${rule.percent}% of the estimate, minimum £${(rule.min_pence / 100).toFixed(0)}`;
+
+  const percent = Number(rule.percent);
+  const min = Number(rule.min_pence);
+  if (!Number.isFinite(percent)) return "no deposit";
+
+  return Number.isFinite(min)
+    ? `${percent}% of the estimate, minimum £${(min / 100).toFixed(0)}`
+    : `${percent}% of the estimate`;
 }
 
 // ---------------------------------------------------------------- VAT

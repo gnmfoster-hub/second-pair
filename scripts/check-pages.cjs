@@ -114,6 +114,17 @@ const BAD = /Application error|Something went wrong|Internal Server Error|Unhand
 
   await browser.close();
   console.log(`\n${looked} screens looked at. ${problems ? `${problems} with something wrong.` : "Nothing wrong anywhere."}`);
+
+  /*
+   * And say so in the exit code, which it never did.
+   *
+   * It printed the fault and exited nought, so `npm run check` ran it, read a
+   * success, and reported "All 8 passed" directly underneath a screen showing
+   * "undefined% of the estimate, minimum £NaN". A check that finds something
+   * and then reports success is worse than one that never ran: the same
+   * blindness, with a tick beside it.
+   */
+  process.exitCode = problems ? 1 : 0;
 })().catch((e) => {
   console.error(e.message || e);
   process.exit(1);

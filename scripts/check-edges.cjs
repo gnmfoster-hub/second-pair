@@ -211,6 +211,9 @@ const WIDTHS = [
       ? `\n${faults} screens with text over an edge or wrapped in a box too small for it.`
       : "\nNothing over the edge, and no label wrapped in a box too small for it.",
   );
+
+  // Said in the exit code too, so the suite above cannot report a pass over it.
+  process.exitCode = faults ? 1 : 0;
 })().catch((e) => {
   console.error(e.message || e);
   process.exit(1);
