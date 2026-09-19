@@ -99,6 +99,22 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  /*
+   * Whatever body we ended up with, in words rather than markup.
+   *
+   * The conversion above only ran on a body we had gone and fetched, because
+   * today Resend posts metadata only and that path always runs. The comment
+   * three lines up says this keeps working unchanged if Resend starts
+   * including a body — and that is precisely when it would stop: the fetch is
+   * skipped, and a sender who puts a whole HTML document in the text part is
+   * handed to the assistant as a page of markup, which is how "Your Advert
+   * Statistics" was answered as though somebody had written in.
+   *
+   * Cheap, and it costs an ordinary email nothing: isMarkup is false for
+   * anything a person types.
+   */
+  if (email.body && isMarkup(email.body)) email.body = plainTextFrom(email.body);
+
   const db = createAdminClient();
 
   /*

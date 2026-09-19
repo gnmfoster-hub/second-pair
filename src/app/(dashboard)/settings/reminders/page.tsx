@@ -120,7 +120,7 @@ export default async function RemindersPage() {
       {cover.onTheirOwn.length > 0 && (
         <p className="hint">
           {cover.onTheirOwn.length === 1
-            ? `${cover.onTheirOwn[0]} writes their own, and changes it in their own settings.`
+            ? `${cover.onTheirOwn[0]} writes their own, and changes them in their own settings.`
             : `${cover.onTheirOwn.join(", ")} write their own, and change them in their own settings.`}
         </p>
       )}
