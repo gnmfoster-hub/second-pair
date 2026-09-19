@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireStudio } from "@/lib/studio";
 import { createClient } from "@/lib/supabase/server";
+import { hasColumn } from "@/lib/db/hasColumn";
 import { CONNECT_NONCE_COOKIE } from "@/lib/payments/connect";
 import { signState, newNonce, authoriseUrl } from "@/lib/messaging/metaConnect";
 
@@ -56,6 +57,21 @@ export async function GET(request: NextRequest) {
      */
     const me = await meAt(studioId);
     if (!me) return back(request, "not-on-the-team");
+
+    /*
+     * Allowed by the owner, checked here and not only in the interface.
+     *
+     * The button is hidden for somebody who has not been allowed it, and a
+     * hidden button is a suggestion: this address can be typed, and connecting
+     * points every enquiry arriving on that account at one person's diary and
+     * stops the assistant offering anybody else. That is a change to how the
+     * business is reached, so it is refused on the server where it cannot be
+     * got round.
+     */
+    if (!(await mayConnectTheirOwn(studioId, me))) {
+      return back(request, "not-allowed-for-you");
+    }
+
     artistId = me;
   } else if (!(await isOwner())) {
     return back(request, "owner-only");
@@ -139,4 +155,27 @@ async function meAt(studioId: string): Promise<string | undefined> {
     .maybeSingle();
 
   return (data?.id as string | undefined) ?? undefined;
+}
+
+/**
+ * Has the owner allowed this person their own Meta account?
+ *
+ * Absent column means nobody has, which is every business until the migration
+ * runs — so this refuses rather than allows while it is missing. A permission
+ * check that defaults to yes when it cannot read the answer is not a
+ * permission check.
+ */
+async function mayConnectTheirOwn(studioId: string, artistId: string): Promise<boolean> {
+  const supabase = await createClient();
+  if (!(await hasColumn(supabase, "artists", "own_channels"))) return false;
+
+  const { data } = await supabase
+    .from("artists")
+    .select("own_channels")
+    .eq("studio_id", studioId)
+    .eq("id", artistId)
+    .maybeSingle();
+
+  const allowed = (data?.own_channels as string[] | null) ?? [];
+  return allowed.includes("instagram") || allowed.includes("messenger");
 }

@@ -1,6 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mayAllocate, describe as describeWhose, type Person } from "./whose.ts";
+import {
+  mayAllocate,
+  describe as describeWhose,
+  mayHaveTheirOwn,
+  whatAllowingMeans,
+  type Person,
+} from "./whose.ts";
 
 const people: Person[] = [
   { id: "stevie", name: "Stevie", active: true },
@@ -48,4 +54,27 @@ test("what it says is what actually changes", () => {
   assert.match(describeWhose("stevie", people), /Stevie/);
   assert.match(describeWhose("stevie", people), /never asks/i);
   assert.match(describeWhose("vanished", people), /no longer/i);
+});
+
+test("nobody may have their own until an owner says so", () => {
+  assert.equal(mayHaveTheirOwn(null, "instagram"), false);
+  assert.equal(mayHaveTheirOwn(undefined, "instagram"), false);
+  assert.equal(mayHaveTheirOwn([], "instagram"), false);
+});
+
+test("and only on the channels they were given", () => {
+  assert.equal(mayHaveTheirOwn(["instagram"], "instagram"), true);
+  assert.equal(mayHaveTheirOwn(["instagram"], "sms"), false);
+  assert.equal(mayHaveTheirOwn(["instagram", "sms"], "sms"), true);
+});
+
+/*
+ * The sentence both screens use. The owner's page and the person's page
+ * describing one switch differently is how somebody ends up believing a stylist
+ * has been cut off from the business's number.
+ */
+test("what allowing it means is said in terms of what changes", () => {
+  assert.match(whatAllowingMeans("sms", "Aisha"), /still reaches them/i);
+  assert.match(whatAllowingMeans("instagram", "Aisha"), /only they can/i);
+  assert.match(whatAllowingMeans("email", "Aisha"), /only them/i);
 });

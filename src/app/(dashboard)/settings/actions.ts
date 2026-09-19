@@ -2312,3 +2312,80 @@ export async function allocateChannel(_prev: FormState, fd: FormData): Promise<F
   revalidatePath("/settings/install");
   return { ok: true };
 }
+
+/**
+ * Which channels a person may have their own of.
+ *
+ * The decision an owner actually makes, and the one that had nowhere to live.
+ * Allocation needs an account to exist first; this is the switch that comes
+ * before it, and on a channel with nothing connected — which is most of them,
+ * most of the time — it was the only thing there was to say and there was no
+ * way to say it.
+ *
+ * The owner's, not the team's. Somebody deciding for themselves that enquiries
+ * should come to them rather than to the business is deciding how that business
+ * is reached, and that belongs to whoever owns it.
+ */
+export async function allowOwnChannel(_prev: FormState, fd: FormData): Promise<FormState> {
+  if (!(await isOwner())) {
+    return { error: "Only the owner can decide who may have their own channels." };
+  }
+
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  const artistId = str(fd, "artist");
+  const channel = str(fd, "channel");
+  const allow = fd.get("allow") === "1";
+  if (!artistId || !channel) return { error: "Nothing to change." };
+
+  /*
+   * Only a channel the business itself has.
+   *
+   * Allowing somebody their own Instagram on a business that has not bought
+   * Instagram is a switch that can never do anything, and a switch that can
+   * never do anything is a support call.
+   */
+  const sold = (studio.channels_allowed ?? ["web"]) as string[];
+  if (!sold.includes(channel)) {
+    return { error: "This business is not signed up for that channel." };
+  }
+  if (channel === "web") {
+    return { error: "The website belongs to the whole business." };
+  }
+
+  if (!(await hasColumn(supabase, "artists", "own_channels"))) {
+    return { error: "Not switched on yet — the database is waiting for a migration." };
+  }
+
+  const { data: person } = await supabase
+    .from("artists")
+    .select("id, own_channels")
+    .eq("id", artistId)
+    .eq("studio_id", studio.id)
+    .maybeSingle();
+  if (!person) return { error: "That person is not on this business." };
+
+  const was = ((person.own_channels as string[] | null) ?? []).filter((c) => c !== channel);
+  const now = allow ? [...was, channel] : was;
+
+  const { error } = await supabase
+    .from("artists")
+    .update({ own_channels: now })
+    .eq("id", artistId)
+    .eq("studio_id", studio.id);
+
+  if (error) return { error: error.message };
+
+  /*
+   * Taking it away does not take away what they already have.
+   *
+   * Un-ticking this means "no more of these from now on", not "hand back the
+   * number your customers have been texting for six months". Anything already
+   * connected to them stays theirs until somebody gives it back deliberately,
+   * on the control beside this one, where the consequence is visible.
+   */
+  revalidatePath("/settings/artists");
+  revalidatePath("/settings/you");
+  return { ok: true };
+}

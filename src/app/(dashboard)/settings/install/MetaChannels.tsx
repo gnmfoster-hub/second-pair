@@ -36,6 +36,21 @@ const OUTCOMES: Record<string, { tone: "ok" | "warn"; text: string }> = {
     tone: "warn",
     text: "Only the owner can connect an account, because it decides who may message your customers.",
   },
+  /*
+   * Refused on the server, so it needs words here.
+   *
+   * Somebody who has not been allowed their own account does not see the
+   * button — but the address can be typed, and a bare redirect with nothing
+   * said would read as the thing being broken rather than as not switched on.
+   */
+  "not-allowed-for-you": {
+    tone: "warn",
+    text: "Connecting an account of your own is not switched on for you. Whoever runs the business decides that.",
+  },
+  "not-on-the-team": {
+    tone: "warn",
+    text: "There is no diary on this business for your login, so there is nothing for an account of your own to reach.",
+  },
   expired: {
     tone: "warn",
     text: "That took too long, or the link was tampered with. Press connect again.",

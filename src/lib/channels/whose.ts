@@ -92,3 +92,43 @@ export function describe(artistId: string | null, people: Person[]): string {
   if (!person) return "Somebody who is no longer on this business";
   return `${person.name} — everything here is theirs, and it never asks who`;
 }
+
+/**
+ * Whether this person may have their own of a channel at all.
+ *
+ * The decision that comes before allocating anything, and the one an owner
+ * actually makes: a salon decides senior stylists take their own bookings on
+ * their own Instagram and the apprentice does not, and it decides that before
+ * anybody connects a thing.
+ *
+ * Absent means none. Every business is in that state today, so nothing changes
+ * for anybody until an owner ticks something — and the business's own channels
+ * go on reaching everybody either way, which is the part that matters and the
+ * part people assume this turns off.
+ */
+export function mayHaveTheirOwn(
+  allowedForThem: string[] | null | undefined,
+  channel: string,
+): boolean {
+  return (allowedForThem ?? []).includes(channel);
+}
+
+/**
+ * What the owner is actually deciding, in the words it changes.
+ *
+ * Written once so the owner's screen and the person's screen cannot describe
+ * the same switch differently — which is how somebody ends up believing a
+ * stylist has been cut off from the business's number.
+ */
+export function whatAllowingMeans(channel: string, firstName: string): string {
+  if (channel === "sms" || channel === "voice") {
+    return `${firstName} can be given a number of their own, once one has been bought. Until then the business's number still reaches them.`;
+  }
+  if (channel === "instagram" || channel === "messenger") {
+    return `${firstName} can connect their own account from their settings. Only they can log in to it, so only they can do it.`;
+  }
+  if (channel === "email") {
+    return `${firstName} has an address of their own that reaches only them.`;
+  }
+  return `${firstName} can have their own on this channel.`;
+}

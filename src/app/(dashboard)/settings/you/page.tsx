@@ -207,6 +207,7 @@ export default async function YouPage({
           business={words.business}
           mine={myChannels as { channel: Channel; label: string | null; external_id: string | null }[]}
           shared={sharedChannels as { channel: Channel }[]}
+          allowed={(me as { own_channels?: string[] | null }).own_channels ?? []}
         />
       )}
 

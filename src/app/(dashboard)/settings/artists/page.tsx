@@ -169,6 +169,7 @@ export default async function ArtistsPage() {
               firstName={artist.name.split(" ")[0]}
               business={words.business ?? "the business"}
               sold={soldChannels}
+              allowed={(artist as { own_channels?: string[] | null }).own_channels ?? []}
               ownEmail={
                 artist.handle
                   ? `${studio.slug}+${artist.handle}@${process.env.EMAIL_INBOUND_DOMAIN ?? "in.second-pair.com"}`

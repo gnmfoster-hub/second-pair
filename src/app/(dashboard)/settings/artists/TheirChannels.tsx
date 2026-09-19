@@ -1,8 +1,9 @@
 "use client";
 
 import { useActionState } from "react";
-import { allocateChannel, type FormState } from "../actions";
+import { allocateChannel, allowOwnChannel, type FormState } from "../actions";
 import { CHANNEL_LABELS, type Channel } from "@/lib/types";
+import { mayHaveTheirOwn, whatAllowingMeans } from "@/lib/channels/whose";
 import { readableNumber } from "@/lib/channels/phoneNumbers";
 
 /**
@@ -32,6 +33,7 @@ export function TheirChannels({
   /** Every live connection on the business, whoever it belongs to. */
   links,
   ownEmail,
+  allowed,
 }: {
   artistId: string;
   firstName: string;
@@ -40,8 +42,11 @@ export function TheirChannels({
   links: { id: string; channel: Channel; label: string | null; external_id: string | null; artist_id: string | null }[];
   /** Their own inbound address, where they have a handle to build one from. */
   ownEmail?: string | null;
+  /** Channels this person is allowed one of their own on. See lib/channels/whose. */
+  allowed?: string[] | null;
 }) {
   const [state, action, saving] = useActionState<FormState, FormData>(allocateChannel, {});
+  const [allowState, allow] = useActionState<FormState, FormData>(allowOwnChannel, {});
 
   /*
    * The website is the shop window and belongs to nobody.
@@ -68,8 +73,11 @@ export function TheirChannels({
           const mine = onThis.find((l) => l.artist_id === artistId);
           const spare = onThis.filter((l) => !l.artist_id);
 
+          const may = mayHaveTheirOwn(allowed, channel);
+
           return (
-            <li key={channel} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
+            <li key={channel} className="py-3">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-medium">{CHANNEL_LABELS[channel]}</span>
                 <span className="hint block">
@@ -120,6 +128,36 @@ export function TheirChannels({
                   </button>
                 </form>
               )}
+              </div>
+
+              {/*
+                * The switch that comes before any of the above.
+                *
+                * Allocation needs an account to exist first, and on a channel
+                * with nothing connected — which is most of them, most of the
+                * time — there was nothing to press and nothing to say. So the
+                * list read "nothing, nothing, nothing" and looked like a
+                * feature that had not been built.
+                *
+                * This is the decision an owner actually makes, and it can be
+                * made on an empty channel: may this person have their own here
+                * at all. What it changes is spelled out rather than implied,
+                * because the thing people fear is that it cuts somebody off
+                * from the business's own number, and it does not.
+                */}
+              <form action={allow} className="mt-2 flex flex-wrap items-start gap-x-3 gap-y-1">
+                <input type="hidden" name="artist" value={artistId} />
+                <input type="hidden" name="channel" value={channel} />
+                <input type="hidden" name="allow" value={may ? "0" : "1"} />
+                <button className="stamp stamp-flat shrink-0 text-[10px] transition-colors hover:border-accent/50">
+                  {may ? "Allowed" : "Not allowed"}
+                </button>
+                <span className="hint min-w-0 flex-1 text-[12px]">
+                  {may
+                    ? whatAllowingMeans(channel, firstName)
+                    : `Not allowed. The ${business}'s channels still reach ${firstName} — a customer writing in is asked who they would like.`}
+                </span>
+              </form>
             </li>
           );
         })}
@@ -131,6 +169,11 @@ export function TheirChannels({
         </p>
       )}
       {state.ok && <p className="mt-2 text-xs text-ok">Saved.</p>}
+      {allowState.error && (
+        <p className="mt-2 text-xs text-warn" role="alert">
+          {allowState.error}
+        </p>
+      )}
 
       {/*
         * Email, which needed nothing bought and nothing connected.

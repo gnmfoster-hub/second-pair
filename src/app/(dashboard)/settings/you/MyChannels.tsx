@@ -34,11 +34,14 @@ export function MyChannels({
   mine,
   /** Channels the business has that reach everybody, including them. */
   shared,
+  allowed,
 }: {
   firstName: string;
   business: string;
   mine: { channel: Channel; label: string | null; external_id: string | null }[];
   shared: { channel: Channel }[];
+  /** Channels the owner has allowed them their own of. See lib/channels/whose. */
+  allowed?: string[] | null;
 }) {
   const sharedNames = [...new Set(shared.map((c) => CHANNEL_LABELS[c.channel]))];
 
@@ -95,6 +98,27 @@ export function MyChannels({
        * cannot connect a stylist's Instagram on her behalf without her
        * password, and should not want to. So that one is hers to press.
        */}
+      {/*
+        * Only where the owner has allowed it.
+        *
+        * Connecting your own Instagram points every enquiry arriving on it at
+        * your diary and stops the assistant asking who the customer wants.
+        * That is a change to how the business is reached, so it is the owner's
+        * to allow — and before this it was open to anybody with a login.
+        *
+        * Said as a fact rather than as a refusal. "Not switched on for you" is
+        * a thing to ask about; a missing button is a thing to report as broken.
+        */}
+      {!(allowed ?? []).some((c) => c === "instagram" || c === "messenger") ? (
+        <div className="mt-4 border-t border-border pt-4">
+          <span className="label">An account of your own</span>
+          <p className="hint mt-1.5">
+            Connecting your own Instagram or Facebook is not switched on for you. Whoever
+            runs {business} decides that, because anything arriving on it would come
+            straight to you rather than being offered round.
+          </p>
+        </div>
+      ) : (
       <div className="mt-4 border-t border-border pt-4">
         <span className="label">An account of your own</span>
         <p className="hint mt-1.5">
@@ -112,6 +136,7 @@ export function MyChannels({
           customer wants.
         </p>
       </div>
+      )}
 
       <p className="hint mt-4">
         {mine.some((c) => c.channel === "sms" || c.channel === "voice")
