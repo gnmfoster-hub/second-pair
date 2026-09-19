@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { hasColumn } from "@/lib/db/hasColumn";
 import { tooMuchEmail, sinceMidnight } from "@/lib/messaging/emailBudget";
 import { runTurn } from "@/lib/engine/run";
 import { handOverAfterFailure } from "@/lib/engine/turnFailed";
@@ -162,15 +163,30 @@ export async function POST(request: NextRequest) {
    * refused: somebody mistyping an address should reach the salon, not
    * nothing.
    */
-  const { data: forPerson } = handle
+  const { data: forPerson } = handle && (await hasColumn(db, "artists", "own_channels"))
     ? await db
         .from("artists")
-        .select("id")
+        .select("id, own_channels")
         .eq("studio_id", studio.id)
         .eq("handle", handle.toLowerCase())
         .eq("active", true)
         .maybeSingle()
     : { data: null };
+
+  /*
+   * And only where the owner has allowed them their own.
+   *
+   * Without this the switch on their record was a lie: mail to
+   * willow-demo+aisha@ went to Aisha whatever it said. An address that routes
+   * regardless of the setting beside it is worse than no setting.
+   *
+   * Refused rather than allowed while the column is missing, so it falls back
+   * to the business — which is where every address goes today.
+   */
+  const personalEmail =
+    forPerson && ((forPerson.own_channels as string[] | null) ?? []).includes("email")
+      ? forPerson
+      : null;
 
   const verdict = judge(email, {
     ownDomains: [studio.email ? domainOf(studio.email) : ""].filter(Boolean),
@@ -294,7 +310,7 @@ export async function POST(request: NextRequest) {
       message: said || "(an empty message)",
       /* Their own address means the assistant already knows whose enquiry this
          is, exactly as their own number would. See lib/engine/offering. */
-      forArtistId: (forPerson?.id as string | undefined) ?? undefined,
+      forArtistId: (personalEmail?.id as string | undefined) ?? undefined,
     });
 
     if (result.paused || !result.reply) return ok("handed over");

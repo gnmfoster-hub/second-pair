@@ -89,7 +89,7 @@ export function TheirChannels({
                         : (mine.label ?? "connected")}
                     </>
                   ) : onThis.length === 0 ? (
-                    nothingYet(channel, firstName)
+                    nothingYet(channel, firstName, may)
                   ) : spare.length > 0 ? (
                     `The ${business}'s — shared, so the assistant asks who they want`
                   ) : (
@@ -184,7 +184,7 @@ export function TheirChannels({
         * Same mailbox, same forward, same MX — and every address in use today
         * carries on working untouched.
         */}
-      {sold.includes("email") && ownEmail && (
+      {sold.includes("email") && ownEmail && mayHaveTheirOwn(allowed, "email") && (
         <div className="mt-4 border-t border-border pt-4">
           <span className="label">{firstName}&rsquo;s own email address</span>
           <p className="hint mt-1.5">
@@ -209,15 +209,25 @@ export function TheirChannels({
  * Sarah can connect her own email would have had her waiting for something
  * nobody can do.
  */
-function nothingYet(channel: Channel, firstName: string): string {
+function nothingYet(channel: Channel, firstName: string, may: boolean): string {
+  /*
+   * The line and the switch underneath it have to agree.
+   *
+   * They did not: email said "they have their own address already" directly
+   * above a switch reading Not allowed, and Instagram said they could connect
+   * one from their settings when the button is not shown to them. Two
+   * sentences about the same thing, contradicting each other, an inch apart.
+   */
+  if (!may) return "Not switched on for them.";
+
   if (channel === "sms" || channel === "voice") {
-    return "Nothing connected. A number has to be bought and registered before anybody can have one.";
+    return "Allowed, but nothing connected yet — a number has to be bought and registered first.";
   }
   if (channel === "instagram" || channel === "messenger") {
-    return `Nothing connected. ${firstName} connects this from their own settings, because only they can log in to it.`;
+    return `Allowed. ${firstName} connects it from their own settings, because only they can log in to it.`;
   }
   if (channel === "email") {
-    return "They have their own address already — see below.";
+    return "They have an address of their own — see below.";
   }
-  return "Nothing connected yet.";
+  return "Allowed, nothing connected yet.";
 }
