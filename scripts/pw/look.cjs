@@ -13,6 +13,34 @@ const SITE = "https://www.second-pair.com";
 const OUT = path.join(require("os").tmpdir(), "second-pair-shots");
 require("fs").mkdirSync(OUT, { recursive: true });
 
+/*
+ * The credentials, from the same file the app reads.
+ *
+ * These checks took them straight from the environment and nothing put them
+ * there, so three of them crashed with "supabaseUrl is required" on any shell
+ * that had not exported them by hand — and npm run check reported that as
+ * three failing checks, which is a morning spent looking for a fault in a
+ * product that was fine.
+ *
+ * Anything already in the environment wins, so a deliberate run against
+ * another database works exactly as before.
+ */
+function loadLocalEnv() {
+  const fs = require("fs");
+  const file = path.join(REPO, ".env.local");
+  if (!fs.existsSync(file)) return;
+
+  for (const line of fs.readFileSync(file, "utf8").split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const at = trimmed.indexOf("=");
+    if (at < 1) continue;
+    const key = trimmed.slice(0, at).trim();
+    if (process.env[key] === undefined) process.env[key] = trimmed.slice(at + 1).trim();
+  }
+}
+loadLocalEnv();
+
 async function signIn(context, userId, next) {
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
   const { data: u } = await db.auth.admin.getUserById(userId);

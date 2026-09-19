@@ -59,6 +59,24 @@ const checks = [
     /** Posts three enquiries to the demo. */
     writes: true,
   },
+  /*
+   * A customer books, all the way through to the diary.
+   *
+   * Every other check looks at a screen or a reply. This one is the only thing
+   * that would notice the assistant saying "you're booked in" while nothing
+   * was written down, and it has already caught a reminder nobody was getting
+   * and a deposit described two contradictory ways.
+   *
+   * One business, because five in a row spends the whole rate-limit budget for
+   * the address and the rest come back refused. Point it at another by hand:
+   * node scripts/check-booking.mjs cogs-demo
+   */
+  {
+    name: "a customer books, end to end",
+    run: ["node", "scripts/check-booking.mjs", "willow-demo"],
+    /** A real enquiry and a real appointment on the demo, both cleared up. */
+    writes: true,
+  },
   {
     name: "every screen of every business",
     run: ["node", "scripts/check-pages.cjs"],
@@ -75,28 +93,49 @@ console.log(
     : `Running the ${chosen.length} quick checks. Add --all for the rest.`,
 );
 
-/** Runs one and hands back whether it passed, keeping its output on screen. */
+/**
+ * Runs one and hands back how it went, keeping its output on screen.
+ *
+ * Three answers, not two. A check that could not run — refused by the rate
+ * limit, nothing to measure — has not passed and has not failed, and calling
+ * it either is a lie: "failed" sends somebody looking for a bug that is not
+ * there, and "passed" is worse. Exit 2 means could not tell.
+ */
 function runOne(check) {
   return new Promise((resolve) => {
     const [command, ...args] = check.run;
     const child = spawn(command, args, { stdio: "inherit", shell: process.platform === "win32" });
-    child.on("close", (code) => resolve(code === 0));
-    child.on("error", () => resolve(false));
+    child.on("close", (code) => resolve(code === 0 ? "passed" : code === 2 ? "unknown" : "failed"));
+    child.on("error", () => resolve("failed"));
   });
 }
 
 const failed = [];
+const unknown = [];
 
 for (const check of chosen) {
   const note = check.writes ? " (writes to the demo)" : check.slow ? " (slow)" : "";
   console.log(`\n─────── ${check.name}${note} ───────`);
-  if (!(await runOne(check))) failed.push(check.name);
+  const how = await runOne(check);
+  if (how === "failed") failed.push(check.name);
+  else if (how === "unknown") unknown.push(check.name);
 }
 
 console.log("");
+
+// Said whether anything failed or not: a clean run that could not check
+// something has not checked it, and "all passed" would bury that.
+if (unknown.length) {
+  console.log(`Could not tell either way: ${unknown.join(", ")}. Run again in a few minutes.`);
+}
+
 if (failed.length === 0) {
-  console.log(`All ${chosen.length} passed.`);
-  process.exit(0);
+  console.log(
+    unknown.length
+      ? `The other ${chosen.length - unknown.length} passed.`
+      : `All ${chosen.length} passed.`,
+  );
+  process.exit(unknown.length ? 2 : 0);
 }
 
 /*

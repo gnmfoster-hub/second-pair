@@ -14,6 +14,14 @@
  * already exist, and nothing is submitted.
  */
 const { chromium } = require("playwright-core");
+/*
+ * For the credentials, which it loads from .env.local.
+ *
+ * This check never signs in, but it read the environment for a database key
+ * that nothing put there — so it crashed on any shell that had not exported
+ * one by hand, and npm run check called that a failing check.
+ */
+require("./pw/look.cjs");
 const { createClient } = require("@supabase/supabase-js");
 
 const SITE = process.env.SITE ?? "https://www.second-pair.com";
