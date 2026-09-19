@@ -247,11 +247,14 @@ export async function cancelSeries(fd: FormData) {
   /*
    * A cancellation that failed must not look like one that worked.
    *
-   * The reminders are dropped first, so a swallowed failure here leaves the
-   * appointments in the diary with nothing to remind anybody about them: the
-   * customer turns up to a slot the business thinks is cancelled, or does not
-   * turn up to one it thinks is live. Silence is the worst of the three
+   * The customer turns up to a slot the business thinks is cancelled, or does
+   * not turn up to one it thinks is live. Silence is the worst of the three
    * possible answers.
+   *
+   * This one never drops the reminders itself — the comment here used to say
+   * it did, which was wrong about its own code. It does not need to: the
+   * sender re-reads cancelled_at before sending, so every reminder against
+   * these occurrences is skipped when the job next runs.
    */
   if (error) throw new Error(`Could not cancel those appointments: ${error.message}`);
 
@@ -260,17 +263,34 @@ export async function cancelSeries(fd: FormData) {
 
 export async function cancelDiaryEntry(fd: FormData) {
   const supabase = await createClient();
-  // Nobody should get a reminder about an appointment that is not happening.
-  await dropReminders(supabase, str(fd, "id"));
-  // Cancelled rather than deleted: the slot frees up, the history stays, and a
-  // paid deposit remains traceable for a refund.
+
+  /*
+   * Cancel first, then drop the reminders. It was the other way round.
+   *
+   * Dropping first is only safe if the cancel then works. When it does not,
+   * this throws — correctly — but the reminders are already skipped while the
+   * appointment is still in the diary and still happening. Nobody is reminded
+   * of it, and the only person who knows something went wrong is whoever saw
+   * the error, not the customer who then does not turn up.
+   *
+   * This way round is safe both ways. A cancel that fails has changed nothing
+   * at all. A cancel that works followed by a drop that fails leaves the
+   * reminders pending against a cancelled booking, and the sender re-reads
+   * cancelled_at before sending anything, so they are skipped there instead.
+   * The race the old order guarded against is covered by that same check.
+   *
+   * Cancelled rather than deleted: the slot frees up, the history stays, and a
+   * paid deposit remains traceable for a refund.
+   */
   const { error } = await supabase
     .from("bookings")
     .update({ cancelled_at: new Date().toISOString() })
     .eq("id", str(fd, "id"));
 
-  // Same reason as the repeat above: the reminders have already gone.
   if (error) throw new Error(`Could not cancel that appointment: ${error.message}`);
+
+  // Nobody should get a reminder about an appointment that is not happening.
+  await dropReminders(supabase, str(fd, "id"));
 
   revalidatePath("/diary");
   revalidatePath("/");

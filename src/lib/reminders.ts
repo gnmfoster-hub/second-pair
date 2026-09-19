@@ -143,13 +143,27 @@ export async function scheduleReminders(
   return error ? 0 : rows.length;
 }
 
-/** Cancels anything still pending for a booking, e.g. when it is cancelled. */
+/**
+ * Cancels anything still pending for a booking, e.g. when it is cancelled.
+ *
+ * Said out loud when it fails. It threw its answer away, which is the family
+ * of fault that has bitten this codebase repeatedly — and here it is not
+ * customer-facing, because the sender re-reads cancelled_at before sending, so
+ * a row left pending against a cancelled booking is skipped there instead.
+ * That makes this a log rather than a throw: the caller has already done the
+ * part that matters, and failing the whole action over tidying-up would be
+ * worse than the untidiness.
+ */
 export async function dropReminders(db: SupabaseClient, bookingId: string) {
-  await db
+  const { error } = await db
     .from("reminders")
     .update({ status: "skipped" })
     .eq("booking_id", bookingId)
     .eq("status", "pending");
+
+  if (error) {
+    console.error(`[reminders] could not drop those for booking ${bookingId}: ${error.message}`);
+  }
 }
 
 type DueRow = {
