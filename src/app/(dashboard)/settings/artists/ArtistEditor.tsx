@@ -431,13 +431,25 @@ export function ArtistEditor({
               * it books the right diary. A number each is an addition to that,
               * not a requirement for it.
               */}
+            {/*
+              * This said "neither is built yet", and by the afternoon both
+              * were. Giles read it three times and concluded each time that
+              * there was nowhere to give somebody a channel — which was a fair
+              * reading of the only sentence on the subject anywhere near where
+              * he was looking.
+              *
+              * Stale copy is worse than none. It does not merely fail to help,
+              * it actively answers the question wrongly, and it keeps doing it
+              * long after somebody has done the work.
+              */}
             <p className="hint mt-2">
               Texts and calls already reach them on the business&rsquo;s own number — whoever
               writes in is asked who they would like, and it books the right diary.
             </p>
             <p className="hint mt-1.5">
-              A number of their own, and their own Instagram, will connect here as well and
-              will be theirs to manage. Neither is built yet.
+              To give them one of their own, see <strong>Channels of their own</strong> just
+              below this. Their own Instagram or Facebook they connect themselves, from their
+              own settings, because only they can log in to it.
             </p>
           </label>
         )}

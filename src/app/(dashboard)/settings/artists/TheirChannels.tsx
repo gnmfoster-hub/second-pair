@@ -31,12 +31,15 @@ export function TheirChannels({
   sold,
   /** Every live connection on the business, whoever it belongs to. */
   links,
+  ownEmail,
 }: {
   artistId: string;
   firstName: string;
   business: string;
   sold: Channel[];
   links: { id: string; channel: Channel; label: string | null; external_id: string | null; artist_id: string | null }[];
+  /** Their own inbound address, where they have a handle to build one from. */
+  ownEmail?: string | null;
 }) {
   const [state, action, saving] = useActionState<FormState, FormData>(allocateChannel, {});
 
@@ -128,6 +131,27 @@ export function TheirChannels({
         </p>
       )}
       {state.ok && <p className="mt-2 text-xs text-ok">Saved.</p>}
+
+      {/*
+        * Email, which needed nothing bought and nothing connected.
+        *
+        * It was the one channel a team member could not have their own of, and
+        * the reason turned out to be that nobody had split the address. The
+        * part before the plus is the business; the part after is the person.
+        * Same mailbox, same forward, same MX — and every address in use today
+        * carries on working untouched.
+        */}
+      {sold.includes("email") && ownEmail && (
+        <div className="mt-4 border-t border-border pt-4">
+          <span className="label">{firstName}&rsquo;s own email address</span>
+          <p className="hint mt-1.5">
+            Anything arriving here is theirs, and the assistant books it into their diary
+            without asking the customer who they want. Give it out, or forward an address
+            of theirs to it.
+          </p>
+          <p className="num mt-2 break-all text-sm">{ownEmail}</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -150,7 +174,7 @@ function nothingYet(channel: Channel, firstName: string): string {
     return `Nothing connected. ${firstName} connects this from their own settings, because only they can log in to it.`;
   }
   if (channel === "email") {
-    return "Nothing connected. Email comes in to one address for the whole business, so there is nothing to give to one person yet.";
+    return "They have their own address already — see below.";
   }
   return "Nothing connected yet.";
 }

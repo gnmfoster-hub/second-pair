@@ -122,7 +122,25 @@ export async function POST(request: NextRequest) {
    */
   const ourDomain = (process.env.EMAIL_INBOUND_DOMAIN ?? "in.second-pair.com").toLowerCase();
   const mine = ourRecipient(email.to, ourDomain);
-  const slug = mine?.split("@")[0]?.trim();
+  const local = mine?.split("@")[0]?.trim();
+  if (!local) return ok("no business in the address");
+
+  /*
+   * One address each, without one address each.
+   *
+   * willow-demo@in.second-pair.com is the salon's. willow-demo+aisha@ is
+   * Aisha's, and it is the same mailbox, the same forward and the same MX —
+   * plus-addressing is ordinary mail and every forwarder in use supports it.
+   * Nothing had to be bought, registered or connected.
+   *
+   * Which matters because email was the one channel where a team member could
+   * not have their own at all. A number has to be bought; an Instagram needs
+   * their password. This needed neither and was simply never split.
+   *
+   * The part before the plus is still the business, so every address in use
+   * today is untouched.
+   */
+  const [slug, handle] = local.split("+");
   if (!slug) return ok("no business in the address");
 
   const { data: studio } = await db
@@ -135,6 +153,24 @@ export async function POST(request: NextRequest) {
     await note(db, null, slug, "refused", "no business has that address");
     return ok("no such business");
   }
+
+  /*
+   * Whose address it was, if it was anybody's.
+   *
+   * Looked up on this business only, so a handle cannot reach across to
+   * another one. An unknown handle is treated as the business's rather than
+   * refused: somebody mistyping an address should reach the salon, not
+   * nothing.
+   */
+  const { data: forPerson } = handle
+    ? await db
+        .from("artists")
+        .select("id")
+        .eq("studio_id", studio.id)
+        .eq("handle", handle.toLowerCase())
+        .eq("active", true)
+        .maybeSingle()
+    : { data: null };
 
   const verdict = judge(email, {
     ownDomains: [studio.email ? domainOf(studio.email) : ""].filter(Boolean),
@@ -256,6 +292,9 @@ export async function POST(request: NextRequest) {
       channel: "email",
       origin: request.nextUrl.origin,
       message: said || "(an empty message)",
+      /* Their own address means the assistant already knows whose enquiry this
+         is, exactly as their own number would. See lib/engine/offering. */
+      forArtistId: (forPerson?.id as string | undefined) ?? undefined,
     });
 
     if (result.paused || !result.reply) return ok("handed over");
