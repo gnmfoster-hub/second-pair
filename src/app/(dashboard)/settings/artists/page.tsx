@@ -2,6 +2,8 @@ import { requireStudio, getArtists, getServiceOptions } from "@/lib/studio";
 import { verticalPack } from "@/lib/verticals";
 import { wordsFor } from "@/lib/words";
 import { ArtistEditor } from "./ArtistEditor";
+import { TheirChannels } from "./TheirChannels";
+import type { Channel } from "@/lib/types";
 import { MyServices } from "../you/MyServices";
 import type { Service } from "@/lib/types";
 import { InviteButton } from "./InviteButton";
@@ -75,6 +77,20 @@ export default async function ArtistsPage() {
   const owns = ownerUserId != null && ownerUserId === userId;
 
   /*
+   * What the business has bought, and every connection it holds.
+   *
+   * Loaded once for the page rather than per person: the same list answers
+   * "what has this person got" for everybody on it, and a business has a
+   * handful of connections however many people work there.
+   */
+  const soldChannels = (studio.channels_allowed ?? ["web"]) as Channel[];
+  const { data: everyLink } = await supabase
+    .from("channel_connections")
+    .select("id, channel, label, external_id, artist_id")
+    .eq("studio_id", studio.id)
+    .eq("active", true);
+
+  /*
    * A worker sees themselves, and nobody else.
    *
    * The page listed everybody with an editable form for each, so a stylist
@@ -137,6 +153,33 @@ export default async function ArtistsPage() {
               artist.handle ? `${origin}/widget/${studio.slug}?with=${artist.handle}` : null
             }
           />
+
+          {/*
+            * The same decision as the Channels page, asked from this end.
+            *
+            * That page lists the business's connections and lets each one be
+            * given to somebody, so "what has this person got" could only be
+            * answered by reading every connection and remembering which name
+            * was against it. Giles asked three times where the option was, and
+            * this is where he was looking for it.
+            */}
+          {owns && (
+            <TheirChannels
+              artistId={artist.id}
+              firstName={artist.name.split(" ")[0]}
+              business={words.business ?? "the business"}
+              sold={soldChannels}
+              links={
+                (everyLink ?? []) as {
+                  id: string;
+                  channel: Channel;
+                  label: string | null;
+                  external_id: string | null;
+                  artist_id: string | null;
+                }[]
+              }
+            />
+          )}
           {/*
             * Their calendar link, for the owner to hand over.
             *
