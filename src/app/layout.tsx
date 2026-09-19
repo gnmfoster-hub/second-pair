@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Public_Sans, IBM_Plex_Mono, Inter } from "next/font/google";
+import { Bricolage_Grotesque, Public_Sans, IBM_Plex_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { themeScript } from "@/components/ThemeToggle";
 import { RegisterWorker } from "@/components/RegisterWorker";
@@ -7,19 +7,37 @@ import { RegisterWorker } from "@/components/RegisterWorker";
 /*
  * Three faces, each with a job.
  *
- * Archivo is a grotesque with tight, confident display weights — headings, and
- * the numbers that are the point of the page. Public Sans was drawn for
- * interfaces and carries the dense stuff at 13px without shouting. Plex Mono
- * keeps money and times lined up in columns.
+ * Bricolage Grotesque is a display face with a face — headings, and the
+ * numbers that are the point of the page. Public Sans was drawn for interfaces
+ * and carries the dense stuff at 13px without shouting. Plex Mono is kept for
+ * genuinely machine text: keys, snippets, somebody else's column headings.
  *
  * Deliberately not the framework default: this is sold to tattooists, stylists
  * and sparkies, and it wants to look like a tool made for them rather than
  * another piece of startup software.
  */
-const display = Archivo({
+/*
+ * The face that stops it looking generated.
+ *
+ * This was Archivo: a good grotesque, and an entirely neutral one — the same
+ * shapes as the default face of every dashboard built in the last five years.
+ * Giles kept saying the product looked machine-made and could not place why,
+ * and this is the largest single reason: one neutral face doing the heading,
+ * the figure, the section title and the empty state, so nothing anywhere has
+ * a voice.
+ *
+ * Bricolage Grotesque has one. Flat-sided bowls, tight apertures, a slightly
+ * awkward g — it reads as drawn rather than picked. And it carries an optical
+ * size axis, so the same family is confident at forty pixels and still sane at
+ * thirteen, which is what a display face has to do here.
+ *
+ * Nothing else moves: the palette, the spacing and the layout are untouched,
+ * and the body text is still Public Sans. Reverting is this block.
+ */
+const display = Bricolage_Grotesque({
   variable: "--font-display",
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["500", "600", "700", "800"],
 });
 
 const body = Public_Sans({
