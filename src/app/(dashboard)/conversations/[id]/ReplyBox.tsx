@@ -18,7 +18,9 @@ export function ReplyBox({ conversationId }: { conversationId: string }) {
         required
       />
       <div className="flex items-center gap-4">
-        <SubmitButton className="btn-highlight" pending="Sending…">
+        {/* Two words that must stay two words: a button broken across lines
+            reads as a button that is broken. */}
+        <SubmitButton className="btn-highlight whitespace-nowrap" pending="Sending…">
           Send reply
         </SubmitButton>
         <FormMessage state={state} />

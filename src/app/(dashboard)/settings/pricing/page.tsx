@@ -159,9 +159,17 @@ export default async function PricingPage() {
           </p>
         </div>
 
-        <div className="flex gap-3 border-t border-border px-5 py-2 text-xs uppercase tracking-wide text-muted">
+        {/*
+          * Headings for columns, so only where there are columns.
+          *
+          * On a phone the rows below stack and these headings line up with
+          * nothing, in boxes too narrow to hold their own words — "Hours from"
+          * broke in half. A heading that labels nothing is worse than no
+          * heading.
+          */}
+        <div className="hidden gap-3 border-t border-border px-5 py-2 text-xs uppercase tracking-wide text-muted sm:flex">
           <span className="flex-1">{title(words.size_unit)}</span>
-          <span className="w-24">Hours from</span>
+          <span className="w-24 whitespace-nowrap">Hours from</span>
           <span className="w-24">to</span>
           <span className="w-32" />
           <span className="w-[7.5rem]" />

@@ -72,8 +72,16 @@ export function BandEditor({ band, index }: { band?: PriceBand; index: number })
           </>
         ) : (
           <>
-            <div className="w-24">
-              <label className="hint mb-1 block">Hours from</label>
+            {/*
+              * Wide enough for its own label.
+              *
+              * w-24 was eighty-six pixels when it was written and is fifty-four
+              * now, because the spacing scale came down and took every w-* with
+              * it. "Hours from" broke across two lines and left "from" sitting
+              * underneath, which is the fault a check now measures for.
+              */}
+            <div className="w-28">
+              <label className="hint mb-1 block whitespace-nowrap">Hours from</label>
               <input
                 name="hours_low"
                 type="number"
