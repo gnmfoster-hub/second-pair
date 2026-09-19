@@ -27,12 +27,21 @@ export function PeoplePrices({
   services,
   rows,
   words,
+  forms = [],
 }: {
   artists: Artist[];
   services: Service[];
   /** Everybody's overrides. Usually a short list. */
   rows: ServicePerson[];
   words: { practitioner: string; practitioners: string; business?: string };
+  /**
+   * The forms this business has written, so one can be required per person.
+   *
+   * Empty until somebody has made a form, and the column is absent until its
+   * migration has run — in either case the picker simply does not appear, and
+   * everything here behaves exactly as it did.
+   */
+  forms?: { id: string; name: string }[];
 }) {
   const [whoId, setWhoId] = useState<string>(artists[0]?.id ?? "");
   const [state, action] = useActionState<TeamPriceState, FormData>(saveTeamPrices, {});
@@ -103,6 +112,7 @@ export function PeoplePrices({
             * price list in one press.
             */}
           <input type="hidden" name="touch_offered" value="1" />
+        {forms.length > 0 && <input type="hidden" name="touch_forms" value="1" />}
 
           <div className="hidden gap-3 px-1 text-xs uppercase tracking-wide text-muted sm:flex">
             <span className="w-12">Does it</span>
@@ -164,6 +174,42 @@ export function PeoplePrices({
                       className="input"
                     />
                   </label>
+
+                  {/*
+                    * What this person wants signed before they do it.
+                    *
+                    * The business can already require a form for a service, and
+                    * that applies to everybody who does it — which is not how a
+                    * team works. One stylist wants a patch test before every
+                    * colour; the one at the next chair has been doing it twenty
+                    * years and asks at the consultation.
+                    *
+                    * It adds to the business's requirement and can never
+                    * replace it: where the business asks for something, that is
+                    * what gets sent, whatever is chosen here.
+                    */}
+                  {forms.length > 0 && (
+                    <label className="w-40 shrink-0">
+                      <span className="sr-only">
+                        A form {who.name} needs before {s.name}
+                      </span>
+                      <select
+                        name={`form_${s.id}`}
+                        defaultValue={
+                          (row as unknown as { requires_form_id?: string | null })
+                            ?.requires_form_id ?? ""
+                        }
+                        className="input text-xs"
+                      >
+                        <option value="">No form of their own</option>
+                        {forms.map((f) => (
+                          <option key={f.id} value={f.id}>
+                            {f.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
 
                   <label className="w-28 shrink-0">
                     <span className="sr-only">

@@ -12,6 +12,7 @@ import type { ServicePerson } from "@/lib/types";
 import type { Service } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 import { verticalPack } from "@/lib/verticals";
+import { hasColumn } from "@/lib/db/hasColumn";
 import { wordsFor } from "@/lib/words";
 
 export default async function PricingPage() {
@@ -91,6 +92,16 @@ export default async function PricingPage() {
 
   const peoplePrices = (peopleRows ?? []) as ServicePerson[];
 
+  /*
+   * Whether a person can require a form yet.
+   *
+   * The action already refuses to write the column before its migration, which
+   * makes the picker a control that silently does nothing — and a control that
+   * appears to save and does not is worse than one that is not there. So the
+   * picker is not offered until the column exists.
+   */
+  const canRequireForms = await hasColumn(supabase, "service_people", "requires_form_id");
+
   const pack = verticalPack(studio.vertical);
   const words = wordsFor(studio);
   const title = (word: string) => word.replace(/^./, (c) => c.toUpperCase());
@@ -127,6 +138,9 @@ export default async function PricingPage() {
           services={services}
           rows={peoplePrices}
           words={{ practitioner: words.practitioner, practitioners: words.practitioners }}
+          /* Absent until somebody has written one, and until the migration
+             that lets a person require it has run. See PeoplePrices. */
+          forms={canRequireForms ? forms : []}
         />
 
         <PricingModel current="services" bandCount={bands.length} />

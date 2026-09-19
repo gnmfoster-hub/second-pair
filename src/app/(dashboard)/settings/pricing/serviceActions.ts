@@ -215,6 +215,7 @@ export async function saveTeamPrices(
     minutes: number | null;
     price_pence: number | null;
     offered?: boolean;
+    requires_form_id?: string | null;
   }[] = [];
   const clears: string[] = [];
 
@@ -229,6 +230,20 @@ export async function saveTeamPrices(
    */
   const askedAboutOffering = await hasColumn(supabase, "service_people", "offered");
   const carriesOffering = fd.get("touch_offered") != null && askedAboutOffering;
+
+  /*
+   * The same sentinel again, for the form somebody requires before a service.
+   *
+   * A select with nothing chosen and a select that was never on the page look
+   * identical in a submission, so without this a save from an older tab would
+   * read as "they require nothing" and quietly drop a patch test.
+   *
+   * And the column is only touched once it exists: PostgREST refuses a whole
+   * write for one unknown name, so naming it early would not lose the form, it
+   * would lose the prices as well.
+   */
+  const askedAboutForms = await hasColumn(supabase, "service_people", "requires_form_id");
+  const carriesForms = fd.get("touch_forms") != null && askedAboutForms;
 
   for (const { id } of services ?? []) {
     /*
@@ -249,6 +264,7 @@ export async function saveTeamPrices(
 
     // Ticked means they do it, which is also what no row at all means.
     const doesIt = !carriesOffering || fd.get(`offered_${id}`) != null;
+    const wantsForm = carriesForms ? String(fd.get(`form_${id}`) ?? "").trim() || null : null;
 
     /*
      * Nothing said and they do it: the shop's price, expressed by no row.
@@ -257,7 +273,14 @@ export async function saveTeamPrices(
      * row even with no price and no minutes on it — otherwise ticking somebody
      * off a service would delete the only record of that fact.
      */
-    if (price === null && minutes === null && doesIt) {
+    /*
+     * A form on its own is a reason to keep the row.
+     *
+     * This deleted any row with no price and no minutes on it, which would
+     * have thrown away a patch test the moment somebody charged the shop's
+     * price for the service it protects — which is most of them.
+     */
+    if (price === null && minutes === null && doesIt && !wantsForm) {
       clears.push(id);
       continue;
     }
@@ -268,6 +291,7 @@ export async function saveTeamPrices(
       minutes,
       price_pence: price,
       ...(carriesOffering ? { offered: doesIt } : {}),
+      ...(carriesForms ? { requires_form_id: wantsForm } : {}),
     });
   }
 
