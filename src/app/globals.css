@@ -422,22 +422,43 @@ body {
   }
 
   /*
-   * Off true by a degree and a half, and only where something is being asked
-   * of somebody.
+   * Pressed by a person, so no two sit quite the same.
    *
-   * Every stamp on a slant is a list that looks like it has been dropped. One
-   * on a slant, among fourteen straight ones, is the thing your eye goes to
-   * before you have read a word — which is the entire job of that row. The
-   * angle is small enough to read as a hand rather than as a graphic.
+   * The angle comes in as --tilt and the ink as --ink, both worked out from
+   * the row's own id — so a given stamp is always at the same angle, and two
+   * next to each other are not. That last part is the whole effect: a column
+   * of identical rectangles all leaning the same way is a graphic, and a
+   * column leaning slightly differently is a hand.
+   *
+   * Deterministic on purpose. Random angles would mean every stamp jumped on
+   * every render, which is both distracting and a different picture each time
+   * somebody screenshots it.
+   *
+   * Under a degree and a half either way. Enough to see when you look, not
+   * enough to read as broken alignment — and small enough not to change the
+   * height of the row it sits in.
+   */
+  .stamp {
+    transform: rotate(var(--tilt, 0deg));
+    opacity: var(--ink, 1);
+  }
+
+  /*
+   * The one that is asking for something leans further, and is the only one
+   * that does.
+   *
+   * Among a dozen nearly-straight stamps, the one properly off true is where
+   * the eye lands before a word has been read, which is exactly the job of the
+   * row that needs a person.
    */
   .stamp-live {
-    transform: rotate(-1.5deg);
+    transform: rotate(calc(var(--tilt, 0deg) - 2.2deg));
   }
 
   /* A stamp that has faded. Nothing is being asked; it is a record. */
   .stamp-spent {
     @apply border-current/45;
-    opacity: 0.75;
+    opacity: calc(var(--ink, 1) * 0.72);
   }
 
   /* Nothing here yet — said in a way that explains what will fill it. */

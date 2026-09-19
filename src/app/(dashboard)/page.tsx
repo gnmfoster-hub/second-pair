@@ -18,6 +18,7 @@ import {
   type ConvStatus,
 } from "@/lib/types";
 import { inboxScope, scopedTo } from "@/lib/inboxScope";
+import { stampStyle } from "@/lib/stamp";
 
 /*
  * What state a conversation is in, readable without reading it.
@@ -94,9 +95,9 @@ const ago = (iso: string) => {
 export default async function InboxPage({
   searchParams,
 }: {
-  searchParams: Promise<{ whose?: string }>;
+  searchParams: Promise<{ whose?: string; show?: string }>;
 }) {
-  const { whose } = await searchParams;
+  const { whose, show } = await searchParams;
   const { studio, userId } = await requireStudio();
   const supabase = await createClient();
 
@@ -259,8 +260,36 @@ export default async function InboxPage({
    * definitely run, and the safe place to use it is in code, where an unknown
    * word is simply a word nothing matches.
    */
-  const conversations = (data ?? []).filter((c) => c.status !== "spam");
+  /*
+   * What the inbox is showing, and what it could show.
+   *
+   * Half a real inbox is finished business — lost, or somebody selling
+   * windows — and it sits in the list for ever getting between an owner and
+   * the three things that actually want them. Quietening those rows helped and
+   * did not solve it: they still take up the screen.
+   *
+   * So the list can be narrowed, and the narrowing lives in the address rather
+   * than in the page's memory. That way it survives a refresh, it can be sent
+   * to somebody, and the back button does what a back button should.
+   *
+   * Spam stays out unless it is asked for by name. It is the one state that is
+   * not a judgement about a customer — it is a judgement that there was never a
+   * customer — and nobody needs it in the way of their morning.
+   */
+  const everything = data ?? [];
   const week = (weekRows ?? []).filter((c) => c.status !== "spam");
+
+  const GROUPS: Record<string, { label: string; has: (s: string) => boolean }> = {
+    all: { label: "Everything", has: (st) => st !== "spam" },
+    needs: { label: "Need you", has: (st) => st === "needs_human" },
+    open: { label: "Open", has: (st) => st === "new" || st === "qualified" },
+    won: { label: "Booked", has: (st) => st === "booked" || st === "deposit_paid" },
+    lost: { label: "Lost", has: (st) => st === "lost" },
+    spam: { label: "Spam", has: (st) => st === "spam" },
+  };
+
+  const showing = show && GROUPS[show] ? show : "all";
+  const conversations = everything.filter((c) => GROUPS[showing].has(c.status));
 
   // Framed as what the assistant did, not as what happened — that is the thing
   // being paid for, and the reason to open this page at all.
@@ -420,7 +449,46 @@ export default async function InboxPage({
         * person gets a mark. That is hierarchy, and it did not need any of the
         * container changes to work.
         */}
-      <div className="card mt-4 overflow-hidden">
+      {/*
+        * The filter, and only where there is something to filter.
+        *
+        * A business with eleven enquiries and nothing lost does not need a row
+        * of buttons explaining that. It appears when a group other than the
+        * one being shown has something in it, and each one carries its count,
+        * so it answers "how many have I lost" without being clicked.
+        *
+        * Links rather than buttons: it is a different view of the same page,
+        * the address should say so, and it works before any JavaScript does.
+        */}
+      {Object.entries(GROUPS).filter(([key]) => key !== "all" && everything.some((c) => GROUPS[key].has(c.status))).length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-1.5">
+          {Object.entries(GROUPS).map(([key, group]) => {
+            const count = everything.filter((c) => group.has(c.status)).length;
+            if (count === 0 && key !== showing) return null;
+            const here = key === showing;
+            return (
+              <Link
+                key={key}
+                href={key === "all" ? "/" : `/?show=${key}`}
+                scroll={false}
+                aria-current={here ? "page" : undefined}
+                /* Straight: these are controls, not marks somebody pressed. */
+                style={{ "--tilt": "0deg" } as React.CSSProperties}
+                className={`stamp transition-colors ${
+                  here
+                    ? "border-accent bg-accent text-on-accent"
+                    : "text-muted hover:border-accent/50 hover:text-foreground"
+                }`}
+              >
+                {group.label}
+                <span className={here ? "opacity-70" : "opacity-60"}>{count}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="card mt-3 overflow-hidden">
         {conversations.length === 0 ? (
           <div className="empty">
             <Waiting className="mx-auto mb-4 size-14" />
@@ -621,7 +689,11 @@ export default async function InboxPage({
                       </span>
                     )}
 
-                    <span className={`stamp shrink-0 ${STATUS_STYLES[c.status]}`}>
+                    <span
+                      className={`stamp shrink-0 ${STATUS_STYLES[c.status]}`}
+                      /* Its own lean and its own ink, from its own id. See lib/stamp. */
+                      style={stampStyle(c.id) as React.CSSProperties}
+                    >
                       {CONV_STATUS_LABELS[c.status]}
                     </span>
 
