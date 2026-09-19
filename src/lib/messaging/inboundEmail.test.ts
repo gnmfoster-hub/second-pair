@@ -442,3 +442,61 @@ test("a person is not caught by the template rule", () => {
   assert.equal(isMarkup("<!DOCTYPE html><html><body>hello</body></html>"), true);
   assert.equal(isMarkup('  \n <html lang="en">'), true);
 });
+
+/*
+ * The one Giles found on Living Canvas: an order from the studio's own shop.
+ *
+ * Two arrived and the assistant answered the first — to
+ * store+110037467474@t.shopifyemail.com, which is nobody. It cost money, it
+ * told a machine about the privacy policy, and it counted as an enquiry the
+ * studio had answered.
+ */
+test("an order from the business's own shop is not an enquiry", () => {
+  const v = judge(
+    {
+      from: "Living Canvas Tattoo Studio <store+110037467474@t.shopifyemail.com>",
+      subject: "[Living Canvas Tattoo Studio] Order #1041 placed by Michael Darke",
+      body: ".button__cell { background: #1990C6; } Order #1041",
+    },
+    shop,
+  );
+  assert.equal(v.what, "ignore", v.because);
+});
+
+test("every shop and payment platform they might be on", () => {
+  for (const from of [
+    "store+1@t.shopifyemail.com",
+    "no-reply@squarespace.com",
+    "transaction@paypal.co.uk",
+    "receipts@stripe.com",
+    "orders@messaging.squareup.com",
+    "noreply@etsy.com",
+  ]) {
+    const v = judge({ from, subject: "Your order", body: "An order was placed." }, shop);
+    assert.equal(v.what, "ignore", `${from}: ${v.because}`);
+  }
+});
+
+test("a shop on its own domain still needs a machine-shaped sender", () => {
+  const notice = judge(
+    { from: "orders@thelittlecandleshop.co.uk", subject: "Order #2291 confirmed", body: "..." },
+    shop,
+  );
+  assert.equal(notice.what, "ignore", notice.because);
+});
+
+/*
+ * The rule that matters more than the one above it. "Can I order a gift
+ * voucher" is a real thing a customer writes, and a filter that ate it would
+ * cost the business real work — which is worse than the noise it removes.
+ */
+test("a customer using the word order is still a customer", () => {
+  for (const [subject, body] of [
+    ["Gift voucher", "Hi, can I order a gift voucher for my sister's birthday?"],
+    ["Order a voucher", "Could I place an order for a £50 voucher please?"],
+    ["Booking", "I'd like to order the large piece we talked about — when are you free?"],
+  ]) {
+    const v = judge({ from: "hannah.p@gmail.com", subject, body }, shop);
+    assert.equal(v.what, "answer", `"${subject}" was ${v.what}: ${v.because}`);
+  }
+});

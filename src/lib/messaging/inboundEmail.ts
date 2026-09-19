@@ -131,6 +131,40 @@ const MACHINE_SUBJECT =
   /^(undeliverable|delivery status notification|mail delivery|returned mail|automatic reply|out of office|auto(matic)?[- ]?reply|read receipt)/i;
 
 /*
+ * The platforms that send a business its own paperwork.
+ *
+ * A tattoo studio selling raffle tickets on Shopify gets an email for every
+ * order, and it forwards into here with everything else. It is not an enquiry,
+ * it is a receipt: the business already has it in their own mailbox, nobody is
+ * waiting for a reply, and the address it comes from cannot take one.
+ *
+ * Living Canvas received two and the assistant answered the first — to
+ * store+110037467474@t.shopifyemail.com, which is nobody. It cost money, it
+ * told a machine about the privacy policy, and it counted as an enquiry the
+ * studio had answered.
+ *
+ * Domains rather than subjects, because the subject is whatever the shop is
+ * called and the domain is the one thing these all share.
+ */
+const PLATFORM_SENDER =
+  /@([a-z0-9-]+\.)*(shopifyemail|shopify|squarespace|wixanswers|wix|etsy|ebay|paypal|stripe|squareup|sumup|zettle|bigcommerce|gumroad|woocommerce|mailchimpapp|klaviyomail|shipstation|royalmail|dpd|evri|hermes)\.[a-z.]{2,}$/i;
+
+/*
+ * What a receipt says, whoever sent it.
+ *
+ * The second half of the same test, for a shop on its own domain. Paired with
+ * a machine-shaped sender below rather than used alone: "can I order a gift
+ * voucher" is a real thing a customer writes, and it must not be swallowed.
+ */
+const ORDER_SUBJECT =
+  /\border\s*#?\d+|\b(order|purchase|payment|invoice|receipt)\s+(confirmation|confirmed|received|placed|shipped|dispatched|refunded)\b|\bnew order\b|\byour (order|receipt|invoice)\b|\bhas (shipped|been dispatched)\b/i;
+
+/** A sender that is a system rather than a person: store+123@, orders@, no name.
+ *  The "@" belongs in the terminator: an address is the local part and then one,
+ *  so a rule that stopped at + . _ or - matched "orders+1@" and missed "orders@". */
+const MACHINE_LOCAL = /^(store|orders?|sales|shop|checkout|receipts?|payments?|noreply2?)([+._@-]|$)|^[^@]*\+\d{4,}/i;
+
+/*
  * Reading an address, wherever it is read.
  *
  * "Jo Marsh <jo@gmail.com>" and "jo@gmail.com" are the same person, and which
@@ -302,6 +336,21 @@ export function judge(
   const subject = (email.subject ?? "").trim();
   if (MACHINE_SUBJECT.test(subject)) {
     return { what: "ignore", because: "it is an automatic notice rather than a message" };
+  }
+
+  /*
+   * A shop telling the business about its own order.
+   *
+   * Either the sender is a platform nobody writes a personal email from, or it
+   * is a receipt-shaped subject from a system-shaped address. Both halves are
+   * needed for the second one: "can I order a gift voucher" is a real thing a
+   * customer writes, and a rule that ate it would cost the business work.
+   */
+  if (PLATFORM_SENDER.test(from)) {
+    return { what: "ignore", because: "it is a notification from a shop or payment platform" };
+  }
+  if (ORDER_SUBJECT.test(subject) && MACHINE_LOCAL.test(from)) {
+    return { what: "ignore", because: "it is an order notification rather than somebody writing in" };
   }
 
   const sender = domainOf(from);
