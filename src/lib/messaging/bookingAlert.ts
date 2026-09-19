@@ -47,6 +47,7 @@ export function composeBookingAlert({
   timezone,
   depositPence,
   depositPaid,
+  depositOptional = false,
   conversationUrl,
 }: {
   startsAt: string;
@@ -60,6 +61,14 @@ export function composeBookingAlert({
   timezone: string;
   depositPence: number;
   depositPaid: boolean;
+  /**
+   * Whether the deposit secures the slot or merely offers to.
+   *
+   * Defaults to the stricter reading, which is what every caller meant before
+   * this existed — and is the safe way round to be wrong, because a business
+   * that thinks an unpaid slot is firm keeps it rather than giving it away.
+   */
+  depositOptional?: boolean;
   conversationUrl: string;
 }): BookingAlert {
   const starts = new Date(startsAt);
@@ -109,10 +118,20 @@ export function composeBookingAlert({
     contactEmail ? `Email: ${contactEmail}` : null,
   ].filter(Boolean);
 
+  /*
+   * What is actually true about an unpaid deposit here.
+   *
+   * This said "the slot is held until it is paid" for every business, and for
+   * a salon where the deposit is optional that is not what the customer was
+   * told and not what the business decided: their booking stands whether they
+   * pay or not. An owner reading it the other way gives the chair away.
+   */
   const deposit = depositPence
     ? depositPaid
       ? `Deposit of ${formatPence(depositPence)} paid.`
-      : `Deposit of ${formatPence(depositPence)} due — the slot is held until it is paid.`
+      : depositOptional
+        ? `Deposit of ${formatPence(depositPence)} offered, not paid — the booking stands either way.`
+        : `Deposit of ${formatPence(depositPence)} due — the slot is held until it is paid.`
     : null;
 
   const emailText = [
@@ -194,7 +213,9 @@ export async function gatherBookingAlert(
 
   const { data: conversation } = await db
     .from("conversations")
-    .select("id, studio_id, is_test, contacts(name, phone, email), studios(name, timezone)")
+    .select(
+      "id, studio_id, is_test, contacts(name, phone, email), studios(name, timezone, deposit_mode)",
+    )
     .eq("id", enquiry.conversation_id)
     .maybeSingle();
 
@@ -208,6 +229,7 @@ export async function gatherBookingAlert(
   const studio = conversation?.studios as unknown as {
     name: string;
     timezone: string | null;
+    deposit_mode: string | null;
   } | null;
 
   if (!studio || !conversation?.studio_id) return null;
@@ -232,6 +254,7 @@ export async function gatherBookingAlert(
     timezone: studio.timezone ?? "Europe/London",
     depositPence: booking.deposit_amount_pence ?? 0,
     depositPaid: booking.deposit_status === "paid",
+    depositOptional: studio.deposit_mode === "optional",
     conversationUrl: `${siteUrl}/conversations/${enquiry.conversation_id}`,
   });
 

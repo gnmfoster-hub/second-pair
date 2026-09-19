@@ -1,15 +1,15 @@
-import { formatPence } from "@/lib/money";
-import { describeDepositRule } from "@/lib/quote";
-import { effectiveDepositMode } from "@/lib/payments/stripe";
-import { whoCanBeOffered } from "./offering";
-import { DAY_NAMES, labelFor } from "@/lib/types";
-import { verticalPack } from "@/lib/verticals";
-import { describeLength } from "./bandLength";
-import { assistantName } from "@/lib/assistantName";
-import { CALLBACK_WORD } from "@/lib/messaging/missedCall";
-import { bookingInstructions, type ProviderKind } from "@/lib/booking/provider";
-import { howToSendPhotos } from "./photos";
-import type { Artist, Faq, PriceBand, ServiceOption, Studio } from "@/lib/types";
+import { formatPence } from "../money.ts";
+import { describeDepositRule } from "../quote.ts";
+import { effectiveDepositMode } from "../payments/depositMode.ts";
+import { whoCanBeOffered } from "./offering.ts";
+import { DAY_NAMES, labelFor } from "../types.ts";
+import { verticalPack } from "../verticals.ts";
+import { describeLength } from "./bandLength.ts";
+import { assistantName } from "../assistantName.ts";
+import { CALLBACK_WORD } from "../messaging/missedCall.ts";
+import { bookingInstructions, type ProviderKind } from "../booking/provider.ts";
+import { howToSendPhotos } from "./photos.ts";
+import type { Artist, Faq, PriceBand, ServiceOption, Studio } from "../types.ts";
 
 export type EnquiryState = {
   intent: string | null;
@@ -362,7 +362,19 @@ best way to reach them — one at a time, not as a form — then hand over.
 Introduce yourself as ${iAm} the first time you speak to somebody, and not again afterwards. A name gives them something to say back to; repeating it turns into a script.
 
 # Voice
-${forArtist?.tone?.trim() || studio.tone}
+${
+    /*
+     * A business with no tone written down is not voiceless.
+     *
+     * The column is nullable and this put it straight in, so a studio that had
+     * never filled it in handed the model the literal word "undefined" as the
+     * description of how it speaks. Every business has one today, which is the
+     * only reason this has never been seen.
+     */
+    forArtist?.tone?.trim() ||
+    studio.tone?.trim() ||
+    "Warm, straightforward and brief — somebody who knows the business well and has a customer waiting."
+  }
 
 Write like a person texting back, not like a form. Short messages. One or two questions at a time, never a checklist. Use the studio's name and the ${words.practitioners}' names.
 
@@ -435,7 +447,24 @@ ${
 Carrying straight on from step 3, and only once the booking exists.
 
 4. In that same message, tell them the deposit amount and read the cancellation policy out as written.
-5. Wait. When they are ready to pay, call send_deposit_link and give them the link exactly as it comes back, and say the slot is held until it is paid.
+5. Wait. When they are ready to pay, call send_deposit_link and give them the link exactly as it comes back, and ${
+        /*
+         * What paying actually changes, which depends on the business.
+         *
+         * This said "the slot is held until it is paid" for every business
+         * that takes a deposit at all — including the ones where it is
+         * optional and the rule two sections down says the booking stands
+         * whether or not they pay. A salon customer was told both, two
+         * messages apart: the deposit was optional and the booking stood, and
+         * then that her slot was held until she paid.
+         *
+         * Somebody who believes their slot is conditional and cannot pay
+         * tonight does not turn up, and the chair sits empty for an hour.
+         */
+        depositMode === "optional"
+          ? "say it secures the slot and that their booking stands either way"
+          : "say the slot is held until it is paid"
+      }.
 
 Never send a payment link in the same breath as making the booking — they get to see what they have agreed to first. Never send a second link when one has already gone out; call send_deposit_link again and it returns the same one.
 `

@@ -116,3 +116,49 @@ test("with nobody named, no dangling 'with'", () => {
   assert.doesNotMatch(a.body, /with/);
   assert.doesNotMatch(a.emailText, /Who with/);
 });
+
+/*
+ * An optional deposit does not hold anything.
+ *
+ * The alert told every business "the slot is held until it is paid", including
+ * salons where the deposit is offered and the booking stands whether or not it
+ * is taken. An owner reading that of an unpaid booking gives the chair to
+ * somebody else, and the customer who was told her booking stood turns up to
+ * find it gone.
+ */
+test("an unpaid optional deposit does not claim the slot is conditional", () => {
+  const a = composeBookingAlert({
+    ...base,
+    depositPence: 5000,
+    depositPaid: false,
+    depositOptional: true,
+  });
+  assert.match(a.emailText, /£50/);
+  assert.match(a.emailText, /stands either way/);
+  assert.doesNotMatch(a.emailText, /held until it is paid/);
+});
+
+test("an unpaid required deposit still says the slot is held until it is paid", () => {
+  const a = composeBookingAlert({ ...base, depositPence: 5000, depositPaid: false });
+  assert.match(a.emailText, /held until it is paid/);
+});
+
+// The stricter reading is the default, so a caller that has not been updated
+// keeps the slot rather than giving it away.
+test("without being told, it assumes the deposit holds the slot", () => {
+  const a = composeBookingAlert({ ...base, depositPence: 5000, depositPaid: false });
+  assert.doesNotMatch(a.emailText, /stands either way/);
+});
+
+test("a paid deposit says so whichever kind it is", () => {
+  for (const depositOptional of [true, false]) {
+    const a = composeBookingAlert({
+      ...base,
+      depositPence: 5000,
+      depositPaid: true,
+      depositOptional,
+    });
+    assert.match(a.emailText, /£50 paid/);
+    assert.doesNotMatch(a.emailText, /held until it is paid/);
+  }
+});
