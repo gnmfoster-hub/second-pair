@@ -11,6 +11,7 @@ import { smsConfigured } from "@/lib/messaging/sms";
 import { createClient } from "@/lib/supabase/server";
 import { Appearance } from "./Appearance";
 import { MetaChannels } from "./MetaChannels";
+import { WhoseChannel } from "./WhoseChannel";
 import { WhoItOffers } from "./WhoItOffers";
 
 /**
@@ -81,6 +82,21 @@ export default async function ChannelsPage({
     .eq("active", true)
     .order("channel");
 
+  /*
+   * Every live connection, with who it belongs to.
+   *
+   * Read in one go rather than per panel: the same control appears under each
+   * channel, and it needs to know how many this business has on that channel
+   * to decide whether the last one may be given away.
+   */
+  const { data: allLinks } = await supabaseForMeta
+    .from("channel_connections")
+    .select("id, channel, artist_id, label")
+    .eq("studio_id", studio.id)
+    .eq("active", true);
+
+  const onChannel = (channel: string) => (allLinks ?? []).filter((l) => l.channel === channel);
+
   const supabaseForNumbers = await createClient();
   const smsNumber = await smsNumberFor(supabaseForNumbers, studio.id);
 
@@ -122,6 +138,26 @@ export default async function ChannelsPage({
           savedAt={savedWords(line?.updated_at, studio.timezone)}
           sendingReady={smsConfigured()}
         />
+
+        {/*
+          * Whose line it is, under the line itself.
+          *
+          * The same control appears under every channel that is connected. A
+          * number, an Instagram account and a Facebook page are all a way for
+          * one person to be reached, and the difference it makes is the same
+          * in each case: on a shared one the assistant asks who they would
+          * like, on somebody's own it never asks.
+          */}
+        {onChannel("sms").map((link) => (
+          <WhoseChannel
+            key={link.id}
+            connectionId={link.id}
+            artistId={link.artist_id ?? null}
+            people={artists.map((a) => ({ id: a.id, name: a.name, active: a.active }))}
+            howMany={onChannel("sms").length}
+            noun="text"
+          />
+        ))}
       </section>
 
       {/* ---------------------------------------------------------- email */}
@@ -223,6 +259,19 @@ export default async function ChannelsPage({
       {/* --------------------------------------------- facebook and instagram */}
       <section>
         <MetaChannels connections={metaLinks ?? []} outcome={meta} isOwner />
+
+        {(metaLinks ?? []).map((link) => (
+          <WhoseChannel
+            key={link.id}
+            connectionId={link.id}
+            artistId={
+              ((allLinks ?? []).find((l) => l.id === link.id)?.artist_id as string | null) ?? null
+            }
+            people={artists.map((a) => ({ id: a.id, name: a.name, active: a.active }))}
+            howMany={onChannel(link.channel).length}
+            noun="message"
+          />
+        ))}
       </section>
 
       {/* ------------------------------------------------------- each person */}

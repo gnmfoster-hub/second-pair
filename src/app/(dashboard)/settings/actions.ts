@@ -15,6 +15,7 @@ import { busyFromIcal } from "@/lib/booking/ical";
 import { stillWorthAsking } from "@/lib/askedAlready";
 import { readNumbers } from "@/lib/channels/phoneNumbers";
 import { hasColumn } from "@/lib/db/hasColumn";
+import { mayAllocate } from "@/lib/channels/whose";
 import { readHex, autoText } from "@/lib/widget/colour";
 import {
   isShape,
@@ -2227,5 +2228,72 @@ export async function useMyStripeForTheBusiness(
   revalidatePath("/settings");
   revalidatePath("/settings/you");
   revalidatePath("/");
+  return { ok: true };
+}
+
+/**
+ * Give a connected channel to the business, or to one person.
+ *
+ * The column has meant this since the day it was written and nothing has ever
+ * been able to set it, so every connection on the platform belongs to its
+ * business by default. See lib/channels/whose for the rules; this is only the
+ * part that needs a database.
+ *
+ * The owner's decision, not the team's. A person taking their own line is a
+ * change to how every future customer reaches that business, and the person it
+ * routes away from is the last one who should be able to make it quietly.
+ */
+export async function allocateChannel(_prev: FormState, fd: FormData): Promise<FormState> {
+  if (!(await isOwner())) {
+    return { error: "Only the owner can decide who a channel belongs to." };
+  }
+
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  const connectionId = str(fd, "connection");
+  const artistId = str(fd, "artist");
+  if (!connectionId) return { error: "Nothing to change." };
+
+  /*
+   * Read within the business, so an id from somewhere else finds nothing.
+   *
+   * The studio comes from the session and never from the form, which is what
+   * stops this being a way to point somebody else's number at your own diary.
+   */
+  const { data: connection } = await supabase
+    .from("channel_connections")
+    .select("id, channel")
+    .eq("id", connectionId)
+    .eq("studio_id", studio.id)
+    .maybeSingle();
+  if (!connection) return { error: "That channel is not on this business." };
+
+  const [{ data: people }, { count }] = await Promise.all([
+    supabase.from("artists").select("id, name, active").eq("studio_id", studio.id),
+    supabase
+      .from("channel_connections")
+      .select("id", { count: "exact", head: true })
+      .eq("studio_id", studio.id)
+      .eq("channel", connection.channel)
+      .eq("active", true),
+  ]);
+
+  const verdict = mayAllocate(
+    artistId ? { kind: "person", artistId } : { kind: "business" },
+    (people ?? []) as { id: string; name: string; active: boolean }[],
+    count ?? 0,
+  );
+  if (!verdict.ok) return { error: verdict.because };
+
+  const { error } = await supabase
+    .from("channel_connections")
+    .update({ artist_id: verdict.artistId })
+    .eq("id", connection.id)
+    .eq("studio_id", studio.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/install");
   return { ok: true };
 }
