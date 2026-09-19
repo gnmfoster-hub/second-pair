@@ -49,11 +49,19 @@
    * So the ground goes down far enough that white genuinely lifts off it, and
    * the sidebar takes the white — the ground is the desk, the panels are the
    * paper on it. That is the whole trick and it costs one shade.
+   *
+   * And the ground is grey rather than blue-grey, which took two goes. It was
+   * #e8ecf2 — ten points more blue than red — and against the navy accent that
+   * reads as a wash of colour over everything rather than as a neutral. Giles
+   * called it "beige and blue" twice, which is exactly what a tinted neutral
+   * looks like when you cannot name the tint. This one is within three points
+   * across the channels: grey, and nothing else, so the navy and the orange
+   * are the only colours on the screen.
    */
-  --background: #e8ecf2;
+  --background: #e6e7e9;
   --surface: #ffffff;
-  --surface-2: #f0f3f8;
-  --border: #dde3ec;
+  --surface-2: #f1f2f4;
+  --border: #d5d8dd;
   --foreground: #141824;
   --muted: #59626f;
   --accent: #14243f;

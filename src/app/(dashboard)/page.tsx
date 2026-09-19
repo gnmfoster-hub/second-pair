@@ -418,7 +418,7 @@ export default async function InboxPage({
         * they are asides; this is not an aside.
         */}
       <div className="mt-7">
-        <div className="mb-1 flex items-baseline justify-between border-b-2 border-foreground/85 pb-1.5">
+        <div className="mb-0 flex items-baseline justify-between border-b-2 border-foreground/85 pb-1.5">
           <h2 className="font-display text-sm font-semibold tracking-[-0.01em]">
             {conversations.length} {conversations.length === 1 ? "enquiry" : "enquiries"}
           </h2>
@@ -441,7 +441,20 @@ export default async function InboxPage({
             </Link>
           </div>
         ) : (
-          <ul className="divide-y divide-border/70">
+          /*
+           * White paper under the rows, and a proper line between them.
+           *
+           * Taking the card away stopped it being a third identical box and
+           * also took away the only thing separating fifteen rows from each
+           * other and from the page — Giles: "the boxes seem to all blend into
+           * one". Right on both counts, and they are different problems.
+           *
+           * So the sheet comes back but the box does not: full width, square
+           * top where the rule already is, and the divider at full strength
+           * rather than seventy per cent of it. It reads as a page of work
+           * rather than as another component.
+           */
+          <ul className="divide-y divide-border rounded-b-lg border-x border-b border-border bg-surface">
             {conversations.map((c) => {
               const contact = c.contacts;
               const enquiry = c.enquiries;
@@ -499,9 +512,21 @@ export default async function InboxPage({
                 <li key={c.id}>
                   <Link
                     href={`/conversations/${c.id}`}
-                    className={`row group flex items-center gap-3.5 px-4 py-3.5 sm:px-5 ${
-                      tone === "gone" ? "opacity-55 hover:opacity-100" : ""
-                    }`}
+                    /*
+                     * Recede, not disappear.
+                     *
+                     * This was the whole row at fifty-five per cent, and on an
+                     * inbox where over half the enquiries are marked lost that
+                     * is most of the screen looking switched off — Giles said
+                     * it read as greyed out, and it did.
+                     *
+                     * A lost enquiry is still a real thing that happened and
+                     * somebody may well want to read it. So the row keeps its
+                     * full strength and only the badge and the avatar step
+                     * back, below. What was wanted was less shouting from the
+                     * dead ones, not a disabled list.
+                     */
+                    className="row group flex items-center gap-3.5 px-4 py-3.5 sm:px-5"
                   >
                     {/*
                       * A mark for the one state that is asking for something.
@@ -522,7 +547,9 @@ export default async function InboxPage({
                         and where there is no person yet, where they came in. */}
                     {named ? (
                       <span
-                        className="grid size-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white"
+                        className={`grid size-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white ${
+                          tone === "gone" ? "opacity-45" : ""
+                        }`}
                         style={{ background: colourForName(named) }}
                         aria-hidden
                       >
