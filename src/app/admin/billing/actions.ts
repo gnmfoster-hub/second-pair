@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isPlatformAdmin } from "@/lib/platform";
 import { meterThisMonth } from "@/lib/meter";
+import { hasColumn } from "@/lib/db/hasColumn";
 
 /**
  * Second Pair's own books. Every one of these checks the same thing first:
@@ -27,6 +28,32 @@ export async function setPlan(fd: FormData): Promise<void> {
 
   const includedRaw = String(fd.get("texts_included") ?? "").trim();
 
+  /*
+   * The website, only once its column exists.
+   *
+   * PostgREST refuses a whole update for one unknown name, so naming this
+   * before its migration would not lose the website price — it would lose the
+   * plan, the bundle and the overage with it, on the screen those are set on.
+   * The same fault that emptied every inbox on the platform last week.
+   */
+  const sellsWebsites = await hasColumn(db, "studios", "website_pence");
+  const websiteRaw = String(fd.get("website_price") ?? "").trim();
+  const websitePence = websiteRaw === "" ? 0 : pence(fd.get("website_price"));
+
+  /*
+   * The start date is stamped once and then left alone.
+   *
+   * My first go set it to today whenever the price was above zero, which meant
+   * correcting fifteen pounds to twenty moved the day they got their website —
+   * and the comment above it claimed the opposite, which is worse than no
+   * comment. It is set when it goes from nothing to something, and cleared
+   * when it goes back to nothing.
+   */
+  const { data: had } = sellsWebsites
+    ? await db.from("studios").select("website_since").eq("id", id).maybeSingle()
+    : { data: null };
+  const startedAlready = Boolean(had?.website_since);
+
   const { error } = await db
     .from("studios")
     .update({
@@ -35,6 +62,16 @@ export async function setPlan(fd: FormData): Promise<void> {
       // Empty means unlimited, which is a real answer and not a missing one.
       texts_included: includedRaw === "" ? null : Math.max(0, Math.round(Number(includedRaw) || 0)),
       text_overage_pence: Math.max(0, Math.round(Number(fd.get("overage") ?? 0) || 0)),
+      ...(sellsWebsites
+        ? {
+            website_pence: websitePence,
+            ...(websitePence > 0
+              ? startedAlready
+                ? {}
+                : { website_since: new Date().toISOString().slice(0, 10) }
+              : { website_since: null }),
+          }
+        : {}),
     })
     .eq("id", id);
 

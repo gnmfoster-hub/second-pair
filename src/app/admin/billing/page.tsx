@@ -57,7 +57,7 @@ export default async function BillingPage({
 
   const { data: studios } = await db
     .from("studios")
-    .select("id, name, kind, archived_at, plan, plan_pence, texts_included, text_overage_pence, account_status")
+    .select("*")
     .order("name");
 
   const { data: usage, error: usageError } = await db
@@ -116,6 +116,15 @@ export default async function BillingPage({
       textsIncluded:
         u ? ((u.texts_included as number | null) ?? null) : ((studio.texts_included as number | null) ?? null),
       overagePence: (u?.text_overage_pence as number) ?? studio.text_overage_pence ?? 0,
+      /*
+       * The website, priced as the month was priced. Absent until its
+       * migration, and zero for every business that has not bought one, which
+       * is all of them today.
+       */
+      websitePence:
+        ((u?.website_pence as number | undefined) ??
+          (studio as { website_pence?: number }).website_pence ??
+          0),
     };
 
     const bill = billFor(plan, used);
@@ -443,6 +452,29 @@ export default async function BillingPage({
                 name="overage"
                 defaultValue={studio.text_overage_pence ?? 8}
                 className="input w-16 py-1 text-right text-sm"
+              />
+            </label>
+            {/*
+              * The website, sold on top rather than as a tier.
+              *
+              * Blank or zero means they have not bought one, which is every
+              * business today. No price is suggested because none is decided:
+              * it is per business on purpose, which is what lets three
+              * customers be charged three different things while it is being
+              * worked out.
+              */}
+            <label className="text-xs">
+              <span className="label">Website £</span>
+              <input
+                id={`web-${studio.id}`}
+                name="website_price"
+                defaultValue={
+                  (studio as { website_pence?: number }).website_pence
+                    ? (((studio as { website_pence?: number }).website_pence ?? 0) / 100).toFixed(2)
+                    : ""
+                }
+                placeholder="—"
+                className="input w-20 py-1 text-right text-sm"
               />
             </label>
             <button className="btn border border-border px-3 py-1 text-sm">Save</button>

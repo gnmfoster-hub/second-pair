@@ -15,6 +15,17 @@ export type Plan = {
   textsIncluded: number | null;
   /** What each text past the bundle costs them. */
   overagePence: number;
+  /**
+   * What their website costs them each month, if they have bought one.
+   *
+   * Zero for every business today. An add-on rather than a tier, so it is a
+   * second yes on top of the plan they have already agreed to rather than a
+   * move off it — easier to sell, and much easier to stop selling.
+   *
+   * Optional so that every caller written before this carries on working and
+   * every test written before it still describes the same bill.
+   */
+  websitePence?: number;
 };
 
 export type Used = {
@@ -51,6 +62,21 @@ export function billFor(plan: Plan, used: Used): { lines: Line[]; totalPence: nu
       pence: plan.planPence,
     },
   ];
+
+  /*
+   * Its own line, not folded into the plan.
+   *
+   * A business looking at an invoice should be able to see what it is paying
+   * for the thing it can point at, and stop paying for it without touching
+   * anything else. A single larger "monthly plan" figure hides both.
+   */
+  if ((plan.websitePence ?? 0) > 0) {
+    lines.push({
+      what: "Website",
+      detail: "hosted and looked after",
+      pence: plan.websitePence ?? 0,
+    });
+  }
 
   const over = plan.textsIncluded == null ? 0 : Math.max(0, used.textsOut - plan.textsIncluded);
   if (over > 0) {

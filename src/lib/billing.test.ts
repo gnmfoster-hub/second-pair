@@ -135,3 +135,29 @@ test("a month with nothing on it is an empty table, not a crash", () => {
   assert.deepEqual(costByChannel(null), []);
   assert.deepEqual(addUpChannels([null, undefined]), []);
 });
+
+/*
+ * The website add-on. No price is set anywhere in the product — it is a number
+ * per business, because the price is not decided and an early product may well
+ * want to charge three customers three different things while it finds out.
+ */
+test("a business without a website is billed exactly as before", () => {
+  const before = billFor(DEFAULT_PLAN, quiet).totalPence;
+  const after = billFor({ ...DEFAULT_PLAN, websitePence: 0 }, quiet).totalPence;
+  assert.equal(after, before);
+  assert.ok(!billFor({ ...DEFAULT_PLAN, websitePence: 0 }, quiet).lines.some((l) => l.what === "Website"));
+});
+
+test("a website is its own line, so it can be seen and stopped on its own", () => {
+  const { lines, totalPence } = billFor({ ...DEFAULT_PLAN, websitePence: 1500 }, quiet);
+  const line = lines.find((l) => l.what === "Website");
+  assert.ok(line, `no website line in: ${lines.map((l) => l.what).join(", ")}`);
+  assert.equal(line?.pence, 1500);
+  assert.equal(totalPence, billFor(DEFAULT_PLAN, quiet).totalPence + 1500);
+});
+
+test("it is not folded into the plan, whatever else the month did", () => {
+  const busy = billFor({ ...DEFAULT_PLAN, websitePence: 2000 }, typical);
+  assert.equal(busy.lines.filter((l) => l.what === "Website").length, 1);
+  assert.equal(busy.lines.find((l) => l.what === "Monthly plan")?.pence, DEFAULT_PLAN.planPence);
+});
