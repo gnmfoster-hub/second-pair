@@ -151,3 +151,32 @@ test("rubbish gives nothing out rather than throwing", () => {
     assert.deepEqual(accountsFrom(bad), [], JSON.stringify(bad));
   }
 });
+
+/*
+ * Connecting an account of your own rather than the business's.
+ *
+ * The person travels inside the signed state, never as a query parameter:
+ * Facebook hands the whole thing back untouched, and a parameter would be a way
+ * to attach somebody else's Instagram to your own name on the way through.
+ */
+test("whose account it is survives the round trip", () => {
+  const secret = "a-secret-for-the-test";
+  const token = signState(
+    { studioId: "studio-1", nonce: "n1", at: Date.now(), artistId: "aisha" },
+    secret,
+  );
+  assert.equal(readState(token, secret)?.artistId, "aisha");
+});
+
+test("an old link with nobody on it is still the business's", () => {
+  const secret = "a-secret-for-the-test";
+  const token = signState({ studioId: "studio-1", nonce: "n1", at: Date.now() }, secret);
+  assert.equal(readState(token, secret)?.artistId, undefined);
+});
+
+test("a person cannot be bolted on without the signature covering it", () => {
+  const secret = "a-secret-for-the-test";
+  const token = signState({ studioId: "studio-1", nonce: "n1", at: Date.now() }, secret);
+  // Anything appended after signing breaks the mac, which is the whole point.
+  assert.equal(readState(token + "&artistId=aisha", secret), null);
+});

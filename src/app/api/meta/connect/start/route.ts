@@ -31,12 +31,33 @@ export async function GET(request: NextRequest) {
   }
 
   /*
-   * The owner, not just a member.
+   * Their own account, or the business's.
    *
    * A stylist connecting the shop's Facebook Page would be connecting the
-   * business's front door, and the business belongs to whoever owns it.
+   * business's front door, and the business belongs to whoever owns it. So the
+   * business's accounts stay the owner's to connect.
+   *
+   * Her own Instagram is a different thing entirely, and the reason is the
+   * same one that already governs Stripe on her page: only she can log in to
+   * it. An owner cannot connect a stylist's Instagram on her behalf without
+   * her password, and should not want to. So somebody connecting their own is
+   * allowed, and the connection arrives with their name on it.
    */
-  if (!(await isOwner())) {
+  const wantsTheirOwn = request.nextUrl.searchParams.get("mine") === "1";
+
+  let artistId: string | undefined;
+  if (wantsTheirOwn) {
+    /*
+     * Read from the session, never from the request.
+     *
+     * The browser saying which person this is for would be a way to attach
+     * your own Instagram to somebody else's name, which is a way to be sent
+     * their customers.
+     */
+    const me = await meAt(studioId);
+    if (!me) return back(request, "not-on-the-team");
+    artistId = me;
+  } else if (!(await isOwner())) {
     return back(request, "owner-only");
   }
 
@@ -49,7 +70,7 @@ export async function GET(request: NextRequest) {
    * to work at all.
    */
   const nonce = newNonce();
-  const state = signState({ studioId, nonce, at: Date.now() }, secret);
+  const state = signState({ studioId, nonce, at: Date.now(), ...(artistId ? { artistId } : {}) }, secret);
 
   const away = NextResponse.redirect(
     authoriseUrl({ appId, redirectUri: redirectUri(request), state }),
@@ -94,4 +115,28 @@ async function isOwner(): Promise<boolean> {
     .maybeSingle();
 
   return data?.role === "owner";
+}
+
+/**
+ * The artist record belonging to whoever is signed in, on this business.
+ *
+ * Null for somebody with a login but no chair — an office manager, say — who
+ * has nothing for a channel to route to.
+ */
+async function meAt(studioId: string): Promise<string | undefined> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return undefined;
+
+  const { data } = await supabase
+    .from("artists")
+    .select("id")
+    .eq("studio_id", studioId)
+    .eq("user_id", user.id)
+    .eq("active", true)
+    .maybeSingle();
+
+  return (data?.id as string | undefined) ?? undefined;
 }

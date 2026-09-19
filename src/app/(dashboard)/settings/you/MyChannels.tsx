@@ -15,10 +15,17 @@ import { CHANNEL_LABELS, type Channel } from "@/lib/types";
  * everything arriving there is hers. That is worth saying plainly on the page
  * where she looks, whether or not she has one.
  *
- * Read-only on purpose. A person taking their own line changes how every
- * future customer reaches that business, and the person it routes away from is
- * the last one who should be able to do it quietly — so the owner decides, and
- * this says who to ask.
+ * Split by who can actually log in, which is the honest line.
+ *
+ * A number is bought and paid for by the business, costs money every month and
+ * has to be registered to a real address, so the owner buys it and decides
+ * whose it is — nobody on the team can conjure one, and a person taking a line
+ * changes how every future customer reaches the place.
+ *
+ * Her own Instagram is the opposite, for the same reason Stripe on this page
+ * already gives: only she can log in to it. An owner cannot connect a
+ * stylist's Instagram on her behalf without her password and should not want
+ * to. So that half is hers to press, and it arrives with her name on it.
  */
 export function MyChannels({
   firstName,
@@ -77,14 +84,39 @@ export function MyChannels({
       )}
 
       {/*
-       * What a line of their own would actually change, said as behaviour
-       * rather than as a feature. "You can have your own number" means nothing;
-       * "it would stop asking who they want" is the whole difference.
+       * The two halves of this, which are not the same job.
+       *
+       * A number is bought and paid for by the business — it costs money every
+       * month and has to be registered to a real address — so the owner buys it
+       * and decides whose it is. Nobody on the team can conjure one.
+       *
+       * Her own Instagram is the opposite, and for exactly the reason Stripe on
+       * this same page already gives: only she can log in to it. An owner
+       * cannot connect a stylist's Instagram on her behalf without her
+       * password, and should not want to. So that one is hers to press.
        */}
-      <p className="hint mt-3">
-        {mine.length > 0
-          ? "Ask whoever runs the business if this should change — they decide, because it changes how every new customer reaches the place."
-          : `A number or an account of your own would change one thing: the assistant would stop asking who the customer wants, because everything arriving on it is yours. Whoever runs ${business} decides that, so ask them.`}
+      <div className="mt-4 border-t border-border pt-4">
+        <span className="label">An account of your own</span>
+        <p className="hint mt-1.5">
+          Your own Instagram or Facebook, rather than {business}&rsquo;s. You log in to
+          Facebook yourself and choose what to share &mdash; nobody here sees your
+          password, and you can disconnect from your own Facebook settings at any time
+          without telling us.
+        </p>
+        <a href="/api/meta/connect/start?mine=1" className="btn-ghost mt-2.5 inline-flex">
+          Connect my own Instagram or Facebook
+        </a>
+        <p className="hint mt-2">
+          Anything you connect here is yours: enquiries arriving on it are for {firstName},
+          and the assistant books them straight into your diary without asking who the
+          customer wants.
+        </p>
+      </div>
+
+      <p className="hint mt-4">
+        {mine.some((c) => c.channel === "sms" || c.channel === "voice")
+          ? "Your number was set up for you — whoever runs the business buys and allocates those, because they are paid for monthly and have to be registered to a real address."
+          : `A number of your own is not something you can add yourself: they are bought and paid for monthly by the business and have to be registered to a real address. Ask whoever runs ${business} if you need one.`}
       </p>
     </section>
   );

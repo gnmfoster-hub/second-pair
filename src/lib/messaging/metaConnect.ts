@@ -41,7 +41,24 @@ export const SCOPES = [
  * So it carries the studio, a nonce and a timestamp, signed with a secret only
  * the server holds.
  */
-export type ConnectState = { studioId: string; nonce: string; at: number };
+export type ConnectState = {
+  studioId: string;
+  nonce: string;
+  at: number;
+  /**
+   * Whose account this is going to be, when somebody is connecting their own.
+   *
+   * Absent means the business's, which is every connection made before this
+   * and the right default: an owner wiring up the salon's Instagram is not
+   * claiming it as theirs.
+   *
+   * It travels inside the signed state rather than as a query parameter,
+   * because Facebook hands the whole thing back to us untouched and a
+   * parameter would be a way to attach somebody else's Instagram to your own
+   * name on the way through.
+   */
+  artistId?: string;
+};
 
 const SEPARATOR = ".";
 
@@ -91,7 +108,17 @@ export function readState(
   if (state.at > now + 60_000) return null;
   if (now - state.at > maxAgeMs) return null;
 
-  return { studioId: state.studioId, nonce: state.nonce, at: state.at };
+  /*
+   * Carried back only if it is the shape we put in.
+   *
+   * The signature already proves we wrote it, so this is not about tampering —
+   * it is about an old link from before this existed, or a half-written state,
+   * arriving with something that is not an id and attaching a connection to
+   * nobody in particular.
+   */
+  const artistId = typeof state.artistId === "string" && state.artistId ? state.artistId : undefined;
+
+  return { studioId: state.studioId, nonce: state.nonce, at: state.at, ...(artistId ? { artistId } : {}) };
 }
 
 export function newNonce(): string {

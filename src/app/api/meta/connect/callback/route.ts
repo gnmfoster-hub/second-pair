@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     const accounts = accountsFrom(await listed.json());
     if (!accounts.length) return done(request, "no-pages");
 
-    await store(state.studioId, accounts);
+    await store(state.studioId, accounts, state.artistId);
 
     return done(request, "connected");
   } catch {
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
  * server reads it and nothing else can, because a Page token is a password
  * and channel_connections is readable by everybody on the team.
  */
-async function store(studioId: string, accounts: ConnectedAccount[]) {
+async function store(studioId: string, accounts: ConnectedAccount[], artistId?: string) {
   const db = createAdminClient();
 
   for (const account of accounts) {
@@ -123,12 +123,26 @@ async function store(studioId: string, accounts: ConnectedAccount[]) {
       .limit(1)
       .maybeSingle();
 
+    /*
+     * Whose account it is, carried back inside the signed state.
+     *
+     * Absent means the business's, which is every connection made before this
+     * and the right default. Present means somebody connected their own, and
+     * the difference is not decorative: on the business's account the
+     * assistant asks the customer who they would like, and on somebody's own
+     * it never asks, because everything arriving there is theirs.
+     *
+     * Written on an update as well as an insert. A stylist reconnecting an
+     * account the salon had connected first must end up with it in her name,
+     * and the row already existing is not a reason to leave it in theirs.
+     */
     const row = {
       studio_id: studioId,
       channel: account.channel,
       external_id: account.externalId,
       label: account.label,
       active: true,
+      artist_id: artistId ?? null,
     };
 
     const id = existing?.id
