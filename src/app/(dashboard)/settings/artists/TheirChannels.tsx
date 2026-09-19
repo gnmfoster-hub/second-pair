@@ -149,7 +149,38 @@ export function TheirChannels({
                 <input type="hidden" name="artist" value={artistId} />
                 <input type="hidden" name="channel" value={channel} />
                 <input type="hidden" name="allow" value={may ? "0" : "1"} />
-                <button className="stamp stamp-flat shrink-0 text-[10px] transition-colors hover:border-accent/50">
+                {/*
+                  * A switch, which is what it is.
+                  *
+                  * It was a bordered stamp and read as a box — Giles said so,
+                  * and a box says "a state you are being told about" where a
+                  * switch says "a thing you can change". The stamp is right on
+                  * a conversation, which is a mark somebody pressed; it is
+                  * wrong on a control.
+                  *
+                  * Still a button in a form rather than a checkbox, so it
+                  * works before any JavaScript does and says what it is to a
+                  * screen reader.
+                  */}
+                <button
+                  role="switch"
+                  aria-checked={may}
+                  aria-label={`Let ${firstName} have their own ${CHANNEL_LABELS[channel]}`}
+                  className={`group/sw inline-flex shrink-0 items-center gap-2 rounded-full py-1 pl-1 pr-2.5 text-[11px] font-medium transition-colors ${
+                    may ? "bg-ok/12 text-ok" : "bg-surface-2 text-muted hover:text-foreground"
+                  }`}
+                >
+                  <span
+                    className={`relative h-4 w-7 shrink-0 rounded-full transition-colors ${
+                      may ? "bg-ok" : "bg-muted/35 group-hover/sw:bg-muted/50"
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-0.5 size-3 rounded-full bg-surface transition-all ${
+                        may ? "left-3.5" : "left-0.5"
+                      }`}
+                    />
+                  </span>
                   {may ? "Allowed" : "Not allowed"}
                 </button>
                 <span className="hint min-w-0 flex-1 text-[12px]">

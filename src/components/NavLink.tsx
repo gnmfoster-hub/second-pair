@@ -92,9 +92,31 @@ export function TabLink({ href, children }: { href: string; children: React.Reac
  * The active one is filled rather than underlined: on a vertical list an
  * underline reads as a divider between two rows rather than as a state.
  */
-export function RailLink({ href, children }: { href: string; children: React.ReactNode }) {
+export function RailLink({
+  href,
+  children,
+  /**
+   * Every address in this rail, so the longest match can win.
+   *
+   * Without it the highlight was an exact match, so anything below a section —
+   * /settings/data/clients, /settings/data/takings — lit nothing at all, and
+   * the rail said you were nowhere on the page you were looking at. A plain
+   * startsWith is no good either: /settings is the start of every other
+   * settings address and would light the business page on every screen.
+   */
+  siblings = [],
+}: {
+  href: string;
+  children: React.ReactNode;
+  siblings?: string[];
+}) {
   const pathname = usePathname();
-  const active = pathname === href;
+
+  const best = [...new Set([href, ...siblings])]
+    .filter((one) => pathname === one || pathname.startsWith(one + "/"))
+    .sort((a, b) => b.length - a.length)[0];
+
+  const active = best === href;
 
   return (
     <Link

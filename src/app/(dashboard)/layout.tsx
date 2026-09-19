@@ -235,7 +235,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <NavLink href="/report" icon={<WeekIcon />}>
             Reports
           </NavLink>
-          <NavLink href="/settings" icon={<SettingsIcon />}>
+          {/*
+            * Straight to their own, for somebody who does not own the place.
+            *
+            * /settings is the business page, and a stylist's list does not
+            * contain it — so pressing Settings landed her on a page that was
+            * not one of her destinations, and she had to find her own name in
+            * the rail and press again. Two taps to reach the only settings she
+            * has.
+            */}
+          <NavLink
+            href={membership?.role === "owner" ? "/settings" : "/settings/you"}
+            icon={<SettingsIcon />}
+          >
             Settings
           </NavLink>
           <NavLink href="/help" icon={<HelpIcon />}>

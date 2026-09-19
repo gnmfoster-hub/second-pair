@@ -157,7 +157,13 @@ export default async function SettingsLayout({ children }: { children: React.Rea
                 </div>
                 <div className="flex flex-col gap-0.5">
                   {group.links.map((link) => (
-                    <RailLink key={link.href} href={link.href}>
+                    <RailLink
+                      key={link.href}
+                      href={link.href}
+                      /* So a page below a section still lights its section,
+                         and /settings does not light on all of them. */
+                      siblings={groups.flatMap((g) => g.links.map((l) => l.href))}
+                    >
                       {link.label}
                     </RailLink>
                   ))}
