@@ -54,8 +54,8 @@ export function TheirChannels({
     <div className="card mt-4 p-5">
       <h3 className="section-title">Channels of their own</h3>
       <p className="hint mt-1 max-w-prose">
-        On one of {business}&rsquo;s channels the assistant asks the customer who they
-        would like. On one of {firstName}&rsquo;s it never asks, because everything
+        On one of the {business}&rsquo;s channels the assistant asks the customer who
+        they would like. On one of {firstName}&rsquo;s it never asks, because everything
         arriving there is theirs.
       </p>
 
@@ -78,18 +78,9 @@ export function TheirChannels({
                         : (mine.label ?? "connected")}
                     </>
                   ) : onThis.length === 0 ? (
-                    /*
-                     * Nothing connected at all, and the two ways that gets
-                     * fixed are genuinely different jobs — one costs money and
-                     * takes days, the other needs a password only they have.
-                     */
-                    channel === "sms" || channel === "voice" ? (
-                      "Nothing connected. A number has to be bought and registered before anybody can have one."
-                    ) : (
-                      `Nothing connected. ${firstName} can connect their own from their settings — only they can log in to it.`
-                    )
+                    nothingYet(channel, firstName)
                   ) : spare.length > 0 ? (
-                    `${business}'s — shared, so the assistant asks who they want`
+                    `The ${business}'s — shared, so the assistant asks who they want`
                   ) : (
                     "Connected, and it belongs to somebody else"
                   )}
@@ -113,7 +104,7 @@ export function TheirChannels({
 
               {!mine && spare.length > 0 && onThis.length === 1 && (
                 <span className="hint shrink-0 text-right text-[12px]">
-                  The only one on this channel, so it stays with {business}
+                  The only one on this channel, so it stays with the {business}
                 </span>
               )}
 
@@ -122,7 +113,7 @@ export function TheirChannels({
                   <input type="hidden" name="connection" value={mine.id} />
                   <input type="hidden" name="artist" value="" />
                   <button className="btn-ghost py-1.5 text-xs" disabled={saving}>
-                    Give it back to {business}
+                    Give it back to the {business}
                   </button>
                 </form>
               )}
@@ -139,4 +130,27 @@ export function TheirChannels({
       {state.ok && <p className="mt-2 text-xs text-ok">Saved.</p>}
     </div>
   );
+}
+
+/**
+ * What to do about a channel nobody has connected, which differs by channel.
+ *
+ * The first version said the same sentence for all of them — that the person
+ * could connect their own from their settings — which is true of Instagram and
+ * Facebook and false of everything else. Email arrives at one address belonging
+ * to the business, and a number has to be bought. Telling a salon owner that
+ * Sarah can connect her own email would have had her waiting for something
+ * nobody can do.
+ */
+function nothingYet(channel: Channel, firstName: string): string {
+  if (channel === "sms" || channel === "voice") {
+    return "Nothing connected. A number has to be bought and registered before anybody can have one.";
+  }
+  if (channel === "instagram" || channel === "messenger") {
+    return `Nothing connected. ${firstName} connects this from their own settings, because only they can log in to it.`;
+  }
+  if (channel === "email") {
+    return "Nothing connected. Email comes in to one address for the whole business, so there is nothing to give to one person yet.";
+  }
+  return "Nothing connected yet.";
 }
