@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { setStatus } from "./actions";
 import { CONV_STATUS_LABELS, type ConvStatus } from "@/lib/types";
+import { STATUS_TONE } from "@/lib/conversationStatus";
 
 /**
  * Where a conversation has got to.
@@ -25,15 +26,6 @@ const STATUSES: ConvStatus[] = [
   "spam",
 ];
 
-const TONE: Record<ConvStatus, string> = {
-  new: "bg-surface-2 text-muted",
-  qualified: "bg-surface-2 text-foreground",
-  deposit_paid: "bg-ok/10 text-ok",
-  booked: "bg-ok/10 text-ok",
-  needs_human: "bg-warn/15 text-warn",
-  lost: "bg-surface-2 text-muted/60",
-  spam: "bg-surface-2 text-muted/60",
-};
 
 export function StatusPicker({
   conversationId,
@@ -76,7 +68,17 @@ export function StatusPicker({
   return (
     <span className="inline-flex flex-col items-start gap-1">
     <label
-      className={`relative inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-opacity ${TONE[current]} ${
+      /*
+       * The same mark as the inbox, straight and unworn.
+       *
+       * It is the same thing about the same conversation, so it should look
+       * like the same thing — it had its own colours and they had drifted, so
+       * Qualified was green in the list and grey on the page you opened from
+       * it. But it is a control rather than a mark: distressing something
+       * somebody is meant to press says the control is broken, which is why
+       * the ink and the lean are both off here.
+       */
+      className={`stamp stamp-flat relative gap-2 text-sm transition-opacity ${STATUS_TONE[current]} ${
         saving ? "opacity-60" : ""
       }`}
     >

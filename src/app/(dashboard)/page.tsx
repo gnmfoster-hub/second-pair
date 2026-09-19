@@ -19,34 +19,8 @@ import {
 } from "@/lib/types";
 import { inboxScope, scopedTo } from "@/lib/inboxScope";
 import { stampStyle } from "@/lib/stamp";
+import { stampClasses } from "@/lib/conversationStatus";
 
-/*
- * What state a conversation is in, readable without reading it.
- *
- * Four of these seven were the same grey — including Qualified, which is the
- * assistant having done the job the business pays for. A whole inbox of grey
- * pills is a column of words you have to read one at a time, and it is the
- * single biggest thing a list like this can do for somebody glancing at their
- * phone between jobs.
- *
- * Three meanings and no more, or it becomes bunting:
- *   green   money is coming, or has
- *   orange  you have to do something — the only place orange appears
- *   grey    nothing to do here
- *
- * New keeps the accent rather than a fourth colour: it is not yet good news
- * and it is not yet a job, it is just recent.
- */
-const STATUS_STYLES: Record<ConvStatus, string> = {
-  new: "text-accent",
-  qualified: "text-ok",
-  deposit_paid: "text-ok",
-  booked: "text-ok",
-  /* The only one on a slant, and the only orange in the list. */
-  needs_human: "text-highlight-strong stamp-live",
-  lost: "text-muted stamp-spent",
-  spam: "text-muted stamp-spent",
-};
 
 type Row = {
   id: string;
@@ -690,7 +664,7 @@ export default async function InboxPage({
                     )}
 
                     <span
-                      className={`stamp shrink-0 ${STATUS_STYLES[c.status]}`}
+                      className={`stamp shrink-0 ${stampClasses(c.status)}`}
                       /* Its own lean and its own ink, from its own id. See lib/stamp. */
                       style={stampStyle(c.id) as React.CSSProperties}
                     >
