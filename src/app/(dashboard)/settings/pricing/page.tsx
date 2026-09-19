@@ -213,9 +213,19 @@ export default async function PricingPage() {
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wide text-muted">
                   <th className="px-5 py-3 font-medium">Size</th>
+                  {/*
+                    * First names, the way the rest of this page names people.
+                    *
+                    * A column heading is a 121-pixel box with 36 of it taken by
+                    * padding, and a full name set in uppercase with
+                    * letter-spacing does not fit in what is left — "Karen
+                    * Foster" broke in half above her own column. The picker
+                    * above this table has always used first names, so the table
+                    * reading differently was the odd one out anyway.
+                    */}
                   {activeArtists.map((a) => (
-                    <th key={a.id} className="px-5 py-3 font-medium">
-                      {a.name}
+                    <th key={a.id} className="px-5 py-3 font-medium" title={a.name}>
+                      {a.name.split(" ")[0]}
                     </th>
                   ))}
                   <th className="px-5 py-3 font-medium">Deposit</th>
