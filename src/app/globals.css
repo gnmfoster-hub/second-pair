@@ -416,12 +416,37 @@ body {
    *
    * Straight by default. See .stamp-live for the one that is not.
    */
+  /*
+   * The frame wears, the words do not.
+   *
+   * Eroding the whole thing ate the letterforms, and at eleven pixels that
+   * does not read as ink — it reads as a printing fault, which is what Giles
+   * saw twice. A real stamp is perfectly legible; that is the entire reason
+   * somebody presses one. What is worn is the rubber, so what should look worn
+   * is the box.
+   *
+   * So the border moves to a layer of its own and takes the ink filter, and
+   * the text sits on top of it untouched and sharp.
+   */
   .stamp {
-    @apply inline-flex items-center gap-1.5 rounded-[2px] border-[2.5px] border-current
+    @apply relative inline-flex items-center gap-1.5
            px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.14em];
-    /* Broken edges. See the filter in the dashboard layout — it is the
-       difference between a stamp and a rotated rectangle. */
+    transform: rotate(var(--tilt, 0deg));
+    opacity: var(--ink, 1);
+  }
+
+  .stamp::before {
+    content: "";
+    @apply pointer-events-none absolute inset-0 rounded-[2px] border-[2.5px] border-current;
     filter: url(#stamp-ink);
+  }
+
+  /*
+   * The filter buttons are controls, not marks. A worn-out button says the
+   * button is broken, which is the opposite of what a control should say.
+   */
+  .stamp-flat::before {
+    filter: none;
   }
 
   /*
@@ -433,7 +458,7 @@ body {
    * they want the plainest version of things.
    */
   @media (prefers-reduced-motion: reduce) {
-    .stamp {
+    .stamp::before {
       filter: none;
     }
   }
@@ -455,11 +480,6 @@ body {
    * enough to read as broken alignment — and small enough not to change the
    * height of the row it sits in.
    */
-  .stamp {
-    transform: rotate(var(--tilt, 0deg));
-    opacity: var(--ink, 1);
-  }
-
   /*
    * The one that is asking for something leans further, and is the only one
    * that does.

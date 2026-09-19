@@ -474,7 +474,7 @@ export default async function InboxPage({
                 aria-current={here ? "page" : undefined}
                 /* Straight: these are controls, not marks somebody pressed. */
                 style={{ "--tilt": "0deg" } as React.CSSProperties}
-                className={`stamp transition-colors ${
+                className={`stamp stamp-flat transition-colors ${
                   here
                     ? "border-accent bg-accent text-on-accent"
                     : "text-muted hover:border-accent/50 hover:text-foreground"
