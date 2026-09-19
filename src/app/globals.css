@@ -49,29 +49,11 @@
    * So the ground goes down far enough that white genuinely lifts off it, and
    * the sidebar takes the white — the ground is the desk, the panels are the
    * paper on it. That is the whole trick and it costs one shade.
-   *
-   * And then it went the other way entirely, because the first idea was wrong.
-   *
-   * Grey ground with white panels on it means every region needs a panel to be
-   * legible — which is why taking the box off the enquiry list made everything
-   * blend, and putting it back made everything look boxed. Both complaints were
-   * right and they were the same complaint: the model was wrong, not the
-   * details.
-   *
-   * So it is inverted. The page is paper. Nothing needs a box to be readable on
-   * it, so the boxes can go and rules can do the work — which is how a printed
-   * page has always handled this. The grey moves to the chrome, where it marks
-   * the edge of the app rather than the edge of every component.
-   *
-   * Neutral to within two points across the channels, too. The old ground was
-   * ten points more blue than red, and a tint you cannot name reads as a wash
-   * of colour over everything: "beige and blue", twice, from the only person
-   * who has to look at it all day.
    */
-  --background: #fcfcfc;
+  --background: #e8ecf2;
   --surface: #ffffff;
-  --surface-2: #f2f3f4;
-  --border: #e0e2e5;
+  --surface-2: #f0f3f8;
+  --border: #dde3ec;
   --foreground: #141824;
   --muted: #59626f;
   --accent: #14243f;
@@ -376,17 +358,9 @@ body {
    * two things that genuinely float above the page — a sheet and a popover —
    * where lifting means something.
    */
-  /*
-   * An outline on the paper, not a white rectangle on grey.
-   *
-   * With the page itself white there is nothing for a white fill to stand out
-   * against, and a shadow under something that is the same colour as what it
-   * sits on is just a smudge. So a card is a ruled region now: a line round it
-   * and nothing else. It marks where one thing ends and the next begins, which
-   * is all it was ever for.
-   */
   .card {
-    @apply rounded-lg border border-border bg-surface;
+    @apply rounded-xl border border-border bg-surface;
+    box-shadow: var(--shadow-card);
   }
 
   /* For the rare block that really is raised off the page. */
@@ -423,6 +397,47 @@ body {
   /* Status, channel, anything that is a state rather than a sentence. */
   .pill {
     @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
+  }
+
+  /*
+   * A rubber stamp, for the state of a job.
+   *
+   * The one thing Giles liked out of a whole afternoon of directions: the
+   * stamp from the job-sheet sample, without the job sheet around it. It is a
+   * good instinct. A soft tinted pill is the single most generic component in
+   * software — every generated interface has a row of them — and a stamp says
+   * the same word in a way that belongs to paperwork, counters and vans.
+   *
+   * Outline rather than fill, because a stamp is ink pressed through a shape
+   * and not a coloured tablet. Uppercase and letter-spaced, because that is
+   * how the shape is cut. And it takes its colour from whatever it is put on,
+   * so the meanings already set — green for money coming, orange for something
+   * you have to do, grey for nothing to do — carry through untouched.
+   *
+   * Straight by default. See .stamp-live for the one that is not.
+   */
+  .stamp {
+    @apply inline-flex items-center gap-1.5 rounded-[3px] border-[1.5px] border-current
+           px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.11em];
+  }
+
+  /*
+   * Off true by a degree and a half, and only where something is being asked
+   * of somebody.
+   *
+   * Every stamp on a slant is a list that looks like it has been dropped. One
+   * on a slant, among fourteen straight ones, is the thing your eye goes to
+   * before you have read a word — which is the entire job of that row. The
+   * angle is small enough to read as a hand rather than as a graphic.
+   */
+  .stamp-live {
+    transform: rotate(-1.5deg);
+  }
+
+  /* A stamp that has faded. Nothing is being asked; it is a record. */
+  .stamp-spent {
+    @apply border-current/45;
+    opacity: 0.75;
   }
 
   /* Nothing here yet — said in a way that explains what will fill it. */

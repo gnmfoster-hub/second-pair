@@ -149,7 +149,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
        */}
       <aside
         data-chrome
-        className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface-2 md:sticky md:top-0 md:flex md:h-dvh md:overflow-y-auto"
+        className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface md:sticky md:top-0 md:flex md:h-dvh md:overflow-y-auto"
       >
         <div className="px-4 pb-3 pt-4">
           {/*

@@ -37,13 +37,14 @@ import { inboxScope, scopedTo } from "@/lib/inboxScope";
  * and it is not yet a job, it is just recent.
  */
 const STATUS_STYLES: Record<ConvStatus, string> = {
-  new: "bg-accent/8 text-accent",
-  qualified: "bg-ok/12 text-ok",
-  deposit_paid: "bg-ok/15 text-ok",
-  booked: "bg-ok/15 text-ok",
-  needs_human: "bg-highlight/15 text-highlight-strong",
-  lost: "bg-surface-2 text-muted/70",
-  spam: "bg-surface-2 text-muted/70",
+  new: "text-accent",
+  qualified: "text-ok",
+  deposit_paid: "text-ok",
+  booked: "text-ok",
+  /* The only one on a slant, and the only orange in the list. */
+  needs_human: "text-highlight-strong stamp-live",
+  lost: "text-muted stamp-spent",
+  spam: "text-muted stamp-spent",
 };
 
 type Row = {
@@ -406,28 +407,20 @@ export default async function InboxPage({
       {studio.kind === "demo" && <DemoReset />}
 
       {/*
-        * A ledger on the page, not a third white box.
+        * Back in its box, and the box is back to what it was this morning.
         *
-        * There were three stacked rounded rectangles with identical treatment
-        * — the figures, the readiness card and this — and when everything is a
-        * card nothing is. This is the longest thing on the screen and the
-        * thing somebody came for, so it stops being a container and becomes
-        * the page itself: a rule, a heading, and the work under it.
+        * It went through a ledger on the page, then a white sheet, then no
+        * panel at all on a paper ground — and each step fixed the previous
+        * complaint while causing the next one. Giles looked at all three and
+        * said the first was better for colour and for the boxes, which is the
+        * only opinion here that counts: he is the one who has it open all day.
         *
-        * It also gives the two cards above it a job. They are cards because
-        * they are asides; this is not an aside.
+        * What survives from the detour is the part he did like, in the rows
+        * themselves — a lost enquiry stops shouting, and one that needs a
+        * person gets a mark. That is hierarchy, and it did not need any of the
+        * container changes to work.
         */}
-      <div className="mt-7">
-        <div className="mb-0 flex items-baseline justify-between border-b-2 border-foreground/85 pb-1.5">
-          <h2 className="font-display text-sm font-semibold tracking-[-0.01em]">
-            {conversations.length} {conversations.length === 1 ? "enquiry" : "enquiries"}
-          </h2>
-          {waiting.length > 0 && (
-            <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-highlight-strong">
-              {waiting.length} need you
-            </span>
-          )}
-        </div>
+      <div className="card mt-4 overflow-hidden">
         {conversations.length === 0 ? (
           <div className="empty">
             <Waiting className="mx-auto mb-4 size-14" />
@@ -628,7 +621,7 @@ export default async function InboxPage({
                       </span>
                     )}
 
-                    <span className={`pill shrink-0 ${STATUS_STYLES[c.status]}`}>
+                    <span className={`stamp shrink-0 ${STATUS_STYLES[c.status]}`}>
                       {CONV_STATUS_LABELS[c.status]}
                     </span>
 
