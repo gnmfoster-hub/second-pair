@@ -154,21 +154,45 @@ export default async function DashboardLayout({ children }: { children: React.Re
         * and forty references to one definition cost forty references.
         */}
       <svg width="0" height="0" aria-hidden focusable="false" className="absolute">
-        <filter id="stamp-ink" x="-6%" y="-20%" width="112%" height="140%">
-          <feTurbulence
-            type="fractalNoise"
-            baseFrequency="0.62"
-            numOctaves="2"
-            seed="7"
-            result="grain"
-          />
+        {/*
+          * Worn rubber, which is two effects and not one.
+          *
+          * The first attempt only pushed the edges about, and Giles said it
+          * looked like wonky words. He was right: a shape that is displaced is
+          * still a solid shape, and nothing about a solid shape says ink.
+          *
+          * What makes a stamp look like a stamp is that the ink does not all
+          * arrive. Rubber is uneven, the paper is uneven, and the result is a
+          * mark with holes in it — thin in places, missing in others. So the
+          * second turbulence is punched out of the first, which takes bites
+          * out of the border and the letters rather than wobbling them.
+          *
+          * The threshold in the colour matrix is what decides how worn it is.
+          * Too much and it is unreadable at ten pixels; this is set so the
+          * holes are small enough to read through and big enough to see.
+          */}
+        <filter id="stamp-ink" x="-12%" y="-30%" width="124%" height="160%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.07" numOctaves="3" seed="4" result="rough" />
           <feDisplacementMap
             in="SourceGraphic"
-            in2="grain"
-            scale="1.6"
+            in2="rough"
+            scale="2.4"
             xChannelSelector="R"
             yChannelSelector="G"
+            result="pressed"
           />
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" seed="11" result="speckle" />
+          {/* Keep only the lightest of the noise, as the shape of the gaps. */}
+          <feColorMatrix
+            in="speckle"
+            type="matrix"
+            values="0 0 0 0 0
+                    0 0 0 0 0
+                    0 0 0 0 0
+                    6 0 0 0 -3.1"
+            result="gaps"
+          />
+          <feComposite in="pressed" in2="gaps" operator="out" />
         </filter>
       </svg>
 

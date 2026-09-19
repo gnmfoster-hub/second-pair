@@ -417,8 +417,8 @@ body {
    * Straight by default. See .stamp-live for the one that is not.
    */
   .stamp {
-    @apply inline-flex items-center gap-1.5 rounded-[2px] border-2 border-current
-           px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.13em];
+    @apply inline-flex items-center gap-1.5 rounded-[2px] border-[2.5px] border-current
+           px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.14em];
     /* Broken edges. See the filter in the dashboard layout — it is the
        difference between a stamp and a rotated rectangle. */
     filter: url(#stamp-ink);
