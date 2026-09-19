@@ -7,6 +7,7 @@ import { routesFor } from "@/lib/messaging/reach";
 import { connectedChannels, smsNumberFor, smsNumberForPerson } from "@/lib/messaging/connections";
 import type { Channel } from "@/lib/types";
 import { isOptedOut } from "@/lib/messaging/optOut";
+import { whyNotSend } from "@/lib/whyNotSend";
 
 /**
  * Reminders.
@@ -370,22 +371,27 @@ export async function sendDueReminders(
     const conversation = booking?.enquiries?.conversations;
 
     /*
-     * A cancelled appointment must never be reminded about, and neither must
-     * one that has already happened — a reminder left waiting for a channel
-     * would otherwise go out the day a text number is connected, for an
-     * appointment weeks in the past.
+     * Whether this one should go out at all — cancelled, already happened, or
+     * the reminder behind it deleted.
+     *
+     * In whyNotSend rather than here, because cancelling an appointment now
+     * leans on it: cancelDiaryEntry marks the booking cancelled and then drops
+     * its reminders, and the drop is allowed to fail precisely because this
+     * runs again at send time. That makes it the net under the whole
+     * cancellation path, and it wants a test rather than a condition buried in
+     * this loop. The reason is written to the row, so "cancelled" can be told
+     * apart from "we could not reach them".
      */
-    if (!booking || booking.cancelled_at || Date.parse(booking.starts_at) <= now.getTime()) {
-      await db.from("reminders").update({ status: "skipped" }).eq("id", row.id);
-      result.skipped++;
-      continue;
-    }
-
-    // No body means the reminder was deleted or switched off after this one
-    // was queued. Either way it is not sent, and the row says so.
     const template = row.template_id ? bodyFor.get(row.template_id) : null;
-    if (!template) {
-      await db.from("reminders").update({ status: "skipped" }).eq("id", row.id);
+    const notSending = whyNotSend(booking, Boolean(template), now);
+    // booking and template are named again so the rest of the loop knows they
+    // are there; whyNotSend has already returned a reason for either being
+    // missing, so the row still says why.
+    if (notSending || !booking || !template) {
+      await db
+        .from("reminders")
+        .update({ status: "skipped", error: notSending })
+        .eq("id", row.id);
       result.skipped++;
       continue;
     }
