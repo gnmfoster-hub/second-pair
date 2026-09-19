@@ -296,6 +296,91 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ───────────────────────────────────────────────────────── websites */}
+      {/*
+        * A section of its own, because it is a thing you can buy on its own.
+        *
+        * Giles has started building websites and has one live —
+        * livingcanvastattoo.ink — and it sells with or without the assistant.
+        * Folding it into the feature list above would make it read as something
+        * the software does, which is the one thing it is not: it is work
+        * somebody does, for a price, and a business can buy it having never
+        * heard of the rest of this.
+        *
+        * No price on it. There is not one yet, and a number invented here is a
+        * number somebody holds you to.
+        */}
+      <section className="border-y border-border bg-surface">
+        <div className="mx-auto max-w-5xl px-5 py-16 sm:px-8 sm:py-24">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+            Also from us
+          </p>
+
+          <h2 className="page-title mt-3 max-w-[22ch]">
+            We build the website too, if you need one
+          </h2>
+
+          <p className="mt-4 max-w-[54ch] text-base leading-relaxed text-muted">
+            Plenty of good tradespeople have no website, or one built years ago by
+            somebody who has stopped answering. We build it, host it, and keep it
+            working &mdash; and you can have it whether or not you ever use the
+            assistant.
+          </p>
+
+          <div className="mt-8 grid gap-x-10 gap-y-7 sm:grid-cols-2">
+            {[
+              [
+                "Built around the work, not a template",
+                "Your trade, your photographs, your prices if you want them shown. It says what you actually do rather than what a theme assumed.",
+              ],
+              [
+                "Looked after",
+                "Hosting, the certificate, the updates and the small changes as the business changes. Nothing to renew and nobody to chase.",
+              ],
+              [
+                "Found by the people looking",
+                "Set up properly for search and for a phone, which is where nearly everybody will see it.",
+              ],
+              [
+                "The assistant on it, or not",
+                "If you have Second Pair, it answers on the site from the first day. If you do not, the site is still yours and works perfectly well without it.",
+              ],
+            ].map(([head, body]) => (
+              <div key={head}>
+                <h3 className="section-title text-[0.95rem]">{head}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted">{body}</p>
+              </div>
+            ))}
+          </div>
+
+          {/*
+            * One real example rather than a gallery of none.
+            *
+            * It is the only one so far, and saying so is better than implying a
+            * portfolio that does not exist yet — the first question anybody
+            * asks is "what have you done", and one honest answer beats three
+            * vague ones.
+            */}
+          <div className="mt-9 rounded-2xl border border-border bg-background p-6">
+            <p className="text-sm leading-relaxed text-muted">
+              Most recently:{" "}
+              <a
+                href="https://livingcanvastattoo.ink"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-accent underline underline-offset-2"
+              >
+                livingcanvastattoo.ink
+              </a>{" "}
+              &mdash; a tattoo studio in Devon, with the assistant answering on it.
+            </p>
+            <a href="mailto:info@second-pair.com?subject=A%20website" className="btn-highlight mt-5 inline-flex">
+              Ask about a website
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* ────────────────────────────────────────────────────────── company */}
       {/*
         * Who is behind it, immediately before the last ask.
