@@ -406,16 +406,26 @@ export function ArtistEditor({
               the shop.
             </p>
             {/*
-              * What is coming, said once rather than as four rows of "not yet".
+              * What happens now, before what happens later.
               *
-              * Their own Instagram and their own number will be theirs to
-              * connect — the database already allows it, and nobody else can
-              * touch them. None are connectable for anybody yet, so a connect
-              * flow here would be a promise with nothing behind it.
+              * This said only "neither is available to anybody yet", which is
+              * true and reads as something being broken — Giles turned texts
+              * on for the business, came here, and found what looked like a
+              * dead channel on every member of the team.
+              *
+              * The thing it never said is that the team is already reachable.
+              * One number belongs to the business and covers everybody on it:
+              * somebody texts it, the assistant asks who they would like, and
+              * it books the right diary. A number each is an addition to that,
+              * not a requirement for it.
               */}
             <p className="hint mt-2">
-              Their own Instagram and mobile number will connect here too, and will be
-              theirs to manage. Neither is available to anybody yet.
+              Texts and calls already reach them on the business&rsquo;s own number — whoever
+              writes in is asked who they would like, and it books the right diary.
+            </p>
+            <p className="hint mt-1.5">
+              A number of their own, and their own Instagram, will connect here as well and
+              will be theirs to manage. Neither is built yet.
             </p>
           </label>
         )}
