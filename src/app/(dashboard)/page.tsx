@@ -405,7 +405,29 @@ export default async function InboxPage({
         */}
       {studio.kind === "demo" && <DemoReset />}
 
-      <div className="card mt-4 overflow-hidden">
+      {/*
+        * A ledger on the page, not a third white box.
+        *
+        * There were three stacked rounded rectangles with identical treatment
+        * — the figures, the readiness card and this — and when everything is a
+        * card nothing is. This is the longest thing on the screen and the
+        * thing somebody came for, so it stops being a container and becomes
+        * the page itself: a rule, a heading, and the work under it.
+        *
+        * It also gives the two cards above it a job. They are cards because
+        * they are asides; this is not an aside.
+        */}
+      <div className="mt-7">
+        <div className="mb-1 flex items-baseline justify-between border-b-2 border-foreground/85 pb-1.5">
+          <h2 className="font-display text-sm font-semibold tracking-[-0.01em]">
+            {conversations.length} {conversations.length === 1 ? "enquiry" : "enquiries"}
+          </h2>
+          {waiting.length > 0 && (
+            <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-highlight-strong">
+              {waiting.length} need you
+            </span>
+          )}
+        </div>
         {conversations.length === 0 ? (
           <div className="empty">
             <Waiting className="mx-auto mb-4 size-14" />
@@ -419,7 +441,7 @@ export default async function InboxPage({
             </Link>
           </div>
         ) : (
-          <ul className="divide-y divide-border">
+          <ul className="divide-y divide-border/70">
             {conversations.map((c) => {
               const contact = c.contacts;
               const enquiry = c.enquiries;
@@ -437,6 +459,36 @@ export default async function InboxPage({
                 contact?.name ?? contact?.instagram_handle ?? contact?.phone ?? null;
               const description = enquiry?.description ?? null;
               const who = named ?? description ?? "New enquiry";
+              /*
+               * How much of the screen this row has earned.
+               *
+               * Every row was identical: same height, same circle, same badge
+               * in the same place, same timestamp in the same place. Fifteen
+               * enquiries read as one shape repeated fifteen times, which is
+               * what made the whole thing look assembled rather than designed.
+               * A booked job, a lost one and somebody waiting on an answer are
+               * three different things and looked like one.
+               *
+               * Three weights, from the status we already have:
+               *
+               *   asks   somebody is waiting on a person. Full contrast, and
+               *          the only place the orange appears in the list.
+               *   won    money is coming or has. Normal weight, green.
+               *   gone   lost or spam. Recedes — still readable, still
+               *          clickable, but it stops competing with live work.
+               *
+               * Nothing new is drawn and no colour is invented. The rows that
+               * matter simply stop being shouted down by the ones that do not.
+               */
+              const tone =
+                c.status === "needs_human"
+                  ? "asks"
+                  : c.status === "lost" || c.status === "spam"
+                    ? "gone"
+                    : c.status === "booked" || c.status === "deposit_paid"
+                      ? "won"
+                      : "live";
+
               const outOfHours = isOutOfHours(
                 new Date(c.created_at),
                 studio.hours,
@@ -447,8 +499,25 @@ export default async function InboxPage({
                 <li key={c.id}>
                   <Link
                     href={`/conversations/${c.id}`}
-                    className="row group flex items-center gap-3.5 px-4 py-3.5 sm:px-5"
+                    className={`row group flex items-center gap-3.5 px-4 py-3.5 sm:px-5 ${
+                      tone === "gone" ? "opacity-55 hover:opacity-100" : ""
+                    }`}
                   >
+                    {/*
+                      * A mark for the one state that is asking for something.
+                      *
+                      * Not a rail down every row — that is decoration on the
+                      * fourteen rows it does not apply to. One dot, on the one
+                      * row that wants a person, in the one colour that means
+                      * act. Everything else gets nothing, which is what makes
+                      * it visible.
+                      */}
+                    <span
+                      className={`-ml-1.5 size-1.5 shrink-0 rounded-full ${
+                        tone === "asks" ? "bg-highlight" : "bg-transparent"
+                      }`}
+                      aria-hidden
+                    />
                     {/* A face, so the list scans as people rather than rows —
                         and where there is no person yet, where they came in. */}
                     {named ? (
@@ -471,7 +540,13 @@ export default async function InboxPage({
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="truncate text-sm font-medium">{who}</span>
+                        <span
+                          className={`truncate text-sm ${
+                            tone === "asks" ? "font-semibold" : "font-medium"
+                          }`}
+                        >
+                          {who}
+                        </span>
                         {contact?.alert && (
                           <span
                             className="pill shrink-0 bg-warn/15 text-[10px] uppercase tracking-wide text-warn"
