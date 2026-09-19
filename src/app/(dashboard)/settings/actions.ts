@@ -15,6 +15,7 @@ import { busyFromIcal } from "@/lib/booking/ical";
 import { stillWorthAsking } from "@/lib/askedAlready";
 import { readNumbers } from "@/lib/channels/phoneNumbers";
 import { hasColumn } from "@/lib/db/hasColumn";
+import { handleFor } from "@/lib/people/handle";
 import { mayAllocate } from "@/lib/channels/whose";
 import { readHex, autoText } from "@/lib/widget/colour";
 import {
@@ -901,16 +902,25 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
    * chosen one, and made unique within the studio because two Sarahs is not a
    * rare problem in a salon.
    */
-  const wanted =
-    slugify(str(fd, "handle")) || slugify(name.split(/\s+/)[0]) || "team";
   const { data: clashes } = await supabase
     .from("artists")
     .select("id, handle")
     .eq("studio_id", studio.id)
     .neq("id", str(fd, "id") || "00000000-0000-0000-0000-000000000000");
-  const taken = new Set((clashes ?? []).map((a) => (a.handle ?? "").toLowerCase()));
-  let handle = wanted;
-  for (let n = 2; taken.has(handle); n++) handle = `${wanted}-${n}`;
+  const taken = (clashes ?? []).map((a) => a.handle ?? "");
+
+  /*
+   * Worked out in lib/people/handle now, because the rule needed to be better
+   * than "the first word" and better belongs somewhere it can be tested.
+   *
+   * A garage naming people "Bay 1 — Stevie" and "Bay 2 — Mark" got `bay` and
+   * `bay-2`: two addresses saying nothing about either person, and the second
+   * numbered for no reason a customer could see.
+   */
+  const chosen = slugify(str(fd, "handle"));
+  const handle = chosen
+    ? handleFor(chosen, taken)
+    : handleFor(name, taken);
 
   /*
    * Their own working week, when they have said they have one.
