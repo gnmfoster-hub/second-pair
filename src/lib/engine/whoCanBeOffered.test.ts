@@ -95,25 +95,46 @@ test("someone who has left is not offered even on their own link", () => {
 
 // ------------------------- the website routes; a private number never does
 
-test("a text to somebody's own number only ever books them", () => {
+test("a private channel books only them, until they say otherwise", () => {
   /*
    * The website is the shop window: one address, speaking for whoever the
    * owner has chosen. Every other channel is somebody's own — a text to one
    * person's number, an Instagram message to one person's account — and the
    * person on the other end is asking that person.
    *
-   * So the setting that lets somebody's *link* cover for colleagues must not
-   * follow them onto their phone. Offering a colleague's diary down a private
-   * number answers a question nobody asked.
+   * So "only me" is what everybody has on their own channels until they choose
+   * something else, and that is the important half of this.
+   *
+   * It used to be the rule rather than the default: the setting was read on
+   * the web link and forced to "only me" everywhere else, so a stylist who
+   * chose "me first, then anyone" got it on her booking page and not on her
+   * own number — which is the channel she was picturing when she chose it. It
+   * was saved, shown back to her, and overridden.
+   */
+  const guarded = person("dave", { agent_scope: "only_me" });
+
+  for (const channel of ["sms", "whatsapp", "instagram", "messenger", "email"]) {
+    const offered = whoCanBeOffered(everyone, {}, guarded, channel);
+    assert.deepEqual(names(offered), ["dave"], `${channel} offered somebody else`);
+  }
+
+  // And the default, which is what nearly every business has.
+  const unset = person("dave", {});
+  assert.deepEqual(names(whoCanBeOffered(everyone, {}, unset, "sms")), ["dave"]);
+});
+
+test("somebody who has chosen to cover is offered help on their own number too", () => {
+  /*
+   * A stylist fully booked in August would rather her regulars were offered Mo
+   * than told no. She is the one who decides that, and she decides it once,
+   * for her channels — not once for her link and separately for her phone.
    */
   const covering = person("dave", { agent_scope: "anyone" });
 
-  const onTheWeb = whoCanBeOffered(everyone, {}, covering, "web");
-  assert.ok(names(onTheWeb).length > 1, "their own web link may cover for others");
-
-  for (const channel of ["sms", "whatsapp", "instagram", "messenger", "email"]) {
+  for (const channel of ["web", "sms", "whatsapp", "instagram", "messenger", "email"]) {
     const offered = whoCanBeOffered(everyone, {}, covering, channel);
-    assert.deepEqual(names(offered), ["dave"], `${channel} offered somebody else`);
+    assert.ok(names(offered).length > 1, `${channel} still refused to offer anybody else`);
+    assert.equal(names(offered)[0], "dave", `${channel} did not put them first`);
   }
 });
 

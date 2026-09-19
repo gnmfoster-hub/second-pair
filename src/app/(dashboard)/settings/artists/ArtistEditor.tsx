@@ -372,7 +372,7 @@ export function ArtistEditor({
           * opens by offering somebody else has misread the room.
           */}
         <label className="block">
-          <span className="label">Their own booking link</span>
+          <span className="label">On anything of theirs</span>
           <select
             name="agent_scope"
             defaultValue={artist?.agent_scope ?? "only_me"}
@@ -382,9 +382,21 @@ export function ArtistEditor({
             <option value="me_first">Them first, but can offer others</option>
             <option value="anyone">Can book anybody</option>
           </select>
+          {/*
+            * It said "only affects the link with their name on it", and that
+            * was true: everything else of theirs forced "books only them" and
+            * ignored this. So somebody choosing to cover for colleagues got it
+            * on their booking page and not on their own number, which is the
+            * channel they were picturing when they chose it.
+            */}
           <p className="hint mt-1.5">
-            Only affects the link with their name on it. The one on your website is set
-            under Channels.
+            Their booking link, their own number, their own Instagram &mdash; everything
+            that reaches them and nobody else. Books only them unless you change it, which
+            is what almost everybody wants: somebody texting {artist?.name?.split(" ")[0] ?? "them"}&rsquo;s
+            own number is asking for {artist?.name?.split(" ")[0] ?? "them"}.
+          </p>
+          <p className="hint mt-1">
+            The assistant on your website is separate, and is set under Channels.
           </p>
         </label>
 

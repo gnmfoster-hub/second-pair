@@ -18,9 +18,10 @@ export function whoCanBeOffered(
    * The website is the shop window — one address, and whoever the owner has
    * decided it speaks for. Every other channel is somebody's own: a text goes
    * to one person's number, an Instagram message to one person's account, and
-   * the person on the other end is asking that person. Offering a colleague's
-   * diary down somebody's private number would be answering a question nobody
-   * asked, on a phone that is not ours.
+   * the person on the other end is asking that person.
+   *
+   * Which is why "only me" is the default on a channel of somebody's own, and
+   * no longer why it is the rule. See below.
    */
   channel: string = "web",
 ): Artist[] {
@@ -45,8 +46,23 @@ export function whoCanBeOffered(
      * somebody who scanned a code on one person's card is asking for that
      * person.
      */
-    const onTheirOwnChannel = channel !== "web";
-    const scope = onTheirOwnChannel ? "only_me" : (forArtist.agent_scope ?? "only_me");
+    /*
+     * What they chose, on every channel of theirs.
+     *
+     * This forced "only me" on anything that was not the website and read the
+     * setting only on the web link — so a stylist who had chosen "me first,
+     * then anyone" got that on her booking page and not on her own number,
+     * which is the channel she was thinking of when she chose it. The setting
+     * existed, was saved, was shown back to her, and was overridden.
+     *
+     * The reasoning behind the override was sound and it is still the default:
+     * somebody texting one person's number is asking that person, and being
+     * offered a colleague is answering a question nobody asked. That is why
+     * "only me" is what everybody has until they say otherwise. It is not a
+     * reason to refuse somebody who has said otherwise — a stylist fully
+     * booked in August would rather her regulars were offered Mo than told no.
+     */
+    const scope = forArtist.agent_scope ?? "only_me";
     if (scope === "only_me") return active.filter((a) => a.id === forArtist.id);
 
     const others = active.filter((a) => a.id !== forArtist.id);
