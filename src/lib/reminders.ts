@@ -4,7 +4,7 @@ import { describeSlot } from "@/lib/booking";
 import { renderReminder, forOneText } from "@/lib/reminderText";
 import { deliver } from "@/lib/messaging/deliver";
 import { routesFor } from "@/lib/messaging/reach";
-import { connectedChannels, smsNumberFor } from "@/lib/messaging/connections";
+import { connectedChannels, smsNumberFor, smsNumberForPerson } from "@/lib/messaging/connections";
 import type { Channel } from "@/lib/types";
 import { isOptedOut } from "@/lib/messaging/optOut";
 
@@ -160,7 +160,7 @@ type DueRow = {
     id: string;
     starts_at: string;
     cancelled_at: string | null;
-    artists: { name: string; studio_id: string } | null;
+    artists: { id: string; name: string; studio_id: string } | null;
     /** Set when somebody typed this into the diary rather than the assistant booking it. */
     contacts: Person | null;
     enquiries: {
@@ -275,7 +275,7 @@ export async function sendDueReminders(
     .select(
       "id, due_at, template_id, " +
         "bookings!inner(id, starts_at, cancelled_at, " +
-        "artists!inner(name, studio_id), contacts(name, phone, email), " +
+        "artists!inner(id, name, studio_id), contacts(name, phone, email), " +
         "enquiries(conversations(id, channel, external_ref, last_inbound_at, " +
         "ai_paused, contacts(name, phone, email))))",
     )
@@ -329,6 +329,27 @@ export async function sendDueReminders(
   // Looked up once for the whole batch rather than per reminder.
   const connected = await connectedChannels(db, studio.id);
   const smsFrom = await smsNumberFor(db, studio.id);
+
+  /*
+   * A reminder about Aisha's appointment goes out from Aisha's number.
+   *
+   * The business's line is right for anything the business sends on its own
+   * account and wrong for this: the customer would get a text from a number
+   * they have never seen, and reply to the salon about an appointment the
+   * salon cannot see. Nobody has their own number yet, so today every one of
+   * these falls through to the same number it used before.
+   *
+   * Cached per person for the batch. A salon reminding forty people about six
+   * stylists should ask six questions, not forty.
+   */
+  const numberFor = new Map<string, string | null>();
+  const sendingAs = async (artistId: string | null | undefined): Promise<string | null> => {
+    if (!artistId) return smsFrom;
+    if (!numberFor.has(artistId)) {
+      numberFor.set(artistId, await smsNumberForPerson(db, studio.id, artistId));
+    }
+    return numberFor.get(artistId) ?? smsFrom;
+  };
 
   for (const row of rows) {
     const booking = row.bookings;
@@ -479,7 +500,7 @@ export async function sendDueReminders(
         studioId: studio.id,
         transactional: true,
         lastInboundAt: route.lastInboundAt,
-        from: route.channel === "sms" ? smsFrom : undefined,
+        from: route.channel === "sms" ? await sendingAs(booking.artists?.id) : undefined,
         subject: `Your appointment with ${studio.name}`,
         fromName: studio.name,
         replyTo: studio.email ?? undefined,

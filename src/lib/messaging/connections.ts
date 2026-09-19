@@ -83,9 +83,9 @@ export async function smsNumberFor(
    * Ordered as well as narrowed, so the same business always sends from the
    * same number rather than from whatever the planner felt like returning.
    *
-   * Still to do: a message about one person's own conversation should leave
-   * from their number where they have one. That needs the conversation, which
-   * this does not have, so it is a change to the callers rather than to this.
+   * A message about one person's own work leaves from their number instead.
+   * That needs to know whose work it is, which this does not, so it is its own
+   * function below: smsNumberForPerson.
    */
   const { data, error } = await supabase
     .from("channel_connections")
@@ -141,4 +141,44 @@ export async function sendingAs(
     .maybeSingle();
 
   return { metaAccountId: connection.external_id, metaToken: secret?.access_token ?? null };
+}
+
+/**
+ * The number a message about one person's work should leave from.
+ *
+ * The business's own line is right for anything the business sends on its own
+ * account. It is wrong for a reminder about Aisha's appointment when Aisha has
+ * a number of her own: the customer gets a text from a number they have never
+ * seen, and replies to the salon about a haircut the salon cannot see.
+ *
+ * Theirs where they have one, the business's where they do not, and null where
+ * there is nothing at all — which is a business that cannot text, and is the
+ * answer every caller already handles.
+ *
+ * Errors are thrown rather than swallowed, for the same reason the function
+ * below it throws: a number we could not look up is not the same as a business
+ * without one, and sending from the wrong number is worse than not sending.
+ */
+export async function smsNumberForPerson(
+  supabase: SupabaseClient,
+  studioId: string,
+  artistId: string | null | undefined,
+): Promise<string | null> {
+  if (artistId) {
+    const { data, error } = await supabase
+      .from("channel_connections")
+      .select("external_id")
+      .eq("studio_id", studioId)
+      .eq("channel", "sms")
+      .eq("active", true)
+      .eq("artist_id", artistId)
+      .order("created_at")
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw new Error(`could not read their SMS number: ${error.message}`);
+    if (data?.external_id) return data.external_id as string;
+  }
+
+  return smsNumberFor(supabase, studioId);
 }
