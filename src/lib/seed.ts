@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { verticalPack } from "@/lib/verticals";
+import { longestSession } from "@/lib/booking/longestSession";
 
 /**
  * Fills a new business with its trade's starting point.
@@ -84,6 +85,26 @@ export async function seedFromPack(
        * nobody saw it.
        */
       pricing_model: pack.pricing === "fixed" ? "services" : "bands",
+      /*
+       * A day long enough for this trade's longest ordinary job.
+       *
+       * The limit on one appointment defaults to six hours, which is a whole
+       * working day for a salon and half of one for a plasterer. A job longer
+       * than the limit is not refused, and nothing anywhere says so: durationFor
+       * quietly books it for the limit instead, so an eight-hour room is put in
+       * the diary as six and the diary shows the plasterer free at three while
+       * he is still on the ceiling. The customer is told a time that is wrong
+       * and nobody finds out until the next booking lands on top of it.
+       *
+       * Taken from the pack's own services, because the pack is where the
+       * eight-hour room came from. Only the ones that are booked straight off:
+       * a job marked "consult first" is booked as a consultation whatever its
+       * length, so a sixteen-hour rewire says nothing about how long a day is.
+       *
+       * Seeded, not enforced. This is the starting point for a new business and
+       * an owner can set it to whatever their day really is.
+       */
+      max_session_minutes: longestSession(pack.bands),
     })
     .eq("id", studioId);
   if (studioError) errors.push(`vocabulary: ${studioError.message}`);

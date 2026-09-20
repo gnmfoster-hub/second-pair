@@ -102,9 +102,32 @@ for (const s of studios) {
     );
   }
 
+  /*
+   * Only the ones that would actually be booked as a session.
+   *
+   * This reported four faults that cannot happen. A band marked "consult
+   * first" is never booked for its own length: bookingTypeFor sends it down
+   * the consultation branch and durationFor returns consultation_minutes, so
+   * max_session_minutes is never consulted at all. Ashcroft's sixteen-hour
+   * rewire was reported as "would be booked short" when what actually happens
+   * is a forty-five minute look at the job, which is correct and is the whole
+   * point of the flag.
+   *
+   * Four of the five instances were that. The real one was a plasterer's
+   * "Skim one room", eight hours, bookable straight off, and it would have
+   * been six. It was sitting underneath the noise, which is what a check that
+   * cries wolf costs.
+   *
+   * The consultation length is asked about separately, just above.
+   */
   for (const b of bands ?? []) {
+    if (b.requires_consultation) continue;
     if (b.duration_minutes != null && b.duration_minutes > s.max_session_minutes) {
-      faults.push(`"${b.size_label}" is ${b.duration_minutes}m but max session is ${s.max_session_minutes}m — it would be booked short`);
+      faults.push(
+        `"${b.size_label}" is ${b.duration_minutes}m, longer than the ${s.max_session_minutes}m ` +
+          `limit on one appointment, so it would be booked short and the diary would show ` +
+          `them free while they are still on the job`,
+      );
     }
   }
   if (!active.length) faults.push("NOBODY TAKING BOOKINGS — cannot offer or book anything");
