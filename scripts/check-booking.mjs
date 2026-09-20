@@ -148,9 +148,21 @@ const SCRIPTS = {
    * the conversation was fine and the script was the thing that never picked a
    * slot.
    */
+  /*
+   * The details come first here, because an instructor cannot offer a time
+   * until they know the postcode is one they cover.
+   *
+   * The provisional licence is this trade's blocking fact, the way a dog's
+   * vaccination date is the groomer's. Without it the assistant refuses to
+   * book — correctly, because teaching somebody without one is illegal — and
+   * it is careful enough to notice that "yes please, book that in" might be a
+   * yes to the booking rather than a yes to the licence, and asks again. So
+   * the check reported no booking on some runs and not others, and both times
+   * the business was behaving perfectly.
+   */
   "dansdriving-demo": [
     "hi, how much is a driving lesson?",
-    `I'm Dawn Pethick, ${testNumber}, postcode BS1 4ST. I've passed my theory, back in March.`,
+    `I'm Dawn Pethick, ${testNumber}, postcode BS1 4ST. I've passed my theory back in March, I've got my provisional licence, and I've had a few lessons before.`,
     "what have you got next week?",
     "the first one please",
     "yes please, book that in",
