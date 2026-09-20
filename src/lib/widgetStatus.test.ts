@@ -25,27 +25,27 @@ test("open, during opening hours", () => {
 test("before opening, it says when it is back", () => {
   const s = statusFor(salon, LDN, on("2026-03-05T07:30:00Z"));
   assert.equal(s.open, false);
-  assert.equal(s.line, "Ask now — open at 9am");
+  assert.equal(s.line, "Ask now, open at 9am");
 });
 
 test("after closing, it names the next day it is open", () => {
   const s = statusFor(salon, LDN, on("2026-03-05T22:10:00Z"));
   assert.equal(s.open, false);
-  assert.equal(s.line, "Closed — I can still book you");
+  assert.equal(s.line, "Closed, but I can still book you");
 });
 
 test("a run of closed days still invites rather than turning away", () => {
   // Saturday night, shut Sunday and Monday. Two days closed is exactly when
   // being able to book without waiting is worth most.
   const s = statusFor(salon, LDN, on("2026-03-07T20:00:00Z"));
-  assert.equal(s.line, "Closed — I can still book you");
+  assert.equal(s.line, "Closed, but I can still book you");
 });
 
 test("on a closed day it still looks forward", () => {
   // Sunday afternoon.
   const s = statusFor(salon, LDN, on("2026-03-08T14:00:00Z"));
   assert.equal(s.open, false);
-  assert.equal(s.line, "Closed — I can still book you");
+  assert.equal(s.line, "Closed, but I can still book you");
 });
 
 // -------------------------------------------------- it has to be true
@@ -93,7 +93,7 @@ test("it is judged where the business is, not where the visitor is", () => {
 
 test("half past hours are said the way people say them", () => {
   const half = salon.map((h) => ({ ...h, open: "09:30" }));
-  assert.equal(statusFor(half, LDN, on("2026-03-05T07:00:00Z")).line, "Ask now — open at 9.30am");
+  assert.equal(statusFor(half, LDN, on("2026-03-05T07:00:00Z")).line, "Ask now, open at 9.30am");
 });
 
 
