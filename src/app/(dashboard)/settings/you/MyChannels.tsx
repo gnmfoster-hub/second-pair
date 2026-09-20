@@ -35,6 +35,7 @@ export function MyChannels({
   /** Channels the business has that reach everybody, including them. */
   shared,
   allowed,
+  subscribed,
   ownEmail,
 }: {
   firstName: string;
@@ -44,6 +45,14 @@ export function MyChannels({
   /** Channels the owner has allowed them their own of. See lib/channels/whose. */
   allowed?: string[] | null;
   /**
+   * What the business pays for at all, which is the gate above the owner's.
+   *
+   * A channel nobody is subscribed to is not a thing to offer, to explain or
+   * to say is switched off: it is not on the shelf, and listing it would have
+   * every stylist asking their owner for something the owner cannot give.
+   */
+  subscribed?: string[] | null;
+  /**
    * Their own address, where email is one of the allowed ones.
    *
    * Worked out by the page rather than here, because it is made of the
@@ -52,6 +61,29 @@ export function MyChannels({
   ownEmail?: string | null;
 }) {
   const sharedNames = [...new Set(shared.map((c) => CHANNEL_LABELS[c.channel]))];
+
+  /*
+   * The three gates, worked out once.
+   *
+   * subscribed is the business paying for the channel at all, which is ours to
+   * decide; allowed is the owner saying this person may have their own of it;
+   * connected is whether there is anything on them yet. The first two decide
+   * whether a channel is on this page. The third only decides what it says.
+   *
+   * web is never here: it is the widget on the business's own site and there
+   * is no personal version of it to have.
+   */
+  const paidFor = (subscribed ?? []).filter((c) => c !== "web");
+  const mayHave = new Set(allowed ?? []);
+
+  const hers = paidFor
+    .filter((c) => mayHave.has(c))
+    .map((channel) => ({
+      channel: channel as Channel,
+      connected: mine.find((m) => m.channel === channel) ?? null,
+    }));
+
+  const theirs = paidFor.filter((c) => !mayHave.has(c)) as Channel[];
 
   return (
     <section className="card p-5">
@@ -95,94 +127,110 @@ export function MyChannels({
       )}
 
       {/*
-       * The two halves of this, which are not the same job.
-       *
-       * A number is bought and paid for by the business — it costs money every
-       * month and has to be registered to a real address — so the owner buys it
-       * and decides whose it is. Nobody on the team can conjure one.
-       *
-       * Her own Instagram is the opposite, and for exactly the reason Stripe on
-       * this same page already gives: only she can log in to it. An owner
-       * cannot connect a stylist's Instagram on her behalf without her
-       * password, and should not want to. So that one is hers to press.
-       */}
-      {/*
-        * Only where the owner has allowed it.
+        * Every channel she is actually allowed, not the two this was written for.
         *
-        * Connecting your own Instagram points every enquiry arriving on it at
-        * your diary and stops the assistant asking who the customer wants.
-        * That is a change to how the business is reached, so it is the owner's
-        * to allow — and before this it was open to anybody with a login.
+        * Giles: all channels and the ability to set them up should show for
+        * every team member, if the owner has turned it on and the business is
+        * subscribed to it. This panel handled Instagram and Facebook and said
+        * one sentence about numbers, so a stylist allowed six channels was
+        * told about two of them.
         *
-        * Said as a fact rather than as a refusal. "Not switched on for you" is
-        * a thing to ask about; a missing button is a thing to report as broken.
+        * Three gates, in this order, and they are genuinely different things:
+        *
+        *   subscribed  the business pays for that channel at all. Ours.
+        *   allowed     the owner has said this person may have their own.
+        *   connected   there is an account or a number on them.
+        *
+        * Only the first two decide whether a channel appears here. The third
+        * decides what it says, because "you are allowed one and there isn't one
+        * yet" and "you are not allowed one" are completely different answers
+        * and used to read identically.
         */}
-      {!(allowed ?? []).some((c) => c === "instagram" || c === "messenger") ? (
+      {hers.length > 0 && (
         <div className="mt-4 border-t border-border pt-4">
-          <span className="label">An account of your own</span>
-          <p className="hint mt-1.5">
-            Connecting your own Instagram or Facebook is not switched on for you. Whoever
-            runs {business} decides that, because anything arriving on it would come
-            straight to you rather than being offered round.
-          </p>
+          <span className="label">Your own, on this business</span>
+          <ul className="mt-2 space-y-3">
+            {hers.map(({ channel, connected }) => (
+              <li key={channel}>
+                <div className="flex flex-wrap items-baseline gap-x-2.5">
+                  <span className="text-sm font-medium">{CHANNEL_LABELS[channel]}</span>
+                  {connected ? (
+                    <span className="hint num">
+                      {channel === "sms" || channel === "voice"
+                        ? readableNumber(connected.external_id ?? "")
+                        : (connected.label ?? "connected")}
+                    </span>
+                  ) : (
+                    <span className="pill bg-surface-2 text-muted">Not set up yet</span>
+                  )}
+                </div>
+
+                {/* What to do about it, which differs by who is able to act. */}
+                {channel === "email" && ownEmail && (
+                  <>
+                    <p className="num mt-1.5 break-all rounded-lg bg-surface-2 px-3 py-2 text-[0.85rem]">
+                      {ownEmail}
+                    </p>
+                    <p className="hint mt-1.5">
+                      Yours already, nothing to set up. Anything sent here reaches only you,
+                      and the assistant books it straight into your diary without asking who
+                      the customer wants. Worth putting on your own card or in your Instagram
+                      bio.
+                    </p>
+                  </>
+                )}
+
+                {(channel === "instagram" || channel === "messenger") && !connected && (
+                  <>
+                    <a href="/api/meta/connect/start?mine=1" className="btn-ghost mt-1.5 inline-flex">
+                      Connect my own {CHANNEL_LABELS[channel]}
+                    </a>
+                    <p className="hint mt-1.5">
+                      You log in to Facebook yourself and choose what to share. Nobody here
+                      sees your password, and you can disconnect from your own Facebook
+                      settings at any time without telling us.
+                    </p>
+                  </>
+                )}
+
+                {(channel === "sms" || channel === "voice" || channel === "whatsapp") &&
+                  !connected && (
+                    <p className="hint mt-1.5">
+                      A number of your own comes with {business}&rsquo;s Second Pair
+                      subscription, and whoever runs {business} allocates it. They are paid
+                      for monthly and have to be registered to a real address, so nobody on
+                      the team can add one themselves. Ask them and it will appear here.
+                    </p>
+                  )}
+
+                {connected && (channel === "sms" || channel === "voice") && (
+                  <p className="hint mt-1.5">
+                    Set up for you by whoever runs {business}. Everything arriving on it is
+                    yours, and the assistant never asks the customer who they would like.
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
-      ) : (
-      <div className="mt-4 border-t border-border pt-4">
-        <span className="label">An account of your own</span>
-        <p className="hint mt-1.5">
-          Your own Instagram or Facebook, rather than {business}&rsquo;s. You log in to
-          Facebook yourself and choose what to share &mdash; nobody here sees your
-          password, and you can disconnect from your own Facebook settings at any time
-          without telling us.
-        </p>
-        <a href="/api/meta/connect/start?mine=1" className="btn-ghost mt-2.5 inline-flex">
-          Connect my own Instagram or Facebook
-        </a>
-        <p className="hint mt-2">
-          Anything you connect here is yours: enquiries arriving on it are for {firstName},
-          and the assistant books them straight into your diary without asking who the
-          customer wants.
-        </p>
-      </div>
       )}
 
       {/*
-        * The address she already has, which nothing ever told her about.
+        * And the ones the owner has not switched on.
         *
-        * Sarah allowed Aisha six channels and this panel only ever spoke about
-        * two, because it was written for Instagram and Facebook and never
-        * caught up. Email is the one that needed nothing bought and nothing
-        * connected: the address exists the moment it is allowed, it works
-        * today, and the person it belongs to had no way to find it out.
-        *
-        * Giles, looking at her settings: I can see the option to connect
-        * Facebook but not the other channels Sarah has turned on for her.
+        * Said as a fact rather than left as a missing button. "Not switched on
+        * for you" is a thing to ask about; an absence is a thing to report as
+        * broken, which is how this arrived on my desk in the first place.
         */}
-      {ownEmail && (
-        <div className="mt-4 border-t border-border pt-4">
-          <span className="label">An address of your own</span>
-          <p className="hint mt-1.5">
-            Anything sent here is yours, {firstName}. It reaches only you, and the
-            assistant books it straight into your diary without asking who the customer
-            wants.
-          </p>
-          <p className="num mt-2 break-all rounded-lg bg-surface-2 px-3 py-2 text-[0.85rem]">
-            {ownEmail}
-          </p>
-          <p className="hint mt-2">
-            Worth putting on your own card or in your Instagram bio. {business}&rsquo;s own
-            address still reaches everybody, including you.
-          </p>
-        </div>
+      {theirs.length > 0 && (
+        <p className="hint mt-4 border-t border-border pt-4">
+          {orList(theirs.map((c) => CHANNEL_LABELS[c]))} of your own{" "}
+          {theirs.length === 1 ? "is" : "are"} not switched on for you. Whoever runs{" "}
+          {business} decides that, because anything arriving on one would come straight to
+          you rather than being offered round.
+        </p>
       )}
 
-      <p className="hint mt-4">
-        {mine.some((c) => c.channel === "sms" || c.channel === "voice")
-          ? "Your number was set up for you. Whoever runs the business buys and allocates those, because they are paid for monthly and have to be registered to a real address."
-          : (allowed ?? []).some((c) => c === "sms" || c === "voice")
-            ? `A number of your own is switched on for you, but there is not one on you yet. Numbers are bought and paid for monthly by the business and have to be registered to a real address, so ask whoever runs ${business} to put one on you.`
-            : `A number of your own is not something you can add yourself: they are bought and paid for monthly by the business and have to be registered to a real address. Ask whoever runs ${business} if you need one.`}
-      </p>
     </section>
   );
 }
