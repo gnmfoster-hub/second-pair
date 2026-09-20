@@ -2038,17 +2038,55 @@ async function escalate(
    */
   const filed = await fileRequest(ctx, summary);
 
-  // Flag it without going silent.
-  await ctx.db
+  /*
+   * Flag it without going silent — and know whether the flag actually landed.
+   *
+   * This is the safety valve: every question the assistant cannot answer, and
+   * every cancellation and change a customer asks for, leaves through here.
+   * Both writes threw their answer away, which is the fault that emptied every
+   * inbox on every business earlier this month — one status value the database
+   * had not been told about and the whole write is refused, silently.
+   *
+   * The cost here is worse than an empty screen. The customer is told a person
+   * has it. The conversation is never marked as needing one. Nobody looks, and
+   * a garage keeps a bay free on a Monday morning for a car that was cancelled
+   * days ago. Telling somebody their message is with a human when it is not is
+   * the one thing this tool exists to never do.
+   */
+  const { error: flagFailed } = await ctx.db
     .from("conversations")
     .update({ status: "needs_human" })
     .eq("id", ctx.conversationId);
 
-  await ctx.db.from("messages").insert({
+  const { error: noteFailed } = await ctx.db.from("messages").insert({
     conversation_id: ctx.conversationId,
     role: "system",
     content: `Question for the owner: ${summary}`,
   });
+
+  if (flagFailed || noteFailed) {
+    console.error(
+      `[escalate] could not hand over conversation ${ctx.conversationId}: ` +
+        `${flagFailed?.message ?? ""} ${noteFailed?.message ?? ""}`.trim(),
+    );
+  }
+
+  /*
+   * The flag is the part that matters. The note is a line in a thread somebody
+   * is already looking at; the flag is what makes them look at all. So a failed
+   * note is worth logging and carrying on, and a failed flag means this did not
+   * happen and the customer must not be told that it did.
+   */
+  if (flagFailed) {
+    return {
+      result:
+        "COULD NOT pass this to the owner — it has not reached anybody. Do not say it " +
+        "has been passed on, flagged, raised, or that somebody will come back to them: " +
+        "none of that is true and they would stop chasing it. Tell them you cannot get " +
+        "a message through to the business just now and ask them to ring instead. Then " +
+        "carry on helping with everything else as normal.",
+    };
+  }
 
   if (filed) {
     return {
