@@ -95,5 +95,5 @@ export function missedCallText(
       `Say ${CALLBACK_WORD} for a call.`
     : `Tell me what you need and I can help here, or say ${CALLBACK_WORD} and we'll ring you back.`;
 
-  return `Sorry we missed your call — this is ${who}. ${middle} Reply STOP and we won't text again.`;
+  return `Sorry we missed your call. This is ${who}. ${middle} Reply STOP and we won't text again.`;
 }

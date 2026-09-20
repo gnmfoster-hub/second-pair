@@ -21,7 +21,7 @@ export type BlockType =
   | "date"
   | "agree" // a tick box that must be ticked
   | "signature"
-  | "lines"; // a priced list, for a quote — set when it is sent, never typed by the customer
+  | "lines"; // a priced list, for a quote, set when it is sent, never typed by the customer
 
 export type Block = {
   id: string;

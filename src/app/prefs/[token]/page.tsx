@@ -62,7 +62,7 @@ export default async function PreferencesPage({
 
         <p className="hint mt-2">
           Offers, news and anything else that is not about an appointment. Change it whenever
-          you like — this page is yours and the link keeps working.
+          you like. This page is yours and the link keeps working.
         </p>
 
         <Preferences

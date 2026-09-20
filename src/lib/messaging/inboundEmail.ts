@@ -364,7 +364,7 @@ export function judge(
   if (VERIFYING.some((pattern) => pattern.test(opening))) {
     return {
       what: "park",
-      because: "it looks like a code for setting this address up — read it and carry on",
+      because: "it looks like a code for setting this address up, so read it and carry on",
       setup: true,
     };
   }

@@ -49,7 +49,7 @@ export default async function PaymentCancelledPage({
             ]
           : [
               "Payment cancelled",
-              "Nothing has been charged. Your slot is held for a short while — go back and ask for the link again if you still want it.",
+              "Nothing has been charged. Your slot is held for a short while, so go back and ask for the link again if you still want it.",
             ];
 
   return (

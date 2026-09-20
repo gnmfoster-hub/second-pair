@@ -69,7 +69,7 @@ export async function handOverAfterFailure(
       content: "The assistant could not answer this one, so nothing was sent. Reply yourself.",
     });
     await notifyStudio(db, args.studioId, {
-      title: "Needs you — the assistant could not answer",
+      title: "Needs you: the assistant could not answer",
       body: "Something went wrong writing a reply, so nothing was sent. Reply to them yourself.",
       url: `/conversations/${conversation.id}`,
       tag: `failed-${conversation.id}`,

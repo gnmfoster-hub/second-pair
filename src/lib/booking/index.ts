@@ -343,7 +343,7 @@ export async function createBooking(args: {
     return {
       ok: false,
       reason: "unsupported",
-      message: "This diary cannot be written to — send them the booking link instead.",
+      message: "This diary cannot be written to. Send them the booking link instead.",
     };
   }
 

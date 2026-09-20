@@ -113,7 +113,7 @@ export function bookingInstructions(
   if (caps.writesBookings) {
     return [
       "You can see real availability and book it yourself.",
-      "Call get_available_slots and offer only what it returns — never invent a time.",
+      "Call get_available_slots and offer only what it returns. Never invent a time.",
       "Once they pick one, call create_booking.",
     ].join(" ");
   }

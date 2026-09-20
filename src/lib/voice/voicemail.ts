@@ -77,7 +77,7 @@ export function readTranscript(
  * the assistant to have been warned rather than confident.
  */
 export function asMessage(said: string): string {
-  return `[Voicemail, transcribed — wording may be approximate] ${said}`;
+  return `[Voicemail, transcribed, wording may be approximate] ${said}`;
 }
 
 /** What a voicemail is claimed under, so one is never answered twice. */

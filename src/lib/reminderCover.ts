@@ -82,7 +82,7 @@ export function whatIsMissing(cover: Cover): string | null {
 
   if (!cover.businessWide && cover.onTheirOwn.length) {
     return (
-      `There is no reminder for the business as a whole — only ${listOf(cover.onTheirOwn)}'s own. ` +
+      `There is no reminder for the business as a whole, only ${listOf(cover.onTheirOwn)}'s own. ` +
       `Nothing is sent before an appointment with ${who}.`
     );
   }

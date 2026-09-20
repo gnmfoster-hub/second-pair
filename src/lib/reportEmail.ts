@@ -123,7 +123,7 @@ export async function buildReportEmail(
 
   if (lapsed.length) {
     lines.push("");
-    lines.push(`Worth a message — overdue by their own usual rhythm:`);
+    lines.push(`Worth a message, overdue by their own usual rhythm:`);
     for (const p of lapsed.slice(0, 3)) {
       lines.push(`• ${p.name ?? "Somebody unnamed"}, last in ${p.daysSince} days ago (usually every ${p.usualGapDays})`);
     }

@@ -196,8 +196,8 @@ export function composeReceipt({
   const text =
     `Hello ${firstName},\n\n` +
     (deposit
-      ? "Thank you — your deposit has been received. It comes off the total on the day."
-      : "Thank you — your payment has gone through.") +
+      ? "Thank you, your deposit has been received. It comes off the total on the day."
+      : "Thank you, your payment has gone through.") +
     what +
     `\n\nPaid on ${when}.\nReference ${shortRef(reference)}.` +
     vatLine +

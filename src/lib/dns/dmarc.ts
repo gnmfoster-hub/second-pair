@@ -61,7 +61,7 @@ export function readDmarc(record: string): Dmarc {
        * "@inbox.dmarcdigests.com,mailto:info@second-pair.com" left stranded
        * after the tags that swallowed its beginning.
        */
-      faults.push(`"${part}" is not a tag — it has no name`);
+      faults.push(`"${part}" is not a tag, it has no name`);
       continue;
     }
 
@@ -70,7 +70,7 @@ export function readDmarc(record: string): Dmarc {
 
     if (seen.has(name)) {
       // Two of the same tag means two records have been mixed together.
-      faults.push(`${name} appears twice — two records have been run into one`);
+      faults.push(`${name} appears twice, so two records have been run into one`);
       continue;
     }
     seen.add(name);
@@ -87,7 +87,7 @@ export function readDmarc(record: string): Dmarc {
 
   if (!tags.p) faults.push("there is no p= policy");
   else if (!["none", "quarantine", "reject"].includes(tags.p.toLowerCase())) {
-    faults.push(`p=${tags.p} is not a policy — it must be none, quarantine or reject`);
+    faults.push(`p=${tags.p} is not a policy. It must be none, quarantine or reject`);
   }
 
   const reportTo: string[] = [];

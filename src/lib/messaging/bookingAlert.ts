@@ -130,8 +130,8 @@ export function composeBookingAlert({
     ? depositPaid
       ? `Deposit of ${formatPence(depositPence)} paid.`
       : depositOptional
-        ? `Deposit of ${formatPence(depositPence)} offered, not paid — the booking stands either way.`
-        : `Deposit of ${formatPence(depositPence)} due — the slot is held until it is paid.`
+        ? `Deposit of ${formatPence(depositPence)} offered, not paid. The booking stands either way.`
+        : `Deposit of ${formatPence(depositPence)} due. The slot is held until it is paid.`
     : null;
 
   const emailText = [

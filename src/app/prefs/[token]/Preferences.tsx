@@ -59,7 +59,7 @@ export function Preferences({
           <span className="font-medium">Text me</span>
           <span className="hint block">
             {has.sms
-              ? "The occasional text — a cancellation you might want, or something on offer."
+              ? "The occasional text: a cancellation you might want, or something on offer."
               : `${business} has no mobile number for you, so there is nothing to switch on.`}
           </span>
         </span>

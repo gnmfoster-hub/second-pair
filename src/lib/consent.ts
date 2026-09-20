@@ -106,7 +106,7 @@ export function describeConsent(contact: {
 
   if (!contact.marketing_consent_at) {
     return {
-      text: "Agreed, but nobody recorded when — treat as unusable until they say again",
+      text: "Agreed, but nobody recorded when, so treat as unusable until they say again",
       evidenced: false,
     };
   }

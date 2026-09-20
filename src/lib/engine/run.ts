@@ -1013,7 +1013,7 @@ async function generateReply(
       // A refusal is a handover like any other, and the widget should show it
       // as one rather than leaving the customer wondering.
       return {
-        text: "Let me get someone from the studio to help with that — they'll come back to you shortly.",
+        text: "Let me get someone from the studio to help with that. They'll come back to you shortly.",
         moments: [{ kind: "handover", person: ctx.artists.find((a) => a.active)?.name ?? null }],
       };
     }
@@ -1130,7 +1130,7 @@ ${text}`;
 
   if (!text) {
     text = escalated
-      ? "Thanks — I've passed this to the studio and someone will come back to you shortly."
+      ? "Thanks, I've passed this to the studio and someone will come back to you shortly."
       : "Sorry, I didn't catch that. Could you say it another way?";
   }
 

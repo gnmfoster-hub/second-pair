@@ -193,7 +193,7 @@ const STARTERS: Record<string, Starter> = {
     kind: "consent",
     blurb: "Whether photos can be used publicly.",
     blocks: [
-      { id: "use", type: "choice", label: "How may we use photos of you or your work?", required: true, options: ["Anywhere, including social media and the website", "In our portfolio only", "Not at all — private only"] },
+      { id: "use", type: "choice", label: "How may we use photos of you or your work?", required: true, options: ["Anywhere, including social media and the website", "In our portfolio only", "Not at all, private only"] },
       { id: "tag", type: "yesno", label: "Happy to be tagged?" },
       sig,
     ],

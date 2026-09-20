@@ -59,7 +59,7 @@ export const FIELDS: FieldSpec[] = [
     target: "phone",
     label: "Phone",
     matches: /^(mobile(\s*(number|phone))?|phone|telephone|tel|contact\s*number|cell)$/i,
-    hint: "A mobile is preferred — it is the only number we can text.",
+    hint: "A mobile is preferred, because it is the only number we can text.",
   },
   { target: "email", label: "Email", matches: /^(e-?mail(\s*address)?)$/i },
   {

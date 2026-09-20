@@ -21,11 +21,11 @@
  */
 export function howToSendPhotos(channel: string): string {
   if (channel === "web") {
-    return "- Reference images — there is a paperclip in the chat window they can attach photos with, so point them at it";
+    return "- Reference images: there is a paperclip in the chat window they can attach photos with, so point them at it";
   }
 
   return (
-    "- Reference images — ask them to send a photo or two, attached to their reply the way they " +
+    "- Reference images: ask them to send a photo or two, attached to their reply the way they " +
     "would send one to anybody. Never mention a paperclip, a button or a chat window: they are " +
     "not on our website, they are in their own messages app."
   );

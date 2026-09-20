@@ -184,7 +184,7 @@ export async function deliver({
   if (!to) {
     return {
       status: "failed",
-      error: "No address for this channel — there is nothing to send it to.",
+      error: "No address for this channel, so there is nothing to send it to.",
     };
   }
 

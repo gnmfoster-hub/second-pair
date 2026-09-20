@@ -104,7 +104,7 @@ export async function watchTheEssentials(
           ? "No backup has been written yet. The key is set, so the first copy is taken " +
             "on the next run between 2 and 5am. If this says the same thing tomorrow, " +
             "the write itself is failing rather than waiting."
-          : "Nothing is being backed up — there is no file in the bucket at all, and " +
+          : "Nothing is being backed up. There is no file in the bucket at all, and " +
             "BACKUP_KEY is not set in Vercel or is shorter than 16 characters.",
     );
   }

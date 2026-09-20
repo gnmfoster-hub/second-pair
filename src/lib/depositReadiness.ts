@@ -127,7 +127,7 @@ export function depositReadiness(state: DepositReadiness): Verdict {
     return {
       ready: false,
       otherwise:
-        "Money goes to each person here, and nobody is set to take a deposit — so " +
+        "Money goes to each person here, and nobody is set to take a deposit, so " +
         "the business takes deposits in theory and none in practice.",
       action: "Check who takes them",
       href: "/settings/artists",

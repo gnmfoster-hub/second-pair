@@ -35,7 +35,7 @@ test("the text says who it is and asks something", () => {
 test("a number belonging to one person says so, and says it is their assistant", () => {
   assert.equal(
     missedCallText("The Fold Hair", "Sarah"),
-    "Sorry we missed your call — this is Sarah's assistant at The Fold Hair. " +
+    "Sorry we missed your call. This is Sarah's assistant at The Fold Hair. " +
       "Tell me what you need and I can help here, or say CALL and we'll ring you back. " +
       "Reply STOP and we won't text again.",
   );
@@ -44,9 +44,9 @@ test("a number belonging to one person says so, and says it is their assistant",
 test("a blank name is the business's assistant, not a dangling 'at'", () => {
   assert.match(
     missedCallText("Muddy Paws", "  "),
-    /^Sorry we missed your call — this is the assistant at Muddy Paws\./,
+    /^Sorry we missed your call. This is the assistant at Muddy Paws\./,
   );
-  assert.match(missedCallText("Muddy Paws", null), /this is the assistant at Muddy Paws\./);
+  assert.match(missedCallText("Muddy Paws", null), /This is the assistant at Muddy Paws\./);
 });
 
 /*

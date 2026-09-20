@@ -146,11 +146,11 @@ export default async function PaymentDonePage({
   if (!found) {
     heading = "We could not find that payment";
     body =
-      "The link may be incomplete. If you have paid, your card statement will show it and the business will have a record — nothing more is needed from you.";
+      "The link may be incomplete. If you have paid, your card statement will show it and the business will have a record. Nothing more is needed from you.";
   } else if (!paid && giveUp) {
     heading = "Still being confirmed";
     body =
-      "The payment provider has not confirmed it yet. If your card was charged it has gone through, and you will hear from the business — there is no need to pay again.";
+      "The payment provider has not confirmed it yet. If your card was charged it has gone through, and you will hear from the business. There is no need to pay again.";
   } else if (!paid) {
     heading = "Confirming your payment";
     body =
