@@ -117,7 +117,7 @@ export function toolDefinitions(
       name: "save_enquiry",
       description:
         "Record what you have learned about this enquiry. Call it as soon as you learn " +
-        "something, with only the fields you just learned. Calling it repeatedly is fine — " +
+        "something, with only the fields you just learned. Calling it repeatedly is fine: " +
         "later values overwrite earlier ones.",
       input_schema: {
         type: "object",
@@ -151,7 +151,7 @@ export function toolDefinitions(
             type: "boolean",
             description:
               "True only if they have confirmed they are 18 or over. If they say they " +
-              "are under 18, do not set this — escalate instead.",
+              "are under 18, do not set this. Escalate instead.",
           },
           preferred_times: {
             type: "string",
@@ -167,7 +167,7 @@ export function toolDefinitions(
                 job_postcode: {
                   type: "string",
                   description:
-                    "Their postcode. Save it as soon as you have it — it decides whether " +
+                    "Their postcode. Save it as soon as you have it, because it decides whether " +
                     "this is even somewhere the business covers.",
                 },
               }),
@@ -242,7 +242,7 @@ export function toolDefinitions(
       name: "quote_estimate",
       description:
         "Work out the price range for a size band. This is the ONLY way to produce a " +
-        "price — never calculate one yourself. Returns a range, the deposit, and whether " +
+        "price. Never calculate one yourself. Returns a range, the deposit, and whether " +
         "a consultation is needed first.",
       input_schema: {
         type: "object",
@@ -267,7 +267,7 @@ export function toolDefinitions(
           {
             name: "get_available_slots",
             description:
-              "Real openings in the diary. The ONLY source of times — never invent or " +
+              "Real openings in the diary. The ONLY source of times. Never invent or " +
               "guess a date. Call it before offering any appointment. If they have said " +
               "when they want, pass it: asking again without their day returns the same " +
               "soonest times and looks like there is nothing else free.",
@@ -295,7 +295,7 @@ export function toolDefinitions(
                     "Thursday", "Friday", "Saturday",
                   ],
                   description:
-                    "Only this day of the week, when they have named one — 'have you got " +
+                    "Only this day of the week, when they have named one: 'have you got " +
                     "a Thursday'. Leave it out if they have not.",
                 },
                 on_or_after: {
@@ -331,7 +331,7 @@ export function toolDefinitions(
                 different: {
                   type: "boolean",
                   description:
-                    "Set true when they have turned down what you already offered — 'none " +
+                    "Set true when they have turned down what you already offered: 'none " +
                     "of those', 'anything else?', 'have you got other times'. It leaves " +
                     "out every time already offered in this conversation, so you cannot " +
                     "repeat yourself. Combine it with from_time or weekday when they said " +
@@ -379,7 +379,7 @@ export function toolDefinitions(
                         type: "string",
                         enum: ["weekly", "fortnightly", "monthly"],
                         description:
-                          "Only when they have asked for a regular slot in so many words — " +
+                          "Only when they have asked for a regular slot in so many words: " +
                           "\"every week\", \"same time each fortnight\". Books the same time " +
                           "on each date. Leave it out for a one-off.",
                       },
@@ -425,7 +425,7 @@ export function toolDefinitions(
       description:
         "Flag something for the studio owner. Anything medical, anyone under 18, a " +
         "complaint, or a request for a human hands the whole conversation over and you " +
-        "stop replying. Any other question you cannot answer is only flagged — the owner " +
+        "stop replying. Any other question you cannot answer is only flagged, and the owner " +
         "will come back on that one point, and you carry on helping with everything else.",
       input_schema: {
         type: "object",
@@ -744,7 +744,7 @@ async function saveContact(
 
     return {
       result:
-        `Saved: ${saved.join(", ")}. They have been here before — this conversation is ` +
+        `Saved: ${saved.join(", ")}. They have been here before, so this conversation is ` +
         "now on their existing record. Do not mention any of this; just carry on.",
     };
   }
@@ -760,7 +760,7 @@ async function saveContact(
     return {
       result:
         `Saved: ${saved.join(", ")}. Could not save the extra details ` +
-        `(${facts.failed}) — do not tell them those are on file.`,
+        `(${facts.failed}). Do not tell them those are on file.`,
     };
   }
 
@@ -912,7 +912,7 @@ async function quoteEstimate(
       result: [
         `No price is set for ${band.size_label} yet, so there is no estimate to give.`,
         "Do NOT say a price, do not say it is free, and do not guess one.",
-        `Tell them ${ctx.studio.name} will confirm the price, and carry on —`,
+        `Tell them ${ctx.studio.name} will confirm the price, and carry on:`,
         "take the enquiry and offer times as normal.",
         `Typically ${band.hours_low} to ${band.hours_high} hours.`,
       ].join(" "),
@@ -930,7 +930,7 @@ async function quoteEstimate(
         ? "This size needs a consultation before a session is booked."
         : "This size can be booked straight into a session.",
       shown.note
-        ? `Say "${shown.note}" when you give the price — they are VAT registered.`
+        ? `Say "${shown.note}" when you give the price, because they are VAT registered.`
         : "",
       "Give these numbers exactly as written. Say it is an estimate confirmed at the consultation.",
     ]
@@ -1262,7 +1262,7 @@ async function getSlots(
       return {
         result:
           `Nothing free that matches ${narrowed.join(" and ")}. That is not a full ` +
-          "diary — it is only what they asked for. Say so, and offer to look wider: " +
+          "diary, it is only what they asked for. Say so, and offer to look wider: " +
           "call this again without that restriction and offer what comes back.",
       };
     }
@@ -1287,7 +1287,7 @@ async function getSlots(
       return {
         result:
           "There are no opening hours set on this business yet, so the diary cannot be " +
-          "searched. Do NOT say they are busy or fully booked — that is not true and it " +
+          "searched. Do NOT say they are busy or fully booked. That is not true and it " +
           "would turn a customer away. Say you cannot see the diary just now, ask which " +
           "days and times generally suit them, take the rest of their details as normal, " +
           "and say somebody will confirm.",
@@ -1369,7 +1369,7 @@ async function getSlots(
         ? [
             `THEY ARE ALREADY BOOKED IN: ${alreadyBooked.join("; ")}. That appointment is ` +
               "theirs and it stands. The time it takes up is gone from the list below for " +
-              "that reason — never tell them it is unavailable, and never offer them a " +
+              "that reason. Never tell them it is unavailable, and never offer them a " +
               "different day for it. If they are only confirming, say the booking is made " +
               "and read it back. Offer the times below only if they have asked for another " +
               "appointment as well, or asked to change this one.",
@@ -1382,12 +1382,12 @@ async function getSlots(
         ? [
             "WARNING: every one of these has already been offered in this conversation. " +
               "If they have turned them down or asked for something else, do not read " +
-              "these out again — call this tool again with different: true, plus " +
+              "these out again. Call this tool again with different: true, plus " +
               "from_time, to_time, weekday or on_or_after for whatever they told you. " +
               "Only repeat them if they asked you to remind them what the times were.",
           ]
         : []),
-      "Offer them in one short sentence, not a bulleted list — a list of four dates is hard work in a text message, and in the chat widget each one is already a button "
+      "Offer them in one short sentence, not a bulleted list. A list of four dates is hard work in a text message, and in the chat widget each one is already a button "
         + "underneath. Pass the exact starts_at back to create_booking.",
       /*
        * Saying there is more, because four looked like all there was.
@@ -1406,7 +1406,7 @@ async function getSlots(
        * has not been given — the one thing it is never allowed to invent.
        */
       slots.length >= SLOTS_OFFERED
-        ? "These are the soonest, not the whole diary — there is more free after them. End " +
+        ? "These are the soonest, not the whole diary, and there is more free after them. End " +
           "by saying so and inviting another day: ask what suits if none of these do.\n" +
           "If they want different times, call this tool again and CHANGE SOMETHING, or you " +
           "will get these same times back and repeat yourself word for word. Set different: " +
@@ -1517,7 +1517,7 @@ async function makeBooking(
     if (enquiry?.age_confirmed !== true) {
       return {
         result:
-          "Not booked — this trade cannot book anybody under 18 and you have not confirmed " +
+          "Not booked. This trade cannot book anybody under 18 and you have not confirmed " +
           "their age yet. Ask them outright whether they are 18 or over, save the answer " +
           "with save_enquiry (age_confirmed), and then create_booking again. If they say " +
           "no, do not book: it is a criminal offence for the business.",
@@ -1560,7 +1560,7 @@ async function makeBooking(
       const asks = stillToAsk(packFacts, ((theirFacts?.trade_facts as FactValues | null) ?? {}) as FactValues);
       return {
         result:
-          `Not booked — ${blocked.join("; ")}. Ask them` +
+          `Not booked. ${blocked.join("; ")}. Ask them` +
           (asks.length ? ` ${asks.join(", and ")}` : " about it") +
           ", save it with save_contact, then create_booking again. Do not book until it is sorted.",
       };
@@ -1571,7 +1571,7 @@ async function makeBooking(
   if (missing) {
     return {
       result:
-        `Not booked — you do not have ${missing} yet. If they have already told you, ` +
+        `Not booked. You do not have ${missing} yet. If they have already told you, ` +
         "call save_contact with it now and then create_booking again, without asking " +
         `them twice. If they have not, ask for ${missing} first.`,
     };
@@ -1612,7 +1612,7 @@ async function makeBooking(
   if (already.some((b) => Date.parse(b.starts_at) === when)) {
     return {
       result:
-        "Already booked at that time — nothing more to do. Confirm it back to them in " +
+        "Already booked at that time, so nothing more to do. Confirm it back to them in " +
         "words as though it just went through. Do not mention this message.",
     };
   }
@@ -1628,7 +1628,7 @@ async function makeBooking(
       .join("; ");
     return {
       result:
-        `Not booked yet — they already have ${list}. Ask whether this is an extra visit or ` +
+        `Not booked yet. They already have ${list}. Ask whether this is an extra visit or ` +
         "instead of that one. Extra: call create_booking again with another_visit true. " +
         "Instead: do not book; escalate so the owner can move it.",
     };
@@ -1832,7 +1832,7 @@ async function makeBooking(
       `Booked: ${type} with ${artist.name}, ${said}. Confirm it back to them in words.` +
       (takesDeposit
         ? " The slot is held for an hour while the deposit is paid."
-        : " It is confirmed — there is no deposit to take, so do not mention one.") +
+        : " It is confirmed. There is no deposit to take, so do not mention one.") +
       (series
         ? " " +
           regularSummary({
@@ -1961,7 +1961,7 @@ async function bookTheRest(args: {
             .map((iso) => describeSlot({ starts_at: iso, ends_at: iso }, ctx.studio.timezone))
             .join("\n") +
           (skipped.length > 0
-            ? `\n\nThese dates could not be booked and were skipped — the diary was full or you were shut:\n` +
+            ? `\n\nThese dates could not be booked and were skipped, because the diary was full or you were shut:\n` +
               skipped
                 .map((iso) => describeSlot({ starts_at: iso, ends_at: iso }, ctx.studio.timezone))
                 .join("\n")
@@ -2003,7 +2003,7 @@ async function sendDepositLink(ctx: ToolContext): Promise<ToolOutcome> {
     return {
       result:
         "This business cannot take payments yet, so there is no link to send. The " +
-        "booking stands as it is — tell them they are booked in and that nothing is " +
+        "booking stands as it is. Tell them they are booked in and that nothing is " +
         "needed now.",
     };
   }
@@ -2110,7 +2110,7 @@ async function escalate(
   if (flagFailed) {
     return {
       result:
-        "COULD NOT pass this to the owner — it has not reached anybody. Do not say it " +
+        "COULD NOT pass this to the owner. It has not reached anybody. Do not say it " +
         "has been passed on, flagged, raised, or that somebody will come back to them: " +
         "none of that is true and they would stop chasing it. Tell them you cannot get " +
         "a message through to the business just now and ask them to ring instead. Then " +
@@ -2123,7 +2123,7 @@ async function escalate(
       result:
         "Raised as a request with a person, and it is on their Help page where they can " +
         "follow it. Tell them it has been raised and that somebody will come back to " +
-        "them there — then carry on helping with everything else as normal. It is with " +
+        "them there, then carry on helping with everything else as normal. It is with " +
         "them now: do not raise this same question again later in the conversation.",
     };
   }
@@ -2145,10 +2145,10 @@ async function escalate(
    */
   return {
     result:
-      "Handed to the owner. NOTHING HAS CHANGED — no appointment has been cancelled, " +
+      "Handed to the owner. NOTHING HAS CHANGED. No appointment has been cancelled, " +
       "moved or altered by this, and none will be until a person does it. Say it is with " +
       "the business and somebody will confirm. Never say it is done, sorted, cancelled, " +
-      "moved, or off the diary: none of that is true yet, and they will act on it — not " +
+      "moved, or off the diary: none of that is true yet, and they will act on it, which means not " +
       "turning up to an appointment that is still in the book. Then carry on helping with " +
       "everything else as normal. It is with them now: do not raise this same thing again " +
       "later in the conversation.",

@@ -281,7 +281,7 @@ function trade(input: TradeInput): VerticalPack {
     sizing:
       input.sizing ??
       (travels
-        ? `ask one short question about the job — what it involves, and roughly how big the ${
+        ? `ask one short question about the job: what it involves, and roughly how big the ${
             location === "at_customer" ? "place" : "job"
           } is`
         : `ask which ${words.size_unit} they mean, naming two or three from the list`),
@@ -341,7 +341,7 @@ function defaultReminders(travels: boolean): ReminderTemplate[] {
 
 const JOB_ADDRESS: QualificationField = {
   key: "job_address",
-  prompt: "Where the job is — the address, and the postcode especially",
+  prompt: "Where the job is: the address, and the postcode especially",
   required: true,
 };
 
@@ -377,7 +377,7 @@ const HOME: VerticalPack[] = [
     category: "Trades and home",
     blurb: "Domestic and commercial electrical work, at the customer's address.",
     aliases: ["sparky", "electrical", "rewire", "niceic", "consumer unit"],
-    greeting: "Hi — what electrical work do you need doing?",
+    greeting: "Hi, what electrical work do you need doing?",
     roles: ["Electrician", "Approved electrician", "Apprentice"],
     words: {
       practitioner: "electrician",
@@ -413,7 +413,7 @@ const HOME: VerticalPack[] = [
     id: "plumber",
     factsTitle: "Getting in",
     facts: [
-      { key: "access", label: "Getting in", type: "text", ask: "how they will get in — somebody home, a key safe, a code", onAppointment: true },
+      { key: "access", label: "Getting in", type: "text", ask: "how they will get in: somebody home, a key safe, a code", onAppointment: true },
       { key: "parking", label: "Parking", type: "text", ask: "where to park, and whether it is a permit street" },
       { key: "stopcock", label: "Stopcock", type: "text" },
     ],
@@ -421,7 +421,7 @@ const HOME: VerticalPack[] = [
     category: "Trades and home",
     blurb: "Plumbing repairs and installation, at the customer's address.",
     aliases: ["plumbing", "leak", "bathroom", "tap", "blockage"],
-    greeting: "Hi — what's the plumbing problem?",
+    greeting: "Hi, what's the plumbing problem?",
     roles: ["Plumber", "Gas engineer", "Apprentice"],
     words: {
       practitioner: "plumber",
@@ -434,7 +434,7 @@ const HOME: VerticalPack[] = [
     pricing: "hourly",
     asks: [JOB_ADDRESS],
     rules: [
-      "If they describe water actively escaping — a burst pipe, a ceiling coming down, water near electrics — tell them where the stopcock usually is, that they should turn the water off, and escalate immediately. Do not put them in a booking queue.",
+      "If they describe water actively escaping (a burst pipe, a ceiling coming down, water near electrics), tell them where the stopcock usually is, that they should turn the water off, and escalate immediately. Do not put them in a booking queue.",
     ],
     services: {
       "Call-out or small repair": { hours: 1 },
@@ -487,7 +487,7 @@ const HOME: VerticalPack[] = [
     category: "Trades and home",
     blurb: "Boilers, servicing and gas work. Gas Safe registered.",
     aliases: ["boiler", "gas safe", "heating", "central heating", "landlord certificate"],
-    greeting: "Hi — is this about a boiler, a service, or something else?",
+    greeting: "Hi, is this about a boiler, a service, or something else?",
     roles: ["Gas engineer", "Heating engineer", "Apprentice"],
     words: {
       practitioner: "engineer",
@@ -523,7 +523,7 @@ const HOME: VerticalPack[] = [
     id: "joiner",
     factsTitle: "Getting in",
     facts: [
-      { key: "access", label: "Getting in", type: "text", ask: "how they will get in — somebody home, a key safe, a code", onAppointment: true },
+      { key: "access", label: "Getting in", type: "text", ask: "how they will get in: somebody home, a key safe, a code", onAppointment: true },
       { key: "parking", label: "Parking", type: "text", ask: "where to park, and whether it is a permit street" },
     ],
     faqs: [
@@ -539,7 +539,7 @@ const HOME: VerticalPack[] = [
     category: "Trades and home",
     blurb: "Doors, floors, fitted furniture and general woodwork.",
     aliases: ["carpenter", "chippy", "wood", "kitchen fitting", "door", "flooring"],
-    greeting: "Hi — what are you looking to have made or fitted?",
+    greeting: "Hi, what are you looking to have made or fitted?",
     words: {
       practitioner: "joiner",
       practitioners: "joiners",
@@ -564,7 +564,7 @@ const HOME: VerticalPack[] = [
     id: "decorator",
     factsTitle: "Getting in",
     facts: [
-      { key: "access", label: "Getting in", type: "text", ask: "how they will get in — somebody home, a key safe, a code", onAppointment: true },
+      { key: "access", label: "Getting in", type: "text", ask: "how they will get in: somebody home, a key safe, a code", onAppointment: true },
       { key: "parking", label: "Parking", type: "text", ask: "where to park, and whether it is a permit street" },
     ],
     faqs: [
@@ -580,7 +580,7 @@ const HOME: VerticalPack[] = [
     category: "Trades and home",
     blurb: "Interior and exterior painting and decorating.",
     aliases: ["painter", "painting", "decorating", "wallpaper"],
-    greeting: "Hi — what are you looking to have decorated?",
+    greeting: "Hi, what are you looking to have decorated?",
     words: {
       practitioner: "decorator",
       practitioners: "decorators",
@@ -604,7 +604,7 @@ const HOME: VerticalPack[] = [
     id: "plasterer",
     factsTitle: "Getting in",
     facts: [
-      { key: "access", label: "Getting in", type: "text", ask: "how they will get in — somebody home, a key safe, a code", onAppointment: true },
+      { key: "access", label: "Getting in", type: "text", ask: "how they will get in: somebody home, a key safe, a code", onAppointment: true },
       { key: "parking", label: "Parking", type: "text", ask: "where to park, and whether it is a permit street" },
     ],
     faqs: [
@@ -620,7 +620,7 @@ const HOME: VerticalPack[] = [
     category: "Trades and home",
     blurb: "Skimming, rendering and plaster repairs.",
     aliases: ["plastering", "skim", "render", "artex", "boarding"],
-    greeting: "Hi — what needs plastering?",
+    greeting: "Hi, what needs plastering?",
     words: {
       practitioner: "plasterer",
       practitioners: "plasterers",
@@ -644,7 +644,7 @@ const HOME: VerticalPack[] = [
     id: "roofer",
     factsTitle: "Getting in",
     facts: [
-      { key: "access", label: "Getting in", type: "text", ask: "how they will get in — somebody home, a key safe, a code", onAppointment: true },
+      { key: "access", label: "Getting in", type: "text", ask: "how they will get in: somebody home, a key safe, a code", onAppointment: true },
       { key: "parking", label: "Parking", type: "text", ask: "where to park, and whether it is a permit street" },
       { key: "storeys", label: "Storeys", type: "number", ask: "how many storeys, because it decides the access equipment" },
     ],
@@ -661,7 +661,7 @@ const HOME: VerticalPack[] = [
     category: "Trades and home",
     blurb: "Roof repairs, replacement, guttering and flat roofs.",
     aliases: ["roofing", "gutter", "tiles", "flat roof", "leak"],
-    greeting: "Hi — what's happening with the roof?",
+    greeting: "Hi, what's happening with the roof?",
     words: {
       practitioner: "roofer",
       practitioners: "roofers",
@@ -685,7 +685,7 @@ const HOME: VerticalPack[] = [
     id: "handyman",
     factsTitle: "Getting in",
     facts: [
-      { key: "access", label: "Getting in", type: "text", ask: "how they will get in — somebody home, a key safe, a code", onAppointment: true },
+      { key: "access", label: "Getting in", type: "text", ask: "how they will get in: somebody home, a key safe, a code", onAppointment: true },
       { key: "parking", label: "Parking", type: "text", ask: "where to park, and whether it is a permit street" },
     ],
     faqs: [
@@ -701,7 +701,7 @@ const HOME: VerticalPack[] = [
     category: "Trades and home",
     blurb: "The small jobs nobody else will come out for.",
     aliases: ["odd jobs", "maintenance", "flat pack", "diy", "property maintenance"],
-    greeting: "Hi — what have you got that needs doing?",
+    greeting: "Hi, what have you got that needs doing?",
     words: {
       practitioner: "handyman",
       practitioners: "team",
@@ -741,7 +741,7 @@ const HOME: VerticalPack[] = [
     category: "Trades and home",
     blurb: "Lockouts, lock changes and security upgrades.",
     aliases: ["locks", "locked out", "upvc", "security", "burglary repair"],
-    greeting: "Hi — are you locked out right now, or is this something to book in?",
+    greeting: "Hi, are you locked out right now, or is this something to book in?",
     words: {
       practitioner: "locksmith",
       practitioners: "locksmiths",
@@ -767,7 +767,7 @@ const HOME: VerticalPack[] = [
     id: "gardener",
     factsTitle: "Getting in",
     facts: [
-      { key: "access", label: "How to get in", type: "text", ask: "how to reach the garden — a side gate, a code, somebody home", onAppointment: true },
+      { key: "access", label: "How to get in", type: "text", ask: "how to reach the garden: a side gate, a code, somebody home", onAppointment: true },
       { key: "waste", label: "Takes the waste away", type: "yesno" },
     ],
     regulars: true,
@@ -784,7 +784,7 @@ const HOME: VerticalPack[] = [
     category: "Trades and home",
     blurb: "Garden maintenance, one-off tidies and landscaping.",
     aliases: ["garden", "landscaping", "lawn", "hedge", "grass", "clearance"],
-    greeting: "Hi — is this a regular tidy, a one-off, or a bigger project?",
+    greeting: "Hi, is this a regular tidy, a one-off, or a bigger project?",
     words: {
       practitioner: "gardener",
       practitioners: "gardeners",
@@ -808,7 +808,7 @@ const HOME: VerticalPack[] = [
     id: "cleaner",
     factsTitle: "Getting in",
     facts: [
-      { key: "access", label: "How to get in", type: "text", ask: "how to get in — a key safe, somebody home, a code", onAppointment: true },
+      { key: "access", label: "How to get in", type: "text", ask: "how to get in: a key safe, somebody home, a code", onAppointment: true },
       { key: "alarm", label: "Alarm", type: "yesno", ask: "whether there is an alarm" },
       { key: "pets", label: "Pets", type: "text", ask: "whether there are pets in the house" },
     ],
@@ -826,7 +826,7 @@ const HOME: VerticalPack[] = [
     category: "Trades and home",
     blurb: "Domestic, deep and end-of-tenancy cleaning.",
     aliases: ["cleaning", "housekeeping", "end of tenancy", "deep clean", "domestic"],
-    greeting: "Hi — is this a regular clean or a one-off?",
+    greeting: "Hi, is this a regular clean or a one-off?",
   sizing:
     "ask how many bedrooms and bathrooms, and whether it is regular or a one-off",
     words: {
@@ -857,7 +857,7 @@ const TATTOO = trade({
   category: "Hair and beauty",
   blurb: "Tattooing and piercing, priced by the hour.",
   aliases: ["tattooist", "ink", "piercing", "body art", "cover up"],
-  greeting: "Hi — what were you thinking of getting done?",
+  greeting: "Hi, what were you thinking of getting done?",
   // The sentence the prompt used to send to everybody. It belongs here.
   sizing:
     "ask one question about size, comparing it to something on the body " +
@@ -877,7 +877,7 @@ const TATTOO = trade({
   deposits: "required",
   pricing: "hourly",
   rules: [
-    "Never give medical advice. Healing problems, infections, skin conditions, medication, pregnancy, allergies — escalate to the owner. Do not offer an opinion first.",
+    "Never give medical advice. Healing problems, infections, skin conditions, medication, pregnancy and allergies all go to the owner. Do not offer an opinion first.",
     'Never book anyone under 18. UK law, no exceptions, no "if a parent agrees". If they are under 18 or will not confirm their age, escalate.',
   ],
   styles: [
@@ -928,7 +928,7 @@ const TATTOO = trade({
       label: "Two days before",
       body:
         "Hi {{name}}, you're booked in with {{practitioner}} at {{business}} on {{when}}. " +
-        "Bring photo ID — we can't tattoo without it. Have a proper meal beforehand and " +
+        "Bring photo ID. We can't tattoo without it. Have a proper meal beforehand and " +
         "go easy on the drink the night before, it makes a real difference. Need to move " +
         "it? Just reply here.",
     },
@@ -970,7 +970,7 @@ const BEAUTY: VerticalPack[] = [
     category: "Hair and beauty",
     blurb: "Cutting, colouring and treatments, priced per service.",
     aliases: ["hairdresser", "hair", "colourist", "stylist", "balayage"],
-    greeting: "Hi — what were you after? Cut, colour, something else?",
+    greeting: "Hi, what were you after? Cut, colour, something else?",
     roles: ["Stylist", "Colourist", "Senior stylist", "Junior stylist", "Nail technician", "Beauty therapist", "Barber"],
     words: {
       practitioner: "stylist",
@@ -1050,7 +1050,7 @@ const BEAUTY: VerticalPack[] = [
       "What areas do you cover?",
       "How do I pay?",
       "What if I need to cancel?",
-      "What do you need me to have ready — a chair, a sink?",
+      "What do you need me to have ready: a chair, a sink?",
       "Do you charge for travel?",
       "Can you do a group at one address?",
     ],
@@ -1059,7 +1059,7 @@ const BEAUTY: VerticalPack[] = [
     category: "Hair and beauty",
     blurb: "Hairdressing at the client's home.",
     aliases: ["mobile hair", "home hairdresser", "visiting stylist", "freelance hair"],
-    greeting: "Hi — what were you after, and whereabouts are you?",
+    greeting: "Hi, what were you after, and whereabouts are you?",
     words: {
       practitioner: "stylist",
       practitioners: "stylists",
@@ -1108,7 +1108,7 @@ const BEAUTY: VerticalPack[] = [
     category: "Hair and beauty",
     blurb: "Appointment-based barbering.",
     aliases: ["barbers", "mens hair", "beard", "fade", "shave"],
-    greeting: "Hi — what are you after, and when suits?",
+    greeting: "Hi, what are you after, and when suits?",
     words: {
       practitioner: "barber",
       practitioners: "barbers",
@@ -1151,7 +1151,7 @@ const BEAUTY: VerticalPack[] = [
     category: "Hair and beauty",
     blurb: "Facials, waxing, brows, lashes and treatments.",
     aliases: ["beauty", "facial", "waxing", "brows", "lashes", "spray tan", "therapist"],
-    greeting: "Hi — which treatment were you after?",
+    greeting: "Hi, which treatment were you after?",
     roles: ["Beauty therapist", "Nail technician", "Lash technician", "Massage therapist", "Aesthetician"],
     words: {
       practitioner: "therapist",
@@ -1195,7 +1195,7 @@ const BEAUTY: VerticalPack[] = [
     category: "Hair and beauty",
     blurb: "Manicures, gel, acrylics and nail art.",
     aliases: ["nails", "gel", "acrylic", "manicure", "pedicure", "infill"],
-    greeting: "Hi — what were you after? Gel, acrylics, or something else?",
+    greeting: "Hi, what were you after? Gel, acrylics, or something else?",
     words: {
       practitioner: "technician",
       practitioners: "technicians",
@@ -1248,7 +1248,7 @@ const BEAUTY: VerticalPack[] = [
     category: "Hair and beauty",
     blurb: "Injectables and advanced skin treatments.",
     aliases: ["injectables", "botox", "filler", "skin clinic", "cosmetic", "anti wrinkle"],
-    greeting: "Hi — which treatment are you interested in?",
+    greeting: "Hi, which treatment are you interested in?",
     words: {
       practitioner: "practitioner",
       practitioners: "practitioners",
@@ -1292,7 +1292,7 @@ const BEAUTY: VerticalPack[] = [
     category: "Hair and beauty",
     blurb: "Massage and bodywork.",
     aliases: ["massage", "sports massage", "deep tissue", "relaxation", "hot stone"],
-    greeting: "Hi — what kind of massage were you after?",
+    greeting: "Hi, what kind of massage were you after?",
     words: {
       practitioner: "therapist",
       practitioners: "therapists",
@@ -1345,7 +1345,7 @@ const HEALTH: VerticalPack[] = [
     category: "Health and wellbeing",
     blurb: "Physiotherapy assessment and treatment.",
     aliases: ["physio", "rehab", "injury", "sports injury", "back"],
-    greeting: "Hi — is this a new problem, or a follow-up?",
+    greeting: "Hi, is this a new problem, or a follow-up?",
     roles: ["Physiotherapist", "Sports therapist", "Massage therapist"],
     words: {
       practitioner: "physiotherapist",
@@ -1387,7 +1387,7 @@ const HEALTH: VerticalPack[] = [
     category: "Health and wellbeing",
     blurb: "Manual therapy for backs, necks and joints.",
     aliases: ["chiropractor", "osteopath", "back pain", "spine", "manual therapy"],
-    greeting: "Hi — is this your first visit with us?",
+    greeting: "Hi, is this your first visit with us?",
     roles: ["Chiropractor", "Osteopath", "Massage therapist"],
     words: {
       practitioner: "practitioner",
@@ -1431,7 +1431,7 @@ const HEALTH: VerticalPack[] = [
     category: "Health and wellbeing",
     blurb: "One-to-one and small group training.",
     aliases: ["personal training", "pt", "fitness", "gym", "coach", "strength"],
-    greeting: "Hi — what are you looking to work on?",
+    greeting: "Hi, what are you looking to work on?",
     roles: ["Personal trainer", "Nutrition coach", "Class instructor"],
     words: {
       practitioner: "trainer",
@@ -1462,7 +1462,7 @@ const HEALTH: VerticalPack[] = [
     category: "Health and wellbeing",
     blurb: "Talking therapy, in person or online.",
     aliases: ["counselling", "therapy", "psychotherapist", "cbt", "mental health"],
-    greeting: "Hi — would you like to book an initial call?",
+    greeting: "Hi, would you like to book an initial call?",
     words: {
       practitioner: "therapist",
       practitioners: "therapists",
@@ -1514,7 +1514,7 @@ const HEALTH: VerticalPack[] = [
     category: "Health and wellbeing",
     blurb: "Foot health, nail care and biomechanics.",
     aliases: ["chiropodist", "feet", "foot", "toenails", "orthotics", "verruca"],
-    greeting: "Hi — is this a routine appointment or a specific problem?",
+    greeting: "Hi, is this a routine appointment or a specific problem?",
     words: {
       practitioner: "podiatrist",
       practitioners: "podiatrists",
@@ -1557,7 +1557,7 @@ const PETS: VerticalPack[] = [
     category: "Pets",
     blurb: "Grooming, priced by breed and coat.",
     aliases: ["grooming", "dog", "pet grooming", "clip", "wash", "de-matting"],
-    greeting: "Hi — what breed is your dog, and what were you after?",
+    greeting: "Hi, what breed is your dog, and what were you after?",
     roles: ["Groomer", "Bather", "Trainee groomer"],
     words: {
       practitioner: "groomer",
@@ -1631,7 +1631,7 @@ const PETS: VerticalPack[] = [
     category: "Pets",
     blurb: "Walks, visits and sitting, at the owner's home.",
     aliases: ["dog walking", "pet sitting", "cat sitting", "boarding", "puppy visits"],
-    greeting: "Hi — what are you after, and whereabouts are you?",
+    greeting: "Hi, what are you after, and whereabouts are you?",
     words: {
       practitioner: "walker",
       practitioners: "walkers",
@@ -1679,7 +1679,7 @@ const MOTORING: VerticalPack[] = [
     category: "Motoring",
     blurb: "Servicing and repairs at the customer's address.",
     aliases: ["mechanic", "car repair", "servicing", "mobile car", "diagnostics"],
-    greeting: "Hi — what's the car doing, and whereabouts are you?",
+    greeting: "Hi, what's the car doing, and whereabouts are you?",
     words: {
       practitioner: "mechanic",
       practitioners: "mechanics",
@@ -1734,7 +1734,7 @@ const MOTORING: VerticalPack[] = [
     category: "Motoring",
     blurb: "Servicing, MOTs and repairs at the workshop.",
     aliases: ["mot", "garage", "servicing", "car", "workshop", "repairs"],
-    greeting: "Hi — is this for an MOT, a service, or a repair?",
+    greeting: "Hi, is this for an MOT, a service, or a repair?",
     roles: ["Technician", "MOT tester", "Bodywork", "Diagnostics"],
     words: {
       practitioner: "technician",
@@ -1780,7 +1780,7 @@ const MOTORING: VerticalPack[] = [
     category: "Motoring",
     blurb: "Cleaning and detailing, at the customer's address or the unit.",
     aliases: ["valet", "detailing", "car cleaning", "ceramic", "polish"],
-    greeting: "Hi — which valet were you after, and whereabouts is the car?",
+    greeting: "Hi, which valet were you after, and whereabouts is the car?",
     words: {
       practitioner: "valeter",
       practitioners: "valeters",
@@ -1835,7 +1835,7 @@ const MOTORING: VerticalPack[] = [
     category: "Motoring",
     blurb: "Driving lessons, picked up from the pupil's address.",
     aliases: ["driving lessons", "adi", "instructor", "learner", "test"],
-    greeting: "Hi — have you driven before, or are you starting from scratch?",
+    greeting: "Hi, have you driven before, or are you starting from scratch?",
     words: {
       practitioner: "instructor",
       practitioners: "instructors",
@@ -1877,7 +1877,7 @@ const GENERAL = trade({
   category: "Everything else",
   blurb: "Any appointment-based business. Set your own services and wording.",
   aliases: ["other", "general", "custom"],
-  greeting: "Hi — what can we help you with?",
+  greeting: "Hi, what can we help you with?",
   words: {},
   location: "both",
   services: {
@@ -1904,7 +1904,7 @@ const OTHER: VerticalPack[] = [
     category: "Everything else",
     blurb: "Shoots, sessions and events.",
     aliases: ["photography", "photos", "wedding", "portrait", "shoot"],
-    greeting: "Hi — what sort of shoot were you thinking about?",
+    greeting: "Hi, what sort of shoot were you thinking about?",
     words: {
       practitioner: "photographer",
       practitioners: "photographers",
@@ -1945,7 +1945,7 @@ const OTHER: VerticalPack[] = [
     category: "Everything else",
     blurb: "One-to-one tuition, online or in person.",
     aliases: ["tuition", "teaching", "maths", "gcse", "a level", "lessons"],
-    greeting: "Hi — which subject and what level?",
+    greeting: "Hi, which subject and what level?",
     words: {
       practitioner: "tutor",
       practitioners: "tutors",
@@ -1978,7 +1978,7 @@ const OTHER: VerticalPack[] = [
     id: "window_cleaner",
     factsTitle: "Getting in",
     facts: [
-      { key: "access", label: "How to get in", type: "text", ask: "how to reach the back — a side gate, a code", onAppointment: true },
+      { key: "access", label: "How to get in", type: "text", ask: "how to reach the back: a side gate, a code", onAppointment: true },
       { key: "outside_tap", label: "Outside tap", type: "yesno" },
     ],
     regulars: true,
@@ -1995,7 +1995,7 @@ const OTHER: VerticalPack[] = [
     category: "Everything else",
     blurb: "Regular rounds and one-off cleans.",
     aliases: ["windows", "window cleaning", "gutter", "conservatory", "round"],
-    greeting: "Hi — whereabouts are you, and how big is the house?",
+    greeting: "Hi, whereabouts are you, and how big is the house?",
     words: {
       practitioner: "cleaner",
       practitioners: "cleaners",
