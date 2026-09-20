@@ -1002,6 +1002,23 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
     ...(owns ? { owner_managed: fd.get("owner_managed") === "on" } : {}),
     // Blank uses the business's, which uses the default.
     assistant_name: str(fd, "assistant_name") || null,
+
+    /*
+     * The business they trade as, once the column is there.
+     *
+     * A chair renter is a business inside a business, and on her own number
+     * the assistant was introducing itself as the salon. Blank is the salon's,
+     * which is right for anybody on the payroll and is what everybody starts
+     * as.
+     *
+     * Guarded, because PostgREST refuses the whole write over one column it
+     * has not heard of. Before the migration this would not lose the name, it
+     * would fail the entire save of that person's record.
+     */
+    ...((await hasColumn(supabase, "artists", "trading_name"))
+      ? { trading_name: str(fd, "trading_name") || null }
+      : {}),
+
     tone: str(fd, "tone") || null,
     hours: ownHours,
     extra_hours: extraHours,

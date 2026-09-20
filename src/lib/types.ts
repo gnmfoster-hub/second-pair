@@ -454,6 +454,8 @@ export type Artist = {
    * nobody has said otherwise.
    */
   assistant_name: string | null;
+  /** The business they trade as, where it is not the studio's. See lib/tradingName. */
+  trading_name?: string | null;
   personal_ical_url: string | null;
   /** Whether those blocks appear in the business diary. On by default. */
   personal_calendar_show: boolean;

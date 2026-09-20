@@ -6,6 +6,7 @@ import { DAY_NAMES, labelFor } from "../types.ts";
 import { verticalPack } from "../verticals.ts";
 import { describeLength } from "./bandLength.ts";
 import { assistantName } from "../assistantName.ts";
+import { tradingName, tradesOwn } from "../tradingName.ts";
 import { CALLBACK_WORD } from "../messaging/missedCall.ts";
 import { bookingInstructions, type ProviderKind } from "../booking/provider.ts";
 import { howToSendPhotos } from "./photos.ts";
@@ -357,7 +358,25 @@ best way to reach them — one at a time, not as a form — then hand over.
    */
   const iAm = assistantName(studio, forArtist);
 
-  return `You are ${iAm}, the receptionist for ${studio.name}, a ${pack.label.toLowerCase()}. You handle first contact from people enquiring, across the website, WhatsApp and Instagram.
+  /*
+   * And whose business it is, on her own channel.
+   *
+   * A chair renter is a business inside a business. Aisha rents a chair at
+   * Willow & Co and trades as Hair by Aisha: her clients found her, not the
+   * salon, and on her own number and her own link the assistant was
+   * introducing itself as the salon. Wrong name, on the one channel that is
+   * definitely hers.
+   *
+   * Only where the conversation already belongs to her. On the salon's own
+   * number this is the salon, because that is what it is.
+   */
+  const weAre = tradingName(studio, forArtist);
+
+  return `You are ${iAm}, the receptionist for ${weAre}, a ${pack.label.toLowerCase()}. You handle first contact from people enquiring, across the website, WhatsApp and Instagram.${
+    tradesOwn(studio, forArtist)
+      ? `\n\nThis conversation is ${forArtist?.name}'s own. She trades as ${weAre} and works at ${studio.name}; you are answering for her, not for the whole place. Never offer a colleague and never talk about ${studio.name} as somebody else the customer could be passed to.`
+      : ""
+  }
 
 Introduce yourself as ${iAm} the first time you speak to somebody, and not again afterwards. A name gives them something to say back to; repeating it turns into a script.
 

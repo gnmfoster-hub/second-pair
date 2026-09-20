@@ -64,3 +64,38 @@ test("a business with no tone written down is still given a voice", () => {
   assert.doesNotMatch(text, /# Voice\nundefined/);
   assert.doesNotMatch(text, /undefined/);
 });
+
+/*
+ * A chair renter is a business inside a business.
+ *
+ * Aisha rents a chair at Willow & Co and trades as Hair by Aisha. Her clients
+ * found her, not the salon, and on her own number the assistant was
+ * introducing itself as the salon.
+ */
+test("on her own channel the assistant answers for her, not the salon", () => {
+  const text = studioSystemPrompt(
+    studio("none"),
+    [],
+    [],
+    [],
+    [],
+    {},
+    { name: "Aisha", trading_name: "Hair by Aisha at Willow & Co" } as never,
+  );
+
+  assert.match(text, /receptionist for Hair by Aisha at Willow & Co/);
+  assert.match(text, /Never offer a colleague/);
+});
+
+test("without one of her own it is still the salon's name", () => {
+  const text = studioSystemPrompt(studio("none"), [], [], [], [], {}, { name: "Aisha" } as never);
+  assert.match(text, /receptionist for Willow & Co/);
+  assert.doesNotMatch(text, /Never offer a colleague/);
+});
+
+/* And the salon's own channels are unchanged by any of it. */
+test("the salon's own channel is answered for the salon", () => {
+  const text = studioSystemPrompt(studio("none"), [], [], [], []);
+  assert.match(text, /receptionist for Willow & Co/);
+  assert.doesNotMatch(text, /trades as/);
+});

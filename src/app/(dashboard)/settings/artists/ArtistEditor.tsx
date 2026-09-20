@@ -488,6 +488,30 @@ export function ArtistEditor({
               />
             </Field>
 
+            {/*
+              * The business they trade as, which may not be this one.
+              *
+              * A chair renter is a business inside a business: she rents the
+              * chair, her clients found her rather than the salon, and on her
+              * own number the assistant was introducing itself as the salon.
+              * The wrong name on the one channel that is definitely hers.
+              *
+              * Blank is the salon's, which is right for anybody on the payroll
+              * and is what everybody starts as.
+              */}
+            <Field
+              label="The business they trade as"
+              hint="Blank uses the business's own name, which is right for anybody on the payroll. A chair renter who trades as herself puts it here: Hair by Aisha at Willow & Co."
+            >
+              <input
+                name="trading_name"
+                defaultValue={artist?.trading_name ?? ""}
+                placeholder={`Hair by ${artist?.name?.split(" ")[0] ?? "Aisha"}`}
+                className="input max-w-sm"
+                maxLength={60}
+              />
+            </Field>
+
             <Field
               label="Their opening line"
               hint="The first thing a client sees. Blank uses the business's."
