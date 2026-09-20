@@ -90,7 +90,16 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
         onClick={() => choose(next.value)}
         title={`Colours: ${current.label}. Press for ${next.label.toLowerCase()}.`}
         aria-label={`Colours: ${current.label}. Press for ${next.label.toLowerCase()}.`}
-        className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-border text-sm text-foreground"
+        /*
+         * Inherits its colour, like the lockup beside it.
+         *
+         * border-border and text-foreground are both ink-on-pale, and the
+         * marketing header is the brand navy now — so this rendered as a
+         * black square with an invisible icon inside it, on the one row a
+         * visitor sees before anything else. currentColor follows whatever it
+         * is put on, and is unchanged everywhere it already sat.
+         */
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-current/25 text-sm text-current"
       >
         <span aria-hidden="true">{current.icon}</span>
       </button>

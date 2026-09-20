@@ -73,6 +73,27 @@ export function LiveDemo({
   const finished = script.filter((b): b is Extract<Beat, { who: "them" | "us" }> => b.who !== "tap");
 
   /*
+   * What is in the panel before anything moves.
+   *
+   * The rewind below used to go all the way to empty, and on a desktop — where
+   * this sits beside the headline and is on screen at once — that meant the
+   * first thing anybody saw was a four-hundred-and-eighty pixel grey
+   * rectangle, filling over the following twenty seconds. The most persuasive
+   * thing on the site was invisible for the first seconds of looking at it,
+   * which is most of the looking anybody does.
+   *
+   * So it opens on the exchange that makes the argument — the question, and an
+   * answer with a real price in it — and plays the rest from there. The first
+   * frame is the product working, and the booking still happens while you
+   * watch, which is the part worth waiting for.
+   */
+  const OPENS_WITH = 2;
+  const opening = () =>
+    finished
+      .slice(0, OPENS_WITH)
+      .map((b) => ({ from: b.who, text: b.text, moment: b.who === "us" ? b.moment : undefined }));
+
+  /*
    * Everything, until the browser says otherwise.
    *
    * Server-rendered, and a panel that arrives empty is a hole in the page for a
@@ -150,7 +171,7 @@ export function LiveDemo({
       mostlyInView(panel.getBoundingClientRect(), window.innerHeight);
 
     if (enoughOfItShowing()) {
-      setLines([]);
+      setLines(opening());
       setLive(true);
       return;
     }
@@ -158,7 +179,7 @@ export function LiveDemo({
     const look = window.setInterval(() => {
       if (!enoughOfItShowing()) return;
       window.clearInterval(look);
-      setLines([]);
+      setLines(opening());
       setLive(true);
     }, 400);
 
@@ -254,7 +275,7 @@ export function LiveDemo({
     let t = 700;
 
     const play = () => {
-      for (const beat of script) {
+      for (const beat of script.slice(OPENS_WITH)) {
         if (beat.who === "us") {
           at(t, () => setThinking(true));
           t += THINKING;
@@ -296,7 +317,7 @@ export function LiveDemo({
       }
 
       at(t + HOLD, () => {
-        setLines([]);
+        setLines(opening());
         // Rebuild from the top rather than replaying a spent queue.
         beats.length = 0;
         next = 0;
@@ -458,7 +479,7 @@ export function LiveDemo({
             <button
               type="button"
               onClick={() => {
-                setLines([]);
+                setLines(opening());
                 setLive(true);
               }}
               className="absolute inset-x-0 bottom-4 z-20 mx-auto flex w-fit items-center gap-2 rounded-full border border-border bg-surface/95 px-4 py-2.5 text-[13px] font-medium shadow-[var(--shadow-pop)] backdrop-blur"
