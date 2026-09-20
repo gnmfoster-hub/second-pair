@@ -12,19 +12,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
-      {/*
-        * The header is the top of the ink, not a pale bar resting on it.
-        *
-        * With the hero on the brand navy this sat above it in surface grey,
-        * and the seam was the weakest line on the page — a sticker on a
-        * poster. Carrying the same colour up through the header makes the top
-        * third of the site one confident slab, which is the whole difference
-        * between a page that looks designed and a page that looks assembled.
-        *
-        * Every marketing page gets it, not just the home page: a header that
-        * changes colour between pages of the same site reads as two sites.
-        */}
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-accent text-on-accent">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center gap-4 px-5 py-4 sm:px-8">
           {/* Thirty pixels disappeared into the header, and this is the only
               place most people will ever see the name. */}
@@ -109,7 +97,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 "Sign / in" on two lines at 360px, a 62px-tall link next to a
                 44px button. Neither of the two things a visitor came here to
                 press should be allowed to fold. */}
-            <Link href="/login" className="btn whitespace-nowrap border border-white/20 bg-white/5 text-on-accent hover:bg-white/10">
+            <Link href="/login" className="btn-ghost whitespace-nowrap">
               Sign in
             </Link>
             {/* The pack allows amber for one call to action per screen. This

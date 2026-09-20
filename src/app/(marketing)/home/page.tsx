@@ -138,23 +138,9 @@ export default function HomePage() {
   return (
     <>
       {/* ─────────────────────────────────────────────────────────── hero */}
-      {/*
-       * Ink as a frame, not as a field.
-       *
-       * The whole top of the page was put on the brand navy and Giles was
-       * right about the result: a large flat dark block is not more impressive
-       * than a large flat pale one, it is the same absence of structure in a
-       * different colour. The diagnosis held — forty-odd elements on one tone,
-       * no ground, no rhythm — and painting all of it was the wrong cure.
-       *
-       * So the navy stays where it frames: the header above, and one band
-       * lower down. The hero is light again, and earns its keep with type and
-       * air instead — a bigger headline, more room around it, and the demo
-       * lifted properly so it reads as an object rather than a panel.
-       */}
-      <section className="relative overflow-hidden px-5 pb-6 pt-16 sm:px-8 sm:pt-24">
+      <section className="relative overflow-hidden px-5 pb-4 pt-14 sm:px-8 sm:pt-20">
         <div className="aura" aria-hidden />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[1.06fr_1fr] lg:gap-16">
+        <div className="relative mx-auto grid max-w-5xl items-center gap-12 lg:grid-cols-[1.05fr_1fr]">
           <div>
             <p className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs text-muted">
               <span className="size-1.5 rounded-full bg-ok" aria-hidden />
@@ -169,7 +155,7 @@ export default function HomePage() {
              * says the problem and what we are in one breath, and anybody who
              * reads it understands the name for the rest of the page.
              */}
-            <h1 className="mt-6 font-display text-[2.5rem] font-bold leading-[1.02] tracking-[-0.04em] text-balance sm:text-[3.95rem]">
+            <h1 className="mt-5 font-display text-[2.6rem] font-bold leading-[1.03] tracking-[-0.035em] sm:text-6xl">
               You&rsquo;ve only got
               <br />
               one pair of hands.
@@ -177,13 +163,13 @@ export default function HomePage() {
               <span className="text-highlight-strong">We&rsquo;re the second.</span>
             </h1>
 
-            <p className="mt-7 max-w-xl text-[1.15rem] leading-relaxed text-muted">
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
               You&rsquo;re under a floor. You&rsquo;ve got a needle in someone&rsquo;s arm.
               You&rsquo;re mid-colour. The phone goes, a DM lands, and four hours later
               they&rsquo;ve booked whoever replied first.
             </p>
 
-            <p className="mt-4 max-w-xl text-[1.15rem] leading-relaxed">
+            <p className="mt-4 max-w-xl text-lg leading-relaxed">
               Second Pair answers in under a minute, quotes from your own prices, and puts them
               in your diary — in your words, while your hands are full.
             </p>
@@ -232,20 +218,8 @@ export default function HomePage() {
       </section>
 
       {/* ──────────────────────────────────────────────────── the argument */}
-      {/*
-       * The one dark band on the page.
-       *
-       * This is where the ink earns its place rather than filling the screen.
-       * Three claims about what the thing will and will not do is the part a
-       * sceptical reader is actually weighing, so it gets the weight of the
-       * brand colour, and the page goes light again underneath it.
-       *
-       * One band, not several. A page that alternates dark and light every
-       * section is a template; a page with a single change of ground has a
-       * shape.
-       */}
-      <section className="bg-accent text-on-accent">
-        <div className="mx-auto grid max-w-5xl gap-10 px-5 py-20 sm:grid-cols-3 sm:px-8 sm:py-24">
+      <section className="mx-auto max-w-5xl px-5 py-16 sm:px-8 sm:py-24">
+        <div className="grid gap-10 sm:grid-cols-3">
           {[
             {
               head: "A diary doesn't answer",
@@ -261,8 +235,8 @@ export default function HomePage() {
             },
           ].map((card) => (
             <div key={card.head}>
-              <h2 className="section-title text-[1.05rem] text-on-accent">{card.head}</h2>
-              <p className="mt-3 text-[0.95rem] leading-relaxed text-on-accent/70">{card.body}</p>
+              <h2 className="section-title text-base">{card.head}</h2>
+              <p className="mt-2.5 text-sm leading-relaxed text-muted">{card.body}</p>
             </div>
           ))}
         </div>
