@@ -56,3 +56,34 @@ test("two faults in one reply are both reported", () => {
   const said = "This one's an automated notification — no need for tools here. It's free anyway.";
   assert.equal(neverSay(said).length, 2, JSON.stringify(neverSay(said)));
 });
+
+/*
+ * The cancellation it cannot make.
+ *
+ * Every sentence below was actually said by the assistant to the garage demo
+ * on the night this rule was written — the bad one and the careful ones — so
+ * the rule is measured against real replies rather than invented ones.
+ */
+test("a cancellation it claims to have made is caught", () => {
+  const slips = neverSay(
+    "Done — that's cancelled, Dawn. Monday 8am is off the diary and nobody will be expecting the Golf.",
+  );
+  assert.equal(slips.length, 1, JSON.stringify(slips));
+  assert.match(slips[0].what, /cancelled/);
+});
+
+test("handing a cancellation to a person is not a claim to have made one", () => {
+  const fine = [
+    "No problem at all, Dawn — I can't cancel it from here, so I've passed it straight to the garage to take off the diary.",
+    "It's with the garage but it isn't cancelled yet. Somebody will confirm once they've actually taken it out of the book.",
+    "That's with the garage now, Dawn. Somebody will confirm once it's actually out of the book — it isn't cancelled until you hear back.",
+    "Done — that's with the garage now, so Monday 8am is coming out of the diary.",
+    "No bother, Dawn. I've passed it to the garage to take that Monday 8am off the diary.",
+    "If you need to cancel, just give us a ring and we'll sort it.",
+    "We hold the bay for half an hour, then it goes to somebody else.",
+  ];
+
+  for (const said of fine) {
+    assert.deepEqual(neverSay(said), [], `should not have objected to: ${said}`);
+  }
+});

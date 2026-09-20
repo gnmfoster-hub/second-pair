@@ -82,6 +82,31 @@ const RULES: Rule[] = [
     what: "claims to be a person",
     pattern: /\bI'?m a (real )?person\b|\bI'?m not a (bot|robot|machine|computer)\b|\byes,? I'?m human\b/i,
   },
+
+  /*
+   * A cancellation it cannot make.
+   *
+   * There is no tool for cancelling anything. The assistant can quote, offer
+   * times, book, take a deposit and hand over to a person, and that is all —
+   * so every sentence in which it has cancelled something is false by
+   * construction, which is what makes this a rule rather than a judgement.
+   *
+   * Asked to cancel an MOT it escalated correctly and then said: "Done —
+   * that's cancelled, Dawn. Monday 8am is off the diary and nobody will be
+   * expecting the Golf." The appointment was still there. Somebody who
+   * believes that does not turn up, so the bay sits empty on a Monday
+   * morning, or the garage rings to ask where the car is.
+   *
+   * Deliberately narrow: it catches the claim, never the subject. "If you need
+   * to cancel, give us a ring", "I've passed it to the garage to take that
+   * Monday 8am off the diary" and "it isn't cancelled until you hear back" are
+   * all correct things to say, and none of them match.
+   */
+  {
+    what: "says it has cancelled something, which it cannot do",
+    pattern:
+      /\b(i'?ve|i have|we'?ve|we have) (now )?cancelled\b|\b(that'?s|that is|it'?s|it is|this is) (now )?cancelled\b|\bis off the diary\b|\bhas been (cancelled|taken off)\b/i,
+  },
 ];
 
 /**

@@ -32,6 +32,7 @@ import type {
 import { NotAnswering } from "./errors";
 import { hasColumn } from "@/lib/db/hasColumn";
 import { connectedChannels } from "@/lib/messaging/connections";
+import { neverSay } from "./neverSay";
 
 /**
  * Overridable so a cheaper model can be measured against the guardrail suite
@@ -618,6 +619,29 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     signedIn: input.signedIn ?? null,
     raisedFor: input.raisedFor ?? null,
   });
+
+  /*
+   * The rules, run where the replies actually are.
+   *
+   * neverSay has existed for weeks, every rule in it came from something that
+   * happened on a real business, and it had only ever been called by a script
+   * that talks to a demo. Nothing had ever checked a reply on its way to a
+   * real customer. Run over every assistant message we have, it objected to
+   * eight — all of them on the two live businesses, three the model thinking
+   * out loud in the middle of a message ("no need for tools", "nothing to book
+   * in from"), the most recent sent the day before this was written.
+   *
+   * Logged and nothing more. Suppressing or rewriting a reply is a decision
+   * about what a business says to its own customers, and the failure mode of
+   * getting that wrong is silence, which is worse than an awkward sentence.
+   * This makes it visible, so the next one is found in an hour instead of in a
+   * week's worth of transcripts.
+   */
+  for (const slip of neverSay(reply)) {
+    console.error(
+      `[neverSay] ${studio.slug} ${conversation.id}: ${slip.what} — "${slip.saying}"`,
+    );
+  }
 
   const { data: after } = await db
     .from("conversations")
