@@ -23,6 +23,14 @@ const STATUSES: ConvStatus[] = [
   "deposit_paid",
   "needs_human",
   "lost",
+  /*
+   * Paperwork sits down here with spam because neither one is a customer, and
+   * it is offered at all for the reason the category exists: the filing is my
+   * guess. This is where somebody says the guess was wrong. Moving a real
+   * enquiry out of Paperwork, or a receipt into it, is the only signal that
+   * ever says which way the rules want bending.
+   */
+  "paperwork",
   "spam",
 ];
 

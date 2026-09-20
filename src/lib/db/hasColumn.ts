@@ -58,6 +58,41 @@ export async function hasColumn(
   return has;
 }
 
+/**
+ * Whether an enum already has a value, for exactly the same reason.
+ *
+ * A column the database has not heard of fails the write. A *value* it has not
+ * heard of does worse: it fails the whole query, read or write. That is not
+ * theory — asking for "status is not spam" before the spam value existed
+ * emptied the inbox of every business at once, because the list came back as
+ * an error read as nothing while the unread badge carried on counting from a
+ * different query.
+ *
+ * So a new status is optional until its migration has definitely run, the same
+ * way a new column is: used if the database knows it, left alone if not, and
+ * the deploy and the migration can happen in either order without anybody
+ * watching the clock.
+ *
+ * Asked by filtering on the value and taking no rows — a value the enum does
+ * not have is refused when the filter is parsed, which is the whole question.
+ */
+export async function hasStatus(
+  db: Pick<SupabaseClient, "from">,
+  table: string,
+  column: string,
+  value: string,
+  now: number = Date.now(),
+): Promise<boolean> {
+  const key = `${table}.${column}=${value}`;
+  const seen = answers.get(key);
+  if (seen && (seen.has || now - seen.asked < RETRY_AFTER_MS)) return seen.has;
+
+  const { error } = await db.from(table).select(column).eq(column, value).limit(0);
+  const has = !error;
+  answers.set(key, { has, asked: now });
+  return has;
+}
+
 /** Forget everything. Tests only. */
 export function forgetColumns(): void {
   answers.clear();

@@ -25,6 +25,8 @@ export const STATUS_TONE: Record<ConvStatus, string> = {
   needs_human: "text-highlight-strong",
   lost: "text-muted",
   spam: "text-muted",
+  // Nothing to do, and nothing wrong either: the business's own post.
+  paperwork: "text-muted",
 };
 
 /**
@@ -35,7 +37,26 @@ export const STATUS_TONE: Record<ConvStatus, string> = {
 export const isAsking = (status: ConvStatus) => status === "needs_human";
 
 /** Finished business. Still readable, still clickable, no longer competing. */
-export const isSpent = (status: ConvStatus) => status === "lost" || status === "spam";
+export const isSpent = (status: ConvStatus) =>
+  status === "lost" || status === "spam" || status === "paperwork";
+
+/**
+ * Whether there was ever a customer here, and so whether it belongs in a
+ * figure.
+ *
+ * Every report, count and average in the product is about enquiries. Spam has
+ * been left out of all of them from the start — by four separate places each
+ * writing `status !== "spam"` in its own words, which was fine while there was
+ * one thing to leave out.
+ *
+ * Paperwork is the second, and four copies of a rule is how a rule drifts.
+ * This file exists because status colour was defined twice and a conversation
+ * that was Qualified green in the inbox came out grey on its own page. So the
+ * question gets asked in one place, and a business's report stops counting the
+ * receipts from its own shop as enquiries it answered.
+ */
+export const countsAsEnquiry = (status: string | null | undefined) =>
+  status !== "spam" && status !== "paperwork";
 
 /** Everything a status needs on a mark, ready to drop into a className. */
 export function stampClasses(status: ConvStatus): string {

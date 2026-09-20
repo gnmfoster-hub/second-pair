@@ -12,6 +12,7 @@
  */
 
 import { addUpCalls } from "../voice/callCost.ts";
+import { countsAsEnquiry } from "../conversationStatus.ts";
 
 export type StudioRow = {
   id: string;
@@ -132,7 +133,7 @@ export function platformReport(
      * inbox look like a failing one.
      */
     const convs = rows.conversations.filter(
-      (c) => c.studio_id === s.id && !c.is_test && c.status !== "spam",
+      (c) => c.studio_id === s.id && !c.is_test && countsAsEnquiry(c.status),
     );
     const convIds = new Set(convs.map((c) => c.id));
     const newConvs = convs.filter((c) => inRange(c.created_at, from, to));

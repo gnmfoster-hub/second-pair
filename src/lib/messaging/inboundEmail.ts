@@ -14,15 +14,23 @@
  * at. A missed customer costs a booking. A cheerful reply to somebody's
  * solicitor costs a great deal more.
  *
- * Three outcomes, not two:
+ * Four outcomes, not three:
  *
  *   answer  a person, writing to this business, who appears to want something
  *   park    a person, but not one to reply to without a human looking first
- *   ignore  not a person at all, and nothing that should ever be answered
+ *   file    the business's own post — a receipt, a statement, an order from
+ *           its own shop, the figures for an advert. Kept, never answered.
+ *   ignore  not a person at all and not their post either: a machine talking
+ *           to a machine, or somebody selling. Left where it arrived.
  *
  * The difference between park and ignore matters. Parking puts it in the inbox
  * where somebody sees it; ignoring puts a newsletter there every Tuesday until
  * the inbox is useless.
+ *
+ * And file was carved out of ignore, because a business pointed out that its
+ * own post is not junk: an order from its own shop and an SEO agency were
+ * being thrown away together, so neither could be looked at and nothing about
+ * the filtering could ever be corrected.
  */
 
 export type InboundEmail = {
@@ -45,7 +53,23 @@ export type InboundEmail = {
 };
 
 export type Verdict = {
-  what: "answer" | "park" | "ignore";
+  /**
+   * answer — a customer; the assistant replies.
+   * park   — somebody real that it must not answer for; a person is asked.
+   * file   — the business's own post: a receipt, a statement, an order from
+   *          its own shop, the figures for an advert. Written down and filed
+   *          as paperwork, never answered. Nobody is waiting for a reply, and
+   *          the address usually cannot take one.
+   * ignore — a machine talking to a machine, or somebody selling. Left where
+   *          it arrived, because putting it in the inbox makes the inbox worth
+   *          less than it was.
+   *
+   * file and ignore were one thing until a business pointed out that they are
+   * not: an order from its own shop is its post, and an SEO agency is not.
+   * Both were being thrown away, so neither could be looked at and nothing
+   * could be corrected.
+   */
+  what: "answer" | "park" | "file" | "ignore";
   /** Said in the owner's terms, for the note in the inbox. */
   because: string;
   /**
@@ -113,6 +137,18 @@ const VERIFYING = [
 
 /** Addresses that exist to send and never to receive. */
 const NEVER_REPLY = /^(no[-_.]?reply|do[-_.]?not[-_.]?reply|bounce|mailer-daemon|postmaster|abuse|notifications?|alerts?|billing|invoices?)@/i;
+
+/*
+ * The half of those that is plumbing rather than post.
+ *
+ * A statement from billing@ and a bounce from mailer-daemon both come from an
+ * address that cannot take a reply, which is why they were one rule. They are
+ * not one thing to a business: the statement is its own paperwork and worth
+ * keeping, and a delivery failure is the mail system talking to itself about a
+ * message we sent. Filing those would put our own plumbing in somebody's
+ * inbox under the heading of their post.
+ */
+const PLUMBING = /^(bounce|mailer-daemon|postmaster|abuse)@/i;
 
 /**
  * An unsubscribe link, which is the thing only a bulk sender carries.
@@ -358,8 +394,12 @@ export function judge(
     return { what: "ignore", because: "there is no sender to reply to" };
   }
 
+  if (PLUMBING.test(from)) {
+    return { what: "ignore", because: "it is the mail system reporting on a message, not post" };
+  }
+
   if (NEVER_REPLY.test(from)) {
-    return { what: "ignore", because: "it came from an address that does not take replies" };
+    return { what: "file", because: "it came from an address that does not take replies" };
   }
 
   const subject = (email.subject ?? "").trim();
@@ -376,10 +416,10 @@ export function judge(
    * customer writes, and a rule that ate it would cost the business work.
    */
   if (PLATFORM_SENDER.test(from)) {
-    return { what: "ignore", because: "it is a notification from a shop or payment platform" };
+    return { what: "file", because: "it is a notification from a shop or payment platform" };
   }
   if (ORDER_SUBJECT.test(subject) && MACHINE_LOCAL.test(from)) {
-    return { what: "ignore", because: "it is an order notification rather than somebody writing in" };
+    return { what: "file", because: "it is an order notification rather than somebody writing in" };
   }
 
   const sender = domainOf(from);
@@ -471,7 +511,7 @@ export function judge(
    * sender beside it.
    */
   if (REPORT_SUBJECT.test(subject)) {
-    return { what: "ignore", because: "it is a listings site emailing the business about its own advert" };
+    return { what: "file", because: "it is a listings site emailing the business about its own advert" };
   }
 
   if (/unsubscribe/i.test(body)) {

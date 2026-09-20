@@ -58,7 +58,8 @@ test("an address that does not take replies is not written to", () => {
     "notifications@calendar.google.com",
     "invoices@wholesaler.com",
   ]) {
-    assert.equal(judge({ from, subject: "Your statement" }, shop).what, "ignore", from);
+    // Filed, not binned: a statement is the business's own post. See ConvStatus.
+    assert.equal(judge({ from, subject: "Your statement" }, shop).what, "file", from);
   }
 });
 
@@ -469,7 +470,7 @@ test("an order from the business's own shop is not an enquiry", () => {
     },
     shop,
   );
-  assert.equal(v.what, "ignore", v.because);
+  assert.equal(v.what, "file", v.because);
 });
 
 test("every shop and payment platform they might be on", () => {
@@ -482,7 +483,7 @@ test("every shop and payment platform they might be on", () => {
     "noreply@etsy.com",
   ]) {
     const v = judge({ from, subject: "Your order", body: "An order was placed." }, shop);
-    assert.equal(v.what, "ignore", `${from}: ${v.because}`);
+    assert.equal(v.what, "file", `${from}: ${v.because}`);
   }
 });
 
@@ -491,7 +492,7 @@ test("a shop on its own domain still needs a machine-shaped sender", () => {
     { from: "orders@thelittlecandleshop.co.uk", subject: "Order #2291 confirmed", body: "..." },
     shop,
   );
-  assert.equal(notice.what, "ignore", notice.because);
+  assert.equal(notice.what, "file", notice.because);
 });
 
 /*
@@ -531,7 +532,7 @@ test("a listings site's daily advert figures are not an enquiry", () => {
       { from: "freeads@freeads.co.uk", subject, body: "Ads Overview. Hi Info, here are your latest Ad Performance Stats. 32 Views" },
       shop,
     );
-    assert.equal(verdict.what, "ignore", `"${subject}" was ${verdict.what}: ${verdict.because}`);
+    assert.equal(verdict.what, "file", `"${subject}" was ${verdict.what}: ${verdict.because}`);
   }
 });
 
@@ -555,4 +556,47 @@ test("a customer's own subject lines survive the advert rule", () => {
     );
     assert.notEqual(verdict.what, "ignore", `"${subject}" was ignored: ${verdict.because}`);
   }
+});
+
+/*
+ * The business's own post, which is neither a customer nor junk.
+ *
+ * All of this used to be thrown away with the spam, so a receipt from the
+ * business's own shop left no trace and there was nowhere to look to find out
+ * what had been decided on its behalf.
+ */
+test("the business's own post is filed rather than binned", () => {
+  const post: [string, string][] = [
+    ["store+110037467474@t.shopifyemail.com", "[Living Canvas Tattoo Studio] Order #1041 placed by Michael Darke"],
+    ["no-reply@stripe.com", "Your statement"],
+    ["invoices@wholesaler.com", "Invoice 8821"],
+    ["freeads@freeads.co.uk", "Your Advert Statistics"],
+  ];
+
+  for (const [from, subject] of post) {
+    const v = judge({ from, subject, body: "Here are the details." }, shop);
+    assert.equal(v.what, "file", `${subject} was ${v.what}: ${v.because}`);
+  }
+});
+
+/*
+ * And what must not join it. Somebody selling is not the business's post, and
+ * a customer is neither — both were checked against the real inbox.
+ */
+test("a pitch and a customer are not filed as paperwork", () => {
+  const pitch = judge(
+    {
+      from: "seo@agency.com",
+      subject: "Quick question",
+      body: "Hi, we help stores rank higher on Google. Unsubscribe here: https://x/u/1",
+    },
+    shop,
+  );
+  assert.notEqual(pitch.what, "file");
+
+  const customer = judge(
+    { from: "jo@gmail.com", subject: "Tattoo quote", body: "How much for a forearm piece?" },
+    shop,
+  );
+  assert.equal(customer.what, "answer");
 });

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { hasColumn } from "@/lib/db/hasColumn";
+import { hasColumn, hasStatus } from "@/lib/db/hasColumn";
 import { tooMuchEmail, sinceMidnight } from "@/lib/messaging/emailBudget";
 import { runTurn } from "@/lib/engine/run";
 import { handOverAfterFailure } from "@/lib/engine/turnFailed";
@@ -221,6 +221,34 @@ export async function POST(request: NextRequest) {
   }
 
   const sender = addressOf(email.from);
+
+  /*
+   * The business's own post — filed, not answered and not thrown away.
+   *
+   * A receipt from its own shop, a statement from an address that cannot take
+   * a reply, the daily figures for an advert it placed. All of it used to be
+   * dropped with the spam, so there was nowhere to look and no way to say the
+   * decision had been wrong.
+   *
+   * Only once the database has the status. A value the enum has not got is
+   * refused when the query is parsed, and that is not a lost email — it is the
+   * whole insert failing, which is how every inbox went empty for an hour
+   * earlier this month. Until the migration is run this behaves exactly as it
+   * did before, and says so in the log.
+   */
+  if (verdict.what === "file") {
+    if (await hasStatus(db, "conversations", "status", "paperwork")) {
+      await park(db, studio.id, sender, email, verdict.because, {
+        status: "paperwork",
+        note: "Filed as paperwork",
+      });
+      await note(db, studio.id, slug, "filed", verdict.because);
+      return ok(`filed: ${verdict.because}`);
+    }
+
+    await note(db, studio.id, slug, "ignored", `${verdict.because} (paperwork migration not run)`);
+    return ok(`ignored, paperwork not available yet: ${verdict.because}`);
+  }
 
   if (verdict.what === "park") {
     await park(db, studio.id, sender, email, verdict.because);
@@ -447,6 +475,17 @@ async function park(
   sender: string,
   email: InboundEmail,
   because: string,
+  /**
+   * Where it lands, and what the note beside it says.
+   *
+   * The business's own post is written down exactly the way a parked email is
+   * — same thread, same record, same note explaining the decision — and
+   * differs only in that nobody is being asked to deal with it.
+   */
+  as: { status: "needs_human" | "paperwork"; note: string } = {
+    status: "needs_human",
+    note: "Not answered automatically",
+  },
 ) {
   const { data: existing } = await db
     .from("conversations")
@@ -473,7 +512,7 @@ async function park(
         contact_id: contact?.id ?? null,
         channel: "email",
         external_ref: sender,
-        status: "needs_human",
+        status: as.status,
       })
       .select("id")
       .single();
@@ -517,10 +556,10 @@ async function park(
   await db.from("messages").insert({
     conversation_id: id,
     role: "system",
-    content: `Not answered automatically — ${because}.`,
+    content: `${as.note} — ${because}.`,
   });
 
-  await db.from("conversations").update({ status: "needs_human" }).eq("id", id);
+  await db.from("conversations").update({ status: as.status }).eq("id", id);
 }
 
 function ok(note: string) {
@@ -570,7 +609,7 @@ async function note(
   db: ReturnType<typeof createAdminClient>,
   studioId: string | null,
   slug: string | null,
-  verdict: "answered" | "parked" | "ignored" | "refused",
+  verdict: "answered" | "parked" | "filed" | "ignored" | "refused",
   because: string | null,
 ) {
   try {

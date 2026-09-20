@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { OpeningHours, Studio } from "@/lib/types";
 import { localParts } from "./booking/tz.ts";
+import { countsAsEnquiry } from "./conversationStatus.ts";
 
 /**
  * The weekly numbers.
@@ -125,7 +126,7 @@ export async function weeklyReport(
    * fifty enquiries and converted four, when eleven of the fifty were list
    * sellers, has been given a worse number than no number.
    */
-  const rows = ((conversations ?? []) as unknown as Row[]).filter((r) => r.status !== "spam");
+  const rows = ((conversations ?? []) as unknown as Row[]).filter((r) => countsAsEnquiry(r.status));
 
   const report: WeeklyReport = {
     from: from.toISOString(),

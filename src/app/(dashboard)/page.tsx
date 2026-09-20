@@ -251,14 +251,27 @@ export default async function InboxPage({
    * customer — and nobody needs it in the way of their morning.
    */
   const everything = data ?? [];
-  const week = (weekRows ?? []).filter((c) => c.status !== "spam");
+  // Neither spam nor the business's own post counts as a week's work.
+  const week = (weekRows ?? []).filter((c) => c.status !== "spam" && c.status !== "paperwork");
 
   const GROUPS: Record<string, { label: string; has: (s: string) => boolean }> = {
-    all: { label: "Everything", has: (st) => st !== "spam" },
+    /*
+     * Paperwork is kept out of Everything for the same reason spam is: it is
+     * not a judgement about a customer, it is a judgement that there was no
+     * customer, and it has no business in the way of somebody's morning.
+     *
+     * It has a tab of its own because until now it had nowhere at all. A
+     * receipt from the business's own shop and an agency selling SEO were both
+     * simply dropped, so neither could be looked at, and a decision made
+     * wrongly on a business's behalf could never be found — least of all by
+     * the business.
+     */
+    all: { label: "Everything", has: (st) => st !== "spam" && st !== "paperwork" },
     needs: { label: "Need you", has: (st) => st === "needs_human" },
     open: { label: "Open", has: (st) => st === "new" || st === "qualified" },
     won: { label: "Booked", has: (st) => st === "booked" || st === "deposit_paid" },
     lost: { label: "Lost", has: (st) => st === "lost" },
+    paperwork: { label: "Paperwork", has: (st) => st === "paperwork" },
     spam: { label: "Spam", has: (st) => st === "spam" },
   };
 
@@ -524,8 +537,9 @@ export default async function InboxPage({
                *   asks   somebody is waiting on a person. Full contrast, and
                *          the only place the orange appears in the list.
                *   won    money is coming or has. Normal weight, green.
-               *   gone   lost or spam. Recedes — still readable, still
-               *          clickable, but it stops competing with live work.
+               *   gone   lost, spam, or the business's own post. Recedes —
+               *          still readable, still clickable, but it stops
+               *          competing with live work.
                *
                * Nothing new is drawn and no colour is invented. The rows that
                * matter simply stop being shouted down by the ones that do not.
@@ -533,7 +547,7 @@ export default async function InboxPage({
               const tone =
                 c.status === "needs_human"
                   ? "asks"
-                  : c.status === "lost" || c.status === "spam"
+                  : c.status === "lost" || c.status === "spam" || c.status === "paperwork"
                     ? "gone"
                     : c.status === "booked" || c.status === "deposit_paid"
                       ? "won"

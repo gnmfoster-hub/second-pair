@@ -24,7 +24,28 @@ export type ConvStatus =
    * which is a number worth watching; spam is a number worth removing, and
    * putting the two together makes both useless.
    */
-  | "spam";
+  | "spam"
+  /**
+   * The business's own post: a receipt, a statement, the figures for an
+   * advert, an order from its own shop.
+   *
+   * Not spam — nobody is selling anything, and the business asked for every
+   * one of these by signing up to something. Not an enquiry either: there is
+   * no customer in it and nobody is waiting for a reply.
+   *
+   * It used to be neither, which meant it was nothing. These were recognised
+   * and then thrown away, so a shop order, a payment statement and a
+   * classifieds site's daily advert figures left no trace anywhere, and the
+   * only way to find out what had been filtered on a business's behalf was to
+   * ask me to go and look in the database.
+   *
+   * Filed rather than dropped, for two reasons. The business can see what was
+   * decided for it and say when that was wrong, which is the only way the
+   * filtering gets better than my guesses. And an enquiry mistaken for
+   * paperwork is now something somebody can find, rather than a customer who
+   * silently never existed.
+   */
+  | "paperwork";
 /** Was a Postgres enum; now a key into the studio's own service_options. */
 export type StyleKey = string;
 export type IntentKey = string;
@@ -52,6 +73,7 @@ export const CONV_STATUS_LABELS: Record<ConvStatus, string> = {
   needs_human: "Needs human",
   lost: "Lost",
   spam: "Spam",
+  paperwork: "Paperwork",
 };
 
 export const CHANNEL_LABELS: Record<Channel, string> = {

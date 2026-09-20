@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { countsAsEnquiry } from "@/lib/conversationStatus";
 import { isPlatformAdmin, type BusinessSummary, type PlatformKpis } from "@/lib/platform";
 import { VERTICAL_LIST } from "@/lib/verticals";
 import { savedWords } from "@/lib/savedAt";
@@ -278,7 +279,7 @@ export default async function AdminPage() {
    * midnight should not make a quiet business look active.
    */
   const conversationsOf = group(
-    everyConversation.filter((c) => c.status !== "spam"),
+    everyConversation.filter((c) => countsAsEnquiry(c.status)),
     (c) => c.studio_id,
   );
   const bookingsOf = group(everyBooking, (b) => b.artists?.studio_id);
