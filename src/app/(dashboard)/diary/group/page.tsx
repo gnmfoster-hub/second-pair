@@ -3,7 +3,7 @@ import { requireStudio, getArtists } from "@/lib/studio";
 import { localParts } from "@/lib/booking/tz";
 import { GroupForm } from "./GroupForm";
 
-export const metadata = { title: "Book a group — Second Pair" };
+export const metadata = { title: "Book a group at Second Pair" };
 
 /**
  * Several appointments, made as one arrangement.

@@ -148,5 +148,5 @@ const LEGEND = [
   { hue: "var(--cal-client)", label: "Clients" },
   { hue: "var(--cal-work)", label: "Work" },
   { hue: "var(--cal-off)", label: "Time off" },
-  { hue: "var(--cal-note)", label: "Notes — do not block" },
+  { hue: "var(--cal-note)", label: "Notes, do not block" },
 ];

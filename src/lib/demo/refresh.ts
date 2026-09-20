@@ -86,11 +86,11 @@ const SERVICES: [string, number, number, number][] = [
 const FAQS: [string, string][] = [
   [
     "Do you do a patch test?",
-    "Yes — for any colour we need a patch test at least 48 hours before. It takes two minutes and you can pop in any time we are open.",
+    "Yes, for any colour we need a patch test at least 48 hours before. It takes two minutes and you can pop in any time we are open.",
   ],
   [
     "Where are you and is there parking?",
-    "We are on Fore Street, and there is the long-stay car park behind us — about two minutes' walk.",
+    "We are on Fore Street, and there is the long-stay car park behind us, about two minutes' walk.",
   ],
   [
     "What if I need to cancel?",
@@ -174,7 +174,7 @@ const THREADS: Thread[] = [
       [
         37,
         "assistant",
-        "We do — a half head of foils with Sarah is £110 to £145 depending on your length and how much lift you are after, and that includes a trim and a finish. It runs about two and a half hours. Would you like me to look at some times?",
+        "We do. A half head of foils with Sarah is £110 to £145 depending on your length and how much lift you are after, and that includes a trim and a finish. It runs about two and a half hours. Would you like me to look at some times?",
       ],
       [35, "client", "yes please, saturdays are best or after 5 in the week"],
       [
@@ -186,7 +186,7 @@ const THREADS: Thread[] = [
       [
         30,
         "assistant",
-        "Booked in with Sarah, Saturday at 10:00. There is a £25 deposit to hold it, which comes off the price on the day — I have sent the link over. See you then.",
+        "Booked in with Sarah, Saturday at 10:00. There is a £25 deposit to hold it, which comes off the price on the day, and I have sent the link over. See you then.",
       ],
       [24, "client", "paid, thanks!"],
     ],
@@ -213,7 +213,7 @@ const THREADS: Thread[] = [
       [
         95,
         "assistant",
-        "Not a problem, it just means we go gently — box colour lifts unevenly, so Nadia would take it lighter across the appointment rather than force it in one go. Balayage with her is £120 to £160 depending on length and how much lift, about three hours. She would rather see it before promising a shade.",
+        "Not a problem, it just means we go gently. Box colour lifts unevenly, so Nadia would take it lighter across the appointment rather than force it in one go. Balayage with her is £120 to £160 depending on length and how much lift, about three hours. She would rather see it before promising a shade.",
       ],
       [93, "client", "that makes sense. weekday mornings are easiest for me"],
       [
@@ -225,7 +225,7 @@ const THREADS: Thread[] = [
       [
         87,
         "assistant",
-        "That is yours — Wednesday at 10:00 with Nadia, about three hours. £25 deposit to hold it and it comes off on the day.",
+        "That is yours. Wednesday at 10:00 with Nadia, about three hours. £25 deposit to hold it and it comes off on the day.",
       ],
     ],
   },
@@ -250,7 +250,7 @@ const THREADS: Thread[] = [
       [
         13,
         "assistant",
-        "Congratulations — yes, we do weddings, and we can come to you within about twenty miles. For six of you it is usually £450 to £600 depending on how much is up and how early the start is, and we would want a trial with you first. July is a way off so there is plenty of room. Shall I have Sarah ring you to talk it through?",
+        "Congratulations, and yes, we do weddings, and we can come to you within about twenty miles. For six of you it is usually £450 to £600 depending on how much is up and how early the start is, and we would want a trial with you first. July is a way off so there is plenty of room. Shall I have Sarah ring you to talk it through?",
       ],
       [11, "client", "yes please, afternoons are best"],
       [
@@ -273,7 +273,7 @@ const THREADS: Thread[] = [
       [
         51,
         "assistant",
-        "I am sorry — that is not what you came in for, and I would rather someone here sorted it than me. I have passed this straight to Sarah with your name and what you have said, and she will come back to you today.",
+        "I am sorry. That is not what you came in for, and I would rather someone here sorted it than me. I have passed this straight to Sarah with your name and what you have said, and she will come back to you today.",
       ],
     ],
   },
@@ -286,7 +286,7 @@ const THREADS: Thread[] = [
       [
         2,
         "assistant",
-        "We do — Chloe has Thursday at 2:00 or Friday at 11:30, and Mo has Friday at 4:45. A cut and blow dry is £42 and takes about an hour. Which would you like?",
+        "We do. Chloe has Thursday at 2:00 or Friday at 11:30, and Mo has Friday at 4:45. A cut and blow dry is £42 and takes about an hour. Which would you like?",
       ],
     ],
   },
@@ -294,13 +294,13 @@ const THREADS: Thread[] = [
     who: "Priya Ahmed",
     channel: "whatsapp",
     status: "qualified",
-    enquiry: { intent: "question", description: "Keratin — not something we do" },
+    enquiry: { intent: "question", description: "Keratin, not something we do" },
     messages: [
       [8, "client", "do you do keratin treatments?"],
       [
         8,
         "assistant",
-        "We do not, I am afraid — that is the one thing we have never taken on. If it is the frizz you are after, Nadia does a gloss and a cut that gets a good way there for £55, but I would rather say so than book you in for the wrong thing.",
+        "We do not, I am afraid. That is the one thing we have never taken on. If it is the frizz you are after, Nadia does a gloss and a cut that gets a good way there for £55, but I would rather say so than book you in for the wrong thing.",
       ],
       [6, "client", "appreciate that, ill have a think"],
     ],
@@ -322,10 +322,10 @@ const THREADS: Thread[] = [
       [
         259,
         "assistant",
-        "Mo can do a root touch-up tomorrow at 11:15 or 3:30 — it is £55 with a blow dry and takes about an hour and a quarter. Shall I put you down?",
+        "Mo can do a root touch-up tomorrow at 11:15 or 3:30, and it is £55 with a blow dry and takes about an hour and a quarter. Shall I put you down?",
       ],
       [256, "client", "11.15 amazing thank you"],
-      [255, "assistant", "Done — tomorrow at 11:15 with Mo. See you then."],
+      [255, "assistant", "Done. Tomorrow at 11:15 with Mo. See you then."],
     ],
   },
   {
@@ -343,7 +343,7 @@ const THREADS: Thread[] = [
       [
         2519,
         "assistant",
-        "No problem at all — if a half head would do, that is £110 to £145. Either way, we are here.",
+        "No problem at all. If a half head would do, that is £110 to £145. Either way, we are here.",
       ],
     ],
   },

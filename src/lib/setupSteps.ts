@@ -109,7 +109,7 @@ export function ownerSteps(f: SetupFacts): SetupStep[] {
        */
       done: f.money.decided && ready("stripe") && ready("policy"),
       todo: !f.money.decided
-        ? "Nothing is set up to take money yet — deposits are off, payments in full are off, and there is no Stripe account. That is a fine answer if you take cash or a card machine; it is worth one look either way."
+        ? "Nothing is set up to take money yet: deposits are off, payments in full are off, and there is no Stripe account. That is a fine answer if you take cash or a card machine; it is worth one look either way."
         : !ready("stripe")
           ? cap("stripe")?.otherwise
           : cap("policy")?.otherwise,
@@ -135,7 +135,7 @@ export function ownerSteps(f: SetupFacts): SetupStep[] {
       title: `Try it as one of your ${f.words.customers}`,
       why: "Ask it a price, ask for Saturday, ask something awkward. What it gets wrong tells you what to fill in.",
       done: f.conversations > 0,
-      todo: "Nobody has spoken to it yet — you should be first.",
+      todo: "Nobody has spoken to it yet, and you should be first.",
       href: `/widget/${f.slug}`,
       action: "Open your assistant",
       external: true,
@@ -156,7 +156,7 @@ export function ownerSteps(f: SetupFacts): SetupStep[] {
       done: ready("widget") && f.fromWebsite > 0,
       todo: !ready("widget")
         ? cap("widget")?.otherwise
-        : "Nobody has used the website button yet — once it is on your site this ticks itself.",
+        : "Nobody has used the website button yet. Once it is on your site this ticks itself.",
       href: "/settings/install",
       action: "Get your button and link",
     },

@@ -252,9 +252,9 @@ export function StudioForm({
           <div className="space-y-2">
             {(
               [
-                ["required", "Yes — the slot is held until it is paid"],
+                ["required", "Yes, the slot is held until it is paid"],
                 ["optional", "Offer it, but book them either way"],
-                ["none", "No — never mention money, just book them in"],
+                ["none", "No, never mention money, just book them in"],
               ] as const
             ).map(([value, label]) => (
               <label key={value} className="flex items-center gap-2 text-sm">
@@ -448,7 +448,7 @@ export function StudioForm({
 
             <Field
               label="Areas you cover"
-              hint="Postcode areas or districts, separated by commas — BS, BA, TA16. Leave blank to cover everywhere."
+              hint="Postcode areas or districts, separated by commas: BS, BA, TA16. Leave blank to cover everywhere."
             >
               <input
                 name="service_areas"
@@ -570,7 +570,7 @@ export function StudioForm({
 
         <Field
           label="Full terms URL"
-          explain="Optional. The full booking and cancellation terms on your own site — the assistant links it if someone wants the detail."
+          explain="Optional. The full booking and cancellation terms on your own site. The assistant links it if someone wants the detail."
         >
           <input
             name="terms_url"
@@ -642,7 +642,7 @@ export function StudioForm({
           <Field
             label="Remind them what's coming up"
             hint={`Sent once, well before the day, by text or email. Never to somebody who has texted STOP.`}
-            explain={`We keep ${dueLabels.join(" and ")} on a customer's record. This tells them before it falls due, and offers them a slot — which is the part the reminder they get from anybody else is missing.`}
+            explain={`We keep ${dueLabels.join(" and ")} on a customer's record. This tells them before it falls due, and offers them a slot, which is the part the reminder they get from anybody else is missing.`}
           >
             <input type="hidden" name="fact_reminders_shown" value="1" />
             <label className="flex items-start gap-2.5 text-sm">

@@ -8,7 +8,7 @@ export function Withdraw({ id }: { id: string }) {
   const [state, action, pending] = useActionState<FormActionState, FormData>(voidForm, {});
   const [asked, setAsked] = useState(false);
 
-  if (state.ok) return <span className="text-sm text-muted">Withdrawn — the link no longer works.</span>;
+  if (state.ok) return <span className="text-sm text-muted">Withdrawn. The link no longer works.</span>;
 
   return (
     <form action={action} className="flex items-center gap-2">

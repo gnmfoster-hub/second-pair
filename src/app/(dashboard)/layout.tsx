@@ -277,7 +277,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <MobileHeader businessName={studio.name}>
           <ThemeToggle compact />
           {/* The sidebar holds all of this on a desktop, and the sidebar does
-              not exist on a phone — so there was no way to sign out at all. */}
+              not exist on a phone, so there was no way to sign out at all. */}
           <MobileAccount email={userEmail}>
             <AdminLink />
           </MobileAccount>

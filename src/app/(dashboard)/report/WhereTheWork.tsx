@@ -42,7 +42,7 @@ export function WhereTheWork({
         <section className="card p-5">
           <div className="section-title">Where the work was</div>
           <p className="hint mt-1">
-            By what it came to, not how many — one big job pays for a lot of small ones.
+            By what it came to, not how many, because one big job pays for a lot of small ones.
           </p>
 
           <ul className="mt-4 space-y-2.5">
@@ -69,7 +69,7 @@ export function WhereTheWork({
 
           {unknown > 0 && (
             <p className="hint mt-3 text-xs">
-              {unknown} more with no postcode on them — those booked by hand usually have
+              {unknown} more with no postcode on them, and those booked by hand usually have
               none, so this is the work that came in through the assistant.
             </p>
           )}

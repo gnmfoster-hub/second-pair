@@ -176,7 +176,7 @@ export function Console({
           <Business key={b.id} b={b} />
         ))}
         {real.length === 0 && shown.length > 0 && (
-          <p className="hint py-4">No real businesses match that — only demonstrations, below.</p>
+          <p className="hint py-4">No real businesses match that. Only demonstrations, below.</p>
         )}
       </div>
 
@@ -389,7 +389,7 @@ function NeedsYou({ businesses }: { businesses: BusinessSummary[] }) {
        * platform was in exactly that state.
        */
       if (b.status === "trial" && !b.trialEndsOn) {
-        return { b, why: "On trial with no end date — it will never ask", urgent: false };
+        return { b, why: "On trial with no end date, so it will never ask", urgent: false };
       }
       return null;
     })
@@ -509,7 +509,7 @@ function Business({ b }: { b: BusinessSummary }) {
                 {b.kind === "demo" ? "Pretend" : "Ours"}
               </span>
             )}
-            {/* A demonstration cannot be badly set up — there is nobody to fail. */}
+            {/* A demonstration cannot be badly set up: there is nobody to fail. */}
             {b.kind === "customer" && !ready(b) && (
               <span className="pill bg-warn/10 text-warn">Not finished</span>
             )}
@@ -1093,7 +1093,7 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
           Everything of theirs goes: conversations, bookings, clients, settings. Their login
           stays, because a person is not a business.
           {b.kind === "customer"
-            ? " A customer has to be stopped before they can be deleted — two decisions, not one."
+            ? " A customer has to be stopped before they can be deleted. Two decisions, not one."
             : " A demonstration or one of ours goes straight away; there is no relationship to end."}
         </p>
         {gone.error && <p className="mt-2 text-sm text-warn">{gone.error}</p>}
@@ -1965,7 +1965,7 @@ function FixSettings({ b }: { b: BusinessSummary }) {
         </div>
 
         <p className="hint">
-          Changes their account, not yours. Tell them what you changed — software that
+          Changes their account, not yours. Tell them what you changed, because software that
           alters somebody&rsquo;s settings without saying so is how trust goes.
         </p>
       </form>

@@ -346,7 +346,7 @@ export default async function ReportPage({
         */}
       {report.enquiries === 0 && sinceCount === 0 && (
         <p className="hint mt-5 max-w-lg">
-          Nothing to report yet — this covers {range}, and the figures below fill in as
+          Nothing to report yet. This covers {range}, and the figures below fill in as
           enquiries arrive. They are what the assistant did while you were working.
         </p>
       )}
@@ -468,7 +468,7 @@ export default async function ReportPage({
             <p className="hint mt-2">
               {sinceCount > 0 ? (
                 <>
-                  You&rsquo;ve had {sinceCount} since — the report shows the last completed
+                  You&rsquo;ve had {sinceCount} since. The report shows the last completed
                   week by default, so yours are in{" "}
                   <Link href="/report?weeks=-1" className="text-accent hover:underline">
                     this week so far

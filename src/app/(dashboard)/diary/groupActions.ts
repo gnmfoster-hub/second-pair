@@ -72,7 +72,7 @@ export async function createBookingGroup(
   const artists = await getArtists(studio.id);
 
   const name = str(fd, "name");
-  if (!name) return { error: "Give it a name — whose wedding, or which address." };
+  if (!name) return { error: "Give it a name: whose wedding, or which address." };
 
   const date = str(fd, "date");
   const rows = readRows(fd);

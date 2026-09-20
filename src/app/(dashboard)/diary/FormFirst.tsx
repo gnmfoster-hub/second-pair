@@ -32,7 +32,7 @@ export function FormFirst({ need, contactId, bookingId }: { need: FormNeed; cont
   return (
     <div className="mt-3 rounded-xl border border-warn/30 bg-warn/5 p-3 text-sm">
       <div className="font-medium text-warn">
-        {need.state === "waiting" ? `${need.name} sent — not signed yet` : `${need.name} needed before this`}
+        {need.state === "waiting" ? `${need.name} sent, not signed yet` : `${need.name} needed before this`}
       </div>
 
       {state.ok && (state.sent ?? 0) > 0 ? (
@@ -72,7 +72,7 @@ export function FormFirst({ need, contactId, bookingId }: { need: FormNeed; cont
           )}
           {state.error && <span className="w-full text-warn">{state.error}</span>}
           {state.unreached && state.unreached.length > 0 && (
-            <span className="w-full text-warn">It could not reach them — make the link instead.</span>
+            <span className="w-full text-warn">It could not reach them. Make the link instead.</span>
           )}
         </form>
       )}
@@ -169,7 +169,7 @@ export function SendAnyForm({ contactId, bookingId }: { contactId: string; booki
         </button>
       </div>
       {state.error && <p className="text-warn">{state.error}</p>}
-      {state.unreached && state.unreached.length > 0 && <p className="text-warn">It could not reach them — make the link instead.</p>}
+      {state.unreached && state.unreached.length > 0 && <p className="text-warn">It could not reach them. Make the link instead.</p>}
     </form>
   );
 }

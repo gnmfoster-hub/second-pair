@@ -145,8 +145,8 @@ export function Notifications() {
         <div className="min-w-0">
           <h2 className="section-title">Tell me when someone needs me</h2>
           <p className="hint mt-1 max-w-prose">
-            The assistant handles almost everything. When it genuinely cannot — a complaint,
-            anything medical, someone under 18, anyone asking for a person — it stops and
+            The assistant handles almost everything. When it genuinely cannot (a complaint,
+            anything medical, someone under 18, anyone asking for a person) it stops and
             hands over. This is how you find out, without checking.
           </p>
         </div>
@@ -179,7 +179,7 @@ export function Notifications() {
 
         {state === "off" && (
           <span className="text-muted">
-            Off. Turn it on once per device — your phone and your computer are separate.
+            Off. Turn it on once per device, because your phone and your computer are separate.
           </span>
         )}
 

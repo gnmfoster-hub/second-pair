@@ -35,7 +35,7 @@ export default async function PaymentCancelledPage({
     reason === "expired"
       ? [
           "That hold has run out",
-          "Nothing has been charged. The time was only held for a while, so it may have gone — ask for it again and you will be offered what is free.",
+          "Nothing has been charged. The time was only held for a while, so it may have gone. Ask for it again and you will be offered what is free.",
         ]
       : reason === "gone"
         ? [
@@ -45,7 +45,7 @@ export default async function PaymentCancelledPage({
         : reason === "error"
           ? [
               "The payment page would not open",
-              "Nothing has been charged. Something went wrong at our end — try the link again in a minute, or get in touch with the business.",
+              "Nothing has been charged. Something went wrong at our end. Try the link again in a minute, or get in touch with the business.",
             ]
           : [
               "Payment cancelled",

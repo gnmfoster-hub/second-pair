@@ -179,7 +179,7 @@ export default async function ConversationPage({
                         : "max-w-full py-1.5 text-[0.9375rem] leading-[1.62]"
                     }`}
                   >
-                    {/* Which of the two of you said it — the assistant or you
+                    {/* Which of the two of you said it: the assistant or you
                         stepping in. Without a bubble to sit inside, this is the
                         only thing distinguishing them. */}
                     {!fromClient && (

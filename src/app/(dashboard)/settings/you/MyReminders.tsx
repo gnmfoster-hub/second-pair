@@ -104,7 +104,7 @@ export function MyReminders({
             </>
           ) : (
             <>
-              Add one below. Turning the switch off would not help — the business has
+              Add one below. Turning the switch off would not help, because the business has
               none either, so nobody here is reminding anybody.
             </>
           )}

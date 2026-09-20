@@ -53,7 +53,7 @@ export default async function FormsOverviewPage() {
     return (
       <div className="card p-5">
         <h1 className="page-title">Forms</h1>
-        <p className="hint mt-2">Forms need a database update before they can be used — it is on your list.</p>
+        <p className="hint mt-2">Forms need a database update before they can be used, and it is on your list.</p>
       </div>
     );
   }

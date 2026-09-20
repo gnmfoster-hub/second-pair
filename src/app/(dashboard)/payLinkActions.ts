@@ -261,7 +261,7 @@ async function sendLink({
     return { error: "You cannot message customers, so here is the link to copy." };
   }
 
-  if (!contact) return { error: "Nobody to send it to — here is the link." };
+  if (!contact) return { error: "Nobody to send it to, so here is the link." };
 
   /*
    * The demo pretends, and says so.

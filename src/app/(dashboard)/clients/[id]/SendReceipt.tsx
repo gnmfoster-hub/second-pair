@@ -32,7 +32,7 @@ export function SendReceipt({
       >
         {pending ? "Sending…" : "Email receipt"}
       </button>
-      {/* The reason, where there is one — an address they never gave, most
+      {/* The reason, where there is one: an address they never gave, most
           often, which is not an error worth a red box. */}
       {state.error && <span className="ml-2 text-warn">{state.error}</span>}
     </form>

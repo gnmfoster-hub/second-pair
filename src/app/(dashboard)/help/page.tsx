@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireStudio } from "@/lib/studio";
 import { Tickets } from "./Tickets";
 
-export const metadata = { title: "Help — Second Pair" };
+export const metadata = { title: "Help at Second Pair" };
 
 /**
  * Asking a person for help, and reading what they said back.

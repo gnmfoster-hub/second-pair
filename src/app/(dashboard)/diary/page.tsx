@@ -1404,7 +1404,7 @@ export default async function DiaryPage({
           </span>
         ) : (
           <Link href="/settings" className="ml-auto text-xs text-warn hover:underline">
-            No opening hours set — add them
+            No opening hours set, add them
           </Link>
         )}
       </div>
@@ -1600,7 +1600,7 @@ export default async function DiaryPage({
                 <p className="text-sm font-medium">Your hours aren&rsquo;t set yet</p>
                 <p className="hint mt-1.5">
                   Until they are, the assistant has no times to offer and nothing can be
-                  booked — by it or by you.
+                  booked, by it or by you.
                 </p>
                 <Link
                   href="/settings"

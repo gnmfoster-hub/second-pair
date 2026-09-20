@@ -7,7 +7,7 @@ import { VERTICAL_LIST } from "@/lib/verticals";
 import { savedWords } from "@/lib/savedAt";
 import { Console } from "./Console";
 
-export const metadata = { title: "Second Pair — every business" };
+export const metadata = { title: "Second Pair, every business" };
 
 /*
  * Never cached, on purpose.
@@ -378,8 +378,8 @@ export default async function AdminPage() {
                 ? "everything"
                 : person
                   ? person.owner_managed
-                    ? "employed — the business keeps her settings"
-                    : "renting a chair — her own prices, list and reminders"
+                    ? "employed, so the business keeps her settings"
+                    : "renting a chair, with her own prices, list and reminders"
                   : "no column in the diary: the inbox and everybody's day",
           });
         }

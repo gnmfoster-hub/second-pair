@@ -27,7 +27,7 @@ export function DemoReset() {
         <div className="text-sm font-medium">This is the demo salon</div>
         <p className="hint mt-0.5">
           {state.note ??
-            "Rebuild it and the week, the inbox and the counter go back to how they were — dated from today. Nothing real is touched."}
+            "Rebuild it and the week, the inbox and the counter go back to how they were, dated from today. Nothing real is touched."}
         </p>
         {state.error && <p className="mt-1 text-sm text-warn">{state.error}</p>}
       </div>

@@ -8,7 +8,7 @@ import { loadPlatformRows } from "@/lib/reports/loadPlatform";
 import { rangeFrom, RANGES } from "@/lib/reports/range";
 import { whyTheyWereTreatedThatWay, keptOut } from "@/lib/reports/whyEmail";
 
-export const metadata = { title: "Second Pair — reports" };
+export const metadata = { title: "Second Pair reports" };
 export const dynamic = "force-dynamic";
 
 /**
@@ -308,7 +308,7 @@ export default async function ReportsPage({
             </tbody>
           </table>
         </div>
-        <p className="hint mt-2 text-xs">Texts are costed at about {TEXT_PENCE}p each — check Twilio for the real bill.</p>
+        <p className="hint mt-2 text-xs">Texts are costed at about {TEXT_PENCE}p each. Check Twilio for the real bill.</p>
       </section>
 
       {/* ─────────────────────────────────────────── channels, trades, growth */}

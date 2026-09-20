@@ -7,7 +7,7 @@ import { wordsFor } from "@/lib/words";
 import { Page, PageHeader } from "@/components/PageHeader";
 import { StepLink } from "./StepLink";
 
-export const metadata = { title: "Set-up — Second Pair" };
+export const metadata = { title: "Set-up at Second Pair" };
 
 /**
  * The walk-through.
@@ -104,7 +104,7 @@ export default async function SetupPage() {
         {finished
           ? "Everything that matters is done. Anything still open below is worth doing, not needed."
           : owns
-            ? `${done} of ${of} done. Do them in order — each one makes the next easier — and come back whenever you like; it remembers by looking.`
+            ? `${done} of ${of} done. Do them in order, because each one makes the next easier, and come back whenever you like; it remembers by looking.`
             : `${done} of ${of} done. A few things only you can do, because they are on your own phone and your own accounts.`}
       </PageHeader>
 

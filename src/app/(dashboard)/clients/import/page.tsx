@@ -26,7 +26,7 @@ export default async function ImportPage() {
 
       <h1 className="mt-2 text-2xl font-semibold">Bring in a {words.customer} list</h1>
       <p className="hint mt-1 max-w-prose">
-        From Fresha, Treatwell, Booksy, an old spreadsheet — anything that gives you a csv file.
+        From Fresha, Treatwell, Booksy, an old spreadsheet, anything that gives you a csv file.
         Nothing is changed in the system you are coming from; this only reads what it gave you.
       </p>
 

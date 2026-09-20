@@ -44,7 +44,7 @@ export function MyTravel({
       <div className="mt-4">
         <Field
           label={`${firstName}'s own, in minutes`}
-          hint="Blank uses the business's. Zero is a real answer — it means no gap is needed at all."
+          hint="Blank uses the business's. Zero is a real answer: it means no gap is needed at all."
         >
           <input
             name="travel_buffer_minutes"

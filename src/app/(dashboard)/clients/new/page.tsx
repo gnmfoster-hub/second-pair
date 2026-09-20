@@ -10,7 +10,7 @@ export default function NewClientPage() {
 
       <h1 className="page-title mt-3">Add a client</h1>
       <p className="hint mt-1 max-w-prose">
-        For somebody who has never messaged you — a regular who books by walking in,
+        For somebody who has never messaged you: a regular who books by walking in,
         or somebody you want to reach out to first.
       </p>
 

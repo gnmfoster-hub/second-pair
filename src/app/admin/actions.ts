@@ -196,7 +196,7 @@ export async function createBusiness(_prev: Result, fd: FormData): Promise<Resul
      */
     note: created
       ? `${name} is set up with its trade's prices, FAQs and reminders, and ${ownerName || name} ` +
-        "added as the first person. Only the opening hours are missing — nobody but them knows " +
+        "added as the first person. Only the opening hours are missing, and nobody but them knows " +
         "those. Send them the link below to choose a password."
       : `${name} is set up under an existing login, so they sign in as they already do.`,
     /*
@@ -448,7 +448,7 @@ export async function archiveBusiness(_prev: Result, fd: FormData): Promise<Resu
     ok: true,
     note: restoring
       ? `${studio.name} is back on. The assistant is answering for them again.`
-      : `${studio.name} is stopped. Nothing is lost, and the assistant has stopped answering — take the script off their site when you can.`,
+      : `${studio.name} is stopped. Nothing is lost, and the assistant has stopped answering. Take the script off their site when you can.`,
   };
 }
 
@@ -490,7 +490,7 @@ export async function deleteBusiness(_prev: Result, fd: FormData): Promise<Resul
   if (studio.kind === "customer" && !studio.archived_at) {
     return {
       error:
-        `${studio.name} is still live. Stop them first — then deleting is a separate ` +
+        `${studio.name} is still live. Stop them first, then deleting is a separate ` +
         "decision, and everything of theirs survives in the meantime.",
     };
   }

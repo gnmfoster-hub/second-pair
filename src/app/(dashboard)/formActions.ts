@@ -30,7 +30,7 @@ export type FormActionState = {
 const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
 
 /** Said once, wherever the tables are not there yet. */
-const NOT_YET = "Forms need a database update before they can be used — it is on the list.";
+const NOT_YET = "Forms need a database update before they can be used, and it is on the list.";
 
 const KINDS = new Set(["consent", "questionnaire", "waiver", "quote", "other"]);
 
@@ -345,7 +345,7 @@ export async function voidForm(_prev: FormActionState, fd: FormData): Promise<Fo
     .neq("status", "signed")
     .select("contact_id");
   if (error) return { error: error.message };
-  if (!data?.length) return { error: "A signed form cannot be withdrawn — it is a record of what they agreed." };
+  if (!data?.length) return { error: "A signed form cannot be withdrawn. It is a record of what they agreed." };
 
   revalidatePath(`/clients/${data[0].contact_id}`);
   return { ok: true };

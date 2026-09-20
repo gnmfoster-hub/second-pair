@@ -72,7 +72,7 @@ function ChooseFile({
       <div>
         <h2 className="section-title">The file from your old system</h2>
         <p className="hint mt-1 max-w-prose">
-          Export your {words.customers} from whatever you use now — Fresha, Treatwell, a
+          Export your {words.customers} from whatever you use now: Fresha, Treatwell, a
           spreadsheet, anything that gives you a <strong>.csv</strong> — and put it here as it
           comes. Do not tidy it up first: the next screen shows what we think each column is,
           and you correct it there. Half-empty columns are fine and normal.

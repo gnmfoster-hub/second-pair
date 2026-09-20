@@ -174,7 +174,7 @@ export default async function ClientsPage({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Somebody who has never messaged you still needs a record — the
+          {/* Somebody who has never messaged you still needs a record, because the
               walk-in regular, and anybody you want to reach out to first. */}
           <Link href="/clients/forms" className="px-1 text-xs text-accent hover:underline">
             Forms
@@ -261,7 +261,7 @@ export default async function ClientsPage({
                 <Waiting className="mx-auto mb-4 size-14" />
                 <div className="empty-title">No {words.customers} yet</div>
                 <p className="empty-body">
-                  They arrive on their own with the first enquiry — the assistant keeps
+                  They arrive on their own with the first enquiry, and the assistant keeps
                   their details as it books them in. You can add somebody yourself if you
                   already know who they are.
                 </p>

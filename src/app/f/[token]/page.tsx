@@ -49,7 +49,7 @@ export default async function FormPage({ params }: { params: Promise<{ token: st
             It may have been withdrawn, or the link was copied wrongly. Ask for a new link.
           </Notice>
         ) : form.status === "signed" ? (
-          <Notice heading="Already done — thank you">
+          <Notice heading="Already done, thank you">
             This form was filled in and signed. There is nothing more to do.
           </Notice>
         ) : expired ? (

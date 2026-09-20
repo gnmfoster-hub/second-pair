@@ -100,7 +100,7 @@ export default async function ClientFormPage({
 
       {warnings.length > 0 && (
         <div className="rounded-xl border border-warn/40 bg-warn/10 p-4 text-sm">
-          <div className="font-medium text-warn">Answered yes — read before starting</div>
+          <div className="font-medium text-warn">Answered yes, read before starting</div>
           <ul className="mt-2 space-y-1">
             {warnings.map((b) => (
               <li key={b.id}>

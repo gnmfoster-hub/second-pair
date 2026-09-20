@@ -50,7 +50,7 @@ export function NavLink({
         // "look" without claiming a number that might be wrong.
         <span
           className="ml-auto size-1.5 shrink-0 rounded-full bg-warn"
-          title="Could not check — open the inbox"
+          title="Could not check. Open the inbox"
           aria-label="Count unavailable"
         />
       ) : badge ? (

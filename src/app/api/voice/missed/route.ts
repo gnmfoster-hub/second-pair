@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
    * part that actually matters to somebody already typing.
    */
   if (thread.paused) {
-    await note(db, thread.id, "No text sent — you have taken this conversation over.");
+    await note(db, thread.id, "No text sent. You have taken this conversation over.");
     await flag(db, thread.id);
     return empty();
   }

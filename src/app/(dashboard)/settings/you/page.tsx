@@ -25,7 +25,7 @@ import { byPerson } from "@/lib/servicePrices";
 import type { Service, ServicePerson } from "@/lib/types";
 import { wordsFor } from "@/lib/words";
 
-export const metadata = { title: "You — Second Pair" };
+export const metadata = { title: "You at Second Pair" };
 
 /**
  * The things that belong to whoever is signed in.
@@ -286,7 +286,7 @@ export default async function YouPage({
             sender={sender}
           />}
 
-          {/* Their life, coming in — the other direction from the feed above,
+          {/* Their life, coming in: the other direction from the feed above,
               and the one that stops the assistant booking over the school
               run. */}
           <PersonalCalendar

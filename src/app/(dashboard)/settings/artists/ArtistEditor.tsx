@@ -91,8 +91,8 @@ export function ArtistEditor({
               * shown beside their name from then on.
               */}
             {artist?.name ?? "Add someone"}
-            {/* Said beside the name, because the question it answers — who can
-                change the prices — is asked while looking at the list. */}
+            {/* Said beside the name, because the question it answers, who can
+                change the prices, is asked while looking at the list. */}
             {isOwner && (
               <span className="ml-2 pill bg-accent/10 text-accent align-middle">Owner</span>
             )}

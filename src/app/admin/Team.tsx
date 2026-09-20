@@ -124,7 +124,7 @@ function Person({ person }: { person: BusinessSummary["team"][number] }) {
         />
         <label className="mt-1 flex items-center gap-2 text-xs text-muted">
           <input type="checkbox" name="touch_calendar" value="1" />
-          Change it — leave unticked and this box is ignored, so clearing it is deliberate
+          Change it. Leave unticked and this box is ignored, so clearing it is deliberate
         </label>
       </label>
 

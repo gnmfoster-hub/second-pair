@@ -31,7 +31,7 @@ const OUTCOMES: Record<string, { tone: "ok" | "warn"; text: string }> = {
   },
   refused: {
     tone: "warn",
-    text: "Stripe would not finish. Nothing was changed — try again, and tell us if it happens twice.",
+    text: "Stripe would not finish. Nothing was changed. Try again, and tell us if it happens twice.",
   },
   /*
    * The one an owner cannot act on, and so the one that has to say whose

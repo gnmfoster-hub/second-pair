@@ -311,7 +311,7 @@ export function EntryDialog({
             {chosen.hint && <p className="hint mt-2">{chosen.hint}</p>}
             {!chosen.blocks && (
               <p className="hint mt-1 text-warn">
-                A note only — the assistant can still book over this time.
+                A note only, so the assistant can still book over this time.
               </p>
             )}
           </Field>

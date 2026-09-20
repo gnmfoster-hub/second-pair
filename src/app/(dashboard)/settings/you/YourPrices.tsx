@@ -49,7 +49,7 @@ export function YourPrices({
 
   return (
     <form action={action} className="card p-5">
-      {/* Says the ticks were on screen — see the note in priceActions. */}
+      {/* Says the ticks were on screen: see the note in priceActions. */}
       <input type="hidden" name="touch_offered" value="1" />
       <div className="section-title">Your prices</div>
       <p className="hint mt-1.5 max-w-prose">

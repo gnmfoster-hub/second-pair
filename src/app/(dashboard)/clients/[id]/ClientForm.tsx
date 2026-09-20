@@ -64,7 +64,7 @@ export function ClientForm({
 
       <Field
         label="Alert"
-        hint="Shown wherever they appear. For anything that must not be missed — an allergy, a warning, a debt."
+        hint="Shown wherever they appear. For anything that must not be missed: an allergy, a warning, a debt."
       >
         <input
           name="alert"

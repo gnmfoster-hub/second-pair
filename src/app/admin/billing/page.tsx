@@ -17,7 +17,7 @@ import {
 } from "@/lib/billing";
 import { setPlan, markBilled, recordCost, removeCost, remeter } from "./actions";
 
-export const metadata = { title: "Second Pair — billing" };
+export const metadata = { title: "Second Pair billing" };
 export const dynamic = "force-dynamic";
 
 /*
@@ -209,7 +209,7 @@ export default async function BillingPage({
       <p className="hint mt-1 text-sm">
         Everything that scales with use, split by how it actually arrives. A text is charged per
         message both ways, Meta per twenty-four-hour conversation, email per message and barely
-        anything, and the website carries nothing at all — its whole cost is the model answering.
+        anything, and the website carries nothing at all, and its whole cost is the model answering.
         This is the table to read before deciding what a channel is worth charging for.
         The telephone is the one to look at hardest: it is the only channel billed by the
         minute, every leg rounds up to a whole one, and ringing an owner&rsquo;s mobile for
@@ -240,7 +240,7 @@ export default async function BillingPage({
                     {c.channel}
                     {c.unpriced && (
                       <span className="hint block text-xs">
-                        no rate set yet — put Meta&rsquo;s price in when the first invoice comes
+                        no rate set yet, so put Meta&rsquo;s price in when the first invoice comes
                       </span>
                     )}
                     {/*
@@ -320,7 +320,7 @@ export default async function BillingPage({
                   <td className="px-3 py-2">
                     <div className="font-medium">{r.studio.name}</div>
                     {!r.metered && (
-                      <div className="hint text-xs">not counted yet — press “Count it again now”</div>
+                      <div className="hint text-xs">not counted yet, press “Count it again now”</div>
                     )}
                   </td>
                   <td className="px-3 py-2">

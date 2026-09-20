@@ -64,7 +64,7 @@ export function Tickets({ tickets }: { tickets: Ticket[] }) {
           <div className="text-sm font-medium">Try the assistant first</div>
           <p className="hint mt-0.5">
             It answers most things straight away, and it knows how all of this works. If
-            it cannot help, it raises a request here for you — you will not have to write
+            it cannot help, it raises a request here for you, so you will not have to write
             it out twice.
           </p>
         </div>
@@ -95,7 +95,7 @@ export function Tickets({ tickets }: { tickets: Ticket[] }) {
               required
               rows={4}
               className="input"
-              placeholder="Tell us what you did, what you expected, and what happened instead. If it is about one customer, their first name is enough — we cannot see your messages."
+              placeholder="Tell us what you did, what you expected, and what happened instead. If it is about one customer, their first name is enough, because we cannot see your messages."
             />
           </label>
           <div className="flex items-center gap-3">

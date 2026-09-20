@@ -48,7 +48,7 @@ export function NewClientForm() {
         </fieldset>
       <p className="hint">
         Off unless they have actually said so. Reminders about their own booking are
-        sent regardless — this is only for anything else.
+        sent regardless, so this is only for anything else.
       </p>
 
       <div className="flex items-center gap-4">

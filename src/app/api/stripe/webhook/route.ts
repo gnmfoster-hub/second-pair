@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   ].filter((s): s is { mode: StripeMode; secret: string } => Boolean(s.secret));
 
   if (secrets.length === 0) {
-    console.error("[stripe] no webhook secret is set — refusing to trust the event");
+    console.error("[stripe] no webhook secret is set, refusing to trust the event");
     return NextResponse.json({ error: "Webhooks not configured" }, { status: 503 });
   }
 

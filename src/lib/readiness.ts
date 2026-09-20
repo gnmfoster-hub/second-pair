@@ -228,7 +228,7 @@ export async function readinessOf(
           ? (services ?? 0) === 0
             ? "No services are set up, so it cannot put a number on anything."
             : "Nothing has a price on it and nobody has an hourly rate, so every price " +
-              "comes back to you — the assistant will take the enquiry and say you will confirm."
+              "comes back to you. The assistant will take the enquiry and say you will confirm."
           : nobodyAtAll
             ? "Nobody has rates set, so every pricing question comes to you."
             : "Nobody is taking bookings, so it cannot quote or book anybody in.",
@@ -259,7 +259,7 @@ export async function readinessOf(
       ready: studio.widget_enabled !== false,
       otherwise:
         "The button is switched off, so there is none on your site even if the " +
-        "code is there — and nothing anywhere says so.",
+        "code is there, and nothing anywhere says so.",
       href: "/settings/install",
       action: "Turn it on",
       blocking: false,
@@ -292,7 +292,7 @@ export async function readinessOf(
       otherwise:
         `${unpriced.length} ${unpriced.length === 1 ? "thing has" : "things have"} no ` +
         `price, so ${unpriced.length === 1 ? "it is" : "they are"} never offered at ` +
-        `all — the alternative would be inventing a number.`,
+        `all, because the alternative would be inventing a number.`,
       href: "/settings/pricing",
       action: "Fill them in",
       blocking: false,
@@ -348,7 +348,7 @@ export async function readinessOf(
       can: "Tell you when somebody books",
       ready: Boolean(studio.email) || (devices ?? 0) > 0,
       otherwise:
-        "Nothing will reach you when a booking comes in — you would find out by " +
+        "Nothing will reach you when a booking comes in. You would find out by " +
         "opening the diary and noticing.",
       href: "/settings",
       action: "Add your email",
@@ -376,7 +376,7 @@ export async function readinessOf(
       ready: (devices ?? 0) > 0,
       otherwise:
         "No phone here has been signed up, so a booking reaches you by email and " +
-        "nothing else — which is fine this evening and no use at four o'clock.",
+        "nothing else, which is fine this evening and no use at four o'clock.",
       href: "/settings/you",
       action: "Turn it on",
       blocking: false,
@@ -454,7 +454,7 @@ export async function readinessOf(
       ready: (faqs ?? 0) >= 3,
       otherwise:
         (faqs ?? 0) === 0
-          ? "Anything you have not answered, it hands to you — which is most things."
+          ? "Anything you have not answered, it hands to you, which is most things."
           : `Only ${faqs} answered so far. Everything else comes to you.`,
       href: "/settings/faqs",
       action: "Answer a few",

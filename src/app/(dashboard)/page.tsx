@@ -487,7 +487,7 @@ export default async function InboxPage({
             <div className="empty-title">Nothing yet</div>
             <p className="empty-body">
               Once the widget is on your site, enquiries land here within a minute of
-              arriving — whether or not you are free to look.
+              arriving, whether or not you are free to look.
             </p>
             <Link href="/settings/install" className="btn-ghost mt-5">
               Get your link

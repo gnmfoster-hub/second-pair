@@ -737,7 +737,7 @@ export function WeekGrid({
           style={{ minWidth: gridWidth }}
         >
           {/* Sticky left, so the times stay put while the week scrolls under
-              them — a column of numbers that scrolls away is no use. */}
+              them, because a column of numbers that scrolls away is no use. */}
           <div className="sticky left-0 z-10 w-11 shrink-0 border-r border-border bg-surface/95 backdrop-blur" />
           {columns.map((col) => {
             const isToday = view === "week" && col.date === todayKey;

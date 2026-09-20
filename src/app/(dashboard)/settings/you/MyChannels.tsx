@@ -129,7 +129,7 @@ export function MyChannels({
           {sharedNames.length > 0 ? (
             <>
               {business} has {sharedNames.length === 1 ? "a" : ""} {orList(sharedNames)}, and a
-              customer writing in is asked who they would like before anything is booked — so
+              customer writing in is asked who they would like before anything is booked, so
               they can ask for {firstName} by name.
             </>
           ) : (

@@ -82,7 +82,7 @@ export function MobileAccount({
           role="menu"
           className="absolute right-0 top-full z-40 mt-1 w-[min(17rem,calc(100vw-2rem))] space-y-3 rounded-2xl border border-border bg-surface p-3 shadow-[var(--shadow-pop)]"
         >
-          {/* Which account this is, first — it is the thing that decides
+          {/* Which account this is, first, because it is the thing that decides
               whether you meant to press the button underneath it. */}
           <div className="truncate px-1 text-[11px] text-muted">{email}</div>
 

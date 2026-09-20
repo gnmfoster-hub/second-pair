@@ -39,7 +39,7 @@ export function FillForm({ token, blocks, business }: { token: string; blocks: B
         <div className="text-3xl" aria-hidden>
           ✓
         </div>
-        <h2 className="mt-3 text-lg font-semibold">{isQuote ? "Thank you — quote accepted" : "Thank you — that’s done"}</h2>
+        <h2 className="mt-3 text-lg font-semibold">{isQuote ? "Thank you, quote accepted" : "Thank you, that’s done"}</h2>
         <p className="hint mt-2">
           {isQuote ? `${business} has your acceptance and will be in touch.` : `Your form has gone to ${business}.`} You can
           close this page.

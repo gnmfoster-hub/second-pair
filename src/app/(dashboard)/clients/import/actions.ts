@@ -54,7 +54,7 @@ export async function readFile(_prev: ReadState, fd: FormData): Promise<ReadStat
   if (!text) return { error: "Choose a file, or paste the rows in." };
 
   const { headers, rows } = readCsv(text);
-  if (!headers.length) return { error: "There is no heading row in that — the first line should be the column names." };
+  if (!headers.length) return { error: "There is no heading row in that. The first line should be the column names." };
   if (!rows.length) return { error: "That has headings but no people under them." };
 
   return {

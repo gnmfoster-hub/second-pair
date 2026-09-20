@@ -51,7 +51,7 @@ export function SendToSeveral({
           <Link href="/settings/forms" className="text-accent hover:underline">
             Add one
           </Link>{" "}
-          first — there are ready-made ones for your trade.
+          first. There are ready-made ones for your trade.
         </p>
       </section>
     );
@@ -132,7 +132,7 @@ export function SendToSeveral({
         >
           {pending ? "Sending…" : `Send to ${chosen.size || "…"}`}
         </button>
-        <span className="hint text-xs">Each goes the way they would rather be reached — a text or an email.</span>
+        <span className="hint text-xs">Each goes the way they would rather be reached: a text or an email.</span>
       </div>
 
       {state.error && <p className="text-sm text-warn">{state.error}</p>}

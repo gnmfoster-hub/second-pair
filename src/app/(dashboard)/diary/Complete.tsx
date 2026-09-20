@@ -139,7 +139,7 @@ export function Complete({
             ? "Counted on their record and in the report. Any deposit stays where it is."
             : (state.total ?? 0) > 0
               ? state.url
-                ? `${formatPence(state.total ?? 0)} to pay by link. Send it to them below — it marks itself paid when they pay.`
+                ? `${formatPence(state.total ?? 0)} to pay by link. Send it to them below. It marks itself paid when they pay.`
                 : `${formatPence(state.total ?? 0)} taken. On their record, in today's takings, and a receipt has gone to ${firstName} if they have an email address.`
               : "Closed off with nothing taken today."}
         </p>
@@ -369,7 +369,7 @@ export function Complete({
             </>
           )}
 
-          {/* How long it really took — useful, never required, so folded. */}
+          {/* How long it really took: useful, never required, so folded. */}
           <details>
             <summary className="cursor-pointer text-sm text-muted">
               How long did it actually take?
@@ -383,7 +383,7 @@ export function Complete({
                 placeholder={String(bookedMinutes)}
                 className="input w-24"
               />
-              <span className="hint">minutes — booked for {bookedMinutes}</span>
+              <span className="hint">minutes, booked for {bookedMinutes}</span>
             </div>
           </details>
 
