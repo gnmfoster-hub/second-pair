@@ -432,7 +432,18 @@ export function LiveDemo({
         <div className="relative h-[30rem]">
           {/* The identity, floating on glass — the real widget's header. */}
           <div className="pointer-events-none absolute inset-x-0 top-0 z-20 p-3">
-            <div className="flex w-fit items-center gap-2.5 rounded-full border border-border bg-surface/75 py-1.5 pl-1.5 pr-4 shadow-[var(--shadow-card)] backdrop-blur-xl">
+            <div /*
+               * Nearly opaque, not three-quarters.
+               *
+               * The thread scrolls underneath this, and at 75% a dark bubble
+               * passing behind it read straight through the glass — on a phone
+               * the words "Saturdays going" sat across the salon name and both
+               * were unreadable. backdrop-blur cannot save it because the text
+               * behind is high contrast and the panel is small.
+               *
+               * Still glass, still blurred, just enough of it to be a surface.
+               */
+              className="flex w-fit items-center gap-2.5 rounded-full border border-border bg-surface/95 py-1.5 pl-1.5 pr-4 shadow-[var(--shadow-card)] backdrop-blur-xl">
               <span
                 className="grid size-8 shrink-0 place-items-center rounded-full text-[11px] font-semibold"
                 style={{ background: brand, color: onBrand }}
