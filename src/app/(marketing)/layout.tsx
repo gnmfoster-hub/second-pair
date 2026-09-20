@@ -103,7 +103,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             {/* The pack allows amber for one call to action per screen. This
                 is that one, and it is the only amber on the page.
 
-                It pointed at /login, which is a password box — a door for
+                It pointed at /login, which is a password box, a door for
                 people who already have an account, offered to people who do
                 not. Nobody self-serves onto this yet: every business is set up
                 with them. So it asks, and our own assistant does the asking.
@@ -120,7 +120,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 writing down. A plain <a> to a hash is a real navigation and
                 fires hashchange, which is what the panel listens for. A
                 next/link does the same journey through the History API, which
-                fires no such event — so the button changed the address bar and
+                fires no such event, so the button changed the address bar and
                 nothing else happened. Same href, same page, two different
                 outcomes, and nothing in the markup to suggest it.
 

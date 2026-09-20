@@ -19,7 +19,7 @@ const OUTCOMES: Record<string, { tone: "ok" | "warn"; text: string }> = {
   },
   cancelled: {
     tone: "warn",
-    text: "Nothing was connected — you stopped at Stripe. No harm done.",
+    text: "Nothing was connected, you stopped at Stripe. No harm done.",
   },
   "owner-only": {
     tone: "warn",

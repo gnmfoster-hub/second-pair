@@ -89,7 +89,7 @@ export function CalendarLinks({
         If one gets out, reset it here and give people the new one.
       </p>
 
-      {state.ok && <p className="text-sm text-ok">Done — the old link has stopped working.</p>}
+      {state.ok && <p className="text-sm text-ok">Done. The old link has stopped working.</p>}
       {state.error && <p className="text-sm text-warn">{state.error}</p>}
     </div>
   );

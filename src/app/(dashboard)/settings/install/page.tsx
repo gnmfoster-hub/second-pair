@@ -256,7 +256,7 @@ export default async function ChannelsPage({
             */}
           <p className="mt-4 rounded-lg bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">
             <strong>Not switched on yet.</strong> Do not set up forwarding to this
-            address until it says otherwise here — the domain has no mail server behind
+            address until it says otherwise here. The domain has no mail server behind
             it, so anything sent to it bounces, including the code your provider sends
             to verify the forward.
           </p>
@@ -303,7 +303,7 @@ export default async function ChannelsPage({
             <div className="hint">
               {solo
                 ? "Everything comes to you"
-                : `Shared — the assistant asks which ${words.practitioner} they want`}
+                : `Shared, so the assistant asks which ${words.practitioner} they want`}
             </div>
           </div>
         </div>
@@ -364,7 +364,7 @@ export default async function ChannelsPage({
               <div>
                 <div className="section-title">{person.name}</div>
                 <div className="hint">
-                  Their own — the assistant knows it&rsquo;s for {person.name.split(" ")[0]}{" "}
+                  Their own, so the assistant knows it&rsquo;s for {person.name.split(" ")[0]}{" "}
                   and never asks
                 </div>
               </div>
@@ -431,7 +431,7 @@ export default async function ChannelsPage({
 
       {/* Was a paragraph explaining which attribute to hand-edit into their own
           HTML. It is a setting now, because it always should have been. */}
-      {/* Who it books comes before how it looks — one decides whether the
+      {/* Who it books comes before how it looks, because one decides whether the
           answer is right, the other decides whether it matches their sign. */}
       <WhoItOffers
         /*

@@ -588,7 +588,7 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
     return {
       error:
         "That email address does not look right. Check for a stray comma, space or " +
-        "full stop — it is where a customer's reply goes, so it has to be exact.",
+        "full stop, because it is where a customer's reply goes, so it has to be exact.",
     };
   }
 
@@ -981,7 +981,7 @@ export async function saveArtist(_prev: FormState, fd: FormData): Promise<FormSt
   // of their own account with no message to say why.
   const personal = str(fd, "email");
   if (personal && !usableAddress(personal)) {
-    return { error: "That email address does not look right — check for a stray comma or space." };
+    return { error: "That email address does not look right. Check for a stray comma or space." };
   }
 
   const row = {
@@ -1334,7 +1334,7 @@ export async function updateAssistant(_prev: FormState, fd: FormData): Promise<F
     return {
       error:
         "That email address does not look right. Check for a stray comma, space or " +
-        "full stop — it is where a customer's reply goes, so it has to be exact.",
+        "full stop, because it is where a customer's reply goes, so it has to be exact.",
     };
   }
 
@@ -2112,7 +2112,7 @@ export async function seedStarterReminders(
     .eq("studio_id", studio.id);
 
   if ((count ?? 0) > 0) {
-    return { error: "You already have reminders — edit those rather than adding a second set." };
+    return { error: "You already have reminders. Edit those rather than adding a second set." };
   }
 
   const pack = verticalPack(studio.vertical);
@@ -2555,7 +2555,7 @@ export async function allowOwnChannel(_prev: FormState, fd: FormData): Promise<F
   }
 
   if (!(await hasColumn(supabase, "artists", "own_channels"))) {
-    return { error: "Not switched on yet — the database is waiting for a migration." };
+    return { error: "Not switched on yet: the database is waiting for a migration." };
   }
 
   const { data: person } = await supabase

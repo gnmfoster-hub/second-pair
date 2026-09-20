@@ -189,7 +189,7 @@ export function MomentCard({
           {/* Not decoration. Saying a price is an estimate is the promise the
               assistant is required to make every time it gives one, and it is
               easier to trust when it is attached to the number itself. */}
-          <Foot>An estimate — confirmed when they&rsquo;ve seen it.</Foot>
+          <Foot>An estimate, confirmed when they&rsquo;ve seen it.</Foot>
         </Card>
       );
 

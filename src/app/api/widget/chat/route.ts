@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
     console.error("[widget/chat] ANTHROPIC_API_KEY is not set");
     return NextResponse.json({
       reply:
-        "Sorry — I can't get to the diary this minute, so I don't want to guess at times. " +
+        "Sorry, I can't get to the diary this minute, so I don't want to guess at times. " +
         "I've passed this straight to the team and somebody will come back to you shortly.",
       paused: true,
       handedOver: true,
@@ -243,10 +243,10 @@ export async function POST(request: NextRequest) {
       return {
         payload: {
           reply: handed
-            ? "Sorry — I can't get to the diary this minute, so I don't want to guess at times. " +
+            ? "Sorry, I can't get to the diary this minute, so I don't want to guess at times. " +
               "I've passed this straight to the team and somebody will come back to you shortly. " +
               "Your message has been saved, so there's no need to write it again."
-            : "Sorry — something is wrong at our end and I can't answer properly just now. " +
+            : "Sorry, something is wrong at our end and I can't answer properly just now. " +
               "Please try again in a few minutes, or contact the business directly if it is urgent.",
           paused: true,
           handedOver: handed,

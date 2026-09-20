@@ -550,9 +550,9 @@ export function ChatWindow({
         console.error("[widget]", response.status, data?.error);
         setError(
           response.status === 429
-            ? "One moment — that came through very quickly. Try that again."
+            ? "One moment, that came through very quickly. Try that again."
             : response.status === 413
-              ? "That message is a bit long for here — could you shorten it?"
+              ? "That message is a bit long for here. Could you shorten it?"
               : "Sorry, that did not send. Try again in a moment.",
         );
         // Their words, still theirs: the bubble stays, marked as not sent, so
@@ -642,7 +642,7 @@ export function ChatWindow({
               ...l,
               {
                 from: "studio",
-                text: `Thanks — someone at ${studioName} will reply here shortly.`,
+                text: `Thanks, someone at ${studioName} will reply here shortly.`,
                 at: Date.now(),
               },
             ]);
@@ -674,7 +674,7 @@ export function ChatWindow({
        */
       const data = await response.json().catch(() => null);
       if (response.ok && data?.path) paths.push(data.path);
-      else if (response.status === 413) setError("That photo is too big — try a smaller one.");
+      else if (response.status === 413) setError("That photo is too big. Try a smaller one.");
       else setError(data?.error ?? "That photo would not upload, but your message went.");
     }
     return paths;
@@ -1017,7 +1017,7 @@ export function ChatWindow({
           {sending && !lines.some((line) => line.writing) && (
             <div className="flex items-end gap-2 pt-1">
               <Face who={who} photoUrl={photoUrl} />
-              {/* No bubble here either — the assistant has none, and a box
+              {/* No bubble here either, the assistant has none, and a box
                   that appears only while it is thinking would flash a
                   container in and out on every reply. */}
               <div className="py-2.5">

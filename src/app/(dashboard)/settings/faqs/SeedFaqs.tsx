@@ -27,7 +27,7 @@ export function SeedFaqs({ missing }: { missing: string[] }) {
         that you have no answer for
       </div>
       <p className="hint mt-1 max-w-prose">
-        Anything not answered here is handed to you instead — every time somebody asks.
+        Anything not answered here is handed to you instead, every time somebody asks.
         Add them and fill in the answers in your own words.
       </p>
 
@@ -41,7 +41,7 @@ export function SeedFaqs({ missing }: { missing: string[] }) {
         <button type="submit" className="btn bg-accent text-on-accent">
           Add {missing.length === 1 ? "it" : "them"}
         </button>
-        {state.ok && <span className="hint">Added below — they do nothing until answered.</span>}
+        {state.ok && <span className="hint">Added below. They do nothing until answered.</span>}
         {state.error && <span className="text-sm text-warn">{state.error}</span>}
       </div>
     </form>

@@ -86,7 +86,7 @@ function Preview({ body, sender }: { body: string; sender: Sender }) {
         How it lands
         <Explain label="What this preview is showing">
           Marie and Sarah are stand-ins. The real name, time and person go in when it sends,
-          and this is filled by the same code that fills the real one — a preview that
+          and this is filled by the same code that fills the real one, so a preview that
           renders a template its own way is a preview that can be wrong.
         </Explain>
       </div>

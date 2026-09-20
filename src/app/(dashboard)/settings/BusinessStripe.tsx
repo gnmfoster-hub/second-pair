@@ -54,7 +54,7 @@ export function BusinessStripe({
         {sandbox && (
           <p className="rounded-lg bg-warn/10 px-3 py-2 text-sm text-warn">
             <strong>Card payments are still in test mode at our end.</strong> Connecting now
-            attaches a practice account, and no real card can be charged through it — you
+            attaches a practice account, and no real card can be charged through it. You
             would have to connect again once we switch over. We will tell you when that is;
             everything else here works in the meantime.
           </p>

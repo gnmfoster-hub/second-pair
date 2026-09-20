@@ -49,7 +49,7 @@ export async function GET() {
    * downloads when they are thinking about leaving.
    */
   if (error) {
-    return NextResponse.json({ error: "Could not read your clients — try again." }, { status: 500 });
+    return NextResponse.json({ error: "Could not read your clients. Try again." }, { status: 500 });
   }
 
   const csv = toCsv(

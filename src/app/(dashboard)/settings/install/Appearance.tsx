@@ -204,7 +204,7 @@ export function Appearance({
           <span className="text-sm font-medium">Show it on my website</span>
           <p className="hint mt-0.5">
             {on
-              ? "It is on your site now. Turn this off and it disappears — the code stays where it is, so it comes back with one tick."
+              ? "It is on your site now. Turn this off and it disappears. The code stays where it is, so it comes back with one tick."
               : "It is off. Nobody sees it and nothing is answering on your website. The code on your site can stay where it is."}
           </p>
         </span>
@@ -401,7 +401,7 @@ export function Appearance({
                 ? "No shadow. Sits in the page rather than over it."
                 : surface === "glass"
                   ? "Frosted, with your page showing through. Check it against a busy part of your site."
-                  : "An outline with your page showing through. The writing is your colour, over whatever is behind it — worth looking at on a photograph."}
+                  : "An outline with your page showing through. The writing is your colour, over whatever is behind it, so worth looking at on a photograph."}
           </p>
         </label>
       </div>
@@ -471,7 +471,7 @@ export function Appearance({
             onChange={(e) => setClosedLine(e.target.value)}
             className="input"
             maxLength={48}
-            placeholder="Closed — I can still book you"
+            placeholder="Closed, but I can still book you"
           />
         </label>
       </div>
@@ -483,7 +483,7 @@ export function Appearance({
           defaultValue={teaser ?? ""}
           className="input"
           maxLength={140}
-          placeholder="Hi — anything I can help you with?"
+          placeholder="Hi, anything I can help you with?"
         />
       </label>
 
@@ -519,7 +519,7 @@ export function Appearance({
                 font: `400 14px/1.45 ${stack === "inherit" ? "inherit" : stack}`,
               }}
             >
-              {teaser?.trim() || "Hi — anything I can help you with?"}
+              {teaser?.trim() || "Hi, anything I can help you with?"}
             </span>
 
             {/*

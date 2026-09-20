@@ -272,7 +272,7 @@ export default async function WidgetPage({
           <p className="hint mt-1">
             {whose
               ? `Message ${whose.name.split(" ")[0]} — it answers straight away, day or night.`
-              : "Message us — it answers straight away, day or night."}
+              : "Message us. It answers straight away, day or night."}
           </p>
         </div>
       </header>

@@ -55,7 +55,7 @@ export function CreateAccount({ token, invitedEmail }: { token: string; invitedE
       if (cancelled) return;
 
       if (error) {
-        setFailed("Your account is made — sign in and open the link again.");
+        setFailed("Your account is made. Sign in and open the link again.");
         started.current = false;
         return;
       }

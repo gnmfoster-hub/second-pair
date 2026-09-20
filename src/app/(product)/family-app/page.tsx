@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     type: "website",
     title: "Family APP!",
     description:
-      "Chat, photos, dates, meal plans and an AI holiday planner — a private hub for one family.",
+      "Chat, photos, dates, meal plans and an AI holiday planner. A private hub for one family.",
     images: [{ url: "/family/social-card.png", width: 1200, height: 630 }],
   },
   twitter: {
@@ -73,10 +73,10 @@ const MODULES = [
     line: "The heart of it",
     points: [
       ["Main chat", "Text, photos, voice notes, files, locations and GIFs, in one thread everybody lands in."],
-      ["Breakouts", "Spin a side conversation off any message — planning a surprise, sorting logistics. Invite-only if you want."],
+      ["Breakouts", "Spin a side conversation off any message: planning a surprise, sorting logistics. Invite-only if you want."],
       ["Video calls", "Free group video, straight from the chat. No accounts, no app switching."],
       ["Swipe to reply", "Swipe any message to quote it. Tap the quote to jump back to what it answered."],
-      ["Saved messages", "Bookmark an address, a recipe, anything worth finding again — in its own list."],
+      ["Saved messages", "Bookmark an address, a recipe, anything worth finding again, in its own list."],
       ["Streaks", "A running family streak, with confetti at the milestones."],
     ],
   },
@@ -107,7 +107,7 @@ const MODULES = [
     name: "Holiday planner",
     line: "The bit that usually takes a spreadsheet",
     points: [
-      ["AI suggestions", "Give it your dates, a budget and who is coming — children's ages included — and it comes back with real, grounded ideas."],
+      ["AI suggestions", "Give it your dates, a budget and who is coming (children's ages included) and it comes back with real, grounded ideas."],
       ["Or bring your own", "Paste a link or a few rough notes and it turns them into something the family can vote on."],
       ["Vote, then confirm", "Everybody votes. Confirming turns it into a countdown with its own photo."],
     ],

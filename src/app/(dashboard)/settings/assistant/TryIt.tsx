@@ -71,7 +71,7 @@ export function TryIt({ slug }: { slug: string }) {
           ...l,
           {
             from: "them",
-            text: "(handed over — the assistant stops here and fetches you)",
+            text: "(handed over: the assistant stops here and fetches you)",
           },
         ]);
       }

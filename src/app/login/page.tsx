@@ -294,7 +294,7 @@ export default function LoginPage() {
         <a href="/home#ask" className="underline underline-offset-2 hover:text-foreground">
           Ask our assistant
         </a>{" "}
-        and somebody will get you going — we set every business up with them rather than
+        and somebody will get you going. We set every business up with them rather than
         leaving them to it.
       </p>
     </Shell>
@@ -329,7 +329,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           */}
         <Logo height={56} lockup="flush-right" tagline="hands" />
         <p className="hint mt-3">
-          Answers your enquiries, quotes from your prices, and books people in — while
+          Answers your enquiries, quotes from your prices, and books people in, while
           your hands are full.
         </p>
         {children}

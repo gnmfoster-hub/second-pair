@@ -24,7 +24,7 @@ import { Logo } from "@/components/Logo";
  */
 
 export const metadata: Metadata = {
-  title: "Second Pair Ltd — the company behind Second Pair and Family APP!",
+  title: "Second Pair Ltd, the company behind Second Pair and Family APP!",
   description:
     "A small British software company. We build Second Pair, an assistant that answers for appointment businesses, and Family APP!, a private hub for families.",
 };

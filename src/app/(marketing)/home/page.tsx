@@ -203,7 +203,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* The product, being the product — actually doing it. */}
+          {/* The product, being the product, actually doing it. */}
           <div id="see-it" className="scroll-mt-24">
             <LiveDemo
               script={CONVERSATION}

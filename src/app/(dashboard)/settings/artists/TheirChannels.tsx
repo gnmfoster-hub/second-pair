@@ -91,7 +91,7 @@ export function TheirChannels({
                   ) : onThis.length === 0 ? (
                     nothingYet(channel, firstName, may)
                   ) : spare.length > 0 ? (
-                    `The ${business}'s — shared, so the assistant asks who they want`
+                    `The ${business}'s own, so the assistant asks who they want`
                   ) : (
                     "Connected, and it belongs to somebody else"
                   )}
@@ -252,13 +252,13 @@ function nothingYet(channel: Channel, firstName: string, may: boolean): string {
   if (!may) return "Not switched on for them.";
 
   if (channel === "sms" || channel === "voice") {
-    return "Allowed, but nothing connected yet — a number has to be bought and registered first.";
+    return "Allowed, but nothing connected yet. A number has to be bought and registered first.";
   }
   if (channel === "instagram" || channel === "messenger") {
     return `Allowed. ${firstName} connects it from their own settings, because only they can log in to it.`;
   }
   if (channel === "email") {
-    return "They have an address of their own — see below.";
+    return "They have an address of their own, see below.";
   }
   return "Allowed, nothing connected yet.";
 }

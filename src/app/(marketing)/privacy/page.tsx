@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Legal, Section } from "../Legal";
 
 export const metadata: Metadata = {
-  title: "Privacy — Second Pair",
+  title: "Privacy at Second Pair",
   description: "What Second Pair collects, why, and how to get it deleted.",
 };
 
@@ -86,7 +86,7 @@ export default function PrivacyPage() {
             is worth saying so plainly rather than leaving it to be inferred.
           </li>
           <li>
-            <strong>Supabase</strong>, where everything is stored — in London. Nothing
+            <strong>Supabase</strong>, where everything is stored, in London. Nothing
             held here leaves the United Kingdom.
           </li>
           <li>
@@ -97,7 +97,7 @@ export default function PrivacyPage() {
             <strong>Vercel</strong>, which runs the software itself, in London.
           </li>
           <li>
-            <strong>Resend</strong>, if the business emails you — a confirmation, a
+            <strong>Resend</strong>, if the business emails you: a confirmation, a
             reminder, or a reply.
           </li>
           <li>
@@ -111,7 +111,7 @@ export default function PrivacyPage() {
         </ul>
         <p>
           Nobody else. These are the only companies your details reach, and each of them
-          only receives what it needs to do its part — Twilio gets a phone number and a
+          only receives what it needs to do its part. Twilio gets a phone number and a
           message, not your appointment history.
         </p>
       </Section>
@@ -184,7 +184,7 @@ export default function PrivacyPage() {
         <p>
           Everything a business and its customers write is <strong>stored</strong> in
           London and stays in the United Kingdom. The companies above are the ones that
-          act on it — sending a text, taking a payment, composing a reply — and each
+          act on it (sending a text, taking a payment, composing a reply), and each
           receives only what that job needs.
         </p>
         <p>

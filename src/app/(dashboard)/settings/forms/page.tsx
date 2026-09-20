@@ -39,7 +39,7 @@ export default async function FormsSettingsPage({
         <h2 className="section-title">Forms</h2>
         <p className="hint mt-2 max-w-prose">
           Consent forms, health questionnaires, waivers and quotes that customers fill in and
-          sign on their own phone. This needs a database update before it can be used — it is on
+          sign on their own phone. This needs a database update before it can be used, and it is on
           your list.
         </p>
       </section>

@@ -84,7 +84,7 @@ export default async function RemindersPage() {
   return (
     <div className="space-y-3">
       <p className="hint">
-        Sent before an appointment, in the same conversation the client started — so a reply
+        Sent before an appointment, in the same conversation the client started, so a reply
         comes back to you rather than disappearing into a no-reply inbox. What is worth
         saying differs by trade, which is why these start from your trade and are yours to
         rewrite.

@@ -55,7 +55,7 @@ export function BookingSource({ artist }: { artist?: Artist }) {
       {kind === "google" && (
         <Field
           label="Google Calendar ID"
-          hint="Not connected yet — the sign-in flow is still to come."
+          hint="Not connected yet. The sign-in flow is still to come."
         >
           <input
             name="calendar_id"
@@ -83,7 +83,7 @@ export function BookingSource({ artist }: { artist?: Artist }) {
       {caps.handsOverLink && (
         <Field
           label="Booking page link"
-          hint="Where the customer finishes the booking — the link you already share."
+          hint="Where the customer finishes the booking: the link you already share."
         >
           <input
             name="booking_url"

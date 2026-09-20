@@ -80,7 +80,7 @@ export function statusFor(
     }
     // Open later today.
     if (from != null && minutes < from) {
-      return { open: false, line: `Ask now — open at ${clock(from)}` };
+      return { open: false, line: `Ask now, open at ${clock(from)}` };
     }
   }
 
@@ -102,7 +102,7 @@ export function statusFor(
   const openAgain = nextOpening(hours, weekday);
   return {
     open: false,
-    line: openAgain ? `Closed — I can still book you` : "Ask us anything",
+    line: openAgain ? `Closed, but I can still book you` : "Ask us anything",
   };
 }
 

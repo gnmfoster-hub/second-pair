@@ -154,7 +154,7 @@ export default async function PricingPage() {
         <div className="px-5 py-4">
           <h2 className="section-title">{title(words.size_unit)}s</h2>
           <p className="hint mt-1">
-            Price a service by the hour, or set a flat price. The two mix freely — a
+            Price a service by the hour, or set a flat price. The two mix freely, and a
             {words.examplePrice} and something charged by the hour can sit side by side.
           </p>
         </div>

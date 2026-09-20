@@ -76,7 +76,7 @@ export function WhoseChannel({
 
       {onlyOne && (
         <p className="hint mt-1">
-          This is the only one you have on this channel, so it stays with the business — a
+          This is the only one you have on this channel, so it stays with the business, because a
           customer who has not met anybody yet needs a way in. Add a second and either can
           become somebody&rsquo;s own.
         </p>

@@ -88,7 +88,7 @@ export async function GET(request: Request) {
   const { data, error } = await query;
 
   if (error) {
-    return NextResponse.json({ error: "Could not read the takings — try again." }, { status: 500 });
+    return NextResponse.json({ error: "Could not read the takings. Try again." }, { status: 500 });
   }
 
   const rows = (data ?? []) as unknown as {

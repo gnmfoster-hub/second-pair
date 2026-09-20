@@ -39,7 +39,7 @@ export function InviteStaff({ origin, customers = "customers" }: { origin: strin
           <input
             name="email"
             type="email"
-            placeholder="Optional — you can just send them the link"
+            placeholder="Optional, you can just send them the link"
             className="input"
           />
         </label>

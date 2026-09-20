@@ -177,7 +177,7 @@ export function ArtistEditor({
                   A place or a thing, not a person
                   <span className="hint block">
                     A bay, a room, a chair, a van. It keeps its own diary and hours and can be
-                    booked like anybody else — it just has no login, no phone and no bank
+                    booked like anybody else. It just has no login, no phone and no bank
                     account, so none of that is asked for.
                   </span>
                 </span>
@@ -326,7 +326,7 @@ export function ArtistEditor({
           <p className="hint mt-3">
             {artist?.stripe_account_id
               ? "They have their own Stripe account, so their money can go straight to them."
-              : `They have no Stripe account of their own yet. Only they can connect it, because Stripe asks for their own ID and bank details: they sign in, open Settings, and on their own tab (the first one, with their name) press Connect my Stripe under Getting paid.${artist?.user_id ? "" : " They need a login first — invite them from this page."}`}
+              : `They have no Stripe account of their own yet. Only they can connect it, because Stripe asks for their own ID and bank details: they sign in, open Settings, and on their own tab (the first one, with their name) press Connect my Stripe under Getting paid.${artist?.user_id ? "" : " They need a login first, so invite them from this page."}`}
           </p>
         </fieldset>
         )}
@@ -443,7 +443,7 @@ export function ArtistEditor({
               * long after somebody has done the work.
               */}
             <p className="hint mt-2">
-              Texts and calls already reach them on the business&rsquo;s own number — whoever
+              Texts and calls already reach them on the business&rsquo;s own number, and whoever
               writes in is asked who they would like, and it books the right diary.
             </p>
             <p className="hint mt-1.5">

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Legal, Section } from "../Legal";
 
 export const metadata: Metadata = {
-  title: "Terms — Second Pair",
+  title: "Terms of Second Pair",
   description: "The terms for businesses using Second Pair.",
 };
 
@@ -93,7 +93,7 @@ export default function TermsPage() {
       <Section title="Ending it">
         <p className="draft">
           Still to decide: the notice period, the price, and how billing works. Second Pair
-          trades as a sole trader, so no company number is needed here — but the trading
+          trades as a sole trader, so no company number is needed here, but the trading
           name and business address are, and they have to match the privacy notice.
         </p>
       </Section>

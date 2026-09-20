@@ -61,7 +61,7 @@ export async function GET() {
     .order("starts_at", { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: "Could not read your diary — try again." }, { status: 500 });
+    return NextResponse.json({ error: "Could not read your diary. Try again." }, { status: 500 });
   }
 
   const at = (iso: string | null) =>

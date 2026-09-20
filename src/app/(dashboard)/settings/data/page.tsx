@@ -5,7 +5,7 @@ import { CalendarLinks } from "./CalendarLinks";
 import { createClient } from "@/lib/supabase/server";
 import { siteOrigin } from "@/lib/origin";
 
-export const metadata = { title: "Your data — Second Pair" };
+export const metadata = { title: "Your data at Second Pair" };
 
 /**
  * Taking their own data out.
@@ -77,7 +77,7 @@ export default async function DataPage() {
             />
             <Row
               title="Every appointment"
-              detail="What it was worth, who it was with, and whether it was cancelled. Cancelled ones are included and marked — a short month is a worse surprise than a column."
+              detail="What it was worth, who it was with, and whether it was cancelled. Cancelled ones are included and marked, because a short month is a worse surprise than a column."
               href="/settings/data/bookings"
             />
           </>
@@ -101,7 +101,7 @@ export default async function DataPage() {
           detail={
             owns
               ? "Every payment, with Stripe's fee and what actually landed. One person at a time, or the whole business."
-              : "Every payment of yours, with Stripe's fee and what actually landed — the file your accountant asks for."
+              : "Every payment of yours, with Stripe's fee and what actually landed: the file your accountant asks for."
           }
           href="/settings/data/takings"
         />

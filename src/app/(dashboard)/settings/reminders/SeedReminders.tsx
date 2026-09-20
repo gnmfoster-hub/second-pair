@@ -20,7 +20,7 @@ export function SeedReminders({ trade }: { trade: string }) {
       <div className="section-title">You have no reminders set up</div>
       <p className="hint mt-1 max-w-prose">
         Nobody is being reminded of their appointment. Start from the two most{" "}
-        {trade.toLowerCase()} businesses send — one two days before, one the day before —
+        {trade.toLowerCase()} businesses send: one two days before, one the day before,
         and change the wording to yours. Or write your own below.
       </p>
 
@@ -28,7 +28,7 @@ export function SeedReminders({ trade }: { trade: string }) {
         <button type="submit" className="btn bg-accent text-on-accent">
           Add the usual two
         </button>
-        {state.ok && <span className="hint">Added — have a read and change anything.</span>}
+        {state.ok && <span className="hint">Added. Have a read and change anything.</span>}
         {state.error && <span className="text-sm text-warn">{state.error}</span>}
       </div>
     </form>

@@ -148,7 +148,7 @@ export function TextNumber({
         <form action={action} className="mt-5 space-y-4">
           <Field
             label="When somebody rings it, ring me on"
-            hint="Your own mobile — customers never see it. Leave it empty and a missed call is texted back straight away, without your phone going at all."
+            hint="Your own mobile, and customers never see it. Leave it empty and a missed call is texted back straight away, without your phone going at all."
           >
             <input
               name="forward_to"

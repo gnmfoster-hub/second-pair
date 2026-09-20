@@ -161,8 +161,8 @@ export function PaymentModel({
                 ) : (
                   <span className="hint text-xs">
                     {p.canSignIn
-                      ? "Not yet — they connect it in Settings → You"
-                      : "Not yet — needs a sign-in first, then Settings → You"}
+                      ? "Not yet. They connect it in Settings → You"
+                      : "Not yet. Needs a sign-in first, then Settings → You"}
                   </span>
                 )}
               </li>

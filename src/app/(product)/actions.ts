@@ -38,7 +38,7 @@ export async function registerInterest(
 
   const email = usableAddress(String(fd.get("email") ?? ""));
   if (!email) {
-    return { error: "That does not look like an email address — check it and try again." };
+    return { error: "That does not look like an email address. Check it and try again." };
   }
 
   const name = String(fd.get("name") ?? "").trim().slice(0, 120) || null;

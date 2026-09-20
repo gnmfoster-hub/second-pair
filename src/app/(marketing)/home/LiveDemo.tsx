@@ -430,7 +430,7 @@ export function LiveDemo({
         </>
       ) : (
         <div className="relative h-[30rem]">
-          {/* The identity, floating on glass — the real widget's header. */}
+          {/* The identity, floating on glass, the real widget's header. */}
           <div className="pointer-events-none absolute inset-x-0 top-0 z-20 p-3">
             <div /*
                * Nearly opaque, not three-quarters.

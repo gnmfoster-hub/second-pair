@@ -56,8 +56,8 @@ export default async function StudioSettingsPage({
             ? "everything"
             : person
               ? person.owner_managed
-                ? "employed — the business keeps her settings"
-                : "renting a chair — her own prices, list and reminders"
+                ? "employed, so the business keeps her settings"
+                : "renting a chair, with her own prices, list and reminders"
               : "no column in the diary: the inbox and everybody's day",
       };
     });

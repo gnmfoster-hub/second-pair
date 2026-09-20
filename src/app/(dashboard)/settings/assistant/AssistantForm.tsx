@@ -72,7 +72,7 @@ export function AssistantForm({ studio }: { studio: Studio }) {
             <h2 className="section-title">Who answers first</h2>
             <p className="hint mt-1">
               None of these turn the assistant off. A business that goes quiet is the
-              thing this is here to prevent, and that never happens on purpose — it
+              thing this is here to prevent, and that never happens on purpose. It
               happens when somebody means to switch it back on and then has a busy
               afternoon.
             </p>
@@ -90,7 +90,7 @@ export function AssistantForm({ studio }: { studio: Studio }) {
                 value: "always_ask_me",
                 title: "Give me first refusal on everything",
                 body:
-                  "The same, evenings and weekends included. For when you'd rather answer your own Sunday enquiries — it still steps in if you don't, so nothing is ever left.",
+                  "The same, evenings and weekends included. For when you'd rather answer your own Sunday enquiries. It still steps in if you don't, so nothing is ever left.",
               },
               {
                 value: "always",
@@ -120,7 +120,7 @@ export function AssistantForm({ studio }: { studio: Studio }) {
 
           <Field
             label="How long a head start"
-            hint="Minutes, on text and social messages only. Somebody on your website always gets an answer straight away — they are sitting there watching it type."
+            hint="Minutes, on text and social messages only. Somebody on your website always gets an answer straight away, because they are sitting there watching it type."
           >
             <input
               type="number"
@@ -155,7 +155,7 @@ export function AssistantForm({ studio }: { studio: Studio }) {
                 value: "all",
                 title: "Answer anything that looks like a customer",
                 body:
-                  "Right when what you forward is an enquiry address — hello@, info@, the one on your van. Newsletters, bounces and automatic messages are never answered whichever of these you pick.",
+                  "Right when what you forward is an enquiry address: hello@, info@, the one on your van. Newsletters, bounces and automatic messages are never answered whichever of these you pick.",
               },
               {
                 value: "listed",
@@ -191,7 +191,7 @@ export function AssistantForm({ studio }: { studio: Studio }) {
 
           <Field
             label="Your public addresses"
-            hint="One per line, and only used by the middle option. These are the addresses on your website and your van — the ones a stranger writes to."
+            hint="One per line, and only used by the middle option. These are the addresses on your website and your van, the ones a stranger writes to."
           >
             <textarea
               name="inbound_addresses"
@@ -231,7 +231,7 @@ export function AssistantForm({ studio }: { studio: Studio }) {
             <h2 className="section-title">House rules</h2>
             <p className="hint mt-1">
               One per line. These go straight into the assistant&rsquo;s
-              instructions. It cannot use them to break a safety rule — it will
+              instructions. It cannot use them to break a safety rule. It will
               still never quote under your minimum, never claim to be human, and
               never book someone underage.
             </p>
@@ -266,7 +266,7 @@ export function AssistantForm({ studio }: { studio: Studio }) {
 
           <Field
             label="Always come and get me for"
-            hint={`On top of complaints, anything medical, under-18s, and anyone who asks for a person — the assistant already fetches you for those.`}
+            hint={`On top of complaints, anything medical, under-18s, and anyone who asks for a person: the assistant already fetches you for those.`}
           >
             <textarea
               name="escalate_when"
@@ -286,7 +286,7 @@ export function AssistantForm({ studio }: { studio: Studio }) {
             <p className="hint mt-1">
               The most useful thing on this page. Put in a question you actually
               get, and the reply you would have typed yourself. Two or three is
-              plenty — the assistant picks up your length and your words from
+              plenty. The assistant picks up your length and your words from
               them, and does not copy them as scripts.
             </p>
           </div>
@@ -378,7 +378,7 @@ export function AssistantForm({ studio }: { studio: Studio }) {
 
       {/* Notifications and the phone panel moved to Settings → You.
           They are about this device and this person, not about how the
-          assistant behaves — and being here made them owner-only, so no
+          assistant behaves, and being here made them owner-only, so no
           member of staff could ever turn a notification on. */}
 
       {/*

@@ -30,7 +30,7 @@ const OUTCOMES: Record<string, { tone: "ok" | "warn"; text: string }> = {
   connected: { tone: "ok", text: "Connected. Messages will arrive in your inbox." },
   cancelled: {
     tone: "warn",
-    text: "Nothing was connected — you cancelled on Facebook. No harm done.",
+    text: "Nothing was connected, you cancelled on Facebook. No harm done.",
   },
   "owner-only": {
     tone: "warn",
