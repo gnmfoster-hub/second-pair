@@ -159,6 +159,13 @@ export default async function ChannelsPage({
           /* Absent until the migration; absent reads as off, which it is. */
           voicemail={(studio as unknown as { voicemail?: boolean | null }).voicemail === true}
           /*
+           * The telephone is bought separately from the number it arrives on,
+           * and everything on that form is a call setting. Without this the
+           * answerphone tick box showed for a business that had the telephone
+           * switched off in the back office.
+           */
+          voice={has("voice")}
+          /*
            * Worked out here, in the business's own zone, because a date turned
            * into words in the browser is a date the server rendered
            * differently — which React reports as a hydration error and the

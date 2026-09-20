@@ -28,6 +28,7 @@ export function TextNumber({
   savedAt,
   sendingReady,
   voicemail = false,
+  voice = false,
 }: {
   number: string | null;
   /** Where a call to it rings first. Null texts the caller straight away. */
@@ -46,6 +47,20 @@ export function TextNumber({
   sendingReady: boolean;
   /** Whether an unanswered call may leave a message. Off until asked for. */
   voicemail?: boolean;
+  /**
+   * Whether the telephone is part of what they pay for.
+   *
+   * Not the same question as having a number. Texts and a missed-call text
+   * come with the number; answering the call itself is the dearer channel and
+   * is bought separately, because it spends real money before a word is said.
+   *
+   * Everything on this form below the number is a call setting, so without
+   * this none of it does anything. Giles switched the telephone off for Neat &
+   * Tidy in the back office and the answerphone tick box was still in their
+   * settings, tickable and saving, offering a business a feature it had not
+   * bought and could not have.
+   */
+  voice?: boolean;
 }) {
   const [state, action] = useActionState<{ error?: string; ok?: boolean }, FormData>(
     saveCallForwarding,
@@ -77,10 +92,20 @@ export function TextNumber({
           <div className="mt-0.5 font-mono text-lg tabular-nums">
             {readableNumber(number)}
           </div>
+          {/*
+            * What this number does, which is not the same for everybody.
+            *
+            * The missed-call text is the telephone channel. Said unconditionally,
+            * this promised a business without it something it does not get: a
+            * caller hears that the number takes texts only and is not texted at
+            * all. See twiml.ts, textsOnly.
+            */}
           <p className="hint mt-1.5 max-w-prose">
             Put this on your website, your Google listing and anything printed from now
-            on. Texts to it are answered day and night, and anybody who rings and
-            doesn&rsquo;t get through is texted back within seconds.
+            on. Texts to it are answered day and night
+            {voice
+              ? ", and anybody who rings and doesn’t get through is texted back within seconds."
+              : ". Anybody who rings it is told it takes texts only and asked to send one."}
           </p>
         </div>
       ) : (
@@ -99,7 +124,27 @@ export function TextNumber({
         </div>
       )}
 
-      {number && (
+      {/*
+        * Without the telephone there is nothing on this form to decide.
+        *
+        * Said rather than simply left out: a business that was sold texts and
+        * not calls should be able to see that this is a choice somebody made
+        * and can unmake, not a screen that is missing something.
+        */}
+      {number && !voice && (
+        <div className="mt-5 rounded-xl border border-border bg-surface-2/50 px-4 py-3">
+          <div className="label">Answering calls is not on this plan</div>
+          <p className="hint mt-1 max-w-prose">
+            This is a texting number. Somebody who rings it hears that, and is asked to
+            send a text instead. Ringing your own phone first, and letting a caller leave
+            a message, are both part of taking calls, so there is nothing here to set.
+            Ask us if you want it: a call costs real money either way round, so it is
+            priced on its own.
+          </p>
+        </div>
+      )}
+
+      {number && voice && (
         <form action={action} className="mt-5 space-y-4">
           <Field
             label="When somebody rings it, ring me on"

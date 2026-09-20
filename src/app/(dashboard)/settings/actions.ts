@@ -17,6 +17,7 @@ import { readNumbers } from "@/lib/channels/phoneNumbers";
 import { hasColumn } from "@/lib/db/hasColumn";
 import { handleFor } from "@/lib/people/handle";
 import { mayAllocate } from "@/lib/channels/whose";
+import { takesCalls } from "@/lib/voice/takesCalls";
 import { readHex, autoText } from "@/lib/widget/colour";
 import {
   isShape,
@@ -1638,6 +1639,28 @@ export async function saveCallForwarding(
 
   const { studio } = await requireStudio();
   const supabase = await createClient();
+
+  /*
+   * Everything on this form is the telephone, and the telephone is its own
+   * channel with its own price.
+   *
+   * Both settings here only ever act on a call: where it rings first, and
+   * whether an unanswered one may leave a message. Without "voice" a call to
+   * the number is answered by saying it is a texting number, before either of
+   * them is ever consulted. See api/voice/webhook.
+   *
+   * The screen hides them now, but this is the gate that matters. Giles turned
+   * the telephone off for Neat & Tidy in the back office and the answerphone
+   * tick box was still sitting in their settings, tickable, saving, and doing
+   * absolutely nothing: a business could switch on and be charged for a
+   * feature it had not bought, or believe it had one it has not got.
+   */
+  if (!takesCalls(studio.channels_allowed)) {
+    return {
+      error:
+        "Calls to this number are not part of this plan, so there is nothing here to set. It is a texting number: anybody who rings is told so and gets a text.",
+    };
+  }
 
   /*
    * The business's own line, and only it.

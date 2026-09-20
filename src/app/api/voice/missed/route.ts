@@ -5,6 +5,7 @@ import { sendSms } from "@/lib/messaging/sms";
 import { wasMissed, missedCallText } from "@/lib/messaging/missedCall";
 import { whatTheyHear } from "@/lib/voice/voicemail";
 import { takeAMessage } from "@/lib/voice/twiml";
+import { takesCalls } from "@/lib/voice/takesCalls";
 import { hasColumn } from "@/lib/db/hasColumn";
 import { writeCall, seconds } from "@/lib/voice/writeCall";
 
@@ -113,8 +114,7 @@ export async function POST(request: NextRequest) {
    * no text back, no answerphone, and none of the model or carriage that go
    * with them.
    */
-  const sold = (studio?.channels_allowed ?? ["web"]).includes("voice");
-  if (!sold) return empty();
+  if (!takesCalls(studio?.channels_allowed)) return empty();
 
   /*
    * Whether they are about to be offered the answerphone, decided before a

@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { shouldRing } from "@/lib/channels/phoneNumbers";
 import { verifySignature } from "@/lib/messaging/sms";
 import { hangUp, textsOnly, cannotTakeIt, ringThem } from "@/lib/voice/twiml";
+import { takesCalls } from "@/lib/voice/takesCalls";
 
 export const runtime = "nodejs";
 
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
    * half, and quietly doing the costly part of a channel nobody bought is how
    * a margin disappears.
    */
-  if (!(studio?.channels_allowed ?? ["web"]).includes("voice")) {
+  if (!takesCalls(studio?.channels_allowed)) {
     return xml(textsOnly(studio?.name ?? null));
   }
 
