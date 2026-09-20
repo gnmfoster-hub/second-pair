@@ -34,11 +34,21 @@ export default async function RemindersPage() {
    * select("*") because reminders_own arrived in a migration and a named
    * column PostgREST does not know refuses the whole query.
    */
-  const { data: people } = await supabase
+  const { data: people, error: peopleFailed } = await supabase
     .from("artists")
     .select("*")
     .eq("studio_id", studio.id)
     .order("name");
+
+  /*
+   * A refused read returns no rows, which reads as a business with nobody in
+   * it — and then nobody is uncovered, and this page goes quiet about the
+   * exact thing it was built to say. Silence is the failure mode it exists to
+   * prevent, so it must not be the failure mode it has.
+   */
+  if (peopleFailed) {
+    console.error(`[reminders] could not read who works here: ${peopleFailed.message}`);
+  }
 
   const cover = reminderCover(
     reminders,
