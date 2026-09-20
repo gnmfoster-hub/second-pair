@@ -21,7 +21,7 @@ export function Managed({ words }: { words: { business: string } }) {
       <p className="hint mt-1.5 max-w-prose">
         Your prices, your hours, the reminders your clients get and the way the assistant
         speaks for you are all set by whoever runs the {words.business}. If something is
-        wrong, they can change it in a minute &mdash; you do not need an account for that
+        wrong, they can change it in a minute, you do not need an account for that
         and asking is faster than finding it.
       </p>
 

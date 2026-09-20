@@ -238,7 +238,7 @@ export default async function ChannelsPage({
             </p>
             <p>
               <strong>It puts in your inbox, unanswered,</strong> anything from a real
-              person it should not write to on its own &mdash; you, your own staff, or a
+              person it should not write to on its own, you, your own staff, or a
               message with nothing in it.
             </p>
             <p>

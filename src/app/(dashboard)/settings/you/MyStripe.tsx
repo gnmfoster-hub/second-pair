@@ -66,14 +66,14 @@ export function MyStripe({
             {perPerson ? (
               <>
                 This business pays each person directly, so card payments for your work
-                land in your own Stripe account &mdash; never the {business}&rsquo;s, and never
+                land in your own Stripe account, never the {business}&rsquo;s, and never
                 ours. You connect it yourself because Stripe asks for your ID and your
                 bank details, and those are nobody else&rsquo;s to hand over.
               </>
             ) : (
               <>
                 This business takes card payments into one account for the whole {business}, so
-                there is nothing for you to connect &mdash; whoever runs it settles up with
+                there is nothing for you to connect. Whoever runs it settles up with
                 you however you already arrange it.
               </>
             )}
@@ -102,8 +102,7 @@ export function MyStripe({
           </a>
           <p className="hint mt-2 max-w-prose">
             Until you do, {firstName}, a card payment for your work either goes to the
-            business&rsquo;s own account &mdash; if whoever runs it has allowed that &mdash;
-            or cannot be taken by card at all.
+            business&rsquo;s own account, if whoever runs it has allowed that, or cannot be taken by card at all.
           </p>
         </>
       )}
@@ -112,7 +111,7 @@ export function MyStripe({
         <p className="hint mt-4 max-w-prose">
           Card payments are not switched on at our end yet, {firstName}, so there is
           nothing for you to connect to today. That is on Second Pair rather than on you
-          or on whoever runs the place &mdash; this panel will offer you a button the
+          or on whoever runs the place. This panel will offer you a button the
           moment it is ready.
         </p>
       )}

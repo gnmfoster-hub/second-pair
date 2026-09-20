@@ -34,7 +34,7 @@ export function WhoChargesWhat({
       <h2 className="section-title">What each {words.practitioner} charges</h2>
       <p className="hint mt-1 max-w-prose">
         On this way of pricing, the difference between one {words.practitioner} and
-        another <em>is</em> their hourly rate and their minimum &mdash; the sizes above
+        another <em>is</em> their hourly rate and their minimum, the sizes above
         are the same work whoever does it. Change a rate and every quote for that person
         moves with it.
       </p>

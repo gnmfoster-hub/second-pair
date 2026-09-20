@@ -58,7 +58,7 @@ export function MyServices({
           <p className="hint mt-1 max-w-prose">
             {title?.blurb ?? (
               <>
-                Work and products that are yours rather than the {business}&rsquo;s &mdash; a
+                Work and products that are yours rather than the {business}&rsquo;s, a
                 special you offer, or something only you sell. The assistant
                 offers these only to somebody asking for {firstName}, and never to
                 somebody booking with anyone else.
@@ -80,7 +80,7 @@ export function MyServices({
 
       {services.length === 0 && !adding && (
         <p className="hint mt-4">
-          Nothing yet. Most people need none of this &mdash; it is for work the rest of
+          Nothing yet. Most people need none of this. It is for work the rest of
           the {business} does not do.
         </p>
       )}

@@ -494,7 +494,7 @@ export function StudioForm({
               className="mt-0.5 accent-[var(--accent)]"
             />
             <span>
-              None &mdash; we are not VAT registered
+              None, we are not VAT registered
               <span className="hint block">
                 The usual answer under the threshold. Your prices are quoted exactly as you
                 enter them and the assistant never mentions VAT.
@@ -512,7 +512,7 @@ export function StudioForm({
               className="mt-0.5 accent-[var(--accent)]"
             />
             <span>
-              Registered &mdash; the prices I enter already include VAT
+              Registered, the prices I enter already include VAT
               <span className="hint block">
                 Quoted as they are, with a line saying VAT is included. Usual where you sell
                 to the public.
@@ -530,7 +530,7 @@ export function StudioForm({
               className="mt-0.5 accent-[var(--accent)]"
             />
             <span>
-              Registered &mdash; add VAT to the prices I enter
+              Registered, add VAT to the prices I enter
               <span className="hint block">
                 The assistant adds it before quoting and says so. Usual where you work for
                 other businesses.
@@ -624,7 +624,7 @@ export function StudioForm({
             <span>
               Send it
               <span className="hint block">
-                Paste your Google review link above first &mdash; in Google Business Profile, under
+                Paste your Google review link above first, in Google Business Profile, under
                 Ask for reviews. Nothing is sent until both are set.
               </span>
             </span>
@@ -687,7 +687,7 @@ export function StudioForm({
         <div>
           <h2 className="section-title">What you call things</h2>
           <p className="hint mt-1">
-            Used everywhere &mdash; the tabs, the diary, and what the assistant says to
+            Used everywhere, the tabs, the diary, and what the assistant says to
             your {words.customer}s. Leave a box empty to use the normal word for your
             trade.
           </p>
@@ -736,8 +736,8 @@ export function StudioForm({
         </div>
 
         <p className="hint">
-          If your people do different jobs &mdash; a stylist and a nail technician in the
-          same {studio.vocabulary?.business ?? pack.vocabulary.business} &mdash; pick the
+          If your people do different jobs, a stylist and a nail technician in the
+          same {studio.vocabulary?.business ?? pack.vocabulary.business}, pick the
           word that covers all of them here, and give each person their own job title on
           their own settings.
         </p>

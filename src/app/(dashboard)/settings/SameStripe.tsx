@@ -66,7 +66,7 @@ export function SameStripe({
               Use your own Stripe as the business&rsquo;s account
               <span className="hint block">
                 Most owners have one Stripe account, not two. This points the business at the
-                one you have already connected, {firstName} &mdash; no second sign-up, and you can
+                one you have already connected, {firstName}, no second sign-up, and you can
                 undo it here.
               </span>
             </>

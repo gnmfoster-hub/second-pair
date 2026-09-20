@@ -1031,7 +1031,7 @@ export function ChatWindow({
                   ))}
                 </span>
                 {slow && (
-                  <p className="hint mt-1 text-xs">Still here &mdash; just checking a few things.</p>
+                  <p className="hint mt-1 text-xs">Still here, just checking a few things.</p>
                 )}
               </div>
             </div>

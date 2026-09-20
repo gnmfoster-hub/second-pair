@@ -31,7 +31,7 @@ export function EveryEnquiry({ on }: { on: boolean }) {
       <p className="hint mt-1.5 max-w-prose">
         You are always told when somebody is booked in, when the assistant hands a
         conversation over, and when it holds back for you to answer first. An enquiry it
-        answered on its own sends nothing &mdash; because nothing needed you.
+        answered on its own sends nothing, because nothing needed you.
       </p>
 
       <label className="mt-4 flex items-start gap-2.5 text-sm">
@@ -47,7 +47,7 @@ export function EveryEnquiry({ on }: { on: boolean }) {
           <span className="hint block">
             One notification the first time the assistant replies to somebody new. Worth
             having while you are still deciding whether to trust it, and worth turning off
-            once you do &mdash; an alert for everything is how the one that mattered gets
+            once you do, an alert for everything is how the one that mattered gets
             ignored.
           </span>
         </span>

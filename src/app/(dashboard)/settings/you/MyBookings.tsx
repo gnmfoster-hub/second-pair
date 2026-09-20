@@ -44,7 +44,7 @@ export function MyBookings({
         <span>
           Tell me when somebody books in with me
           <span className="hint block">
-            Goes to {first}&rsquo;s own devices and {first}&rsquo;s own address &mdash; not
+            Goes to {first}&rsquo;s own devices and {first}&rsquo;s own address, not
             the {business}&rsquo;s, and not anybody else&rsquo;s. You are not told about other
             people&rsquo;s bookings.
           </span>

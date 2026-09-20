@@ -36,7 +36,7 @@ export function NotBeenBack({ people }: { people: Lapsed[] }) {
       </div>
 
       <p className="hint mt-1 max-w-prose">
-        Past their own usual gap, not past a fixed number of days &mdash; so somebody who
+        Past their own usual gap, not past a fixed number of days, so somebody who
         comes every five weeks shows up here long before somebody who comes twice a year.
         Anybody already booked in is left out.
       </p>
@@ -63,7 +63,7 @@ export function NotBeenBack({ people }: { people: Lapsed[] }) {
                       * whether to ring somebody deserves to know which one
                       * this is.
                       */}
-                    (been once &mdash; measured against everyone else)
+                    (been once, measured against everyone else)
                   </>
                 )}
               </span>

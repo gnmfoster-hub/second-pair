@@ -63,7 +63,7 @@ export function Forget({ id, name }: { id: string; name: string | null }) {
         <p className="hint max-w-prose">
           Removes {called} and every message they ever sent you, for good. Their
           appointments stay in your diary without their name on them, so your week still
-          adds up &mdash; what goes is who they were, not that the afternoon happened.
+          adds up, what goes is who they were, not that the afternoon happened.
         </p>
         <p className="hint max-w-prose">
           This is what to use if somebody asks you to delete them. It cannot be undone.

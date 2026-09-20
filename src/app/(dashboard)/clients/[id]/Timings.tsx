@@ -61,7 +61,7 @@ export function Timings({
           <h2 className="section-title text-sm">How long {firstName} takes</h2>
           <p className="hint mt-1 max-w-prose">
             Only where they differ from the book, so whoever takes the booking sets aside
-            the right amount of time &mdash; whether or not they are the one who learned
+            the right amount of time, whether or not they are the one who learned
             it. Never shown to {firstName}.
           </p>
         </div>
@@ -186,7 +186,7 @@ function TimingRow({
             autoFocus
           />
           <span className="hint">
-            A minus number is real and useful &mdash; some people are quicker than the
+            A minus number is real and useful, some people are quicker than the
             book says. Zero takes the row off.
           </span>
         </label>

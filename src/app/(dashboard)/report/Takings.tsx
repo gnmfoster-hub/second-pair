@@ -130,7 +130,7 @@ export function Takings({
           </div>
           <p className="hint mt-1">
             Paid for and closed off, out of {formatPence(figures.pence)} booked. Cash, a
-            card machine, a phone or a link &mdash; all of it.
+            card machine, a phone or a link, all of it.
           </p>
         </div>
       )}
@@ -173,8 +173,7 @@ export function Takings({
           )}
 
           <p className="hint mt-2">
-            Not in the figures above, which are appointments. This is the shelf &mdash;
-            whether it was sold at the till or added to somebody&rsquo;s bill on the way
+            Not in the figures above, which are appointments. This is the shelf, whether it was sold at the till or added to somebody&rsquo;s bill on the way
             out.
           </p>
         </div>
@@ -211,7 +210,7 @@ export function Takings({
       )}
 
       <p className="hint mt-4">
-        Everything in the diary, whoever booked it &mdash; the assistant, you, or
+        Everything in the diary, whoever booked it, the assistant, you, or
         whoever answered the phone. Cancellations are left out; anything nobody turned
         up to is still counted, because the slot was lost either way.
       </p>

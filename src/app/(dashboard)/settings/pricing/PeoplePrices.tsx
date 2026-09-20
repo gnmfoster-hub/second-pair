@@ -65,13 +65,13 @@ export function PeoplePrices({
         <Explain label="How their own prices work">
           Clearing both boxes on a row puts them back on the{" "}
           {words.business ?? "business"}&rsquo;s price. They can change their own on their
-          settings too &mdash; whoever saved last wins, as it would if you were both writing
+          settings too, and whoever saved last wins, as it would if you were both writing
           on the same wall.
         </Explain>
       </h2>
       <p className="hint mt-1 max-w-prose">
         Only where they differ from the list above. Everybody is on the {words.business ?? "business"}&rsquo;s price
-        until you say otherwise, which is what most of these should stay &mdash; a senior
+        until you say otherwise, which is what most of these should stay, a senior
         who charges more for something is the exception worth typing in.
       </p>
 

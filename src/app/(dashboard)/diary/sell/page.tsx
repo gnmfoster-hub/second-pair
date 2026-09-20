@@ -89,7 +89,7 @@ export default async function SellPage({
       {products.length === 0 && (
         <p className="mt-5 rounded-lg bg-surface-2 px-3 py-2 text-sm text-muted">
           Nothing is on your price list yet, so there is nothing to tap. You can still type
-          what was sold below &mdash; or add it to{" "}
+          what was sold below, or add it to{" "}
           <Link href="/settings/pricing" className="underline">
             your prices
           </Link>{" "}

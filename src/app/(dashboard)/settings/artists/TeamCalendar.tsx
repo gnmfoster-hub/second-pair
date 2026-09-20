@@ -58,7 +58,7 @@ export function TeamCalendar({
             Reset this link
           </button>
           <span className="hint">
-            Anybody already subscribed stops updating &mdash; including {first}.
+            Anybody already subscribed stops updating, including {first}.
           </span>
         </form>
 

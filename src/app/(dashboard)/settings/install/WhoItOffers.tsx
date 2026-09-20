@@ -39,7 +39,7 @@ export function WhoItOffers({
         <h2 className="section-title">Who the website assistant books</h2>
         <p className="hint mt-1">
           Everybody it offers to a customer who has never met you. Somebody left out is
-          still in your diary, and their own link still works &mdash; to take somebody off
+          still in your diary, and their own link still works, to take somebody off
           every channel instead, there is a switch on their own record under the team.
         </p>
       </div>
@@ -81,7 +81,7 @@ export function WhoItOffers({
             */}
           {picked.length === 0 && working.length > 0 && (
             <p className="hint pt-1">
-              Nobody chosen, so it will offer anybody working &mdash; an assistant that
+              Nobody chosen, so it will offer anybody working, an assistant that
               can book no one cannot answer at all.
             </p>
           )}

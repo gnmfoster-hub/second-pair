@@ -54,8 +54,7 @@ export function YourPrices({
       <div className="section-title">Your prices</div>
       <p className="hint mt-1.5 max-w-prose">
         What the assistant quotes when somebody asks for you by name. Leave a row alone
-        and you are on the {business}&rsquo;s price, which is what most of these should be
-        &mdash; fill one in only where you genuinely differ. Nobody else can change these.
+        and you are on the {business}&rsquo;s price, which is what most of these should be, fill one in only where you genuinely differ. Nobody else can change these.
       </p>
 
       <div className="mt-5 hidden gap-3 px-1 text-xs uppercase tracking-wide text-muted sm:flex">

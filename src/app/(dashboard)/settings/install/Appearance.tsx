@@ -180,7 +180,7 @@ export function Appearance({
       <div>
         <h2 className="section-title">How it looks</h2>
         <p className="hint mt-1">
-          Changes here reach your site straight away &mdash; there is nothing to paste
+          Changes here reach your site straight away. There is nothing to paste
           again.
         </p>
       </div>
@@ -324,7 +324,7 @@ export function Appearance({
           {motionOff && pulse !== "off" && (
             <p className="hint mt-1.5 text-warn">
               <strong>This browser is set to reduce motion</strong>, so you will not see
-              it here or on your site &mdash; visitors without that setting will. It is
+              it here or on your site, visitors without that setting will. It is
               usually Windows&rsquo; own animation setting, or battery saver.
             </p>
           )}
@@ -601,8 +601,8 @@ export function Appearance({
                   ? "The writing sits on your own page, so how readable it is depends on what is behind it."
                   : "Your page shows through, so the contrast is a little lower than it looks here."}
                 <p className="hint mt-0.5 max-w-xs">
-                  Worth looking at on the busiest part of your site &mdash; a photograph,
-                  or a dark section &mdash; rather than on a plain background.
+                  Worth looking at on the busiest part of your site, a photograph,
+                  or a dark section, rather than on a plain background.
                 </p>
               </div>
             ) : (

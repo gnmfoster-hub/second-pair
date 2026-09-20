@@ -46,7 +46,7 @@ export function PaymentModel({
 
       <p className="hint mt-1.5 max-w-prose">
         Money goes straight to a Stripe account you control. It never passes through
-        Second Pair, and we never hold it &mdash; which keeps us out of the business of
+        Second Pair, and we never hold it, which keeps us out of the business of
         looking after other people&rsquo;s money, and you out of waiting for us to pass
         it on.
       </p>
@@ -71,7 +71,7 @@ export function PaymentModel({
             An account each
             <span className="hint block">
               Their money never touches yours. Right where each of them runs their own
-              business under your roof &mdash; and each of the {words.practitioners} connects their own
+              business under your roof, and each of the {words.practitioners} connects their own
               Stripe, which means their own ID and bank details, not yours.
             </span>
           </span>
@@ -89,7 +89,7 @@ export function PaymentModel({
           <span>
             If somebody has not connected Stripe yet, take it into the business account
             <span className="hint block">
-              Off, a payment for them simply cannot be taken and says why &mdash; which
+              Off, a payment for them simply cannot be taken and says why, which
               is the safer answer, because money arriving somewhere nobody chose is worse
               than a payment that plainly did not happen. On, it lands with you and you
               owe them it.
@@ -118,7 +118,7 @@ export function PaymentModel({
           ) : (
             "Connect one under Taking the money, further down."
           )}
-          {" "}&mdash; it can be the same Stripe account as your own.
+          , it can be the same Stripe account as your own.
         </p>
       )}
 

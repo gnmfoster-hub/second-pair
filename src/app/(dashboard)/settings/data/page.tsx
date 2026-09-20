@@ -62,7 +62,7 @@ export default async function DataPage() {
     <div className="max-w-2xl">
       <h1 className="page-title">Your data</h1>
       <p className="hint mt-1.5 max-w-prose">
-        Everything here is yours. Take a copy whenever you like &mdash; for your
+        Everything here is yours. Take a copy whenever you like, for your
         accountant, for a mailing list, or to keep.
       </p>
 

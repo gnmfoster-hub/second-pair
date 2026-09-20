@@ -37,8 +37,8 @@ export function Remove({ id, who }: { id: string; who: string | null }) {
             */}
           {called === "this person" ? "They" : called} will be taken off your{" "}
           <strong className="text-foreground">Clients</strong> list too, unless there is
-          something else of theirs &mdash; an appointment, a payment, a form or another
-          conversation &mdash; in which case only this thread goes.
+          something else of theirs, an appointment, a payment, a form or another
+          conversation, in which case only this thread goes.
         </p>
         <p className="hint max-w-prose">
           {/*
@@ -48,7 +48,7 @@ export function Remove({ id, who }: { id: string; who: string | null }) {
             */}
           If {called} has asked you to delete <em>them</em>, use{" "}
           <strong className="text-foreground">If they ask about their data</strong> on
-          their client page instead &mdash; that keeps their appointments in your diary
+          their client page instead, that keeps their appointments in your diary
           without their name on them, so your week still adds up.
         </p>
 

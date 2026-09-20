@@ -153,7 +153,7 @@ export function ClientForm({
 
       <p className="hint">
         Off unless they have actually agreed. Required under UK GDPR, and kept separate from
-        booking messages &mdash; reminders are sent regardless. When it was agreed is
+        booking messages, reminders are sent regardless. When it was agreed is
         recorded, because a tick on its own is not evidence of anything.
       </p>
 

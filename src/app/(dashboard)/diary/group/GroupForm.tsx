@@ -233,7 +233,7 @@ export function GroupForm({ artists, today }: { artists: Artist[]; today: string
           Cancel
         </Link>
         <span className="hint">
-          A clash skips that one and books the rest &mdash; you will be told who.
+          A clash skips that one and books the rest, you will be told who.
         </span>
       </div>
     </form>

@@ -48,7 +48,7 @@ export function LateNights({ extra, noun }: { extra: ExtraHours[]; noun: string 
       <div className="label">Working late, or coming in specially</div>
       <p className="hint mt-1">
         One-off hours for a particular date. The assistant will offer these times to
-        customers as well as this {noun}&rsquo;s usual ones &mdash; useful when somebody
+        customers as well as this {noun}&rsquo;s usual ones, useful when somebody
         can only make an evening.
       </p>
 

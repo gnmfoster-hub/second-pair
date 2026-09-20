@@ -34,15 +34,14 @@ export function PricingModel({
       {current === "services" ? (
         <p className="hint mt-1 max-w-prose">
           A named thing at a set price, which is how most trades work. Some price by the
-          hour instead &mdash; a tattooist charges by the size of the piece and how long it
+          hour instead, a tattooist charges by the size of the piece and how long it
           sits, not by the item.
           {bandCount > 0 && ` Your ${bandCount} old size bands are still here, untouched.`}
         </p>
       ) : (
         <p className="hint mt-1 max-w-prose">
           By the size of the job and the hours it takes, against each person&rsquo;s hourly
-          rate. If you sell named things at set prices &mdash; a cut, a clean, a service
-          &mdash; the other way will fit you better.
+          rate. If you sell named things at set prices, a cut, a clean, a service, the other way will fit you better.
         </p>
       )}
 

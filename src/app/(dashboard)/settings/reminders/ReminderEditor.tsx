@@ -116,8 +116,7 @@ function Preview({ body, sender }: { body: string; sender: Sender }) {
           {text.length} characters
           {text.length > 160 && (
             <span className="text-warn">
-              {" "}
-              &mdash; over 160, so it is charged as {Math.ceil(text.length / 153)} texts
+              , over 160, so it is charged as {Math.ceil(text.length / 153)} texts
             </span>
           )}
         </div>
@@ -127,7 +126,7 @@ function Preview({ body, sender }: { body: string; sender: Sender }) {
         {sender.number ? (
           <>
             It arrives from the number your customers already have, so it reads as you rather
-            than as a stranger &mdash; and anybody who replies to it lands in your inbox.
+            than as a stranger, and anybody who replies to it lands in your inbox.
           </>
         ) : (
           <>
@@ -228,7 +227,7 @@ export function ReminderEditor({
           <strong>
             {wrong.length === 1 ? "This is not one of them:" : "These are not any of them:"}
           </strong>{" "}
-          {wrong.map((w) => `{{${w}}}`).join(", ")} &mdash; it will be taken out and leave a
+          {wrong.map((w) => `{{${w}}}`).join(", ")}, it will be taken out and leave a
           gap in the sentence. The four above are the whole list.
         </p>
       )}

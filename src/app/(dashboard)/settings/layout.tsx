@@ -106,8 +106,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
         {owns ? (
           <>
             How your {words.business} works, and what the assistant knows. Change
-            something and the next conversation uses it. The first tab is yours alone
-            &mdash; your own hours, rates and days off &mdash; and everybody on the team
+            something and the next conversation uses it. The first tab is yours alone, your own hours, rates and days off, and everybody on the team
             has the same one of their own. Theirs is on{" "}
             <span className="text-foreground">{title(words.practitioners)}</span>, where
             you can fill it in for them.

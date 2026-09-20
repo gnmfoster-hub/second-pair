@@ -343,7 +343,7 @@ export function SellForm({
             ))}
           </div>
           <p className="hint mt-1.5">
-            Written down, not taken. The money has already changed hands &mdash; this is
+            Written down, not taken. The money has already changed hands. This is
             what makes the quarter add up to what actually went through the business.
           </p>
         </fieldset>
@@ -382,7 +382,7 @@ export function SellForm({
           <div className="section-title">Or charge it</div>
           <p className="hint mb-3 mt-1 max-w-prose">
             A link they can pay from, for {formatPence(total)}. It lands in the takings by
-            itself once they pay &mdash; nothing to write down afterwards.
+            itself once they pay, nothing to write down afterwards.
           </p>
           <AskForPayment
             amountPence={total}

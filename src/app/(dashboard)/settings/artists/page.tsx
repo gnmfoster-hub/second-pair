@@ -121,7 +121,7 @@ export default async function ArtistsPage() {
           <p className="hint mt-2 max-w-prose">
             Anybody you send a link to sets their own password, then fills in their own
             hours, rates and days off. You do not have to do it for them, and they cannot
-            change anybody else&rsquo;s &mdash; including yours.
+            change anybody else&rsquo;s, including yours.
           </p>
         ) : (
           <p className="hint mt-2 max-w-prose">

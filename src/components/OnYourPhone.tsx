@@ -117,7 +117,7 @@ export function OnYourPhone() {
           <span>
             <strong className="font-medium">Hold the icon for the shortcuts.</strong>{" "}
             <span className="hint">
-              Today, add an appointment, who needs you, clients &mdash; straight there,
+              Today, add an appointment, who needs you, clients, straight there,
               without going through the app.{" "}
               {where === "ios" || where === "ipad" || where === "installed" ? (
                 <em className="not-italic">Android only; iPhones do not offer these yet.</em>
@@ -185,8 +185,7 @@ export function OnYourPhone() {
               </strong>
               <ol className="mt-2 list-decimal space-y-1.5 pl-5">
                 <li>
-                  Tap the <strong className="text-foreground">share</strong> button &mdash;
-                  a square with an arrow coming out of the top. It is{" "}
+                  Tap the <strong className="text-foreground">share</strong> button, a square with an arrow coming out of the top. It is{" "}
                   {where === "ipad"
                     ? "in the row of buttons along the top, to the right of the address bar"
                     : "in the bar at the bottom of the screen, in the middle"}
@@ -194,8 +193,7 @@ export function OnYourPhone() {
                 </li>
                 <li>
                   The menu that opens has a list of grey rows. Scroll down it until you
-                  find <strong className="text-foreground">Add to Home Screen</strong>{" "}
-                  &mdash; a square with a plus in it. It is usually below Add Bookmark.
+                  find <strong className="text-foreground">Add to Home Screen</strong>, a square with a plus in it. It is usually below Add Bookmark.
                 </li>
                 <li>
                   It offers <strong className="text-foreground">Second Pair</strong> as the
@@ -203,8 +201,7 @@ export function OnYourPhone() {
                   at the top right.
                 </li>
                 <li>
-                  Close Safari and open it from the icon instead. That icon is the app
-                  &mdash; the same screens, without the address bar, and the only version
+                  Close Safari and open it from the icon instead. That icon is the app, the same screens, without the address bar, and the only version
                   that can send you a notification.
                 </li>
               </ol>
@@ -245,7 +242,7 @@ export function OnYourPhone() {
             <>
               This one is for a phone or a tablet. Open{" "}
               <strong className="text-foreground">second-pair.com</strong> on it, sign in,
-              and come back to this page &mdash; it will name the buttons for whichever
+              and come back to this page, it will name the buttons for whichever
               device you are holding.
             </>
           )}

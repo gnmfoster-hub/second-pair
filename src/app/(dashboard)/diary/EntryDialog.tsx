@@ -838,8 +838,7 @@ export function EntryDialog({
               Several people in together?{" "}
               <Link href="/diary/group" className="text-accent hover:underline">
                 Book them as a group
-              </Link>{" "}
-              &mdash; each gets their own appointment, tied together so they can be
+              </Link>, each gets their own appointment, tied together so they can be
               called off as one.
             </p>
           )}
@@ -863,7 +862,7 @@ export function EntryDialog({
           {existing && depositPaid(entry ?? {}) && hasDeposit(entry ?? {}) && (
             <p className="hint pt-1">
               {formatPence(entry?.deposit_amount_pence ?? 0)} has been paid on this.
-              Cancelling does not return it &mdash; keeping it or refunding it is your
+              Cancelling does not return it, keeping it or refunding it is your
               call, in Stripe, from their record.
             </p>
           )}

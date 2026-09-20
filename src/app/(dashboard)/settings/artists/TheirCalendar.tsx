@@ -36,7 +36,7 @@ export function TheirCalendar({ artist }: { artist: Artist }) {
 
         <p className="hint max-w-prose">
           The opposite of the link above. Anything in the calendar {first} actually lives
-          by &mdash; a dentist appointment, a school run, a funeral &mdash; stops them
+          by, a dentist appointment, a school run, a funeral, stops them
           being booked over. We only ever read it; nothing here can change anything in
           their calendar.
         </p>
@@ -70,7 +70,7 @@ export function TheirCalendar({ artist }: { artist: Artist }) {
           <strong className="text-foreground">Ask {first} for the address</strong> rather
           than taking it from a shared computer. Anybody holding it can read that
           calendar, so it wants to be the one they keep appointments in rather than
-          anything private &mdash; and they can change it at their end to stop it working
+          anything private, and they can change it at their end to stop it working
           anywhere.
         </div>
 

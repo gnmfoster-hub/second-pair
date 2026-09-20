@@ -41,7 +41,7 @@ export function CalendarLinks({
         <p className="hint mt-1 max-w-prose">
           Add one of these to Google, Apple or Outlook and your appointments appear
           alongside everything else in your life. It updates on its own, and it is
-          read-only &mdash; changing something in your calendar app will not move it
+          read-only, changing something in your calendar app will not move it
           here.
         </p>
       </div>
@@ -85,7 +85,7 @@ export function CalendarLinks({
       <p className="hint border-t border-border pt-4">
         <strong>Treat the address like a password.</strong> Anyone who has it can see a
         year of the diary, including who is booked, their phone number and any note on
-        the appointment &mdash; no sign-in needed, because a calendar app cannot sign in.
+        the appointment, no sign-in needed, because a calendar app cannot sign in.
         If one gets out, reset it here and give people the new one.
       </p>
 

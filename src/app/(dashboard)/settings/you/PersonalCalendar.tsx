@@ -40,7 +40,7 @@ export function PersonalCalendar({
         <h2 className="section-title">Your own calendar</h2>
         <p className="hint mt-1 max-w-prose">
           Paste the address of the calendar you actually live by and anything in it will
-          stop you being booked. We only ever read it &mdash; nothing here can add to,
+          stop you being booked. We only ever read it, nothing here can add to,
           change or delete anything in your calendar.
         </p>
       </div>
@@ -115,7 +115,7 @@ export function PersonalCalendar({
                 Put a block in my column so the day reads true.
                 <span className="hint block">
                   It is never bookable and never counts towards takings. Off, it still
-                  stops you being booked &mdash; it just does not appear.
+                  stops you being booked, it just does not appear.
                 </span>
               </span>
             </label>
@@ -160,7 +160,7 @@ export function PersonalCalendar({
       {artist.personal_calendar_error && (
         <p className="text-sm text-warn">
           Last read failed: {artist.personal_calendar_error}. Your appointments are still
-          safe &mdash; but nothing from this calendar is blocking your time until it works
+          safe, but nothing from this calendar is blocking your time until it works
           again.
         </p>
       )}

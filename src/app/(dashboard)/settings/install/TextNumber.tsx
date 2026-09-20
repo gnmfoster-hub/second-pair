@@ -93,7 +93,7 @@ export function TextNumber({
           <div className="label">No number yet</div>
           <p className="hint mt-1 max-w-prose">
             Ask us and we will set one up. It takes a few days, because a UK number has
-            to be registered to a real address before it can send anything &mdash; and
+            to be registered to a real address before it can send anything, and
             then texts and missed calls simply start working.
           </p>
         </div>
@@ -197,7 +197,7 @@ export function TextNumber({
               Put the number above on your website, your Google listing, your Instagram
               and your booking buttons, and leave your mobile for the people who already
               have it. Set &ldquo;ring me on&rdquo; to your mobile and a call to the new
-              number rings you first anyway &mdash; so nothing is lost, and anybody
+              number rings you first anyway, so nothing is lost, and anybody
               arriving from the website lands somewhere the assistant can answer at
               eleven at night.
             </p>
@@ -212,13 +212,13 @@ export function TextNumber({
               not pick up, are engaged, or have no signal. Point that at the number
               above. Customers carry on ringing you exactly as they do now, your phone
               rings normally, and the ones you miss come here and get texted back within
-              seconds &mdash; from a number that can hold the conversation afterwards.
+              seconds, from a number that can hold the conversation afterwards.
             </p>
             <p className="mt-1">
               On most UK networks it is a code dialled from the phone, or a setting in
               your network&rsquo;s app. Ask for{" "}
               <strong className="text-foreground">conditional call diversion</strong> or
-              &ldquo;divert when unanswered&rdquo; &mdash; not the plain kind, which sends
+              &ldquo;divert when unanswered&rdquo;, not the plain kind, which sends
               every call away and stops your phone ringing at all.
             </p>
             <p className="mt-2 rounded-lg bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">
@@ -226,7 +226,7 @@ export function TextNumber({
               Otherwise a missed call diverts to us, we ring your mobile, your mobile
               diverts it straight back, and the two numbers pass the same call between
               them until it gives up. Empty means we text the caller the moment they
-              reach us, which is what you want here anyway &mdash; your phone has already
+              reach us, which is what you want here anyway, your phone has already
               had its fifteen seconds.
             </p>
           </div>
@@ -237,7 +237,7 @@ export function TextNumber({
               A <em>text</em> sent to your own mobile cannot reach the assistant. Calls
               can be diverted; texts cannot, on any UK network. So texts only work on the
               number above. In practice that matters less than it sounds, because the
-              missed-call reply comes from that number &mdash; so the moment somebody
+              missed-call reply comes from that number, so the moment somebody
               rings you and you cannot answer, the conversation moves there on its own.
             </p>
           </div>
@@ -247,7 +247,7 @@ export function TextNumber({
             <p className="mt-1">
               Voicemail is the real competition. If it answers before we do, the caller
               leaves a message that mostly never gets played back, and no text is ever
-              sent &mdash; as far as the line is concerned, somebody answered. Turn it
+              sent, as far as the line is concerned, somebody answered. Turn it
               off, or push the answer delay out to thirty seconds.
             </p>
           </div>

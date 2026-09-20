@@ -97,7 +97,7 @@ export function BusinessStripe({
             </span>
             <p className="hint max-w-prose">
               Card payments are not switched on at our end yet, so there is nothing to
-              connect to. This one is on Second Pair rather than on you &mdash; we will tell
+              connect to. This one is on Second Pair rather than on you, we will tell
               you when it is ready. Everything else keeps working; the assistant simply will
               not ask anybody for a deposit.
             </p>

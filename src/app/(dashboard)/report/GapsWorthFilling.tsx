@@ -47,7 +47,7 @@ export function GapsWorthFilling({
 
       <p className="hint mt-1 max-w-prose">
         Holes in days somebody is already working, long enough to sell. The few minutes
-        between appointments are left out &mdash; that is how a day breathes &mdash; and
+        between appointments are left out, that is how a day breathes, and
         so are days that are empty from end to end, which are a different conversation.
       </p>
 

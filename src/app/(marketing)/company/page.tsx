@@ -60,7 +60,7 @@ export default function CompanyPage() {
 
             <p className="mt-4 flex-1 text-sm leading-[1.6] text-muted">
               An assistant that answers enquiries for tattooists, salons, cleaners,
-              trades &mdash; anybody who works by appointment. It replies in the
+              trades, anybody who works by appointment. It replies in the
               business&rsquo;s own voice, quotes from their own rates, offers times that
               are genuinely free, and books them in. At eleven at night, while they are
               up a ladder, and on a Sunday.
@@ -87,7 +87,7 @@ export default function CompanyPage() {
             </div>
 
             <p className="mt-4 flex-1 text-sm leading-[1.6] text-muted">
-              A private hub for one family &mdash; chat, photos, a shared calendar, meal
+              A private hub for one family, chat, photos, a shared calendar, meal
               plans, an AI holiday planner and twenty-six themes. Built because we wanted
               it at home, and kept going because it got used every day.
             </p>
@@ -175,7 +175,7 @@ export default function CompanyPage() {
         <h2 className="section-title">Run a business by appointment?</h2>
         <p className="hint mt-2 max-w-prose">
           That is the one we built for you. It answers while you work, and every business
-          on it is set up by hand &mdash; so the first conversation is with a person, not
+          on it is set up by hand, so the first conversation is with a person, not
           a signup form.
         </p>
         <a

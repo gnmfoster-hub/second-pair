@@ -49,13 +49,13 @@ export function MyReminders({
           <>you send your own.</>
         ) : businessCount > 0 ? (
           <>
-            yours go out with everybody else&rsquo;s &mdash; the {businessCount} the
+            yours go out with everybody else&rsquo;s, the {businessCount} the
             business has set up.
           </>
         ) : (
           /* "the 0 the business has set up" was the sentence here. */
           <>
-            <strong>your clients are sent nothing</strong> &mdash; the business has none
+            <strong>your clients are sent nothing</strong>, the business has none
             set up, and you are on the business&rsquo;s.
           </>
         )}

@@ -91,7 +91,7 @@ export function MetaChannels({
       <div className="section-title">Facebook and Instagram</div>
       <p className="hint mt-1 max-w-prose">
         Your accounts, not ours. You log in to Facebook yourself and choose what to
-        share &mdash; we never see your password, and you can disconnect from your own
+        share, we never see your password, and you can disconnect from your own
         Facebook settings at any time without telling us.
       </p>
 

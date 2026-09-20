@@ -123,7 +123,7 @@ function MatchColumns({
         <h2 className="section-title">What is in each column</h2>
         <p className="hint mt-1 max-w-prose">
           {read.rows} {read.rows === 1 ? "person" : "people"} in that file. We have guessed
-          from the headings &mdash; change anything we have got wrong. Anything set to{" "}
+          from the headings, change anything we have got wrong. Anything set to{" "}
           <em>Do not import</em> is left behind entirely.
         </p>
 
@@ -198,14 +198,14 @@ function MatchColumns({
         <h2 className="section-title">About the marketing ticks</h2>
         <p className="hint max-w-prose">
           Whatever their old system recorded is brought across and marked{" "}
-          <em>imported from their previous system</em>, with no date &mdash; because a tick in
+          <em>imported from their previous system</em>, with no date, because a tick in
           somebody else&rsquo;s export is not evidence of when, or whether, anybody was asked.
           It is enough to keep sending to a list that was already agreed. It is not evidence you
           could show the ICO on its own, so keep the export file somewhere safe.
         </p>
         <p className="hint max-w-prose">
           Anyone whose ticks are blank arrives with marketing <strong>off</strong>. Booking
-          messages and reminders are unaffected either way &mdash; those are not marketing.
+          messages and reminders are unaffected either way, those are not marketing.
         </p>
       </div>
 

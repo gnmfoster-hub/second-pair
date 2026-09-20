@@ -390,7 +390,7 @@ export function ArtistEditor({
             * channel they were picturing when they chose it.
             */}
           <p className="hint mt-1.5">
-            Their booking link, their own number, their own Instagram &mdash; everything
+            Their booking link, their own number, their own Instagram, everything
             that reaches them and nobody else. Books only them unless you change it, which
             is what almost everybody wants: somebody texting {artist?.name?.split(" ")[0] ?? "them"}&rsquo;s
             own number is asking for {artist?.name?.split(" ")[0] ?? "them"}.
@@ -556,7 +556,7 @@ export function ArtistEditor({
               The assistant can offer and book them
               <span className="hint block">
                 Your choice, per person. Off, they keep their diary and their hours exactly as
-                they are and you or they write into it by hand &mdash; a customer is simply
+                they are and you or they write into it by hand, a customer is simply
                 never offered them. On, the assistant treats them like anybody else.
               </span>
             </span>
@@ -575,7 +575,7 @@ export function ArtistEditor({
               They have a booking link of their own
               <span className="hint block">
                 A link that reaches them directly, for their own regulars and their own
-                Instagram. Off, there is no way in but through the business &mdash; which is
+                Instagram. Off, and there is no way in but through the business, which is
                 what employing somebody usually means, and it is why switching the assistant
                 off above was not enough on its own.
               </span>
@@ -608,8 +608,7 @@ export function ArtistEditor({
               <span className="hint block">
                 For somebody employed rather than renting a chair. Their prices, hours,
                 reminders and wording become yours to set, and they stop being able to
-                change them. Their phone and their own calendar stay theirs &mdash;
-                nobody can press a notification button on somebody else&rsquo;s phone.
+                change them. Their phone and their own calendar stay theirs. Nobody can press a notification button on somebody else&rsquo;s phone.
               </span>
             </span>
           </label>

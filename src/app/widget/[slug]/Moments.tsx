@@ -144,7 +144,7 @@ export function MomentCard({
               onClick={() => onPick("Have you got anything else? None of those work for me.")}
               className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-dashed border-border px-3.5 py-2.5 text-left text-sm text-muted transition-colors motion-safe:animate-[rise_240ms_ease-out_both] hover:border-solid hover:text-foreground disabled:opacity-40"
             >
-              <span>None of those &mdash; ask for other times</span>
+              <span>None of those, ask for other times</span>
               <span aria-hidden className="shrink-0">
                 →
               </span>

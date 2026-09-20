@@ -363,7 +363,7 @@ export default async function YouPage({
           <div className="section-title">You are not in the diary</div>
           <p className="hint mt-1.5 max-w-prose">
             Your sign-in is not linked to one of the {words.practitioners}, so there are no
-            hours or rates to keep here. Everything above still works &mdash; this device
+            hours or rates to keep here. Everything above still works. This device
             can be notified and the app can go on your home screen. If you should have a
             column in the diary, whoever owns the business can add you.
           </p>

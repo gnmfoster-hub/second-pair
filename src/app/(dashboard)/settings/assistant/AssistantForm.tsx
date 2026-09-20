@@ -144,7 +144,7 @@ export function AssistantForm({ studio }: { studio: Studio }) {
             <p className="hint mt-1 max-w-prose">
               Only about email. If you forward a single enquiry address, leave this
               alone. If you forward everything that arrives in your mailbox, the second
-              option is the one you want &mdash; without it the assistant will answer
+              option is the one you want, without it the assistant will answer
               your accountant.
             </p>
           </div>

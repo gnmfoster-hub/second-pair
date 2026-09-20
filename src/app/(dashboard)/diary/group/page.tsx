@@ -47,7 +47,7 @@ export default async function GroupPage() {
         <h1 className="page-title">Book a group</h1>
         <p className="hint mt-1 max-w-prose">
           A wedding party, a family in together, a house with four rooms to do. Each
-          person gets their own appointment in their own diary &mdash; this ties them
+          person gets their own appointment in their own diary. This ties them
           together so they can be found, moved and called off as one thing.
         </p>
       </div>
