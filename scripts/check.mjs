@@ -91,6 +91,19 @@ const checks = [
     /** A real enquiry and appointment on the demo, both cleared up. */
     writes: true,
   },
+  /*
+   * The consent form, which outlives the appointment.
+   *
+   * It is the salon's defence if somebody reacts to a colour, so a second
+   * submission overwriting the first signature would matter long after
+   * anybody had forgotten about it.
+   */
+  {
+    name: "a signature is taken once, and only once",
+    run: ["node", "scripts/check-forms.cjs"],
+    /** Its own form and its own contact on the demo, both removed after. */
+    writes: true,
+  },
   {
     name: "every screen of every business",
     run: ["node", "scripts/check-pages.cjs"],
