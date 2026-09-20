@@ -13,7 +13,7 @@ import {
   deleteBusiness,
   saveAccount,
   fixSettings,
-  fixChannel,
+  fixChannel, assignNumber,
   answerTicket,
   setKind,
   snoozeAttention,
@@ -1426,6 +1426,49 @@ function Channels({ b }: { b: BusinessSummary }) {
           </p>
         </div>
 
+        {/*
+          * Whose each connected thing is, and the way to change it.
+          *
+          * Giles, asked where he allocates numbers in the back office: he
+          * could not. The panel above sets one number for the business and
+          * has never recorded whose it is, so the per-person channels the
+          * product is built around could not be set up by the one person able
+          * to buy a number.
+          *
+          * Empty means the business's, and that is the default rather than a
+          * gap: on a shared line the assistant asks the customer who they
+          * would like, and on somebody's own it never asks, because everything
+          * arriving there is theirs.
+          *
+          * Here as well as on the owner's own settings, not instead of it. An
+          * owner assigning their own numbers is the normal way round; this is
+          * for the owner who would rather not.
+          */}
+        {b.connections.length > 0 && (
+          <div>
+            <div className="label">Whose each one is</div>
+            <ul className="mt-1.5 space-y-2">
+              {b.connections.map((c) => (
+                <li key={c.id} className="flex flex-wrap items-center gap-2 text-sm">
+                  <span className="min-w-[8.5rem] font-medium">
+                    {c.channel}
+                    {c.externalId ? ` ${c.externalId}` : c.label ? ` ${c.label}` : ""}
+                  </span>
+
+                  <Whose connection={c.id} artistId={c.artistId} team={b.team} />
+
+                  {!c.active && <span className="text-xs text-warn">switched off</span>}
+                </li>
+              ))}
+            </ul>
+            <p className="hint mt-2">
+              The business&rsquo;s own line is the one the assistant offers everybody from,
+              and it asks who they would like before it books. A line given to somebody
+              never asks, because everything arriving on it is theirs.
+            </p>
+          </div>
+        )}
+
         {others.length > 0 && (
           <div>
             <div className="label">Also connected</div>
@@ -1443,6 +1486,50 @@ function Channels({ b }: { b: BusinessSummary }) {
         )}
       </div>
     </details>
+  );
+}
+
+/**
+ * Who a connected line belongs to.
+ *
+ * A select rather than a text box: the ids are uuids and this screen can see
+ * every business at once, so anything typed is a way to point one salon's
+ * number at another salon's stylist. The action checks it as well, because a
+ * form is a suggestion.
+ */
+function Whose({
+  connection,
+  artistId,
+  team,
+}: {
+  connection: string;
+  artistId: string | null;
+  team: { id: string; name: string; active: boolean }[];
+}) {
+  const [state, action] = useActionState<Result, FormData>(assignNumber, {});
+
+  return (
+    <form action={action} className="flex flex-wrap items-center gap-2">
+      <input type="hidden" name="connection" value={connection} />
+      <select
+        name="artist"
+        defaultValue={artistId ?? ""}
+        className="input h-9 w-auto py-1 text-sm"
+        onChange={(e) => e.currentTarget.form?.requestSubmit()}
+      >
+        <option value="">The whole business</option>
+        {team
+          .filter((t) => t.active || t.id === artistId)
+          .map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+              {t.active ? "" : " (not working here)"}
+            </option>
+          ))}
+      </select>
+      {state.ok && <span className="text-xs text-ok">Saved.</span>}
+      {state.error && <span className="text-xs text-warn">{state.error}</span>}
+    </form>
   );
 }
 

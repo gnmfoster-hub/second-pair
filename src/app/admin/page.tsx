@@ -208,7 +208,7 @@ export default async function AdminPage() {
    */
   const { data: connections } = await db
     .from("channel_connections")
-    .select("id, studio_id, channel, label, external_id, active, forward_to, updated_at, artists(name)")
+    .select("id, studio_id, channel, label, external_id, active, forward_to, updated_at, artist_id, artists(name)")
     .order("channel");
 
   const emailFor = new Map((users?.users ?? []).map((u) => [u.id, u.email ?? null]));
@@ -447,6 +447,7 @@ export default async function AdminPage() {
             active: boolean;
             forward_to: string | null;
             updated_at: string | null;
+            artist_id: string | null;
             artists: { name: string } | null;
           }[]
         )
@@ -457,6 +458,7 @@ export default async function AdminPage() {
             label: c.label,
             externalId: c.external_id,
             forWho: c.artists?.name ?? null,
+            artistId: c.artist_id,
             active: c.active,
             forwardTo: c.forward_to,
             savedAt: savedWords(c.updated_at),

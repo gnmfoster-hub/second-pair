@@ -192,6 +192,14 @@ export type BusinessSummary = {
     externalId: string | null;
     /** Null means the whole business; set means this one person's channel. */
     forWho: string | null;
+    /**
+     * The same fact as an id, so it can be changed and not only read.
+     *
+     * The back office could see whose a number was and had no way to set it,
+     * which left the one person able to buy a number unable to give it to
+     * anybody.
+     */
+    artistId: string | null;
     active: boolean;
     /** Where a call rings before it becomes a text. SMS only. */
     forwardTo: string | null;

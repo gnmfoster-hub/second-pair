@@ -972,6 +972,87 @@ export async function snoozeAttention(_prev: Result, fd: FormData): Promise<Resu
  * A number typed here that a webhook will never match is worse than one typed
  * there, because the person who typed it is not the person it fails for.
  */
+/**
+ * Give a number to one of their people, or hand it back to the business.
+ *
+ * Giles, asked where he allocates numbers in the back office: he could not.
+ * The panel held one number per business and never recorded whose it was, so
+ * the per-person channels this product has been built around could not be set
+ * up by the one person able to buy a number.
+ *
+ * The rule this is the other half of: a connection with no artist_id belongs
+ * to the business and the assistant asks the customer who they would like; one
+ * with an artist_id is that person's, and it never asks, because everything
+ * arriving there is theirs.
+ *
+ * Here as well as on the owner's own settings, not instead of. The owner
+ * assigning from the numbers they have is the normal way round and keeps Giles
+ * out of it. This is for the owner who would rather not, which is what he
+ * asked for in those words.
+ */
+export async function assignNumber(_prev: Result, fd: FormData): Promise<Result> {
+  const denied = await guard();
+  if (denied) return denied;
+
+  const connectionId = String(fd.get("connection") ?? "");
+  if (!connectionId) return { error: "No number." };
+
+  /* Empty means the business's, which is a real answer and the default. */
+  const artistId = String(fd.get("artist") ?? "").trim() || null;
+
+  const db = createAdminClient();
+
+  const { data: connection } = await db
+    .from("channel_connections")
+    .select("id, studio_id")
+    .eq("id", connectionId)
+    .maybeSingle();
+
+  if (!connection) return { error: "That number is no longer there." };
+
+  /*
+   * The person has to be on this business.
+   *
+   * This screen sees every business at once, which is exactly what makes the
+   * mistake possible: an id from the row above would point a salon's number at
+   * a stylist in another town, and every enquiry arriving on it would be
+   * booked into her diary.
+   */
+  if (artistId) {
+    const { data: person } = await db
+      .from("artists")
+      .select("id, active")
+      .eq("id", artistId)
+      .eq("studio_id", connection.studio_id)
+      .maybeSingle();
+
+    if (!person) return { error: "That person is not on this business." };
+
+    /*
+     * Somebody who has left keeps nothing pointed at them. They are off the
+     * diary and out of the list the assistant offers, so a line routed to them
+     * rings a chair nobody sits in, and the assistant never asks who, because
+     * it has been told it already knows.
+     */
+    if (person.active === false) {
+      return { error: "That person is not working there at the moment." };
+    }
+  }
+
+  const { data: written, error } = await db
+    .from("channel_connections")
+    .update({ artist_id: artistId })
+    .eq("id", connectionId)
+    .select("id");
+
+  if (error) return { error: error.message };
+  // Asked for the row back, so "nothing matched" is not read as a save.
+  if (!written?.length) return { error: "That could not be changed. Try again." };
+
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
 export async function fixChannel(_prev: Result, fd: FormData): Promise<Result> {
   const denied = await guard();
   if (denied) return denied;
