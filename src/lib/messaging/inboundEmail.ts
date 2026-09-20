@@ -159,6 +159,35 @@ const PLATFORM_SENDER =
 const ORDER_SUBJECT =
   /\border\s*#?\d+|\b(order|purchase|payment|invoice|receipt)\s+(confirmation|confirmed|received|placed|shipped|dispatched|refunded)\b|\bnew order\b|\byour (order|receipt|invoice)\b|\bhas (shipped|been dispatched)\b/i;
 
+/*
+ * A listings site reporting the business's own advert back to it.
+ *
+ * Neat & Tidy advertises on a classifieds site, which emails "Your Advert
+ * Statistics — Ad Performance, 32 Views" every single morning.
+ *
+ * Narrow on purpose, and narrower than it first was. The obvious rule is
+ * "your report / your summary / your statistics", and that would quietly eat
+ * a customer writing to an electrician with the subject "Your report" about
+ * the certificate they were sent — which is a real email a real business
+ * needs. Adverts and campaigns are the ones nobody writes to a tradesman
+ * about, so those are the only ones here.
+ *
+ * Stands alone rather than needing a machine-shaped sender beside it: this one
+ * comes from freeads@freeads.co.uk, which is a brand address, so the pairing
+ * used for order receipts would have missed it entirely.
+ */
+const REPORT_SUBJECT =
+  /*
+   * The word for the figures has to be there. An earlier draft also caught a
+   * bare "your advert" or "your listing", which reads as bulk mail until you
+   * remember that a customer ringing off the back of an advert writes exactly
+   * that — "Your advert", "About your advert in the Gazette" — and that is a
+   * lead, not noise. It also ate "your ad hoc visit last week". Statistics,
+   * performance and insights are words no customer uses about somebody else's
+   * advertising, so they are the whole of the rule.
+   */
+  /\b(?:ad|advert|advertisement|listing|campaign)s?\s+(?:statistics|stats|performance|insights)\b/i;
+
 /** A sender that is a system rather than a person: store+123@, orders@, no name.
  *  The "@" belongs in the terminator: an address is the local part and then one,
  *  so a rule that stopped at + . _ or - matched "orders+1@" and missed "orders@". */
@@ -419,6 +448,30 @@ export function judge(
    */
   if (isMarkup(body)) {
     return { what: "ignore", because: "it is a marketing template rather than a typed message" };
+  }
+
+  /*
+   * The same advert figures, once they are no longer a template.
+   *
+   * "Your Advert Statistics" was caught by the rule above while it arrived as
+   * a whole HTML document. Then we started turning markup into words before
+   * any of this reads it — rightly, because the assistant was being handed a
+   * page of tags — and the daily email stopped looking like a template and
+   * started looking like a short, chatty message. Five reached the assistant,
+   * which wrote a reply to each: "Another automated Freeads stats email —
+   * nothing to action", "Same again", "Still just the Freeads stats email".
+   * One was delivered, so a cleaning company emailed a classifieds site to
+   * tell it there was nothing to reply to.
+   *
+   * After the template rule, not before it, so an email that is still a
+   * document is still reported as one.
+   *
+   * Only adverts and campaigns, never reports or summaries in general — see
+   * REPORT_SUBJECT for why, and for why this one needs no machine-shaped
+   * sender beside it.
+   */
+  if (REPORT_SUBJECT.test(subject)) {
+    return { what: "ignore", because: "it is a listings site emailing the business about its own advert" };
   }
 
   if (/unsubscribe/i.test(body)) {

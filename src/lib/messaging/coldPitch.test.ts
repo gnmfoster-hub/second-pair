@@ -369,3 +369,94 @@ test("asking to be connected to the person who owns the store", () => {
     );
   }
 });
+
+/*
+ * Letters a rule cannot read.
+ *
+ * Living Canvas got this on 19 September and every rule in the file saw
+ * nothing in it, because those are mathematical monospace characters rather
+ * than letters. The studio's assistant replied to it, politely, in the
+ * studio's name — which is how a spammer learns the address is real.
+ */
+test("a pitch written in look-alike characters is still a pitch", () => {
+  const v = coldPitch(
+    {
+      from: "mmdtechxpert62@gmail.com",
+      subject: "Re:",
+      body:
+        "\u{1D428}".normalize("NFKC") === "o"
+          ? "\u{1D470}\u{1D48F} \u{1D46E}\u{1D45C}\u{1D45C}\u{1D454}\u{1D459}\u{1D452} starts sending you 1k \u{1D463}\u{1D456}\u{1D460}\u{1D456}\u{1D461}\u{1D45C}\u{1D45F}\u{1D460}\nto your \u{1D464}\u{1D452}\u{1D44F}\u{1D460}\u{1D456}\u{1D461}\u{1D452}, is your store ready to convert 40 order?."
+          : "",
+    },
+    { name: "Living Canvas Tattoo", sites: ["livingcanvastattoo.ink"] },
+  );
+  assert.ok(v.pitch, `let through with ${v.signs.join("; ") || "nothing"}`);
+});
+
+/*
+ * A sentence does not know where the line wrapped.
+ *
+ * The same email, and the reason it still scored one point after the letters
+ * were readable: the newline fell between "visitors" and "to your website", so
+ * the phrase existed for a reader and not for a rule.
+ */
+test("a phrase broken by a line wrap is still the phrase", () => {
+  const v = coldPitch(
+    {
+      from: "someone@gmail.com",
+      subject: "Re:",
+      body: "If Google starts sending you 1k visitors\nto your website, is your store ready to convert 40 order?.",
+    },
+    { name: "Living Canvas Tattoo" },
+  );
+  assert.ok(v.pitch, `let through with ${v.signs.join("; ") || "nothing"}`);
+});
+
+/*
+ * Neat & Tidy's own mailbox tags what it catches and forwards it anyway. We
+ * read the tag as part of the subject and formed an opinion from scratch.
+ */
+test("a mail provider's own spam tag is believed", () => {
+  for (const subject of ["***SPAM*** Re: Audit Errors", "***SPAM*** Re: Yes, Send Price"]) {
+    const v = coldPitch({ from: "x@gmail.com", subject, body: "Any update?" }, { name: "Neat & Tidy Solutions" });
+    assert.ok(v.pitch, `"${subject}" was let through`);
+  }
+
+  const flagged = coldPitch(
+    { from: "x@gmail.com", subject: "Hello", body: "Any update?", headers: { "X-Spam-Flag": "YES" } },
+    { name: "Neat & Tidy Solutions" },
+  );
+  assert.ok(flagged.pitch, "an X-Spam-Flag header was ignored");
+});
+
+/* The web-design cold open, word for word as Living Canvas received it. */
+test("somebody who has been looking through the website", () => {
+  const v = coldPitch(
+    {
+      from: "merveilledeveloper@gmail.com",
+      subject: "Opportunities for improvement on your shopify store",
+      body:
+        "Hi there,\nI came across your Shopify store today and spent a little time looking\nthrough it.\n" +
+        "I noticed a couple of areas that may be affecting the customer journey and\nconversions, so I wanted to reach out " +
+        "and ask if you're currently working\non improving the store.\nWould you like me to send them over?\nBest regards,\nMerveille",
+    },
+    { name: "Living Canvas Tattoo", sites: ["livingcanvastattoo.ink"] },
+  );
+  assert.ok(v.pitch, `let through with ${v.signs.join("; ") || "nothing"}`);
+});
+
+/*
+ * And the two real customers that arrived in the same week, which must still
+ * get through. A filter that eats one of these costs far more than the noise
+ * it removes.
+ */
+test("the cleaning enquiries in the same inbox are not pitches", () => {
+  for (const [subject, body] of [
+    ["Possible Deep clean", "Hi, Whats the price of deep clean? Regards Giles"],
+    ["Cleaning", "Could you give me a price for a weekly clean please"],
+    ["", "I came across your website and wondered if you do small tattoos"],
+  ] as const) {
+    const v = coldPitch({ from: "giles@gmail.com", subject, body }, { name: "Neat & Tidy Solutions" });
+    assert.equal(v.pitch, false, `"${subject || body}" was treated as a pitch: ${v.signs.join("; ")}`);
+  }
+});

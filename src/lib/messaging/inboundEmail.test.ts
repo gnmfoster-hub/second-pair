@@ -285,11 +285,20 @@ test("whitespace is not a body", () => {
  * reply, to a mailbox nobody reads.
  */
 test("a mailing that only mentions unsubscribing is not answered", () => {
+  /*
+   * A neutral subject, deliberately.
+   *
+   * This used "Your Advert Statistics" from freeads@freeads.co.uk as its
+   * vehicle. That exact email is now recognised by its subject and ignored
+   * outright — which is the point of the rule — so leaving it here would have
+   * tested something this test is not about. What it is about is the word
+   * "unsubscribe" with no link behind it, which a person does type.
+   */
   const v = judge(
     {
-      from: "freeads@freeads.co.uk",
-      subject: "Your Advert Statistics",
-      body: "Your advert had 42 views this week. Unsubscribe from these emails.",
+      from: "hello@somedirectory.co.uk",
+      subject: "A quick note about your listing with us",
+      body: "You had 42 views this week. Unsubscribe from these emails.",
     },
     shop,
   );
@@ -498,5 +507,52 @@ test("a customer using the word order is still a customer", () => {
   ]) {
     const v = judge({ from: "hannah.p@gmail.com", subject, body }, shop);
     assert.equal(v.what, "answer", `"${subject}" was ${v.what}: ${v.because}`);
+  }
+});
+
+/*
+ * The advert stats email a business gets every morning.
+ *
+ * Neat & Tidy advertises on a classifieds site, which sent "Your Advert
+ * Statistics" daily. Five reached the assistant and it wrote a reply to each
+ * — "Another automated Freeads stats email — nothing to action, no reply
+ * needed", "Same again", "Still just the Freeads stats email" — and one of
+ * those was actually delivered, so a cleaning company emailed a classifieds
+ * site to tell it there was nothing to reply to.
+ */
+test("a listings site's daily advert figures are not an enquiry", () => {
+  for (const subject of [
+    "Your Advert Statistics",
+    "Ad Performance 19-09-2026",
+    "Listing performance",
+    "Campaign stats",
+  ]) {
+    const verdict = judge(
+      { from: "freeads@freeads.co.uk", subject, body: "Ads Overview. Hi Info, here are your latest Ad Performance Stats. 32 Views" },
+      shop,
+    );
+    assert.equal(verdict.what, "ignore", `"${subject}" was ${verdict.what}: ${verdict.because}`);
+  }
+});
+
+/*
+ * And the ones it must never take with it. "Your report" is what a customer
+ * writes to an electrician about the certificate they were sent, and "your ad
+ * hoc visit" is what a cleaning customer writes — both were eaten by earlier
+ * drafts of the rule above.
+ */
+test("a customer's own subject lines survive the advert rule", () => {
+  for (const subject of [
+    "Your report",
+    "Your ad hoc visit last week",
+    "Your quote",
+    "Possible Deep clean",
+    "Can you send me a report on the damp",
+  ]) {
+    const verdict = judge(
+      { from: "giles@gmail.com", subject, body: "Hi, could you let me know about this please?" },
+      shop,
+    );
+    assert.notEqual(verdict.what, "ignore", `"${subject}" was ignored: ${verdict.because}`);
   }
 });

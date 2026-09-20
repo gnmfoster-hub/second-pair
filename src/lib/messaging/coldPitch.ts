@@ -102,6 +102,31 @@ const PITCH_PHRASES: { pattern: RegExp; sign: string }[] = [
   { pattern: /\b(?:e-?com(?:merce)?|shopify|dropshipping|seo services?|lead generation|marketing agency)\b/i, sign: "sells online marketing" },
   { pattern: /\b(?:boost|increase|grow|skyrocket|double)\s+(?:your\s+)?(?:sales|orders|revenue|traffic|conversions)\b/i, sign: "promises more sales" },
   /*
+   * The cold opener: having been looking at your website before writing.
+   *
+   * "I came across your Shopify store today and spent a little time looking
+   * through it" — Living Canvas, which is a tattoo studio. A customer does
+   * sometimes write "I came across your website", so this is worth one point
+   * and never enough on its own; every one of these has something else wrong
+   * with it, and that one did — it said Shopify twice.
+   */
+  {
+    pattern:
+      /\b(?:came across|stumbled (?:up)?on|was (?:going|looking) through|had a look at|been looking at)\s+(?:your|the)\s+(?:shopify\s+|online\s+|ecom(?:merce)?\s+|web\s*)?(?:store|shop|site|website|page)\b/i,
+    sign: "opens by saying it has been looking at the website",
+  },
+  /*
+   * Traffic and conversion, which is a seller's way of describing a business.
+   *
+   * "If Google starts sending you 1k visitors to your website, is your store
+   * ready to convert 40 order?" — nobody has ever asked a tattooist that.
+   */
+  {
+    pattern:
+      /\bvisitors? to your (?:web)?site\b|\bready to convert\b|\bconversion rate\b|\b(?:improving|improve) (?:the|your) (?:store|shop|site|website)\b|\bopportunit(?:y|ies) for improvement\b|\baffecting the customer journey\b/i,
+    sign: "talks about traffic and conversions rather than the work",
+  },
+  /*
    * "an" as well as "a".
    *
    * This read /(?:a |the |our )?/ and missed "May I send an Proposal and
@@ -216,6 +241,29 @@ function subjectOf(raw: string | null | undefined): string {
   return /^\(?\s*(?:no|without)\s+subject\s*\)?$/i.test(subject) ? "" : subject;
 }
 
+/**
+ * The same words, in letters a rule can read.
+ *
+ * Living Canvas got this, and every rule here saw nothing in it:
+ *
+ *   𝙸𝚏 𝙶𝚘𝚘𝚐𝚕𝚎 𝚜𝚝𝚊𝚛𝚝𝚜 𝚜𝚎𝚗𝚍𝚒𝚗𝚐 𝚢𝚘𝚞 1𝚔 𝚟𝚒𝚜𝚒𝚝𝚘𝚛𝚜 𝚝𝚘 𝚢𝚘𝚞𝚛 𝚠𝚎𝚋𝚜𝚒𝚝𝚎
+ *
+ * Those are mathematical monospace characters, not letters — \b\w and every
+ * word in every pattern below miss them completely, while a person reads the
+ * sentence perfectly. It is a deliberate way round a filter and it worked: the
+ * studio's assistant replied to it, politely, in the studio's name.
+ *
+ * NFKC folds them back to ASCII, along with fullwidth text, ligatures and the
+ * circled and bold variants used the same way. A normal email is unchanged by
+ * it, so it costs nothing to do this to everything.
+ *
+ * Zero-width characters go too — the other half of the same trick, a joiner
+ * dropped inside a word so "S‌E‌O" is three words to a rule and one to a reader.
+ */
+function plainLetters(raw: string): string {
+  return raw.normalize("NFKC").replace(/[​-‍⁠﻿]/g, "");
+}
+
 function squashed(name: string): string | null {
   const words = name.toLowerCase().match(/[a-z0-9]+/g) ?? [];
   // A one-word name cannot be squashed, and matching it would hit every mention.
@@ -239,9 +287,21 @@ export function coldPitch(
     sites?: string[];
   } = {},
 ): Pitch {
-  const subject = subjectOf(email.subject);
-  const body = (email.body ?? "").trim();
-  const text = `${subject}\n${body}`;
+  const subject = plainLetters(subjectOf(email.subject));
+  const body = plainLetters((email.body ?? "").trim());
+  /*
+   * One long line, because a sentence is not aware of where the wrapping fell.
+   *
+   * Mail clients hard-wrap at seventy-odd characters, so "sending you 1k
+   * visitors\nto your website" is the same sentence to a reader and two
+   * fragments to every phrase below — and that one was missed for exactly that
+   * reason, a newline landing between "visitors" and "to your website".
+   *
+   * Left out of `body`, which is still needed whole: the greeting rule asks
+   * whether the message is nothing but "Hey 👋", and that is a question about
+   * how little is there.
+   */
+  const text = `${subject} ${body}`.replace(/\s+/g, " ");
   const from = (email.from ?? "").toLowerCase();
   const address = (from.match(/<([^>]+)>/)?.[1] ?? from).trim();
   const headers = Object.fromEntries(
@@ -295,6 +355,23 @@ export function coldPitch(
   // A reply to a conversation that never happened.
   if (/^(?:re|fw|fwd)\s*:/i.test(subject) && !headers["in-reply-to"] && !headers["references"]) {
     add(1, "says Re: to a message nobody sent");
+  }
+
+  /*
+   * Somebody else's mail server has already called it spam.
+   *
+   * Neat & Tidy's mailbox tags what it catches — "***SPAM*** Re: Audit Errors"
+   * — and forwards it on anyway, and we read the tag as part of the subject
+   * and formed our own opinion from scratch. Two arrived that way and neither
+   * counted as anything here.
+   *
+   * Worth two on its own: a mail provider does not put that on a message from
+   * somebody's customer, and if it ever did, the business still has the email
+   * in the mailbox it was forwarded from. This only decides whether the
+   * assistant replies to it.
+   */
+  if (/^\s*\*{2,}\s*spam\s*\*{2,}/i.test(subject) || /\byes\b/i.test(headers["x-spam-flag"] ?? "")) {
+    add(2, "their own mail provider marked it as spam");
   }
 
   /*
