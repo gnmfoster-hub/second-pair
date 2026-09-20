@@ -53,7 +53,22 @@ export default async function ChannelsPage({
   // How customers reach the business — the owner's, and the page says so
   // rather than only the tab: hiding a link is not a permission.
   const { studio } = await requireOwner();
-  const artists = (await getArtists(studio.id)).filter((a) => a.active);
+  /*
+   * Everybody, and separately everybody still working here.
+   *
+   * The page needs both and had only one. Who a line belongs to is a fact
+   * about the line, and somebody who has left is still the answer to it, so a
+   * list of active people cannot say who has what: the select found no option
+   * matching her id, fell back to its first, and a number that was Aisha's read
+   * as the business's. Pressing Save on that screen would then have made it
+   * true.
+   *
+   * Who a line may be given to is the other question, and active is right for
+   * that one. The control works it out itself from the flags, which is why it
+   * wants everybody.
+   */
+  const everyone = await getArtists(studio.id);
+  const artists = everyone.filter((a) => a.active);
   const words = {
     ...verticalPack(studio.vertical).vocabulary,
     ...(studio.vocabulary ?? {}),
@@ -189,7 +204,7 @@ export default async function ChannelsPage({
           lines={onChannel("sms").map((l) => ({
             id: l.id,
             externalId: (l as { external_id?: string | null }).external_id ?? null,
-            forWho: artists.find((a) => a.id === l.artist_id)?.name ?? null,
+            forWho: everyone.find((a) => a.id === l.artist_id)?.name ?? null,
           }))}
         />
 
@@ -207,7 +222,7 @@ export default async function ChannelsPage({
             key={link.id}
             connectionId={link.id}
             artistId={link.artist_id ?? null}
-            people={artists.map((a) => ({ id: a.id, name: a.name, active: a.active }))}
+            people={everyone.map((a) => ({ id: a.id, name: a.name, active: a.active }))}
             howMany={onChannel("sms").length}
             noun="text"
           />
@@ -331,7 +346,7 @@ export default async function ChannelsPage({
             artistId={
               ((allLinks ?? []).find((l) => l.id === link.id)?.artist_id as string | null) ?? null
             }
-            people={artists.map((a) => ({ id: a.id, name: a.name, active: a.active }))}
+            people={everyone.map((a) => ({ id: a.id, name: a.name, active: a.active }))}
             howMany={onChannel(link.channel).length}
             noun="message"
           />

@@ -87,10 +87,28 @@ export function mayAllocate(
  * those terms rather than as "assigned to".
  */
 export function describe(artistId: string | null, people: Person[]): string {
-  if (!artistId) return "The whole business — the assistant asks who they would like";
+  if (!artistId) return "The whole business, so the assistant asks who they would like";
   const person = people.find((p) => p.id === artistId);
   if (!person) return "Somebody who is no longer on this business";
-  return `${person.name} — everything here is theirs, and it never asks who`;
+
+  /*
+   * Somebody who has left is still the answer, and the answer is a problem.
+   *
+   * mayAllocate refuses to give a line to somebody inactive, so this state is
+   * only ever reached by a person leaving after the line was theirs. It is the
+   * worst one to say nothing about: every enquiry arriving goes to a diary
+   * nobody is filling, and the assistant never asks, because it has been told
+   * it already knows whose this is.
+   *
+   * The screen used to be shown a list of active people only, so she was not
+   * in it at all and the line read as the business's — which it is not, and
+   * which the next save would have made true.
+   */
+  if (!person.active) {
+    return `${person.name}, who is not working here at the moment, so everything arriving here goes to her and the assistant never asks. Give it to somebody else or back to the business.`;
+  }
+
+  return `${person.name}, so everything here is theirs and it never asks who`;
 }
 
 /**

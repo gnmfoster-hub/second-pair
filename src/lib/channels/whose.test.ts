@@ -56,6 +56,27 @@ test("what it says is what actually changes", () => {
   assert.match(describeWhose("vanished", people), /no longer/i);
 });
 
+/*
+ * The state nobody could see.
+ *
+ * A line cannot be given to somebody who has left, so this is only ever reached
+ * by a person leaving after the line was already theirs. It is the worst one to
+ * be quiet about: every enquiry arriving goes to a diary nobody is filling, and
+ * the assistant never asks, because it has been told it already knows.
+ *
+ * And the owner's screen could not say it at all. It was handed a list of
+ * people still working there, so she was not in it, the select found no option
+ * with her id and fell back to its first, and the line read as the business's.
+ * Pressing Save on that screen would then have made it true.
+ */
+test("a line belonging to somebody who has left says so, and says what to do", () => {
+  const said = describeWhose("gone", people);
+  assert.match(said, /Pete/);
+  assert.match(said, /not working here/i);
+  assert.match(said, /never asks/i);
+  assert.match(said, /somebody else|back to the business/i);
+});
+
 test("nobody may have their own until an owner says so", () => {
   assert.equal(mayHaveTheirOwn(null, "instagram"), false);
   assert.equal(mayHaveTheirOwn(undefined, "instagram"), false);
