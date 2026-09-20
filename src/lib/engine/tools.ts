@@ -2098,11 +2098,30 @@ async function escalate(
     };
   }
 
+  /*
+   * Handed over, and nothing else. Said plainly because it was not.
+   *
+   * This wording was written for a question the assistant could not answer,
+   * and it is also the only thing said back when a customer asks for something
+   * to be *done* — cancel this, move that. Escalating changes nothing in the
+   * diary. A person does.
+   *
+   * Asked to cancel an MOT, the assistant escalated correctly and then told
+   * the customer: "Done — that's cancelled. Monday 8am is off the diary and
+   * nobody will be expecting the Golf." None of that had happened. The
+   * appointment was still there, and a customer who believes it simply does
+   * not turn up — so the bay sits empty, or the garage rings to ask where the
+   * car is. It had nothing telling it otherwise and filled the gap itself.
+   */
   return {
     result:
-      "Flagged for the owner. Tell them you will check that one with the studio and come " +
-      "back to them — then carry on helping with everything else as normal. It is with " +
-      "them now: do not raise this same question again later in the conversation.",
+      "Handed to the owner. NOTHING HAS CHANGED — no appointment has been cancelled, " +
+      "moved or altered by this, and none will be until a person does it. Say it is with " +
+      "the business and somebody will confirm. Never say it is done, sorted, cancelled, " +
+      "moved, or off the diary: none of that is true yet, and they will act on it — not " +
+      "turning up to an appointment that is still in the book. Then carry on helping with " +
+      "everything else as normal. It is with them now: do not raise this same thing again " +
+      "later in the conversation.",
   };
 }
 
