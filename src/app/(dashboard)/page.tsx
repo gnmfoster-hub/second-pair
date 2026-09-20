@@ -28,6 +28,8 @@ type Row = {
   status: ConvStatus;
   created_at: string;
   last_message_at: string;
+  /** Who it is from, where that is an address: the sender on email. */
+  external_ref: string | null;
   contacts: {
     name: string | null;
     instagram_handle: string | null;
@@ -121,7 +123,10 @@ export default async function InboxPage({
   let inbox = supabase
     .from("conversations")
     .select(
-      "id, channel, status, created_at, last_message_at, artist_id, " +
+      // external_ref so a row with nobody named can still say who it is from:
+      // on email that is the sender's address, which is the whole of what is
+      // known about a filed receipt.
+      "id, channel, status, created_at, last_message_at, artist_id, external_ref, " +
         "contacts(name, instagram_handle, phone, email, alert), " +
         "enquiries(description, quote_low_pence, bookings(cancelled_at))",
     )
@@ -518,10 +523,35 @@ export default async function InboxPage({
                * than the word Unnamed, so it moves up to the title when there
                * is nobody to name.
                */
+              /*
+               * The address counts as knowing who it is.
+               *
+               * This went name, then Instagram handle, then phone — and stopped,
+               * so an email from somebody who had not signed off with a name
+               * read "New enquiry" while their address sat in the record
+               * unused. It is the only thing known about a filed receipt and it
+               * is the most useful thing on the row.
+               */
+              const sender =
+                typeof c.external_ref === "string" && c.external_ref.includes("@")
+                  ? c.external_ref
+                  : null;
               const named =
-                contact?.name ?? contact?.instagram_handle ?? contact?.phone ?? null;
+                contact?.name ??
+                contact?.instagram_handle ??
+                contact?.phone ??
+                contact?.email ??
+                sender ??
+                null;
               const description = enquiry?.description ?? null;
-              const who = named ?? description ?? "New enquiry";
+              /*
+               * "New enquiry" is the wrong words over the business's own post,
+               * and it is the one place that word does real damage: the whole
+               * point of filing a shop receipt is that nobody enquired. The
+               * first filed row read "New enquiry / no contact / Email".
+               */
+              const nothingKnown = c.status === "paperwork" ? "Filed" : "New enquiry";
+              const who = named ?? description ?? nothingKnown;
               /*
                * How much of the screen this row has earned.
                *
