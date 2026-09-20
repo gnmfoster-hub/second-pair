@@ -77,6 +77,20 @@ const checks = [
     /** A real enquiry and a real appointment on the demo, both cleared up. */
     writes: true,
   },
+  /*
+   * And what they do next.
+   *
+   * Everything above stops at the appointment. Every fault found on the night
+   * this was added was past that point — confirming once too often, and asking
+   * to cancel — because a script that stops at the booking never asks the
+   * things a real person asks next.
+   */
+  {
+    name: "what a customer does after booking",
+    run: ["node", "scripts/check-after-booking.mjs", "cogs-demo"],
+    /** A real enquiry and appointment on the demo, both cleared up. */
+    writes: true,
+  },
   {
     name: "every screen of every business",
     run: ["node", "scripts/check-pages.cjs"],
