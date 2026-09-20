@@ -1300,12 +1300,51 @@ async function getSlots(
   const allSeenBefore =
     seen.size > 0 && slots.every((s) => seen.has(Date.parse(s.starts_at)));
 
+  /*
+   * What this customer already has, so their own appointment is not read back
+   * to them as somebody else having taken the slot.
+   *
+   * Found by running the booking check twice. A customer was offered Monday at
+   * 8:00, took it, was told "you're booked in with Pete on Monday 21 September
+   * at 8:00am" — and then said "yes please, book that in" one more time, the
+   * way people do. The assistant looked at the diary again, found 8:00 gone,
+   * and said: "the earliest Pete has on Monday 21st is 9:00am — if you'd
+   * rather an 8:00am start, he's got Monday 28th."
+   *
+   * The slot it was reporting as taken was this customer's own booking, made
+   * ninety seconds earlier. Somebody who believes that either loses their
+   * appointment agreeing to the 28th, or rings the garage to sort out a mess
+   * that does not exist. create_booking has had a guard for the same "yes"
+   * twice since it was written; looking at the diary had none.
+   */
+  const { data: theirBookings } = await ctx.db
+    .from("bookings")
+    .select("starts_at")
+    .eq("enquiry_id", ctx.enquiryId)
+    .is("cancelled_at", null)
+    .gt("starts_at", new Date().toISOString())
+    .order("starts_at");
+
+  const alreadyBooked = (theirBookings ?? []).map((b) =>
+    describeSlot({ starts_at: b.starts_at as string, ends_at: b.starts_at as string }, ctx.studio.timezone),
+  );
+
   const lines = slots
     .map((s) => `- ${describeSlot(s, ctx.studio.timezone)}  (starts_at: ${s.starts_at})`)
     .join("\n");
 
   return {
     result: [
+      ...(alreadyBooked.length
+        ? [
+            `THEY ARE ALREADY BOOKED IN: ${alreadyBooked.join("; ")}. That appointment is ` +
+              "theirs and it stands. The time it takes up is gone from the list below for " +
+              "that reason — never tell them it is unavailable, and never offer them a " +
+              "different day for it. If they are only confirming, say the booking is made " +
+              "and read it back. Offer the times below only if they have asked for another " +
+              "appointment as well, or asked to change this one.",
+          ]
+        : []),
       `${type === "consultation" ? "Consultation" : "Session"} with ${artist.name}, ${minutes} minutes.`,
       "Offer these and no others:",
       lines,
