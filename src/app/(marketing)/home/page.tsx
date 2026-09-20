@@ -169,7 +169,7 @@ export default function HomePage() {
              * says the problem and what we are in one breath, and anybody who
              * reads it understands the name for the rest of the page.
              */}
-            <h1 className="mt-6 font-display text-[2.9rem] font-bold leading-[0.99] tracking-[-0.04em] text-balance sm:text-[3.95rem]">
+            <h1 className="mt-6 font-display text-[2.5rem] font-bold leading-[1.02] tracking-[-0.04em] text-balance sm:text-[3.95rem]">
               You&rsquo;ve only got
               <br />
               one pair of hands.
