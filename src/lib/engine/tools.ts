@@ -184,7 +184,26 @@ export function toolDefinitions(
       input_schema: {
         type: "object",
         properties: {
-          name: { type: "string", description: "First name is enough." },
+          /*
+           * Whatever they actually gave.
+           *
+           * This said "First name is enough", which was about not badgering
+           * somebody for a surname they had not offered — a good intention,
+           * read by the model as permission to throw one away. Told "I'm Dawn
+           * Pethick, 07700 900978" the garage saved Dawn Pethick and the salon
+           * saved Dawn, from the same sentence.
+           *
+           * The business keeps the poorer record for no reason: two Dawns are
+           * then indistinguishable on the client list, and an export or an
+           * invoice has half a name on it. Never worth asking for, never worth
+           * discarding once said.
+           */
+          name: {
+            type: "string",
+            description:
+              "Exactly what they gave: \"Dawn Pethick\" if they said that, \"Dawn\" if that is all they said. " +
+              "Never ask for a surname, and never drop one they have already given.",
+          },
           phone: { type: "string", description: "As they typed it. Do not reformat." },
           email: { type: "string" },
           /*
