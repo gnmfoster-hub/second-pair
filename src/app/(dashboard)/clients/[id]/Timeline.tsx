@@ -103,7 +103,23 @@ export function Timeline({
       {items.map((item) => {
         if (item.kind === "reminder") {
           const r = item.reminder;
-          const failed = r.status === "failed" || Boolean(r.error);
+
+          /*
+           * Three states, not two. Skipped is not failed.
+           *
+           * This read "failed if the status says so, or if there is anything
+           * in the error column", which was a fair proxy while the only thing
+           * that ever wrote to that column was a failure. Then the sender
+           * started recording *why* it skipped one — genuinely useful, since a
+           * cancelled appointment and somebody who texted STOP are different
+           * problems with different answers — and every ordinary skip began
+           * showing on a client's timeline as a red "Reminder failed".
+           *
+           * Nothing had gone wrong in any of them. A business reading its own
+           * client list would think its reminders were broken.
+           */
+          const failed = r.status === "failed";
+          const skipped = r.status === "skipped";
           const sent = Boolean(r.sent_at);
 
           return (
@@ -119,7 +135,9 @@ export function Timeline({
                   ? "Reminder failed"
                   : sent
                     ? `Reminder sent${r.channel ? ` by ${r.channel}` : ""}`
-                    : "Reminder due"}
+                    : skipped
+                      ? "Reminder not sent"
+                      : "Reminder due"}
               </div>
               <div className="hint num">{when(item.at)}</div>
 
@@ -129,7 +147,11 @@ export function Timeline({
                   {r.body}
                 </p>
               )}
-              {r.error && <p className="mt-1 text-xs text-bad">{r.error}</p>}
+              {/* Red only when something actually went wrong; a reason why one
+                  was not sent is a note, not an alarm. */}
+              {r.error && (
+                <p className={`mt-1 text-xs ${failed ? "text-bad" : "text-muted"}`}>{r.error}</p>
+              )}
             </li>
           );
         }
