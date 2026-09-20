@@ -1,12 +1,18 @@
 /*
  * Every screen of every business, opened as its owner, looking for breakage.
  *
- *   node scripts/check-pages.cjs
+ *   node scripts/check-pages.cjs [business-slug]
  *
  * After a heavy day the useful question is not "does the thing I changed still
  * work" — I have already checked that — but "did any of it break something I
  * was not looking at". This opens the lot and reports anything that throws, is
  * refused, or shows a reader the words a bug leaves behind.
+ *
+ * All nine takes about ten minutes with a browser open the whole way through,
+ * which on a busy machine is enough for the system to kill it — and it did,
+ * half way, leaving an empty file to read. Naming one business runs the same
+ * checks over a ninth of the screens, so the sweep can be finished in pieces
+ * rather than not at all.
  *
  * Reads only. No form is submitted and no button that saves is pressed.
  */
@@ -20,12 +26,23 @@ const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABA
 const BAD = /Application error|Something went wrong|Internal Server Error|Unhandled Runtime Error|\bundefined\b|\bNaN\b|\[object Object\]|Invalid Date/;
 
 (async () => {
-  const { data: studios, error } = await db
-    .from("studios")
-    .select("id, slug")
-    .is("archived_at", null)
-    .order("slug");
+  const only = process.argv[2] ?? null;
+
+  let query = db.from("studios").select("id, slug").is("archived_at", null).order("slug");
+  if (only) query = query.eq("slug", only);
+
+  const { data: studios, error } = await query;
   if (error) throw new Error(error.message);
+
+  // A slug nobody has is a typo, and walking nought businesses would otherwise
+  // report "nothing wrong anywhere" — which is true and useless.
+  if (only && !studios.length) {
+    console.log(`No business called "${only}". Nothing was checked.`);
+    // Set rather than exit: process.exit here tears down the database client
+    // mid-handle and libuv asserts, which buries the sentence above it.
+    process.exitCode = 1;
+    return;
+  }
 
   const browser = await chromium.launch({ channel: "chrome", headless: true });
   let problems = 0;
