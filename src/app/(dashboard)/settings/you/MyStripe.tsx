@@ -1,4 +1,5 @@
 import { StripeNotice } from "../StripeNotice";
+import { DisconnectStripe } from "./DisconnectStripe";
 
 /**
  * Connecting your own Stripe, where the money is yours rather than the shop's.
@@ -25,9 +26,17 @@ export function MyStripe({
   detail,
   possible,
   business = "business",
+  fallback = false,
 }: {
   /** Whether this person already has an account of their own. */
   connected: boolean;
+  /**
+   * Whether the business could take the payment instead once this one is gone.
+   *
+   * It decides what the way out actually says will happen, which is the whole
+   * question somebody is asking at the moment they press it.
+   */
+  fallback?: boolean;
   /**
    * Whether this business pays each person directly. On the one-account model
    * a personal account would receive nothing, so it is explained rather than
@@ -109,11 +118,14 @@ export function MyStripe({
       )}
 
       {perPerson && connected && (
-        <p className="hint mt-3 max-w-prose">
-          Money for your work goes straight to you. Refunds, disputes and the payouts
-          themselves are between you and Stripe &mdash; it never passes through us, and we
-          could not hold it if we wanted to.
-        </p>
+        <>
+          <p className="hint mt-3 max-w-prose">
+            Money for your work goes straight to you. Refunds, disputes and the payouts
+            themselves are between you and Stripe. It never passes through us, and we could
+            not hold it if we wanted to.
+          </p>
+          <DisconnectStripe firstName={firstName} business={business} fallback={fallback} />
+        </>
       )}
     </section>
   );

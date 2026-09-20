@@ -2257,6 +2257,71 @@ export async function useMyStripeForTheBusiness(
 }
 
 /**
+ * Hand the money back to the business.
+ *
+ * Connecting a Stripe account of your own was a one-way door: the panel showed
+ * a Connected pill and a sentence, and offered no way to change the account or
+ * stop using it. Giles asked for the way back and the reason is the right one.
+ * Somebody who set this up and would now rather the business handled their
+ * payments had no way to say so, short of asking us to edit the database.
+ *
+ * It clears the account off this person and does nothing else. Stripe is not
+ * told anything: the account is theirs, it stays theirs, and anything already
+ * paid settled directly with them and is untouched. All this decides is where
+ * the next payment for their work is taken.
+ *
+ * Their own, always. Read from the session rather than the form, so it cannot
+ * be pointed at a colleague.
+ */
+export async function disconnectMyStripe(_prev: FormState, _fd: FormData): Promise<FormState> {
+  const { studio, userId } = await requireStudio();
+  const supabase = await createClient();
+
+  const { data: me } = await supabase
+    .from("artists")
+    .select("id, stripe_account_id")
+    .eq("studio_id", studio.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!me) return { error: "Your sign-in is not linked to anybody in the diary." };
+  if (!me.stripe_account_id) return { ok: true };
+
+  /*
+   * The business may be pointed at this same account.
+   *
+   * Refused rather than quietly done in both places. An owner who pressed "use
+   * mine for the business" made a decision about how the whole business gets
+   * paid, and undoing that from a personal settings page is not this button's
+   * business.
+   */
+  if (
+    (studio as { stripe_account_id?: string | null }).stripe_account_id &&
+    (studio as { stripe_account_id?: string | null }).stripe_account_id === me.stripe_account_id
+  ) {
+    return {
+      error:
+        "The business takes its payments into this same account. Turn that off first, " +
+        "under Settings → Getting paid, and then you can disconnect it here.",
+    };
+  }
+
+  const { data: written, error } = await supabase
+    .from("artists")
+    .update({ stripe_account_id: null })
+    .eq("id", me.id)
+    .select("id");
+
+  if (error) return { error: error.message };
+  // Asked for the row back, so "nothing matched" is not read as a save.
+  if (!written?.length) return { error: "That could not be changed. Try again." };
+
+  revalidatePath("/settings/you");
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
+/**
  * Give a connected channel to the business, or to one person.
  *
  * The column has meant this since the day it was written and nothing has ever

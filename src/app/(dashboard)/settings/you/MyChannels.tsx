@@ -35,6 +35,7 @@ export function MyChannels({
   /** Channels the business has that reach everybody, including them. */
   shared,
   allowed,
+  ownEmail,
 }: {
   firstName: string;
   business: string;
@@ -42,6 +43,13 @@ export function MyChannels({
   shared: { channel: Channel }[];
   /** Channels the owner has allowed them their own of. See lib/channels/whose. */
   allowed?: string[] | null;
+  /**
+   * Their own address, where email is one of the allowed ones.
+   *
+   * Worked out by the page rather than here, because it is made of the
+   * business's slug and their handle and neither belongs in a panel.
+   */
+  ownEmail?: string | null;
 }) {
   const sharedNames = [...new Set(shared.map((c) => CHANNEL_LABELS[c.channel]))];
 
@@ -138,10 +146,42 @@ export function MyChannels({
       </div>
       )}
 
+      {/*
+        * The address she already has, which nothing ever told her about.
+        *
+        * Sarah allowed Aisha six channels and this panel only ever spoke about
+        * two, because it was written for Instagram and Facebook and never
+        * caught up. Email is the one that needed nothing bought and nothing
+        * connected: the address exists the moment it is allowed, it works
+        * today, and the person it belongs to had no way to find it out.
+        *
+        * Giles, looking at her settings: I can see the option to connect
+        * Facebook but not the other channels Sarah has turned on for her.
+        */}
+      {ownEmail && (
+        <div className="mt-4 border-t border-border pt-4">
+          <span className="label">An address of your own</span>
+          <p className="hint mt-1.5">
+            Anything sent here is yours, {firstName}. It reaches only you, and the
+            assistant books it straight into your diary without asking who the customer
+            wants.
+          </p>
+          <p className="num mt-2 break-all rounded-lg bg-surface-2 px-3 py-2 text-[0.85rem]">
+            {ownEmail}
+          </p>
+          <p className="hint mt-2">
+            Worth putting on your own card or in your Instagram bio. {business}&rsquo;s own
+            address still reaches everybody, including you.
+          </p>
+        </div>
+      )}
+
       <p className="hint mt-4">
         {mine.some((c) => c.channel === "sms" || c.channel === "voice")
-          ? "Your number was set up for you — whoever runs the business buys and allocates those, because they are paid for monthly and have to be registered to a real address."
-          : `A number of your own is not something you can add yourself: they are bought and paid for monthly by the business and have to be registered to a real address. Ask whoever runs ${business} if you need one.`}
+          ? "Your number was set up for you. Whoever runs the business buys and allocates those, because they are paid for monthly and have to be registered to a real address."
+          : (allowed ?? []).some((c) => c === "sms" || c === "voice")
+            ? `A number of your own is switched on for you, but there is not one on you yet. Numbers are bought and paid for monthly by the business and have to be registered to a real address, so ask whoever runs ${business} to put one on you.`
+            : `A number of your own is not something you can add yourself: they are bought and paid for monthly by the business and have to be registered to a real address. Ask whoever runs ${business} if you need one.`}
       </p>
     </section>
   );

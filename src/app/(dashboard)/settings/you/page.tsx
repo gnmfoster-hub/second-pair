@@ -208,6 +208,12 @@ export default async function YouPage({
           mine={myChannels as { channel: Channel; label: string | null; external_id: string | null }[]}
           shared={sharedChannels as { channel: Channel }[]}
           allowed={(me as { own_channels?: string[] | null }).own_channels ?? []}
+          ownEmail={
+            ((me as { own_channels?: string[] | null }).own_channels ?? []).includes("email") &&
+            (me as { handle?: string | null }).handle
+              ? `${studio.slug}+${(me as { handle: string }).handle}@${process.env.EMAIL_INBOUND_DOMAIN ?? "in.second-pair.com"}`
+              : null
+          }
         />
       )}
 
@@ -221,6 +227,16 @@ export default async function YouPage({
           detail={detail}
           /* Whether connecting is switched on at our end at all. */
           possible={canConnectStripe(studio)}
+          /*
+           * Whether the business could take the payment instead, which is what
+           * somebody disconnecting their own account actually wants to know.
+           * Both halves: it has an account of its own, and it has said people
+           * may fall back to it.
+           */
+          fallback={
+            Boolean((studio as { stripe_account_id?: string | null }).stripe_account_id) &&
+            (studio as { payment_fallback?: boolean }).payment_fallback === true
+          }
         />
       )}
 
