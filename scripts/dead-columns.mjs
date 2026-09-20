@@ -62,24 +62,61 @@ const suspects = [];
 for (const col of [...columns].sort()) {
   if (skip.has(col) || dropped.has(col) || col.length < 6) continue;
 
-  // A write looks like `column: value` in an object literal.
-  const write = new RegExp("\\b" + col + "\\s*:", "g");
-  // A read looks like `.column`, `["column"]`, or the name inside a select().
-  const read = new RegExp("[.\\[\"'`,\\s]" + col + "\\b", "g");
+  /*
+   * A write looks like `column: value` in an object literal.
+   *
+   * And like `column,` on its own, which is the same thing written the short
+   * way. recordCost builds its insert as { month, supplier, pence, note } and
+   * this reported supplier as read and never written: a column the back office
+   * has a form for, reported as dead. One false name on a list like this costs
+   * more than a missing one, because the whole list stops being read.
+   *
+   * Deliberately loose. A bare `supplier,` in an argument list counts too, and
+   * over-counting writes only ever moves a column off the list, which is the
+   * safe way for this to be wrong.
+   */
+  const write = new RegExp("\\b" + col + "\\s*[:,]", "g");
+  /*
+   * A read is a property access or the name in quotes.
+   *
+   * `row.texts_out` is the first. `select("id, texts_out")`, `.eq("seen_at", x)`
+   * and `["cost_pence"]` are all the second, and a quoted name is never how a
+   * value is written.
+   *
+   * This used to match any name after a comma or a space, which caught the
+   * writes as well, so it subtracted the writes back off at the end. That
+   * over-corrected the moment a column was written once and read once: the
+   * per-channel meter writes texts_out and the billing screen reads it, one
+   * each, and the subtraction reported it as written and never read. Four of
+   * the sixteen names on this list were that.
+   *
+   * Counting the two things separately means neither has to be guessed back out
+   * of the other.
+   */
+  const dotRead = new RegExp("\\." + col + "\\b", "g");
+  /*
+   * On one line, which the first attempt at this forgot.
+   *
+   * The gap either side excluded quotes and allowed newlines, so a quote
+   * anywhere above the name and another anywhere below it counted as the name
+   * sitting inside a string. That read the whole file as one long quoted
+   * passage and reported everything as read: the list went from sixteen names
+   * to two, which looked like a triumph until four of the fourteen turned out
+   * to have no read anywhere.
+   */
+  const quotedRead = new RegExp("[\"'`][^\"'`\\n]*\\b" + col + "\\b[^\"'`\\n]*[\"'`]", "g");
 
   let writes = 0;
   let reads = 0;
   for (const text of source) {
     writes += (text.match(write) ?? []).length;
-    reads += (text.match(read) ?? []).length;
+    reads += (text.match(dotRead) ?? []).length;
+    reads += (text.match(quotedRead) ?? []).length;
   }
 
   // What the database does to itself: a trigger, a default, or a function.
   if (new RegExp("set\\s+" + col + "\\s*=", "gi").test(sql)) writes += 1;
   if (new RegExp("^\\s*" + col + "\\s+[a-z].*default", "gim").test(sql)) writes += 1;
-
-  // A write also matches the read pattern, so discount it.
-  reads = Math.max(0, reads - writes);
 
   if (writes === 0 && reads === 0) suspects.push([col, "never mentioned at all"]);
   else if (writes === 0) suspects.push([col, "read, never written"]);
