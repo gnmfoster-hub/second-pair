@@ -464,37 +464,35 @@ export function ArtistEditor({
           * used, which is the right answer for nearly everybody.
           */}
         <details className="rounded-xl border border-border">
+          {/*
+            * Named for what is in it, which it was not.
+            *
+            * "How they sound on their own link" is true of the voice settings
+            * and says nothing about the business name now sitting beside them.
+            * Giles went looking for somewhere to type "Hair by Aisha at Willow
+            * & Co" and could not find it: it was in here, folded, under a
+            * heading about tone. A fold nobody opens is a setting nobody has.
+            */}
           <summary className="cursor-pointer list-none px-4 py-3 text-sm">
-            How they sound on their own link
+            Their own business name and voice, on their own link
             <span className="hint ml-2">optional</span>
           </summary>
 
           <div className="space-y-5 border-t border-border p-4">
             <p className="hint">
-              Only used when somebody arrives through this person&rsquo;s own link or
-              their own Instagram. Everywhere else the {noun} sounds like the
-              business.
+              All of these apply only when somebody arrives through this person&rsquo;s own
+              link, their own number or their own Instagram. On the business&rsquo;s own
+              channels none of it is used, and everything is the business&rsquo;s.
             </p>
-
-            <Field
-              label="What the assistant calls itself for them"
-              hint="Blank uses the business's. Somebody answering a stylist's own Instagram is, as far as that client is concerned, her assistant rather than the shop's."
-            >
-              <input
-                name="assistant_name"
-                defaultValue={artist?.assistant_name ?? ""}
-                className="input max-w-xs"
-                maxLength={40}
-              />
-            </Field>
 
             {/*
               * The business they trade as, which may not be this one.
               *
-              * A chair renter is a business inside a business: she rents the
-              * chair, her clients found her rather than the salon, and on her
-              * own number the assistant was introducing itself as the salon.
-              * The wrong name on the one channel that is definitely hers.
+              * First in the fold, before any of the tone settings: a chair
+              * renter is a business inside a business. She rents the chair, her
+              * clients found her rather than the salon, and on her own number
+              * the assistant was introducing itself as the salon. The wrong
+              * name on the one channel that is definitely hers.
               *
               * Blank is the salon's, which is right for anybody on the payroll
               * and is what everybody starts as.
@@ -509,6 +507,18 @@ export function ArtistEditor({
                 placeholder={`Hair by ${artist?.name?.split(" ")[0] ?? "Aisha"}`}
                 className="input max-w-sm"
                 maxLength={60}
+              />
+            </Field>
+
+            <Field
+              label="What the assistant calls itself for them"
+              hint="Blank uses the business's. Somebody answering a stylist's own Instagram is, as far as that client is concerned, her assistant rather than the shop's."
+            >
+              <input
+                name="assistant_name"
+                defaultValue={artist?.assistant_name ?? ""}
+                className="input max-w-xs"
+                maxLength={40}
               />
             </Field>
 

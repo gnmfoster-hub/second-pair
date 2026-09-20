@@ -114,6 +114,61 @@ for (const file of files) {
 }
 
 /*
+ * And the columns the code guards, whether or not a migration file says so.
+ *
+ * Everything above compares the migration files against the database, so a
+ * column with no file of its own is not checked: nothing declares it, so
+ * nothing looks for it. That is exactly the shape of the one this missed.
+ * artists.trading_name was written, deployed and guarded, the SQL was pasted
+ * into the worklist for Giles rather than into supabase/migrations, and this
+ * script said every migration had landed while the box he was hunting for
+ * silently did nothing.
+ *
+ * hasColumn is the honest list of what the code is waiting for. A guard exists
+ * only because somebody shipped ahead of a migration, so every one of them is
+ * a question worth asking the live database directly.
+ *
+ * A guard on a column that has landed is not a fault, it is just a guard that
+ * can go. Those are listed separately and change nothing.
+ *
+ * Tests are skipped. hasColumn's own tests call it with studios.one and
+ * studios.two against a fake database, and those are not columns anybody
+ * expects to find: the first run of this reported three faults on a healthy
+ * database, which is how a check gets ignored.
+ */
+const guards = new Map();
+const srcFiles = [];
+(function walk(dirPath) {
+  for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
+    const full = path.join(dirPath, entry.name);
+    if (entry.isDirectory()) walk(full);
+    else if (/\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) srcFiles.push(full);
+  }
+})("src");
+
+for (const file of srcFiles) {
+  const text = fs.readFileSync(file, "utf8");
+  for (const m of text.matchAll(/hasColumn\(\s*\w+\s*,\s*"([a-z_]+)"\s*,\s*"([a-z_]+)"/g)) {
+    const key = `${m[1]}.${m[2]}`;
+    if (!guards.has(key)) guards.set(key, [m[1], m[2]]);
+  }
+}
+
+const guarding = [];
+for (const [key, [table, column]] of guards) {
+  const { error } = await db.from(table).select(column).limit(0);
+  if (error) guarding.push(key);
+}
+
+if (guarding.length) {
+  console.log("\n✗ columns the code is guarding that the database still lacks");
+  for (const g of guarding) console.log(`    ${g}`);
+  console.log("\n  The guard means nothing breaks, so nobody is shown an error: the");
+  console.log("  setting is simply there and does nothing when it is filled in.");
+  missing += guarding.length;
+}
+
+/*
  * And the fixed lists, which fail in a nastier way than a missing column.
  *
  * A status is a Postgres enum. Naming a value it has not been told about does
