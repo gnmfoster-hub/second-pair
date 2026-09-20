@@ -1336,13 +1336,24 @@ async function getSlots(
    * that does not exist. create_booking has had a guard for the same "yes"
    * twice since it was written; looking at the diary had none.
    */
-  const { data: theirBookings } = await ctx.db
+  const { data: theirBookings, error: lookFailed } = await ctx.db
     .from("bookings")
     .select("starts_at")
     .eq("enquiry_id", ctx.enquiryId)
     .is("cancelled_at", null)
     .gt("starts_at", new Date().toISOString())
     .order("starts_at");
+
+  /*
+   * A refused read here returns no rows, which reads exactly like a customer
+   * with nothing booked — and this whole guard quietly disappears, taking the
+   * fault it was added for straight back out with it. Said out loud instead.
+   */
+  if (lookFailed) {
+    console.error(
+      `[get_available_slots] could not check what ${ctx.enquiryId} already has: ${lookFailed.message}`,
+    );
+  }
 
   const alreadyBooked = (theirBookings ?? []).map((b) =>
     describeSlot({ starts_at: b.starts_at as string, ends_at: b.starts_at as string }, ctx.studio.timezone),
