@@ -10,6 +10,7 @@ import { requireStudio } from "@/lib/studio";
 import { canMessage } from "@/lib/permissions";
 import type { ConvStatus } from "@/lib/types";
 import { replyToFor } from "@/lib/messaging/replyTo";
+import { nothingElseOfTheirs } from "@/lib/clients/nothingElseOfTheirs";
 import { canRemove } from "@/lib/conversations/removable";
 import { sendingAs } from "@/lib/messaging/connections";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -142,6 +143,55 @@ export async function setStatus(fd: FormData): Promise<{ error?: string }> {
 
   const { error } = await supabase.from("conversations").update({ status }).eq("id", id);
 
+  /*
+   * A spammer is not a client.
+   *
+   * Filing a thread as spam or paperwork was only ever a decision about the
+   * thread, so the sender stayed on the client list: eleven of them across the
+   * two live businesses, every one a nameless row with an address nobody wants.
+   * Living Canvas had three agencies selling SEO and a Shopify receipt sitting
+   * among its tattoo clients.
+   *
+   * Only where the record exists for this thread and nothing else. Somebody with
+   * an appointment, a payment, a signed form or another conversation is a real
+   * client who happened to send one thing that got filed, and they stay exactly
+   * as they are. See nothingElseOfTheirs, which the delete path asks too.
+   *
+   * The thread itself is kept either way. It is the only record of the decision,
+   * and the whole reason paperwork exists as a place rather than a bin is being
+   * able to see what was filed and say it was wrong.
+   *
+   * Which is why the link is cut before the record goes, and not after.
+   * conversations.contact_id still cascades, so deleting a contact deletes
+   * every thread they were ever in and every message in it. The first version
+   * of this deleted the contact directly, and marking something as spam would
+   * have emptied the Spam tab as it went: the evidence for tuning the filter,
+   * destroyed by the act of filing it. Erasing a client has always done it in
+   * this order for the same reason, and that comment is worth reading.
+   */
+  if (!error && (status === "spam" || status === "paperwork")) {
+    const { data: thread } = await supabase
+      .from("conversations")
+      .select("contact_id")
+      .eq("id", id)
+      .maybeSingle();
+
+    const contactId = thread?.contact_id as string | null | undefined;
+    if (contactId && (await nothingElseOfTheirs(supabase, contactId, id))) {
+      const { error: unlinked } = await supabase
+        .from("conversations")
+        .update({ contact_id: null })
+        .eq("id", id);
+
+      // Only once the thread is safely off it. A failed unlink means the
+      // record stays, which is untidy and harmless.
+      if (!unlinked) {
+        await supabase.from("contacts").delete().eq("id", contactId);
+        revalidatePath("/clients");
+      }
+    }
+  }
+
   if (error) {
     /*
      * The status is a fixed list in the database, so a word it has not been
@@ -268,22 +318,8 @@ export async function removeConversation(
    * happened to have one thread deleted.
    */
   const contactId = conversation.contact_id as string | null;
-  if (contactId) {
-    const [
-      { count: otherThreads },
-      { count: bookings },
-      { count: payments },
-      { count: forms },
-    ] = await Promise.all([
-      supabase.from("conversations").select("id", { count: "exact", head: true }).eq("contact_id", contactId),
-      supabase.from("bookings").select("id", { count: "exact", head: true }).eq("contact_id", contactId),
-      supabase.from("payments").select("id", { count: "exact", head: true }).eq("contact_id", contactId),
-      supabase.from("client_forms").select("id", { count: "exact", head: true }).eq("contact_id", contactId),
-    ]);
-
-    if (!otherThreads && !bookings && !payments && !forms) {
-      await supabase.from("contacts").delete().eq("id", contactId).eq("studio_id", studio.id);
-    }
+  if (contactId && (await nothingElseOfTheirs(supabase, contactId))) {
+    await supabase.from("contacts").delete().eq("id", contactId).eq("studio_id", studio.id);
   }
 
   revalidatePath("/clients");

@@ -499,11 +499,28 @@ async function park(
   let id = existing?.id ?? null;
 
   if (!id) {
-    const { data: contact } = await db
-      .from("contacts")
-      .insert({ studio_id: studioId, channel: "email", email: sender })
-      .select("id")
-      .single();
+    /*
+     * The business's own post does not get a client record.
+     *
+     * A Shopify receipt and a listings site's daily figures were both being
+     * written onto the client list as nameless people, next to the customers.
+     * Paperwork is the one verdict where the system has already decided there
+     * is no customer here, so making one contradicts the decision it just took.
+     *
+     * A parked email still gets one, because parked means "a person should
+     * look at this" and it is usually somebody real.
+     *
+     * The thread is written either way, with nobody attached. Every screen
+     * already handles that: a missed call from an unknown number has done it
+     * since it was built.
+     */
+    const { data: contact } = as.status === "paperwork"
+      ? { data: null }
+      : await db
+          .from("contacts")
+          .insert({ studio_id: studioId, channel: "email", email: sender })
+          .select("id")
+          .single();
 
     const { data: made, error } = await db
       .from("conversations")
