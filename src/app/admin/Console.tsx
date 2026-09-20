@@ -14,7 +14,7 @@ import {
   deleteBusiness,
   saveAccount,
   fixSettings,
-  fixChannel, assignNumber,
+  fixChannel, assignNumber, setForwarding,
   answerTicket,
   setKind,
   snoozeAttention,
@@ -1484,6 +1484,21 @@ function Channels({ b }: { b: BusinessSummary }) {
 
                   <Whose connection={c.id} artistId={c.artistId} team={b.team} />
 
+                  {/*
+                    * And the phone it rings, on the same row.
+                    *
+                    * Allocating a number and pointing it at somebody's phone
+                    * are one job done at one moment, and splitting them across
+                    * two screens is how a line ends up allocated and ringing
+                    * nowhere. Only where the number can actually take a call:
+                    * without voice this is a texting number and a forward is
+                    * never read.
+                    */}
+                  {(c.channel === "sms" || c.channel === "voice") &&
+                    b.channels.includes("voice") && (
+                      <RingsOn connection={c.id} forwardTo={c.forwardTo} />
+                    )}
+
                   {!c.active && <span className="text-xs text-warn">switched off</span>}
                 </li>
               ))}
@@ -1554,6 +1569,47 @@ function Whose({
             </option>
           ))}
       </select>
+      {state.ok && <span className="text-xs text-ok">Saved.</span>}
+      {state.error && <span className="text-xs text-warn">{state.error}</span>}
+    </form>
+  );
+}
+
+/**
+ * The phone a line rings before the caller is texted.
+ *
+ * A text box rather than a select, unlike Whose above, because this is a phone
+ * in somebody's pocket and there is no list of them to choose from. Typed the
+ * way it is written on a card; the action reads it with the same reader both
+ * settings pages use.
+ *
+ * Empty is a real answer and a common one: nobody is rung and the caller is
+ * texted straight away, which is what somebody with their hands full all day
+ * actually wants.
+ */
+function RingsOn({
+  connection,
+  forwardTo,
+}: {
+  connection: string;
+  forwardTo: string | null;
+}) {
+  const [state, action] = useActionState<Result, FormData>(setForwarding, {});
+
+  return (
+    <form action={action} className="flex flex-wrap items-center gap-1.5">
+      <input type="hidden" name="connection" value={connection} />
+      <span className="text-xs text-muted">rings</span>
+      <input
+        name="forward_to"
+        defaultValue={forwardTo ?? ""}
+        placeholder="nobody"
+        className="input h-9 w-40 py-1 font-mono text-sm"
+        inputMode="tel"
+      />
+      <button type="submit" className="btn-ghost h-9 px-2.5 py-1 text-xs">
+        Save
+      </button>
       {state.ok && <span className="text-xs text-ok">Saved.</span>}
       {state.error && <span className="text-xs text-warn">{state.error}</span>}
     </form>

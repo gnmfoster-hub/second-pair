@@ -161,7 +161,7 @@ export default async function YouPage({
    */
   const { data: links } = await supabase
     .from("channel_connections")
-    .select("channel, label, external_id, artist_id")
+    .select("channel, label, external_id, artist_id, forward_to")
     .eq("studio_id", studio.id)
     .eq("active", true);
 
@@ -205,7 +205,14 @@ export default async function YouPage({
         <MyChannels
           firstName={me.name.split(" ")[0]}
           business={words.business}
-          mine={myChannels as { channel: Channel; label: string | null; external_id: string | null }[]}
+          mine={
+            myChannels as {
+              channel: Channel;
+              label: string | null;
+              external_id: string | null;
+              forward_to: string | null;
+            }[]
+          }
           shared={sharedChannels as { channel: Channel }[]}
           allowed={(me as { own_channels?: string[] | null }).own_channels ?? []}
           subscribed={studio.channels_allowed ?? []}

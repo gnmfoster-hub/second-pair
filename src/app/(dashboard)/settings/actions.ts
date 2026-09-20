@@ -2362,6 +2362,91 @@ export async function disconnectMyStripe(_prev: FormState, _fd: FormData): Promi
 }
 
 /**
+ * Where somebody's own line rings before it becomes a text.
+ *
+ * The business's own number has had this since the start, on the Install page,
+ * and it is the owner's to set. A person with a line of her own had nowhere to
+ * say the same thing, so her number rang nothing and every caller was texted
+ * back — which is a real choice, but it was not hers, and it was made for her
+ * by there being no box.
+ *
+ * Giles: every user including the owner should be able to use their business
+ * number with a forward if they want, and there should be a box for their own
+ * number if they have one. This is that box, on the page where the person it
+ * belongs to can see it.
+ *
+ * Hers to set rather than the owner's, which is the opposite of who the line
+ * is allocated to. Whose number it is decides how customers reach the place and
+ * is a business decision. Which phone in whose pocket it rings is not.
+ */
+export async function saveMyForwarding(_prev: FormState, fd: FormData): Promise<FormState> {
+  const { studio, userId } = await requireStudio();
+  const supabase = await createClient();
+
+  /*
+   * The same gate the owner's panel has. Without the telephone a call to the
+   * number is answered by saying it takes texts only, and no forward of
+   * anybody's is ever consulted.
+   */
+  if (!takesCalls(studio.channels_allowed)) {
+    return {
+      error:
+        "Calls are not part of this plan, so there is nothing here to set. Your number takes texts.",
+    };
+  }
+
+  const { data: me } = await supabase
+    .from("artists")
+    .select("id")
+    .eq("studio_id", studio.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!me) return { error: "Your sign-in is not linked to anybody in the diary." };
+
+  /*
+   * Her own line, and only it. Narrowed on her id rather than on the business,
+   * so this can never reach the number the whole place answers on.
+   */
+  const { data: line } = await supabase
+    .from("channel_connections")
+    .select("id, external_id")
+    .eq("studio_id", studio.id)
+    .eq("artist_id", me.id)
+    .in("channel", ["sms", "voice"])
+    .eq("active", true)
+    .order("created_at")
+    .limit(1)
+    .maybeSingle();
+
+  if (!line) {
+    return {
+      error:
+        "You have no number of your own yet. Whoever runs the business allocates one, and it will appear here.",
+    };
+  }
+
+  const read = readNumbers(line.external_id ?? "", str(fd, "forward_to"));
+  if (!read.ok) return { error: read.error };
+
+  const stamped = (await hasColumn(supabase, "channel_connections", "updated_at"))
+    ? { updated_at: new Date().toISOString() }
+    : {};
+
+  const { data: written, error } = await supabase
+    .from("channel_connections")
+    .update({ forward_to: read.forwardTo, ...stamped })
+    .eq("id", line.id)
+    .select("id");
+
+  if (error) return { error: error.message };
+  if (!written?.length) return { error: "That could not be saved. Try again." };
+
+  revalidatePath("/settings/you");
+  return { ok: true };
+}
+
+/**
  * Give a connected channel to the business, or to one person.
  *
  * The column has meant this since the day it was written and nothing has ever

@@ -7,6 +7,7 @@ import { userByEmail } from "@/lib/auth/everyUser";
 import { readNumbers } from "@/lib/channels/phoneNumbers";
 import { isPlatformAdmin } from "@/lib/platform";
 import { hasColumn } from "@/lib/db/hasColumn";
+import { takesCalls } from "@/lib/voice/takesCalls";
 import { siteOrigin } from "@/lib/origin";
 import { refreshDemo } from "@/lib/demo/refresh";
 
@@ -1047,6 +1048,69 @@ export async function assignNumber(_prev: Result, fd: FormData): Promise<Result>
 
   if (error) return { error: error.message };
   // Asked for the row back, so "nothing matched" is not read as a save.
+  if (!written?.length) return { error: "That could not be changed. Try again." };
+
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/**
+ * Where a line rings before it becomes a text, set from here.
+ *
+ * Giles: there should be a box for their number if they have one. There is one
+ * on the owner's own settings for the business's line, and one now on a
+ * person's own page for hers, and both assume somebody who knows what they are
+ * doing. This is the same box for the owner who does not: a number is allocated
+ * and pointed at the right phone in the same two presses, at the same moment,
+ * on the screen where the allocating happens.
+ *
+ * Nothing is read differently here. readNumbers is the same reader both
+ * settings pages use, so a number typed the way it is written on a card is
+ * accepted in all three, and the one mistake worth catching — a line pointed at
+ * itself, ringing forever and billing both legs — is caught in all three.
+ */
+export async function setForwarding(_prev: Result, fd: FormData): Promise<Result> {
+  const denied = await guard();
+  if (denied) return denied;
+
+  const connectionId = String(fd.get("connection") ?? "");
+  if (!connectionId) return { error: "No number." };
+
+  const db = createAdminClient();
+
+  const { data: connection } = await db
+    .from("channel_connections")
+    .select("id, external_id, studios(channels_allowed)")
+    .eq("id", connectionId)
+    .maybeSingle();
+
+  if (!connection) return { error: "That number is no longer there." };
+
+  /*
+   * Said rather than quietly saved. Without the telephone a call is answered by
+   * saying the number takes texts only and this is never read, so a number
+   * typed here would look set and ring nothing — the exact fault the settings
+   * screen had.
+   */
+  const studio = connection.studios as unknown as { channels_allowed: string[] | null } | null;
+  if (!takesCalls(studio?.channels_allowed)) {
+    return { error: "Voice is off for this account, so a call rings nowhere. Turn it on first." };
+  }
+
+  const read = readNumbers(connection.external_id ?? "", String(fd.get("forward_to") ?? ""));
+  if (!read.ok) return { error: read.error };
+
+  const stamped = (await hasColumn(db, "channel_connections", "updated_at"))
+    ? { updated_at: new Date().toISOString() }
+    : {};
+
+  const { data: written, error } = await db
+    .from("channel_connections")
+    .update({ forward_to: read.forwardTo, ...stamped })
+    .eq("id", connectionId)
+    .select("id");
+
+  if (error) return { error: error.message };
   if (!written?.length) return { error: "That could not be changed. Try again." };
 
   revalidatePath("/admin");

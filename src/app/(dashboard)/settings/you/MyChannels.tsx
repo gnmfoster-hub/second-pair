@@ -1,5 +1,7 @@
 import { readableNumber } from "@/lib/channels/phoneNumbers";
 import { CHANNEL_LABELS, type Channel } from "@/lib/types";
+import { takesCalls as businessTakesCalls } from "@/lib/voice/takesCalls";
+import { MyNumber } from "./MyNumber";
 
 /**
  * How somebody is reached, on their own settings page.
@@ -40,7 +42,13 @@ export function MyChannels({
 }: {
   firstName: string;
   business: string;
-  mine: { channel: Channel; label: string | null; external_id: string | null }[];
+  mine: {
+    channel: Channel;
+    label: string | null;
+    external_id: string | null;
+    /** Where a call to it rings first. Null texts the caller straight away. */
+    forward_to?: string | null;
+  }[];
   shared: { channel: Channel }[];
   /** Channels the owner has allowed them their own of. See lib/channels/whose. */
   allowed?: string[] | null;
@@ -75,6 +83,13 @@ export function MyChannels({
    */
   const paidFor = (subscribed ?? []).filter((c) => c !== "web");
   const mayHave = new Set(allowed ?? []);
+
+  /*
+   * Having a number and answering the phone are two purchases, not one. The
+   * ring-me box below is a call setting and is worth nothing without the
+   * second.
+   */
+  const takesCalls = businessTakesCalls(subscribed);
 
   const hers = paidFor
     .filter((c) => mayHave.has(c))
@@ -204,10 +219,34 @@ export function MyChannels({
                   )}
 
                 {connected && (channel === "sms" || channel === "voice") && (
-                  <p className="hint mt-1.5">
-                    Set up for you by whoever runs {business}. Everything arriving on it is
-                    yours, and the assistant never asks the customer who they would like.
-                  </p>
+                  <>
+                    <p className="hint mt-1.5">
+                      Set up for you by whoever runs {business}. Everything arriving on it is
+                      yours, and the assistant never asks the customer who they would like.
+                    </p>
+
+                    {/*
+                      * And the one decision about it that is hers.
+                      *
+                      * Whose the line is belongs to the owner: it changes how
+                      * every future customer reaches the place. Which phone in
+                      * whose pocket it rings does not, and she was the only
+                      * person who could answer it and the only one with no way
+                      * to say so.
+                      *
+                      * Only where the telephone is actually bought. Without it
+                      * a call to this number is answered by saying it takes
+                      * texts only, and no forward is ever read — the same
+                      * mistake the owner's panel was making.
+                      */}
+                    {takesCalls && connected.external_id && (
+                      <MyNumber
+                        number={connected.external_id}
+                        forwardTo={connected.forward_to ?? null}
+                        firstName={firstName}
+                      />
+                    )}
+                  </>
                 )}
               </li>
             ))}
