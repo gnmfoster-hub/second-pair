@@ -84,6 +84,23 @@ const RULES: Rule[] = [
   },
 
   /*
+   * The long dash, which is how a machine writes.
+   *
+   * Giles, looking at a week of real replies: get rid of the unnecessary
+   * dashes, it makes it look very AI. He is right, and it is the most
+   * frequent tell in everything this thing writes — "Booked, Dawn — Monday
+   * at 9am", "We do — balayage is £120", two or three to a message. Almost
+   * nobody types one on a phone.
+   *
+   * Only between words, so a minus sign, a price range and a date range are
+   * all untouched: £120-£160 and 9am-5pm are not this.
+   */
+  {
+    what: "joins a sentence with a long dash, which is how a machine writes",
+    pattern: /\w\s[—–]\s\w/,
+  },
+
+  /*
    * A cancellation it cannot make.
    *
    * There is no tool for cancelling anything. The assistant can quote, offer

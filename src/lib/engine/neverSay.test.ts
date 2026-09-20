@@ -41,9 +41,9 @@ test("the machinery, and the lie", () => {
  */
 test("a good reply trips nothing", () => {
   for (const said of [
-    "Deep clean's usually £100–£160, John — an estimate Karen confirms when she's seen the place. What's the postcode?",
-    "Karen's got Monday 21st at 10am or 4pm, or Tuesday 22nd at 1:30pm — any good?",
-    "We're closed Saturdays I'm afraid — Monday to Friday, 10 to 6. What sort of clean are you after?",
+    "Deep clean's usually £100-£160, John. An estimate Karen confirms when she's seen the place. What's the postcode?",
+    "Karen's got Monday 21st at 10am or 4pm, or Tuesday 22nd at 1:30pm. Any good?",
+    "We're closed Saturdays I'm afraid. Monday to Friday, 10 to 6. What sort of clean are you after?",
     "I'm an assistant that answers for the studio, and a human sees everything. What can I help with?",
     "That's £40 an hour with Karen, products included. Is it a regular tidy-up or a deep clean?",
     "Can I take your name and the best number for you, and I'll get that booked in?",
@@ -52,9 +52,18 @@ test("a good reply trips nothing", () => {
   }
 });
 
+/*
+ * Both of them, not a count of them.
+ *
+ * This asserted the list was exactly two long, so adding any new rule broke a
+ * test about two entirely different rules. What it is about is that neither
+ * fault hides the other.
+ */
 test("two faults in one reply are both reported", () => {
-  const said = "This one's an automated notification — no need for tools here. It's free anyway.";
-  assert.equal(neverSay(said).length, 2, JSON.stringify(neverSay(said)));
+  const said = "This one's an automated notification, no need for tools here. It's free anyway.";
+  const what = neverSay(said).map((s) => s.what);
+  assert.ok(what.some((w) => /narrates/.test(w)), JSON.stringify(what));
+  assert.ok(what.some((w) => /free/.test(w)), JSON.stringify(what));
 });
 
 /*
@@ -68,8 +77,7 @@ test("a cancellation it claims to have made is caught", () => {
   const slips = neverSay(
     "Done — that's cancelled, Dawn. Monday 8am is off the diary and nobody will be expecting the Golf.",
   );
-  assert.equal(slips.length, 1, JSON.stringify(slips));
-  assert.match(slips[0].what, /cancelled/);
+  assert.ok(slips.some((s) => /cancelled/.test(s.what)), JSON.stringify(slips));
 });
 
 test("handing a cancellation to a person is not a claim to have made one", () => {
@@ -83,7 +91,51 @@ test("handing a cancellation to a person is not a claim to have made one", () =>
     "We hold the bay for half an hour, then it goes to somebody else.",
   ];
 
+  /*
+   * About the cancellation rule, not about everything.
+   *
+   * This asserted that nothing at all was objected to, and three of these real
+   * replies use a long dash, which the dash rule now catches — correctly, and
+   * with no bearing on whether they claim to have cancelled anything. A test
+   * that breaks when an unrelated rule is added is testing the list rather
+   * than the thing it is named after.
+   */
   for (const said of fine) {
-    assert.deepEqual(neverSay(said), [], `should not have objected to: ${said}`);
+    const claimed = neverSay(said).filter((s) => /cancelled/.test(s.what));
+    assert.deepEqual(claimed, [], `should not have read as a cancellation: ${said}`);
+  }
+});
+
+/*
+ * The long dash, which Giles spotted in a week of real replies: "it makes it
+ * look very AI". It is the commonest tell in everything this writes.
+ */
+test("a sentence joined with a long dash is caught", () => {
+  for (const said of [
+    "Booked, Dawn — Monday 21 September at 8:00am with Pete.",
+    "We do — balayage with Nadia is usually £120 to £160.",
+    "She's got three Saturdays going – which suits?",
+  ]) {
+    const slips = neverSay(said);
+    assert.ok(
+      slips.some((s) => /long dash/.test(s.what)),
+      `let through: ${said}`,
+    );
+  }
+});
+
+/* And the dashes that are not that, which must all survive. */
+test("a price range, a time range and a hyphen are not the long dash", () => {
+  for (const fine of [
+    "Balayage is £120-£160 depending on your length.",
+    "We're open 9am-5pm Monday to Friday.",
+    "It's a deep-clean, not a normal one.",
+    "Booked, Dawn. Monday 21 September at 8:00am with Pete.",
+    "That's a 2019 Golf, reg BD70 XNT.",
+  ]) {
+    assert.ok(
+      !neverSay(fine).some((s) => /long dash/.test(s.what)),
+      `objected to: ${fine}`,
+    );
   }
 });
