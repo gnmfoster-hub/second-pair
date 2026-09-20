@@ -138,11 +138,26 @@ export default function HomePage() {
   return (
     <>
       {/* ─────────────────────────────────────────────────────────── hero */}
-      <section className="relative overflow-hidden px-5 pb-4 pt-14 sm:px-8 sm:pt-20">
-        <div className="aura" aria-hidden />
+      {/*
+       * On the ink, not on the wash.
+       *
+       * Every colour here was already in the palette and one of them was
+       * barely used: #14243f, the navy in the logo. The whole site sat on the
+       * pale surface instead — header, hero, cards, all one tone, forty-odd
+       * elements on the same pale blue — and a page with no ground and no
+       * contrast reads as unfinished however good the words are. That is the
+       * thing that felt beige. It was not the colour, it was the flatness.
+       *
+       * So the top of the page is the brand colour, full strength, and the
+       * demo panel becomes a lit white object sitting on it. The product is
+       * the brightest thing on the screen, which is the right hierarchy for a
+       * page whose entire argument is "watch it work".
+       */}
+      <section className="relative overflow-hidden bg-accent px-5 pb-14 pt-14 text-on-accent sm:px-8 sm:pt-20">
+        <div className="hero-glow" aria-hidden />
         <div className="relative mx-auto grid max-w-5xl items-center gap-12 lg:grid-cols-[1.05fr_1fr]">
           <div>
-            <p className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs text-muted">
+            <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs text-on-accent/80">
               <span className="size-1.5 rounded-full bg-ok" aria-hidden />
               Answering right now, for {VERTICAL_LIST.length} trades
             </p>
@@ -160,16 +175,16 @@ export default function HomePage() {
               <br />
               one pair of hands.
               <br />
-              <span className="text-highlight-strong">We&rsquo;re the second.</span>
+              <span className="text-highlight">We&rsquo;re the second.</span>
             </h1>
 
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-on-accent/65">
               You&rsquo;re under a floor. You&rsquo;ve got a needle in someone&rsquo;s arm.
               You&rsquo;re mid-colour. The phone goes, a DM lands, and four hours later
               they&rsquo;ve booked whoever replied first.
             </p>
 
-            <p className="mt-4 max-w-xl text-lg leading-relaxed">
+            <p className="mt-4 max-w-xl text-lg leading-relaxed text-on-accent/90">
               Second Pair answers in under a minute, quotes from your own prices, and puts them
               in your diary — in your words, while your hands are full.
             </p>
@@ -197,7 +212,7 @@ export default function HomePage() {
               >
                 Ask ours anything
               </a>
-              <span className="text-sm text-muted">
+              <span className="text-sm text-on-accent/60">
                 It answers now. We set yours up with you.
               </span>
             </div>
