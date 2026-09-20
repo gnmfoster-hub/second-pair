@@ -12,7 +12,19 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
+      {/*
+        * The header is the top of the ink, not a pale bar resting on it.
+        *
+        * With the hero on the brand navy this sat above it in surface grey,
+        * and the seam was the weakest line on the page — a sticker on a
+        * poster. Carrying the same colour up through the header makes the top
+        * third of the site one confident slab, which is the whole difference
+        * between a page that looks designed and a page that looks assembled.
+        *
+        * Every marketing page gets it, not just the home page: a header that
+        * changes colour between pages of the same site reads as two sites.
+        */}
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-accent text-on-accent">
         <div className="mx-auto flex max-w-5xl items-center gap-4 px-5 py-4 sm:px-8">
           {/* Thirty pixels disappeared into the header, and this is the only
               place most people will ever see the name. */}
@@ -75,126 +87,20 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
 
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
             {/*
-              * The other product, as a text link and never a button.
+              * The other product used to live here, and does not any more.
               *
-              * The pack allows one call to action per screen and on every page
-              * here that is "Get set up". A second button beside it would be
-              * two things competing at the moment somebody is deciding, which
-              * is the one thing a sales page must not do — so this is the
-              * quietest thing on the row, present on every page, and invisible
-              * to anybody who is not looking for it.
+              * "Also by us: Family APP!" sat in the header of every page,
+              * beside the one button the whole site exists to get somebody to
+              * press. Giles put it plainly: the other things are all over the
+              * place. They were — the header, a band halfway down the home
+              * page, the footer, and the company page, which is four mentions
+              * of a product nobody came here for on the way down one page.
               *
-              * Not until 768px, and this was tried at two narrower widths
-              * first. Both measurements are the reason for the number.
-              *
-              * At 390px the header has 350 usable pixels and the logo, sign-in
-              * and "Get set up" come to 274 of them. Adding this took it to
-              * 349 — one pixel inside, which flex resolved by wrapping the
-              * call to action onto three lines. "Get / set / up", stacked, on
-              * the button the entire page exists to get somebody to press.
-              *
-              * Moving it to sm: moved the break rather than fixing it. 640 is
-              * also where the logo swaps to the wide inline lockup and grows
-              * from 108px to 158px, so the link arrived at the one width that
-              * had just spent its remaining room: header 95px, button on two
-              * lines, at exactly the width a tablet is held at in portrait.
-              *
-              * md: was the first breakpoint where the wide lockup and a bare
-              * "Family APP!" both fit with the button untouched — but a bare
-              * "Family APP!" is exactly what nobody could read, and the label
-              * that says what it is costs another 70px. So lg:, which is a
-              * laptop and up.
-              *
-              * Breaking the main action in order to advertise the other
-              * product is the exact trade this was meant to avoid, and the
-              * homepage band carries Family APP! at every width below this one
-              * anyway — with more room to explain it than a header row has.
+              * It keeps the two that earn their place: the band on the home
+              * page, where it is evidence that the company builds more than a
+              * diary, and the footer, where somebody who wants it can find it.
+              * A sales page gets one thing to press, and this was not it.
               */}
-            {/*
-              * The name alone did not say anything.
-              *
-              * "Family APP!" in a header on a page about answering enquiries
-              * for tattooists reads as a stray link, not a second product —
-              * you have to already know what it is for it to mean anything,
-              * and nobody arriving here does. A label that has to be decoded
-              * is worse than no label: it spends attention and returns
-              * nothing.
-              *
-              * So the row keeps the quiet word and the explanation sits one
-              * hover away, out of everybody's path until they go looking. No
-              * JavaScript: hover opens it, and focus-within opens it for a
-              * keyboard, which also means the card cannot trap a tab stop.
-              *
-              * The whole thing is still a link. Somebody who taps rather than
-              * hovers — which is what a tablet does — lands on the page that
-              * explains it properly, so the card is an improvement for a mouse
-              * and never a requirement for anybody else.
-              */}
-            <div className="group relative hidden lg:block">
-              {/*
-                * "Also by us", said in the row rather than on hover.
-                *
-                * The card underneath only ever reaches somebody who already
-                * decided the name was worth investigating, and a name nobody
-                * recognises does not earn that decision — which left the card
-                * explaining the product to the one group who did not need it.
-                * The words that do the work have to be visible without asking.
-                *
-                * So the row states the relationship and the card keeps the
-                * detail. "Also by us" is the whole point of it being here at
-                * all: not another thing to buy, evidence that the company
-                * behind the diary builds more than the diary.
-                */}
-              <Link
-                href="/family-app"
-                className="flex items-center gap-1.5 whitespace-nowrap py-2 text-sm text-muted transition-colors hover:text-foreground"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/family/icon-96.png"
-                  alt=""
-                  width={16}
-                  height={16}
-                  className="shrink-0 rounded-[4px]"
-                />
-                Also by us:{" "}
-                <span className="font-medium text-foreground/80">Family APP!</span>
-              </Link>
-
-              {/* Right-aligned, because it hangs off a link near the right edge
-                  of a max-w-5xl row and a centred card would sit off the page
-                  on a 768px screen. */}
-              <div
-                className="pointer-events-none invisible absolute right-0 top-full z-40 w-[19rem] translate-y-1 rounded-xl border border-border bg-background p-4 opacity-0 shadow-lg transition-[opacity,transform] duration-150 group-hover:pointer-events-auto group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100 motion-reduce:transition-none"
-                role="presentation"
-              >
-                <div className="flex items-center gap-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/family/icon-96.png"
-                    alt=""
-                    width={28}
-                    height={28}
-                    className="shrink-0 rounded-[7px]"
-                  />
-                  <span className="text-sm font-semibold">Family APP!</span>
-                  <span className="pill bg-surface-2 text-muted">Early access</span>
-                </div>
-
-                <p className="mt-2.5 text-sm leading-relaxed text-muted">
-                  Our other product. A private hub for one family &mdash; chat, photos, a
-                  shared calendar and an AI holiday planner. Nothing to do with your
-                  diary; we just build it too.
-                </p>
-
-                <Link
-                  href="/family-app"
-                  className="mt-3 inline-block text-sm font-medium text-foreground underline decoration-border underline-offset-4 transition-colors hover:decoration-current"
-                >
-                  Have a look &rarr;
-                </Link>
-              </div>
-            </div>
             <div className="hidden sm:block">
               <ThemeToggle compact />
             </div>
@@ -203,7 +109,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 "Sign / in" on two lines at 360px, a 62px-tall link next to a
                 44px button. Neither of the two things a visitor came here to
                 press should be allowed to fold. */}
-            <Link href="/login" className="btn-ghost whitespace-nowrap">
+            <Link href="/login" className="btn whitespace-nowrap border border-white/20 bg-white/5 text-on-accent hover:bg-white/10">
               Sign in
             </Link>
             {/* The pack allows amber for one call to action per screen. This

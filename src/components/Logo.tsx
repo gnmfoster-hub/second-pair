@@ -185,7 +185,15 @@ export function Logo({
 function Wordmark({ size }: { size: number }) {
   return (
     <span
-      className="wordmark whitespace-nowrap text-foreground"
+      /*
+       * Inherits rather than fixes its colour.
+       *
+       * text-foreground is ink, which is right on every pale ground and
+       * invisible on the brand navy — so the lockup could not be used on the
+       * one colour the brand is built around. Inheriting costs nothing where
+       * it sits today, because the header it lives in is foreground anyway.
+       */
+      className="wordmark whitespace-nowrap text-current"
       style={{ fontSize: size, lineHeight: 1.05 }}
     >
       second <span className="font-medium">pair</span>
@@ -203,7 +211,8 @@ function Wordmark({ size }: { size: number }) {
 function Tag({ size, text }: { size: number; text: string }) {
   return (
     <span
-      className="wordmark whitespace-nowrap text-muted"
+      // Follows the wordmark down onto a dark ground; muted is unreadable there.
+      className="wordmark whitespace-nowrap text-current opacity-60"
       style={{ fontSize: size, lineHeight: 1.2, marginTop: size * 0.3 }}
     >
       {text}
