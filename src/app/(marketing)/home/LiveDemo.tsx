@@ -416,9 +416,9 @@ export function LiveDemo({
             </span>
             <p className="text-[0.8rem] leading-snug text-muted">
               <span className="font-semibold text-foreground">
-                You&rsquo;re talking to our own assistant now
+                You&rsquo;re talking to our own assistant now.
               </span>{" "}
-              &mdash; the same one your customers would get. Tell it about your business
+              It is the same one your customers would get. Tell it about your business
               and it will take it from there, or ask it anything you like.
             </p>
           </div>

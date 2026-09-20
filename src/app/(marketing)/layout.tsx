@@ -190,7 +190,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold">Family APP!</span>
                 <span className="hint block truncate">
-                  A private hub for one family — chat, photos, dates, holidays
+                  A private hub for one family: chat, photos, dates, holidays
                 </span>
               </span>
               <span aria-hidden className="ml-auto shrink-0 text-muted transition-transform group-hover:translate-x-0.5">

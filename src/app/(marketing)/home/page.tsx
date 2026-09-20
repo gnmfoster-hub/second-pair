@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import { VERTICALS_BY_CATEGORY, VERTICAL_LIST } from "@/lib/verticals";
 
 export const metadata: Metadata = {
-  title: "Second Pair — you work, we answer",
+  title: "Second Pair. You work, we answer",
   description:
     "An AI receptionist for one-person businesses. Answers enquiries, quotes, and books people in while your hands are busy.",
 };
@@ -91,7 +91,7 @@ const CONVERSATION = [
   { who: "them", text: "hiya do you do balayage? roughly how much" },
   {
     who: "us",
-    text: "We do — balayage with Nadia is usually £120 to £160 depending on your length and how much lift you're after, and it's about three hours in the chair.",
+    text: "We do. Balayage with Nadia is usually £120 to £160 depending on your length and how much lift you're after, and it's about three hours in the chair.",
     moment: {
       kind: "quote",
       label: "Balayage",
@@ -108,7 +108,7 @@ const CONVERSATION = [
   { who: "them", text: "perfect. any saturdays?" },
   {
     who: "us",
-    text: "She's got three Saturdays going — which suits?",
+    text: "She's got three Saturdays going. Which suits?",
     moment: {
       kind: "slots",
       person: "Nadia",
@@ -120,7 +120,7 @@ const CONVERSATION = [
   { who: "tap", slot: 0 },
   {
     who: "us",
-    text: "Lovely — you're in with Nadia. I'll text you the day before, and if you change your mind about the length just say.",
+    text: "Lovely, you're in with Nadia. I'll text you the day before, and if you change your mind about the length just say.",
     moment: {
       kind: "booked",
       person: "Nadia",
@@ -171,7 +171,7 @@ export default function HomePage() {
 
             <p className="mt-4 max-w-xl text-lg leading-relaxed">
               Second Pair answers in under a minute, quotes from your own prices, and puts them
-              in your diary — in your words, while your hands are full.
+              in your diary, in your words, while your hands are full.
             </p>
 
             {/*
@@ -231,7 +231,7 @@ export default function HomePage() {
             },
             {
               head: "It knows when to stop",
-              body: "A complaint, anything medical, anyone under 18, anyone who asks for a person — it fetches you and stops talking. It never pretends to be you.",
+              body: "A complaint, anything medical, anyone under 18, anyone who asks for a person. It fetches you and stops talking. It never pretends to be you.",
             },
           ].map((card) => (
             <div key={card.head}>
@@ -247,7 +247,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-5xl px-5 py-16 sm:px-8 sm:py-20">
           <h2 className="page-title">Built for whatever you actually do</h2>
           <p className="mt-2.5 max-w-2xl text-sm leading-relaxed text-muted">
-            Each trade brings its own questions, services, wording and reminders — and its
+            Each trade brings its own questions, services, wording and reminders, and its
             own sense. The gas engineer won&rsquo;t book someone who says they can smell
             gas, it gives them the emergency number. The plumber tells a burst pipe where
             the stopcock is first.
@@ -281,7 +281,7 @@ export default function HomePage() {
 
         <div className="mt-8 grid gap-x-10 gap-y-8 sm:grid-cols-2">
           {[
-            ["A proper diary", "Day, week and person views, repeats, blocks, all-day entries. Or keep the Fresha diary you already have — it reads that too."],
+            ["A proper diary", "Day, week and person views, repeats, blocks, all-day entries. Or keep the Fresha diary you already have. It reads that too."],
             ["Deposits, if you want them", "Straight to your bank through Stripe at their normal rate. Second Pair takes nothing from it. Off entirely for trades that invoice after."],
             ["A link each", "In a salon, every stylist gets their own link for their own Instagram. Enquiries there are theirs, and it never asks who you'd like."],
             ["Reminders that suit the job", "Bring photo ID for a tattoo. Come with dry hair for a colour. Leave access and somewhere to park for a sparky."],
@@ -323,7 +323,7 @@ export default function HomePage() {
           <p className="mt-4 max-w-[54ch] text-base leading-relaxed text-muted">
             Plenty of good tradespeople have no website, or one built years ago by
             somebody who has stopped answering. We build it, host it, and keep it
-            working &mdash; and you can have it whether or not you ever use the
+            working, and you can have it whether or not you ever use the
             assistant.
           </p>
 
@@ -372,7 +372,7 @@ export default function HomePage() {
               >
                 livingcanvastattoo.ink
               </a>{" "}
-              &mdash; a tattoo studio in Devon, with the assistant answering on it.
+              is a tattoo studio in Devon, with the assistant answering on it.
             </p>
             <a href="mailto:info@second-pair.com?subject=A%20website" className="btn-highlight mt-5 inline-flex">
               Ask about a website
@@ -414,7 +414,7 @@ export default function HomePage() {
 
           <p className="mt-4 max-w-[46ch] text-base leading-relaxed text-muted">
             A small software company in Devon. Two products, both in daily use by people
-            who are not us &mdash; which is the only test that has ever told us anything.
+            who are not us. That is the only test that has ever told us anything.
           </p>
 
           <div className="mt-9 grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2">
@@ -425,7 +425,7 @@ export default function HomePage() {
               </div>
               <p className="mt-3.5 flex-1 text-sm leading-relaxed text-muted">
                 This. Answering enquiries for tattooists, salons, cleaners and trades
-                &mdash; in their voice, from their prices, into their diary.
+                in their voice, from their prices, into their diary.
               </p>
             </div>
 
@@ -443,7 +443,7 @@ export default function HomePage() {
                 <span className="pill bg-surface-2 text-muted">Early access</span>
               </div>
               <p className="mt-3.5 flex-1 text-sm leading-relaxed text-muted">
-                A private hub for one family &mdash; chat, photos, a shared calendar and
+                A private hub for one family: chat, photos, a shared calendar and
                 an AI holiday planner. Built because we wanted it at home.
               </p>
               <Link
