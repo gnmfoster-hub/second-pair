@@ -389,7 +389,7 @@ export function LiveDemo({
        * than the thing, so it has no launcher — but it should still be the
        * shape somebody will recognise when they get one.
        */
-      className={`overflow-hidden rounded-[22px] rounded-br-md border bg-background shadow-[0_16px_50px_rgba(10,12,16,0.16),0_2px_8px_rgba(10,12,16,0.06)] transition-[border-color,box-shadow] duration-500 ${
+      className={`overflow-hidden rounded-[22px] rounded-br-md border bg-background text-foreground shadow-[0_16px_50px_rgba(10,12,16,0.16),0_2px_8px_rgba(10,12,16,0.06)] transition-[border-color,box-shadow] duration-500 ${
         asking ? "border-highlight" : "border-border"
       }`}
       style={{ ["--brand" as string]: brand, ["--on-brand" as string]: onBrand }}
