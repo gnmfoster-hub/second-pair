@@ -154,7 +154,7 @@ export default function HomePage() {
        */}
       <section className="relative overflow-hidden px-5 pb-6 pt-16 sm:px-8 sm:pt-24">
         <div className="aura" aria-hidden />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[1fr_1.02fr] lg:gap-20">
+        <div className="relative mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[1.06fr_1fr] lg:gap-16">
           <div>
             <p className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs text-muted">
               <span className="size-1.5 rounded-full bg-ok" aria-hidden />
@@ -169,7 +169,7 @@ export default function HomePage() {
              * says the problem and what we are in one breath, and anybody who
              * reads it understands the name for the rest of the page.
              */}
-            <h1 className="mt-6 font-display text-[2.9rem] font-bold leading-[0.99] tracking-[-0.04em] text-balance sm:text-[4.4rem]">
+            <h1 className="mt-6 font-display text-[2.9rem] font-bold leading-[0.99] tracking-[-0.04em] text-balance sm:text-[3.95rem]">
               You&rsquo;ve only got
               <br />
               one pair of hands.
