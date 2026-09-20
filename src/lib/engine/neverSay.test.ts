@@ -139,3 +139,40 @@ test("a price range, a time range and a hyphen are not the long dash", () => {
     );
   }
 });
+
+/*
+ * Hours that contradict themselves inside one sentence.
+ *
+ * Found by reading what the demos actually said, not reported. Dan's Driving
+ * School, asked about Sundays: "Dan's out Monday to Friday, and Saturday
+ * mornings up to 3pm." Saturday is nine until three, so the hours are right and
+ * the word is wrong, and somebody reading it cannot tell which half to believe.
+ * They turn up at one o'clock to a closed door, or do not ring at two.
+ */
+test("an afternoon described as a morning is caught", () => {
+  for (const said of [
+    "Dan's out Monday to Friday, and Saturday mornings up to 3pm.",
+    "We do Saturday mornings until 4pm.",
+    "Open mornings till 1:30pm on a Saturday.",
+  ]) {
+    assert.ok(
+      neverSay(said).some((s) => /morning/.test(s.what)),
+      `let through: ${said}`,
+    );
+  }
+});
+
+/* And the ones that say something true, which must all survive. */
+test("a real morning is not a contradiction", () => {
+  for (const fine of [
+    "Saturday mornings 8:30 till 12:30.",
+    "We're mornings only, back at 2pm if you'd rather come then.",
+    "Kerry's got Tuesday morning at 8:30am or the afternoon at 12:30pm.",
+    "Open 9am to 3pm on Saturdays.",
+  ]) {
+    assert.ok(
+      !neverSay(fine).some((s) => /morning/.test(s.what)),
+      `objected to: ${fine}`,
+    );
+  }
+});

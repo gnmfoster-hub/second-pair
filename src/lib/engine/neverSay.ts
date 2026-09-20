@@ -101,6 +101,28 @@ const RULES: Rule[] = [
   },
 
   /*
+   * Opening hours that contradict themselves inside one sentence.
+   *
+   * Dan's Driving School, asked about Sundays, answered: "Dan's out Monday to
+   * Friday, and Saturday mornings up to 3pm." Saturday is nine until three, so
+   * the hours are right and the word is wrong, and a customer reading it cannot
+   * tell which half to believe. They either turn up at one o'clock to a closed
+   * door, or do not ring at two because it said mornings.
+   *
+   * Nothing threw and nothing was logged. It is a sentence, which is where
+   * every fault worth finding in this thing lives.
+   *
+   * Narrow on purpose: only the word attached directly to a closing time in the
+   * afternoon. "Mornings only, back at 2pm" and "Saturday mornings 8:30 till
+   * 12:30" both say something true and neither matches.
+   */
+  {
+    what: "calls an afternoon a morning",
+    pattern:
+      /\bmornings?\b[^.!?]{0,25}\b(?:up to|until|till|through to|to)\s*(?:1[3-9]|[1-9])(?::\d{2})?\s*pm\b/i,
+  },
+
+  /*
    * A cancellation it cannot make.
    *
    * There is no tool for cancelling anything. The assistant can quote, offer

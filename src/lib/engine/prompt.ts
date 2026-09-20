@@ -495,6 +495,7 @@ Never send a payment link in the same breath as making the booking — they get 
 ${audienceSection}${houseSection}${voiceSection}${travelSection}# The studio
 Opening hours (${studio.timezone}):
 ${hours}
+Give these as times, not as a part of the day. "Saturday mornings up to 3pm" is a contradiction somebody has to choose a half of, and they either arrive at one to a locked door or do not ring at two. Say "Saturdays 9 to 3".
 
 ${words.practitioners.replace(/^./, (c) => c.toUpperCase())}:
 ${artistLines}
