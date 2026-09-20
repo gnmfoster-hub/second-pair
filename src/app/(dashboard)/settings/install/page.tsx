@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Appearance } from "./Appearance";
 import { MetaChannels } from "./MetaChannels";
 import { WhoseChannel } from "./WhoseChannel";
+import { YourNumbers } from "./YourNumbers";
 import { NotOnYourPlan } from "./NotOnYourPlan";
 import type { Channel } from "@/lib/types";
 import { WhoItOffers } from "./WhoItOffers";
@@ -93,7 +94,7 @@ export default async function ChannelsPage({
    */
   const { data: allLinks } = await supabaseForMeta
     .from("channel_connections")
-    .select("id, channel, artist_id, label")
+    .select("id, channel, artist_id, label, external_id")
     .eq("studio_id", studio.id)
     .eq("active", true);
 
@@ -173,6 +174,23 @@ export default async function ChannelsPage({
            */
           savedAt={savedWords(line?.updated_at, studio.timezone)}
           sendingReady={smsConfigured()}
+        />
+
+        {/*
+          * Every number they have, not the one the panel above discusses.
+          *
+          * A business is supplied as many as its subscription carries, and the
+          * panel above holds one. A salon with three had a screen that talked
+          * about one of them and never said the other two existed — and no
+          * answer anywhere to "how do I get one for the new girl".
+          */}
+        <YourNumbers
+          business={words.business}
+          lines={onChannel("sms").map((l) => ({
+            id: l.id,
+            externalId: (l as { external_id?: string | null }).external_id ?? null,
+            forWho: artists.find((a) => a.id === l.artist_id)?.name ?? null,
+          }))}
         />
 
         {/*

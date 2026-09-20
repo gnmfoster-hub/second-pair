@@ -14,7 +14,7 @@ import {
   deleteBusiness,
   saveAccount,
   fixSettings,
-  fixChannel, assignNumber, setForwarding,
+  fixChannel, assignNumber, setForwarding, switchLine,
   answerTicket,
   setKind,
   snoozeAttention,
@@ -1499,7 +1499,7 @@ function Channels({ b }: { b: BusinessSummary }) {
                       <RingsOn connection={c.id} forwardTo={c.forwardTo} />
                     )}
 
-                  {!c.active && <span className="text-xs text-warn">switched off</span>}
+                  <SwitchLine connection={c.id} active={c.active} />
                 </li>
               ))}
             </ul>
@@ -1569,6 +1569,34 @@ function Whose({
             </option>
           ))}
       </select>
+      {state.ok && <span className="text-xs text-ok">Saved.</span>}
+      {state.error && <span className="text-xs text-warn">{state.error}</span>}
+    </form>
+  );
+}
+
+/**
+ * This one line off, or back on, without touching the others.
+ *
+ * The number box above holds one number and clearing it used to switch off
+ * every line the business had, which is how a stylist's number would disappear
+ * because somebody was editing the salon's. Each line answers for itself here.
+ *
+ * Says what it is before it says what the button does: "switched off" is the
+ * fact somebody needs when they are looking at a list, and the button is what
+ * they do about it.
+ */
+function SwitchLine({ connection, active }: { connection: string; active: boolean }) {
+  const [state, action] = useActionState<Result, FormData>(switchLine, {});
+
+  return (
+    <form action={action} className="flex flex-wrap items-center gap-2">
+      <input type="hidden" name="connection" value={connection} />
+      <input type="hidden" name="on" value={active ? "0" : "1"} />
+      {!active && <span className="text-xs text-warn">switched off</span>}
+      <button type="submit" className="btn-ghost h-9 px-2.5 py-1 text-xs">
+        {active ? "Switch off" : "Switch back on"}
+      </button>
       {state.ok && <span className="text-xs text-ok">Saved.</span>}
       {state.error && <span className="text-xs text-warn">{state.error}</span>}
     </form>

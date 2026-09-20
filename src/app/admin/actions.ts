@@ -1117,6 +1117,47 @@ export async function setForwarding(_prev: Result, fd: FormData): Promise<Result
   return { ok: true };
 }
 
+/**
+ * One line off, or back on, without touching the others.
+ *
+ * The number box on the account panel holds one number, and clearing it used
+ * to switch off every sms line the business had. Right when a business could
+ * only have one; wrong the moment you can give one to a stylist, because the
+ * box shows the salon's and clearing it took hers away too.
+ *
+ * Off rather than deleted, for the reason the supply record exists at all: a
+ * number switched off here has not been handed back to Twilio and is still on
+ * the bill. Forgetting it happened is how a rental runs for a year with nobody
+ * able to say what it is for.
+ */
+export async function switchLine(_prev: Result, fd: FormData): Promise<Result> {
+  const denied = await guard();
+  if (denied) return denied;
+
+  const connectionId = String(fd.get("connection") ?? "");
+  if (!connectionId) return { error: "No number." };
+
+  const on = String(fd.get("on") ?? "") === "1";
+
+  const db = createAdminClient();
+
+  const stamped = (await hasColumn(db, "channel_connections", "updated_at"))
+    ? { updated_at: new Date().toISOString() }
+    : {};
+
+  const { data: written, error } = await db
+    .from("channel_connections")
+    .update({ active: on, ...stamped })
+    .eq("id", connectionId)
+    .select("id");
+
+  if (error) return { error: error.message };
+  if (!written?.length) return { error: "That number is no longer there." };
+
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
 export async function fixChannel(_prev: Result, fd: FormData): Promise<Result> {
   const denied = await guard();
   if (denied) return denied;
@@ -1146,6 +1187,32 @@ export async function fixChannel(_prev: Result, fd: FormData): Promise<Result> {
    * the off, and a deleted row cannot be it.
    */
   if (!number) {
+    /*
+     * And only where there is one line to switch off.
+     *
+     * This box holds one number and this branch switched off every sms line
+     * the business had. That was right when a business could only have one. It
+     * is now the way to take a stylist's number away by clearing the box that
+     * shows the salon's, which is not a thing anybody would mean to do, and
+     * there is no undo: a number switched off here is still rented from Twilio
+     * and still on the bill.
+     *
+     * Each line has its own switch on its own row now, which is the honest
+     * place for it. This refuses rather than guessing which one was meant.
+     */
+    const { data: lines } = await db
+      .from("channel_connections")
+      .select("id")
+      .eq("studio_id", id)
+      .eq("channel", "sms")
+      .eq("active", true);
+
+    if ((lines ?? []).length > 1) {
+      return {
+        error: `This business has ${lines?.length} numbers, so clearing this box cannot say which one you mean. Use the switch on the number's own row below.`,
+      };
+    }
+
     const { error } = await db
       .from("channel_connections")
       .update({ active: false })
