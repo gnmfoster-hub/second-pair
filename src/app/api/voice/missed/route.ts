@@ -278,13 +278,28 @@ async function findOrStart(
   return { id: made.id, paused: false };
 }
 
-/** A line in the thread that is neither the customer nor the assistant. */
+/**
+ * A line in the thread that is neither the customer nor the assistant.
+ *
+ * Bumps the thread as well as writing to it. The inbox is ordered by
+ * last_message_at, and a missed call wrote its note and its text without ever
+ * touching that field, so the call sat wherever the thread happened to be. For
+ * a regular that is halfway down the list, under a week-old conversation
+ * marked booked.
+ *
+ * Giles rang the live number, got the text back, and found nothing in the
+ * inbox. It was in there. It was three days down the page.
+ */
 async function note(
   db: ReturnType<typeof createAdminClient>,
   conversationId: string,
   content: string,
 ) {
   await db.from("messages").insert({ conversation_id: conversationId, role: "system", content });
+  await db
+    .from("conversations")
+    .update({ last_message_at: new Date().toISOString() })
+    .eq("id", conversationId);
 }
 
 /** Somebody has to look at this one. */
