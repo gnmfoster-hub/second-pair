@@ -1069,11 +1069,22 @@ export async function fixChannel(_prev: Result, fd: FormData): Promise<Result> {
   if (!read.ok) return { error: read.error };
   const { number, forwardTo } = read;
 
-  // Clearing it is a real instruction, and the only way to hand a number back.
+  /*
+   * Clearing it switches the line off rather than forgetting it happened.
+   *
+   * This deleted the row, which took the only record of the number with it.
+   * Two things went: the assistant stops using it either way, which is the
+   * point, but we also stopped knowing we had ever supplied it — and a number
+   * switched off in here has not been handed back to Twilio, so the rental is
+   * still on the bill.
+   *
+   * Giles asked for a record of what he supplies, turned on and off. This is
+   * the off, and a deleted row cannot be it.
+   */
   if (!number) {
     const { error } = await db
       .from("channel_connections")
-      .delete()
+      .update({ active: false })
       .eq("studio_id", id)
       .eq("channel", "sms");
     if (error) return { error: error.message };
@@ -1100,11 +1111,24 @@ export async function fixChannel(_prev: Result, fd: FormData): Promise<Result> {
     return { error: `That number already belongs to ${who ?? "another business"}.` };
   }
 
+  /*
+   * This number, not whatever number they had.
+   *
+   * It looked up the business's one sms row and overwrote it, which is right
+   * for a business with one line and wrong the moment there are two: giving a
+   * salon a second number silently replaced the first, and the first is the
+   * one on their van.
+   *
+   * A business is supplied as many as it has paid for, and each one is then
+   * given to somebody or kept as the business's. So a number already on this
+   * business is edited, and one that is not is added beside the others.
+   */
   const { data: existing } = await db
     .from("channel_connections")
     .select("id")
     .eq("studio_id", id)
     .eq("channel", "sms")
+    .eq("external_id", number)
     .limit(1)
     .maybeSingle();
 

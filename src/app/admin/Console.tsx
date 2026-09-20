@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { signOut } from "@/app/(dashboard)/actions";
 import type { BusinessSummary } from "@/lib/platform";
+import { supplyOf } from "@/lib/voice/numberCost";
 import { Team } from "./Team";
 import {
   createBusiness,
@@ -1260,6 +1261,20 @@ function Channels({ b }: { b: BusinessSummary }) {
   const sms = b.connections.find((c) => c.channel === "sms");
   const others = b.connections.filter((c) => c.channel !== "sms");
 
+  /*
+   * What we are giving them, and what it costs us.
+   *
+   * The numbers go inside the subscription, so this is our margin rather than
+   * anything a business is billed for. It is also the one cost that grows
+   * without anybody doing anything: a rental is charged whether the line is
+   * used or not, from the day it is bought until the day it is handed back.
+   */
+  const supply = supplyOf(
+    b.connections
+      .filter((c) => c.channel === "sms" || c.channel === "voice")
+      .map((c) => ({ externalId: c.externalId, forWho: c.forWho, active: c.active, since: null })),
+  );
+
   return (
     <details className="rounded-xl border border-border p-3">
       {/*
@@ -1307,7 +1322,10 @@ function Channels({ b }: { b: BusinessSummary }) {
               />
               <span className="hint">
                 Full international form. This is how an incoming text finds them, so a
-                number in any other shape matches nothing. Empty removes it.
+                number in any other shape matches nothing. A number they already have is
+                edited; a new one is added beside it, so a business can be supplied as
+                many as it pays for. Empty switches every number on this business off,
+                which is not the same as handing them back to Twilio.
               </span>
             </label>
 
@@ -1446,7 +1464,16 @@ function Channels({ b }: { b: BusinessSummary }) {
           */}
         {b.connections.length > 0 && (
           <div>
-            <div className="label">Whose each one is</div>
+            <div className="label">
+              Whose each one is
+              {supply.live > 0 && (
+                <span className="ml-2 font-normal text-muted">
+                  {supply.live} number{supply.live === 1 ? "" : "s"} supplied, about{" "}
+                  {formatPence(supply.monthlyPence)} a month of ours
+                  {supply.off > 0 && `, and ${supply.off} switched off but not handed back`}
+                </span>
+              )}
+            </div>
             <ul className="mt-1.5 space-y-2">
               {b.connections.map((c) => (
                 <li key={c.id} className="flex flex-wrap items-center gap-2 text-sm">
