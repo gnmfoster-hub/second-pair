@@ -59,6 +59,15 @@ export type ToolContext = {
    * Null everywhere else, and nothing depends on it being set.
    */
   raisedFor?: string | null;
+  /**
+   * The owner trying their own assistant out, or a check running.
+   *
+   * Used for one thing: the durable spend row, which has to count a rehearsal
+   * because the invoice does. Everything a business is shown goes on excluding
+   * it, which is right — "your assistant answered 14 enquiries" is worthless
+   * if nine were the owner practising.
+   */
+  isTest?: boolean;
   enquiryArtistId: string | null;
   /**
    * Set when the channel itself identifies one person — Sarah's own Instagram,

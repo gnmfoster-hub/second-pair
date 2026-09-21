@@ -619,6 +619,8 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     channel: input.channel,
     signedIn: input.signedIn ?? null,
     raisedFor: input.raisedFor ?? null,
+    /* Only for the durable spend row: the invoice counts a rehearsal too. */
+    isTest: input.isTest === true,
   });
 
   /*
@@ -953,8 +955,17 @@ async function generateReply(
   const spend = { input: 0, output: 0, cache_read: 0, cache_write: 0, cost_micros: 0 };
   // Kept so a surprising reply can be traced back to what the model actually called.
   const toolTrace: { name: string; input: unknown; result: string }[] = [];
+  /*
+   * How many times round the model went for this one reply.
+   *
+   * Two or three is ordinary, eight is the ceiling, and the difference is most
+   * of why one reply costs three times another. Worth having on the spend row
+   * rather than inferring it from the token counts afterwards.
+   */
+  let rounds = 0;
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
+    rounds = i + 1;
     /*
      * Cache the conversation as well as the prompt.
      *
@@ -1159,6 +1170,46 @@ ${text}`;
     tool_calls: toolTrace.length ? toolTrace : null,
     usage: spend,
   });
+
+  /*
+   * And the same figure where nothing can tidy it away.
+   *
+   * The line above is what every business-facing figure reads, and it is
+   * deleted with its conversation. Every check in scripts/ writes real
+   * enquiries to a demo and clears them up, a thread thrown away from the
+   * inbox takes its replies with it, and erasing a client is meant to. So the
+   * platform reported £2.14 of model spend for a month while the Anthropic
+   * credit ran down, and both were true: the nine tenths that answered for it
+   * had been deleted.
+   *
+   * Never filtered for being a test either, which is the other half. A
+   * business is rightly not shown its owner's rehearsals; the invoice includes
+   * them.
+   *
+   * Written after the reply is saved and never allowed to break a turn. A
+   * customer being answered matters more than the bookkeeping, and until the
+   * migration is run the insert simply fails and is ignored.
+   */
+  await ctx.db
+    .from("model_spend")
+    .insert({
+      studio_id: ctx.studio.id,
+      studio_slug: ctx.studio.slug,
+      conversation_id: ctx.conversationId,
+      channel: ctx.channel,
+      is_test: ctx.isTest === true,
+      model: MODEL,
+      cost_micros: spend.cost_micros,
+      input_tokens: spend.input,
+      output_tokens: spend.output,
+      cache_read: spend.cache_read,
+      cache_write: spend.cache_write,
+      rounds,
+    })
+    .then(
+      () => undefined,
+      () => undefined,
+    );
 
   /*
    * Somebody got in touch, for a business that wants to hear about all of them.
