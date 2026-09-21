@@ -153,6 +153,23 @@ for (const c of cases) {
   console.log(`\n  > ${c.say}`);
   console.log(`  ${reply.replace(/\s+/g, " ")}`);
 
+  /*
+   * Turned away by the widget's own rate limit, which is not a wrong answer.
+   *
+   * Three of these are Willow's and they fired one after another from one
+   * address, so the third came back "Slow down". The check then read that as
+   * the reply and reported that it had failed to hand a scalp burn to a
+   * person, which is a frightening thing to be told and was not true.
+   *
+   * Said plainly and skipped. The pause below is the actual fix; this is so
+   * that if it ever happens again the reason is on the screen.
+   */
+  if (/^\(no reply: Slow down\)?/i.test(reply)) {
+    console.log("  — rate limited, not asked properly. Nothing to read into this one.");
+    await tidyUp(db(), c.slug, ["awkw"]);
+    continue;
+  }
+
   for (const slip of neverSay(reply)) {
     faults++;
     console.log(`  ✗ ${slip.what}: "${slip.saying}"`);
@@ -169,6 +186,16 @@ for (const c of cases) {
   }
 
   await tidyUp(db(), c.slug, ["awkw"]);
+
+  /*
+   * A breath between questions.
+   *
+   * The widget limits how fast one address may ask, which is right: it is the
+   * thing standing between a business's model bill and somebody holding down
+   * a key. Three of these cases are Willow's, one after another, and the
+   * third was being turned away.
+   */
+  await new Promise((r) => setTimeout(r, 4000));
 }
 
 console.log(
