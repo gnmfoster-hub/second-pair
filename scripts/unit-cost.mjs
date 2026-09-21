@@ -7,6 +7,10 @@
  */
 import fs from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { NUMBER_MONTHLY_PENCE } from "../src/lib/voice/numberCost.ts";
+
+/* One figure for what a number costs, from the place the back office reads. */
+const NUMBER = NUMBER_MONTHLY_PENCE / 100;
 
 const env = Object.fromEntries(
   fs
@@ -81,15 +85,17 @@ const shapes = [
   { name: "Busy — 200 enquiries, 500 appointments", enquiries: 200, reminders: 500 },
 ];
 
-console.log(`\nA month, on those figures (texts at 4p, a number at £1)\n${"─".repeat(60)}`);
+console.log(
+  `\nA month, on those figures (texts at 4p, a number at £${NUMBER.toFixed(2)})\n${"─".repeat(60)}`,
+);
 for (const s of shapes) {
   const model = s.enquiries * perConversation;
   // A reminder is one text; half of enquiries arrive by text and get answered there.
   const texts = s.reminders + s.enquiries * 0.5 * (replies.length / byConv.size);
   const textCost = (texts * 4) / 100;
-  const total = model + textCost + 1;
+  const total = model + textCost + NUMBER;
   console.log(`${s.name}`);
   console.log(
-    `   model £${model.toFixed(2)} + texts £${textCost.toFixed(2)} (${Math.round(texts)}) + number £1.00  =  £${total.toFixed(2)} a month`,
+    `   model £${model.toFixed(2)} + texts £${textCost.toFixed(2)} (${Math.round(texts)}) + number £${NUMBER.toFixed(2)}  =  £${total.toFixed(2)} a month`,
   );
 }
