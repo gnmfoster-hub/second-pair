@@ -13,8 +13,22 @@ import { AlsoFromUs } from "./AlsoFromUs";
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center gap-4 px-5 py-4 sm:px-8">
+      {/*
+        * The nav bar, DESIGN.md §5.
+        *
+        * Full-width putty with a 2px ink rule beneath it, 76px tall on
+        * desktop. It was a translucent blurred bar the colour of the page,
+        * which is the default every framework ships; putty makes it an object
+        * the page sits under rather than a fog over the top of it.
+        *
+        * No Pricing link, per §5: pricing is per job and lives inside each
+        * service page as "From [YOUR PRICE]" with a Book a chat beside it.
+        */}
+      <header
+        className="sticky top-0 z-30"
+        style={{ background: "var(--putty)", borderBottom: "2px solid var(--foreground)" }}
+      >
+        <div className="mx-auto flex max-w-6xl items-center gap-4 px-5 sm:px-8" style={{ minHeight: "76px" }}>
           {/* Thirty pixels disappeared into the header, and this is the only
               place most people will ever see the name. */}
           {/*
@@ -74,7 +88,43 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             </span>
           </Link>
 
-          <div className="ml-auto flex items-center gap-2 sm:gap-3">
+          {/*
+            * The four sections, §5.
+            *
+            * The nav had no links at all: a logo on the left and two buttons
+            * on the right. These are the four the brief names, in its order,
+            * and they are the only navigation the site has.
+            *
+            * Hidden below lg rather than wrapped. §11 asks for all four plus
+            * the mark at 1280px without wrapping or clipping, and a narrow
+            * phone cannot hold them beside a logo and a button; the same links
+            * are in the footer, which is where a phone finds them.
+            */}
+          <nav
+            className="ml-auto hidden items-center gap-6 lg:flex"
+            style={{
+              fontFamily: "var(--font-body)",
+              fontWeight: 600,
+              fontSize: "14px",
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+            }}
+          >
+            <Link href="/system" className="whitespace-nowrap hover:opacity-70">
+              The Second Pair system
+            </Link>
+            <Link href="/websites" className="hover:opacity-70">
+              Websites
+            </Link>
+            <Link href="/apps" className="hover:opacity-70">
+              Apps
+            </Link>
+            <Link href="/work" className="whitespace-nowrap hover:opacity-70">
+              Our work
+            </Link>
+          </nav>
+
+          <div className="ml-auto flex items-center gap-2 sm:gap-3 lg:ml-6">
             {/*
               * The other product used to live here, and does not any more.
               *
@@ -135,9 +185,15 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                  its text and let the label wrap, which is how this ended up
                  reading "Get / set / up" on a phone; the row has other things
                  that can give, and this is not one of them. */
-              className="btn inline-flex whitespace-nowrap bg-highlight font-semibold text-on-highlight hover:brightness-95"
+              /* §5: the nav's call to action is the ink button, and it is
+                 "Book a chat" now rather than "Get set up" — the brief names
+                 it and it describes the thing that actually happens. Never on
+                 two lines: flex will shrink a button below its text and let
+                 the label wrap, which is how this once read "Get / set / up"
+                 on a phone. */
+              className="btn-ink inline-flex whitespace-nowrap"
             >
-              Get set up
+              Book a chat
             </a>
           </div>
         </div>

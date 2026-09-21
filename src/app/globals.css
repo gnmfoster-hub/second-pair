@@ -68,6 +68,15 @@
   --logo-bubble: #16150f;
 
   /*
+   * The grain, §4, defined once and used by the buttons and the page overlay.
+   *
+   * feTurbulence at baseFrequency 1.1 over two octaves, flattened to alpha.
+   * It is what stops a flat cobalt rectangle reading as a web button: at
+   * soft-light it is a texture in the ink rather than a layer on top of it.
+   */
+  --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+
+  /*
    * §4: one hard offset shadow on paper cards, one deep soft shadow on
    * floating objects. Never both on the same element, never Material drops.
    */
@@ -284,10 +293,23 @@ body {
    * phone. It was a flat 22px, which read as timid on a wide screen and was
    * the main reason pages felt like forms rather than a product.
    */
+  /*
+   * Anton has one weight, and asking for another draws it twice.
+   *
+   * This said font-semibold. Anton ships 400 only, so the browser synthesised
+   * the bold by smearing the glyphs, which is why every page title had a faint
+   * doubled edge. Nothing in the markup says so; it just looks slightly wrong
+   * on every screen.
+   *
+   * So: no weight, uppercase and positive tracking per §3, which is how a
+   * poster face is set anyway.
+   */
   .page-title {
-    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-display), Impact, "Arial Narrow", sans-serif;
     font-size: clamp(1.5rem, 1.25rem + 0.9vw, 1.875rem);
-    @apply font-semibold leading-[1.15] tracking-[-0.025em];
+    @apply leading-[0.96] tracking-[0.01em];
+    font-weight: 400;
+    text-transform: uppercase;
     text-wrap: balance;
   }
 
@@ -299,13 +321,18 @@ body {
   }
 
   .section-title {
-    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-    @apply text-[0.9375rem] font-semibold tracking-[-0.01em];
+    font-family: var(--font-display), Impact, "Arial Narrow", sans-serif;
+    @apply text-[1.0625rem] tracking-[0.02em];
+    font-weight: 400;
+    text-transform: uppercase;
   }
 
   .stat {
-    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-    @apply text-[1.75rem] font-semibold leading-none tracking-[-0.02em] tabular-nums;
+    font-family: var(--font-display), Impact, "Arial Narrow", sans-serif;
+    /* One weight only: see .page-title. Tabular so a column of figures lines
+       up, which is the whole reason this class exists. */
+    @apply text-[1.75rem] leading-none tracking-[0.01em] tabular-nums;
+    font-weight: 400;
   }
 
   /* The pack sets the wordmark in Inter: "second" at 400, "pair" at 500,
@@ -352,6 +379,47 @@ body {
     @apply tabular-nums;
   }
 
+  /*
+   * Message bubbles, §5.
+   *
+   * Customer paper-2, assistant cobalt on white. 16px all round except the
+   * corner nearest its own side, which is 4px — that one notch is what makes a
+   * rectangle read as something somebody said.
+   */
+  .bubble {
+    @apply inline-block max-w-[46ch] px-3.5 py-2.5 text-[0.9375rem] leading-relaxed;
+    border-radius: 16px;
+  }
+
+  .bubble-them {
+    background: var(--surface-2);
+    color: var(--foreground);
+    border-bottom-left-radius: 4px;
+  }
+
+  .bubble-us {
+    background: var(--accent);
+    color: var(--on-accent);
+    border-bottom-right-radius: 4px;
+  }
+
+  /*
+   * Booking card, §5: white, 2px cobalt keyline, the day and time in cobalt
+   * down the left in Anton over two lines, what it is and its status on the
+   * right.
+   */
+  .booking-card {
+    @apply flex items-center gap-3 bg-surface p-3;
+    border: 2px solid var(--accent);
+    border-radius: 12px;
+  }
+
+  .booking-when {
+    font-family: var(--font-display), Impact, sans-serif;
+    color: var(--accent);
+    @apply text-center uppercase leading-none;
+  }
+
   /* ------------------------------------------------------------- surfaces */
 
   /*
@@ -367,9 +435,33 @@ body {
    * two things that genuinely float above the page — a sheet and a popover —
    * where lifting means something.
    */
+  /*
+   * §4: square corners, and the hard offset shadow rather than a soft drop.
+   *
+   * On light the card is paper on a desk with a printed shadow behind it. In
+   * dark the token becomes a hairline instead, because a 6px black slab on
+   * near-black reads as a rendering fault rather than as a poster.
+   */
   .card {
-    @apply rounded-xl border border-border bg-surface;
+    @apply border-2 bg-surface;
+    border-color: var(--foreground);
+    border-radius: 0;
     box-shadow: var(--shadow-card);
+  }
+
+  /*
+   * Inside the product, quieter.
+   *
+   * §9: the app is looked at all day, so brand applied not shouted. A screen
+   * of fifteen stacked cards each with a 2px ink keyline and a 6px slab is a
+   * poster, not a working inbox. Panels here keep the square corner and take a
+   * hairline, and the poster treatment is kept for things that float.
+   */
+  .app .card,
+  .card-quiet {
+    @apply border bg-surface;
+    border-color: var(--border);
+    box-shadow: none;
   }
 
   /* For the rare block that really is raised off the page. */
@@ -513,8 +605,11 @@ body {
   }
 
   .empty-title {
-    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-    @apply text-sm font-semibold;
+    font-family: var(--font-display), Impact, "Arial Narrow", sans-serif;
+    /* One weight only: see .page-title. */
+    @apply text-[0.9375rem] tracking-[0.02em];
+    font-weight: 400;
+    text-transform: uppercase;
   }
 
   .empty-body {
@@ -542,59 +637,212 @@ body {
 
   /* Tailwind v4 cannot @apply one component class inside another, so the shared
      button rules live in a plain selector list instead. */
+  /*
+   * Poster-press buttons, DESIGN.md §5.
+   *
+   * A coloured face with a 2px ink keyline, a slab of the opposite colour
+   * offset behind it with its own keyline, an inset highlight along the top
+   * and a shade along the bottom, and a fine grain in the face at soft-light.
+   * Pressing it moves the face onto the slab.
+   *
+   * The whole thing is box-shadow — face keyline, slab, slab keyline — so
+   * there is one element and no pseudo-element to get out of step, which is
+   * what the reference does in .b3 and why the press stays square at every
+   * size.
+   *
+   * Square corners except 6px, per §4. The old buttons were rounded-xl.
+   *
+   * Every button keeps its class name and its behaviour. This is the same
+   * .btn-primary the whole product already calls; only its face has changed.
+   */
   .btn,
   .btn-primary,
+  .btn-highlight,
   .btn-ghost,
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
-           text-sm font-medium transition-colors disabled:opacity-50
+    @apply relative inline-flex items-center justify-center gap-2 px-5
+           transition-transform disabled:opacity-50
            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
            focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+    border-radius: 6px;
+    border: none;
+    font-family: var(--font-display), Impact, "Arial Narrow", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 1rem;
+    line-height: 1;
+    /* §5: 44px default, 54px large, 62px hero. */
     min-height: 2.75rem;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    background-image: var(--grain);
+    background-blend-mode: soft-light;
   }
 
+  /* Cobalt face, paper slab. The primary action. */
   .btn-primary {
-    @apply bg-accent hover:bg-accent/90;
+    background-color: var(--accent);
     color: var(--on-accent);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      inset 0 -4px 0 rgba(0, 0, 0, 0.3),
+      0 0 0 2px var(--foreground),
+      6px 6px 0 var(--background),
+      6px 6px 0 2px var(--foreground);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    transform: translate(3px, 3px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      inset 0 -4px 0 rgba(0, 0, 0, 0.3),
+      0 0 0 2px var(--foreground),
+      3px 3px 0 var(--background),
+      3px 3px 0 2px var(--foreground);
+  }
+
+  .btn-primary:active:not(:disabled) {
+    transform: translate(5px, 5px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      inset 0 -4px 0 rgba(0, 0, 0, 0.3),
+      0 0 0 2px var(--foreground);
   }
 
   /*
-   * The one that goes somewhere.
+   * The act colour, same press.
    *
-   * Orange is the brand's signature and it appeared nowhere in the product —
-   * every button was navy, so no screen had a focal point. The rule that keeps
-   * it meaning something: highlight is for an action that reaches outward or
-   * creates something — Send, Add, Invite. Save stays navy. More than one of
-   * these on a screen and it is being used wrong.
+   * The rule that keeps it meaning something is unchanged: highlight is for an
+   * action that reaches outward or creates something — Send, Add, Invite. Save
+   * stays cobalt. More than one on a screen and it is being used wrong.
    *
    * Ink on orange, never white: white on this orange fails contrast.
    */
   .btn-highlight {
-    background: var(--highlight);
+    background-color: var(--highlight);
     color: var(--on-highlight);
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
-           text-sm font-semibold transition-colors disabled:opacity-50
-           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-           focus-visible:ring-offset-2 focus-visible:ring-offset-background;
-    min-height: 2.75rem;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      inset 0 -4px 0 rgba(0, 0, 0, 0.25),
+      0 0 0 2px var(--foreground),
+      6px 6px 0 var(--background),
+      6px 6px 0 2px var(--foreground);
   }
 
   .btn-highlight:hover:not(:disabled) {
-    background: var(--highlight-strong);
+    background-color: var(--highlight-strong);
+    transform: translate(3px, 3px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      inset 0 -4px 0 rgba(0, 0, 0, 0.25),
+      0 0 0 2px var(--foreground),
+      3px 3px 0 var(--background),
+      3px 3px 0 2px var(--foreground);
   }
 
+  .btn-highlight:active:not(:disabled) {
+    transform: translate(5px, 5px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      inset 0 -4px 0 rgba(0, 0, 0, 0.25),
+      0 0 0 2px var(--foreground);
+  }
+
+  /*
+   * Secondary, and deliberately the outline rather than the ink slab.
+   *
+   * §5 draws the secondary as a solid ink face with a cobalt slab, which is
+   * right on a poster and wrong here: .btn-ghost is Cancel, Close, Copy link
+   * and forty other small things inside the product, and §9 asks for "primary
+   * cobalt, secondary ink outline" for exactly that reason. The solid version
+   * is .btn-ink below, for the marketing site.
+   */
   .btn-ghost {
-    @apply border border-border text-muted hover:text-foreground hover:border-muted/50;
+    background-color: transparent;
+    background-image: none;
+    color: var(--foreground);
+    box-shadow: 0 0 0 2px var(--foreground);
   }
 
-  /* Destructive is its own colour now, not the brand one. Red means a problem. */
+  .btn-ghost:hover:not(:disabled) {
+    background-color: var(--surface-2);
+  }
+
+  /*
+   * The poster secondary: ink face, paper text, cobalt slab at 5px.
+   *
+   * §5's secondary, kept for the marketing site and the nav, where a button
+   * is an object on a poster rather than a control in a row.
+   */
+  .btn-ink {
+    @apply relative inline-flex items-center justify-center gap-2 px-5
+           transition-transform disabled:opacity-50
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+           focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+    border-radius: 6px;
+    border: none;
+    font-family: var(--font-display), Impact, "Arial Narrow", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 1rem;
+    line-height: 1;
+    min-height: 2.75rem;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    background-image: var(--grain);
+    background-blend-mode: soft-light;
+    background-color: var(--foreground);
+    color: var(--background);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      inset 0 -4px 0 rgba(0, 0, 0, 0.7),
+      0 0 0 2px var(--foreground),
+      5px 5px 0 var(--accent),
+      5px 5px 0 2px var(--foreground);
+  }
+
+  .btn-ink:hover:not(:disabled) {
+    transform: translate(3px, 3px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      inset 0 -4px 0 rgba(0, 0, 0, 0.7),
+      0 0 0 2px var(--foreground),
+      3px 3px 0 var(--accent),
+      3px 3px 0 2px var(--foreground);
+  }
+
+  .btn-ink:active:not(:disabled) {
+    transform: translate(5px, 5px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
+      inset 0 -3px 0 rgba(0, 0, 0, 0.7),
+      0 0 0 2px var(--foreground);
+  }
+
+  /* Tertiary, §5: text with a 3px underline. No face, no slab. */
+  .btn-text {
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    min-height: 0;
+    font-family: var(--font-display), Impact, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--foreground);
+    border-bottom: 3px solid var(--accent);
+    cursor: pointer;
+  }
+
+  /* Destructive is its own colour, not the brand one. Red means a problem. */
   .btn-danger {
-    @apply border border-border text-muted;
+    background-color: transparent;
+    background-image: none;
+    color: var(--muted);
+    box-shadow: 0 0 0 2px var(--border);
   }
 
-  .btn-danger:hover {
+  .btn-danger:hover:not(:disabled) {
     color: var(--bad);
-    border-color: color-mix(in srgb, var(--bad) 50%, transparent);
+    box-shadow: 0 0 0 2px var(--bad);
   }
 
   /*

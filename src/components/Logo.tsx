@@ -20,16 +20,6 @@
  * navy bubble unchanged and lighten only the words.
  */
 
-/** Every size shipped, so the browser can pick for the display it is on. */
-const MARK_SIZES = [32, 48, 64, 96, 128, 192, 256] as const;
-
-const SRCSET = MARK_SIZES.map((s) => `/brand/mark/mark-${s}.png ${s}w`).join(", ");
-
-/** The smallest shipped size that still covers what is being asked for. */
-function nearest(wanted: number): number {
-  return MARK_SIZES.find((s) => s >= wanted) ?? MARK_SIZES[MARK_SIZES.length - 1];
-}
-
 export function Mark({
   className = "size-7",
   title = "Second Pair",
@@ -46,9 +36,15 @@ export function Mark({
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={`/brand/mark/mark-${nearest(sizePx * 2)}.png`}
-      srcSet={SRCSET}
-      sizes={`${sizePx}px`}
+      /*
+       * The new pack's bubble mark, which is a vector.
+       *
+       * The old one was a raster at seven sizes with a srcSet to pick between
+       * them. This is one SVG that is sharp at every size, so the sizes and
+       * the srcSet go with it, and with them the seven-size table they indexed.
+       * §6: below 40px the flat two-colour mark is the correct one.
+       */
+      src={sizePx < 40 ? "/brand/logo/mark-flat-two-colour.png" : "/brand/logo/bubble-mark.svg"}
       alt={title}
       className={className}
       /*
@@ -193,10 +189,27 @@ function Wordmark({ size }: { size: number }) {
        * one colour the brand is built around. Inheriting costs nothing where
        * it sits today, because the header it lives in is foreground anyway.
        */
-      className="wordmark whitespace-nowrap text-current"
-      style={{ fontSize: size, lineHeight: 1.05 }}
+      /*
+       * Anton, uppercase, per DESIGN.md §3 and §5.
+       *
+       * It was two weights of Inter, "second" at 400 and "pair" at 500, which
+       * was the old pack's specification. The new one has one display face and
+       * one weight, so the distinction between the two words is gone and the
+       * wordmark is simply set.
+       *
+       * Still inherits its colour rather than fixing it, so the lockup works
+       * on ink as well as on paper.
+       */
+      className="whitespace-nowrap text-current"
+      style={{
+        fontSize: size,
+        lineHeight: 1.05,
+        fontFamily: "var(--font-display), Impact, sans-serif",
+        textTransform: "uppercase",
+        letterSpacing: "0.01em",
+      }}
     >
-      second <span className="font-medium">pair</span>
+      second pair
     </span>
   );
 }

@@ -28,6 +28,19 @@ const PUBLIC_PATHS = [
    * says so and the link looks like it works.
    */
   "/family-app",
+  /*
+   * The four sections the nav names, DESIGN.md §5.
+   *
+   * Public for exactly the reason /family-app is: left off this list they are
+   * not 404s, they are pages in the site's own navigation that bounce every
+   * visitor to a password box. Caught by opening them on the built site rather
+   * than by trusting that a new route under (marketing) is public because its
+   * neighbours are.
+   */
+  "/system",
+  "/websites",
+  "/apps",
+  "/work",
   // Who is behind this, which is the page a cautious buyer goes looking for.
   "/company",
   /*
