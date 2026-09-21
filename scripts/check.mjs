@@ -4,8 +4,8 @@
  *   npm run check          the quick ones — about two minutes
  *   npm run check -- --all everything, including the slow screen sweep
  *
- * There are nine of these now and nothing that runs them together, so which
- * ones get run depends on which ones somebody remembers. That is not a
+ * There are thirteen of these now and nothing else that runs them together, so
+ * which ones get run depends on which ones somebody remembers. That is not a
  * theoretical worry: the diary search shipped with a fault that check-find
  * would have caught, because check-find did not exist yet and nothing prompted
  * anybody to wonder what was missing.
@@ -102,6 +102,34 @@ const checks = [
     name: "a signature is taken once, and only once",
     run: ["node", "scripts/check-forms.cjs"],
     /** Its own form and its own contact on the demo, both removed after. */
+    writes: true,
+  },
+  /*
+   * The afternoons this product exists for.
+   *
+   * Everything above is a conversation going well. These are somebody out of
+   * area, an angry customer, a child, a scalp burnt by yesterday's colour, and
+   * a job the business has never done, where the helpful reflex is the wrong
+   * one and a slot next Tuesday reads as "this can wait".
+   */
+  {
+    name: "the awkward conversations",
+    run: ["node", "scripts/check-awkward.mjs"],
+    /** One enquiry per case across five demos, each cleared up after. */
+    writes: true,
+  },
+  /*
+   * And the assistant that sells, which nothing checked at all.
+   *
+   * It is the only one here whose wrong answer costs a customer who never
+   * existed, so nobody ever reports it. It was telling prospects it answers
+   * WhatsApp and Instagram, of three channels that need Meta's review and are
+   * marked "coming shortly" in the dashboard.
+   */
+  {
+    name: "what a prospect is told before they buy",
+    run: ["node", "scripts/check-sales.mjs"],
+    /** Twelve questions to the support account, cleared up after. */
     writes: true,
   },
   {
