@@ -6,6 +6,7 @@ import { isOutOfHours } from "@/lib/report";
 import { notifyStudio } from "@/lib/notify";
 import { whoOffers } from "./whoOffers";
 import { reachableFrom } from "./reachableFrom";
+import { isFirstReply } from "./firstReply";
 import Anthropic from "@anthropic-ai/sdk";
 import { stopwatch, type Spent } from "./clock";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -806,17 +807,18 @@ async function generateReply(
   const inOrder = [...(history ?? [])].reverse();
 
   /*
-   * Whether this is the first thing the assistant has said to them.
+   * Whether the assistant has ever answered this person before.
    *
-   * It used to count the owner's own messages too, so a thread the owner
-   * started — a "your appointment is tomorrow" sent from the client's record —
-   * suppressed the disclosure on the assistant's first reply. The customer
-   * then talked to something they had never been told was not a person.
+   * It used to count the owner's own messages, so a thread the owner started
+   * suppressed the disclosure and the customer talked to something they had
+   * never been told was not a person. That was fixed by ignoring the owner,
+   * and the same hole reopened from the other side: a reminder is recorded
+   * with the assistant's name on it, so a client booked over the counter,
+   * replying to one, was answered with no disclosure either.
    *
-   * The owner writing to somebody is not the assistant introducing itself, and
-   * only the second one is the disclosure.
+   * Written down in its own file now, with the threads that go wrong in it.
    */
-  const isFirstReply = !inOrder.some((m) => m.role === "assistant");
+  const firstReply = isFirstReply(inOrder);
 
   const messages: Anthropic.MessageParam[] = recentHistory(inOrder).map((m) => ({
     // An owner's own reply reads as the assistant's voice to the client.
@@ -1075,7 +1077,7 @@ async function generateReply(
    * Every other channel still needs it here: a text message has no screen of
    * ours to put a line on.
    */
-  if (isFirstReply && text && ctx.channel !== "web") {
+  if (firstReply && text && ctx.channel !== "web") {
     const url = ctx.studio.privacy_notice_url;
 
     /*
@@ -1158,7 +1160,7 @@ ${text}`;
    * that happens here. notifyStudio never throws, but the ordering says what is
    * true anyway: the customer being answered comes first.
    */
-  if (isFirstReply && ctx.studio.notify_every_enquiry) {
+  if (firstReply && ctx.studio.notify_every_enquiry) {
     await notifyStudio(ctx.db, ctx.studio.id, {
       title: `A new enquiry on ${ctx.channel}`,
       body: text.slice(0, 140),
