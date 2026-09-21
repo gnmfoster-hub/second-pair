@@ -61,7 +61,7 @@ export function readDmarc(record: string): Dmarc {
        * "@inbox.dmarcdigests.com,mailto:info@second-pair.com" left stranded
        * after the tags that swallowed its beginning.
        */
-      faults.push(`"${part}" is not a tag, it has no name`);
+      faults.push(`"${part}" is not a tag: it has no name`);
       continue;
     }
 

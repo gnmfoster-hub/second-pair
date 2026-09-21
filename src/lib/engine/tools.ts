@@ -1262,7 +1262,7 @@ async function getSlots(
       return {
         result:
           `Nothing free that matches ${narrowed.join(" and ")}. That is not a full ` +
-          "diary, it is only what they asked for. Say so, and offer to look wider: " +
+          "diary. It is only what they asked for. Say so, and offer to look wider: " +
           "call this again without that restriction and offer what comes back.",
       };
     }
