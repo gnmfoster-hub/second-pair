@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Public_Sans, IBM_Plex_Mono, Inter } from "next/font/google";
+import { Anton, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 import { themeScript } from "@/components/ThemeToggle";
 import { RegisterWorker } from "@/components/RegisterWorker";
@@ -30,35 +30,34 @@ import { RegisterWorker } from "@/components/RegisterWorker";
  * every card and every badge share one rhythm, so a screen of fifteen
  * enquiries reads as one repeated shape rather than fifteen different jobs.
  */
-const display = Archivo({
+/*
+ * Two faces, from DESIGN.md §3.
+ *
+ * Anton is the display face: headlines, page titles, day labels, buttons. It
+ * only comes in one weight, which is the point — it is a poster face and it is
+ * used like one, uppercase and stacked.
+ *
+ * Instrument Sans carries everything else, down to the 13px rows the product
+ * is mostly made of.
+ *
+ * The mono face is gone. It existed so money, times and phone numbers lined up
+ * in a column; Instrument Sans has tabular figures and `.num` now asks for them
+ * with font-variant-numeric, which lines up the same and is one fewer font to
+ * fetch. Checked with Giles before dropping it.
+ *
+ * The fourth face, Inter, was only ever the wordmark, which is now Anton.
+ */
+const display = Anton({
   variable: "--font-display",
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["400"],
+  display: "swap",
 });
 
-const body = Public_Sans({
+const body = Instrument_Sans({
   variable: "--font-body",
   subsets: ["latin"],
-});
-
-/*
- * The wordmark, and only the wordmark.
- *
- * The brand pack sets "second pair" in Inter and ships it as outlines. Live
- * text is better here — selectable, scales with its surroundings, no image
- * request — so Inter is loaded for that one string. The interface keeps
- * Archivo and Public Sans.
- */
-const wordmark = Inter({
-  variable: "--font-wordmark",
-  subsets: ["latin"],
-  weight: ["400", "500"],
-});
-
-const mono = IBM_Plex_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  weight: ["400", "500"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -136,7 +135,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       // Without this React reports the attribute it did not render as a
       // mismatch on every single page load.
       suppressHydrationWarning
-      className={`${display.variable} ${body.variable} ${mono.variable} ${wordmark.variable} h-full antialiased`}
+      className={`${display.variable} ${body.variable} h-full antialiased`}
     >
       <head>
         {/* Applies a stored theme before paint, so the page never flashes the

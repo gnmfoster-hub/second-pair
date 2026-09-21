@@ -16,183 +16,181 @@
 
 :root {
   /*
-   * Second Pair. Navy, orange, paper and ink, from the brand pack.
+   * Second Pair, from DESIGN.md §2. Ink, paper, cobalt and putty.
    *
-   * Orange never carries body text — it fails contrast on paper at small
-   * sizes — so it is the highlight only: one call to action per screen, and
-   * the second dot in the mark.
+   * Only the values changed. Every component in this file already speaks in
+   * tokens rather than in colours, which is why re-branding the whole product
+   * is this block and not three hundred files.
+   *
+   * The neutrals are warm because the ink is warm. A blue-grey next to a warm
+   * near-black reads as two unrelated decisions.
    */
+  --background: #f7f4ec;          /* --paper */
+  --surface: #ffffff;             /* panels, §9 */
+  --surface-2: #f2efe6;           /* --paper-2: bubbles, subtle fills */
+  --border: #e6e2d8;              /* --line */
+  --foreground: #16150f;          /* --ink */
+  --muted: #6b675c;
+  --accent: #1f3be3;              /* --cobalt, the one accent */
+  --accent-strong: #1730b4;
+  --putty: #c9c3b5;
+
   /*
-   * A ground that gets out of the way.
+   * The second accent, kept back for one job.
    *
-   * This was a warm cream, #efeee9, with the mark's orange on top of it — and
-   * warm cream with a terracotta accent is the most-drawn interface of the
-   * last two years. It also disagreed with the brand: the mark is navy, the
-   * muted text is a blue-grey, and both were sitting on a beige that pulled
-   * the other way, which is what made the greys look slightly dirty.
+   * DESIGN.md has a single accent, and a single accent cannot say both "this
+   * is a link" and "this one needs you" — which the product has relied on
+   * since it was built: one call to action per screen, and the Need you
+   * figure on the inbox. Asked, Giles said keep a second.
    *
-   * So the ground is now a very quiet cool neutral, a shade off white, with
-   * the same blue in it as the navy. It reads as paper under a window rather
-   * than as a colour choice, which is what a screen somebody looks at for
-   * eight hours should do. The orange is untouched and now has the only warm
-   * note on the page, which is the whole point of a highlight.
+   * It is the orange the product already used, unchanged, because it is warm
+   * and therefore belongs with this ink and this paper in a way a second cool
+   * colour would not. Cobalt stays the accent; this is only ever "act".
+   *
+   * Ink on it passes AA. White on it does not, which is why the pair is named
+   * here once rather than remembered at each button.
    */
-  /*
-   * Three planes, far enough apart to be three planes.
-   *
-   * These were #f4f5f7, #ffffff and #eceef2 — a page, a card and an inset
-   * inside four per cent of each other in lightness, with the sidebar painted
-   * the same colour as the page. Nothing advanced, nothing receded, and a
-   * screen with no depth and almost no colour on it reads as washed out. Giles
-   * called it beige, which is exactly right: not the hue, the flatness.
-   *
-   * So the ground goes down far enough that white genuinely lifts off it, and
-   * the sidebar takes the white — the ground is the desk, the panels are the
-   * paper on it. That is the whole trick and it costs one shade.
-   */
-  --background: #e8ecf2;
-  --surface: #ffffff;
-  --surface-2: #f0f3f8;
-  --border: #dde3ec;
-  --foreground: #141824;
-  --muted: #59626f;
-  --accent: #14243f;
-  --accent-strong: #0c1729;
   --highlight: #f07818;
   --highlight-strong: #c85d0b;
-  /* Ink on orange passes AA; white on it does not. Named once so no
-     button has to remember. */
-  --on-highlight: #17150f;
-  /* Same idea for the accent. White here, ink in dark mode, where the
-     accent is a pale blue that white cannot be read on. */
-  --on-accent: #ffffff;
-  --ok: #1f6b4a;
-  --warn: #8a4708;
-  --bad: #b03024;
+  --on-highlight: #16150f;
 
-  --logo-bubble: #14243f;
+  /* White on cobalt passes comfortably. */
+  --on-accent: #ffffff;
+
+  /* §2 status colours, always used with a text label. */
+  --ok: #2f855a;
+  --warn: #b7791f;
+  --bad: #c53030;
+  --ok-bg: #e6f4ec;
+  --warn-bg: #fbf1dc;
+  --bad-bg: #fbe5e5;
+
+  --logo-bubble: #16150f;
 
   /*
-   * Soft enough to be depth rather than decoration.
-   *
-   * A card had no shadow at all, which was an over-correction: the fault was
-   * everything being lifted equally, and the cure was to lift nothing, which
-   * flattened the whole product. One quiet shadow against a deeper ground
-   * gives the separation without any block shouting.
+   * §4: one hard offset shadow on paper cards, one deep soft shadow on
+   * floating objects. Never both on the same element, never Material drops.
    */
-  --shadow-card:
-    0 1px 2px rgba(19, 30, 51, 0.05),
-    0 4px 12px -4px rgba(19, 30, 51, 0.07);
-  --shadow-pop:
-    0 2px 4px rgba(20, 36, 63, 0.06),
-    0 12px 28px -6px rgba(20, 36, 63, 0.16),
-    0 28px 56px -24px rgba(20, 36, 63, 0.22);
+  --shadow-card: 6px 6px 0 var(--foreground);
+  --shadow-pop: 0 30px 60px -30px rgba(22, 21, 15, 0.5);
 
-  /* Diary. Client work carries the accent because it is the thing that earns;
-     everything else is deliberately quieter. */
-  --cal-client: #14243f;
+  /*
+   * The diary keeps four hues, which is not a brand decision.
+   *
+   * They are how somebody tells a client appointment from a block of their own
+   * work at a glance, and each business picks its own. One accent cannot do
+   * that job, so this stays a functional set outside the brand tokens, the way
+   * the status colours do. Agreed with Giles rather than assumed.
+   */
+  --cal-client: #1f3be3;
   --cal-work: #6b4a9e;
   --cal-note: #16697a;
   --cal-off: #7b8598;
-  /*
-   * The lines inside the diary, quieter than the lines around a card.
-   *
-   * This was #e2e0d9 — a warm beige left over from when the whole app sat on
-   * cream. The ground went neutral and this did not, so the diary was ruled in
-   * a different colour temperature from every other edge on the screen: not
-   * something anybody would name, but it is why a page full of grid reads as
-   * slightly off. The dark palette had already been corrected and this had not.
-   *
-   * Lighter than --border on purpose. A grid line is scaffolding you look
-   * through; the edge of a card is a thing you look at.
-   */
-  --cal-grid: #e6e9ee;
-  /* Hours the business is shut. Must read as recessed in both themes, which
-     the page background cannot do — it is paper in one and near-black in the other. */
-  --cal-closed: rgba(20, 36, 63, 0.055);
+  --cal-grid: #ece8dd;
+  --cal-closed: rgba(22, 21, 15, 0.055);
 
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    /* Reversed, to the pack's own dark values. Navy is the brand but it is far
-       too dark to be an accent on a dark ground, so the accent lifts to a
-       lighter blue that still reads as the same family. Orange stays orange —
-       it is the fixed point the identity hangs on. */
-    --background: #0a0f1a;
-    --surface: #121a2a;
-    --surface-2: #1b2536;
-    --border: #2a3648;
-    --foreground: #eef1f6;
-    --muted: #9baac2;
-    --accent: #6f9bf0;
-    --accent-strong: #93b6f7;
-    --highlight: #f07818;
-    --highlight-strong: #ff8f38;
-    --on-highlight: #17150f;
-    --on-accent: #0a0f1a;
-    --ok: #46c98e;
-    --warn: #eda13f;
-    --bad: #ef7264;
+/*
+ * Dark, from DESIGN.md §9.
+ *
+ * Ink ground, panels one step up from it, paper text, cobalt unchanged because
+ * it is the one thing that must mean the same in both themes. Hairlines are
+ * paper at twelve per cent, which is the only way a rule reads as a rule on
+ * near-black without becoming a stripe.
+ *
+ * Only the tokens are redefined here. Nothing below this block knows which
+ * theme is on, which is what makes two themes cost one block each.
+ */
+    --background: #16150f;
+    --surface: #1f1e17;
+    --surface-2: #26251d;
+    --border: rgba(247, 244, 236, 0.12);
+    --foreground: #f7f4ec;
+    --muted: rgba(247, 244, 236, 0.72);
+    --accent: #6e85ff;
+    --accent-strong: #97a8ff;
+    --putty: #4a473e;
 
-    --logo-bubble: #efeee9;
+    /* The act colour lifts on near-black, where the paper version would glare. */
+    --highlight: #f79241;
+    --highlight-strong: #ffab63;
+    --on-highlight: #16150f;
+    --on-accent: #16150f;
 
-    --shadow-card:
-      inset 0 1px 0 rgba(255, 255, 255, 0.04),
-      0 1px 2px rgba(0, 0, 0, 0.4),
-      0 8px 20px -10px rgba(0, 0, 0, 0.6);
-    --shadow-pop:
-      inset 0 1px 0 rgba(255, 255, 255, 0.06),
-      0 16px 40px -12px rgba(0, 0, 0, 0.7);
+    --ok: #6ec89a;
+    --warn: #e0ae5a;
+    --bad: #ef8b8b;
+    --ok-bg: rgba(110, 200, 154, 0.14);
+    --warn-bg: rgba(224, 174, 90, 0.14);
+    --bad-bg: rgba(239, 139, 139, 0.14);
 
-    --cal-client: #6f9bf0;
+    --logo-bubble: #f7f4ec;
+
+    /* No hard offset shadow on ink: it reads as a mistake, not a poster. */
+    --shadow-card: 0 1px 0 rgba(247, 244, 236, 0.06);
+    --shadow-pop: 0 30px 60px -30px rgba(0, 0, 0, 0.8);
+
+    --cal-client: #6e85ff;
     --cal-work: #a98fe0;
     --cal-note: #48b3c6;
     --cal-off: #7d879a;
-    --cal-grid: #1e2839;
+    --cal-grid: rgba(247, 244, 236, 0.08);
     --cal-closed: rgba(0, 0, 0, 0.38);
 
     color-scheme: dark;
-  }
+ }
 }
 
 :root[data-theme="dark"] {
-  /* Reversed, to the pack's own dark values. Navy is the brand but it is far
-     too dark to be an accent on a dark ground, so the accent lifts to a
-     lighter blue that still reads as the same family. Orange stays orange —
-     it is the fixed point the identity hangs on. */
-  --background: #0a0f1a;
-  --surface: #121a2a;
-  --surface-2: #1b2536;
-  --border: #2a3648;
-  --foreground: #eef1f6;
-  --muted: #9baac2;
-  --accent: #6f9bf0;
-  --accent-strong: #93b6f7;
-  --highlight: #f07818;
-  --highlight-strong: #ff8f38;
-  --on-highlight: #17150f;
-  --on-accent: #0a0f1a;
-  --ok: #46c98e;
-  --warn: #eda13f;
-  --bad: #ef7264;
+/*
+ * Dark, from DESIGN.md §9.
+ *
+ * Ink ground, panels one step up from it, paper text, cobalt unchanged because
+ * it is the one thing that must mean the same in both themes. Hairlines are
+ * paper at twelve per cent, which is the only way a rule reads as a rule on
+ * near-black without becoming a stripe.
+ *
+ * Only the tokens are redefined here. Nothing below this block knows which
+ * theme is on, which is what makes two themes cost one block each.
+ */
+  --background: #16150f;
+  --surface: #1f1e17;
+  --surface-2: #26251d;
+  --border: rgba(247, 244, 236, 0.12);
+  --foreground: #f7f4ec;
+  --muted: rgba(247, 244, 236, 0.72);
+  --accent: #6e85ff;
+  --accent-strong: #97a8ff;
+  --putty: #4a473e;
 
-  --logo-bubble: #efeee9;
+  /* The act colour lifts on near-black, where the paper version would glare. */
+  --highlight: #f79241;
+  --highlight-strong: #ffab63;
+  --on-highlight: #16150f;
+  --on-accent: #16150f;
 
-  --shadow-card:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.4),
-    0 8px 20px -10px rgba(0, 0, 0, 0.6);
-  --shadow-pop:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 16px 40px -12px rgba(0, 0, 0, 0.7);
+  --ok: #6ec89a;
+  --warn: #e0ae5a;
+  --bad: #ef8b8b;
+  --ok-bg: rgba(110, 200, 154, 0.14);
+  --warn-bg: rgba(224, 174, 90, 0.14);
+  --bad-bg: rgba(239, 139, 139, 0.14);
 
-  --cal-client: #6f9bf0;
+  --logo-bubble: #f7f4ec;
+
+  /* No hard offset shadow on ink: it reads as a mistake, not a poster. */
+  --shadow-card: 0 1px 0 rgba(247, 244, 236, 0.06);
+  --shadow-pop: 0 30px 60px -30px rgba(0, 0, 0, 0.8);
+
+  --cal-client: #6e85ff;
   --cal-work: #a98fe0;
   --cal-note: #48b3c6;
   --cal-off: #7d879a;
-  --cal-grid: #1e2839;
+  --cal-grid: rgba(247, 244, 236, 0.08);
   --cal-closed: rgba(0, 0, 0, 0.38);
 
   color-scheme: dark;
@@ -237,7 +235,18 @@
   --color-cal-closed: var(--cal-closed);
   --font-sans: var(--font-body);
   --font-display: var(--font-display);
-  --font-mono: var(--font-mono);
+  /*
+   * Machine text keeps a monospace, and it costs nothing.
+   *
+   * DESIGN.md §3 allows two faces and this is not a third: it is whatever
+   * monospace the machine already has. A pasted iCal address, an embed
+   * snippet and a keyboard key are all things where the characters matter one
+   * at a time, and setting them in the body face makes an l and a 1 the same
+   * shape in a string somebody has to check by eye.
+   *
+   * Nothing is fetched for it, so "no other fonts loaded" still holds.
+   */
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
 }
 
 body {
