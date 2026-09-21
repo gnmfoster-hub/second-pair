@@ -42,16 +42,16 @@ function env() {
  *
  * Add the prefix here the moment a check invents one.
  */
-export const CHECK_PREFIXES = [
-  "speed",
-  "strm",
-  "inpg",
-  "curl",
-  "long",
-  "hdr",
-  "book",
-  "regular-test",
-];
+/*
+ * Read from src/lib/checkSessions, not typed again here.
+ *
+ * The server needs the same list now: it labels a model turn as testing
+ * rather than as a customer on the durable spend record, and every check
+ * talks to the ordinary widget endpoint. Two copies of this list means the
+ * bill and the tidy-up disagree about what a test is.
+ */
+import { CHECK_PREFIXES } from "../src/lib/checkSessions.ts";
+export { CHECK_PREFIXES };
 
 export function db() {
   const e = { ...env(), ...process.env };

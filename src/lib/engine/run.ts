@@ -6,6 +6,7 @@ import { isOutOfHours } from "@/lib/report";
 import { notifyStudio } from "@/lib/notify";
 import { whoOffers } from "./whoOffers";
 import { reachableFrom } from "./reachableFrom";
+import { isCheckSession } from "@/lib/checkSessions";
 import { isFirstReply } from "./firstReply";
 import Anthropic from "@anthropic-ai/sdk";
 import { stopwatch, type Spent } from "./clock";
@@ -619,8 +620,18 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     channel: input.channel,
     signedIn: input.signedIn ?? null,
     raisedFor: input.raisedFor ?? null,
-    /* Only for the durable spend row: the invoice counts a rehearsal too. */
-    isTest: input.isTest === true,
+    /*
+     * Only for the durable spend row, which is why a check counts here and
+     * does not count above.
+     *
+     * The conversation's own is_test flag stays exactly as it was: it decides
+     * what a business is shown, and the checks delete their conversations
+     * anyway. This one decides whose money a turn was, and every check talks
+     * to the ordinary widget endpoint, so without the session-key test their
+     * spend is filed as a customer's — which is the one distinction the
+     * durable record exists to make.
+     */
+    isTest: input.isTest === true || isCheckSession(input.sessionKey),
   });
 
   /*
