@@ -20,7 +20,14 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const BASE = process.env.INKDESK_URL ?? "http://localhost:3000";
+/*
+ * The live site, like every other check here.
+ *
+ * This defaulted to localhost:3000, and three others did too, so running one
+ * without a dev server up gave "BROKE: fetch failed" and no hint that the
+ * address was the problem. INKDESK_URL still points it at a local one.
+ */
+const BASE = process.env.INKDESK_URL ?? process.env.SITE ?? "https://www.second-pair.com";
 
 const env = Object.fromEntries(
   readFileSync(join(root, ".env.local"), "utf8")

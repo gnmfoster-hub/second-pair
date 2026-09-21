@@ -26,7 +26,7 @@ const db = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_
   auth: { persistSession: false },
 });
 
-const BASE = process.env.BASE ?? "http://localhost:3000";
+const BASE = process.env.BASE ?? process.env.SITE ?? "https://www.second-pair.com";
 const name = process.argv[2] ?? "Test Salon";
 
 const { data: studio } = await db

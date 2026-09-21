@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const BASE = process.env.INKDESK_URL ?? "http://localhost:3000";
+const BASE = process.env.INKDESK_URL ?? process.env.SITE ?? "https://www.second-pair.com";
 
 const env = Object.fromEntries(
   readFileSync(join(root, ".env.local"), "utf8")
