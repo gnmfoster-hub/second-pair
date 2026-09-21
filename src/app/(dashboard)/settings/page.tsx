@@ -2,6 +2,7 @@ import { requireOwner } from "@/lib/studio";
 import { canConnectStripe } from "@/lib/env";
 import { isPlatformAdmin } from "@/lib/platform";
 import { createClient } from "@/lib/supabase/server";
+import { readinessOf } from "@/lib/readiness";
 import { SeeItAs } from "./SeeItAs";
 import { StudioForm } from "./StudioForm";
 import { EveryEnquiry } from "./EveryEnquiry";
@@ -65,6 +66,20 @@ export default async function StudioSettingsPage({
     views.sort((a, b) => (a.label === "The owner" ? -1 : b.label === "The owner" ? 1 : 0));
   }
 
+  /*
+   * Why a deposit could not be taken today, for the panel that switches them on.
+   *
+   * The same verdict the set-up list and the inbox card use, rather than a
+   * second attempt at working it out here, so the three cannot drift apart.
+   * Asked only when deposits are actually on: it reads Stripe and the team,
+   * and a business that has decided against deposits is not half-configured.
+   */
+  const depositsUnready = await (async () => {
+    if (studio.deposit_mode === "none") return "";
+    const db = await createClient();
+    const money = (await readinessOf(db, studio)).find((c) => c.key === "stripe");
+    return money && !money.ready ? money.otherwise : "";
+  })();
 
   return (
     <div className="space-y-3">
@@ -88,6 +103,7 @@ export default async function StudioSettingsPage({
          * offered whether or not it could possibly work.
          */
         canConnectStripe={canConnectStripe(studio)}
+        depositsUnready={depositsUnready}
         /*
          * Formatted here, in the business's own zone, because a date turned
          * into words in the browser is a date the server rendered differently

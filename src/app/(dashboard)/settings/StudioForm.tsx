@@ -15,6 +15,7 @@ export function StudioForm({
   studio,
   lastSaved,
   canConnectStripe,
+  depositsUnready = "",
 }: {
   studio: Studio;
   /** When these settings last saved, already in words. */
@@ -25,6 +26,23 @@ export function StudioForm({
    * bounce them straight back — so it says so instead of offering that.
    */
   canConnectStripe: boolean;
+  /**
+   * Why a deposit could not be taken today, if it could not. Empty when it can.
+   *
+   * This screen is where somebody chooses "the slot is held until it is paid"
+   * and it said nothing at all about whether money can actually be taken. The
+   * warning existed, on the inbox card and the set-up page, which are two
+   * screens somebody stops visiting once the business is running.
+   *
+   * So a business could sit with a confident radio button selected here while
+   * every conversation correctly told customers there is no deposit, and the
+   * two screens never met. Pawfect is in exactly that state on the demos.
+   *
+   * Worked out on the server and handed over as a sentence, because it needs
+   * Stripe and the team, and because the same words should appear here as in
+   * the set-up list rather than a second attempt at saying it.
+   */
+  depositsUnready?: string;
 }) {
   const [state, action] = useActionState<FormState, FormData>(updateStudio, {});
   const [depositType, setDepositType] = useState(studio.deposit_rule.type);
@@ -271,6 +289,25 @@ export function StudioForm({
             ))}
           </div>
         </Field>
+
+        {/*
+          * Said where the choice is made, not two screens away.
+          *
+          * Deposits can be switched on here by somebody who cannot take one,
+          * and until now this screen let them: a confident "the slot is held
+          * until it is paid" sat selected while every conversation correctly
+          * told customers there is no deposit, because the assistant is given
+          * the effective answer rather than the setting. Nothing on this page
+          * joined those two facts up.
+          *
+          * The same sentence the set-up list uses, so the two cannot drift.
+          */}
+        {depositMode !== "none" && depositsUnready && (
+          <p className="rounded-lg bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">
+            <strong>Not working yet.</strong> {depositsUnready} Until then the assistant
+            books people in without mentioning money, whichever of these is chosen.
+          </p>
+        )}
 
         {depositMode === "none" ? (
           <p className="hint">
