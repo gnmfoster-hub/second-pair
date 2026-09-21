@@ -627,9 +627,22 @@ export function StudioForm({
           />
         </Field>
 
+        {/*
+          * What actually happens with it, and what happens without it.
+          *
+          * The hint said "linked in the assistant's first message on every
+          * channel", which is true of a text and not of the website: there the
+          * widget carries the line before anybody types a word, which is the
+          * better place for it and the reason it is not said twice.
+          *
+          * And it never said what an empty box does. The line still appears
+          * and still says they are talking to an assistant; the link to what
+          * happens to their details is the part that quietly goes, which is
+          * the half the law is actually about.
+          */}
         <Field
           label="Privacy notice URL"
-          hint="Linked in the assistant's first message on every channel. Required under UK GDPR."
+          hint="On your website the widget shows it before anybody types; everywhere else it goes in the assistant's first reply. Leave it empty and people are still told they are talking to an assistant, but there is nowhere for them to read what happens to what they type. Required under UK GDPR."
         >
           <input
             name="privacy_notice_url"
