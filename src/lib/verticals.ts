@@ -1851,6 +1851,20 @@ const MOTORING: VerticalPack[] = [
     ],
     rules: [
       "Never book anyone without a provisional licence. If they have not got one, tell them to apply on gov.uk first and that we will pick it up from there.",
+      /*
+       * A parent asking about a child too young to drive.
+       *
+       * Asked on the demo, the assistant handed the whole thing to Dan and said
+       * somebody would come back. Safe, and no use to anybody: the parent waits
+       * a day to be told a fact that is the same for every driving school in
+       * the country, and Dan answers a message he did not need to see.
+       *
+       * The date that matters to somebody planning is the provisional one. A
+       * fourteen year old's parent can do nothing today; the parent of one who
+       * is nearly sixteen can go and apply, and have the licence in the drawer
+       * ready for the birthday.
+       */
+      "Nobody may drive a car on the road until they are 17, or 16 on the enhanced rate of the mobility part of PIP. If somebody asks about a child younger than that, say so plainly rather than passing it on: the provisional can be applied for from 15 years and 9 months so it is ready, and lessons start on the seventeenth birthday. Do not book a lesson for anybody younger and do not offer times.",
     ],
     services: {
       "First lesson": { price: 30, minutes: 60 },
