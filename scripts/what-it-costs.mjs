@@ -11,6 +11,7 @@
  */
 import fs from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { NUMBER_MONTHLY_PENCE } from "../src/lib/voice/numberCost.ts";
 
 const env = Object.fromEntries(
   fs
@@ -32,7 +33,15 @@ const RATES = {
   // Twilio UK: outbound long-code SMS, per 160-character segment.
   smsOut: 4.0,
   smsIn: 0.75,
-  numberPerMonth: 100,
+  /*
+   * From the one place that knows, not typed again here.
+   *
+   * This said 100 and numberCost.ts said 115, so the supply summary in the back
+   * office and this report disagreed about the same real bill by fifteen per
+   * cent. Two numbers for one fact is how a margin goes quietly wrong, and
+   * being able to trust the figure at the bottom is the entire point of this.
+   */
+  numberPerMonth: NUMBER_MONTHLY_PENCE,
   // Resend: 3,000 free a month then $20 for 50,000 — a hundredth of a penny.
   email: 0.03,
   // Shared, per business, at the plans we are on. Vercel Pro $20, Supabase Pro
