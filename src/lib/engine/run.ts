@@ -820,6 +820,22 @@ async function generateReply(
    */
   const firstReply = isFirstReply(inOrder);
 
+  /*
+   * And a different question, which was sharing the answer by accident.
+   *
+   * "Tell me about every enquiry" wants to know when a conversation starts.
+   * The disclosure wants to know whether the assistant has introduced itself.
+   * They agreed on every thread until reminders were excluded from the second
+   * one, and then widening that quietly widened this too: a client replying to
+   * their own appointment reminder would have buzzed the owner's phone with
+   * "A new enquiry on sms", which it is not — it is a reply about a booking
+   * they already have, and Living Canvas has that alert switched on.
+   *
+   * So it keeps the rule it has always had. Nothing the assistant has ever
+   * said, of any kind, means the conversation is already under way.
+   */
+  const isNewEnquiry = !inOrder.some((m) => m.role === "assistant");
+
   const messages: Anthropic.MessageParam[] = recentHistory(inOrder).map((m) => ({
     // An owner's own reply reads as the assistant's voice to the client.
     role: m.role === "client" ? "user" : "assistant",
@@ -1160,7 +1176,7 @@ ${text}`;
    * that happens here. notifyStudio never throws, but the ordering says what is
    * true anyway: the customer being answered comes first.
    */
-  if (firstReply && ctx.studio.notify_every_enquiry) {
+  if (isNewEnquiry && ctx.studio.notify_every_enquiry) {
     await notifyStudio(ctx.db, ctx.studio.id, {
       title: `A new enquiry on ${ctx.channel}`,
       body: text.slice(0, 140),
