@@ -142,10 +142,28 @@ const checks = [
 
 const chosen = checks.filter((c) => all || c.quick);
 
+/*
+ * What this run will spend, said before it spends it.
+ *
+ * The checks that talk to a demo hold real conversations, and a real
+ * conversation costs real money on the Anthropic account. Two full runs in a
+ * day is several pounds, which is fine when it is deliberate and is not fine
+ * as a habit nobody has priced.
+ *
+ * Roughly, at about 2p a turn measured over the last month — see
+ * scripts/unit-cost.mjs. Deliberately a rough number said out loud rather than
+ * a precise one nobody reads.
+ */
+const TURNS = { stream: 2, speed: 5, booking: 6, after: 6, awkward: 10, sales: 12 };
+const spendPence = all
+  ? Math.round(Object.values(TURNS).reduce((a, b) => a + b, 0) * 2.1)
+  : 0;
+
 console.log(
   all
-    ? `Running all ${chosen.length} checks. The last one takes about ten minutes.`
-    : `Running the ${chosen.length} quick checks. Add --all for the rest.`,
+    ? `Running all ${chosen.length} checks. The last one takes about ten minutes, ` +
+        `and the ones that hold real conversations will spend roughly ${spendPence}p of model credit.`
+    : `Running the ${chosen.length} quick checks. None of them spends anything. Add --all for the rest.`,
 );
 
 /**
