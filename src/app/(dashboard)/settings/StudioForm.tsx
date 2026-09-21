@@ -301,22 +301,17 @@ export function StudioForm({
           * joined those two facts up.
           *
           * The same sentence the set-up list uses, so the two cannot drift.
+          *
+          * And no claim about what the assistant says meanwhile. The first
+          * version said it books people in without mentioning money, which is
+          * true in every case but one: when the fault is ours rather than the
+          * business's, effectiveDepositMode still reads the setting, because it
+          * asks whether an account could be paid rather than whether our own
+          * key is set. So that sentence would have been wrong in exactly the
+          * case the business can do nothing about. What is true in all of them
+          * is that nobody can pay, which is the part an owner needs anyway.
           */}
         {depositMode !== "none" && depositsUnready && (
-          {/*
-            * And no claim about what the assistant says meanwhile.
-            *
-            * The first version of this said it books people in without
-            * mentioning money, which is true in every case but one: when the
-            * fault is ours rather than the business's, effectiveDepositMode
-            * still reads the setting, because it asks whether an account could
-            * be paid rather than whether our own key is set. So the sentence
-            * would have been wrong in exactly the case the business can do
-            * nothing about.
-            *
-            * What is true in all of them is that nobody can pay, which is also
-            * the part an owner needs.
-            */}
           <p className="rounded-lg bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">
             <strong>Not working yet.</strong> {depositsUnready} Nobody can pay a deposit
             until that is sorted, whichever of these is chosen.
