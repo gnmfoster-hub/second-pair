@@ -111,6 +111,22 @@ const CASES = [
     refuses: /book|appointment|slot|times/i,
     because: "did not hand a burn to a person without advising on it",
   },
+  /*
+   * Sooner than the business has said it can manage.
+   *
+   * Cogs asks for four hours' notice. The failure here is the eager one: an
+   * assistant that says yes to "in the next hour" has promised somebody a bay
+   * that is not free and a mechanic who does not know they are coming, and the
+   * customer finds out by driving there.
+   */
+  {
+    slug: "cogs-demo",
+    what: "sooner than the notice period allows",
+    say: "can you look at it in the next hour? it is urgent but not dangerous",
+    wants: /nothing in the next hour|not in the next hour|soonest|earliest|sorry/i,
+    refuses: /see you in an hour|come (straight |right )?(down|over) now|yes,? we can do that/i,
+    because: "took a booking inside the notice the business asked for",
+  },
   {
     slug: "willow-demo",
     what: "asking for a discount nobody has offered",
