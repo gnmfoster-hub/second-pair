@@ -16,6 +16,12 @@ Last updated: 16 September 2026, after the overnight review of the whole site.
 
 # Migrations
 
+**Run on 22 September:** `20260922210000_booking_confirmations.sql` — lets
+`hours_before` be zero, which is how a template says "send this one as they
+book". Nothing else changed. Until it ran, the settings screen offered
+confirmations and the save said so in words rather than showing a raw
+constraint error.
+
 **One waiting:** `20260917120000_assistant_books.sql` — one line, so the owner
 can keep somebody in the diary and off the channels. Until it runs, everybody
 is offered exactly as they are today.
@@ -619,12 +625,30 @@ feeds (the database still prevents any double-booking).
 - **Anything still salon-shaped** — the diary's column button, the client list
   and the team screens now use each trade's own words.
 
+## Done on 22 September, with the re-brand
+
+- **Booking confirmations** — a message as soon as somebody books, saying what
+  they have booked and when. It is a reminder template set to zero hours
+  before, so it reuses the whole of the reminder machinery: rendering, the
+  channel they came in on, their opt-out, the claim that stops it going twice,
+  the record in the thread, and the owner-sends-by-hand fallback. Settings asks
+  it in words rather than expecting anybody to type a nought, and set-up offers
+  it as an optional step. It is sent at booking time rather than by the sweep,
+  because the sweep runs once a day at seven. Payment pre-authorisation is
+  deliberately not done — parked with you.
+- **A hue per section** in the sidebar and the phone bar, on the icon only.
+  Cobalt stays the one accent.
+- **The settings menu on a phone** is the same sheet as the account corner and
+  the public site's, instead of the browser's grey dropdown.
+
 ## Next, in the order I would do them
 
-### 1. A first-run walk-through for a new business
+### 1. Saying an appointment has moved
 
-Opens on first sign-in and walks the owner through hours, prices, the team,
-Stripe and a test message, ticking each off, and can be picked up later.
+A confirmation goes once, on purpose — dragging somebody across the diary must
+not thank them for booking a second time. But a moved appointment does want
+saying, and it is a different message with different words. Small, and the
+wording is the part worth agreeing with you first.
 
 ### 4. Backups, automatically
 
