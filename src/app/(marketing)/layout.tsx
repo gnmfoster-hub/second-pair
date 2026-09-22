@@ -67,11 +67,23 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               * name nobody can read because the button beside it has collapsed
               * is not doing the job the name is there for.
               */}
-            <span className="block min-[360px]:hidden">
-              <Mark className="size-8" sizePx={32} />
-            </span>
-            <span className="hidden min-[360px]:block sm:hidden">
-              <Logo height={32} lockup="horizontal" />
+            {/*
+              * The mark alone on a phone, and big.
+              *
+              * Giles: the logo on mobile should be much bigger. Measured at
+              * 360px, the header has 320px of room and the call to action and
+              * the menu take 186 of it — so a horizontal lockup can be 134px
+              * wide, which is a 30px-tall logo with unreadable type in it.
+              * There is no arrangement of a lockup, a button and a menu that
+              * fits on a phone at a size worth having.
+              *
+              * The mark is square, so at 44px it costs 44px of width instead
+              * of 195 and is half as tall again as the lockup it replaces. It
+              * is the thing people recognise; the name is in the page title,
+              * the menu and the footer.
+              */}
+            <span className="block sm:hidden">
+              <Mark className="size-11" sizePx={44} />
             </span>
             {/*
               * The tagline, which the pack had all along.

@@ -79,40 +79,62 @@ export function MobileMenu() {
 
       {open && (
         <div
-          className="absolute right-0 top-[calc(100%+10px)] z-50 w-[min(19rem,calc(100vw-2rem))] p-2"
+          /*
+            * A sheet, not a dropdown.
+            *
+            * It was a 19rem panel of 15px links at 40px tall, which is under
+            * the size a thumb wants and looked like a browser context menu.
+            * Giles: the menu on mobile could be better looking and easier to
+            * use. It runs the width of the screen now, the rows are 56px with
+            * the label at 17px, and each carries an arrow so it reads as
+            * somewhere to go rather than a list of words.
+            */
+          className="fixed inset-x-3 top-[84px] z-50 overflow-hidden p-2"
           style={{
             background: "var(--surface)",
-            border: "1px solid var(--foreground)",
-            borderRadius: 18,
-            boxShadow: "0 18px 40px -18px rgba(22,21,15,0.45)",
+            border: "2px solid var(--foreground)",
+            borderRadius: 22,
+            boxShadow: "0 24px 50px -20px rgba(22,21,15,0.5)",
           }}
         >
-          <nav className="grid">
+          <nav className="grid gap-0.5">
             {LINKS.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
                 onClick={() => setOpen(false)}
-                className="rounded-xl px-3 py-2.5 text-[15px] font-medium transition-colors hover:bg-surface-2"
+                className="flex min-h-[56px] items-center justify-between gap-3 rounded-2xl px-4 text-[17px] font-medium transition-colors hover:bg-surface-2 active:bg-surface-2"
               >
                 {l.label}
+                <span aria-hidden className="text-muted">
+                  &rarr;
+                </span>
               </Link>
             ))}
           </nav>
 
           <div
-            className="mt-2 flex items-center justify-between gap-3 px-3 pb-1 pt-3"
+            className="mt-1 flex items-center justify-between gap-3 px-4 py-3"
             style={{ borderTop: "1px solid var(--border)" }}
           >
             <Link
               href="/login"
               onClick={() => setOpen(false)}
-              className="text-[15px] font-medium hover:opacity-70"
+              className="flex min-h-[44px] items-center text-[16px] font-medium hover:opacity-70"
             >
               Sign in
             </Link>
             <ThemeToggle compact />
           </div>
+
+          <a
+            href="/home#ask"
+            onClick={() => setOpen(false)}
+            className="btn-primary mt-1 flex w-full"
+            style={{ minHeight: 54 }}
+          >
+            Book a 15 minute chat
+          </a>
         </div>
       )}
     </div>

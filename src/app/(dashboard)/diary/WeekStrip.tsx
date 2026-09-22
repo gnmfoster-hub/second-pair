@@ -68,11 +68,16 @@ export function WeekStrip({
             key={key}
             href={`/diary?view=day&day=${key}${who ? `&who=${who}` : ""}`}
             aria-current={isFocused ? "date" : undefined}
-            className={`flex min-h-[3rem] flex-1 flex-col items-center justify-center gap-1 rounded-xl border py-1.5 transition-colors ${
-              isFocused
-                ? "border-accent bg-accent/10"
-                : "border-transparent bg-surface-2/50"
-            }`}
+            /*
+              * The mark goes on the number, not round the whole cell.
+              *
+              * Boxing the cell put a bordered, tinted rounded rectangle round
+              * a two-character date — Giles: the highlighted number on the day
+              * looks very blocky. A filled circle behind the figure says the
+              * same thing in a fifth of the ink, and it is what a calendar
+              * does everywhere else.
+              */
+            className="flex min-h-[3rem] flex-1 flex-col items-center justify-center gap-1 rounded-xl py-1.5 transition-colors"
           >
             <span
               className={`text-[0.62rem] uppercase leading-none ${
@@ -83,8 +88,12 @@ export function WeekStrip({
             </span>
 
             <span
-              className={`text-[0.9rem] font-semibold leading-none tabular-nums ${
-                isToday && !isFocused ? "text-accent" : ""
+              className={`grid size-7 place-items-center rounded-full text-[0.9rem] font-semibold leading-none tabular-nums transition-colors ${
+                isFocused
+                  ? "bg-accent text-on-accent"
+                  : isToday
+                    ? "text-accent"
+                    : ""
               }`}
             >
               {number}

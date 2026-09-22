@@ -90,7 +90,14 @@ export function Console({
       <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-2">
         <h1 className="page-title">Second Pair</h1>
         <span className="hint">the business behind the businesses</span>
-        <div className="ml-auto flex items-center gap-2">
+        {/*
+          * Wraps on a phone. Four buttons in a nowrap row beside a title and a
+          * strapline is about 420px of content in 350px of screen, so the last
+          * of them ran off the side — Giles: the backend on mobile does not
+          * fit, mainly the buttons at the top. They wrap onto their own line
+          * now and range left there rather than hanging off the right.
+          */}
+        <div className="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto">
           <Link href="/admin/reports" className="btn-ghost">
             Reports
           </Link>

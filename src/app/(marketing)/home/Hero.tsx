@@ -373,11 +373,6 @@ export function Hero() {
    * pointing at nothing.
    */
   const place = useCallback(() => {
-    if (calm) {
-      setHand(null);
-      return;
-    }
-
     const typing = stage === S.TYPING_1 || stage === S.TYPING_2 || stage === S.TYPING_3 || stage === S.TYPING_4 || waiting;
     const holding = stage === S.CARD_1 || stage === S.CARD_2;
     const swiping = stage === S.SWIPE_1 || stage === S.SWIPE_2;
@@ -391,6 +386,24 @@ export function Hero() {
       return r ? { left: r.left - frame.left, top: r.top - frame.top, width: r.width, height: r.height, right: r.right - frame.left } : null;
     };
 
+
+    /*
+     * Reduced motion keeps the hand and loses the movement.
+     *
+     * This used to remove it altogether, which is what Giles was seeing: his
+     * phone has Reduce Motion on, so the cream hand holding the phone stayed
+     * and the blue finger never appeared. The preference is about motion, not
+     * about pictures — a still hand resting on the composer is not motion, and
+     * removing it takes away the thing the page is named after from anybody
+     * who has ever turned that setting on.
+     *
+     * So it is placed once, at the input, and every transition below is off.
+     */
+    if (calm) {
+      const r = box(inputRef.current);
+      if (r) setHand({ x: r.left + 24, y: r.top + r.height * 0.5, mode: "type" });
+      return;
+    }
 
     if (typing) {
       const r = box(inputRef.current);
@@ -1292,7 +1305,7 @@ export function Hero() {
         * the two: it types in the input, picks the card out of the thread and
         * carries it into a diary row. Absent entirely under reduced motion.
         */}
-      {hand && !calm && (
+      {hand && (
         <span
           aria-hidden
           data-hand={hand.mode}
@@ -1317,8 +1330,9 @@ export function Hero() {
              * transition never finishes and every frame restarts it. The
              * reference sets .type to .12s linear for the same reason.
              */
-            transition:
-              hand.mode === "swipe"
+            transition: calm
+              ? "none"
+              : hand.mode === "swipe"
                 ? "transform 1.6s ease"
                 : hand.mode === "type"
                   ? "transform 0.12s linear"
