@@ -1290,7 +1290,13 @@ export default async function DiaryPage({
         * Kept at every other size, where it holds the grid it was built for.
         */}
       <div
-        className={`settle relative mt-2 overflow-hidden sm:mt-5 sm:rounded-2xl sm:border sm:border-border sm:bg-surface sm:shadow-[var(--shadow-card)] ${
+        /*
+         * No shadow. --shadow-card is the 6px ink slab from §5, and §9 keeps
+         * that for panels that float. This one is the screen — a slab under
+         * the whole diary is a poster frame around the thing being worked in.
+         * The hairline it already had is what §9 asks for.
+         */
+        className={`settle relative mt-2 overflow-hidden sm:mt-5 sm:rounded-2xl sm:border sm:border-border sm:bg-surface ${
           view !== "month" ? "" : "card"
         }`}
       >

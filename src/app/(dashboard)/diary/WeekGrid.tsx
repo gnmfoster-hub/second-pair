@@ -993,7 +993,14 @@ export function WeekGrid({
                   }}
                   className={`relative flex-1 cursor-copy touch-pan-y border-r border-cal-grid last:border-r-0 ${
                     isToday
-                      ? "bg-accent/[0.045]"
+                      ? /*
+                         * Fainter than it was, because the accent changed under
+                         * it. 4.5% of the old navy was a hint; 4.5% of cobalt
+                         * is a lavender wash, and in Day view every column is
+                         * today, so the entire grid came out blue — a tint that
+                         * marks everything marks nothing.
+                         */
+                        "bg-accent/[0.022]"
                       : view === "week" &&
                           (new Date(col.date).getDay() === 0 || new Date(col.date).getDay() === 6)
                         ? "bg-surface-2/25"

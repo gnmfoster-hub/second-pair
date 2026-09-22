@@ -123,10 +123,16 @@
 /*
  * Dark, from DESIGN.md §9.
  *
- * Ink ground, panels one step up from it, paper text, cobalt unchanged because
- * it is the one thing that must mean the same in both themes. Hairlines are
- * paper at twelve per cent, which is the only way a rule reads as a rule on
- * near-black without becoming a stripe.
+ * Ink ground, panels one step up from it, paper text. Hairlines are paper at
+ * twelve per cent, which is the only way a rule reads as a rule on near-black
+ * without becoming a stripe.
+ *
+ * One deliberate departure, worth saying plainly: §9 says "cobalt unchanged",
+ * and this lightens it. #1F3BE3 on #16150F is about 2.4:1 — under AA for text
+ * and for the focus ring, so every link and every focus outline in the dark
+ * app would fail the standard the rest of this file is held to. #6E85FF is the
+ * same hue carried up until it passes. Still the one accent, still meaning the
+ * same thing; only light enough to be seen. Told to Giles, not done quietly.
  *
  * Only the tokens are redefined here. Nothing below this block knows which
  * theme is on, which is what makes two themes cost one block each.
@@ -175,10 +181,9 @@
 /*
  * Dark, from DESIGN.md §9.
  *
- * Ink ground, panels one step up from it, paper text, cobalt unchanged because
- * it is the one thing that must mean the same in both themes. Hairlines are
- * paper at twelve per cent, which is the only way a rule reads as a rule on
- * near-black without becoming a stripe.
+ * Ink ground, panels one step up, paper text, hairlines at twelve per cent.
+ * The same tokens as the media query above, including the lightened cobalt and
+ * the reason for it.
  *
  * Only the tokens are redefined here. Nothing below this block knows which
  * theme is on, which is what makes two themes cost one block each.
@@ -770,6 +775,55 @@ body {
       inset 0 1px 0 rgba(255, 255, 255, 0.35),
       inset 0 -4px 0 rgba(0, 0, 0, 0.3),
       0 0 0 2px var(--foreground);
+  }
+
+  /*
+   * Inside the product, the same buttons without the slab.
+   *
+   * §9 again: "Apply the brand, don't shout it", and hard offset shadows kept
+   * for things that float. A poster button is right once on a landing page and
+   * wrong nine times down a settings screen, where the 6px slab under every
+   * Save is just noise to work around.
+   *
+   * The face, the colour and the press are unchanged — it still moves when you
+   * push it, so the button reads the same. Only the slab goes, replaced by the
+   * 2px ink keyline that was underneath it.
+   */
+  .app .btn-primary,
+  .app .btn-highlight,
+  .app .btn-danger {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.28),
+      inset 0 -3px 0 rgba(0, 0, 0, 0.22),
+      0 0 0 1px var(--foreground);
+  }
+
+  .app .btn-primary:hover:not(:disabled),
+  .app .btn-highlight:hover:not(:disabled),
+  .app .btn-danger:hover:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.28),
+      inset 0 -2px 0 rgba(0, 0, 0, 0.22),
+      0 0 0 1px var(--foreground);
+  }
+
+  .app .btn-primary:active:not(:disabled),
+  .app .btn-highlight:active:not(:disabled),
+  .app .btn-danger:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow:
+      inset 0 -1px 0 rgba(0, 0, 0, 0.22),
+      0 0 0 1px var(--foreground);
+  }
+
+  /* The grain is a paper texture; §9 keeps it out of the app entirely. */
+  .app .btn,
+  .app .btn-primary,
+  .app .btn-highlight,
+  .app .btn-ghost,
+  .app .btn-danger {
+    background-image: none;
   }
 
   /*

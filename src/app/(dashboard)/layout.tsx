@@ -127,7 +127,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   return (
-    <div className="flex min-h-screen">
+    /*
+     * "app" is what tells globals.css this is the product and not a poster.
+     *
+     * §9 asks for the brand applied rather than shouted: hairlines on panels,
+     * and the hard offset shadow kept for things that float. The rules for
+     * that were written against `.app .card` and then nothing ever carried the
+     * class, so every screen in here was still wearing the 2px keyline and the
+     * 6px slab — fifteen of them stacked down an inbox.
+     */
+    <div className="app flex min-h-screen">
       {/* Desktop: a sidebar. Phone: a top bar and a bottom tab bar, below. */}
       {/*
         * The shell recedes so the work can come forward.
