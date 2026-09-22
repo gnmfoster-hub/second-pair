@@ -572,7 +572,7 @@ export function Hero() {
       * orderable siblings of the right column without moving them in the
       * markup, so the reading order for a screen reader is unchanged.
       */}
-    <div className="mx-auto flex max-w-6xl flex-col gap-10 px-5 py-14 sm:px-8 lg:grid lg:grid-cols-[1fr_minmax(0,560px)] lg:items-start lg:gap-8 lg:py-8">
+    <div className="shell shell-wide flex flex-col gap-10 py-14 lg:grid lg:grid-cols-[1fr_minmax(0,560px)] lg:items-start lg:gap-8 lg:py-8">
       {/* ------------------------------------------------------------ left */}
       <div className="contents lg:relative lg:z-10 lg:block">
       <div className="relative z-10 order-1 lg:order-none">
@@ -588,7 +588,9 @@ export function Hero() {
             textTransform: "uppercase",
             lineHeight: 0.94,
             letterSpacing: "0.01em",
-            fontSize: "clamp(52px, 7vw, 96px)",
+            /* Capped at 96 it stopped growing at 1370px, leaving a 1920
+               screen with a small headline in a lot of paper. */
+            fontSize: "clamp(52px, 6.4vw, 118px)",
           }}
         >
           <span className="block">You&rsquo;ve only</span>
@@ -621,45 +623,6 @@ export function Hero() {
             Play it again
           </button>
         </div>
-
-        {/*
-          * The trade picker, below the demo rather than above the headline.
-          *
-          * At the top of the page it pushed the statement down a phone screen
-          * and asked for a choice before saying what the choice was about. Not
-          * under the diary either, where it ended up first: the hand's wrist
-          * runs a long way below the phone and muted grey over skin tone was
-          * barely readable. §7 says it exists, not where it goes.
-          */}
-        <div className="mt-8 flex flex-wrap items-center gap-2">
-          <span className="text-[13px] uppercase tracking-[0.06em] text-muted">Show me a</span>
-          {TRADES.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setTrade(t.key)}
-              aria-pressed={trade === t.key}
-              className="px-2.5 py-1 text-[13px] uppercase tracking-[0.06em] transition-colors"
-              style={{
-                border: "1.5px solid var(--foreground)",
-                borderRadius: 999,
-                background: trade === t.key ? "var(--foreground)" : "transparent",
-                color: trade === t.key ? "var(--background)" : "var(--foreground)",
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
-          {/*
-            * The demo note lives with the picker. "Show me a tattoo studio"
-            * and "this is a demo" are the same thought, and under the diary it
-            * sat over the hand's wrist where muted grey on skin tone could
-            * barely be read.
-            */}
-          <span className="text-[13px] text-muted">
-            &middot; a demo; on your site this is your assistant
-          </span>
-          </div>
 
         {/* Clock and tally, §6.7 and §6.8. */}
         <div className="mt-10 flex flex-wrap items-baseline gap-x-6 gap-y-2">
@@ -1218,7 +1181,53 @@ export function Hero() {
           </div>
 
           </div>
+
         </div>
+
+        {/*
+          * The trade picker, directly under the demo it changes.
+          *
+          * It has been three places. Above the headline it pushed the
+          * statement down a phone screen and asked for a choice before
+          * saying what the choice was about; under the call to action it was
+          * nowhere near the thing it changes. Here, and the reason it was
+          * moved away from here the first time is handled rather than
+          * avoided: the hand's wrist runs a long way below the phone, so the
+          * row is positioned above it and the label is set in the foreground
+          * rather than muted, which is what was unreadable over skin tone.
+          */}
+        <div className="relative z-10 flex flex-wrap items-center gap-2">
+        <span className="text-[13px] uppercase tracking-[0.06em]">Show me a</span>
+        {TRADES.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setTrade(t.key)}
+            aria-pressed={trade === t.key}
+            className="px-2.5 py-1 text-[13px] uppercase tracking-[0.06em] transition-colors"
+            style={{
+              border: "1.5px solid var(--foreground)",
+              borderRadius: 999,
+              background: trade === t.key ? "var(--foreground)" : "transparent",
+              color: trade === t.key ? "var(--background)" : "var(--foreground)",
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+        {/*
+          * The demo note lives with the picker. "Show me a tattoo studio"
+          * and "this is a demo" are the same thought, and under the diary it
+          * sat over the hand's wrist where muted grey on skin tone could
+          * barely be read.
+          */}
+        </div>
+
+        {/* Its own line: trailing the chips it sat over the hand's wrist,
+            where muted grey on skin tone could barely be read. */}
+        <p className="relative z-10 mt-2 text-[13px] text-muted">
+          A demo. On your site this is your assistant.
+        </p>
       </div>
 
       {/*

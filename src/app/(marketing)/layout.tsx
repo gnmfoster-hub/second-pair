@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Logo, Mark } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AlsoFromUs } from "./AlsoFromUs";
+import { MobileMenu } from "./MobileMenu";
 
 /**
  * The public face. Everything else in the app is behind a session.
@@ -32,7 +33,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         className="sticky top-0 z-30"
         style={{ background: "var(--putty)", borderBottom: "2px solid var(--foreground)" }}
       >
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-5 sm:px-8" style={{ minHeight: "76px" }}>
+        <div className="shell shell-wide flex items-center gap-4" style={{ minHeight: "76px" }}>
           {/* Thirty pixels disappeared into the header, and this is the only
               place most people will ever see the name. */}
           {/*
@@ -144,7 +145,8 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               * diary, and the footer, where somebody who wants it can find it.
               * A sales page gets one thing to press, and this was not it.
               */}
-            <div className="hidden sm:block">
+            {/* The toggle lives in the phone's menu; here from lg. */}
+            <div className="hidden lg:block">
               <ThemeToggle compact />
             </div>
             {/* Nowrap for the same reason as the button below it. Once the
@@ -152,7 +154,8 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 "Sign / in" on two lines at 360px, a 62px-tall link next to a
                 44px button. Neither of the two things a visitor came here to
                 press should be allowed to fold. */}
-            <Link href="/login" className="btn-ghost whitespace-nowrap">
+            {/* Sign in is on the phone's menu instead, where it has room. */}
+            <Link href="/login" className="btn-ghost hidden whitespace-nowrap lg:inline-flex">
               Sign in
             </Link>
             {/* The pack allows amber for one call to action per screen. This
@@ -199,6 +202,8 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             >
               Book a chat
             </a>
+
+            <MobileMenu />
           </div>
         </div>
       </header>
@@ -229,7 +234,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           * goes lg:hidden, so every desktop visitor got a hundred pixels of
           * empty ink above the rule and nothing in it.
           */}
-        <div className="mx-auto max-w-6xl px-5 sm:px-8">
+        <div className="shell shell-wide">
           <nav
             className="flex flex-wrap gap-x-7 gap-y-3 pt-12 pb-8 lg:hidden"
             style={{
@@ -247,7 +252,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           </nav>
         </div>
         <div
-          className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-5 pb-10 text-xs sm:px-8"
+          className="shell shell-wide flex flex-wrap items-center gap-x-6 gap-y-2 pb-10 text-xs"
           style={{ color: "var(--muted-on-ink)", borderTop: "1px solid rgba(247,244,236,0.2)", paddingTop: "1.5rem" }}
         >
           {/*

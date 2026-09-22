@@ -36,7 +36,7 @@ export default function HomePage() {
       </section>
 
       {/* ──────────────────────────────────────────────────── the argument */}
-      <section className="mx-auto max-w-5xl px-5 py-16 sm:px-8 sm:py-24">
+      <section className="shell py-16 sm:py-24">
         <div className="grid gap-10 sm:grid-cols-3">
           {[
             {
@@ -62,7 +62,7 @@ export default function HomePage() {
 
       {/* ─────────────────────────────────────────────────────── the trades */}
       <section className="border-y border-border bg-surface">
-        <div className="mx-auto max-w-5xl px-5 py-16 sm:px-8 sm:py-20">
+        <div className="shell py-16 sm:py-20">
           <h2 className="page-title">Built for whatever you actually do</h2>
           <p className="mt-2.5 max-w-2xl text-sm leading-relaxed text-muted">
             Each trade brings its own questions, services, wording and reminders, and its
@@ -94,7 +94,7 @@ export default function HomePage() {
       </section>
 
       {/* ─────────────────────────────────────────────────────── the detail */}
-      <section className="mx-auto max-w-5xl px-5 py-16 sm:px-8 sm:py-24">
+      <section className="shell py-16 sm:py-24">
         <h2 className="page-title">And it runs the rest of it</h2>
 
         <div className="mt-8 grid gap-x-10 gap-y-8 sm:grid-cols-2">
@@ -129,7 +129,7 @@ export default function HomePage() {
         * number somebody holds you to.
         */}
       <section className="border-y border-border bg-surface">
-        <div className="mx-auto max-w-5xl px-5 py-16 sm:px-8 sm:py-24">
+        <div className="shell py-16 sm:py-24">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
             Also from us
           </p>
@@ -221,7 +221,7 @@ export default function HomePage() {
         * is never read.
         */}
       <section className="border-t border-border">
-        <div className="mx-auto max-w-5xl px-5 py-16 sm:px-8 sm:py-20">
+        <div className="shell py-16 sm:py-20">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
             Made by Second Pair Ltd
           </p>
@@ -301,7 +301,7 @@ export default function HomePage() {
           * opens the live assistant, and swapping where a button goes is
           * behaviour, not appearance.
           */}
-        <div className="mx-auto max-w-5xl px-5 py-20 sm:px-8">
+        <div className="shell py-20">
           <h2
             style={{
               fontFamily: "var(--font-display), Impact, sans-serif",

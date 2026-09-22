@@ -541,6 +541,62 @@ body {
     @keyframes sp-hold-b { 0%, 100% { transform: scaleX(-1) rotate(-13deg); } }
   }
 
+  /*
+   * The page's width, which used to be one number.
+   *
+   * Every section was max-w-5xl and the nav max-w-6xl — 1024 and 1152 — so on
+   * anything above about 1400px the whole site was a ribbon down the middle
+   * with a third of the screen empty either side. Giles: on a wide screen it
+   * all looks bunched up in the middle.
+   *
+   * It steps instead. The first two steps are unchanged, so nothing about a
+   * phone, a tablet or a laptop moves; above that it takes the room it is
+   * given, up to a point — this is still a poster and a 2000px band of type is
+   * not one.
+   *
+   * Prose keeps its own max-width wherever it is set. A wider shell gives a
+   * grid wider columns, and gives a paragraph an unreadable line.
+   */
+  .shell {
+    width: 100%;
+    margin-inline: auto;
+    padding-inline: 1.25rem;
+    max-width: 64rem;
+  }
+
+  @media (min-width: 640px) {
+    .shell { padding-inline: 2rem; }
+  }
+
+  @media (min-width: 1280px) {
+    .shell { max-width: 72rem; }
+  }
+
+  @media (min-width: 1600px) {
+    .shell { max-width: 84rem; padding-inline: 3rem; }
+  }
+
+  @media (min-width: 1920px) {
+    .shell { max-width: 94rem; }
+  }
+
+  /* The nav and the hero run a step wider than the reading sections. */
+  .shell-wide {
+    max-width: 72rem;
+  }
+
+  @media (min-width: 1280px) {
+    .shell-wide { max-width: 80rem; }
+  }
+
+  @media (min-width: 1600px) {
+    .shell-wide { max-width: 90rem; }
+  }
+
+  @media (min-width: 1920px) {
+    .shell-wide { max-width: 100rem; }
+  }
+
   .grain {
     position: fixed;
     inset: 0;
