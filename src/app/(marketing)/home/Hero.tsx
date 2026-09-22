@@ -87,7 +87,7 @@ type HandMode = "idle" | "type" | "hold" | "swipe" | "point";
 const HOLDING = [
   {
     src: "/brand/hands/hand-front.webp",
-    place: "-left-16 top-24 w-[128px] sm:-left-20 sm:w-[150px] lg:-left-28 lg:top-28 lg:w-[186px]",
+    place: "-left-20 top-28 w-[128px] sm:-left-24 sm:w-[150px] lg:-left-32 lg:top-32 lg:w-[190px]",
     keyframes: "sp-hold-a",
     seconds: 6.5,
     px: 16,
@@ -958,7 +958,7 @@ export function Hero() {
           </div>
 
           {/* The diary and its caption, beside the phone from lg. */}
-          <div className="flex min-w-0 flex-col gap-2 lg:flex-1">
+          <div className="flex min-w-0 flex-col gap-2 lg:flex-1 lg:self-stretch">
           {/* --------------------------------------------------- the diary */}
           <div
             ref={diaryRef}
@@ -973,7 +973,7 @@ export function Hero() {
               * solid cobalt fills on the booked rows, none of which the product
               * does anywhere.
               */
-            className="p-3"
+            className="flex flex-col p-3 lg:flex-1"
             style={{
               background: "var(--surface)",
               border: "1px solid var(--border)",
@@ -1053,7 +1053,7 @@ export function Hero() {
               ))}
             </div>
 
-            {stage >= S.DONE && <p className="mt-3 text-sm text-muted">{sc.done}</p>}
+            {stage >= S.DONE && <p className="mt-3 text-sm text-muted lg:mt-auto lg:pt-3">{sc.done}</p>}
           </div>
 
           <p className="text-center text-xs text-muted lg:text-left">

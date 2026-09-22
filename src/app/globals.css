@@ -515,9 +515,19 @@ body {
    * as something waving. The two are deliberately out of step, because two
    * hands rising and falling in perfect time look like one object.
    */
+  /*
+   * Mirrored, so the fingers point at the phone.
+   *
+   * The artwork is a right hand with the fingers curling up and to the left,
+   * which put the whole grip on the far side from the device: pull it close
+   * enough for the fingers to reach and the palm disappears behind the phone,
+   * leave the palm showing and the fingers stop a hundred pixels short. Flipped,
+   * the fingers lead and the wrist trails, which is the way a hand approaches
+   * something it is reaching for.
+   */
   @keyframes sp-hold-a {
-    0%, 100% { transform: translate3d(0, 0, 0) rotate(-14deg); }
-    50% { transform: translate3d(0, -9px, 0) rotate(-12.5deg); }
+    0%, 100% { transform: scaleX(-1) translate3d(0, 0, 0) rotate(-13deg); }
+    50% { transform: scaleX(-1) translate3d(0, -9px, 0) rotate(-11.5deg); }
   }
 
   @keyframes sp-hold-b {
@@ -527,7 +537,7 @@ body {
 
   /* Anything that only exists to move should not move when asked not to. */
   @media (prefers-reduced-motion: reduce) {
-    @keyframes sp-hold-a { 0%, 100% { transform: rotate(-14deg); } }
+    @keyframes sp-hold-a { 0%, 100% { transform: scaleX(-1) rotate(-13deg); } }
     @keyframes sp-hold-b { 0%, 100% { transform: scaleX(-1) rotate(-13deg); } }
   }
 
@@ -798,20 +808,120 @@ body {
     background-image: none;
   }
 
-  /* Flat cobalt. The primary action. */
+  /*
+   * Cobalt, with a little depth in it.
+   *
+   * Flat was right about the shape and wrong about the surface: Giles wanted
+   * the pill but asked for it to sit off the page a bit. So a top-lit gradient,
+   * a hairline of white along the top edge where the light is, a shade under
+   * the bottom lip, and a soft shadow beneath — the same language as the 3D
+   * mark and the phone bezel. No keyline, no offset block; the thing he
+   * objected to was the slab, not the shading.
+   */
   .btn-primary {
+    background-image: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--accent) 84%, #fff) 0%,
+      var(--accent) 46%,
+      var(--accent-strong) 100%
+    );
     background-color: var(--accent);
     color: var(--on-accent);
-    box-shadow: none;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.45),
+      inset 0 -2px 3px rgba(0, 0, 0, 0.2),
+      0 1px 2px rgba(22, 21, 15, 0.2),
+      0 7px 14px -7px color-mix(in srgb, var(--accent) 60%, transparent);
   }
 
   .btn-primary:hover:not(:disabled) {
-    background-color: var(--accent-strong);
     transform: translateY(-1px);
+    filter: brightness(1.06);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.45),
+      inset 0 -2px 3px rgba(0, 0, 0, 0.2),
+      0 2px 3px rgba(22, 21, 15, 0.2),
+      0 11px 20px -8px color-mix(in srgb, var(--accent) 65%, transparent);
   }
 
   .btn-primary:active:not(:disabled) {
     transform: translateY(1px);
+    box-shadow:
+      inset 0 2px 4px rgba(0, 0, 0, 0.28),
+      0 1px 1px rgba(22, 21, 15, 0.2);
+  }
+
+  /*
+   * Softer inside the product. Giles: it looks bold and heavy in there, and
+   * the app is used all day rather than sold from.
+   *
+   * §9 said as much already — "the product is used all day, so it stays mostly
+   * light and quiet. Apply the brand, don't shout it" — and the marketing face
+   * had been let through wholesale. Same palette, same two typefaces, same
+   * classes; only quieter.
+   *
+   * Buttons keep the pill and lose the gradient and the glow: a lit, floating
+   * button is right once on a landing page and wrong on a settings screen with
+   * nine of them down it. Flat colour, a hairline of light on the top edge, and
+   * a shadow small enough to read as a raised key rather than something hovering.
+   */
+  .app .btn-primary,
+  .app .btn-highlight,
+  .app .btn-ink,
+  .app .btn-danger {
+    background-image: none;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.24),
+      0 1px 1.5px rgba(22, 21, 15, 0.14);
+  }
+
+  .app .btn-primary:hover:not(:disabled),
+  .app .btn-highlight:hover:not(:disabled),
+  .app .btn-ink:hover:not(:disabled),
+  .app .btn-danger:hover:not(:disabled) {
+    transform: none;
+    filter: brightness(1.05);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.24),
+      0 1px 2px rgba(22, 21, 15, 0.18);
+  }
+
+  .app .btn-primary:active:not(:disabled),
+  .app .btn-highlight:active:not(:disabled),
+  .app .btn-ink:active:not(:disabled),
+  .app .btn-danger:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow: inset 0 1.5px 3px rgba(0, 0, 0, 0.2);
+  }
+
+  /*
+   * Page titles come down a size and lose the poster tracking. A screen you
+   * open forty times a day does not need its name set like a headline; it
+   * needs to be findable and then got out of the way.
+   */
+  .app .page-title {
+    font-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
+    letter-spacing: 0.02em;
+  }
+
+  /*
+   * Section headings inside the product are set in the body face.
+   *
+   * Anton at every heading is what makes a working screen feel like a poster.
+   * §9 asks for it on page titles and day labels only, and everything else in
+   * Instrument Sans — this is that rule, applied.
+   */
+  .app .section-title {
+    font-family: var(--font-body), system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    letter-spacing: 0.01em;
+    text-transform: none;
+  }
+
+  /* The stamp keeps its shape and loses a little of its weight. */
+  .app .stamp::before {
+    border-width: 1.5px;
   }
 
   /*
@@ -840,18 +950,29 @@ body {
    * Ink on orange, never white: white on this orange fails contrast.
    */
   .btn-highlight {
+    background-image: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--highlight) 82%, #fff) 0%,
+      var(--highlight) 46%,
+      var(--highlight-strong) 100%
+    );
     background-color: var(--highlight);
     color: var(--on-highlight);
-    box-shadow: none;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      inset 0 -2px 3px rgba(0, 0, 0, 0.16),
+      0 1px 2px rgba(22, 21, 15, 0.2),
+      0 7px 14px -7px color-mix(in srgb, var(--highlight) 55%, transparent);
   }
 
   .btn-highlight:hover:not(:disabled) {
-    background-color: var(--highlight-strong);
     transform: translateY(-1px);
+    filter: brightness(1.05);
   }
 
   .btn-highlight:active:not(:disabled) {
     transform: translateY(1px);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.24);
   }
 
   /*
@@ -894,17 +1015,24 @@ body {
     padding-inline: 1.65rem;
     transition: transform 0.12s ease, background-color 0.12s ease;
     background-image: none;
+    background-image: linear-gradient(180deg, #2b2a21 0%, var(--foreground) 48%, #0c0b07 100%);
     background-color: var(--foreground);
     color: var(--background);
-    box-shadow: none;
+    box-shadow:
+      inset 0 1px 0 rgba(247, 244, 236, 0.22),
+      inset 0 -2px 3px rgba(0, 0, 0, 0.5),
+      0 1px 2px rgba(22, 21, 15, 0.3),
+      0 7px 14px -7px rgba(22, 21, 15, 0.5);
   }
 
   .btn-ink:hover:not(:disabled) {
     transform: translateY(-1px);
+    filter: brightness(1.12);
   }
 
   .btn-ink:active:not(:disabled) {
     transform: translateY(1px);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.55);
   }
 
   /* Tertiary, §5: text with a 3px underline. No face, no slab. */
