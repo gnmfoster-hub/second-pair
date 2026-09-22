@@ -72,7 +72,7 @@ export function Console({
   const pretend = shown.filter((b) => b.kind === "demo");
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10">
+    <div className="work work-wide">
       {/*
         * No link back when there is nowhere to go back to.
         *
@@ -741,7 +741,7 @@ function StatusPill({ status }: { status: BusinessSummary["status"] }) {
 function Stat({ label, value, warn }: { label: string; value: number | string; warn?: boolean }) {
   return (
     <div>
-      <dt className="text-[11px] uppercase tracking-wide text-muted">{label}</dt>
+      <dt className="text-[11.5px] text-muted">{label}</dt>
       <dd className={`num text-base ${warn ? "text-warn" : ""}`}>{value}</dd>
     </div>
   );
@@ -1175,7 +1175,7 @@ function Request({ ticket }: { ticket: BusinessSummary["tickets"][number] }) {
           <div className="mt-2 space-y-1.5 border-l-2 border-border pl-3">
             {ticket.origin.map((m) => (
               <p key={m.id} className="whitespace-pre-wrap text-xs">
-                <span className="mr-1.5 uppercase tracking-wide text-muted">
+                <span className="mr-1.5 text-muted">
                   {m.role === "assistant" ? "Assistant" : m.role === "user" ? "Them" : m.role}
                 </span>
                 {m.body}
@@ -1193,7 +1193,7 @@ function Request({ ticket }: { ticket: BusinessSummary["tickets"][number] }) {
               m.author === "owner" ? "bg-surface-2" : "bg-accent/10"
             }`}
           >
-            <span className="mb-0.5 block text-[10px] uppercase tracking-wide text-muted">
+            <span className="mb-0.5 block text-[10.5px] text-muted">
               {m.author === "owner" ? "Them" : "You"}
             </span>
             {m.body}

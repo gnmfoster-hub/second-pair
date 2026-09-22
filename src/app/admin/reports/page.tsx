@@ -273,7 +273,7 @@ export default async function ReportsPage({
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[1100px] text-sm">
             <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-muted">
+              <tr className="text-left text-xs text-muted">
                 {["Business", "Plan", "Enquiries", "Booked", "Conv.", "To a person", "First reply", "Appts", "No-shows", "Taken", "Fees", "Assistant", "Texts", "Calls", "Calls cost", "Forms signed", "Last sign-in", "Quiet"].map((h) => (
                   <th key={h} className="whitespace-nowrap px-2 py-2 font-semibold">
                     {h}

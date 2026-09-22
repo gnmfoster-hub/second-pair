@@ -104,7 +104,7 @@ export function Figure({
           * open all day — but one line does not have to mean quiet.
           */}
         <span
-          className={`font-display tabular-nums tracking-[-0.02em] ${
+          className={`num font-semibold tabular-nums tracking-[-0.015em] ${
             lead ? "text-3xl" : "text-xl"
           } ${act ? "text-highlight-strong" : warn ? "text-warn" : ""}`}
         >
@@ -126,15 +126,22 @@ export function Figure({
   return (
     <div className="bg-surface px-5 py-5">
       <div
-        className={`font-display tabular-nums leading-none tracking-[-0.03em] ${
+        className={`num font-semibold tabular-nums leading-none tracking-[-0.02em] ${
           lead ? "text-4xl" : "text-2xl"
         } ${warn ? "text-warn" : act ? "text-highlight-strong" : ""}`}
       >
         {children ?? value}
       </div>
-      <div className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.09em] text-muted">
-        {label}
-      </div>
+      {/*
+        * Sentence case, and the tracking off it.
+        *
+        * Eight of these across the top of the console — COMING IN EACH MONTH,
+        * WORK IT HAS WON THEM, ENQUIRIES THAT BOOK — is a row of small shouts
+        * above a row of figures, and it is a screen somebody reads every day
+        * rather than a poster. The inline version below has always set its
+        * label in lower case; the block one was the odd one out.
+        */}
+      <div className="mt-2.5 text-[12.5px] text-muted">{label}</div>
       {note && <div className="mt-1 text-[12px] leading-snug text-muted/80">{note}</div>}
     </div>
   );
