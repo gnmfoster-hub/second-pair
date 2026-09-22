@@ -532,13 +532,23 @@ function Business({ b }: { b: BusinessSummary }) {
                 {b.tickets.filter((t) => t.status === "open").length} asking
               </span>
             )}
-            {b.channels
-              .filter((c) => c !== "web")
-              .map((c) => (
-                <span key={c} className="pill bg-surface-2 text-muted">
-                  {c}
-                </span>
-              ))}
+            {/*
+              * The channels read as a list, not as six more badges.
+              *
+              * They were the same pill as the status beside them — same fill,
+              * same weight — so "Trial", "Ours", "Not finished" and "Over
+              * seats", which are the things this screen exists to be scanned
+              * for, sat in a row of nine identical grey lozenges with sms and
+              * instagram. Fifty-four of them down the page.
+              *
+              * Nothing is dropped. A badge is for a state somebody has to act
+              * on; a channel is a fact about the account, so it is set as one.
+              */}
+            {b.channels.filter((c) => c !== "web").length > 0 && (
+              <span className="text-[12px] text-muted">
+                {b.channels.filter((c) => c !== "web").join(" · ")}
+              </span>
+            )}
           </div>
           {/*
             * Who to ask for, and how to reach them, without opening anything.

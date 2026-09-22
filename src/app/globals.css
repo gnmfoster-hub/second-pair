@@ -1062,6 +1062,34 @@ body {
     .work-wide { max-width: 94rem; }
   }
 
+  /*
+   * Form labels in sentence case inside the product.
+   *
+   * .label is on 181 fields across 47 files — every setting, every form, every
+   * panel in the back office — and it was uppercase and tracked out. A page of
+   * settings therefore arrived as twenty small shouts down the left, which is
+   * a large part of what Giles keeps calling block wording.
+   *
+   * Still the label: same size, same weight, same colour, same spacing under
+   * it. Only the capitals go, and only inside the app — nothing on the
+   * marketing site uses this class.
+   */
+  .app .label {
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 0.8125rem;
+  }
+
+  /*
+   * And the empty states. "NOTHING HERE YET" in capitals is the product
+   * raising its voice at somebody who has simply not done anything yet, which
+   * is the one moment it should be at its calmest.
+   */
+  .app .empty-title {
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
   /* The stamp keeps its shape and loses a little of its weight. */
   .app .stamp::before {
     border-width: 1.5px;
