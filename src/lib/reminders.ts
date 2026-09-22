@@ -8,6 +8,7 @@ import { connectedChannels, smsNumberFor, smsNumberForPerson } from "@/lib/messa
 import type { Channel } from "@/lib/types";
 import { isOptedOut } from "@/lib/messaging/optOut";
 import { whyNotSend } from "@/lib/whyNotSend";
+import { planReminders } from "@/lib/reminderSchedule";
 
 /**
  * Reminders.
@@ -114,13 +115,23 @@ export async function scheduleReminders(
 
   if (!templates?.length) return 0;
 
-  const start = Date.parse(startsAt);
   const now = Date.now();
 
-  const row = (t: Template, dueAt: string) => ({
+  /*
+   * The rules themselves live in reminderSchedule.ts, which touches nothing.
+   *
+   * What is due and when is the part that can be quietly wrong — a
+   * confirmation dated to the appointment, or eaten by the rule that drops
+   * reminders whose moment has passed — and this file reaches the database and
+   * the messaging layer, so no test can load it. Pure and tested there;
+   * written and sent here.
+   */
+  const plan = planReminders(templates, startsAt, now);
+
+  const row = (r: { template_id: string; due_at: string }) => ({
     booking_id: bookingId,
-    template_id: t.id,
-    due_at: dueAt,
+    template_id: r.template_id,
+    due_at: r.due_at,
     /*
      * Waiting again, whatever it was before.
      *
@@ -133,40 +144,8 @@ export async function scheduleReminders(
     sent_at: null,
   });
 
-  /*
-   * Zero hours before means the confirmation: send it as they book.
-   *
-   * It is the same machinery as every other reminder rather than a second
-   * one beside it — one template belonging to the business, rendered when it
-   * goes out, delivered on whichever channel they came in on, honouring an
-   * opt-out, and surfacing for the owner to send by hand where no channel is
-   * connected. All of that already works and none of it wants writing twice.
-   *
-   * Due now, not at the appointment: the arithmetic below would put a zero
-   * exactly on the start time, which is the one moment a confirmation is no
-   * use.
-   *
-   * "Due now" is not enough on its own, and this nearly shipped believing it
-   * was. The sweep that sends what is due runs once a day at seven in the
-   * morning — see vercel.json — so a confirmation written this way would be
-   * scheduled correctly and land on the customer's phone the following
-   * morning, which is not a confirmation. So it is sent here as well, and the
-   * sweep is left as the net that catches one that failed.
-   */
-  const confirmations = templates
-    .filter((t) => t.hours_before === 0)
-    .map((t) => row(t, new Date(now).toISOString()));
-
-  const timed = templates
-    .filter((t) => t.hours_before > 0)
-    .map((t) => row(t, new Date(start - t.hours_before * 3600_000).toISOString()))
-    /*
-     * Only ones that would still land in the future. Booking something for
-     * tomorrow should not fire a "two days before" reminder immediately.
-     * Confirmations are exempt by construction: theirs is due now, and `now`
-     * is never later than itself.
-     */
-    .filter((r) => Date.parse(r.due_at) > now);
+  const confirmations = plan.confirmations.map(row);
+  const timed = plan.timed.map(row);
 
   let written = 0;
 
