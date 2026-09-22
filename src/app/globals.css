@@ -759,22 +759,21 @@ body {
   /* Tailwind v4 cannot @apply one component class inside another, so the shared
      button rules live in a plain selector list instead. */
   /*
-   * Poster-press buttons, DESIGN.md §5.
+   * Pill buttons. Giles's call, and it overrides §5.
    *
-   * A coloured face with a 2px ink keyline, a slab of the opposite colour
-   * offset behind it with its own keyline, an inset highlight along the top
-   * and a shade along the bottom, and a fine grain in the face at soft-light.
-   * Pressing it moves the face onto the slab.
+   * §5 draws a poster press: a coloured face with a 2px ink keyline, a slab of
+   * the opposite colour offset 6px behind it, an inset highlight and shade, and
+   * grain in the face. Giles called it boxy three times running and picked a
+   * pill instead — fully rounded ends, flat colour, no outline, no offset
+   * block. His site, his call; the pack loses this one.
    *
-   * The whole thing is box-shadow — face keyline, slab, slab keyline — so
-   * there is one element and no pseudo-element to get out of step, which is
-   * what the reference does in .b3 and why the press stays square at every
-   * size.
+   * Nothing else changes. Every class keeps its name, its colour and its job,
+   * so .btn-primary is still the primary action on all two hundred screens
+   * that call it. Only the face is different.
    *
-   * Square corners except 6px, per §4. The old buttons were rounded-xl.
-   *
-   * Every button keeps its class name and its behaviour. This is the same
-   * .btn-primary the whole product already calls; only its face has changed.
+   * The press is a small lift rather than a slide onto a slab: with no slab
+   * there is nothing to slide onto, and a button that moves 5px sideways with
+   * nothing behind it just looks loose.
    */
   .btn,
   .btn-primary,
@@ -785,7 +784,7 @@ body {
            transition-transform disabled:opacity-50
            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
            focus-visible:ring-offset-2 focus-visible:ring-offset-background;
-    border-radius: 6px;
+    border-radius: 999px;
     border: none;
     font-family: var(--font-display), Impact, "Arial Narrow", sans-serif;
     text-transform: uppercase;
@@ -794,82 +793,35 @@ body {
     line-height: 1;
     /* §5: 44px default, 54px large, 62px hero. */
     min-height: 2.75rem;
-    transition: transform 0.1s ease, box-shadow 0.1s ease;
-    background-image: var(--grain);
-    background-blend-mode: soft-light;
+    padding-inline: 1.65rem;
+    transition: transform 0.12s ease, filter 0.12s ease, background-color 0.12s ease;
+    background-image: none;
   }
 
-  /* Cobalt face, paper slab. The primary action. */
+  /* Flat cobalt. The primary action. */
   .btn-primary {
     background-color: var(--accent);
     color: var(--on-accent);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.35),
-      inset 0 -4px 0 rgba(0, 0, 0, 0.3),
-      0 0 0 2px var(--foreground),
-      6px 6px 0 var(--background),
-      6px 6px 0 2px var(--foreground);
+    box-shadow: none;
   }
 
   .btn-primary:hover:not(:disabled) {
-    transform: translate(3px, 3px);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.35),
-      inset 0 -4px 0 rgba(0, 0, 0, 0.3),
-      0 0 0 2px var(--foreground),
-      3px 3px 0 var(--background),
-      3px 3px 0 2px var(--foreground);
+    background-color: var(--accent-strong);
+    transform: translateY(-1px);
   }
 
   .btn-primary:active:not(:disabled) {
-    transform: translate(5px, 5px);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.35),
-      inset 0 -4px 0 rgba(0, 0, 0, 0.3),
-      0 0 0 2px var(--foreground);
+    transform: translateY(1px);
   }
 
   /*
-   * Inside the product, the same buttons without the slab.
+   * The grain is a paper texture; §9 keeps it out of the app entirely.
    *
-   * §9 again: "Apply the brand, don't shout it", and hard offset shadows kept
-   * for things that float. A poster button is right once on a landing page and
-   * wrong nine times down a settings screen, where the 6px slab under every
-   * Save is just noise to work around.
-   *
-   * The face, the colour and the press are unchanged — it still moves when you
-   * push it, so the button reads the same. Only the slab goes, replaced by the
-   * 2px ink keyline that was underneath it.
+   * The block that used to live here stripped the 6px slab off in-app buttons.
+   * With the pills there is no slab anywhere, so it has gone — the face is the
+   * same inside the product as outside it now, which is one fewer thing to
+   * keep in step.
    */
-  .app .btn-primary,
-  .app .btn-highlight,
-  .app .btn-danger {
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.28),
-      inset 0 -3px 0 rgba(0, 0, 0, 0.22),
-      0 0 0 1px var(--foreground);
-  }
-
-  .app .btn-primary:hover:not(:disabled),
-  .app .btn-highlight:hover:not(:disabled),
-  .app .btn-danger:hover:not(:disabled) {
-    transform: translateY(1px);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.28),
-      inset 0 -2px 0 rgba(0, 0, 0, 0.22),
-      0 0 0 1px var(--foreground);
-  }
-
-  .app .btn-primary:active:not(:disabled),
-  .app .btn-highlight:active:not(:disabled),
-  .app .btn-danger:active:not(:disabled) {
-    transform: translateY(2px);
-    box-shadow:
-      inset 0 -1px 0 rgba(0, 0, 0, 0.22),
-      0 0 0 1px var(--foreground);
-  }
-
-  /* The grain is a paper texture; §9 keeps it out of the app entirely. */
   .app .btn,
   .app .btn-primary,
   .app .btn-highlight,
@@ -890,31 +842,16 @@ body {
   .btn-highlight {
     background-color: var(--highlight);
     color: var(--on-highlight);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.35),
-      inset 0 -4px 0 rgba(0, 0, 0, 0.25),
-      0 0 0 2px var(--foreground),
-      6px 6px 0 var(--background),
-      6px 6px 0 2px var(--foreground);
+    box-shadow: none;
   }
 
   .btn-highlight:hover:not(:disabled) {
     background-color: var(--highlight-strong);
-    transform: translate(3px, 3px);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.35),
-      inset 0 -4px 0 rgba(0, 0, 0, 0.25),
-      0 0 0 2px var(--foreground),
-      3px 3px 0 var(--background),
-      3px 3px 0 2px var(--foreground);
+    transform: translateY(-1px);
   }
 
   .btn-highlight:active:not(:disabled) {
-    transform: translate(5px, 5px);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.35),
-      inset 0 -4px 0 rgba(0, 0, 0, 0.25),
-      0 0 0 2px var(--foreground);
+    transform: translateY(1px);
   }
 
   /*
@@ -930,7 +867,7 @@ body {
     background-color: transparent;
     background-image: none;
     color: var(--foreground);
-    box-shadow: 0 0 0 2px var(--foreground);
+    box-shadow: inset 0 0 0 1.5px var(--foreground);
   }
 
   .btn-ghost:hover:not(:disabled) {
@@ -938,17 +875,15 @@ body {
   }
 
   /*
-   * The poster secondary: ink face, paper text, cobalt slab at 5px.
-   *
-   * §5's secondary, kept for the marketing site and the nav, where a button
-   * is an object on a poster rather than a control in a row.
+   * The dark pill: ink face, paper text. Used by the nav and the cobalt band,
+   * where the button sits on a colour that cobalt would disappear into.
    */
   .btn-ink {
-    @apply relative inline-flex items-center justify-center gap-2 px-5
+    @apply relative inline-flex items-center justify-center gap-2
            transition-transform disabled:opacity-50
            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
            focus-visible:ring-offset-2 focus-visible:ring-offset-background;
-    border-radius: 6px;
+    border-radius: 999px;
     border: none;
     font-family: var(--font-display), Impact, "Arial Narrow", sans-serif;
     text-transform: uppercase;
@@ -956,35 +891,20 @@ body {
     font-size: 1rem;
     line-height: 1;
     min-height: 2.75rem;
-    transition: transform 0.1s ease, box-shadow 0.1s ease;
-    background-image: var(--grain);
-    background-blend-mode: soft-light;
+    padding-inline: 1.65rem;
+    transition: transform 0.12s ease, background-color 0.12s ease;
+    background-image: none;
     background-color: var(--foreground);
     color: var(--background);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.16),
-      inset 0 -4px 0 rgba(0, 0, 0, 0.7),
-      0 0 0 2px var(--foreground),
-      5px 5px 0 var(--accent),
-      5px 5px 0 2px var(--foreground);
+    box-shadow: none;
   }
 
   .btn-ink:hover:not(:disabled) {
-    transform: translate(3px, 3px);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.16),
-      inset 0 -4px 0 rgba(0, 0, 0, 0.7),
-      0 0 0 2px var(--foreground),
-      3px 3px 0 var(--accent),
-      3px 3px 0 2px var(--foreground);
+    transform: translateY(-1px);
   }
 
   .btn-ink:active:not(:disabled) {
-    transform: translate(5px, 5px);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.14),
-      inset 0 -3px 0 rgba(0, 0, 0, 0.7),
-      0 0 0 2px var(--foreground);
+    transform: translateY(1px);
   }
 
   /* Tertiary, §5: text with a 3px underline. No face, no slab. */

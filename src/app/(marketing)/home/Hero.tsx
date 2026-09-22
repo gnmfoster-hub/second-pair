@@ -68,43 +68,33 @@ const TALLY_AT: Record<number, number> = {
 type HandMode = "idle" | "type" | "hold" | "swipe" | "point";
 
 /**
- * The pair holding the phone: yours, and the second one.
+ * One hand, reaching in from the left of the phone.
  *
- * Sat behind the phone rather than over it, so the cupped fingers show at its
- * edges and the screen is never covered. That is also what keeps them inside
- * the viewport on a phone — a hand hung off the left at a negative offset is
- * a horizontal scrollbar on a 390px screen, which the edge checker fails.
+ * It was two for a while — cream one side, cobalt the other — on the idea that
+ * the second pair should be literal. Giles pointed out the render he liked has
+ * one hand, moving slightly, and he is right: the reference draws a single .hf
+ * at rotate(-14deg) drifting sixteen pixels with the cursor, behind the panel.
  *
- * The lg offsets are small on purpose. At -left-40 the cream hand sat across
- * "PAIR OF HANDS." in the headline, and at -right-28 the cobalt one ran off
- * the right of a 1024px window. Both now hug the phone the way they do on a
- * narrow screen, only larger.
+ * Two was also the thing that made it look pasted on. The artwork is a hand
+ * photographed palm-up with nothing in it, so a pair bracketing a phone reads
+ * as two cut-outs; one reaching in from the edge reads as a hand, which is all
+ * the pose can honestly be.
  *
- * Offsets are from the top of the column in pixels, not percentages: the
- * column is the phone plus the diary under it, so "34%" put a hand a third of
- * the way down both and left it below the fold on a phone.
- *
- * px/py are how far each drifts with the cursor. Different per hand, because
- * two things moving the same distance read as one thing.
+ * Wrapper takes the cursor drift, image takes the idle breathing — one element
+ * cannot do both, they are the same property. The breathing is what keeps it
+ * alive on a touchscreen, where there is no cursor to follow.
  */
 const HOLDING = [
   {
     src: "/brand/hands/hand-front.webp",
-    place: "-left-14 top-28 w-[104px] lg:-left-24 lg:top-32 lg:w-[150px]",
+    place: "-left-16 top-24 w-[128px] sm:-left-20 sm:w-[150px] lg:-left-28 lg:top-28 lg:w-[186px]",
     keyframes: "sp-hold-a",
     seconds: 6.5,
-    px: 32,
-    py: 20,
-  },
-  {
-    src: "/brand/hands/hand-second.webp",
-    place: "-right-12 top-72 w-[96px] lg:-right-20 lg:top-72 lg:w-[142px]",
-    keyframes: "sp-hold-b",
-    seconds: 7.9,
-    px: -24,
-    py: -14,
+    px: 16,
+    py: 10,
   },
 ];
+
 
 export function Hero() {
   const [trade, setTrade] = useState<TradeKey>("tattoo");
@@ -525,8 +515,8 @@ export function Hero() {
               aria-pressed={trade === t.key}
               className="px-2.5 py-1 text-[13px] uppercase tracking-[0.06em] transition-colors"
               style={{
-                border: "2px solid var(--foreground)",
-                borderRadius: 6,
+                border: "1.5px solid var(--foreground)",
+                borderRadius: 999,
                 background: trade === t.key ? "var(--foreground)" : "transparent",
                 color: trade === t.key ? "var(--background)" : "var(--foreground)",
               }}
