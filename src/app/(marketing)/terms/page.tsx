@@ -92,9 +92,27 @@ export default function TermsPage() {
 
       <Section title="Ending it">
         <p className="draft">
-          Still to decide: the notice period, the price, and how billing works. Second Pair
-          trades as a sole trader, so no company number is needed here, but the trading
-          name and business address are, and they have to match the privacy notice.
+          Still to decide: the notice period, the price, and how billing works. The
+          company details below are settled and match the privacy notice.
+        </p>
+      </Section>
+
+      {/*
+        * Who you are actually contracting with.
+        *
+        * Terms that never name the company are terms against nobody. This page
+        * said Second Pair was a sole trader and that no company number was
+        * needed here — both untrue since incorporation, and contradicted by the
+        * footer on the same page.
+        */}
+      <Section title="Who you are contracting with">
+        <p>
+          <strong>Second Pair Ltd</strong>, a company registered in England and Wales,
+          number <strong>17453965</strong>, trading as second-pair.com.
+          <br />
+          Registered office: 13 Bugle Place, Newton Abbot, TQ12 1GZ, United Kingdom.
+          <br />
+          <a href="mailto:info@second-pair.com">info@second-pair.com</a>
         </p>
       </Section>
     </Legal>

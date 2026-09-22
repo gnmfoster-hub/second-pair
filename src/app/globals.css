@@ -502,6 +502,35 @@ body {
     50% { transform: translateY(4px) rotate(-10deg); }
   }
 
+  /*
+   * The two hands holding the phone, breathing.
+   *
+   * They used to move only with the cursor, which meant they were perfectly
+   * still on every phone and tablet — and hidden outright below 1280px, so on
+   * a phone there were no hands at all. This runs on its own so the pair is
+   * alive without a pointer; the cursor parallax is a separate transform on
+   * the wrapper and adds to it rather than fighting it.
+   *
+   * Slow and small on purpose: it should read as a held object settling, not
+   * as something waving. The two are deliberately out of step, because two
+   * hands rising and falling in perfect time look like one object.
+   */
+  @keyframes sp-hold-a {
+    0%, 100% { transform: translate3d(0, 0, 0) rotate(-14deg); }
+    50% { transform: translate3d(0, -9px, 0) rotate(-12.5deg); }
+  }
+
+  @keyframes sp-hold-b {
+    0%, 100% { transform: scaleX(-1) translate3d(0, -4px, 0) rotate(-13deg); }
+    50% { transform: scaleX(-1) translate3d(0, 6px, 0) rotate(-15deg); }
+  }
+
+  /* Anything that only exists to move should not move when asked not to. */
+  @media (prefers-reduced-motion: reduce) {
+    @keyframes sp-hold-a { 0%, 100% { transform: rotate(-14deg); } }
+    @keyframes sp-hold-b { 0%, 100% { transform: scaleX(-1) rotate(-13deg); } }
+  }
+
   .grain {
     position: fixed;
     inset: 0;

@@ -67,6 +67,45 @@ const TALLY_AT: Record<number, number> = {
 
 type HandMode = "idle" | "type" | "hold" | "swipe" | "point";
 
+/**
+ * The pair holding the phone: yours, and the second one.
+ *
+ * Sat behind the phone rather than over it, so the cupped fingers show at its
+ * edges and the screen is never covered. That is also what keeps them inside
+ * the viewport on a phone — a hand hung off the left at a negative offset is
+ * a horizontal scrollbar on a 390px screen, which the edge checker fails.
+ *
+ * The lg offsets are small on purpose. At -left-40 the cream hand sat across
+ * "PAIR OF HANDS." in the headline, and at -right-28 the cobalt one ran off
+ * the right of a 1024px window. Both now hug the phone the way they do on a
+ * narrow screen, only larger.
+ *
+ * Offsets are from the top of the column in pixels, not percentages: the
+ * column is the phone plus the diary under it, so "34%" put a hand a third of
+ * the way down both and left it below the fold on a phone.
+ *
+ * px/py are how far each drifts with the cursor. Different per hand, because
+ * two things moving the same distance read as one thing.
+ */
+const HOLDING = [
+  {
+    src: "/brand/hands/hand-front.webp",
+    place: "left-0 top-28 w-[132px] lg:-left-12 lg:top-28 lg:w-[186px]",
+    keyframes: "sp-hold-a",
+    seconds: 6.5,
+    px: 32,
+    py: 20,
+  },
+  {
+    src: "/brand/hands/hand-second.webp",
+    place: "right-0 top-64 w-[124px] lg:-right-6 lg:top-48 lg:w-[176px]",
+    keyframes: "sp-hold-b",
+    seconds: 7.9,
+    px: -24,
+    py: -14,
+  },
+];
+
 export function Hero() {
   const [trade, setTrade] = useState<TradeKey>("tattoo");
   const [stage, setStage] = useState<number>(S.START);
@@ -307,20 +346,27 @@ export function Hero() {
       const r = box(inputRef.current);
       if (!r) return;
       /*
-       * Placed once, then it taps where it stands.
+       * It travels along the input as the words appear, and bobs.
        *
-       * The first version moved it a few pixels along the input for every
-       * character, which is 34ms apart — a new transform with a 0.7s
-       * transition thirty times a second, under a full-viewport blended grain.
-       * The compositor could not keep up and the tab stopped answering
-       * screenshots; a visitor would have felt it as the whole page going
-       * treacly while the assistant "typed".
+       * This is what the reference does — 744 + shown.length * 6.6, with a 3px
+       * bob on alternate characters — and it is the thing that makes the finger
+       * look like it is doing the typing rather than hovering near it.
        *
-       * §6.3 asks for a tap, not a traverse. So it sits at the near end of the
-       * input and the tap is a CSS loop, which the compositor runs on its own
-       * without React in the way.
+       * An earlier version of this froze the renderer, and the traverse got the
+       * blame. It was not the traverse. A character lands every 34ms and the
+       * transition was 0.7s ease, so every frame restarted a long eased
+       * animation that never once finished, under a full-viewport blended
+       * grain. The reference sets .type to 0.12s linear for exactly this, and
+       * at that length each step completes before the next arrives. React was
+       * already re-rendering on every character anyway, because the bubble text
+       * is derived from the same count, so the transform costs nothing extra.
        */
-      setHand({ x: r.left + 24, y: r.top + r.height * 0.5, mode: "type" });
+      const travel = Math.min(len * 6.6, Math.max(0, r.width - 72));
+      setHand({
+        x: r.left + 24 + travel,
+        y: r.top + r.height * 0.5 + (len % 2 ? 3 : 0),
+        mode: "type",
+      });
       return;
     }
 
@@ -337,7 +383,7 @@ export function Hero() {
     }
 
     setHand((was) => (was ? { ...was, mode: "idle" } : was));
-  }, [calm, sc.d1, sc.d2, stage, waiting]);
+  }, [calm, len, sc.d1, sc.d2, stage, waiting]);
 
   useEffect(() => {
     /* A frame later, so the rects are the ones just painted rather than the
@@ -451,9 +497,23 @@ export function Hero() {
 
   return (
     <div ref={stageRef} className="relative" onMouseMove={onMove} onMouseLeave={() => setTilt({ x: 0, y: 0 })}>
-    <div className="mx-auto grid max-w-6xl items-start gap-10 px-5 py-14 sm:px-8 lg:grid-cols-[1fr_minmax(0,560px)] lg:py-20">
+    {/*
+      * Three blocks on a phone, two columns from lg.
+      *
+      * On a phone the phone-shaped thing this hero is built around started at
+      * y=992 on an 844px screen: the headline, the sub, both buttons and the
+      * clock came first, so the demo was entirely below the fold and nobody
+      * scrolling past ever saw it move. The order is now headline, the demo,
+      * then the supporting copy.
+      *
+      * display:contents on the left wrapper lets its two halves become
+      * orderable siblings of the right column without moving them in the
+      * markup, so the reading order for a screen reader is unchanged.
+      */}
+    <div className="mx-auto flex max-w-6xl flex-col gap-10 px-5 py-14 sm:px-8 lg:grid lg:grid-cols-[1fr_minmax(0,560px)] lg:items-start lg:py-20">
       {/* ------------------------------------------------------------ left */}
-      <div className="relative z-10">
+      <div className="contents lg:relative lg:z-10 lg:block">
+      <div className="relative z-10 order-1 lg:order-none">
         {/* "Show me a", §7. */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[13px] uppercase tracking-[0.06em] text-muted">Show me a</span>
@@ -503,7 +563,11 @@ export function Hero() {
           </span>
         </h1>
 
-        <p className="mt-7 max-w-[60ch] text-[19px] leading-relaxed">
+      </div>
+
+      {/* The supporting half: below the demo on a phone, under the headline from lg. */}
+      <div className="relative z-10 order-3 lg:order-none">
+        <p className="max-w-[60ch] text-[19px] leading-relaxed lg:mt-7">
           The assistant answers your customers and sorts your bookings while you work.
           When you need a website or an app, we build that too. Pick a trade on the right
           and watch a real evening play out.
@@ -547,32 +611,64 @@ export function Hero() {
         </p>
       </div>
 
+      </div>
+
       {/* ----------------------------------------------------------- right */}
-      <div className="relative">
+      <div className="relative order-2 lg:order-none">
         {/*
-          * The front hand, §6.1. Decorative, so it is hidden from a screen
-          * reader and never carries meaning on its own.
+          * The pair, holding the phone. §6.1.
+          *
+          * Two hands rather than one, because the second one is the product:
+          * yours in skin and ours in cobalt, both on the phone. hand-second
+          * has been in the repository since the first pack and had never been
+          * put on a page.
+          *
+          * They are here at every width. Before this they were xl:block, so
+          * the one thing the hero is named after was absent on every phone and
+          * most laptops — and they moved only with the cursor, so even where
+          * they showed on a tablet they were perfectly still.
+          *
+          * Two nested elements each: the wrapper takes the cursor parallax,
+          * the image runs the idle breathing on its own. One element cannot do
+          * both, because they are the same CSS property.
+          *
+          * Decorative, so hidden from a screen reader and never the only place
+          * anything is said.
           */}
-        {!calm && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src="/brand/hands/hand-front.webp"
-            alt=""
+        {HOLDING.map((h) => (
+          <span
+            key={h.src}
             aria-hidden
-            className="pointer-events-none absolute -left-52 top-24 hidden w-[260px] select-none opacity-95 xl:block"
+            className={`pointer-events-none absolute select-none ${h.place}`}
             style={{
-              transform: `translate(${tiltUsed.x * 32}px, ${tiltUsed.y * 20}px) rotate(${tiltUsed.x * 2}deg)`,
+              transform: `translate(${tiltUsed.x * h.px}px, ${tiltUsed.y * h.py}px)`,
               transition: "transform 0.5s ease-out",
               zIndex: 0,
             }}
-          />
-        )}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={h.src}
+              alt=""
+              className="w-full select-none"
+              style={{
+                animation: `${h.keyframes} ${h.seconds}s ease-in-out infinite`,
+                opacity: 0.95,
+              }}
+            />
+          </span>
+        ))}
 
         <div className="relative z-10 flex flex-col gap-6">
           {/* --------------------------------------------------- the phone */}
           <div
             ref={phoneRef}
-            className="mx-auto w-full max-w-[360px]"
+            /*
+             * Narrower on a phone so the pair behind it can be seen holding it.
+             * At the full column width the phone covered both hands completely
+             * and the hero was named after something invisible.
+             */
+            className="mx-auto w-full max-w-[286px] sm:max-w-[360px]"
             style={{
               background: "var(--foreground)",
               borderRadius: 42,
@@ -763,7 +859,7 @@ export function Hero() {
       {hand && !calm && (
         <span
           aria-hidden
-          className="pointer-events-none absolute hidden lg:block"
+          className="pointer-events-none absolute block"
           style={{
             left: 0,
             top: 0,
@@ -773,7 +869,18 @@ export function Hero() {
              * where it is told; the inner one taps where it stands.
              */
             transform: `translate(${hand.x - 14}px, ${hand.y - 16}px)`,
-            transition: hand.mode === "swipe" ? "transform 1.6s ease" : "transform 0.7s ease",
+            /*
+             * Short and linear while typing, which is what makes the traverse
+             * possible at all: a character lands every 34ms, so a 0.7s eased
+             * transition never finishes and every frame restarts it. The
+             * reference sets .type to .12s linear for the same reason.
+             */
+            transition:
+              hand.mode === "swipe"
+                ? "transform 1.6s ease"
+                : hand.mode === "type"
+                  ? "transform 0.12s linear"
+                  : "transform 0.7s ease",
             zIndex: 40,
             willChange: "transform",
           }}
@@ -782,7 +889,7 @@ export function Hero() {
           <img
             src="/brand/hands/hand-point.webp"
             alt=""
-            className="w-[130px] select-none"
+            className="w-[92px] select-none sm:w-[130px]"
             style={{
               /* The fingertip sits about 14,16 into the artwork, §6. */
               transform: "rotate(-10deg)",

@@ -228,15 +228,15 @@ export default function PrivacyPage() {
 
       <Section title="Who is responsible">
         <p>
-          Second Pair is run as a sole trader in the United Kingdom, and is the data
-          controller for what this notice describes. Each business using it is the
-          controller for its own customers&rsquo; details; Second Pair processes those on
-          their behalf.
+          Second Pair Ltd is a company registered in England and Wales, number
+          17453965, and is the data controller for what this notice describes. Each
+          business using it is the controller for its own customers&rsquo; details;
+          Second Pair processes those on their behalf.
         </p>
         <p>
-          Trading as <strong>second-pair.com</strong>.
+          <strong>Second Pair Ltd</strong>, trading as second-pair.com.
           <br />
-          13 Bugle Place, Newton Abbot, TQ12 1GZ, United Kingdom.
+          Registered office: 13 Bugle Place, Newton Abbot, TQ12 1GZ, United Kingdom.
         </p>
       </Section>
 
