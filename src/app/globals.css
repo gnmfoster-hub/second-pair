@@ -597,6 +597,36 @@ body {
     .shell-wide { max-width: 100rem; }
   }
 
+  /*
+   * A ruled index, which is how this brand lists things.
+   *
+   * The sections down the home page were a heading and a grey paragraph,
+   * repeated — Giles's word was lists, and he was right: nothing marked where
+   * one item stopped and the next began except a gap, so five of them in a row
+   * read as one grey block with bold bits in it.
+   *
+   * A hairline over each entry and a short cobalt tick at its head. It is the
+   * same language as the diary and the settings panels rather than a new one,
+   * and it is structure that says something true — these are separate items of
+   * equal weight, which is exactly what a rule between them means and what a
+   * number in front of them would not.
+   */
+  .index-item {
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--border);
+    position: relative;
+  }
+
+  .index-item::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 0;
+    width: 1.75rem;
+    height: 2px;
+    background: var(--accent);
+  }
+
   .grain {
     position: fixed;
     inset: 0;

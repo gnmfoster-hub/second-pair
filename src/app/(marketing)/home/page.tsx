@@ -52,7 +52,7 @@ export default function HomePage() {
               body: "A complaint, anything medical, anyone under 18, anyone who asks for a person. It fetches you and stops talking. It never pretends to be you.",
             },
           ].map((card) => (
-            <div key={card.head}>
+            <div key={card.head} className="index-item">
               <h2 className="section-title text-base">{card.head}</h2>
               <p className="mt-2.5 text-sm leading-relaxed text-muted">{card.body}</p>
             </div>
@@ -97,7 +97,7 @@ export default function HomePage() {
       <section className="shell py-16 sm:py-24">
         <h2 className="page-title">And it runs the rest of it</h2>
 
-        <div className="mt-8 grid gap-x-10 gap-y-8 sm:grid-cols-2">
+        <div className="mt-8 grid gap-x-10 gap-y-7 sm:grid-cols-2 xl:grid-cols-3">
           {[
             ["A proper diary", "Day, week and person views, repeats, blocks, all-day entries. Or keep the Fresha diary you already have. It reads that too."],
             ["Deposits, if you want them", "Straight to your bank through Stripe at their normal rate. Second Pair takes nothing from it. Off entirely for trades that invoice after."],
@@ -106,7 +106,7 @@ export default function HomePage() {
             ["Client records", "History, what they've spent, no-shows, and a private note that flags every time they come back."],
             ["On your phone", "Add it to your home screen and it works like an app. No app store, no waiting."],
           ].map(([head, body]) => (
-            <div key={head}>
+            <div key={head} className="index-item">
               <h3 className="section-title text-[0.95rem]">{head}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-muted">{body}</p>
             </div>
@@ -164,7 +164,7 @@ export default function HomePage() {
                 "If you have Second Pair, it answers on the site from the first day. If you do not, the site is still yours and works perfectly well without it.",
               ],
             ].map(([head, body]) => (
-              <div key={head}>
+              <div key={head} className="index-item">
                 <h3 className="section-title text-[0.95rem]">{head}</h3>
                 <p className="mt-1.5 text-sm leading-relaxed text-muted">{body}</p>
               </div>
