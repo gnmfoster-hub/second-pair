@@ -526,8 +526,8 @@ body {
    * something it is reaching for.
    */
   @keyframes sp-hold-a {
-    0%, 100% { transform: scaleX(-1) translate3d(0, 0, 0) rotate(-13deg); }
-    50% { transform: scaleX(-1) translate3d(0, -9px, 0) rotate(-11.5deg); }
+    0%, 100% { transform: translate3d(0, 0, 0) rotate(-14deg); }
+    50% { transform: translate3d(0, -8px, 0) rotate(-12.8deg); }
   }
 
   @keyframes sp-hold-b {
@@ -537,7 +537,7 @@ body {
 
   /* Anything that only exists to move should not move when asked not to. */
   @media (prefers-reduced-motion: reduce) {
-    @keyframes sp-hold-a { 0%, 100% { transform: scaleX(-1) rotate(-13deg); } }
+    @keyframes sp-hold-a { 0%, 100% { transform: rotate(-14deg); } }
     @keyframes sp-hold-b { 0%, 100% { transform: scaleX(-1) rotate(-13deg); } }
   }
 
@@ -901,7 +901,20 @@ body {
    */
   .app .page-title {
     font-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
-    letter-spacing: 0.02em;
+    letter-spacing: 0.01em;
+    /*
+     * Sentence case in the product. Anton stays, because §9 wants the page
+     * title in it and it is what makes a screen findable at a glance, but
+     * setting it in capitals as well is what made twenty-five screens read as
+     * shouting at somebody who opens them forty times a day. "Inbox", not
+     * "INBOX". The marketing site keeps the capitals.
+     */
+    text-transform: none;
+  }
+
+  /* The big figures come down a little with it. */
+  .app .stat {
+    font-size: 1.6rem;
   }
 
   /*

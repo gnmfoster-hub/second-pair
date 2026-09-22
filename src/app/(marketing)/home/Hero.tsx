@@ -68,26 +68,34 @@ const TALLY_AT: Record<number, number> = {
 type HandMode = "idle" | "type" | "hold" | "swipe" | "point";
 
 /**
- * One hand, reaching in from the left of the phone.
+ * The hand, at the reference's own geometry.
  *
- * It was two for a while — cream one side, cobalt the other — on the idea that
- * the second pair should be literal. Giles pointed out the render he liked has
- * one hand, moving slightly, and he is right: the reference draws a single .hf
- * at rotate(-14deg) drifting sixteen pixels with the cursor, behind the panel.
+ * Worth writing the numbers down, because every version before this was
+ * guessed and every one was wrong. The reference is a fixed 1440x900 board:
+ * the phone is 360x700 at (700,140) and the hand is the same 700x974 artwork
+ * this repository already had, rendered at its natural width — no width
+ * attribute, no CSS width — at translate(560,290) rotate(-14deg), z-index 5,
+ * behind the phone at z-index 10.
  *
- * Two was also the thing that made it look pasted on. The artwork is a hand
- * photographed palm-up with nothing in it, so a pair bracketing a phone reads
- * as two cut-outs; one reaching in from the edge reads as a hand, which is all
- * the pose can honestly be.
+ * So the hand is 1.94 times the width of the phone, and the phone sits in the
+ * middle of it. That is the whole trick, and it is why nothing I tried looked
+ * right: I had been drawing a 190px hand beside a 258px phone, a third of the
+ * size it should be, so it could only ever sit next to the device instead of
+ * under it. Big enough, the phone lands on the palm, the fingers rise past its
+ * left edge and the wrist runs out below — which is the wrap Giles described.
  *
- * Wrapper takes the cursor drift, image takes the idle breathing — one element
- * cannot do both, they are the same property. The breathing is what keeps it
- * alive on a touchscreen, where there is no cursor to follow.
+ * Expressed against the phone so it holds at every width:
+ *   width  1.94 x phone width
+ *   left  -0.389 x phone width
+ *   top    0.214 x phone height
+ *
+ * Not mirrored. I flipped it last time to get the fingers pointing at the
+ * device; at the right size they already do.
  */
 const HOLDING = [
   {
     src: "/brand/hands/hand-front.webp",
-    place: "-left-20 top-28 w-[128px] sm:-left-24 sm:w-[150px] lg:-left-32 lg:top-32 lg:w-[190px]",
+    place: "-left-[39%] top-[21%] w-[194%]",
     keyframes: "sp-hold-a",
     seconds: 6.5,
     px: 16,
@@ -958,7 +966,16 @@ export function Hero() {
           </div>
 
           {/* The diary and its caption, beside the phone from lg. */}
-          <div className="flex min-w-0 flex-col gap-2 lg:flex-1 lg:self-stretch">
+          {/*
+            * Positioned, so it paints above the hand.
+            *
+            * The hand is absolute and the diary column was not positioned at
+            * all, and a positioned element paints above a static one whatever
+            * the DOM order — so the wrist ran across the diary's caption. The
+            * reference has the same stacking deliberately: hand 5, diary 8,
+            * phone 10.
+            */}
+          <div className="relative z-10 flex min-w-0 flex-col gap-2 lg:flex-1 lg:self-stretch">
           {/* --------------------------------------------------- the diary */}
           <div
             ref={diaryRef}
