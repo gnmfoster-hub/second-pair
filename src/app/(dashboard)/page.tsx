@@ -464,16 +464,26 @@ export default async function InboxPage({
                 href={key === "all" ? "/" : `/?show=${key}`}
                 scroll={false}
                 aria-current={here ? "page" : undefined}
-                /* Straight: these are controls, not marks somebody pressed. */
-                style={{ "--tilt": "0deg" } as React.CSSProperties}
-                className={`stamp stamp-flat transition-colors ${
+                /*
+                  * Quiet pills, not stamps.
+                  *
+                  * These were .stamp: a square box, a 2.5px border and the
+                  * label in capitals. The stamp is the right mark for the
+                  * state a job is in — it is the one thing Giles kept out of a
+                  * whole afternoon of directions — but these are not states,
+                  * they are the filter row, and five heavy boxes made the top
+                  * of the inbox the loudest thing on it. Same words, same
+                  * counts, same behaviour; a pill like the person picker
+                  * directly above them, and sentence case.
+                  */
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] transition-colors ${
                   here
-                    ? "border-accent bg-accent text-on-accent"
-                    : "text-muted hover:border-accent/50 hover:text-foreground"
+                    ? "border-accent bg-accent font-medium text-on-accent"
+                    : "border-border text-muted hover:border-accent/50 hover:text-foreground"
                 }`}
               >
                 {group.label}
-                <span className={here ? "opacity-70" : "opacity-60"}>{count}</span>
+                <span className={`tabular-nums ${here ? "opacity-75" : "opacity-60"}`}>{count}</span>
               </Link>
             );
           })}

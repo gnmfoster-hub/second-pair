@@ -938,6 +938,24 @@ body {
   }
 
   /*
+   * Figures in the body face inside the product.
+   *
+   * Anton is a poster face: condensed, one heavy weight, made to be read from
+   * across a room. It is right for the money on a landing page and wrong for
+   * the same number on a screen somebody works in all day — Giles picked these
+   * out by name as the block text still bothering him. Same size, same tabular
+   * alignment, which is the reason the class exists; Instrument Sans at 600
+   * carries a figure perfectly well without shouting it.
+   *
+   * The marketing site keeps Anton: .stat outside .app is untouched.
+   */
+  .app .stat {
+    font-family: var(--font-body), system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  /*
    * The grain is a paper texture; §9 keeps it out of the app entirely.
    *
    * The block that used to live here stripped the 6px slab off in-app buttons.
