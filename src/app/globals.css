@@ -342,6 +342,29 @@ body {
    * So: no weight, uppercase and positive tracking per §3, which is how a
    * poster face is set anyway.
    */
+  /*
+   * A wrong weight on the display face renders correctly instead of badly.
+   *
+   * Anton ships one weight. Ask it for 600 or 700 and the browser fakes it by
+   * drawing every glyph twice, a pixel apart. On paper that reads as slightly
+   * heavy type and nobody questions it; on ink it is an obvious dark smear,
+   * which is how eight of them survived in the counters, the diary and the
+   * widget until the dark screens were photographed.
+   *
+   * Turning synthesis off means the next one to be written renders at 400 and
+   * looks right, rather than looking wrong in only one of the two themes.
+   */
+  .font-display,
+  .page-title,
+  .section-title,
+  .stat,
+  .empty-title,
+  .booking-when,
+  [class^="btn"],
+  [class*=" btn"] {
+    font-synthesis-weight: none;
+  }
+
   .page-title {
     font-family: var(--font-display), Impact, "Arial Narrow", sans-serif;
     font-size: clamp(1.5rem, 1.25rem + 0.9vw, 1.875rem);

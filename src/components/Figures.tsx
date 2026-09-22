@@ -104,7 +104,7 @@ export function Figure({
           * open all day — but one line does not have to mean quiet.
           */}
         <span
-          className={`font-display font-bold tabular-nums tracking-[-0.02em] ${
+          className={`font-display tabular-nums tracking-[-0.02em] ${
             lead ? "text-3xl" : "text-xl"
           } ${act ? "text-highlight-strong" : warn ? "text-warn" : ""}`}
         >
@@ -126,7 +126,7 @@ export function Figure({
   return (
     <div className="bg-surface px-5 py-5">
       <div
-        className={`font-display font-bold tabular-nums leading-none tracking-[-0.03em] ${
+        className={`font-display tabular-nums leading-none tracking-[-0.03em] ${
           lead ? "text-4xl" : "text-2xl"
         } ${warn ? "text-warn" : act ? "text-highlight-strong" : ""}`}
       >

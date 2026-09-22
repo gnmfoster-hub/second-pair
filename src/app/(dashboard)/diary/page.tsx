@@ -1780,7 +1780,7 @@ function Figure({
   return (
     <span className="flex items-baseline gap-1.5">
       <span
-        className={`font-display text-base font-semibold tabular-nums ${accent ? "text-accent" : ""}`}
+        className={`font-display text-base tabular-nums ${accent ? "text-accent" : ""}`}
       >
         {value}
       </span>

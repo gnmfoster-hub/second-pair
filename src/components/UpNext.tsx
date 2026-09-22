@@ -126,7 +126,7 @@ export async function UpNext({
         )}
       </div>
 
-      <div className="num mt-1.5 font-display text-lg font-semibold leading-none">
+      <div className="num mt-1.5 font-display text-lg leading-none">
         {row.all_day ? "All day" : time}
       </div>
       <div className="hint mt-0.5">{today ? "Today" : day}</div>

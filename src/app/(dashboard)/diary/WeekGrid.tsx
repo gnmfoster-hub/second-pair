@@ -783,7 +783,7 @@ export function WeekGrid({
                    */
                   <div className="flex items-center justify-center gap-2">
                     <span
-                      className={`grid size-9 place-items-center rounded-xl font-display text-lg font-bold tabular-nums leading-none ${
+                      className={`grid size-9 place-items-center rounded-xl font-display text-lg tabular-nums leading-none ${
                         isToday
                           ? "bg-accent text-on-accent shadow-[var(--shadow-card)]"
                           : closed

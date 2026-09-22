@@ -161,7 +161,7 @@ export function MomentCard({
             {moment.label}
             {moment.person ? ` with ${moment.person}` : ""}
           </Label>
-          <p className="mt-1.5 font-display text-2xl font-bold tabular-nums leading-none">
+          <p className="mt-1.5 font-display text-2xl tabular-nums leading-none">
             {formatPence(moment.lowPence)}
             <span className="mx-1.5 font-normal text-muted">–</span>
             {formatPence(moment.highPence)}
@@ -209,7 +209,7 @@ export function MomentCard({
             */}
           {moment.time ? (
             <>
-              <p className="mt-1.5 font-display text-[1.7rem] font-bold leading-none tracking-tight tabular-nums">
+              <p className="mt-1.5 font-display text-[1.7rem] leading-none tracking-tight tabular-nums">
                 {moment.time}
               </p>
               <p className="mt-1.5 text-sm font-medium">{moment.day}</p>
@@ -237,7 +237,7 @@ export function MomentCard({
       return (
         <Card accent={brand}>
           <Label>Deposit to secure it</Label>
-          <p className="mt-1.5 font-display text-2xl font-bold tabular-nums leading-none">
+          <p className="mt-1.5 font-display text-2xl tabular-nums leading-none">
             {formatPence(moment.amountPence)}
           </p>
           <a

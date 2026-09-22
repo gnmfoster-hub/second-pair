@@ -26,7 +26,26 @@ const { createClient } = require(path.join(REPO, "node_modules", "@supabase", "s
   const pages = (process.env.PAGES || "/").split(",");
 
   const browser = await chromium.launch({ channel: "chrome", headless: true });
+  /*
+   * DARK=1 sets the app's own preference, not the OS's.
+   *
+   * Asking the OS does nothing here: the product defaults to light on purpose
+   * and stamps data-theme="light" before hydration unless somebody has chosen
+   * otherwise, so prefers-color-scheme never gets a look in. Seeding the same
+   * key the toggle writes is the only way to photograph what a customer who
+   * picked dark actually sees.
+   */
+  const dark = process.env.DARK === "1";
   const context = await browser.newContext({ viewport: { width: w, height: 900 } });
+  if (dark) {
+    await context.addInitScript(() => {
+      try {
+        localStorage.setItem("secondpair_theme", "dark");
+      } catch {
+        /* Then the picture comes out light and says so. */
+      }
+    });
+  }
   const page = await signIn(context, owner[0].user_id, "/");
   await page.waitForTimeout(1500);
 
@@ -34,7 +53,7 @@ const { createClient } = require(path.join(REPO, "node_modules", "@supabase", "s
     const name = href === "/" ? "inbox" : href.replace(/[/?=&]/g, "-").replace(/^-/, "");
     await page.goto(process.env.SITE + href, { waitUntil: "networkidle" });
     await page.waitForTimeout(1200);
-    await page.screenshot({ path: `${out}/app-${name}-${w}.png`, fullPage: true });
+    await page.screenshot({ path: `${out}/app-${name}-${w}${dark ? "-dark" : ""}.png`, fullPage: true });
   }
   await browser.close();
 })();
