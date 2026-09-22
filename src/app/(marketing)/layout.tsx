@@ -77,13 +77,14 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               * There is no arrangement of a lockup, a button and a menu that
               * fits on a phone at a size worth having.
               *
-              * The mark is square, so at 44px it costs 44px of width instead
-              * of 195 and is half as tall again as the lockup it replaces. It
-              * is the thing people recognise; the name is in the page title,
-              * the menu and the footer.
+              * The mark is square, so at 60px it costs 60px of width instead
+              * of 195, and it is nearly twice the height of the lockup it
+              * replaces. The bar is 76px, so that is eight pixels of air above
+              * and below. It is the thing people recognise; the name is in the
+              * page title, the menu and the footer.
               */}
             <span className="block sm:hidden">
-              <Mark className="size-11" sizePx={44} />
+              <Mark className="size-[60px]" sizePx={60} />
             </span>
             {/*
               * The tagline, which the pack had all along.
