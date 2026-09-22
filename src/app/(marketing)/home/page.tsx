@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
-import { LiveDemo } from "./LiveDemo";
+import { Hero } from "./Hero";
 import type { Metadata } from "next";
-import { VERTICALS_BY_CATEGORY, VERTICAL_LIST } from "@/lib/verticals";
+import { VERTICALS_BY_CATEGORY } from "@/lib/verticals";
 
 export const metadata: Metadata = {
   title: "Second Pair. You work, we answer",
@@ -20,201 +20,19 @@ export const metadata: Metadata = {
  * conversation is the product and the calendar is the table stakes.
  */
 
-/*
- * A salon, because that is who is reading.
- *
- * This was an electrician, and electricians are a good fit — but the hair and
- * beauty trades are where most of this business is, and a colour enquiry at
- * nine at night is the exact thing a stylist recognises. The names are made
- * up; the shape of the conversation is not.
- */
-const SALON = { name: "Bell Lane Hair", initials: "BL", brand: "#8A4B63", onBrand: "#ffffff" };
-
-/**
- * The next Saturday, and the two after it, at a civilised hour.
- *
- * Worked out on the server so the demo shows dates that are actually ahead of
- * whoever is reading — a hard-coded Saturday is fine for a week and then
- * quietly starts offering appointments in the past.
- */
-function saturdays() {
-  const day = new Date();
-  day.setHours(10, 0, 0, 0);
-  day.setDate(day.getDate() + ((6 - day.getDay() + 7) % 7 || 7));
-
-  const format = new Intl.DateTimeFormat("en-GB", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: "Europe/London",
-  });
-
-  return [0, 1, 2].map((week) => {
-    const start = new Date(day);
-    start.setDate(start.getDate() + week * 7);
-    if (week === 1) start.setHours(13, 30, 0, 0);
-    if (week === 2) start.setHours(11, 0, 0, 0);
-    const end = new Date(start.getTime() + 180 * 60_000);
-    /* The same two parts the real widget receives, so the demo is a picture of
-       the product rather than of an older version of it. */
-    const day_ = new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Europe/London",
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-    }).format(start);
-    const time = new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Europe/London",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    })
-      .format(start)
-      .replace(/\s?([ap])m$/i, (_m, half) => `${half.toLowerCase()}m`);
-
-    return {
-      startsAt: start.toISOString(),
-      endsAt: end.toISOString(),
-      label: format.format(start).replace(" at ", " at ").replace(/,/g, ""),
-      day: day_,
-      time,
-    };
-  });
-}
-
-const SLOTS = saturdays();
-
-const CONVERSATION = [
-  { who: "them", text: "hiya do you do balayage? roughly how much" },
-  {
-    who: "us",
-    text: "We do. Balayage with Nadia is usually £120 to £160 depending on your length and how much lift you're after, and it's about three hours in the chair.",
-    moment: {
-      kind: "quote",
-      label: "Balayage",
-      person: "Nadia",
-      lowPence: 12000,
-      highPence: 16000,
-      note: null,
-      depositPence: 2500,
-      hoursLow: 3,
-      hoursHigh: 3,
-      needsConsultation: false,
-    },
-  },
-  { who: "them", text: "perfect. any saturdays?" },
-  {
-    who: "us",
-    text: "She's got three Saturdays going. Which suits?",
-    moment: {
-      kind: "slots",
-      person: "Nadia",
-      minutes: 180,
-      appointment: "session",
-      slots: SLOTS.map((s) => ({ startsAt: s.startsAt, label: s.label, day: s.day, time: s.time })),
-    },
-  },
-  { who: "tap", slot: 0 },
-  {
-    who: "us",
-    text: "Lovely, you're in with Nadia. I'll text you the day before, and if you change your mind about the length just say.",
-    moment: {
-      kind: "booked",
-      person: "Nadia",
-      startsAt: SLOTS[0].startsAt,
-      day: SLOTS[0].day,
-      time: SLOTS[0].time,
-      endsAt: SLOTS[0].endsAt,
-      label: SLOTS[0].label,
-      held: false,
-    },
-  },
-] as const;
-
 export default function HomePage() {
   return (
     <>
-      {/* ─────────────────────────────────────────────────────────── hero */}
-      <section className="relative overflow-hidden px-5 pb-4 pt-14 sm:px-8 sm:pt-20">
-        <div className="aura" aria-hidden />
-        <div className="relative mx-auto grid max-w-5xl items-center gap-12 lg:grid-cols-[1.05fr_1fr]">
-          <div>
-            <p className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs text-muted">
-              <span className="size-1.5 rounded-full bg-ok" aria-hidden />
-              Answering right now, for {VERTICAL_LIST.length} trades
-            </p>
-
-            {/*
-             * The name is the argument, so the headline should be the name.
-             *
-             * "You lose the job because you were working" states the problem
-             * well and leaves Second Pair as a label bolted on beside it. This
-             * says the problem and what we are in one breath, and anybody who
-             * reads it understands the name for the rest of the page.
-             */}
-            <h1 className="mt-5 font-display text-[2.6rem] font-bold leading-[1.03] tracking-[-0.035em] sm:text-6xl">
-              You&rsquo;ve only got
-              <br />
-              one pair of hands.
-              <br />
-              <span className="text-highlight-strong">We&rsquo;re the second.</span>
-            </h1>
-
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
-              You&rsquo;re under a floor. You&rsquo;ve got a needle in someone&rsquo;s arm.
-              You&rsquo;re mid-colour. The phone goes, a DM lands, and four hours later
-              they&rsquo;ve booked whoever replied first.
-            </p>
-
-            <p className="mt-4 max-w-xl text-lg leading-relaxed">
-              Second Pair answers in under a minute, quotes from your own prices, and puts them
-              in your diary, in your words, while your hands are full.
-            </p>
-
-            {/*
-              * The call to action is the product.
-              *
-              * This said "Start free — no card", which promised a self-serve
-              * signup: pick a password, land in an empty account, work out your
-              * own prices and hours and tone. That is not what happens. Every
-              * business so far has been set up with them, on a call, and there
-              * is no billing behind the button to make "free" mean anything yet.
-              * A promise the door cannot keep is a bad first impression from a
-              * product whose entire pitch is answering honestly.
-              *
-              * So the button does the thing instead. It hands them to our own
-              * assistant, which answers whatever they want to ask and passes
-              * them to a person — which is exactly what theirs would do, on the
-              * page where we are claiming it works.
-              */}
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <a
-                href="#ask"
-                className="btn inline-flex bg-highlight px-5 text-[0.95rem] font-semibold text-on-highlight hover:brightness-95"
-              >
-                Ask ours anything
-              </a>
-              <span className="text-sm text-muted">
-                It answers now. We set yours up with you.
-              </span>
-            </div>
-          </div>
-
-          {/* The product, being the product, actually doing it. */}
-          <div id="see-it" className="scroll-mt-24">
-            <LiveDemo
-              script={CONVERSATION}
-              brand={SALON.brand}
-              onBrand={SALON.onBrand}
-              business={SALON.name}
-              initials={SALON.initials}
-              supportSlug={process.env.NEXT_PUBLIC_SUPPORT_SLUG}
-            />
-          </div>
-        </div>
+      {/*
+        * The hero, DESIGN.md §6, §7 and §8.
+        *
+        * Everything that was here — the badge, the headline, the sub, the
+        * buttons and the old LiveDemo panel — is now one component, because
+        * the demo and the words are one thing: the headline says there is a
+        * second pair of hands and the panel beside it is them working.
+        */}
+      <section className="relative overflow-hidden">
+        <Hero />
       </section>
 
       {/* ──────────────────────────────────────────────────── the argument */}

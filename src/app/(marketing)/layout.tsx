@@ -12,7 +12,7 @@ import { AlsoFromUs } from "./AlsoFromUs";
  */
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="poster flex min-h-screen flex-col">
       {/*
         * The nav bar, DESIGN.md §5.
         *
@@ -24,6 +24,10 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         * No Pricing link, per §5: pricing is per job and lives inside each
         * service page as "From [YOUR PRICE]" with a Book a chat beside it.
         */}
+      {/* §4, and §9 keeps it off the product: a texture over a screen of
+          figures costs more than it gives. */}
+      <div className="grain" aria-hidden />
+
       <header
         className="sticky top-0 z-30"
         style={{ background: "var(--putty)", borderBottom: "2px solid var(--foreground)" }}

@@ -14,7 +14,20 @@
  * reads as one.
  */
 
-:root {
+/*
+ * The light palette, and the one place that is always light.
+ *
+ * .poster carries the same tokens as a class rather than only on :root, so the
+ * marketing site keeps the paper ground whatever the visitor's machine asks
+ * for. DESIGN.md describes one look for the site — ink on paper, a poster —
+ * and §9 gives dark mode to the app, which is the thing somebody stares at all
+ * day and is entitled to choose.
+ *
+ * Found by opening the new hero on a machine set to dark and watching the
+ * poster come out near-black.
+ */
+:root,
+.poster {
   /*
    * Second Pair, from DESIGN.md §2. Ink, paper, cobalt and putty.
    *
@@ -74,6 +87,7 @@
    * It is what stops a flat cobalt rectangle reading as a web button: at
    * soft-light it is a texture in the ink rather than a layer on top of it.
    */
+  --grain-page: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='220' height='220' filter='url(%23p)'/></svg>");
   --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
 
   /*
@@ -203,6 +217,22 @@
   --cal-closed: rgba(0, 0, 0, 0.38);
 
   color-scheme: dark;
+}
+
+/*
+ * And the poster paints its own ground.
+ *
+ * Redefining the tokens on a wrapper makes everything inside it light, and
+ * leaves the one element that was already painted: body, which sits outside
+ * the wrapper and takes its background from :root. On a machine set to dark
+ * the marketing site came out with light text on the body's near-black.
+ *
+ * Caught by opening it with the OS in dark mode. The tokens were right and the
+ * page was still wrong, which is the sort of thing only looking finds.
+ */
+.poster {
+  background: var(--background);
+  color: var(--foreground);
 }
 
 @theme inline {
@@ -418,6 +448,37 @@ body {
     font-family: var(--font-display), Impact, sans-serif;
     color: var(--accent);
     @apply text-center uppercase leading-none;
+  }
+
+  /*
+   * The grain, §4.
+   *
+   * Fixed to the viewport, multiply, and never on a data screen — §9 is
+   * explicit that it hurts readability where somebody is reading numbers all
+   * day, so it is a class the marketing layout opts into rather than something
+   * on body.
+   *
+   * pointer-events none, or it eats every click on the page.
+   */
+  /*
+   * The tap, §6.3, run by the compositor rather than by React.
+   *
+   * A transform loop on its own layer costs nothing per frame. Re-rendering to
+   * move it costs a layout, a paint and a full-viewport blend.
+   */
+  @keyframes sp-tap {
+    0%, 100% { transform: translateY(0) rotate(-10deg); }
+    50% { transform: translateY(4px) rotate(-10deg); }
+  }
+
+  .grain {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    pointer-events: none;
+    opacity: 0.14;
+    mix-blend-mode: multiply;
+    background-image: var(--grain-page);
   }
 
   /* ------------------------------------------------------------- surfaces */
