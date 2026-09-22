@@ -66,6 +66,11 @@ export default function Page() {
         tinted
         shots={[
           {
+            src: "/shots/fa-chat.webp",
+            alt: "Family APP! main chat, with the daily recap and a holiday countdown.",
+            label: "The family chat",
+          },
+          {
             src: "/shots/fa-food.webp",
             alt: "Family APP! food screen, with planned meals and what the family is eating.",
             label: "Food",
@@ -83,9 +88,15 @@ export default function Page() {
         ]}
         caption={
           <>
-            Family APP!, on a real phone rather than a mock-up. It is in daily use by the
-            family it was built for, which is why the account photo and the family name
-            are blurred out of these.
+            Real screens, on a real phone. Everything feeds the family chat on the left:
+            dates, photos, meals and the holiday planner all post into it, and anything
+            that does not concern everybody moves off into a breakout.
+            <br />
+            <span className="mt-2 inline-block">
+              The app is in daily use by one family, so their name, their photographs and
+              their children are blurred or cropped out of every one of these. Two of the
+              four are from a test family for the same reason. Nothing else is altered.
+            </span>
           </>
         }
       />

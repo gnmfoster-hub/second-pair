@@ -71,6 +71,8 @@
     blur: null,
   };
   var paint = { background: "#14243F", colour: "#ffffff" };
+  /* A page that named its own colour gets it on the button from the start. */
+  if (tagAccent) paint = { background: tagAccent, colour: tagText || "#ffffff" };
   var fontStack = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
   var weight = 500;
   var bubbleLook = {
@@ -527,7 +529,19 @@
             // now that we know what that is.
             addKeyframes();
           }
-          if (got.paint) paint = got.paint;
+          /*
+           * The page still wins, and now for the button too.
+           *
+           * data-accent is documented at the top of this file as "the button
+           * colour", and it was not: it reached the ring and the live dot, and
+           * then got.paint overwrote the face of the button every time. So a
+           * site that had deliberately set its own colour got it everywhere
+           * except the one place the attribute is named after.
+           *
+           * Only embeds that pass data-accent are affected, and today that is
+           * Second Pair's own site. Nobody else's page changes.
+           */
+          if (got.paint && !tagAccent) paint = got.paint;
           if (got.font) fontStack = got.font;
           if (got.weight) weight = got.weight;
           // Null is a real answer here — it means they have asked for none.

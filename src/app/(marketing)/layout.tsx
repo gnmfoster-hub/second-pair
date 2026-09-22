@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Logo, Mark } from "@/components/Logo";
+import Script from "next/script";
+import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AlsoFromUs } from "./AlsoFromUs";
 import { MobileMenu } from "./MobileMenu";
@@ -28,6 +29,27 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
       {/* §4, and §9 keeps it off the product: a texture over a screen of
           figures costs more than it gives. */}
       <div className="grain" aria-hidden />
+
+      {/*
+        * Our own widget, on our own site, in the corner every widget lives in.
+        *
+        * The strongest thing this site can say about the product is that it is
+        * running it: the same one line a customer pastes into their own page,
+        * the same assistant, answering about Second Pair. It also says the one
+        * thing a screenshot cannot — it is awake right now, and the pill on the
+        * launcher tells you whether anybody is in.
+        *
+        * Marketing pages only. The product has its own help in the sidebar and
+        * does not need a second one floating over the diary.
+        */}
+      <Script
+        src="/widget.js"
+        strategy="afterInteractive"
+        data-studio="help"
+        data-accent="#1f3be3"
+        data-text="#ffffff"
+        data-teaser="Ask me anything about Second Pair. I am the real one, not a demo."
+      />
 
       <header
         className="sticky top-0 z-30"
@@ -83,8 +105,23 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               * and below. It is the thing people recognise; the name is in the
               * page title, the menu and the footer.
               */}
-            <span className="block sm:hidden">
-              <Mark className="size-[60px]" sizePx={60} />
+            {/*
+              * The whole lockup on a phone, and big.
+              *
+              * The mark alone at 60px computed to exactly 60x60 and still read
+              * as small, because a mark without the name is not what anybody
+              * means by "the logo". The room comes from the call to action:
+              * below sm it moves into the menu sheet, where it sits at the
+              * foot as a full-width button, and the hero repeats it two
+              * hundred pixels further down the same screen. So the header is
+              * the logo and the menu, and the logo gets 230 of the 350 there
+              * is rather than 113.
+              */}
+            <span className="block min-[360px]:hidden">
+              <Logo height={46} lockup="horizontal" />
+            </span>
+            <span className="hidden min-[360px]:block sm:hidden">
+              <Logo height={52} lockup="horizontal" />
             </span>
             {/*
               * The tagline, which the pack had all along.
@@ -211,7 +248,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                  two lines: flex will shrink a button below its text and let
                  the label wrap, which is how this once read "Get / set / up"
                  on a phone. */
-              className="btn-ink inline-flex whitespace-nowrap"
+              className="btn-ink hidden whitespace-nowrap sm:inline-flex"
             >
               Book a chat
             </a>
