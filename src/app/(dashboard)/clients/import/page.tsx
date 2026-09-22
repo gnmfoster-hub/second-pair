@@ -19,7 +19,7 @@ export default async function ImportPage() {
   const words = wordsFor(studio);
 
   return (
-    <div className="mx-auto max-w-4xl px-8 py-9">
+    <div className="work">
       <Link href="/clients" className="hint text-sm">
         ← {capital(words.customers)}
       </Link>

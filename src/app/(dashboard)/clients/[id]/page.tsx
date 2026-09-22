@@ -308,7 +308,7 @@ export default async function ClientPage({
     }));
 
   return (
-    <div className="mx-auto max-w-4xl px-8 py-9">
+    <div className="work">
       <Link href="/clients" className="hint hover:text-foreground">
         ← Clients
       </Link>

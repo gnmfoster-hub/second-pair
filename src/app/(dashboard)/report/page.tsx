@@ -291,7 +291,7 @@ export default async function ReportPage({
         : `${Math.round(report.medianFirstResponseSeconds / 60)}m`;
 
   return (
-    <div className="mx-auto max-w-4xl px-8 py-9">
+    <div className="work">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
         <h1 className="page-title">{range}</h1>
         {chosen.weeks != null && (

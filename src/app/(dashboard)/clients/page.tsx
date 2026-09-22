@@ -150,7 +150,7 @@ export default async function ClientsPage({
   const words = wordsFor(studio);
 
   return (
-    <div className="mx-auto max-w-4xl px-8 py-9">
+    <div className="work">
       {/*
         * The title on one line and the things you can do on another.
         *

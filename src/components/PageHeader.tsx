@@ -29,7 +29,21 @@ export function PageHeader({
   );
 }
 
-/** A page's outer frame — one place that owns the reading width and rhythm. */
+/**
+ * A page's outer frame — one place that owns the reading width and rhythm.
+ *
+ * The width steps with the screen now. It was a flat max-w-4xl, 896px, inside
+ * a main that is 1224 wide on a 1440 display, so a third of the screen was
+ * margin and every page was a column down the middle — which is most of what
+ * "busy" meant: the content is not busy, it is squeezed.
+ *
+ * It also broke something. The prices page's stylist row needs about 384px of
+ * fixed columns before the service name gets any width, and in the 586px of
+ * card that left there was none: every name truncated to one character. That
+ * reads as a rendering fault, and it is on the live screens.
+ *
+ * `wide` still means wider; both steps up together.
+ */
 export function Page({
   children,
   wide = false,
@@ -37,7 +51,5 @@ export function Page({
   children: React.ReactNode;
   wide?: boolean;
 }) {
-  return (
-    <div className={`mx-auto ${wide ? "max-w-6xl" : "max-w-4xl"} px-8 py-9`}>{children}</div>
-  );
+  return <div className={wide ? "work work-wide" : "work"}>{children}</div>;
 }

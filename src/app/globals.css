@@ -1018,9 +1018,81 @@ body {
     text-transform: none;
   }
 
+  /*
+   * The width a screen in the product gets.
+   *
+   * Every page in here was mx-auto max-w-4xl — 896px — inside a main that is
+   * 1224 wide on a 1440 screen, so a third of the display was margin and the
+   * work was a column down the middle. That is most of what Giles means by
+   * busy: the content is not busy, it is squeezed.
+   *
+   * It also broke something. On the prices page the "what each stylist
+   * charges" row needs about 384px of fixed columns before the service name
+   * gets any width at all, and in 586px of card there was nothing left — every
+   * name was truncated to a single character. A real fault on a live screen,
+   * and it reads as a rendering bug rather than a narrow column.
+   *
+   * Reading pages keep a comfortable measure because prose inside them sets
+   * its own; this only stops the frame throwing the room away.
+   */
+  .work {
+    width: 100%;
+    margin-inline: auto;
+    max-width: 56rem;
+    padding-inline: 2rem;
+    padding-block: 2.25rem;
+  }
+
+  @media (min-width: 1280px) {
+    .work { max-width: 68rem; }
+  }
+
+  @media (min-width: 1600px) {
+    .work { max-width: 80rem; padding-inline: 2.5rem; }
+  }
+
+  /* The screens that were already asking to be wider, a step above the rest. */
+  .work-wide { max-width: 72rem; }
+
+  @media (min-width: 1280px) {
+    .work-wide { max-width: 82rem; }
+  }
+
+  @media (min-width: 1600px) {
+    .work-wide { max-width: 94rem; }
+  }
+
   /* The stamp keeps its shape and loses a little of its weight. */
   .app .stamp::before {
     border-width: 1.5px;
+  }
+
+  /*
+   * Button labels in the body face, sentence case.
+   *
+   * This is the block wording Giles kept pointing at. Every button in the
+   * product was Anton, uppercase, tracked out — "ADD SOMETHING YOU DO", "SAVE
+   * SARAH'S PRICES", "PRICE BY SIZE AND HOURS INSTEAD" — which is a poster
+   * shouting an instruction at somebody doing their admin. There are nine of
+   * them down a settings page.
+   *
+   * §9 asks for Anton on page titles and day labels only and Instrument Sans
+   * everywhere else; buttons were never in the exception. The marketing site
+   * keeps its poster labels, which is where a button is an object on a poster
+   * rather than a control in a row.
+   */
+  .app .btn,
+  .app .btn-primary,
+  .app .btn-highlight,
+  .app .btn-ghost,
+  .app .btn-ink,
+  .app .btn-danger,
+  .app .btn-text {
+    font-family: var(--font-body), system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 0.875rem;
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   /*

@@ -2,7 +2,7 @@ import { HeaderSkeleton, StatsSkeleton, ListSkeleton } from "@/components/Skelet
 
 export default function Loading() {
   return (
-    <div className="mx-auto max-w-4xl px-8 py-9">
+    <div className="work">
       <HeaderSkeleton />
       <StatsSkeleton />
       <ListSkeleton rows={6} />
