@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Close, Hero, Item, Section } from "../SellingPage";
+import { Ask, Close, Hero, Item, Section, Shot } from "../SellingPage";
 
 export const metadata: Metadata = {
   title: "Websites",
@@ -57,6 +57,21 @@ export default function Page() {
           ticket, no waiting a fortnight for a phone number to be updated.
         </Item>
       </Section>
+
+      <Shot
+        src="/shots/livingcanvas.webp"
+        alt="livingcanvastattoo.ink, a tattoo studio site built and hosted by Second Pair."
+        address="livingcanvastattoo.ink"
+        tinted
+        caption={
+          <>
+            A tattoo studio in Devon. We built it, we host it, and the assistant answers on
+            it. This is the live site, not a mock-up.
+          </>
+        }
+      />
+
+      <Ask line="Tell us what yours needs to do." cta="Book a 15 minute chat" />
 
       <Section title="Recently" tinted>
         <Item head="livingcanvastattoo.ink">

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Close, Hero, Item, Section } from "../SellingPage";
+import { Ask, Close, Hero, Item, Section, Shot } from "../SellingPage";
 
 export const metadata: Metadata = {
   title: "Our work",
@@ -48,6 +48,16 @@ export default function Page() {
           In build. This is left empty rather than filled, which is the point of the page.
         </Item>
       </Section>
+
+      <Shot
+        src="/shots/livingcanvas.webp"
+        alt="livingcanvastattoo.ink, built and hosted by Second Pair with the assistant on it."
+        address="livingcanvastattoo.ink"
+        tinted
+        caption="Living Canvas Tattoo. The site, the hosting and the assistant, all ours."
+      />
+
+      <Ask line="Want one of these for your trade?" />
 
       <Section title="What we make for ourselves" tinted>
         <Item head="Second Pair">

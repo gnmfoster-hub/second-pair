@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Close, Hero, Item, Section } from "../SellingPage";
+import { Ask, Close, Hero, Item, Section, Shot } from "../SellingPage";
 
 export const metadata: Metadata = {
   title: "The Second Pair system",
@@ -62,6 +62,20 @@ export default function Page() {
         </Item>
       </Section>
 
+      <Shot
+        src="/shots/inbox.webp"
+        alt="The Second Pair inbox, showing nine enquiries with their status and what they came to."
+        address="second-pair.com"
+        tinted
+        caption={
+          <>
+            One inbox, whatever the enquiry arrived on. What it booked, what it took, and
+            the one thing waiting on a person, marked. This is the demo salon, so the
+            people and the money are made up; everything else is exactly what you get.
+          </>
+        }
+      />
+
       <Section
         title="Where it answers"
         tinted
@@ -94,6 +108,21 @@ export default function Page() {
           things waiting on a person are marked, and nothing else asks for your attention.
         </Item>
       </Section>
+
+      <Ask line="Fifteen minutes, and you will know if it suits your trade." />
+
+      <Shot
+        src="/shots/diary-month.webp"
+        alt="A month in the Second Pair diary, showing appointments across six stylists."
+        address="second-pair.com/diary"
+        caption={
+          <>
+            The diary it books into. Day, week, month and person, with everybody in their
+            own colour. Hours booked, what they are worth and what is still free, at the
+            top of every view.
+          </>
+        }
+      />
 
       <Section
         title="It knows your trade"
@@ -157,6 +186,19 @@ export default function Page() {
           anything to find out how the week went.
         </Item>
       </Section>
+
+      <Shot
+        src="/shots/report.webp"
+        alt="The Second Pair weekly report, showing money recovered, reply speed and takings by person."
+        address="second-pair.com/report"
+        tinted
+        caption={
+          <>
+            And what it came to. This one arrives by email on a Monday morning if you want
+            it, so you do not have to open anything to find out how the week went.
+          </>
+        }
+      />
 
       <Close
         line="Give us a second pair of hands!"

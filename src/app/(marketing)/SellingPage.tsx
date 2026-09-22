@@ -123,3 +123,113 @@ export function Close({ line, note }: { line: string; note?: React.ReactNode }) 
     </section>
   );
 }
+
+/**
+ * A real screenshot, framed as the thing it is.
+ *
+ * Giles asked for shots of the actual product rather than descriptions of it. These
+ * are taken from the salon demo — made-up people, made-up money — so nothing on
+ * a customer's screen is on a public page.
+ *
+ * The frame is a browser rather than a floating rectangle: a bar with three
+ * dots and the address, which is the one piece of chrome that makes a
+ * screenshot read as software rather than as a picture.
+ */
+export function Shot({
+  src,
+  alt,
+  address,
+  caption,
+  tinted,
+}: {
+  src: string;
+  alt: string;
+  address: string;
+  caption?: React.ReactNode;
+  tinted?: boolean;
+}) {
+  const inner = (
+    <div className="shell py-12 sm:py-16">
+      <figure className="m-0">
+        <div
+          className="overflow-hidden"
+          style={{
+            borderRadius: 16,
+            border: "1px solid var(--foreground)",
+            boxShadow:
+              "0 2px 4px rgba(22,21,15,0.14), 0 26px 50px -28px rgba(22,21,15,0.55)",
+          }}
+        >
+          <div
+            className="flex items-center gap-2 px-3.5 py-2.5"
+            style={{ background: "var(--putty)", borderBottom: "1px solid var(--foreground)" }}
+          >
+            <span aria-hidden className="flex gap-1.5">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className="block size-2.5 rounded-full"
+                  style={{ background: "var(--foreground)", opacity: 0.28 }}
+                />
+              ))}
+            </span>
+            <span
+              className="ml-2 truncate rounded-full px-3 py-1 text-[12px]"
+              style={{ background: "var(--background)", color: "var(--muted)" }}
+            >
+              {address}
+            </span>
+          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={src} alt={alt} width={1800} height={1209} className="block w-full" />
+        </div>
+        {caption && (
+          <figcaption className="mt-4 max-w-[62ch] text-sm leading-relaxed text-muted">
+            {caption}
+          </figcaption>
+        )}
+      </figure>
+    </div>
+  );
+
+  return tinted ? (
+    <section className="border-y border-border bg-surface">{inner}</section>
+  ) : (
+    <section>{inner}</section>
+  );
+}
+
+/**
+ * A call to action partway down, because the close is a long way from the top.
+ *
+ * Deliberately quieter than the cobalt band at the foot: a rule, a line and a
+ * button. One loud close per page is enough, and two would read as nagging.
+ */
+export function Ask({ line, cta = "Book a 15 minute chat" }: { line: string; cta?: string }) {
+  return (
+    <section>
+      <div className="shell">
+        <div
+          className="flex flex-wrap items-center justify-between gap-6 py-10"
+          style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}
+        >
+          <p
+            className="max-w-[30ch]"
+            style={{
+              fontFamily: "var(--font-display), Impact, sans-serif",
+              textTransform: "uppercase",
+              lineHeight: 0.98,
+              letterSpacing: "0.01em",
+              fontSize: "clamp(22px, 2.4vw, 30px)",
+            }}
+          >
+            {line}
+          </p>
+          <a href="/home#ask" className="btn-primary shrink-0">
+            {cta}
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
