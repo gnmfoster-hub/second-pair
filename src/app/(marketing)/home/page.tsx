@@ -294,9 +294,9 @@ export default function HomePage() {
           * never centred." A closing band is the one place the centred reflex
           * is strongest, which is presumably why the rule is written down.
           *
-          * The headline is §8's, which names this band and gives it these
-          * words. Giles asked to be asked before copy moves "beyond what §8
-          * specifies", and this is inside it. The button is left alone: §8
+          * §8 writes this headline as "GIVE US THE SECOND PAIR." Giles wanted
+          * "a second pair of hands", which is the company's own line and the
+          * one the logo pack gives as an approved slogan, so it says that. The button is left alone: §8
           * wants "Book a 15 minute chat" there, but the one that is there
           * opens the live assistant, and swapping where a button goes is
           * behaviour, not appearance.
@@ -312,7 +312,7 @@ export default function HomePage() {
               maxWidth: "14ch",
             }}
           >
-            Give us the second pair.
+            Give us a second pair of hands!
           </h2>
           <p className="mt-5 max-w-md text-base leading-relaxed" style={{ opacity: 0.85 }}>
             Ask ours what you want to know. It answers straight away, and it will put you

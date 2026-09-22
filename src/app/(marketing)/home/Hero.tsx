@@ -60,12 +60,25 @@ const SCRIPT: [number, number][] = [
   [21400, S.SWIPE_2], [23000, S.LANDED_2], [23800, S.DONE],
 ];
 
+/**
+ * How long each stage has before the next one starts.
+ *
+ * Straight off SCRIPT, so it cannot drift from it the way a second hand-written
+ * table would.
+ */
+const nextAt = new Map<number, number>(
+  SCRIPT.map(([ms, st], i) => [st, (SCRIPT[i + 1]?.[0] ?? ms + 1700) - ms]),
+);
+
+/** The beat at the end of a line for the hand to reach Send and press it. */
+const PRESS_BEAT = 620;
+
 /** Which stages increment the tally, and to what. */
 const TALLY_AT: Record<number, number> = {
   [S.REPLY_1]: 1, [S.REPLY_2]: 2, [S.REPLY_3]: 3, [S.REPLY_4]: 4, [S.DONE]: 5,
 };
 
-type HandMode = "idle" | "type" | "hold" | "swipe" | "point";
+type HandMode = "idle" | "type" | "press" | "hold" | "swipe" | "point";
 
 /**
  * The hand, at the reference's own geometry.
@@ -139,6 +152,8 @@ export function Hero() {
   const audio = useRef<AudioContext | null>(null);
   const phoneRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  /* The hand goes here when the sentence is finished, to press it. */
+  const sendRef = useRef<HTMLButtonElement | null>(null);
   const diaryRef = useRef<HTMLDivElement | null>(null);
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
   const threadRef = useRef<HTMLDivElement | null>(null);
@@ -277,6 +292,22 @@ export function Hero() {
             setLen(text.length);
             return;
           }
+          /*
+           * Paced to the gap, not a fixed 34ms a character.
+           *
+           * At 34ms, fifteen of the sixteen lines across the four trades ran
+           * past the moment their reply was due — the plumber's longest needed
+           * 3978ms of a 2400ms window — so the sentence was cut off half
+           * written and swapped for the finished one, every time, on every
+           * trade. Nobody had noticed because the bubble is replaced by the
+           * same words.
+           *
+           * Now each line is given the time it actually has, less a beat at the
+           * end for the hand to reach Send and press it. Clamped so a short
+           * line does not crawl and a long one stays readable.
+           */
+          const window_ms = nextAt.get(st) ?? 1700;
+          const step = Math.min(34, Math.max(11, (window_ms - PRESS_BEAT) / text.length));
           let n = 0;
           typer.current = window.setInterval(() => {
             n += 1;
@@ -285,7 +316,7 @@ export function Hero() {
               window.clearInterval(typer.current);
               typer.current = null;
             }
-          }, 34);
+          }, step);
         }, ms),
       );
     }
@@ -359,6 +390,28 @@ export function Hero() {
        * already re-rendering on every character anyway, because the bubble text
        * is derived from the same count, so the transform costs nothing extra.
        */
+      /*
+       * Two halves: follow the words, then press Send.
+       *
+       * Giles: it looked like it was tapping the screen the whole time a
+       * message was being written. It was — the finger travelled with the text
+       * and ran a tap loop on the spot at the same time, so the travel read as
+       * jitter rather than as following. The loop is gone; while the sentence
+       * is being written the hand only moves along it, a pixel or two of bob on
+       * alternate characters, the way a finger does.
+       *
+       * Once the sentence is finished it goes to the Send button and presses
+       * it, which is the one moment a tap is the right thing to draw.
+       */
+      const full = (waiting ? draft : draftFor(stage)).length;
+      if (full > 0 && len >= full) {
+        const b = box(sendRef.current);
+        if (b) {
+          setHand({ x: b.left + b.width * 0.5, y: b.top + b.height * 0.5, mode: "press" });
+          return;
+        }
+      }
+
       const travel = Math.min(len * 6.6, Math.max(0, r.width - 72));
       setHand({
         x: r.left + 24 + travel,
@@ -381,7 +434,7 @@ export function Hero() {
     }
 
     setHand((was) => (was ? { ...was, mode: "idle" } : was));
-  }, [calm, len, sc.d1, sc.d2, stage, waiting]);
+  }, [calm, draft, draftFor, len, sc.d1, sc.d2, stage, waiting]);
 
   useEffect(() => {
     /* A frame later, so the rects are the ones just painted rather than the
@@ -484,6 +537,9 @@ export function Hero() {
     { who: "them", text: sc.c5, at: S.ASK_5 },
   ];
 
+  /* Null until the clock is known, same as the clock itself: see the note on `now`. */
+  const week = useMemo(() => (now === null ? null : weekOf(now)), [now]);
+
   const bookedRow = (i: number) =>
     (stage >= S.LANDED_1 && i === sc.d1) || (stage >= S.LANDED_2 && i === sc.d2);
 
@@ -512,28 +568,6 @@ export function Hero() {
       {/* ------------------------------------------------------------ left */}
       <div className="contents lg:relative lg:z-10 lg:block">
       <div className="relative z-10 order-1 lg:order-none">
-        {/* "Show me a", §7. */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[13px] uppercase tracking-[0.06em] text-muted">Show me a</span>
-          {TRADES.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setTrade(t.key)}
-              aria-pressed={trade === t.key}
-              className="px-2.5 py-1 text-[13px] uppercase tracking-[0.06em] transition-colors"
-              style={{
-                border: "1.5px solid var(--foreground)",
-                borderRadius: 999,
-                background: trade === t.key ? "var(--foreground)" : "transparent",
-                color: trade === t.key ? "var(--background)" : "var(--foreground)",
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
         {/*
           * The headline, §8: stacked, one phrase per line, never centred.
           * Putty on the fifth line and cobalt on the last, which is the one
@@ -579,6 +613,45 @@ export function Hero() {
             Play it again
           </button>
         </div>
+
+        {/*
+          * The trade picker, below the demo rather than above the headline.
+          *
+          * At the top of the page it pushed the statement down a phone screen
+          * and asked for a choice before saying what the choice was about. Not
+          * under the diary either, where it ended up first: the hand's wrist
+          * runs a long way below the phone and muted grey over skin tone was
+          * barely readable. §7 says it exists, not where it goes.
+          */}
+        <div className="mt-8 flex flex-wrap items-center gap-2">
+          <span className="text-[13px] uppercase tracking-[0.06em] text-muted">Show me a</span>
+          {TRADES.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTrade(t.key)}
+              aria-pressed={trade === t.key}
+              className="px-2.5 py-1 text-[13px] uppercase tracking-[0.06em] transition-colors"
+              style={{
+                border: "1.5px solid var(--foreground)",
+                borderRadius: 999,
+                background: trade === t.key ? "var(--foreground)" : "transparent",
+                color: trade === t.key ? "var(--background)" : "var(--foreground)",
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+          {/*
+            * The demo note lives with the picker. "Show me a tattoo studio"
+            * and "this is a demo" are the same thought, and under the diary it
+            * sat over the hand's wrist where muted grey on skin tone could
+            * barely be read.
+            */}
+          <span className="text-[13px] text-muted">
+            &middot; a demo; on your site this is your assistant
+          </span>
+          </div>
 
         {/* Clock and tally, §6.7 and §6.8. */}
         <div className="mt-10 flex flex-wrap items-baseline gap-x-6 gap-y-2">
@@ -930,6 +1003,7 @@ export function Hero() {
                   className="min-w-0 flex-1 bg-transparent text-sm outline-none"
                 />
                 <button
+                  ref={sendRef}
                   type="button"
                   onClick={send}
                   disabled={waiting || !draft.trim()}
@@ -1010,6 +1084,7 @@ export function Hero() {
                 This week&rsquo;s diary
               </p>
               <p className="text-[11px] tabular-nums text-muted">
+                {week ? `${week[0].date}–${week[5].date} · ` : ""}
                 {sc.rows.filter((_, i) => rowLabel(i)).length} booked
               </p>
             </div>
@@ -1033,6 +1108,21 @@ export function Hero() {
                   className="flex h-[38px] items-stretch text-sm"
                   style={{ borderBottom: "1px solid var(--border)" }}
                 >
+                  {/*
+                    * The day and the date, down the left, as a diary has.
+                    * Blank for one frame while the clock resolves rather than
+                    * server-rendered wrong and corrected — the same reason the
+                    * headline's clock starts empty.
+                    */}
+                  <span className="w-[52px] shrink-0 self-center pr-2 text-right text-[11px] leading-tight text-muted">
+                    {week ? (
+                      <>
+                        <span className="block">{week[i]?.day}</span>
+                        <span className="block tabular-nums opacity-70">{week[i]?.date}</span>
+                      </>
+                    ) : null}
+                  </span>
+
                   {rowLabel(i) ? (
                     <span
                       className="my-[3px] flex min-w-0 flex-1 items-center gap-2 rounded-[5px] px-2.5"
@@ -1073,9 +1163,6 @@ export function Hero() {
             {stage >= S.DONE && <p className="mt-3 text-sm text-muted lg:mt-auto lg:pt-3">{sc.done}</p>}
           </div>
 
-          <p className="text-center text-xs text-muted lg:text-left">
-            Demo. On your site this is your assistant.
-          </p>
           </div>
         </div>
       </div>
@@ -1090,6 +1177,7 @@ export function Hero() {
       {hand && !calm && (
         <span
           aria-hidden
+          data-hand={hand.mode}
           className="pointer-events-none absolute block"
           style={{
             left: 0,
@@ -1111,7 +1199,9 @@ export function Hero() {
                 ? "transform 1.6s ease"
                 : hand.mode === "type"
                   ? "transform 0.12s linear"
-                  : "transform 0.7s ease",
+                  : hand.mode === "press"
+                    ? "transform 0.3s cubic-bezier(.3,0,.2,1)"
+                    : "transform 0.7s ease",
             zIndex: 40,
             willChange: "transform",
           }}
@@ -1124,7 +1214,7 @@ export function Hero() {
             style={{
               /* The fingertip sits about 14,16 into the artwork, §6. */
               transform: "rotate(-10deg)",
-              animation: hand.mode === "type" ? "sp-tap 0.28s ease-in-out infinite" : undefined,
+              animation: hand.mode === "press" ? "sp-tap 0.3s ease-in-out 2" : undefined,
             }}
           />
         </span>
@@ -1132,6 +1222,31 @@ export function Hero() {
     </div>
     </div>
   );
+}
+
+/**
+ * Monday to Saturday of the week the visitor is in.
+ *
+ * The scenario rows are already a working week: every trade's second booking
+ * lands on row 3 and its card says THU, the tattooist's first lands on row 5
+ * and says SAT, the plumber's on row 2 and says WED. Row index is the weekday
+ * and always has been — it was just never written down or shown, so the panel
+ * read as a list rather than a diary.
+ *
+ * Derived from the clock rather than stored, so it is right every week without
+ * anybody editing anything, and it agrees with the time printed under the
+ * headline because both come from the same value.
+ */
+function weekOf(ms: number): { day: string; date: number }[] {
+  const d = new Date(ms);
+  /* getDay() is 0 for Sunday, so Sunday belongs to the week just gone. */
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return Array.from({ length: 6 }, (_, i) => {
+    const day = new Date(monday);
+    day.setDate(monday.getDate() + i);
+    return { day: day.toLocaleDateString("en-GB", { weekday: "short" }), date: day.getDate() };
+  });
 }
 
 /**
