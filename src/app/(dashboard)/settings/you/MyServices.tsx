@@ -67,7 +67,14 @@ export function MyServices({
           </p>
         </div>
         {!adding && (
-          <div className="flex shrink-0 gap-2">
+          {/*
+            * Wraps rather than refusing to shrink.
+            *
+            * The two labels side by side are 284px, and shrink-0 meant that at
+            * 390px they went four pixels past the edge instead of stacking —
+            * the one screen the overflow checker still had a complaint about.
+            */}
+          <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => setAdding("service")} className="btn-ghost">
               Add something you do
             </button>
