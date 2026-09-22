@@ -22,6 +22,25 @@ book". Nothing else changed. Until it ran, the settings screen offered
 confirmations and the save said so in words rather than showing a raw
 constraint error.
 
+Checked from here afterwards, because a migration run by hand in a SQL editor
+can be half-applied or applied to the wrong project — which has happened on
+this project before, with the artist guard:
+
+- The database accepts `hours_before = 0`, so the constraint really did change.
+- A confirmation saves through the real screen: the "When it goes" choice, the
+  server action, the validation and the constraint all agree, and the row lands
+  enabled with its wording. Written against the Willow demo and deleted after.
+- The immediate send fires once and only once. It depends on an
+  ignore-duplicates upsert telling you what it inserted — proven directly on
+  `reminders`: a new row comes back, a duplicate comes back empty. Had that
+  gone the other way, every confirmation would have waited for the seven
+  o'clock sweep, which looks exactly like the feature working until somebody
+  books at noon.
+
+Still unproven: a real booking end to end. The pieces either side of it are
+checked, and the quickest proof is yours — add a confirmation on a demo, book
+something, and watch it arrive.
+
 **One waiting:** `20260917120000_assistant_books.sql` — one line, so the owner
 can keep somebody in the diary and off the channels. Until it runs, everybody
 is offered exactly as they are today.
