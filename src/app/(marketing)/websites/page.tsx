@@ -1,34 +1,101 @@
 import type { Metadata } from "next";
+import { Close, Hero, Item, Section } from "../SellingPage";
 
 export const metadata: Metadata = {
   title: "Websites",
-  description: "The site you&rsquo;ve been putting off, built by the people who built this one.",
+  description:
+    "The site you have been putting off, built around the work you actually do, hosted and looked after.",
 };
 
 /**
- * One of the four sections the nav names, DESIGN.md §8.
+ * The selling page for the studio.
  *
- * Thin on purpose. The brief says do not invent content, and the copy for this
- * page has not been written, so it carries the one line §8 gives it, keeps the
- * placeholders, and asks for the chat that is the only call to action on the
- * site. Writing the real page is on Giles's list.
+ * No price and no invented client list. Living Canvas is named because it is
+ * already named on the home page and the site is live and public; the second
+ * one is a placeholder until Giles says whether that client wants naming.
  */
 export default function Page() {
   return (
-    <div className="mx-auto max-w-5xl px-5 py-20 sm:px-8">
-      <h1 className="page-title text-4xl sm:text-5xl">Websites</h1>
+    <>
+      <Hero
+        eyebrow="Websites"
+        title={<>The site you keep meaning to sort out.</>}
+        lede={
+          <>
+            Plenty of good tradespeople have no website, or one built years ago by
+            somebody who has stopped answering. We build it, host it, keep it working, and
+            you can have it whether or not you ever use the assistant.
+          </>
+        }
+      />
 
-      <p className="mt-6 max-w-[60ch] text-lg leading-relaxed">The site you&rsquo;ve been putting off, built by the people who built this one.</p>
+      <Section
+        title="What you get"
+        intro="A site built around the work you do, not a theme with your name dropped into it."
+      >
+        <Item head="Built around the work, not a template">
+          Your trade, your photographs, your prices if you want them shown. It says what
+          you actually do rather than what a theme assumed.
+        </Item>
+        <Item head="Found by the people looking">
+          Set up properly for search and for a phone, which is where nearly everybody will
+          see it. Fast, because a slow site loses the job before it loads.
+        </Item>
+        <Item head="Looked after">
+          Hosting, the certificate, the updates and the small changes as the business
+          changes. Nothing to renew and nobody to chase.
+        </Item>
+        <Item head="Yours">
+          Your domain, your content, your photographs. If you ever leave it comes with you.
+        </Item>
+        <Item head="The assistant on it, or not">
+          If you have Second Pair it answers on the site from the first day. If you do not,
+          the site is still yours and works perfectly well without it.
+        </Item>
+        <Item head="One person to ring">
+          The same person builds it, hosts it and changes it. No account manager, no
+          ticket, no waiting a fortnight for a phone number to be updated.
+        </Item>
+      </Section>
 
-      <p className="mt-4 max-w-[60ch] text-lg leading-relaxed">We build the site, host it, keep it working, and wire the assistant and the diary into it. Your trade, your photographs, your prices if you want them shown.</p>
+      <Section title="Recently" tinted>
+        <Item head="livingcanvastattoo.ink">
+          A tattoo studio in Devon, with the assistant answering on it. Built, hosted and
+          looked after by us.
+        </Item>
+        <Item head="[NEXT CLIENT]">
+          In build. This slot is deliberately empty rather than filled with a stock
+          screenshot of somebody we have never worked for.
+        </Item>
+      </Section>
 
-      <p className="mt-4 max-w-[60ch] text-lg leading-relaxed">Priced per job. Book a chat and we will tell you what yours would cost.</p>
+      <Section
+        title="How it works"
+        intro="Three steps, and two of them are ours."
+      >
+        <Item head="A fifteen minute chat">
+          What you do, who you do it for, and what the site has to achieve. We will tell
+          you if a site is not what you need.
+        </Item>
+        <Item head="We build it">
+          You see it before anybody else does, and you say what is wrong with it. Changes
+          during the build are part of it, not extras.
+        </Item>
+        <Item head="It goes live and stays live">
+          We point the domain, switch it on and look after it from there. Priced per job,
+          agreed before we start, no monthly surprise.
+        </Item>
+      </Section>
 
-      <div className="mt-10">
-        <a href="/home#ask" className="btn-primary">
-          Book a 15 minute chat
-        </a>
-      </div>
-    </div>
+      <Close
+        line="Let us build the one you have been putting off."
+        note={
+          <>
+            Priced per job and agreed before anything starts. Fifteen minutes on the phone
+            and you will know what yours would cost.
+          </>
+        }
+      />
+    </>
   );
 }
