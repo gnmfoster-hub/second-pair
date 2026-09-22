@@ -90,7 +90,7 @@ type HandMode = "idle" | "type" | "hold" | "swipe" | "point";
 const HOLDING = [
   {
     src: "/brand/hands/hand-front.webp",
-    place: "-left-1 top-24 w-[108px] lg:-left-12 lg:top-28 lg:w-[186px]",
+    place: "-left-14 top-28 w-[104px] lg:-left-24 lg:top-32 lg:w-[150px]",
     keyframes: "sp-hold-a",
     seconds: 6.5,
     px: 32,
@@ -98,7 +98,7 @@ const HOLDING = [
   },
   {
     src: "/brand/hands/hand-second.webp",
-    place: "-right-1 top-64 w-[104px] lg:-right-6 lg:top-64 lg:w-[176px]",
+    place: "-right-12 top-72 w-[96px] lg:-right-20 lg:top-72 lg:w-[142px]",
     keyframes: "sp-hold-b",
     seconds: 7.9,
     px: -24,
@@ -635,39 +635,52 @@ export function Hero() {
           * Decorative, so hidden from a screen reader and never the only place
           * anything is said.
           */}
-        {HOLDING.map((h) => (
-          <span
-            key={h.src}
-            aria-hidden
-            className={`pointer-events-none absolute select-none ${h.place}`}
-            style={{
-              transform: `translate(${tiltUsed.x * h.px}px, ${tiltUsed.y * h.py}px)`,
-              transition: "transform 0.5s ease-out",
-              /*
-               * In front of the phone. They overlap its edges by about forty
-               * pixels either side, and behind it that overlap was invisible —
-               * which is why they read as two hands near a phone rather than a
-               * pair holding one. Only the bezel and a sliver of screen is
-               * covered; the thread sits inboard of it.
-               */
-              zIndex: 20,
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={h.src}
-              alt=""
-              className="w-full select-none"
-              style={{
-                animation: `${h.keyframes} ${h.seconds}s ease-in-out infinite`,
-                opacity: 0.95,
-              }}
-            />
-          </span>
-        ))}
 
-        <div className="relative z-10 flex flex-col gap-3">
+        <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-4">
           {/* --------------------------------------------------- the phone */}
+          {/*
+            * A shell, so the pair is positioned against the phone.
+            *
+            * They were absolute children of the whole right column. Once the
+            * diary moved alongside the phone rather than under it, the column
+            * got much wider than the phone and the cobalt hand was left
+            * hanging in space next to the diary.
+            */}
+          <div className="relative mx-auto w-full max-w-[250px] shrink-0 sm:max-w-[268px] lg:mx-0 lg:w-[258px] lg:max-w-none">
+        {HOLDING.map((h) => (
+              <span
+                key={h.src}
+                aria-hidden
+                className={`pointer-events-none absolute select-none ${h.place}`}
+                style={{
+                  transform: `translate(${tiltUsed.x * h.px}px, ${tiltUsed.y * h.py}px)`,
+                  transition: "transform 0.5s ease-out",
+                  /*
+                   * Behind the phone, and they stay there.
+                   *
+                   * Put in front they read as two cut-outs laid over a rectangle,
+                   * because that is what they are: the supplied artwork is a hand
+                   * photographed palm-up with nothing in it, fingers curled toward
+                   * the camera rather than wrapped round a flat object. No offset
+                   * makes that grip a phone. Behind and to the side it reads as a
+                   * pair reaching in, which is what the pose actually is.
+                   */
+                  zIndex: 0,
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={h.src}
+                  alt=""
+                  className="w-full select-none"
+                  style={{
+                    animation: `${h.keyframes} ${h.seconds}s ease-in-out infinite`,
+                    opacity: 0.95,
+                  }}
+                />
+              </span>
+            ))}
+
           <div
             ref={phoneRef}
             /*
@@ -675,7 +688,7 @@ export function Hero() {
              * At the full column width the phone covered both hands completely
              * and the hero was named after something invisible.
              */
-            className="mx-auto w-full max-w-[258px] sm:max-w-[300px]"
+            className="relative z-10 w-full"
             /*
              * A moulded object rather than a black rectangle.
              *
@@ -692,7 +705,7 @@ export function Hero() {
              */
             style={{
               background:
-                "linear-gradient(158deg, #34322a 0%, #1c1b14 32%, #16150f 62%, #0b0a06 100%)",
+                "linear-gradient(150deg, #23221b 0%, #16150f 38%, #131209 70%, #0a0906 100%)",
               borderRadius: 44,
               padding: 13,
               boxShadow: [
@@ -706,6 +719,27 @@ export function Hero() {
               ].join(", "),
             }}
           >
+            {/*
+              * The power and volume keys, sat proud of the left and right
+              * edges. Small, but a handset silhouette is not a plain rounded
+              * rectangle and the eye knows it.
+              */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -left-[2px] top-[19%] block"
+              style={{ width: 2.5, height: 26, borderRadius: 2, background: "linear-gradient(90deg,#000,#2a291f)" }}
+            />
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -left-[2px] top-[29%] block"
+              style={{ width: 2.5, height: 42, borderRadius: 2, background: "linear-gradient(90deg,#000,#2a291f)" }}
+            />
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -right-[2px] top-[25%] block"
+              style={{ width: 2.5, height: 54, borderRadius: 2, background: "linear-gradient(270deg,#000,#2a291f)" }}
+            />
+
             <div
               /*
                * 440 rather than 560. The diary underneath is the payoff of the
@@ -713,7 +747,7 @@ export function Hero() {
                * height only 51px of a 312px panel was above the fold on a
                * 1280x844 screen, so almost nobody saw where the card landed.
                */
-              className="flex h-[400px] flex-col overflow-hidden sm:h-[420px]"
+              className="relative flex h-[430px] flex-col overflow-hidden sm:h-[460px] lg:h-[516px]"
               style={{
                 background: "var(--surface)",
                 borderRadius: 32,
@@ -907,6 +941,22 @@ export function Hero() {
                   Send
                 </button>
               </div>
+              {/*
+                * One soft diagonal across the glass. Glass catches light and a
+                * flat fill does not, which is the other half of why a CSS
+                * phone reads as a drawing of a phone.
+                */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  borderRadius: 32,
+                  background:
+                    "linear-gradient(118deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.14) 26%, rgba(255,255,255,0) 44%)",
+                  mixBlendMode: "overlay",
+                }}
+              />
+
               {/* The home indicator. The last thing that says "phone". */}
               <span
                 aria-hidden
@@ -915,7 +965,10 @@ export function Hero() {
               />
             </div>
           </div>
+          </div>
 
+          {/* The diary and its caption, beside the phone from lg. */}
+          <div className="flex min-w-0 flex-col gap-2 lg:flex-1">
           {/* --------------------------------------------------- the diary */}
           <div
             ref={diaryRef}
@@ -1013,9 +1066,10 @@ export function Hero() {
             {stage >= S.DONE && <p className="mt-3 text-sm text-muted">{sc.done}</p>}
           </div>
 
-          <p className="text-center text-xs text-muted">
+          <p className="text-center text-xs text-muted lg:text-left">
             Demo. On your site this is your assistant.
           </p>
+          </div>
         </div>
       </div>
 
