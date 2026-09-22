@@ -210,36 +210,7 @@ export function Logo({
  * everything left over. Exported so the header can give the mark the room and
  * set the name to suit.
  */
-export function Wordmark({
-  size,
-  /**
-   * The body face at 700, for the phone header and nowhere else.
-   *
-   * Anton ships one weight. Three attempts were made to get a bold out of it
-   * — a bigger size, then a stroke thickening every stem, then asking for 700
-   * as well in case the face was not loading — and each time Giles looked at
-   * his own phone and said it was still not bold. Measurements here agreed
-   * with the code every time and disagreed with him, which is the point at
-   * which the measurements are answering the wrong question: he is not asking
-   * for a heavier Anton, he is asking for the weight the word "Inbox" has.
-   *
-   * So on a phone it is Instrument Sans at 700, which has a real bold drawn
-   * by the people who drew the regular, rather than a display face pushed at.
-   *
-   * Deliberately the phone header alone, at his word. The desktop lockup,
-   * the footer, the sign-in screen and the app keep Anton, so this is the one
-   * place the two faces differ — a departure from the pack's §3 and §5, made
-   * knowingly and easy to undo: delete this branch and it is Anton again.
-   *
-   * Uppercase stays, because that is the wordmark. Instrument Sans is much
-   * wider than Anton at the same size, so the caller sizes it to fit rather
-   * than inheriting the Anton sizes — see the marketing header.
-   */
-  bold = false,
-}: {
-  size: number;
-  bold?: boolean;
-}) {
+export function Wordmark({ size }: { size: number }) {
   return (
     <span
       /*
@@ -268,24 +239,6 @@ export function Wordmark({
         fontFamily: "var(--font-display), Impact, sans-serif",
         textTransform: "uppercase",
         letterSpacing: "0.01em",
-        ...(bold
-          ? {
-              /*
-               * A real bold, not a display face pushed at.
-               *
-               * Instrument Sans has a drawn 700, so nothing here is stroked,
-               * synthesised or otherwise faked — which is why this finally
-               * looks the way Giles has been asking for since the first go.
-               *
-               * The tracking comes in slightly. Anton is condensed and wants
-               * a little air; a normal-width sans set in caps at 700 does not,
-               * and leaving it at +0.01em made the two words drift apart.
-               */
-              fontFamily: "var(--font-body), ui-sans-serif, system-ui, sans-serif",
-              fontWeight: 700,
-              letterSpacing: "-0.005em",
-            }
-          : null),
       }}
     >
       second pair

@@ -126,16 +126,14 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 */}
               <Mark className="size-[68px] shrink-0 min-[360px]:size-[68px] max-[359px]:size-[56px]" sizePx={68} />
               {/*
-                * Instrument Sans at 700 on a phone, not Anton — see Wordmark
-                * for why, and that it is this header alone.
+                * Anton, as it was. It was set in Instrument Sans Bold for a
+                * day — Giles asked for a real bold after three goes at getting
+                * one out of a face that has one weight, then looked at it and
+                * asked for the name back. It is the wordmark; it reads as the
+                * wordmark in the display face.
                 *
-                * Smaller numbers than the Anton ones they replace, and not
-                * because it should look smaller. Anton is condensed: at 28px
-                * it set "SECOND PAIR" in 135px. A normal-width sans at the
-                * same size wants about 190, which beside a 68px mark and a
-                * 44px menu button does not fit a 320px phone. 22 and 19 are
-                * what measure out to roughly the width Anton had, so the row
-                * keeps its proportions and the name keeps its presence.
+                * 28 beside a 68px mark, which is the proportion the desktop
+                * lockup uses, and 23 below 360 where the mark drops to 56.
                 */}
               {/*
                 * With the tagline under it, which the phone had lost.
@@ -145,25 +143,22 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 * rather than using the lockup — and the line was simply never
                 * added back when the mark was made big. Giles asked for it.
                 *
-                * A column rather than the lockup's flush-right: at this size
-                * the name is 146px and the line 11px, so ending them level
-                * would leave the tagline adrift under the middle of the name.
-                */}
-              {/*
-                * The line is set in the site's own face, not the wordmark's.
+                * A column rather than the lockup's flush-right: the name is
+                * 135px and the line far shorter, so ending them level would
+                * leave the tagline adrift under the middle of the name.
                 *
-                * Tag defaults to --font-wordmark, which is right under an
-                * Anton lockup and wrong here: the name beside it is Instrument
-                * Sans now, so two different sans faces were stacked one on top
-                * of the other two pixels apart. Giles asked for it to match
-                * the main wording on the site, and that is the body face.
+                * The line stays in the site's own face rather than the
+                * wordmark's, which is what Giles asked for and still reads
+                * right under Anton: a condensed display name over a plain
+                * sans line is a pairing, where two different sans faces
+                * stacked two pixels apart was a mistake.
                 */}
               <span className="hidden min-[360px]:flex flex-col leading-none">
-                <Wordmark size={22} bold />
+                <Wordmark size={28} />
                 <Tag size={11} text="you work, we answer" body />
               </span>
               <span className="flex min-[360px]:hidden flex-col leading-none">
-                <Wordmark size={19} bold />
+                <Wordmark size={23} />
                 <Tag size={10} text="you work, we answer" body />
               </span>
             </span>
