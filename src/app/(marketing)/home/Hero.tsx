@@ -1486,7 +1486,29 @@ export function Hero() {
               ))}
             </div>
 
-            {stage >= S.DONE && <p className="mt-3 text-sm text-muted lg:mt-auto lg:pt-3">{sc.done}</p>}
+            {/*
+              * Always in the layout, faded in at the end rather than inserted.
+              *
+              * This was mounted at the last stage, and it is two lines of text
+              * under the diary — so at the moment the demo finished, everything
+              * below the hero jumped down 51 pixels. Measured, not guessed:
+              * tracking every element outside the phone through a whole run,
+              * this is the only thing on the page that changes size, and it is
+              * the whole of the page's layout shift.
+              *
+              * Rendering it always and hiding it keeps the space reserved, so
+              * the end of the demo is a line appearing rather than the page
+              * moving under somebody's thumb. aria-hidden while invisible, so
+              * a screen reader is not told about a summary of something that
+              * has not happened yet.
+              */}
+            <p
+              className="mt-3 text-sm text-muted transition-opacity duration-500 lg:mt-auto lg:pt-3"
+              style={{ opacity: stage >= S.DONE ? 1 : 0 }}
+              aria-hidden={stage < S.DONE}
+            >
+              {sc.done}
+            </p>
           </div>
 
           </div>
@@ -1576,12 +1598,37 @@ export function Hero() {
              * across the trimmed artwork; the tip is at the very top of it, so
              * there is nothing to take off y.
              */
-            transform: `translate(${hand.x - TIP_X * handWidth}px, ${hand.y}px)`,
+            /*
+             * translate3d rather than translate, to keep it on its own layer.
+             *
+             * The same arithmetic either way; the z tells the browser to
+             * composite it rather than repaint it against the grain overlay
+             * and the hero behind. On a phone that is the difference between
+             * a glide and a stutter.
+             */
+            transform: `translate3d(${hand.x - TIP_X * handWidth}px, ${hand.y}px, 0)`,
             /*
              * Short and linear while typing, which is what makes the traverse
              * possible at all: a character lands every 34ms, so a 0.7s eased
              * transition never finishes and every frame restarts it. The
              * reference sets .type to .12s linear for the same reason.
+             */
+            /*
+             * "idle" is the visitor's own pointer, and wants to be quick.
+             *
+             * Everything here was 0.7s ease except the three scripted modes,
+             * and following a mouse on three quarters of a second is not
+             * following, it is drifting after — the finger arrives where the
+             * cursor was rather than where it is, and never catches up while
+             * the hand is moving. Now that the pointer takes the hand during
+             * the demo as well, that is most of what anybody feels.
+             *
+             * 0.16s with a decelerating curve: fast enough to sit with the
+             * cursor, long enough that it glides rather than snaps.
+             *
+             * "point" keeps the long ease. It is the one move the script makes
+             * on its own across the whole panel, at the end of a run, and it
+             * should look like the hand settling rather than jumping.
              */
             transition: calm
               ? "none"
@@ -1591,7 +1638,9 @@ export function Hero() {
                   ? "transform 0.12s linear"
                   : hand.mode === "press"
                     ? "transform 0.3s cubic-bezier(.3,0,.2,1)"
-                    : "transform 0.7s ease",
+                    : hand.mode === "idle"
+                      ? "transform 0.16s cubic-bezier(.22,1,.36,1)"
+                      : "transform 0.7s ease",
             zIndex: 40,
             willChange: "transform",
           }}
