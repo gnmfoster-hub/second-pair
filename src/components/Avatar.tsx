@@ -7,16 +7,33 @@ import type { Artist } from "@/lib/types";
  * photo still reads as themselves in the diary rather than as a grey blank —
  * and their colour does not change when the row order does.
  */
+/*
+ * Drawn from the brand, not from a framework's default rainbow.
+ *
+ * This was orange-700 through rose-700 — nine saturated Tailwind hues that had
+ * nothing to do with paper, ink and cobalt, and they were the loudest thing on
+ * the inbox. Giles's words: the colours do not really match the theme.
+ *
+ * These are the product's own. Cobalt is the accent; the purple and the teal
+ * are the diary's --cal-work and --cal-note; the green and the amber are the
+ * §2 status colours taken down far enough to hold white text. The last four
+ * are warm earths that sit with the paper rather than sitting on it.
+ *
+ * Nine, and all distinct, because the job of this colour is to tell one person
+ * from another at a glance. Every one clears 5.9:1 against the white the
+ * initials are set in — the old set sat between 4.99 and 7.10, so nothing is
+ * lost on contrast either.
+ */
 const PALETTE = [
-  "#c2410c",
-  "#b45309",
-  "#4d7c0f",
-  "#047857",
-  "#0e7490",
-  "#1d4ed8",
-  "#6d28d9",
-  "#a21caf",
-  "#be123c",
+  "#1F3BE3",
+  "#5B3E86",
+  "#145C6B",
+  "#276749",
+  "#8A5A12",
+  "#9C4221",
+  "#6B4E33",
+  "#7B2D42",
+  "#465A73",
 ];
 
 export function colourFor(name: string): string {
