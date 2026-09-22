@@ -27,15 +27,30 @@ function Stat({
   value: string;
   label: string;
   detail?: string;
-  tone?: "plain" | "headline" | "warn";
+  /*
+   * "money" is --ok, the same green a paid deposit already wears as a pill on
+   * the inbox. Money that has actually arrived reads as settled wherever it
+   * appears, which is consistency rather than decoration — the palette has
+   * colours the product barely uses and this is one that already means
+   * something here.
+   */
+  tone?: "plain" | "headline" | "warn" | "money";
 }) {
   return (
     <div
-      className={`card p-5 ${tone === "headline" ? "border-accent/40 bg-accent/5" : ""}`}
+      className={`card p-5 ${
+        tone === "headline" ? "border-accent/40 bg-accent/5" : tone === "money" ? "border-ok/30" : ""
+      }`}
     >
       <div
         className={`text-3xl font-semibold tracking-tight tabular-nums ${
-          tone === "headline" ? "text-accent" : tone === "warn" ? "text-warn" : ""
+          tone === "headline"
+            ? "text-accent"
+            : tone === "warn"
+              ? "text-warn"
+              : tone === "money"
+                ? "text-ok"
+                : ""
         }`}
       >
         {value}
@@ -382,6 +397,7 @@ export default async function ReportPage({
           }
         />
         <Stat
+          tone="money"
           value={formatPence(report.depositsPaidPence)}
           label="Deposits taken"
           detail={formatPence(report.quotedValuePence) + " of work quoted"}
