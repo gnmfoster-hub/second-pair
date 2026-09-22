@@ -94,7 +94,7 @@ export function Readiness({ capabilities }: { capabilities: Capability[] }) {
        */}
       {settingUp && (
         <div className="mx-5 mt-4 rounded-xl border border-accent/30 bg-accent/5 p-4">
-          <div className="text-xs font-medium uppercase tracking-wide text-muted">
+          <div className="text-[12.5px] font-medium text-muted">
             Next
           </div>
           <div className="mt-1 font-medium">{next.can}</div>

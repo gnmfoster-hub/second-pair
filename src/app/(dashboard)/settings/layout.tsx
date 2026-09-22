@@ -151,7 +151,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
           <div className="hidden lg:flex lg:flex-col lg:gap-6">
             {groups.map((group) => (
               <div key={group.title}>
-                <div className="px-2.5 pb-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-muted">
+                <div className="px-2.5 pb-1.5 text-[0.74rem] font-semibold text-muted">
                   {group.title}
                 </div>
                 <div className="flex flex-col gap-0.5">

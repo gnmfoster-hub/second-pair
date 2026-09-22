@@ -76,7 +76,7 @@ export async function UpNext({
        * it read as a bit of the product that had not been built.
        */
       <div className={`rounded-xl border border-border bg-surface-2/60 px-3.5 py-4 ${className}`}>
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+        <div className="text-[12px] font-semibold text-muted">
           Up next
         </div>
         <p className="hint mt-1.5">Nothing booked. Enjoy it while it lasts.</p>
@@ -115,7 +115,7 @@ export async function UpNext({
       className={`group block rounded-xl border border-border bg-surface-2/50 px-3.5 py-3.5 transition-colors hover:border-accent/40 hover:bg-surface-2 ${className}`}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+        <span className="text-[12px] font-semibold text-muted">
           {running ? "On now" : "Up next"}
         </span>
         {running && (
