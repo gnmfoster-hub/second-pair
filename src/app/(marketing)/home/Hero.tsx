@@ -611,8 +611,9 @@ export function Hero() {
       <div className="relative z-10 order-3 lg:order-none">
         <p className="max-w-[60ch] text-[19px] leading-relaxed lg:mt-7">
           The assistant answers your customers and sorts your bookings while you work.
-          When you need a website or an app, we build that too. Pick a trade on the right
-          and watch a real evening play out.
+          When you need a website or an app, we build that too. Pick a trade below and
+          watch a real evening play out, then ask it something yourself &mdash; the one on
+          this page is real.
         </p>
 
         <div className="mt-8 flex flex-wrap items-center gap-5">
@@ -1003,8 +1004,16 @@ export function Hero() {
 
               {/* A real input, §7. */}
               <div
-                className="flex items-center gap-2 px-3 py-3"
-                style={{ borderTop: "1px solid var(--line)" }}
+                className="flex items-center gap-2 px-3 py-3 transition-colors"
+                style={{
+                  borderTop: "1px solid var(--line)",
+                  /* Lit once it is the visitor's turn, so the live box does not
+                     look like the rest of the demo. */
+                  background:
+                    stage >= S.DONE && !sent && !waiting
+                      ? "color-mix(in srgb, var(--accent) 6%, transparent)"
+                      : undefined,
+                }}
               >
                 <input
                   ref={inputRef}
@@ -1013,7 +1022,20 @@ export function Hero() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") send();
                   }}
-                  placeholder="Ask it something"
+                  onFocus={() => {
+                    /*
+                       Your turn, the moment you ask for it.
+                       The invitation only appeared after twenty-four seconds of
+                       demo, so anybody who wanted to try it sooner had to type
+                       into a box the hand was already using. Touching it stops
+                       the script and hands the thread over.
+                    */
+                    if (stage !== S.DONE) {
+                      clearAll();
+                      setStage(S.DONE);
+                    }
+                  }}
+                  placeholder="Ask it something — this one is real"
                   aria-label="Ask the assistant something"
                   className="min-w-0 flex-1 bg-transparent text-sm outline-none"
                 />
@@ -1025,7 +1047,15 @@ export function Hero() {
                   onClick={() => send()}
                   disabled={waiting || !draft.trim()}
                   className="btn-primary shrink-0 px-3"
-                  style={{ minHeight: 36, fontSize: 13 }}
+                  style={{
+                    minHeight: 36,
+                    fontSize: 13,
+                    /* The hand presses it and the button gives, which is what
+                       was missing: a finger tapping a control that does not
+                       move reads as a finger near a control. */
+                    transform: hand?.mode === "press" ? "translateY(1.5px)" : undefined,
+                    filter: hand?.mode === "press" ? "brightness(0.93)" : undefined,
+                  }}
                 >
                   Send
                 </button>
