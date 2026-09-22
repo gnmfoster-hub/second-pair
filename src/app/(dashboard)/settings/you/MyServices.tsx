@@ -66,14 +66,18 @@ export function MyServices({
             )}
           </p>
         </div>
+        {/*
+          * The button group wraps rather than refusing to shrink.
+          *
+          * The two labels side by side are 284px, and shrink-0 meant that at
+          * 390px they went four pixels past the edge instead of stacking — the
+          * one screen the overflow checker still had a complaint about.
+          *
+          * The comment sits out here rather than inside the && below: a comment
+          * and an element inside `cond && ( ... )` is two children, which does
+          * not compile. That is the second time this session.
+          */}
         {!adding && (
-          {/*
-            * Wraps rather than refusing to shrink.
-            *
-            * The two labels side by side are 284px, and shrink-0 meant that at
-            * 390px they went four pixels past the edge instead of stacking —
-            * the one screen the overflow checker still had a complaint about.
-            */}
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => setAdding("service")} className="btn-ghost">
               Add something you do
