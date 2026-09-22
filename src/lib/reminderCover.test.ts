@@ -76,3 +76,48 @@ test("three or more are listed properly rather than run together", () => {
   const cover = reminderCover([], [person("Sarah"), person("Mo"), person("Chen")]);
   assert.match(said(whatIsMissing(cover)), /Sarah, Mo and Chen/);
 });
+
+/*
+ * Confirmations.
+ *
+ * A confirmation is a template at zero hours before. It goes out as somebody
+ * books, which means it covers nobody for the thing this file is about — and
+ * counting it would put the settings screen back into the exact state it was
+ * written to expose: a template listed, the page reading as set up, and nobody
+ * reminded on the day.
+ */
+test("a confirmation is not a reminder, and does not cover anybody", () => {
+  const cover = reminderCover([{ artist_id: null, hours_before: 0 }], [person("Sarah")]);
+  assert.equal(cover.businessWide, 0);
+  assert.equal(cover.confirming, true);
+  assert.deepEqual(cover.sendingNothing, ["Sarah"]);
+  assert.match(said(whatIsMissing(cover)), /Nothing is sent before an appointment with Sarah\./);
+});
+
+test("a confirmation beside a real reminder leaves everybody covered", () => {
+  const cover = reminderCover(
+    [{ artist_id: null, hours_before: 0 }, { artist_id: null, hours_before: 24 }],
+    [person("Sarah")],
+  );
+  assert.equal(cover.businessWide, 1);
+  assert.equal(cover.confirming, true);
+  assert.deepEqual(cover.sendingNothing, []);
+});
+
+test("a disabled confirmation is not confirming", () => {
+  const cover = reminderCover([{ artist_id: null, hours_before: 0, enabled: false }], []);
+  assert.equal(cover.confirming, false);
+});
+
+/*
+ * Every template written before confirmations existed has a positive
+ * hours_before, and callers that have not been told about the column pass none
+ * at all. Absence must keep counting as a reminder, or the day this shipped
+ * every business on the platform would have been told nobody was covered.
+ */
+test("a template with no hours given still counts as a reminder", () => {
+  const cover = reminderCover([{ artist_id: null }], [person("Sarah")]);
+  assert.equal(cover.businessWide, 1);
+  assert.equal(cover.confirming, false);
+  assert.deepEqual(cover.sendingNothing, []);
+});

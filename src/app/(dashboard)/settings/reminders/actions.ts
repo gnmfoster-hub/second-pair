@@ -59,15 +59,26 @@ export async function saveReminder(_prev: FormState, fd: FormData): Promise<Form
   const body = str(fd, "body");
   if (!body) return { error: "Write what the reminder should say." };
 
-  const hours = Number(str(fd, "hours_before"));
-  if (!Number.isFinite(hours) || hours < 1 || hours > 720) {
+  /*
+   * "As soon as they book" is zero hours before.
+   *
+   * The form asks in words and the column stores the number, so nothing below
+   * this line has to know there is such a thing as a confirmation. The hours
+   * field is still submitted when the confirmation is chosen — it is hidden
+   * rather than unmounted — and is deliberately ignored here rather than
+   * validated, because whatever is sitting in it is not what was asked for.
+   */
+  const confirmation = str(fd, "when") === "book";
+
+  const hours = confirmation ? 0 : Number(str(fd, "hours_before"));
+  if (!confirmation && (!Number.isFinite(hours) || hours < 1 || hours > 720)) {
     return { error: "Send it between 1 hour and 30 days before." };
   }
 
   const row = {
     studio_id: studio.id,
     artist_id: artistId,
-    label: str(fd, "label") || `${hours} hours before`,
+    label: str(fd, "label") || (confirmation ? "Booking confirmation" : `${hours} hours before`),
     hours_before: hours,
     body,
     enabled: ticked(fd, "enabled"),
@@ -96,12 +107,30 @@ export async function saveReminder(_prev: FormState, fd: FormData): Promise<Form
   }
 
   if (error) {
-    return {
-      error:
-        error.code === "23505"
-          ? "There is already a reminder at that many hours before."
-          : error.message,
-    };
+    if (error.code === "23505") {
+      return {
+        error: confirmation
+          ? "You already have a confirmation. Change that one rather than adding a second."
+          : "There is already a reminder at that many hours before.",
+      };
+    }
+
+    /*
+     * The check constraint, which means the migration has not been run.
+     *
+     * Deploys go out before migrations here, so there is a window where this
+     * screen offers confirmations and the database still refuses a zero. The
+     * raw message for that is "violates check constraint
+     * reminder_templates_hours_before_check", which tells an owner nothing and
+     * looks like their fault.
+     */
+    if (error.code === "23514" && confirmation) {
+      return {
+        error: "Confirmations are not switched on for your account yet. Tell us and we will do it.",
+      };
+    }
+
+    return { error: error.message };
   }
 
   revalidatePath(where);

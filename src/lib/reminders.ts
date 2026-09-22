@@ -80,6 +80,8 @@ async function pickTemplates(
  *
  * Only ones that would still land in the future — booking something for
  * tomorrow should not fire a "two days before" reminder immediately, or at all.
+ * The exception is the confirmation, which is a template set to zero hours
+ * before and is due the moment the booking is made.
  */
 export async function scheduleReminders(
   db: SupabaseClient,
@@ -115,33 +117,137 @@ export async function scheduleReminders(
   const start = Date.parse(startsAt);
   const now = Date.now();
 
-  const rows = templates
-    .map((t) => ({
-      booking_id: bookingId,
-      template_id: t.id,
-      due_at: new Date(start - t.hours_before * 3600_000).toISOString(),
-      /*
-       * Waiting again, whatever it was before.
-       *
-       * Moving a booking drops its reminders (skipped) and schedules them
-       * again, and the upsert updated the time but not the status — so every
-       * dragged appointment kept its reminders as skipped and never got one.
-       * One already sent for the old time is due again for the new one too.
-       */
-      status: "pending",
-      sent_at: null,
-    }))
+  const row = (t: Template, dueAt: string) => ({
+    booking_id: bookingId,
+    template_id: t.id,
+    due_at: dueAt,
+    /*
+     * Waiting again, whatever it was before.
+     *
+     * Moving a booking drops its reminders (skipped) and schedules them
+     * again, and the upsert updated the time but not the status — so every
+     * dragged appointment kept its reminders as skipped and never got one.
+     * One already sent for the old time is due again for the new one too.
+     */
+    status: "pending",
+    sent_at: null,
+  });
+
+  /*
+   * Zero hours before means the confirmation: send it as they book.
+   *
+   * It is the same machinery as every other reminder rather than a second
+   * one beside it — one template belonging to the business, rendered when it
+   * goes out, delivered on whichever channel they came in on, honouring an
+   * opt-out, and surfacing for the owner to send by hand where no channel is
+   * connected. All of that already works and none of it wants writing twice.
+   *
+   * Due now, not at the appointment: the arithmetic below would put a zero
+   * exactly on the start time, which is the one moment a confirmation is no
+   * use.
+   *
+   * "Due now" is not enough on its own, and this nearly shipped believing it
+   * was. The sweep that sends what is due runs once a day at seven in the
+   * morning — see vercel.json — so a confirmation written this way would be
+   * scheduled correctly and land on the customer's phone the following
+   * morning, which is not a confirmation. So it is sent here as well, and the
+   * sweep is left as the net that catches one that failed.
+   */
+  const confirmations = templates
+    .filter((t) => t.hours_before === 0)
+    .map((t) => row(t, new Date(now).toISOString()));
+
+  const timed = templates
+    .filter((t) => t.hours_before > 0)
+    .map((t) => row(t, new Date(start - t.hours_before * 3600_000).toISOString()))
+    /*
+     * Only ones that would still land in the future. Booking something for
+     * tomorrow should not fire a "two days before" reminder immediately.
+     * Confirmations are exempt by construction: theirs is due now, and `now`
+     * is never later than itself.
+     */
     .filter((r) => Date.parse(r.due_at) > now);
 
-  if (!rows.length) return 0;
+  let written = 0;
 
-  // Unique on (booking_id, template_id), so re-scheduling a moved booking
-  // updates rather than duplicating.
-  const { error } = await db
-    .from("reminders")
-    .upsert(rows, { onConflict: "booking_id,template_id" });
+  if (timed.length) {
+    // Unique on (booking_id, template_id), so re-scheduling a moved booking
+    // updates rather than duplicating.
+    const { error } = await db
+      .from("reminders")
+      .upsert(timed, { onConflict: "booking_id,template_id" });
+    if (!error) written += timed.length;
+  }
 
-  return error ? 0 : rows.length;
+  if (confirmations.length) {
+    /*
+     * Left alone if there is already one, rather than updated.
+     *
+     * Every other reminder is deliberately re-armed when a booking moves,
+     * because the whole point of "the night before" is that it follows the
+     * appointment. A confirmation is the opposite: it confirms the act of
+     * booking, which happened once. Upserting it the ordinary way would put
+     * a sent row back to pending and thank somebody for booking every time
+     * their appointment was dragged across the diary.
+     *
+     * A moved appointment does want saying — but that is a different message
+     * with different words, and inventing it here under the confirmation's
+     * template would send the wrong one. Noted for Giles rather than guessed.
+     */
+    /*
+     * Asked for the rows back, so "one was written" can be told from "there
+     * was already one". Only a new one is sent; without this, re-scheduling a
+     * moved booking would send the confirmation again every time.
+     */
+    const { data: inserted, error } = await db
+      .from("reminders")
+      .upsert(confirmations, { onConflict: "booking_id,template_id", ignoreDuplicates: true })
+      .select("id");
+
+    if (!error) written += confirmations.length;
+
+    if (inserted?.length) await sendConfirmation(db, studioId, bookingId);
+  }
+
+  return written;
+}
+
+/**
+ * Sends this booking's confirmation now, rather than waiting for the sweep.
+ *
+ * The sweep runs once a day. Everything else it carries is meant for a
+ * particular hour days away, so once a day is right for those and useless for
+ * the one message whose whole point is that it arrives while the customer is
+ * still holding their phone.
+ *
+ * It sends through sendDueReminders rather than beside it, narrowed to this
+ * booking. That is the whole reason the confirmation is a reminder at all:
+ * rendering, the choice of channel, the opt-out, claiming the row so it cannot
+ * go twice, writing it into the thread, and what to do when there is nowhere
+ * to send it are already written, tested and used every day. A second path
+ * would be a second set of all those decisions, and the second one is the one
+ * that goes wrong quietly.
+ *
+ * Never throws. A confirmation that could not be sent must not fail the
+ * booking — the customer has the slot either way, the row stays pending, and
+ * the morning sweep tries again.
+ */
+async function sendConfirmation(db: SupabaseClient, studioId: string, bookingId: string) {
+  try {
+    const { data: studio } = await db
+      .from("studios")
+      .select("*")
+      .eq("id", studioId)
+      .maybeSingle();
+
+    if (!studio) return;
+
+    await sendDueReminders(db, studio as Studio, new Date(), { bookingId });
+  } catch (e) {
+    console.error(
+      `[reminders] could not confirm booking ${bookingId}: ${(e as Error)?.message ?? e}`,
+    );
+  }
 }
 
 /**
@@ -282,10 +388,24 @@ export async function sendDueReminders(
   db: SupabaseClient,
   studio: Studio,
   now = new Date(),
+  /**
+   * One booking's, for sending a confirmation the moment it is made.
+   *
+   * The daily sweep passes nothing and behaves exactly as it always has.
+   */
+  only?: { bookingId: string },
 ): Promise<SendResult> {
-  await recoverStranded(db, studio, now);
+  /*
+   * Only the sweep tidies up after interrupted runs.
+   *
+   * Recovery reads a hundred rows across the whole business and is the right
+   * thing to do once a day. Doing it on every booking would put that work in
+   * front of a customer waiting for a time slot, to fix something that has
+   * nothing to do with the booking they are making.
+   */
+  if (!only) await recoverStranded(db, studio, now);
 
-  const { data, error } = await db
+  const query = db
     .from("reminders")
     .select(
       "id, due_at, template_id, " +
@@ -307,6 +427,8 @@ export async function sendDueReminders(
     .eq("bookings.artists.studio_id", studio.id)
     .order("due_at")
     .limit(200);
+
+  const { data, error } = await (only ? query.eq("booking_id", only.bookingId) : query);
 
   /*
    * "Nothing due" and "could not look" are not the same answer.
@@ -336,10 +458,22 @@ export async function sendDueReminders(
    */
   const { data: templates } = await db
     .from("reminder_templates")
-    .select("id, body")
+    .select("id, body, hours_before")
     .eq("studio_id", studio.id)
     .eq("enabled", true);
   const bodyFor = new Map((templates ?? []).map((t) => [t.id, t.body]));
+  /*
+   * Which of them is the confirmation, so the email can be titled properly.
+   *
+   * "Your appointment with X" on the message that confirms the booking reads
+   * like a reminder arriving seconds after somebody booked, which is how it
+   * would look in an inbox. Everything else about the send is identical.
+   */
+  const confirms = new Set(
+    (templates ?? [])
+      .filter((t) => (t as { hours_before?: number }).hours_before === 0)
+      .map((t) => t.id),
+  );
 
   // Looked up once for the whole batch rather than per reminder.
   const connected = await connectedChannels(db, studio.id);
@@ -521,7 +655,10 @@ export async function sendDueReminders(
         transactional: true,
         lastInboundAt: route.lastInboundAt,
         from: route.channel === "sms" ? await sendingAs(booking.artists?.id) : undefined,
-        subject: `Your appointment with ${studio.name}`,
+        subject:
+          row.template_id && confirms.has(row.template_id)
+            ? `Your booking with ${studio.name} is confirmed`
+            : `Your appointment with ${studio.name}`,
         fromName: studio.name,
         replyTo: studio.email ?? undefined,
       });

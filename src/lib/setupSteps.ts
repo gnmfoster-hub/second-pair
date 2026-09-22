@@ -53,6 +53,15 @@ export type SetupFacts = {
    * counts as decided.
    */
   money: { decided: boolean };
+  /**
+   * Whether an enabled confirmation is written for the business as a whole.
+   *
+   * Optional, and absence means "do not ask about it". Every caller that has
+   * not been updated keeps the list it had rather than growing a step it
+   * cannot answer — and a step that cannot be answered ticks itself wrongly,
+   * which is the fault this whole file is written to avoid.
+   */
+  confirmation?: { on: boolean };
   words: { practitioners: string; customers: string };
 };
 
@@ -130,6 +139,30 @@ export function ownerSteps(f: SetupFacts): SetupStep[] {
       href: "/settings/faqs",
       action: "Answer a few",
     },
+    /*
+     * Telling somebody their booking went through.
+     *
+     * Optional rather than required, deliberately. It is the first thing a
+     * customer expects and the businesses already running have lived without
+     * it, so making it required would take every one of them from finished to
+     * unfinished overnight for something that was not on the list when they
+     * did it. Optional says "worth doing" without rewriting their history.
+     */
+    ...(f.confirmation
+      ? [
+          {
+            key: "confirm",
+            title: `Confirm the booking to your ${f.words.customers}`,
+            why:
+              "A message as soon as they book, saying what they have booked and when. It is the thing people look for straight after, and without it the quiet reads as nothing having happened.",
+            done: f.confirmation.on,
+            todo: "Nothing goes out when somebody books, so the only thing confirming it is your diary.",
+            href: "/settings/reminders",
+            action: "Write the confirmation",
+            optional: true,
+          },
+        ]
+      : []),
     {
       key: "try",
       title: `Try it as one of your ${f.words.customers}`,

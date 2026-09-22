@@ -44,15 +44,27 @@ export default async function SetupPage() {
   let steps: SetupStep[];
 
   if (owns) {
-    const [capabilities, { count: conversations }, { count: fromWebsite }] = await Promise.all([
-      readinessOf(supabase, studio),
-      supabase.from("conversations").select("id", { count: "exact", head: true }).eq("studio_id", studio.id),
-      supabase
-        .from("conversations")
-        .select("id", { count: "exact", head: true })
-        .eq("studio_id", studio.id)
-        .eq("channel", "web"),
-    ]);
+    const [capabilities, { count: conversations }, { count: fromWebsite }, { data: templates }] =
+      await Promise.all([
+        readinessOf(supabase, studio),
+        supabase.from("conversations").select("id", { count: "exact", head: true }).eq("studio_id", studio.id),
+        supabase
+          .from("conversations")
+          .select("id", { count: "exact", head: true })
+          .eq("studio_id", studio.id)
+          .eq("channel", "web"),
+        /*
+         * Whether a confirmation is written, which is a template set to zero
+         * hours before. Read whole and counted here rather than asked for
+         * with .eq("hours_before", 0), so it costs one query either way and
+         * nothing depends on a filter the database might not accept.
+         */
+        supabase
+          .from("reminder_templates")
+          .select("*")
+          .eq("studio_id", studio.id)
+          .eq("enabled", true),
+      ]);
 
     steps = ownerSteps({
       capabilities,
@@ -73,6 +85,11 @@ export default async function SetupPage() {
           studio.deposit_mode !== "none" ||
           studio.takes_payments === true ||
           team.some((a) => a.stripe_account_id),
+      },
+      confirmation: {
+        on: (templates ?? []).some(
+          (t) => t.artist_id == null && (t as { hours_before?: number }).hours_before === 0,
+        ),
       },
     });
   } else {

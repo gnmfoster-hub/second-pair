@@ -28,6 +28,22 @@ export type CoverTemplate = {
   /** Null for the business's own. */
   artist_id?: string | null;
   enabled?: boolean | null;
+  /**
+   * Zero means the confirmation, which is not a reminder.
+   *
+   * It goes out as they book rather than before the appointment, so it does
+   * not cover anybody for the thing this file is about: somebody who booked
+   * three weeks ago got a confirmation three weeks ago and will hear nothing
+   * on the day. Counting it would put this page back into exactly the state
+   * it was written to expose — listing a template, reading as set up, and
+   * nobody reminded.
+   *
+   * Optional, and absence counts as a reminder: every existing template
+   * predates confirmations and has a positive value, and a caller that has
+   * not been told about this yet should not have its people silently
+   * reclassified as uncovered.
+   */
+  hours_before?: number | null;
 };
 
 export type Cover = {
@@ -42,11 +58,18 @@ export type Cover = {
    * own and have not written one — both end the same way for the client.
    */
   sendingNothing: string[];
+  /** Whether the business has an enabled confirmation of its own. */
+  confirming: boolean;
 };
 
 export function reminderCover(templates: CoverTemplate[], people: CoverPerson[]): Cover {
   // Only enabled ones count. A disabled template is a draft, not a reminder.
-  const live = templates.filter((t) => t.enabled !== false);
+  const enabled = templates.filter((t) => t.enabled !== false);
+
+  const confirming = enabled.some((t) => !t.artist_id && t.hours_before === 0);
+
+  // And only ones sent before the appointment. See CoverTemplate.hours_before.
+  const live = enabled.filter((t) => t.hours_before !== 0);
   const businessWide = live.filter((t) => !t.artist_id).length;
 
   const onTheirOwn: string[] = [];
@@ -65,7 +88,7 @@ export function reminderCover(templates: CoverTemplate[], people: CoverPerson[])
     if (!businessWide) sendingNothing.push(person.name);
   }
 
-  return { businessWide, onTheirOwn, sendingNothing };
+  return { businessWide, onTheirOwn, sendingNothing, confirming };
 }
 
 /**

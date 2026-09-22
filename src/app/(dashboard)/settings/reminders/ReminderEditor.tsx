@@ -170,6 +170,15 @@ export function ReminderEditor({
   const [body, setBody] = useState(reminder?.body ?? "");
   const wrong = unknownPlaceholders(body);
 
+  /*
+   * Whether this one is the confirmation.
+   *
+   * Zero hours before is what the database calls it — see the migration. The
+   * form asks the question in words and turns the answer back into the
+   * number, so nothing downstream learns a second concept.
+   */
+  const [confirmation, setConfirmation] = useState(reminder?.hours_before === 0);
+
   return (
     <form action={action} className="card space-y-4 p-5">
       {reminder && <input type="hidden" name="id" value={reminder.id} />}
@@ -181,19 +190,49 @@ export function ReminderEditor({
           <input
             name="label"
             defaultValue={reminder?.label ?? ""}
-            placeholder="The day before"
+            placeholder={confirmation ? "Booking confirmation" : "The day before"}
             className="input"
           />
         </Field>
-        <Field label="Hours before">
+        {/*
+          * When it goes, as a choice rather than a number somebody has to
+          * know the trick for.
+          *
+          * The database says a confirmation is a reminder set to zero hours
+          * before, which is the right thing for the database and a terrible
+          * thing to ask an owner to type. Nobody guesses that "0" means "as
+          * they book", and a business that wanted confirmations would have
+          * gone looking for a feature that was already here.
+          */}
+        <Field label="When it goes">
+          <select
+            name="when"
+            value={confirmation ? "book" : "before"}
+            onChange={(e) => setConfirmation(e.target.value === "book")}
+            className="input w-56"
+          >
+            <option value="book">As soon as they book</option>
+            <option value="before">Before the appointment</option>
+          </select>
+        </Field>
+      </div>
+
+      {/*
+        * The hours, only when they mean anything.
+        *
+        * Kept mounted rather than removed so a confirmation still submits a
+        * hours_before the action can read, and so switching back does not
+        * lose what was typed.
+        */}
+      <div className={confirmation ? "hidden" : ""}>
+        <Field label="How many hours before">
           <input
             type="number"
             name="hours_before"
             min={1}
             max={720}
-            defaultValue={reminder?.hours_before ?? 24}
+            defaultValue={reminder?.hours_before ? reminder.hours_before : 24}
             className="input w-32"
-            required
           />
         </Field>
       </div>
@@ -208,12 +247,25 @@ export function ReminderEditor({
           onChange={(e) => setBody(e.target.value)}
           rows={4}
           className="input"
-          placeholder="See you tomorrow, {{name}} — {{when}} with {{practitioner}}."
+          placeholder={
+            confirmation
+              ? "Thanks {{name}}, you are booked in for {{when}} with {{practitioner}}."
+              : "See you tomorrow, {{name}} — {{when}} with {{practitioner}}."
+          }
           required
         />
       </Field>
 
       <Preview body={body} sender={sender} />
+
+      {confirmation && (
+        <p className="hint max-w-prose">
+          This one goes out as soon as the booking is made, on whichever channel they
+          came in on. {"{{when}}"} is still the appointment, so it can say what they have
+          booked as well as that it went through. It is sent once, and moving the
+          appointment later does not send it again.
+        </p>
+      )}
 
       {/*
         * A mistyped placeholder fails silently, in the worst place there is.
@@ -243,7 +295,9 @@ export function ReminderEditor({
       </label>
 
       <div className="flex items-center gap-4">
-        <SubmitButton className="btn-ghost">{reminder ? "Save" : "Add reminder"}</SubmitButton>
+        <SubmitButton className="btn-ghost">
+          {reminder ? "Save" : confirmation ? "Add confirmation" : "Add reminder"}
+        </SubmitButton>
         <FormMessage state={state} />
         <div className="flex-1" />
         {reminder && (

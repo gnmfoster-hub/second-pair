@@ -137,3 +137,43 @@ test("a business that has decided is ticked when nothing is missing", () => {
   const paid = ownerSteps(facts()).find((s) => s.key === "paid");
   assert.equal(paid?.done, true);
 });
+
+/*
+ * The confirmation step.
+ *
+ * It appears only when the caller can answer whether one is written. A step
+ * nobody can answer ticks itself wrongly, and a walk-through that is wrong
+ * about what is finished is worse than no walk-through.
+ */
+test("no confirmation step for a caller that cannot say", () => {
+  const steps = ownerSteps(facts());
+  assert.equal(steps.some((s) => s.key === "confirm"), false);
+});
+
+test("a business with no confirmation is told so, without being marked unfinished", () => {
+  const steps = ownerSteps(facts({ confirmation: { on: false } }));
+  const step = steps.find((s) => s.key === "confirm");
+  assert.ok(step);
+  assert.equal(step.done, false);
+  /*
+   * Optional, so an already-finished business does not go back to unfinished.
+   * The count is what says that: still eight of eight, exactly as it was
+   * before this step existed. It is then offered as the next thing worth
+   * doing, which is what an optional step is for and what privacy already did.
+   */
+  assert.equal(step.optional, true);
+  const { done, of, next } = progressOf(steps);
+  assert.equal(done, 8);
+  assert.equal(of, 8);
+  assert.equal(next?.key, "confirm");
+});
+
+test("a business that has written one has it ticked", () => {
+  const steps = ownerSteps(facts({ confirmation: { on: true } }));
+  assert.equal(steps.find((s) => s.key === "confirm")?.done, true);
+});
+
+test("the confirmation step sends them to the reminders screen", () => {
+  const steps = ownerSteps(facts({ confirmation: { on: false } }));
+  assert.equal(steps.find((s) => s.key === "confirm")?.href, "/settings/reminders");
+});
