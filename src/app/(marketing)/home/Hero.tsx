@@ -1678,10 +1678,21 @@ export function Hero() {
               * where the travel does that job.
               */
             key={calm ? `${Math.round(hand.x)}:${Math.round(hand.y)}:${hand.mode}` : "hand"}
+            /*
+             * The 480px pair, not the 1155px originals.
+             *
+             * It is drawn at 104px here and 142 above sm, so 426 on a
+             * three-times screen — the source was two and a half times more
+             * than the densest phone can show, and both frames load because
+             * the press one swaps in. 286KB became 40.
+             *
+             * scripts/brand-image-sizes.cjs regenerates them, and carries the
+             * arithmetic for why 480.
+             */
             src={
               hand.mode === "press"
-                ? "/brand/hands/hand-type-press.webp"
-                : "/brand/hands/hand-type.webp"
+                ? "/brand/hands/hand-type-press-480.webp"
+                : "/brand/hands/hand-type-480.webp"
             }
             alt=""
             className="w-[104px] select-none sm:w-[142px]"
