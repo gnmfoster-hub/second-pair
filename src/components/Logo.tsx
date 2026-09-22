@@ -265,7 +265,29 @@ export function Wordmark({
         letterSpacing: "0.01em",
         ...(bold
           ? {
-              WebkitTextStrokeWidth: `${(size / 56).toFixed(2)}px`,
+              /*
+               * Two things, because there are two ways this renders.
+               *
+               * The stroke thickens Anton, which has one weight. Measured in
+               * the browser it works — Anton, 28px, half a pixel of stroke —
+               * and Giles still said it was not bold, three times, looking at
+               * his own phone.
+               *
+               * The likeliest reason is that his phone is not drawing Anton at
+               * all. It is a Google font fetched at load, and the site turns
+               * font synthesis off everywhere on purpose, so a phone that has
+               * not got it falls back to the system sans at weight 400 with
+               * nothing allowed to embolden it — which is exactly "the same
+               * size but thin", and exactly what he keeps describing while
+               * every measurement here says it is fine.
+               *
+               * So the weight is asked for as well. Anton ignores it, because
+               * synthesis is off and it has no 700 to find, and the stroke is
+               * what makes it heavy. A fallback face has a real 700 and uses
+               * it. Neither path relies on the other being right.
+               */
+              fontWeight: 700,
+              WebkitTextStrokeWidth: `${(size / 44).toFixed(2)}px`,
               WebkitTextStrokeColor: "currentColor",
               paintOrder: "stroke fill",
             }

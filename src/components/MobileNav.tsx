@@ -21,12 +21,20 @@ import {
  * It sits above the home indicator on an iPhone via the safe-area inset, or
  * the bar ends up under it and the last tab is unpressable.
  */
+/*
+ * The same hue per section as the sidebar, on the icon.
+ *
+ * It matters more here than there. The phone bar has five tabs at ten point
+ * with no room to grow, so the label is nearly unreadable at arm's length and
+ * the icon is what anybody actually aims at — five grey glyphs of a similar
+ * size are told apart by shape alone, and shape is what you read second.
+ */
 const TABS = [
-  { href: "/", label: "Inbox", icon: InboxIcon, exact: true },
-  { href: "/diary", label: "Diary", icon: DiaryIcon },
-  { href: "/clients", label: "Clients", icon: ClientsIcon },
-  { href: "/report", label: "Reports", icon: WeekIcon },
-  { href: "/settings", label: "Settings", icon: SettingsIcon },
+  { href: "/", label: "Inbox", icon: InboxIcon, exact: true, tone: "--sec-inbox" },
+  { href: "/diary", label: "Diary", icon: DiaryIcon, tone: "--sec-diary" },
+  { href: "/clients", label: "Clients", icon: ClientsIcon, tone: "--sec-clients" },
+  { href: "/report", label: "Reports", icon: WeekIcon, tone: "--sec-reports" },
+  { href: "/settings", label: "Settings", icon: SettingsIcon, tone: "--sec-settings" },
 ];
 
 export function MobileNav({
@@ -60,7 +68,17 @@ export function MobileNav({
                   active ? "text-accent" : "text-muted"
                 }`}
               >
-                <span className="relative">
+                {/*
+                  * The hue on the icon, the accent on the label.
+                  *
+                  * Splitting them is what lets both say something: the colour
+                  * says which section, and the label going cobalt and the rail
+                  * appearing say which one you are in.
+                  */}
+                <span
+                  className="relative"
+                  style={{ color: `var(${tab.tone})`, opacity: active ? 1 : 0.75 }}
+                >
                   <Icon />
                   {tab.exact && needsYou > 0 && (
                     <span

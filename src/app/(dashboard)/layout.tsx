@@ -232,16 +232,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
 
         <nav className="space-y-0.5 px-3 pt-2">
-          <NavLink href="/" exact icon={<InboxIcon />} badge={needsYou}>
+          {/*
+            * One hue per section, on the icon. See --sec-* in globals.css for
+            * why it stops at the icon and why cobalt is not one of them.
+            */}
+          <NavLink href="/" exact icon={<InboxIcon />} badge={needsYou} tone="--sec-inbox">
             Inbox
           </NavLink>
-          <NavLink href="/diary" icon={<DiaryIcon />}>
+          <NavLink href="/diary" icon={<DiaryIcon />} tone="--sec-diary">
             Diary
           </NavLink>
-          <NavLink href="/clients" icon={<ClientsIcon />}>
+          <NavLink href="/clients" icon={<ClientsIcon />} tone="--sec-clients">
             {capital(words.customers)}
           </NavLink>
-          <NavLink href="/report" icon={<WeekIcon />}>
+          <NavLink href="/report" icon={<WeekIcon />} tone="--sec-reports">
             Reports
           </NavLink>
           {/*
@@ -256,10 +260,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <NavLink
             href={membership?.role === "owner" ? "/settings" : "/settings/you"}
             icon={<SettingsIcon />}
+            tone="--sec-settings"
           >
             Settings
           </NavLink>
-          <NavLink href="/help" icon={<HelpIcon />}>
+          <NavLink href="/help" icon={<HelpIcon />} tone="--sec-help">
             Help
           </NavLink>
         </nav>

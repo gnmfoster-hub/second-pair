@@ -128,6 +128,37 @@
   --cal-grid: #ece8dd;
   --cal-closed: rgba(22, 21, 15, 0.055);
 
+  /*
+   * One hue per section of the app, on the sidebar icon and nowhere else.
+   *
+   * Giles, twice: the product does not use the rest of the palette, and the
+   * sections could stand apart so the ones used all day are easier to find.
+   * Both are true — the sidebar was six grey icons that differed only in
+   * shape, and shape is what you read second.
+   *
+   * On the icon and nowhere else, deliberately. A colour per section is a
+   * navigational aid, and the moment it spreads to headings and panels it
+   * becomes six themes competing inside one screen — which is the "very block,
+   * heavy" look the app was just taken away from. The icon is small, constant,
+   * always in the same place, and learned within a day.
+   *
+   * Cobalt is not among them. It is the one accent and it means "act" or "you
+   * are here": the rail beside the current item stays cobalt, so the section
+   * hue says which room and the accent still says which one you are in. They
+   * would fight if a section owned the accent.
+   *
+   * The hues are the identity palette already used for people's avatars, so
+   * nothing new is invented: they are dark enough to read as ink at 18px on
+   * paper, and each is far enough from the next to be told apart by somebody
+   * not looking for the difference.
+   */
+  --sec-inbox: #9c4221;
+  --sec-diary: #145c6b;
+  --sec-clients: #5b3e86;
+  --sec-reports: #276749;
+  --sec-settings: #465a73;
+  --sec-help: #6b4e33;
+
   color-scheme: light;
 }
 
@@ -186,6 +217,19 @@
     --cal-grid: rgba(247, 244, 236, 0.08);
     --cal-closed: rgba(0, 0, 0, 0.38);
 
+    /*
+     * The section hues, carried up for ink. The paper versions are chosen to
+     * be dark enough to read on paper, which is exactly what makes them
+     * invisible on near-black — the same hue each time, lifted until it is
+     * legible, the way cobalt is above.
+     */
+    --sec-inbox: #e08a5e;
+    --sec-diary: #6fbece;
+    --sec-clients: #a98bd6;
+    --sec-reports: #6fc095;
+    --sec-settings: #9ab0c9;
+    --sec-help: #c4a585;
+
     color-scheme: dark;
  }
 }
@@ -236,6 +280,14 @@
   --cal-off: #7d879a;
   --cal-grid: rgba(247, 244, 236, 0.08);
   --cal-closed: rgba(0, 0, 0, 0.38);
+
+  /* The section hues, lifted for ink. Same reasoning as the block above. */
+  --sec-inbox: #e08a5e;
+  --sec-diary: #6fbece;
+  --sec-clients: #a98bd6;
+  --sec-reports: #6fc095;
+  --sec-settings: #9ab0c9;
+  --sec-help: #c4a585;
 
   color-scheme: dark;
 }

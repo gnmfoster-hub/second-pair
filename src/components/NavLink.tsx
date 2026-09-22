@@ -9,6 +9,7 @@ export function NavLink({
   icon,
   badge,
   exact = false,
+  tone,
 }: {
   href: string;
   children: React.ReactNode;
@@ -20,6 +21,15 @@ export function NavLink({
    */
   badge?: number | null;
   exact?: boolean;
+  /**
+   * This section's hue, for the icon.
+   *
+   * A token name rather than a colour, so the theme decides what it is on
+   * paper and on ink and this file never learns two of them. Optional: a link
+   * without one keeps the grey it always had, which is what the settings rail
+   * and anything added later should do until somebody decides it is a section.
+   */
+  tone?: string;
 }) {
   const pathname = usePathname();
   const active = exact ? pathname === href : pathname.startsWith(href);
@@ -39,8 +49,24 @@ export function NavLink({
       {active && (
         <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r bg-accent" />
       )}
+      {/*
+        * The section's hue, on whether you are here or not.
+        *
+        * It used to go cobalt when active and grey otherwise, which made the
+        * icon say the one thing the rail and the fill were already saying and
+        * nothing at all the rest of the time. A hue that only appears on the
+        * page you are looking at cannot be learned, because you only ever see
+        * one of them.
+        *
+        * So it is constant, and the rail beside it carries "you are here".
+        * Slightly held back when you are elsewhere, so the list still reads as
+        * one quiet column rather than six colours shouting at once.
+        */}
       {icon && (
-        <span className={active ? "text-accent" : "text-muted/70 group-hover:text-muted"}>
+        <span
+          className={tone ? "" : active ? "text-accent" : "text-muted/70 group-hover:text-muted"}
+          style={tone ? { color: `var(${tone})`, opacity: active ? 1 : 0.75 } : undefined}
+        >
           {icon}
         </span>
       )}
