@@ -166,7 +166,15 @@ export function Console({
         * below, on their own ground, where nothing can be mistaken for money
         * anybody owes.
         */}
-      <div className="card mt-4 px-5 py-1">
+      {/*
+        * Loose cards, not rows in a box.
+        *
+        * This was a card wrapping a list of cards with nothing between them,
+        * so nine businesses butted up against each other inside one outline
+        * and read as a single slab — Giles's word was block, twice. They sit
+        * apart now, each one its own object, which is what they are.
+        */}
+      <div className="mt-4 grid gap-3">
         {shown.length === 0 && (
           <p className="hint">
             {businesses.length === 0 ? "Nothing yet. Set the first one up." : "Nobody matches that."}
@@ -194,7 +202,7 @@ export function Console({
             * a glance for the ledger above even when somebody is scrolling
             * past it looking for something else.
             */}
-          <div className="mt-3 rounded-xl border border-dashed border-accent/40 bg-accent/[0.04] px-5 py-1">
+          <div className="mt-3 grid gap-3 rounded-2xl border border-dashed border-accent/40 bg-accent/[0.04] p-3 sm:p-4">
             {pretend.map((b) => (
               <Business key={b.id} b={b} />
             ))}
@@ -475,7 +483,8 @@ function Business({ b }: { b: BusinessSummary }) {
      */
     <div
       id={`b-${b.id}`}
-      className="card scroll-mt-6 p-4 transition-colors hover:border-accent/25 sm:p-5"
+      className="card scroll-mt-6 rounded-2xl p-4 transition-[border-color,box-shadow,transform] hover:border-accent/25 sm:p-5"
+      style={{ boxShadow: "0 1px 2px rgba(22,21,15,0.05), 0 8px 20px -14px rgba(22,21,15,0.35)" }}
     >
       <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
         <span

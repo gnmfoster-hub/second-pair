@@ -1048,7 +1048,23 @@ body {
   }
 
   @media (min-width: 1600px) {
-    .work { max-width: 80rem; padding-inline: 2.5rem; }
+    .work { max-width: 84rem; padding-inline: 2.5rem; }
+  }
+
+  /*
+   * And it keeps going on the big ones.
+   *
+   * Measured on the reports page: at 1920 the frame stopped at 1280 inside a
+   * main of 1704, so 424px was margin; at 2560 it was 1064px. Giles: the
+   * system wastes space on a bigger screen. It does, and it was stopping three
+   * steps too early.
+   */
+  @media (min-width: 1920px) {
+    .work { max-width: 96rem; padding-inline: 3rem; }
+  }
+
+  @media (min-width: 2400px) {
+    .work { max-width: 112rem; }
   }
 
   /* The screens that were already asking to be wider, a step above the rest. */
@@ -1060,6 +1076,14 @@ body {
 
   @media (min-width: 1600px) {
     .work-wide { max-width: 94rem; }
+  }
+
+  @media (min-width: 1920px) {
+    .work-wide { max-width: 108rem; }
+  }
+
+  @media (min-width: 2400px) {
+    .work-wide { max-width: 126rem; }
   }
 
   /*

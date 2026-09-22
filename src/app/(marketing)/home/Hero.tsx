@@ -1238,8 +1238,13 @@ export function Hero() {
           * avoided: the hand's wrist runs a long way below the phone, so the
           * row is positioned above it and the label is set in the foreground
           * rather than muted, which is what was unreadable over skin tone.
+          *
+          * Centred under the pair rather than ranged left, which is Giles's
+          * call and the right one: it belongs to the phone and the diary
+          * together, and hung off the left edge it looked like it belonged to
+          * the phone alone.
           */}
-        <div className="relative z-10 flex flex-wrap items-center gap-2">
+        <div className="relative z-10 mt-4 flex flex-wrap items-center justify-center gap-2 lg:mt-6">
         <span className="text-[13px] uppercase tracking-[0.06em]">Show me a</span>
         {TRADES.map((t) => (
           <button
@@ -1268,8 +1273,15 @@ export function Hero() {
 
         {/* Its own line: trailing the chips it sat over the hand's wrist,
             where muted grey on skin tone could barely be read. */}
-        <p className="relative z-10 mt-2 text-[13px] text-muted">
-          A demo. On your site this is your assistant.
+        {/* A backing, because centred it lands on the hand's wrist and muted
+            grey on skin tone cannot be read. */}
+        <p className="relative z-10 mt-2 text-center text-[13px]">
+          <span
+            className="inline-block rounded-full px-3 py-1 text-muted"
+            style={{ background: "color-mix(in srgb, var(--background) 82%, transparent)" }}
+          >
+            A demo. On your site this is your assistant.
+          </span>
         </p>
       </div>
 
