@@ -4,7 +4,15 @@ const REPO = path.join(process.env.USERPROFILE, "Desktop", "inkdesk");
 const { createClient } = require(path.join(REPO, "node_modules", "@supabase", "supabase-js"));
 const { chromium } = require("playwright-core");
 
-const SITE = "https://www.second-pair.com";
+/*
+ * The live site by default, and whatever SITE says otherwise.
+ *
+ * Every visual check here pointed at production, which is the right default
+ * and useless for looking at something before it ships: re-theming the whole
+ * site, the one question worth asking is what it does at 390px, and the only
+ * way to ask it was to deploy first.
+ */
+const SITE = process.env.SITE || "https://www.second-pair.com";
 /*
  * Pictures go outside the repository. A checker that leaves a folder of
  * screenshots in the source tree gets its output committed by accident, and

@@ -73,7 +73,18 @@ export function Hero() {
   const [len, setLen] = useState(0);
   const [tally, setTally] = useState(0);
   const [sound, setSound] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
+  /*
+   * Null until the browser has it.
+   *
+   * §6.7 wants the visitor's own local time, and the server has no idea what
+   * that is: it renders one time, the browser renders another, and React
+   * throws a hydration mismatch — error #418, which is what the public-page
+   * check caught on every viewport before this shipped.
+   *
+   * So the clock is blank for one frame and then correct, rather than
+   * confidently wrong and then corrected.
+   */
+  const [now, setNow] = useState<number | null>(null);
 
   /* What the visitor has typed, and what came back from the real assistant. */
   const [draft, setDraft] = useState("");
@@ -256,8 +267,12 @@ export function Hero() {
 
   /* The clock only needs to be right to the minute. */
   useEffect(() => {
+    const id = window.requestAnimationFrame(() => setNow(Date.now()));
     const t = window.setInterval(() => setNow(Date.now()), 15000);
-    return () => window.clearInterval(t);
+    return () => {
+      window.cancelAnimationFrame(id);
+      window.clearInterval(t);
+    };
   }, []);
 
   /*
@@ -397,6 +412,7 @@ export function Hero() {
   }, [blip, clearAll, draft, waiting]);
 
   const clock = useMemo(() => {
+    if (now === null) return null;
     const d = new Date(now);
     const h = d.getHours();
     const m = d.getMinutes();
@@ -511,12 +527,14 @@ export function Hero() {
               lineHeight: 1,
             }}
           >
-            {clock.time}
+            {clock ? clock.time : " "}
           </span>
           <span className="max-w-[40ch] text-sm text-muted">
-            {clock.night
-              ? "That’s your clock. You’ve knocked off. This is us, still answering."
-              : "That’s your clock. You’re on the tools. This is us, on the phone."}
+            {clock
+              ? clock.night
+                ? "That’s your clock. You’ve knocked off. This is us, still answering."
+                : "That’s your clock. You’re on the tools. This is us, on the phone."
+              : ""}
           </span>
         </div>
 
