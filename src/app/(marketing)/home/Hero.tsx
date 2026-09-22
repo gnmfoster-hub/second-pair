@@ -432,26 +432,48 @@ export function Hero() {
     let frame = 0;
     let playing = false;
 
+    /*
+     * Two thresholds with a wide gap between them, not one.
+     *
+     * A single threshold is a line, and a line is something a scrolling
+     * thumb crosses several times a second. The first version started the
+     * demo at 0.35 and stopped it below 0.35, so easing the page up and down
+     * on a phone — which is most of what a thumb does — tore the run down and
+     * started it again on every crossing, and the hand jumped back to the
+     * beginning each time. Giles: the finger point looks like it is
+     * flickering on mobile. That was me.
+     *
+     * So it starts only when half of it is on screen and stops only when
+     * almost none of it is, and everything between those two is a dead zone
+     * where nothing happens at all. Crossing one boundary cannot put you
+     * straight over the other, which is the property a single number cannot
+     * have however it is chosen.
+     */
+    const START_AT = 0.5;
+    const STOP_AT = 0.05;
+
     const watch = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          if (playing) return;
+      (entries) => {
+        /* The last one is the current state; a burst can deliver several. */
+        const ratio = entries[entries.length - 1].intersectionRatio;
+
+        if (!playing && ratio >= START_AT) {
           playing = true;
           /* After paint: begin() resets several pieces of state and doing that
              synchronously is a second render before the first has been seen. */
           frame = window.requestAnimationFrame(begin);
           return;
         }
-        /* Gone off screen. Stop it, so coming back starts from the top rather
+
+        /* Properly gone. Stop it, so coming back starts from the top rather
            than resuming into the middle of a sentence. */
-        if (playing) {
+        if (playing && ratio <= STOP_AT) {
           playing = false;
           window.cancelAnimationFrame(frame);
           clearAll();
         }
       },
-      /* Enough of it on screen to be worth watching, rather than one edge. */
-      { threshold: 0.35 },
+      { threshold: [0, STOP_AT, START_AT, 1] },
     );
 
     watch.observe(el);
@@ -634,10 +656,25 @@ export function Hero() {
      * bottom edge and the finger points up at the box with the whole hand in
      * the empty space underneath, touching nothing.
      */
-    const ask = box(inputRef.current);
-    if (ask) {
-      setHand({ x: ask.left + 34, y: ask.top + ask.height + 10, mode: "point" });
-      return;
+    /*
+     * Only when the run is actually over, not between two of its stages.
+     *
+     * This is reached at every gap in the script as well as at the end — after
+     * a reply, before the next question — and the first version of it pointed
+     * at the ask box every time. So the hand crossed the whole panel to the
+     * box and back on each gap, four or five times a run, which on a phone is
+     * the flicker Giles saw. A stage ending is not the demo resting.
+     *
+     * Everywhere else it stays exactly where it was, which is what it did
+     * before and is right: the pause after a reply belongs to the message
+     * that was just sent, not to the box at the bottom.
+     */
+    if (stage === S.DONE || stage === S.START) {
+      const ask = box(inputRef.current);
+      if (ask) {
+        setHand({ x: ask.left + 34, y: ask.top + ask.height + 10, mode: "point" });
+        return;
+      }
     }
 
     setHand((was) => (was ? { ...was, mode: "idle" } : was));
