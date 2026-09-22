@@ -548,6 +548,18 @@ body {
     50% { transform: scaleX(-1) translate3d(0, 6px, 0) rotate(-15deg); }
   }
 
+  /*
+   * Appearing, for anybody who has asked not to be moved at.
+   *
+   * §6: replace movement with fades. The hand still goes where it goes; under
+   * reduced motion it arrives by fading in rather than sliding there. Opacity
+   * only, which is the one change that does not read as motion.
+   */
+  @keyframes sp-appear {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
   /* Anything that only exists to move should not move when asked not to. */
   @media (prefers-reduced-motion: reduce) {
     @keyframes sp-hold-a { 0%, 100% { transform: rotate(-14deg); } }

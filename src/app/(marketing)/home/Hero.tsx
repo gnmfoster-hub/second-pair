@@ -388,22 +388,23 @@ export function Hero() {
 
 
     /*
-     * Reduced motion keeps the hand and loses the movement.
+     * Reduced motion keeps the hand and the story, and loses the sliding.
      *
-     * This used to remove it altogether, which is what Giles was seeing: his
-     * phone has Reduce Motion on, so the cream hand holding the phone stayed
-     * and the blue finger never appeared. The preference is about motion, not
-     * about pictures — a still hand resting on the composer is not motion, and
-     * removing it takes away the thing the page is named after from anybody
-     * who has ever turned that setting on.
+     * It removed the hand outright at first, which is what Giles was seeing:
+     * his phone has Reduce Motion on, so the cream hand holding the phone
+     * stayed and the blue finger never appeared. Then it was pinned at the
+     * input, which kept the picture and threw away everything it was doing.
      *
-     * So it is placed once, at the input, and every transition below is off.
+     * §6 says what to do instead: replace movement with fades. So the hand
+     * still goes everywhere it goes — along the words, onto Send, over to the
+     * diary row — and it cross-fades between those places rather than
+     * travelling. Nothing large slides across the screen, which is what the
+     * preference is actually asking for, and somebody who has it turned on
+     * still watches the assistant do the job.
+     *
+     * Everything below runs unchanged; only the transitions differ, in the
+     * style further down.
      */
-    if (calm) {
-      const r = box(inputRef.current);
-      if (r) setHand({ x: r.left + 24, y: r.top + r.height * 0.5, mode: "type" });
-      return;
-    }
 
     if (typing) {
       const r = box(inputRef.current);
@@ -446,10 +447,12 @@ export function Hero() {
         }
       }
 
-      const travel = Math.min(len * 6.6, Math.max(0, r.width - 72));
+      /* No traverse under reduced motion: a step every 34ms is the one thing
+         the preference is unambiguously about. It rests at the near end. */
+      const travel = calm ? 0 : Math.min(len * 6.6, Math.max(0, r.width - 72));
       setHand({
         x: r.left + 24 + travel,
-        y: r.top + r.height * 0.5 + (len % 2 ? 3 : 0),
+        y: r.top + r.height * 0.5 + (calm ? 0 : len % 2 ? 3 : 0),
         mode: "type",
       });
       return;
@@ -1365,6 +1368,17 @@ export function Hero() {
             */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
+            /*
+              * The key is the point under reduced motion.
+              *
+              * The wrapper jumps to the new place with no transition, so
+              * without this the hand would simply be somewhere else between
+              * one frame and the next. Keying on the position remounts the
+              * image, which restarts the fade, so it leaves one place and
+              * arrives at the other. Off entirely when motion is allowed,
+              * where the travel does that job.
+              */
+            key={calm ? `${Math.round(hand.x)}:${Math.round(hand.y)}:${hand.mode}` : "hand"}
             src={
               hand.mode === "press"
                 ? "/brand/hands/hand-type-press.webp"
@@ -1372,6 +1386,7 @@ export function Hero() {
             }
             alt=""
             className="w-[104px] select-none sm:w-[142px]"
+            style={calm ? { animation: "sp-appear 0.32s ease-out both" } : undefined}
           />
         </span>
       )}
