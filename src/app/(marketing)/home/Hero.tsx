@@ -78,6 +78,13 @@ const nextAt = new Map<number, number>(
  */
 const ASK_FIRST = ["What does it cost?", "Will it work for my trade?", "How long to set up?"];
 
+/**
+ * Where the fingertip sits across the trimmed hand artwork, as a fraction of
+ * its width. Measured off the file after the background was cut out, not
+ * guessed: 4.5% across, and level with the top edge.
+ */
+const TIP_X = 0.045;
+
 /** The beat at the end of a line for the hand to reach Send and press it. */
 const PRESS_BEAT = 620;
 
@@ -200,6 +207,12 @@ export function Hero() {
    */
   const calm = useMedia("(prefers-reduced-motion: reduce)");
   const touch = useMedia("(pointer: coarse)");
+  /*
+   * How wide the hand is drawn, which the fingertip offset is a fraction of.
+   * The two numbers are the two the class sets, and they have to agree — read
+   * from the same media query Tailwind's sm: uses.
+   */
+  const handWidth = useMedia("(min-width: 640px)") ? 142 : 104;
 
   /*
    * The toggle is remembered, §6.6, and read after paint.
@@ -1280,7 +1293,12 @@ export function Hero() {
              * loops cannot share one transform property. The outer one goes
              * where it is told; the inner one taps where it stands.
              */
-            transform: `translate(${hand.x - 14}px, ${hand.y - 16}px)`,
+            /*
+             * Aims the fingertip, not the corner. TIP_X is where the tip sits
+             * across the trimmed artwork; the tip is at the very top of it, so
+             * there is nothing to take off y.
+             */
+            transform: `translate(${hand.x - TIP_X * handWidth}px, ${hand.y}px)`,
             /*
              * Short and linear while typing, which is what makes the traverse
              * possible at all: a character lands every 34ms, so a 0.7s eased
@@ -1299,16 +1317,35 @@ export function Hero() {
             willChange: "transform",
           }}
         >
+          {/*
+            * Two frames, not a nudge.
+            *
+            * The old artwork was a hand palm-on to the viewer with the finger
+            * pointing up and left — a pointing gesture, and nobody types with
+            * their palm facing the screen. This is the back of the hand seen
+            * from above, the way you see your own reaching for a phone, and
+            * the tap is a real finger bending rather than the whole picture
+            * shifting four pixels down and back.
+            *
+            * The two frames are cut from one bounding box, so everything but
+            * the finger is identical between them: the wrapper offset stays
+            * put and swapping the image dips the fingertip on its own, which
+            * is what a press looks like. Measured after trimming, the tip sits
+            * 4.5% across and at the very top of the frame in the raised one,
+            * and 9.4% of the frame lower in the pressed one.
+            *
+            * No rotation any more. The old one needed -10deg to aim the finger;
+            * this one is drawn at the angle it should be.
+            */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/brand/hands/hand-point.webp"
+            src={
+              hand.mode === "press"
+                ? "/brand/hands/hand-type-press.webp"
+                : "/brand/hands/hand-type.webp"
+            }
             alt=""
-            className="w-[92px] select-none sm:w-[130px]"
-            style={{
-              /* The fingertip sits about 14,16 into the artwork, §6. */
-              transform: "rotate(-10deg)",
-              animation: hand.mode === "press" ? "sp-tap 0.3s ease-in-out 2" : undefined,
-            }}
+            className="w-[104px] select-none sm:w-[142px]"
           />
         </span>
       )}
