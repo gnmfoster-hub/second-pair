@@ -70,6 +70,14 @@ const nextAt = new Map<number, number>(
   SCRIPT.map(([ms, st], i) => [st, (SCRIPT[i + 1]?.[0] ?? ms + 1700) - ms]),
 );
 
+/**
+ * What a visitor is offered to ask, once the demo has played.
+ *
+ * Questions, not claims: the assistant answers each from the settings it
+ * actually has, so nothing here promises anything the product cannot do.
+ */
+const ASK_FIRST = ["What does it cost?", "Will it work for my trade?", "How long to set up?"];
+
 /** The beat at the end of a line for the hand to reach Send and press it. */
 const PRESS_BEAT = 620;
 
@@ -472,8 +480,8 @@ export function Hero() {
   );
 
   /** Send what the visitor typed to the real assistant. §7. */
-  const send = useCallback(async () => {
-    const text = draft.trim();
+  const send = useCallback(async (preset?: string) => {
+    const text = (preset ?? draft).trim();
     if (!text || waiting) return;
     clearAll();
     setStage(S.DONE);
@@ -984,6 +992,50 @@ export function Hero() {
                     </span>
                   </div>
                 )}
+
+                {/*
+                  * "Now you have a go", said plainly.
+                  *
+                  * The input under this thread has always been wired to the
+                  * real assistant, and nothing on the page said so — the copy
+                  * invites you to watch an evening play out and then leaves a
+                  * box that looks like part of the demo. Giles asked for it to
+                  * be obvious.
+                  *
+                  * Three questions rather than an instruction, because a thing
+                  * you can press is a clearer offer than a sentence telling you
+                  * a box works. They are the questions a buyer actually opens
+                  * with, and the assistant answers them from what is true
+                  * today — including "not yet" on the Meta channels.
+                  *
+                  * Only once the run has finished and only until the visitor
+                  * has sent something, so it never competes with the demo and
+                  * never lingers after it has been used.
+                  */}
+                {stage >= S.DONE && !sent && !waiting && (
+                  <div className="pt-1">
+                    <p className="mb-2 text-xs font-medium">
+                      Your turn &mdash; this one is the real assistant.
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {ASK_FIRST.map((q) => (
+                        <button
+                          key={q}
+                          type="button"
+                          onClick={() => send(q)}
+                          className="rounded-full px-2.5 py-1 text-xs transition-colors"
+                          style={{
+                            border: "1px solid var(--accent)",
+                            color: "var(--accent)",
+                            background: "color-mix(in srgb, var(--accent) 7%, transparent)",
+                          }}
+                        >
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* A real input, §7. */}
@@ -1005,7 +1057,9 @@ export function Hero() {
                 <button
                   ref={sendRef}
                   type="button"
-                  onClick={send}
+                  /* Wrapped: send() takes an optional preset now, and a bare
+                     handler would hand it the click event as the message. */
+                  onClick={() => send()}
                   disabled={waiting || !draft.trim()}
                   className="btn-primary shrink-0 px-3"
                   style={{ minHeight: 36, fontSize: 13 }}
