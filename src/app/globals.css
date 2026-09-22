@@ -640,6 +640,19 @@ body {
     background: var(--accent);
   }
 
+  /*
+   * The nav bar's height, which is 76 from sm up as §5 asks.
+   *
+   * On a phone it is 88, because the mark there is 64 and a 64px mark in a
+   * 76px bar leaves six pixels of air. A phone has the vertical room and the
+   * logo is the one thing on that bar somebody has to recognise.
+   */
+  :root { --sp-bar: 88px; }
+
+  @media (min-width: 640px) {
+    :root { --sp-bar: 76px; }
+  }
+
   .grain {
     position: fixed;
     inset: 0;

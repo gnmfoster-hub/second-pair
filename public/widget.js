@@ -41,6 +41,17 @@
   var tagText = script.getAttribute("data-text") || null;
   var tagTeaser = script.getAttribute("data-teaser") || null;
   var tagPosition = script.getAttribute("data-position");
+  /*
+   * data-teaser-repeat="1" brings the nudge back instead of showing it once.
+   *
+   * A business's own site should ask once and then leave somebody alone: a
+   * bubble that keeps reappearing over the page they came to read is the thing
+   * everybody hates about chat widgets. Our own site is the exception Giles
+   * asked for — it is a shop window for the widget, and the nudge coming back
+   * is part of what it is demonstrating. Off unless a page asks for it, so no
+   * customer's visitors are pestered.
+   */
+  var tagRepeat = script.getAttribute("data-teaser-repeat") === "1";
 
   var accent = tagAccent || "#14243F";
   var textColour = tagText || "#ffffff";
@@ -834,9 +845,10 @@
   // ------------------------------------------------------------------ teaser
 
   function showTeaser() {
-    if (open || teaserShown) return;
+    if (open) return;
+    if (teaserShown && !tagRepeat) return;
     try {
-      if (sessionStorage.getItem(TEASER_KEY)) return;
+      if (sessionStorage.getItem(TEASER_KEY) && !tagRepeat) return;
     } catch {
       /* carry on */
     }
@@ -965,6 +977,9 @@
     } catch {
       /* carry on */
     }
+
+    /* And on a page that asked for it, come back in a while. */
+    if (tagRepeat && !open) later(showTeaser, 45000);
   }
 
   // -------------------------------------------------------------------- wire

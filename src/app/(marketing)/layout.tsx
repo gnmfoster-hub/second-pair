@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Script from "next/script";
-import { Logo } from "@/components/Logo";
+import { Logo, Mark, Wordmark } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AlsoFromUs } from "./AlsoFromUs";
 import { MobileMenu } from "./MobileMenu";
@@ -49,13 +49,18 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         data-accent="#1f3be3"
         data-text="#ffffff"
         data-teaser="Ask me anything about Second Pair. I am the real one, not a demo."
+        data-teaser-repeat="1"
       />
 
       <header
         className="sticky top-0 z-30"
         style={{ background: "var(--putty)", borderBottom: "2px solid var(--foreground)" }}
       >
-        <div className="shell shell-wide flex items-center gap-4" style={{ minHeight: "76px" }}>
+        <div
+          className="shell shell-wide flex items-center gap-4"
+          /* 88 on a phone: a 64px mark in a 76px bar leaves six pixels. */
+          style={{ minHeight: "var(--sp-bar, 88px)" }}
+        >
           {/* Thirty pixels disappeared into the header, and this is the only
               place most people will ever see the name. */}
           {/*
@@ -117,11 +122,23 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               * the logo and the menu, and the logo gets 230 of the 350 there
               * is rather than 113.
               */}
-            <span className="block min-[360px]:hidden">
-              <Logo height={46} lockup="horizontal" />
-            </span>
-            <span className="hidden min-[360px]:block sm:hidden">
-              <Logo height={52} lockup="horizontal" />
+            {/*
+              * Composed rather than the lockup, so the mark can be big.
+              *
+              * The lockup sizes the mark from its own height, and the height is
+              * capped by a 76px bar: at 52 the mark is 50, and Giles has now
+              * said three times that the icon is too small. Setting the two
+              * separately gives the mark 64 and the name 19, which is 196px of
+              * the 350 there is at 390 and still leaves the menu its corner.
+              */}
+            <span className="flex items-center gap-2.5 sm:hidden">
+              {/*
+                * An explicit pixel size, not size-16.
+                * rem here is 14.4px, not 16, so size-16 came out at 57.6 — the
+                * class said 64 and the screen said 58.
+                */}
+              <Mark className="size-[68px] shrink-0" sizePx={68} />
+              <Wordmark size={20} />
             </span>
             {/*
               * The tagline, which the pack had all along.

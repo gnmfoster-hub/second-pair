@@ -201,7 +201,16 @@ export function Logo({
 }
 
 /** "second pair", at the pack's weights and tracking. */
-function Wordmark({ size }: { size: number }) {
+/**
+ * The name on its own, so a caller can set the mark and the type separately.
+ *
+ * The lockup ties the two together by one height, which is right nearly
+ * everywhere and wrong in a phone header: the bar is 76px, so the lockup can
+ * only be about 56 tall, which makes the mark 54 and the name the width of
+ * everything left over. Exported so the header can give the mark the room and
+ * set the name to suit.
+ */
+export function Wordmark({ size }: { size: number }) {
   return (
     <span
       /*
