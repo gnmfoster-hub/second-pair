@@ -124,8 +124,26 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 * rem here is 14.4px, not 16, so size-16 came out at 57.6 — the
                 * class said 64 and the screen said 58.
                 */}
-              <Mark className="size-[68px] shrink-0" sizePx={68} />
-              <Wordmark size={20} />
+              <Mark className="size-[68px] shrink-0 min-[360px]:size-[68px] max-[359px]:size-[56px]" sizePx={68} />
+              {/*
+                * 28, not 20. Nothing was wrong with the type: both are Anton
+                * at one weight, and the computed styles agree. It was the
+                * proportion. The desktop lockup sets the name at 24 beside a
+                * 52px mark, which is 46 per cent of it; on a phone it was 20
+                * beside a 68px mark, which is 29, and that reads as thinner
+                * however bold the face is.
+                */}
+              {/*
+                * And bold, which the size alone did not give. Anton has one
+                * weight, so bold thickens the strokes rather than asking for
+                * a weight that does not exist — see Wordmark.
+                */}
+              <span className="hidden min-[360px]:block">
+                <Wordmark size={28} bold />
+              </span>
+              <span className="block min-[360px]:hidden">
+                <Wordmark size={23} bold />
+              </span>
             </span>
             {/*
               * The tagline, which the pack had all along.

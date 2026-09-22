@@ -210,7 +210,31 @@ export function Logo({
  * everything left over. Exported so the header can give the mark the room and
  * set the name to suit.
  */
-export function Wordmark({ size }: { size: number }) {
+export function Wordmark({
+  size,
+  /**
+   * Heavier, for the phone header.
+   *
+   * Anton ships one weight and the site turns synthesis off, because asking
+   * the browser for 700 makes it smear a second copy of each glyph sideways
+   * and the result is a blurred wordmark, not a bold one. Giles wants the
+   * name beside the mark on a phone properly bold, so the strokes are
+   * thickened instead: a stroke in the same colour as the fill, painted
+   * under it, which grows every stem evenly and keeps the counters open.
+   *
+   * It is also the right thing typographically rather than a trick. A
+   * condensed face at 28px has thinner stems in absolute pixels than the
+   * same face at 54, so it reads lighter beside artwork of the same size —
+   * compensating for that at small sizes is ordinary practice.
+   *
+   * Half a pixel at 28, scaled from the size so it stays proportional. Not
+   * hollow text: the fill is unchanged and the stroke matches it.
+   */
+  bold = false,
+}: {
+  size: number;
+  bold?: boolean;
+}) {
   return (
     <span
       /*
@@ -239,6 +263,13 @@ export function Wordmark({ size }: { size: number }) {
         fontFamily: "var(--font-display), Impact, sans-serif",
         textTransform: "uppercase",
         letterSpacing: "0.01em",
+        ...(bold
+          ? {
+              WebkitTextStrokeWidth: `${(size / 56).toFixed(2)}px`,
+              WebkitTextStrokeColor: "currentColor",
+              paintOrder: "stroke fill",
+            }
+          : null),
       }}
     >
       second pair
