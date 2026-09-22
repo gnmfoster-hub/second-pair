@@ -78,6 +78,9 @@
   --warn-bg: #fbf1dc;
   --bad-bg: #fbe5e5;
 
+  /* §2: secondary text on ink. The muted token is for light grounds only. */
+  --muted-on-ink: rgba(247, 244, 236, 0.72);
+
   --logo-bubble: #16150f;
 
   /*
@@ -891,6 +894,23 @@ body {
     color: var(--foreground);
     border-bottom: 3px solid var(--accent);
     cursor: pointer;
+  }
+
+  /*
+   * A link on an ink ground.
+   *
+   * Everything else on the site brightens towards the foreground on hover,
+   * which on ink is ink: the link disappears under the cursor. Here the
+   * bright direction is paper, so it is its own rule rather than a utility
+   * class that happens to be wrong on one surface.
+   */
+  .link-on-ink {
+    color: var(--muted-on-ink);
+    transition: color 0.12s ease;
+  }
+
+  .link-on-ink:hover {
+    color: var(--background);
   }
 
   /* Destructive is its own colour, not the brand one. Red means a problem. */

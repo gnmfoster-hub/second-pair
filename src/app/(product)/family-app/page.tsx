@@ -24,10 +24,21 @@ const display = Fraunces({
   display: "swap",
 });
 
+/*
+ * No weight list, unlike the two either side of it.
+ *
+ * Plus Jakarta Sans is a variable font, so Google serves one file covering
+ * 200-800 and every weight the page asks for comes out of it. Naming five
+ * discrete weights makes Turbopack emit five @font-face blocks pointing at
+ * that one file, and it then refuses the build: "next/font/google queries
+ * have exactly one entry". It only shows up on a cold cache, which is why it
+ * was invisible until the build directory was cleared.
+ *
+ * Nothing about the page changes — 400 through 800 all still render.
+ */
 const body = Plus_Jakarta_Sans({
   variable: "--fa-body",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
   display: "swap",
 });
 

@@ -582,7 +582,7 @@ export function Hero() {
           >
             <div
               className="flex h-[560px] flex-col overflow-hidden"
-              style={{ background: "#ffffff", borderRadius: 32 }}
+              style={{ background: "var(--surface)", borderRadius: 32 }}
             >
               {/* Who it is and what they are doing instead of answering. */}
               <div

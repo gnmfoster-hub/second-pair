@@ -276,19 +276,42 @@ export default function HomePage() {
       </section>
 
       {/* ──────────────────────────────────────────────────────────── close */}
-      <section className="border-t border-border bg-surface">
-        <div className="mx-auto max-w-5xl px-5 py-20 text-center sm:px-8">
-          <h2 className="page-title text-3xl sm:text-4xl">
+      {/*
+        * The closing band, §8.
+        *
+        * Cobalt, and the only large blue background on the site — §2 allows it
+        * here and nowhere else. The button on it is the ink one, because white
+        * on cobalt and cobalt on cobalt are both wrong and ink is the pair the
+        * palette already has.
+        *
+        * The words are the ones that were here. §8 names this band and gives
+        * it a headline; changing what it says is a copy decision and Giles asked
+        * to be asked, so the line stays and the treatment changes.
+        */}
+      <section style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
+        {/*
+          * Left, not centred. §3: "Headlines are stacked, one phrase per line,
+          * never centred." A closing band is the one place the centred reflex
+          * is strongest, which is presumably why the rule is written down.
+          */}
+        <div className="mx-auto max-w-5xl px-5 py-20 sm:px-8">
+          <h2
+            style={{
+              fontFamily: "var(--font-display), Impact, sans-serif",
+              textTransform: "uppercase",
+              lineHeight: 0.96,
+              letterSpacing: "0.01em",
+              fontSize: "clamp(40px, 5vw, 64px)",
+              maxWidth: "14ch",
+            }}
+          >
             The enquiries arrive whether you&rsquo;re free or not.
           </h2>
-          <p className="mx-auto mt-4 max-w-md text-base leading-relaxed text-muted">
+          <p className="mt-5 max-w-md text-base leading-relaxed" style={{ opacity: 0.85 }}>
             Ask ours what you want to know. It answers straight away, and it will put you
             in front of a person to get you set up.
           </p>
-          <a
-            href="#ask"
-            className="btn mt-8 inline-flex bg-highlight px-6 text-[0.95rem] font-semibold text-on-highlight hover:brightness-95"
-          >
+          <a href="#ask" className="btn-ink mt-9 inline-flex" style={{ minHeight: 54 }}>
             Ask ours anything
           </a>
         </div>

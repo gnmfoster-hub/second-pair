@@ -24,6 +24,15 @@ export function Mark({
   className = "size-7",
   title = "Second Pair",
   /**
+   * Drawn on ink rather than on paper.
+   *
+   * The flat mark is a black hand and a cobalt one, which on the footer's ink
+   * is a cobalt hand and a hole. §6 ships a reversed version for exactly this
+   * and says never to recolour them, so it is a different file rather than a
+   * filter.
+   */
+  onInk = false,
+  /**
    * Roughly how wide it will be drawn, so the browser fetches a sensible file
    * rather than the largest. A hint only; the CSS still decides.
    */
@@ -31,6 +40,7 @@ export function Mark({
 }: {
   className?: string;
   title?: string;
+  onInk?: boolean;
   sizePx?: number;
 }) {
   return (
@@ -44,7 +54,13 @@ export function Mark({
        * the srcSet go with it, and with them the seven-size table they indexed.
        * §6: below 40px the flat two-colour mark is the correct one.
        */
-      src={sizePx < 40 ? "/brand/logo/mark-flat-two-colour.png" : "/brand/logo/bubble-mark.svg"}
+      src={
+        onInk
+          ? "/brand/logo/mark-flat-reversed.png"
+          : sizePx < 40
+            ? "/brand/logo/mark-flat-two-colour.png"
+            : "/brand/logo/bubble-mark.svg"
+      }
       alt={title}
       className={className}
       /*
@@ -105,12 +121,15 @@ export function Logo({
   tagline = "default",
   /** Kept for callers written against the old pack's trades line. */
   altLine = false,
+  /** Drawn on ink. Picks the reversed mark; the type already inherits. */
+  onInk = false,
 }: {
   className?: string;
   height?: number;
   lockup?: Lockup;
   tagline?: Tagline;
   altLine?: boolean;
+  onInk?: boolean;
 }) {
   const line: Tagline = altLine ? "trades" : tagline;
   const stacked = lockup === "stacked";
@@ -143,7 +162,7 @@ export function Logo({
   if (height < WORDMARK_FROM) {
     return (
       <span className={`inline-flex items-center ${className}`} style={{ height }}>
-        <Mark className="block" sizePx={height} />
+        <Mark className="block" sizePx={height} onInk={onInk} />
       </span>
     );
   }
@@ -151,7 +170,7 @@ export function Logo({
   if (stacked) {
     return (
       <span className={`inline-flex flex-col items-center gap-1.5 ${className}`}>
-        <Mark className="block" sizePx={Math.round(height * 0.52)} />
+        <Mark className="block" sizePx={Math.round(height * 0.52)} onInk={onInk} />
         <span className="flex flex-col items-center leading-none">
           <Wordmark size={Math.round(height * 0.26)} />
           {showTagline && <Tag size={Math.round(height * 0.14)} text={TAGLINES[line]} />}
@@ -162,7 +181,11 @@ export function Logo({
 
   return (
     <span className={`inline-flex items-center gap-[0.34em] ${className}`} style={{ height }}>
-      <Mark className="block shrink-0" sizePx={Math.round(height * (showTagline ? 0.88 : 0.96))} />
+      <Mark
+        className="block shrink-0"
+        sizePx={Math.round(height * (showTagline ? 0.88 : 0.96))}
+        onInk={onInk}
+      />
       {/*
         * Flush right: the tagline ends level with the name rather than
         * starting under its beginning, so the two read as one block instead of

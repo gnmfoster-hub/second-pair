@@ -213,21 +213,58 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         */}
       <AlsoFromUs />
 
-      <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-5 py-8 text-xs text-muted sm:px-8">
+      {/*
+        * The footer, §5: ink, with a 1px rule above it.
+        *
+        * It also carries the four sections, because the nav hides them below
+        * lg — a phone cannot hold four links beside a logo and a button, and
+        * links that exist only on a desktop are links half the visitors never
+        * see.
+        */}
+      <footer style={{ background: "var(--foreground)", color: "var(--background)" }}>
+        {/*
+          * The padding is on the nav, not on a wrapper around it.
+          *
+          * A wrapper carrying py-12 keeps its height when the nav inside it
+          * goes lg:hidden, so every desktop visitor got a hundred pixels of
+          * empty ink above the rule and nothing in it.
+          */}
+        <div className="mx-auto max-w-6xl px-5 sm:px-8">
+          <nav
+            className="flex flex-wrap gap-x-7 gap-y-3 pt-12 pb-8 lg:hidden"
+            style={{
+              fontFamily: "var(--font-body)",
+              fontWeight: 600,
+              fontSize: "14px",
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+            }}
+          >
+            <Link href="/system">The Second Pair system</Link>
+            <Link href="/websites">Websites</Link>
+            <Link href="/apps">Apps</Link>
+            <Link href="/work">Our work</Link>
+          </nav>
+        </div>
+        <div
+          className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-5 pb-10 text-xs sm:px-8"
+          style={{ color: "var(--muted-on-ink)", borderTop: "1px solid rgba(247,244,236,0.2)", paddingTop: "1.5rem" }}
+        >
           {/*
             * 26 rather than 22: below 24 the name is dropped and the mark
             * stands alone, which beside "Privacy" and "Terms" read as a stray
             * icon rather than a signature.
             */}
-          <Logo height={26} lockup="inline" />
-          <Link href="/company" className="hover:text-foreground">
+          <span style={{ color: "var(--background)" }}>
+            <Logo height={26} lockup="inline" onInk />
+          </span>
+          <Link href="/company" className="link-on-ink">
             The company
           </Link>
-          <Link href="/privacy" className="hover:text-foreground">
+          <Link href="/privacy" className="link-on-ink">
             Privacy
           </Link>
-          <Link href="/terms" className="hover:text-foreground">
+          <Link href="/terms" className="link-on-ink">
             Terms
           </Link>
           <span className="ml-auto">Second Pair Ltd &middot; made in the UK</span>
