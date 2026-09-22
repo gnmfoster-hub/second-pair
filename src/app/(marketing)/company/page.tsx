@@ -93,7 +93,7 @@ export default function CompanyPage() {
             </p>
 
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <span className="pill bg-highlight/15 text-highlight-ink">Early access</span>
+              <span className="pill bg-highlight/15 text-on-highlight">Early access</span>
               <Link href="/family-app" className="text-sm font-medium hover:underline">
                 Have a look &rarr;
               </Link>
@@ -180,7 +180,7 @@ export default function CompanyPage() {
         </p>
         <a
           href="/home#ask"
-          className="btn mt-5 inline-flex bg-highlight font-semibold text-on-highlight hover:brightness-95"
+          className="btn-highlight mt-5 inline-flex"
         >
           Get set up
         </a>

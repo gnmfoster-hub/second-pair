@@ -293,6 +293,13 @@ export default function HomePage() {
           * Left, not centred. §3: "Headlines are stacked, one phrase per line,
           * never centred." A closing band is the one place the centred reflex
           * is strongest, which is presumably why the rule is written down.
+          *
+          * The headline is §8's, which names this band and gives it these
+          * words. Giles asked to be asked before copy moves "beyond what §8
+          * specifies", and this is inside it. The button is left alone: §8
+          * wants "Book a 15 minute chat" there, but the one that is there
+          * opens the live assistant, and swapping where a button goes is
+          * behaviour, not appearance.
           */}
         <div className="mx-auto max-w-5xl px-5 py-20 sm:px-8">
           <h2
@@ -305,7 +312,7 @@ export default function HomePage() {
               maxWidth: "14ch",
             }}
           >
-            The enquiries arrive whether you&rsquo;re free or not.
+            Give us the second pair.
           </h2>
           <p className="mt-5 max-w-md text-base leading-relaxed" style={{ opacity: 0.85 }}>
             Ask ours what you want to know. It answers straight away, and it will put you
