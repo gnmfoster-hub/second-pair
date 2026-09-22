@@ -1,13 +1,13 @@
 {
-  "name": "Second Pair — your second pair of hands",
+  "name": "Second Pair \u2014 your second pair of hands",
   "short_name": "Second Pair",
   "description": "Your second pair of hands. You work, we answer.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#EFEEE9",
-  "theme_color": "#14243F",
+  "background_color": "#F7F4EC",
+  "theme_color": "#16150F",
   "icons": [
     {
       "src": "/brand/png/app-icon-192.png",

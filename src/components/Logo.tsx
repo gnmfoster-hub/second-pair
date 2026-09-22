@@ -26,10 +26,11 @@ export function Mark({
   /**
    * Drawn on ink rather than on paper.
    *
-   * The flat mark is a black hand and a cobalt one, which on the footer's ink
-   * is a cobalt hand and a hole. §6 ships a reversed version for exactly this
-   * and says never to recolour them, so it is a different file rather than a
-   * filter.
+   * The new pack has no reversed artwork — logo_reverse_dark.png in it is byte
+   * for byte the same file as the paper lockup — and its own rules forbid
+   * recolouring what it supplies. So ink keeps the previous pack's reversed
+   * mark until a real one arrives. Flagged to Giles; it is the one place the
+   * two packs are mixed.
    */
   onInk = false,
   /**
@@ -47,20 +48,19 @@ export function Mark({
     // eslint-disable-next-line @next/next/no-img-element
     <img
       /*
-       * The new pack's bubble mark, which is a vector.
+       * The 3D bubble from the September pack, at every size on paper.
        *
-       * The old one was a raster at seven sizes with a srcSet to pick between
-       * them. This is one SVG that is sharp at every size, so the sizes and
-       * the srcSet go with it, and with them the seven-size table they indexed.
-       * §6: below 40px the flat two-colour mark is the correct one.
+       * It is supplied as a 1254px PNG on the pack's own off-white, which is a
+       * shade lighter than brand paper — pasted flat it shows a seam on a paper
+       * page and a plain box on the app's white panels. So it is trimmed to the
+       * artwork and the ground is knocked out to alpha, which is preparation
+       * rather than the recolouring the pack rules out.
+       *
+       * One file rather than the old size-switch: the pack ships no flat or
+       * simplified variant, and its own note says a small mark should fall back
+       * to one. Worth having; noted for Giles rather than invented here.
        */
-      src={
-        onInk
-          ? "/brand/logo/mark-flat-reversed.png"
-          : sizePx < 40
-            ? "/brand/logo/mark-flat-two-colour.png"
-            : "/brand/logo/bubble-mark.svg"
-      }
+      src={onInk ? "/brand/logo/mark-flat-reversed.png" : "/brand/logo/mark-3d.png"}
       alt={title}
       className={className}
       /*

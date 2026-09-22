@@ -121,9 +121,10 @@ export const viewport: Viewport = {
    * own scroll does the rest.
    */
   interactiveWidget: "resizes-content",
+  /* Paper and ink. These were still the old navy brand's two colours. */
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#efeee9" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0f1a" },
+    { media: "(prefers-color-scheme: light)", color: "#f7f4ec" },
+    { media: "(prefers-color-scheme: dark)", color: "#16150f" },
   ],
 };
 
