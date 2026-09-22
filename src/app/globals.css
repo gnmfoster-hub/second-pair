@@ -39,7 +39,20 @@
    * near-black reads as two unrelated decisions.
    */
   --background: #f7f4ec;          /* --paper */
-  --surface: #ffffff;             /* panels, §9 */
+  /*
+   * A panel is white, but this palette's white.
+   *
+   * §9 says "panels white" and this was #FFFFFF, which is the only tone in the
+   * whole set with no warmth in it: paper is 247,244,236 and paper-2 is
+   * 242,239,230, both eleven or twelve points warmer at the red end than the
+   * blue, and even the dark ground keeps seven. A pure white card on that is a
+   * cold rectangle sitting on a warm page, and Giles spotted it without being
+   * able to name it — are the tones the same beige.
+   *
+   * 255,253,244 is the same eleven-point spread as paper. It still reads as a
+   * white panel, and it now belongs to the page it sits on.
+   */
+  --surface: #fffdf4;             /* panels, §9, in this palette's white */
   --surface-2: #f2efe6;           /* --paper-2: bubbles, subtle fills */
   --border: #e6e2d8;              /* --line */
   --foreground: #16150f;          /* --ink */
