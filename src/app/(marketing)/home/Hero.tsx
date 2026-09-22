@@ -90,7 +90,7 @@ type HandMode = "idle" | "type" | "hold" | "swipe" | "point";
 const HOLDING = [
   {
     src: "/brand/hands/hand-front.webp",
-    place: "left-0 top-28 w-[132px] lg:-left-12 lg:top-28 lg:w-[186px]",
+    place: "-left-1 top-24 w-[108px] lg:-left-12 lg:top-28 lg:w-[186px]",
     keyframes: "sp-hold-a",
     seconds: 6.5,
     px: 32,
@@ -98,7 +98,7 @@ const HOLDING = [
   },
   {
     src: "/brand/hands/hand-second.webp",
-    place: "right-0 top-64 w-[124px] lg:-right-6 lg:top-48 lg:w-[176px]",
+    place: "-right-1 top-64 w-[104px] lg:-right-6 lg:top-64 lg:w-[176px]",
     keyframes: "sp-hold-b",
     seconds: 7.9,
     px: -24,
@@ -510,7 +510,7 @@ export function Hero() {
       * orderable siblings of the right column without moving them in the
       * markup, so the reading order for a screen reader is unchanged.
       */}
-    <div className="mx-auto flex max-w-6xl flex-col gap-10 px-5 py-14 sm:px-8 lg:grid lg:grid-cols-[1fr_minmax(0,560px)] lg:items-start lg:py-20">
+    <div className="mx-auto flex max-w-6xl flex-col gap-10 px-5 py-14 sm:px-8 lg:grid lg:grid-cols-[1fr_minmax(0,560px)] lg:items-start lg:gap-8 lg:py-8">
       {/* ------------------------------------------------------------ left */}
       <div className="contents lg:relative lg:z-10 lg:block">
       <div className="relative z-10 order-1 lg:order-none">
@@ -643,7 +643,14 @@ export function Hero() {
             style={{
               transform: `translate(${tiltUsed.x * h.px}px, ${tiltUsed.y * h.py}px)`,
               transition: "transform 0.5s ease-out",
-              zIndex: 0,
+              /*
+               * In front of the phone. They overlap its edges by about forty
+               * pixels either side, and behind it that overlap was invisible —
+               * which is why they read as two hands near a phone rather than a
+               * pair holding one. Only the bezel and a sliver of screen is
+               * covered; the thread sits inboard of it.
+               */
+              zIndex: 20,
             }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -659,7 +666,7 @@ export function Hero() {
           </span>
         ))}
 
-        <div className="relative z-10 flex flex-col gap-6">
+        <div className="relative z-10 flex flex-col gap-3">
           {/* --------------------------------------------------- the phone */}
           <div
             ref={phoneRef}
@@ -668,21 +675,118 @@ export function Hero() {
              * At the full column width the phone covered both hands completely
              * and the hero was named after something invisible.
              */
-            className="mx-auto w-full max-w-[286px] sm:max-w-[360px]"
+            className="mx-auto w-full max-w-[258px] sm:max-w-[300px]"
+            /*
+             * A moulded object rather than a black rectangle.
+             *
+             * The new pack is rendered in 3D — the bubble mark and both hands
+             * have real depth — and a flat slab of ink between two photographed
+             * hands looked like a hole in the page rather than a thing being
+             * held. So the bezel is lit: a gradient across it, a highlight along
+             * the top edge where the light is, a darker rim at the bottom, and
+             * two shadows instead of one — a tight contact shadow where it meets
+             * the page and a wide soft one for the distance off it.
+             *
+             * All of it in the ink from §2. Depth from light, not from new
+             * colours, which the pack's rules rule out.
+             */
             style={{
-              background: "var(--foreground)",
-              borderRadius: 42,
-              padding: 12,
-              boxShadow: "var(--shadow-pop)",
+              background:
+                "linear-gradient(158deg, #34322a 0%, #1c1b14 32%, #16150f 62%, #0b0a06 100%)",
+              borderRadius: 44,
+              padding: 13,
+              boxShadow: [
+                "inset 0 1.5px 0 rgba(247,244,236,0.22)",
+                "inset 0 -2px 2px rgba(0,0,0,0.55)",
+                "inset 2px 0 2px rgba(0,0,0,0.35)",
+                "inset -2px 0 2px rgba(0,0,0,0.35)",
+                "0 2px 4px rgba(22,21,15,0.4)",
+                "0 18px 30px -12px rgba(22,21,15,0.45)",
+                "0 40px 60px -30px rgba(22,21,15,0.55)",
+              ].join(", "),
             }}
           >
             <div
-              className="flex h-[560px] flex-col overflow-hidden"
-              style={{ background: "var(--surface)", borderRadius: 32 }}
+              /*
+               * 440 rather than 560. The diary underneath is the payoff of the
+               * whole run — the booking card is swiped into it — and at the old
+               * height only 51px of a 312px panel was above the fold on a
+               * 1280x844 screen, so almost nobody saw where the card landed.
+               */
+              className="flex h-[400px] flex-col overflow-hidden sm:h-[420px]"
+              style={{
+                background: "var(--surface)",
+                borderRadius: 32,
+                /* The screen sits down inside the bezel rather than on top of it. */
+                boxShadow: "inset 0 2px 5px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.5)",
+              }}
             >
+              {/*
+                * The status bar, and the island above it.
+                *
+                * A tall rounded rectangle is not a phone until it has these:
+                * the clock top left, the signal, wifi and battery top right,
+                * and the island cut out of the middle. Giles asked for it to
+                * read as a phone and this is most of what does it.
+                *
+                * The clock is the visitor's own, the same one the hero prints
+                * under the headline, so the phone agrees with the page.
+                */}
+              <div className="relative flex shrink-0 items-center justify-between px-5 pb-1 pt-2.5">
+                <span
+                  className="text-[11px] font-semibold tabular-nums"
+                  style={{ fontVariantNumeric: "tabular-nums" }}
+                >
+                  {clock ? clock.time.replace(/(am|pm)$/, "") : ""}
+                </span>
+                <span
+                  aria-hidden
+                  className="absolute left-1/2 top-1.5 h-[18px] w-[62px] -translate-x-1/2"
+                  style={{ background: "#0b0a06", borderRadius: 999 }}
+                />
+                <span aria-hidden className="flex items-center gap-1">
+                  {/* Signal, as four rising bars. */}
+                  <span className="flex items-end gap-[1.5px]">
+                    {[4, 6, 8, 10].map((h) => (
+                      <span
+                        key={h}
+                        style={{
+                          width: 2.5,
+                          height: h,
+                          borderRadius: 1,
+                          background: "var(--foreground)",
+                          display: "block",
+                        }}
+                      />
+                    ))}
+                  </span>
+                  {/* Battery. */}
+                  <span
+                    className="relative ml-0.5 block"
+                    style={{
+                      width: 18,
+                      height: 9.5,
+                      borderRadius: 2.5,
+                      border: "1px solid var(--foreground)",
+                      opacity: 0.75,
+                    }}
+                  >
+                    <span
+                      className="absolute left-[1.5px] top-[1.5px] block"
+                      style={{
+                        width: 11,
+                        height: 5.5,
+                        borderRadius: 1,
+                        background: "var(--foreground)",
+                      }}
+                    />
+                  </span>
+                </span>
+              </div>
+
               {/* Who it is and what they are doing instead of answering. */}
               <div
-                className="flex items-center gap-2.5 px-4 py-3"
+                className="flex shrink-0 items-center gap-2.5 px-4 py-2.5"
                 style={{ borderBottom: "1px solid var(--line)" }}
               >
                 <span
@@ -700,7 +804,21 @@ export function Hero() {
               </div>
 
               {/* The thread. */}
-              <div ref={threadRef} className="flex-1 space-y-2.5 overflow-hidden px-4 py-4">
+              {/*
+                * Anchored to the bottom, the way a real thread is.
+                *
+                * The messages stack from the top, so once there are more of
+                * them than the screen holds the newest one is pushed off the
+                * end — and the newest is the only one that matters, because it
+                * is the one just written. justify-end keeps the latest against
+                * the composer and lets the oldest scroll up out of sight, which
+                * is what every messaging app does. It only started showing when
+                * the screen got shorter to bring the diary up.
+                */}
+              <div
+                ref={threadRef}
+                className="flex flex-1 flex-col justify-end space-y-2.5 overflow-hidden px-4 py-3"
+              >
                 {said
                   .filter((m) => stage >= m.at && m.text)
                   .map((m, i) => (
@@ -789,56 +907,104 @@ export function Hero() {
                   Send
                 </button>
               </div>
+              {/* The home indicator. The last thing that says "phone". */}
+              <span
+                aria-hidden
+                className="mx-auto mb-1.5 mt-1 block shrink-0"
+                style={{ width: 96, height: 4, borderRadius: 999, background: "var(--foreground)", opacity: 0.22 }}
+              />
             </div>
           </div>
-
-          <p className="text-center text-xs text-muted">
-            Demo. On your site this is your assistant.
-          </p>
 
           {/* --------------------------------------------------- the diary */}
           <div
             ref={diaryRef}
-            className="p-4"
+            /*
+              * The diary the app actually has, not a ruled notepad.
+              *
+              * Giles: it should look like the diary in the system. The app's
+              * list is a hairline panel of white rows, each with a 3px coloured
+              * rule down its left edge, the time in a right-aligned tabular
+              * column, and status as a tinted pill — see DayList.tsx. This had
+              * a 2px ink keyline, a 6px offset slab, ruled-paper stripes and
+              * solid cobalt fills on the booked rows, none of which the product
+              * does anywhere.
+              */
+            className="p-3"
             style={{
-              background: "var(--surface-2)",
-              border: "2px solid var(--foreground)",
-              boxShadow: "var(--shadow-card)",
-              backgroundImage:
-                "repeating-linear-gradient(transparent 0 43px, rgba(22,21,15,0.06) 43px 44px)",
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: 12,
             }}
           >
-            <p
-              className="mb-2 text-xs uppercase tracking-[0.06em] text-muted"
-              style={{ fontFamily: "var(--font-display), Impact, sans-serif" }}
-            >
-              This week
-            </p>
+            {/*
+              * The header the app's diary has: the title in Anton on the left
+              * and what it adds up to on the right, which is the line the
+              * product prints above every diary screen.
+              */}
+            <div className="mb-2 flex items-baseline justify-between gap-3">
+              <p
+                className="text-xs uppercase tracking-[0.06em]"
+                style={{ fontFamily: "var(--font-display), Impact, sans-serif" }}
+              >
+                This week&rsquo;s diary
+              </p>
+              <p className="text-[11px] tabular-nums text-muted">
+                {sc.rows.filter((_, i) => rowLabel(i)).length} booked
+              </p>
+            </div>
 
-            <div className="space-y-1">
+            {/*
+              * A time grid, not a list of cards.
+              *
+              * The diary in the product is an hour gutter down the left, a
+              * hairline rule between every hour, and appointments as tinted
+              * blocks with a colour rule on their leading edge — free time is
+              * empty space rather than a box saying "Free". This is that, one
+              * column wide.
+              */}
+            <div style={{ borderTop: "1px solid var(--border)" }}>
               {sc.rows.map((_, i) => (
                 <div
                   key={i}
                   ref={(el) => {
                     rowRefs.current[i] = el;
                   }}
-                  className="flex h-11 items-center gap-2 px-2.5 text-sm"
-                  style={
-                    bookedRow(i)
-                      ? { background: "var(--accent)", color: "var(--on-accent)" }
-                      : rowLabel(i)
-                        ? { color: "var(--foreground)" }
-                        : { border: "1.5px dashed var(--putty)", color: "var(--muted)" }
-                  }
+                  className="flex h-[38px] items-stretch text-sm"
+                  style={{ borderBottom: "1px solid var(--border)" }}
                 >
-                  <span className="min-w-0 flex-1 truncate">{rowLabel(i) || "Free"}</span>
-                  {rowTag(i) && (
+                  {rowLabel(i) ? (
                     <span
-                      className="shrink-0 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.06em]"
-                      style={{ background: "var(--on-accent)", color: "var(--accent)", borderRadius: 4 }}
+                      className="my-[3px] flex min-w-0 flex-1 items-center gap-2 rounded-[5px] px-2.5"
+                      style={{
+                        borderLeft: `3px solid ${bookedRow(i) ? "var(--accent)" : "var(--cal-work)"}`,
+                        background: bookedRow(i)
+                          ? "color-mix(in srgb, var(--accent) 11%, var(--surface))"
+                          : "color-mix(in srgb, var(--cal-work) 10%, var(--surface))",
+                      }}
                     >
-                      {rowTag(i)}
+                      {splitTime(rowLabel(i))[0] && (
+                        <span className="shrink-0 text-[12px] font-semibold tabular-nums text-muted">
+                          {splitTime(rowLabel(i))[0]}
+                        </span>
+                      )}
+                      <span className="min-w-0 flex-1 truncate">{splitTime(rowLabel(i))[1]}</span>
+                      {rowTag(i) && (
+                        <span
+                          className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.04em]"
+                          style={
+                            /deposit/i.test(rowTag(i))
+                              ? { background: "color-mix(in srgb, var(--ok) 16%, transparent)", color: "var(--ok)" }
+                              : { background: "color-mix(in srgb, var(--accent) 14%, transparent)", color: "var(--accent)" }
+                          }
+                        >
+                          {rowTag(i)}
+                        </span>
+                      )}
                     </span>
+                  ) : (
+                    /* Free time is empty in the product, not a box that says so. */
+                    <span className="ml-[3px] flex-1" />
                   )}
                 </div>
               ))}
@@ -846,6 +1012,10 @@ export function Hero() {
 
             {stage >= S.DONE && <p className="mt-3 text-sm text-muted">{sc.done}</p>}
           </div>
+
+          <p className="text-center text-xs text-muted">
+            Demo. On your site this is your assistant.
+          </p>
         </div>
       </div>
 
@@ -901,6 +1071,15 @@ export function Hero() {
     </div>
     </div>
   );
+}
+
+/**
+ * "11am Fine line" -> ["11am", "Fine line"]; anything without a leading time
+ * gets an empty first half so the column still lines up.
+ */
+function splitTime(label: string): [string, string] {
+  const m = /^(\d{1,2}(?::\d{2})?\s*(?:am|pm))\s+(.*)$/i.exec(label.trim());
+  return m ? [m[1], m[2]] : ["", label];
 }
 
 /**
