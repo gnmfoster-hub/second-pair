@@ -1,4 +1,5 @@
 import { formatPence } from "@/lib/money";
+import { colourFor } from "@/components/Avatar";
 import type { Takings as Figures } from "@/lib/takings";
 
 /**
@@ -79,10 +80,25 @@ export function Takings({
              * to whoever took most, which is the only comparison that stays
              * legible when one person is off.
              */}
-            <div className="mt-1 h-1 overflow-hidden rounded-full bg-surface-2">
+            <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-2">
+              {/*
+                * Each person's own colour, the one they already have.
+                *
+                * Every bar was the same cobalt, so six bars said only "these
+                * are quantities" — and the product already gives everybody a
+                * colour that follows them: their avatar on the inbox, their
+                * appointments in the diary, their column in the week. Using it
+                * here costs nothing and makes the row scannable by person
+                * rather than only by length. Giles asked whether the palette
+                * was being used; this is it being used for the thing it is.
+                */}
               <div
-                className="h-full rounded-full bg-accent/60"
-                style={{ width: most > 0 ? `${(person.pence / most) * 100}%` : "0%" }}
+                className="h-full rounded-full"
+                style={{
+                  width: most > 0 ? `${(person.pence / most) * 100}%` : "0%",
+                  background: colourFor(person.name),
+                  opacity: 0.92,
+                }}
               />
             </div>
           </div>

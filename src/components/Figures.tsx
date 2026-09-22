@@ -93,7 +93,16 @@ export function Figure({
 }) {
   if (inline) {
     return (
-      <span className="inline-flex items-baseline gap-1.5 whitespace-nowrap">
+      /*
+        * Wraps on a narrow screen.
+        *
+        * nowrap on the whole item meant the figure, its label and its note had
+        * to fit on one line or be cut: on a 390px phone the inbox read "£230
+        * won while you were busy · 8 came in out o" and stopped. The number
+        * and its label still hold together — that pair is the sentence — and
+        * the note after it is allowed to fall onto the next line.
+        */
+      <span className="inline-flex flex-wrap items-baseline gap-x-1.5">
         {/*
           * Big enough to be the headline it is.
           *
@@ -104,13 +113,13 @@ export function Figure({
           * open all day — but one line does not have to mean quiet.
           */}
         <span
-          className={`num font-semibold tabular-nums tracking-[-0.015em] ${
+          className={`num whitespace-nowrap font-semibold tabular-nums tracking-[-0.015em] ${
             lead ? "text-3xl" : "text-xl"
           } ${act ? "text-highlight-strong" : warn ? "text-warn" : ""}`}
         >
           {children ?? value}
         </span>
-        <span className="text-[13px] text-muted">{label.toLowerCase()}</span>
+        <span className="whitespace-nowrap text-[13px] text-muted">{label.toLowerCase()}</span>
         {note && <span className="text-[12px] text-muted/70">&middot; {note}</span>}
       </span>
     );

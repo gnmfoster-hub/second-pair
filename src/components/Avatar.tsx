@@ -36,10 +36,30 @@ const PALETTE = [
   "#465A73",
 ];
 
+/**
+ * FNV-1a, because the old hash was collapsing.
+ *
+ * It was `hash = (hash * 31 + code) % 100000`, and taking that mod 9 put
+ * Willow & Co's six stylists on three colours: Sarah, Priya and Mo were all
+ * #9C4221 and Aisha and Jade were both #7B2D42. Identical avatars on the
+ * inbox, identical blocks in the diary — which is the whole job of this
+ * colour, so it was not doing it. Truncating to five decimal digits every
+ * character throws away exactly the bits that separate short similar names.
+ *
+ * FNV-1a keeps all 32 bits and mixes them, and gives those same six people
+ * six different colours. Twelve people across nine colours must still collide
+ * somewhere — that is arithmetic, not a bug — but a team now gets one each.
+ *
+ * Still derived from the name, so a person's colour never changes when the
+ * row order does. It does change from what it was today: nothing is stored
+ * against it and nobody has been told "you are the red one", so a one-off
+ * reshuffle costs less than the collisions did.
+ */
 export function colourFor(name: string): string {
-  let hash = 0;
+  let hash = 0x811c9dc5;
   for (let i = 0; i < name.length; i++) {
-    hash = (hash * 31 + name.charCodeAt(i)) % 100000;
+    hash ^= name.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
   }
   return PALETTE[hash % PALETTE.length];
 }
