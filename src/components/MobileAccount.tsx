@@ -80,11 +80,30 @@ export function MobileAccount({
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-40 mt-1 w-[min(17rem,calc(100vw-2rem))] space-y-3 rounded-2xl border border-border bg-surface p-3 shadow-[var(--shadow-pop)]"
+          /*
+            * A sheet, the same one the public site has.
+            *
+            * This was a 17rem panel of full-width ghost buttons hanging off the
+            * corner — Giles's word was horrible, and the marketing menu had the
+            * same fault before it was rebuilt. It runs the width of the screen
+            * now, with 56px rows, a 2px ink edge and the account it belongs to
+            * at the top, so the two menus in this product behave alike.
+            */
+          className="fixed inset-x-3 top-[72px] z-40 overflow-hidden rounded-[22px] p-2"
+          style={{
+            background: "var(--surface)",
+            border: "2px solid var(--foreground)",
+            boxShadow: "0 24px 50px -20px rgba(22,21,15,0.5)",
+          }}
         >
           {/* Which account this is, first, because it is the thing that decides
               whether you meant to press the button underneath it. */}
-          <div className="truncate px-1 text-[11px] text-muted">{email}</div>
+          <div
+            className="truncate px-4 pb-2 pt-1 text-[12.5px] text-muted"
+            style={{ borderBottom: "1px solid var(--border)" }}
+          >
+            {email}
+          </div>
 
           {/*
             * Help lives here too, and for the same reason as everything else
@@ -101,15 +120,31 @@ export function MobileAccount({
             * something reached once a month. This corner is where the things
             * you look for by thinking "where are my account bits" belong.
             */}
-          <Link href="/help" onClick={() => setOpen(false)} className="btn-ghost w-full">
+          <Link
+            href="/help"
+            onClick={() => setOpen(false)}
+            className="mt-1 flex min-h-[56px] items-center justify-between gap-3 rounded-2xl px-4 text-[17px] font-medium transition-colors hover:bg-surface-2 active:bg-surface-2"
+          >
             Help
+            <span aria-hidden className="text-muted">
+              &rarr;
+            </span>
           </Link>
 
-          {children}
+          <div className="mt-1 grid gap-1 [&_a]:min-h-[56px] [&_a]:rounded-2xl [&_a]:px-4 [&_a]:text-[17px] [&_a]:font-medium [&_a]:flex [&_a]:items-center [&_button]:min-h-[56px] [&_button]:rounded-2xl [&_button]:px-4 [&_button]:text-[17px]">
+            {children}
+          </div>
 
-          <form action={signOut}>
-            <button type="submit" className="btn-ghost w-full">
+          <form action={signOut} className="mt-1">
+            <button
+              type="submit"
+              className="flex min-h-[56px] w-full items-center justify-between gap-3 rounded-2xl px-4 text-[17px] font-medium transition-colors hover:bg-surface-2 active:bg-surface-2"
+              style={{ borderTop: "1px solid var(--border)", borderRadius: 16 }}
+            >
               Sign out
+              <span aria-hidden className="text-muted">
+                &rarr;
+              </span>
             </button>
           </form>
         </div>

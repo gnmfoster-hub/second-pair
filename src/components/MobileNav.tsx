@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Logo } from "@/components/Logo";
+import { Mark } from "@/components/Logo";
 import {
   InboxIcon,
   DiaryIcon,
@@ -95,7 +95,16 @@ export function MobileHeader({
       className="sticky top-0 z-30 flex items-center gap-2.5 border-b border-border bg-surface/95 px-4 py-3 backdrop-blur md:hidden"
       style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
     >
-      <Logo height={20} className="shrink-0" />
+      {/*
+        * The mark at the size the public site uses.
+        *
+        * This was height={20}, which is a 19px mark: the smallest thing on the
+        * bar, on the one screen a business opens forty times a day, and a
+        * third of the size of the same mark on the marketing header. Giles
+        * asked for them to match. Set in pixels rather than a rem class, which
+        * is what made the public one draw 57.6 when it claimed 64.
+        */}
+      <Mark className="size-[44px] shrink-0" sizePx={44} />
       <div className="min-w-0 flex-1 border-l border-border pl-3">
         <div className="truncate text-sm font-medium leading-tight">{businessName}</div>
       </div>

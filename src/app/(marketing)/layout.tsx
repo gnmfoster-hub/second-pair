@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Script from "next/script";
+import { SiteWidget } from "./SiteWidget";
 import { Logo, Mark, Wordmark } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AlsoFromUs } from "./AlsoFromUs";
@@ -33,24 +33,11 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
       {/*
         * Our own widget, on our own site, in the corner every widget lives in.
         *
-        * The strongest thing this site can say about the product is that it is
-        * running it: the same one line a customer pastes into their own page,
-        * the same assistant, answering about Second Pair. It also says the one
-        * thing a screenshot cannot — it is awake right now, and the pill on the
-        * launcher tells you whether anybody is in.
-        *
-        * Marketing pages only. The product has its own help in the sidebar and
-        * does not need a second one floating over the diary.
+        * In a client component rather than a <Script> so it can be taken away
+        * again: widget.js builds its launcher on document.body, and a layout
+        * swap leaves all of that behind. See SiteWidget.
         */}
-      <Script
-        src="/widget.js"
-        strategy="afterInteractive"
-        data-studio="help"
-        data-accent="#1f3be3"
-        data-text="#ffffff"
-        data-teaser="Ask me anything about Second Pair. I am the real one, not a demo."
-        data-teaser-repeat="1"
-      />
+      <SiteWidget />
 
       <header
         className="sticky top-0 z-30"
