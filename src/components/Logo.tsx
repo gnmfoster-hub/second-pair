@@ -60,7 +60,28 @@ export function Mark({
        * simplified variant, and its own note says a small mark should fall back
        * to one. Worth having; noted for Giles rather than invented here.
        */
-      src={onInk ? "/brand/logo/mark-flat-reversed.png" : "/brand/logo/mark-3d.png"}
+      /*
+       * The 320px WebP, not the pack's 1254px PNG.
+       *
+       * The originals were being served whole to phones: 935KB for the
+       * reversed mark and 296KB for the paper one, and both are drawn twice on
+       * every page because the header and the footer each have one. Measured
+       * at 390 wide, /home pulled 2.9MB and 2.4MB of it was the logo — for
+       * artwork that is never larger than 68 pixels on screen.
+       *
+       * 320 covers every use: 68px in the phone header is 204 on a
+       * three-times screen. The pair now costs 21KB instead of 1.2MB.
+       *
+       * Resized and re-encoded, not redrawn or recoloured — the same kind of
+       * preparation as knocking the ground out to alpha, and the pack's rules
+       * are about the artwork rather than the file format. The originals stay
+       * where they are; see scripts/mark-sizes.cjs, which regenerates these.
+       */
+      src={
+        onInk
+          ? "/brand/logo/mark-flat-reversed-320.webp"
+          : "/brand/logo/mark-3d-320.webp"
+      }
       alt={title}
       className={className}
       /*
