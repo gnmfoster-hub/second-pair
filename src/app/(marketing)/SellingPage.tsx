@@ -108,7 +108,7 @@ export function Close({ line, note }: { line: string; note?: React.ReactNode }) 
           </p>
         )}
         <div className="mt-9 flex flex-wrap items-center gap-5">
-          <a href="/home#ask" className="btn-ink inline-flex" style={{ minHeight: 54 }}>
+          <a href="/home?say=I%20would%20like%20to%20book%20a%2015%20minute%20chat#ask" className="btn-ink inline-flex" style={{ minHeight: 54 }}>
             Book a 15 minute chat
           </a>
           <Link
@@ -225,7 +225,7 @@ export function Ask({ line, cta = "Book a 15 minute chat" }: { line: string; cta
           >
             {line}
           </p>
-          <a href="/home#ask" className="btn-primary shrink-0">
+          <a href="/home?say=I%20would%20like%20to%20book%20a%2015%20minute%20chat#ask" className="btn-primary shrink-0">
             {cta}
           </a>
         </div>

@@ -300,12 +300,35 @@ export function Wordmark({
  * ground. Muted is what its own lockups use, and unlike a baked-in colour it
  * follows the theme.
  */
-export function Tag({ size, text }: { size: number; text: string }) {
+export function Tag({
+  size,
+  text,
+  /**
+   * Set in the site's own body face rather than the wordmark's.
+   *
+   * The default is right under an Anton lockup, where the tagline belongs to
+   * the wordmark. It is wrong under the phone header's name, which is
+   * Instrument Sans — that stacked two different sans faces two pixels apart,
+   * which reads as a mistake even to somebody who could not say what it was.
+   */
+  body = false,
+}: {
+  size: number;
+  text: string;
+  body?: boolean;
+}) {
   return (
     <span
       // Follows the wordmark down onto a dark ground; muted is unreadable there.
-      className="wordmark whitespace-nowrap text-current opacity-60"
-      style={{ fontSize: size, lineHeight: 1.2, marginTop: size * 0.3 }}
+      className={`whitespace-nowrap text-current opacity-60 ${body ? "" : "wordmark"}`}
+      style={{
+        fontSize: size,
+        lineHeight: 1.2,
+        marginTop: size * 0.3,
+        ...(body
+          ? { fontFamily: "var(--font-body), ui-sans-serif, system-ui, sans-serif" }
+          : null),
+      }}
     >
       {text}
     </span>

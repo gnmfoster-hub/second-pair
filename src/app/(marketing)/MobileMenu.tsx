@@ -128,7 +128,7 @@ export function MobileMenu() {
           </div>
 
           <a
-            href="/home#ask"
+            href="/home?say=I%20would%20like%20to%20book%20a%2015%20minute%20chat#ask"
             onClick={() => setOpen(false)}
             className="btn-primary mt-1 flex w-full"
             style={{ minHeight: 54 }}

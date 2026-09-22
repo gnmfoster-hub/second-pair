@@ -179,7 +179,7 @@ export default function CompanyPage() {
           a signup form.
         </p>
         <a
-          href="/home#ask"
+          href="/home?say=I%20would%20like%20to%20book%20a%2015%20minute%20chat#ask"
           className="btn-highlight mt-5 inline-flex"
         >
           Get set up

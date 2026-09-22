@@ -190,6 +190,33 @@ export function Hero() {
    */
   const pointerOwns = useRef(false);
 
+  /**
+   * The sentence a "Book a 15 minute chat" button sent them here with.
+   *
+   * Read once, during the first render rather than in an effect, because the
+   * observer that starts the demo also runs on mount — and if it wins, it
+   * resets the stage and wipes the typed line before anybody sees it. Knowing
+   * this before any effect runs is what lets the demo stand down instead of
+   * racing it.
+   *
+   * Empty on the server, and it changes nothing that is rendered on the first
+   * pass, so there is nothing for hydration to disagree about.
+   */
+  const askedFor = useRef<string | null>(null);
+  if (askedFor.current === null) {
+    askedFor.current =
+      typeof window === "undefined"
+        ? ""
+        : (() => {
+            try {
+              return new URLSearchParams(window.location.search).get("say") ?? "";
+            } catch {
+              /* A malformed query is not worth breaking the hero over. */
+              return "";
+            }
+          })();
+  }
+
   const sc = SCEN[trade];
 
   /*
@@ -389,6 +416,10 @@ export function Hero() {
      * viewport, so a third of it being visible means somebody is actually
      * looking at it.
      */
+    /* Somebody who arrived asking to book did not come for the demo, and
+       starting it would wipe the sentence waiting in the box. */
+    if (askedFor.current) return;
+
     const el = phoneRef.current ?? stageRef.current;
     if (!el) {
       const id = window.requestAnimationFrame(begin);
@@ -431,6 +462,40 @@ export function Hero() {
       clearAll();
     };
   }, [begin, clearAll]);
+
+  /*
+   * Arriving from a "Book a 15 minute chat" button, with the sentence typed.
+   *
+   * Those buttons are all over the site and all of them pointed at an anchor
+   * that did not exist. They bring somebody here now, and rather than landing
+   * them in front of an empty box with the demo still running, the box says
+   * what they came to say and waits for them to send it.
+   *
+   * Typed, not sent. A button labelled "book a chat" that fires a message off
+   * the moment it is pressed takes the decision away from somebody who may
+   * only have been reading a label — Giles's words were "pre-populated with
+   * text to confirm", and confirm is the important one. They can change it or
+   * ignore it.
+   *
+   * Read off window rather than useSearchParams, which would make this page
+   * dynamic for a string only the browser needs.
+   */
+  useEffect(() => {
+    const say = askedFor.current ?? "";
+    if (!say) return;
+
+    /* Straight to the visitor's turn: the demo is not what they came for. */
+    clearAll();
+    setStage(S.DONE);
+    setDraft(say.slice(0, 300));
+
+    /* After paint, so the box exists and is where it will finally be. */
+    const id = window.requestAnimationFrame(() => {
+      inputRef.current?.focus({ preventScroll: true });
+      document.getElementById("ask")?.scrollIntoView({ block: "center" });
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [clearAll]);
 
   /* The clock only needs to be right to the minute. */
   useEffect(() => {
@@ -549,6 +614,29 @@ export function Hero() {
         y: target.top + target.height * 0.5,
         mode: swiping ? "swipe" : "hold",
       });
+      return;
+    }
+
+    /*
+     * At rest it points at the box the visitor is invited to type in.
+     *
+     * It used to stop wherever the script had last put it — which after a full
+     * run is lying across a diary row, covering the booking it has just made.
+     * Giles: the resting finger needs to be somewhere out of the way but
+     * pointing at something meaningful, like the bit that says ask for real,
+     * not covering stuff. Both halves of that are right, and the second is the
+     * harder one.
+     *
+     * Under the box rather than on it. The artwork's fingertip is at its top
+     * edge — see TIP_X — so the hand hangs down and to the right of whatever
+     * point it is given. Put the tip on the input and the palm lies over the
+     * words somebody is being asked to read. Put it a few pixels below the
+     * bottom edge and the finger points up at the box with the whole hand in
+     * the empty space underneath, touching nothing.
+     */
+    const ask = box(inputRef.current);
+    if (ask) {
+      setHand({ x: ask.left + 34, y: ask.top + ask.height + 10, mode: "point" });
       return;
     }
 
@@ -755,7 +843,7 @@ export function Hero() {
         </p>
 
         <div className="mt-8 flex flex-wrap items-center gap-5">
-          <a href="/home#ask" className="btn-primary" style={{ minHeight: 62, fontSize: "20px" }}>
+          <a href="/home?say=I%20would%20like%20to%20book%20a%2015%20minute%20chat#ask" className="btn-primary" style={{ minHeight: 62, fontSize: "20px" }}>
             Book a 15 minute chat
           </a>
           <button type="button" onClick={begin} className="btn-text">
@@ -1144,8 +1232,22 @@ export function Hero() {
 
               {/* A real input, §7. */}
               <div
+                /*
+                 * The target every "Book a 15 minute chat" on the site points
+                 * at. There was no such element anywhere: each of those
+                 * buttons linked to /home#ask, which matched nothing, so on
+                 * the home page they did nothing at all and everywhere else
+                 * they dropped somebody at the top of the home page to find
+                 * it themselves. Giles: the book a chat buttons do not do
+                 * anything.
+                 *
+                 * Two pixels of scroll margin so the header does not sit over
+                 * it when the browser jumps here.
+                 */
+                id="ask"
                 className="flex items-center gap-2 px-3 py-3 transition-colors"
                 style={{
+                  scrollMarginTop: 120,
                   borderTop: "1px solid var(--line)",
                   /* Lit once it is the visitor's turn, so the live box does not
                      look like the rest of the demo. */

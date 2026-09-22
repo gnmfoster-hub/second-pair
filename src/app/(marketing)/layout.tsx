@@ -149,13 +149,22 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 * the name is 146px and the line 11px, so ending them level
                 * would leave the tagline adrift under the middle of the name.
                 */}
+              {/*
+                * The line is set in the site's own face, not the wordmark's.
+                *
+                * Tag defaults to --font-wordmark, which is right under an
+                * Anton lockup and wrong here: the name beside it is Instrument
+                * Sans now, so two different sans faces were stacked one on top
+                * of the other two pixels apart. Giles asked for it to match
+                * the main wording on the site, and that is the body face.
+                */}
               <span className="hidden min-[360px]:flex flex-col leading-none">
                 <Wordmark size={22} bold />
-                <Tag size={11} text="you work, we answer" />
+                <Tag size={11} text="you work, we answer" body />
               </span>
               <span className="flex min-[360px]:hidden flex-col leading-none">
                 <Wordmark size={19} bold />
-                <Tag size={10} text="you work, we answer" />
+                <Tag size={10} text="you work, we answer" body />
               </span>
             </span>
             {/*
@@ -272,7 +281,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 browser treats it as a same-document hash change and does not
                 reload at all. */}
             <a
-              href="/home#ask"
+              href="/home?say=I%20would%20like%20to%20book%20a%2015%20minute%20chat#ask"
               /* Never on two lines. Flex will happily shrink a button below
                  its text and let the label wrap, which is how this ended up
                  reading "Get / set / up" on a phone; the row has other things
