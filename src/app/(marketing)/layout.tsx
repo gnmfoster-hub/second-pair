@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { SiteWidget } from "./SiteWidget";
-import { Logo, Mark, Wordmark } from "@/components/Logo";
+import { Logo, Mark, Tag, Wordmark } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AlsoFromUs } from "./AlsoFromUs";
 import { MobileMenu } from "./MobileMenu";
@@ -137,11 +137,25 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 * what measure out to roughly the width Anton had, so the row
                 * keeps its proportions and the name keeps its presence.
                 */}
-              <span className="hidden min-[360px]:block">
+              {/*
+                * With the tagline under it, which the phone had lost.
+                *
+                * The desktop lockup carries "you work, we answer" and the
+                * phone header did not, because it is composed by hand here
+                * rather than using the lockup — and the line was simply never
+                * added back when the mark was made big. Giles asked for it.
+                *
+                * A column rather than the lockup's flush-right: at this size
+                * the name is 146px and the line 11px, so ending them level
+                * would leave the tagline adrift under the middle of the name.
+                */}
+              <span className="hidden min-[360px]:flex flex-col leading-none">
                 <Wordmark size={22} bold />
+                <Tag size={11} text="you work, we answer" />
               </span>
-              <span className="block min-[360px]:hidden">
+              <span className="flex min-[360px]:hidden flex-col leading-none">
                 <Wordmark size={19} bold />
+                <Tag size={10} text="you work, we answer" />
               </span>
             </span>
             {/*

@@ -300,7 +300,7 @@ export function Wordmark({
  * ground. Muted is what its own lockups use, and unlike a baked-in colour it
  * follows the theme.
  */
-function Tag({ size, text }: { size: number; text: string }) {
+export function Tag({ size, text }: { size: number; text: string }) {
   return (
     <span
       // Follows the wordmark down onto a dark ground; muted is unreadable there.

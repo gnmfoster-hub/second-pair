@@ -49,6 +49,15 @@ export function SiteWidget() {
       script.setAttribute("data-text", "#ffffff");
       script.setAttribute("data-teaser", "Ask me anything about Second Pair. I am the real one, not a demo.");
       script.setAttribute("data-teaser-repeat", "1");
+      /*
+       * The small one. Giles: make it a smaller bubble so it does not take
+       * lots of space. Ours sits over a long marketing page rather than a
+       * shop's own site, so the button is a 44px circle and does not widen
+       * into a pill to say it is answering.
+       *
+       * Per page, so no client's own launcher changes size.
+       */
+      script.setAttribute("data-compact", "1");
       document.body.appendChild(script);
     }, delayFor(path));
 

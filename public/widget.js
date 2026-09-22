@@ -53,6 +53,26 @@
    */
   var tagRepeat = script.getAttribute("data-teaser-repeat") === "1";
 
+  /*
+   * data-compact="1" asks for the smallest launcher there is.
+   *
+   * The size a business sees is the one it chose in its own settings, and that
+   * stays true — this does not read, write or override anybody's geometry.
+   * It is a per-page request, for a page that has its own reasons to want the
+   * button out of the way.
+   *
+   * Ours is that reason. Giles: make the chat widget a smaller bubble so it
+   * does not take lots of space. On second-pair.com the launcher sits over a
+   * long marketing page rather than a shop's own site, and at the default 56
+   * with a status line beside it, it is a pill the width of a sentence sitting
+   * on top of the thing somebody came to read.
+   *
+   * Compact also means the circle stays a circle: the status line that widens
+   * it into a pill is worth the room on a business's site, where "Answering
+   * now" is the whole point, and is not worth it here.
+   */
+  var tagCompact = script.getAttribute("data-compact") === "1";
+
   var accent = tagAccent || "#14243F";
   var textColour = tagText || "#ffffff";
 
@@ -63,6 +83,9 @@
    * hearing back is the smallest it can be for the most people.
    */
   var shape = { height: 56, radius: "999px", icon: 24, font: 13.5, padding: 18 };
+  /* The compact size, used in place of whatever is chosen. See data-compact. */
+  var COMPACT = { height: 44, radius: "999px", icon: 19, font: 12.5, padding: 14 };
+  if (tagCompact) shape = COMPACT;
   /*
    * How the button rings, as against the live dot beside the words.
    *
@@ -532,7 +555,9 @@
           // Their look, unless the page said otherwise.
           if (!tagAccent && got.accent) accent = "#" + got.accent;
           if (!tagText && got.text) textColour = "#" + got.text;
-          if (got.geometry) shape = got.geometry;
+          /* A page asking for compact keeps it: the business's own geometry
+             is still read and still right everywhere else. */
+          if (got.geometry && !tagCompact) shape = got.geometry;
           if (got.bubble) bubbleLook = got.bubble;
           if (got.surface) {
             surface = got.surface;
@@ -640,7 +665,7 @@
      * It collapses back to a circle when there is nothing to say, which is
      * exactly what the ordinary widget always was.
      */
-    var wide = Boolean(status && status.line) && !open;
+    var wide = Boolean(status && status.line) && !open && !tagCompact;
 
     /*
      * On a phone the launcher gets out of the way entirely.

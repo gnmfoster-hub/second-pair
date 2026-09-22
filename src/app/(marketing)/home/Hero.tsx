@@ -183,6 +183,13 @@ export function Hero() {
    */
   const stageRef = useRef<HTMLDivElement | null>(null);
 
+  /**
+   * Whether the visitor's pointer is on the demo and therefore holding the
+   * hand. A ref, because place() reads it and must not be rebuilt when it
+   * changes — the whole point is that a mouse move does not re-run the script.
+   */
+  const pointerOwns = useRef(false);
+
   const sc = SCEN[trade];
 
   /*
@@ -344,12 +351,83 @@ export function Hero() {
   }, [blip, calm, clearAll, draftFor]);
 
   useEffect(() => {
-    /* After paint: begin() resets several pieces of state and doing that
-       synchronously inside an effect is a second render before the first has
-       been seen. */
-    const id = window.requestAnimationFrame(begin);
+    /*
+     * It starts when somebody can see it, not when the page loads.
+     *
+     * It used to begin on mount and play exactly once, ever. Whatever a
+     * visitor was doing during those twenty-four seconds, that was their one
+     * showing — and afterwards the hand sat frozen wherever the last frame
+     * left it, which is what Giles was describing as the pointer stopping
+     * half way through.
+     *
+     * Said plainly: I could not reproduce a stop at the half way point. I
+     * first assumed the demo was below the fold on a phone and had played to
+     * nobody, and measured it rather than trusting that — the phone mock is
+     * 77 per cent visible at the top of a 390 by 844 screen, so the theory was
+     * wrong and is not what this fixes. Traced end to end it reaches the last
+     * stage every time. The chat bubble is not it either: that is held back
+     * to twenty-seven seconds precisely so it cannot interrupt this, by which
+     * time the demo has finished.
+     *
+     * What is certainly true is that a demo which has played once and stopped
+     * looks exactly like a demo that stopped early, and there was no way to
+     * see it again short of reloading. So it plays whenever it is on screen
+     * and starts again from the top each time it comes back, rather than
+     * once per page load. Scrolling away part way through stops it instead of
+     * leaving it running unwatched.
+     */
+    /*
+     * The phone, not the whole hero.
+     *
+     * This watched stageRef first, which wraps the headline, the trade
+     * buttons, the phone and the diary — on a phone that is some two thousand
+     * pixels tall, so a 844px viewport parked at the very top already shows
+     * more than a third of it and the observer fired instantly. The gate was
+     * there and did nothing, which measured as "it still starts on load".
+     *
+     * The phone mock is the thing the demo happens on and is smaller than any
+     * viewport, so a third of it being visible means somebody is actually
+     * looking at it.
+     */
+    const el = phoneRef.current ?? stageRef.current;
+    if (!el) {
+      const id = window.requestAnimationFrame(begin);
+      return () => {
+        window.cancelAnimationFrame(id);
+        clearAll();
+      };
+    }
+
+    let frame = 0;
+    let playing = false;
+
+    const watch = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (playing) return;
+          playing = true;
+          /* After paint: begin() resets several pieces of state and doing that
+             synchronously is a second render before the first has been seen. */
+          frame = window.requestAnimationFrame(begin);
+          return;
+        }
+        /* Gone off screen. Stop it, so coming back starts from the top rather
+           than resuming into the middle of a sentence. */
+        if (playing) {
+          playing = false;
+          window.cancelAnimationFrame(frame);
+          clearAll();
+        }
+      },
+      /* Enough of it on screen to be worth watching, rather than one edge. */
+      { threshold: 0.35 },
+    );
+
+    watch.observe(el);
+
     return () => {
-      window.cancelAnimationFrame(id);
+      watch.disconnect();
+      window.cancelAnimationFrame(frame);
       clearAll();
     };
   }, [begin, clearAll]);
@@ -373,6 +451,10 @@ export function Hero() {
    * pointing at nothing.
    */
   const place = useCallback(() => {
+    /* The visitor's pointer is on it, so the hand is theirs and not the
+       script's. See onMove: everything else about the demo carries on. */
+    if (pointerOwns.current) return;
+
     const typing = stage === S.TYPING_1 || stage === S.TYPING_2 || stage === S.TYPING_3 || stage === S.TYPING_4 || waiting;
     const holding = stage === S.CARD_1 || stage === S.CARD_2;
     const swiping = stage === S.SWIPE_1 || stage === S.SWIPE_2;
@@ -498,15 +580,42 @@ export function Hero() {
       const r = e.currentTarget.getBoundingClientRect();
       setTilt({ x: (e.clientX - r.left) / r.width - 0.5, y: (e.clientY - r.top) / r.height - 0.5 });
 
-      const busy = stage !== S.DONE && stage !== S.START;
-      if (busy || waiting) return;
+      if (waiting) return;
       const frame = stageRef.current?.getBoundingClientRect();
       if (!frame) return;
+      /*
+       * The visitor's pointer wins while it is over the demo.
+       *
+       * This used to give way to the script for the whole twenty-four seconds
+       * — `busy` was every stage but START and DONE — so somebody who put
+       * their mouse on the hero in the first half minute got nothing, and the
+       * finger only came to them once the demo had run itself out. Giles's
+       * words: I want the finger to follow my mouse pointer like it did
+       * before. It never did during the demo; it has been this way since the
+       * hero was written. Waiting is the part that felt broken.
+       *
+       * So the pointer takes it now. Nothing about the demo is cancelled —
+       * the messages still arrive, the bookings still land, the tally still
+       * climbs — only the hand stops being told where to go, because someone
+       * is telling it. Take the mouse off the demo and the script has it back
+       * at the next stage.
+       *
+       * Deliberately not made to end the demo. Moving a mouse across a page
+       * while reading is not a decision to skip anything, and the demo is the
+       * one thing this page exists to show.
+       */
+      pointerOwns.current = true;
       /* +20/+30 so it never covers the cursor, §6.2. */
       setHand({ x: e.clientX - frame.left + 20, y: e.clientY - frame.top + 30, mode: "idle" });
     },
-    [calm, stage, touch, waiting],
+    [calm, touch, waiting],
   );
+
+  /* Off the demo: the script has the hand back. */
+  const onLeave = useCallback(() => {
+    pointerOwns.current = false;
+    setTilt({ x: 0, y: 0 });
+  }, []);
 
   /** Send what the visitor typed to the real assistant. §7. */
   const send = useCallback(async (preset?: string) => {
@@ -587,7 +696,7 @@ export function Hero() {
     stage >= S.LANDED_2 && i === sc.d2 ? sc.r2s : stage >= S.LANDED_1 && i === sc.d1 ? sc.r1s : "";
 
   return (
-    <div ref={stageRef} className="relative" onMouseMove={onMove} onMouseLeave={() => setTilt({ x: 0, y: 0 })}>
+    <div ref={stageRef} className="relative" onMouseMove={onMove} onMouseLeave={onLeave}>
     {/*
       * Three blocks on a phone, two columns from lg.
       *
@@ -755,6 +864,8 @@ export function Hero() {
 
           <div
             ref={phoneRef}
+            /* Named so a check can find the phone without guessing at a class. */
+            data-phone=""
             /*
              * Narrower on a phone so the pair behind it can be seen holding it.
              * At the full column width the phone covered both hands completely
