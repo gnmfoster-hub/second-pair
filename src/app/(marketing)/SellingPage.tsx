@@ -233,3 +233,69 @@ export function Ask({ line, cta = "Book a 15 minute chat" }: { line: string; cta
     </section>
   );
 }
+
+/**
+ * Phone screenshots, in phones.
+ *
+ * The browser frame above is wrong for these: they are 1080x2254 grabs off an
+ * Android, and a tall screenshot in a desktop chrome looks like a mistake.
+ *
+ * These are real screens out of Family APP!, sent by Giles. The account photo
+ * and the family-name switcher are blurred on every one, and the phone's own
+ * status bar is cropped off: the app is in daily use by one real family, and
+ * their surname and faces are not marketing material. Two of the three are
+ * from a test family for the same reason.
+ */
+export function Screens({
+  shots,
+  caption,
+  tinted,
+}: {
+  shots: { src: string; alt: string; label: string }[];
+  caption?: React.ReactNode;
+  tinted?: boolean;
+}) {
+  const inner = (
+    <div className="shell py-12 sm:py-16">
+      <div className="flex flex-wrap justify-center gap-6 sm:gap-8">
+        {shots.map((s) => (
+          <figure key={s.src} className="m-0 w-[210px] sm:w-[240px]">
+            <div
+              style={{
+                background: "linear-gradient(150deg, #23221b 0%, #16150f 38%, #0a0906 100%)",
+                borderRadius: 30,
+                padding: 8,
+                boxShadow:
+                  "inset 0 1px 0 rgba(247,244,236,0.2), 0 2px 4px rgba(22,21,15,0.3), 0 22px 40px -22px rgba(22,21,15,0.6)",
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={s.src}
+                alt={s.alt}
+                width={1080}
+                height={2254}
+                className="block w-full"
+                style={{ borderRadius: 23 }}
+              />
+            </div>
+            <figcaption className="mt-3 text-center text-[13px] font-medium text-muted">
+              {s.label}
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+      {caption && (
+        <p className="mx-auto mt-8 max-w-[62ch] text-center text-sm leading-relaxed text-muted">
+          {caption}
+        </p>
+      )}
+    </div>
+  );
+
+  return tinted ? (
+    <section className="border-y border-border bg-surface">{inner}</section>
+  ) : (
+    <section>{inner}</section>
+  );
+}

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Ask, Close, Hero, Item, Section, Shot } from "../SellingPage";
+import { Ask, Close, Hero, Item, Screens, Section } from "../SellingPage";
 
 export const metadata: Metadata = {
   title: "Apps",
@@ -62,16 +62,30 @@ export default function Page() {
         </Item>
       </Section>
 
-      <Shot
-        src="/shots/familyapp.webp"
-        alt="Family APP!, a private hub for one family, in its own colours."
-        address="second-pair.com/family-app"
+      <Screens
         tinted
+        shots={[
+          {
+            src: "/shots/fa-food.webp",
+            alt: "Family APP! food screen, with planned meals and what the family is eating.",
+            label: "Food",
+          },
+          {
+            src: "/shots/fa-holiday.webp",
+            alt: "Family APP! holiday planner, with destinations pinned to the board.",
+            label: "Holiday planner",
+          },
+          {
+            src: "/shots/fa-more.webp",
+            alt: "Family APP! menu, showing Family Pulse, Location, Free Stuff and Favours.",
+            label: "Everything else",
+          },
+        ]}
         caption={
           <>
-            Family APP!, in its own colours because it is for families rather than
-            businesses. Chat, photos, a shared calendar, meal plans and an AI holiday
-            planner, in early access now.
+            Family APP!, on a real phone rather than a mock-up. It is in daily use by the
+            family it was built for, which is why the account photo and the family name
+            are blurred out of these.
           </>
         }
       />
