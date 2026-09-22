@@ -126,23 +126,22 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 */}
               <Mark className="size-[68px] shrink-0 min-[360px]:size-[68px] max-[359px]:size-[56px]" sizePx={68} />
               {/*
-                * 28, not 20. Nothing was wrong with the type: both are Anton
-                * at one weight, and the computed styles agree. It was the
-                * proportion. The desktop lockup sets the name at 24 beside a
-                * 52px mark, which is 46 per cent of it; on a phone it was 20
-                * beside a 68px mark, which is 29, and that reads as thinner
-                * however bold the face is.
-                */}
-              {/*
-                * And bold, which the size alone did not give. Anton has one
-                * weight, so bold thickens the strokes rather than asking for
-                * a weight that does not exist — see Wordmark.
+                * Instrument Sans at 700 on a phone, not Anton — see Wordmark
+                * for why, and that it is this header alone.
+                *
+                * Smaller numbers than the Anton ones they replace, and not
+                * because it should look smaller. Anton is condensed: at 28px
+                * it set "SECOND PAIR" in 135px. A normal-width sans at the
+                * same size wants about 190, which beside a 68px mark and a
+                * 44px menu button does not fit a 320px phone. 22 and 19 are
+                * what measure out to roughly the width Anton had, so the row
+                * keeps its proportions and the name keeps its presence.
                 */}
               <span className="hidden min-[360px]:block">
-                <Wordmark size={28} bold />
+                <Wordmark size={22} bold />
               </span>
               <span className="block min-[360px]:hidden">
-                <Wordmark size={23} bold />
+                <Wordmark size={19} bold />
               </span>
             </span>
             {/*

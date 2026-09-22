@@ -213,22 +213,27 @@ export function Logo({
 export function Wordmark({
   size,
   /**
-   * Heavier, for the phone header.
+   * The body face at 700, for the phone header and nowhere else.
    *
-   * Anton ships one weight and the site turns synthesis off, because asking
-   * the browser for 700 makes it smear a second copy of each glyph sideways
-   * and the result is a blurred wordmark, not a bold one. Giles wants the
-   * name beside the mark on a phone properly bold, so the strokes are
-   * thickened instead: a stroke in the same colour as the fill, painted
-   * under it, which grows every stem evenly and keeps the counters open.
+   * Anton ships one weight. Three attempts were made to get a bold out of it
+   * — a bigger size, then a stroke thickening every stem, then asking for 700
+   * as well in case the face was not loading — and each time Giles looked at
+   * his own phone and said it was still not bold. Measurements here agreed
+   * with the code every time and disagreed with him, which is the point at
+   * which the measurements are answering the wrong question: he is not asking
+   * for a heavier Anton, he is asking for the weight the word "Inbox" has.
    *
-   * It is also the right thing typographically rather than a trick. A
-   * condensed face at 28px has thinner stems in absolute pixels than the
-   * same face at 54, so it reads lighter beside artwork of the same size —
-   * compensating for that at small sizes is ordinary practice.
+   * So on a phone it is Instrument Sans at 700, which has a real bold drawn
+   * by the people who drew the regular, rather than a display face pushed at.
    *
-   * Half a pixel at 28, scaled from the size so it stays proportional. Not
-   * hollow text: the fill is unchanged and the stroke matches it.
+   * Deliberately the phone header alone, at his word. The desktop lockup,
+   * the footer, the sign-in screen and the app keep Anton, so this is the one
+   * place the two faces differ — a departure from the pack's §3 and §5, made
+   * knowingly and easy to undo: delete this branch and it is Anton again.
+   *
+   * Uppercase stays, because that is the wordmark. Instrument Sans is much
+   * wider than Anton at the same size, so the caller sizes it to fit rather
+   * than inheriting the Anton sizes — see the marketing header.
    */
   bold = false,
 }: {
@@ -266,30 +271,19 @@ export function Wordmark({
         ...(bold
           ? {
               /*
-               * Two things, because there are two ways this renders.
+               * A real bold, not a display face pushed at.
                *
-               * The stroke thickens Anton, which has one weight. Measured in
-               * the browser it works — Anton, 28px, half a pixel of stroke —
-               * and Giles still said it was not bold, three times, looking at
-               * his own phone.
+               * Instrument Sans has a drawn 700, so nothing here is stroked,
+               * synthesised or otherwise faked — which is why this finally
+               * looks the way Giles has been asking for since the first go.
                *
-               * The likeliest reason is that his phone is not drawing Anton at
-               * all. It is a Google font fetched at load, and the site turns
-               * font synthesis off everywhere on purpose, so a phone that has
-               * not got it falls back to the system sans at weight 400 with
-               * nothing allowed to embolden it — which is exactly "the same
-               * size but thin", and exactly what he keeps describing while
-               * every measurement here says it is fine.
-               *
-               * So the weight is asked for as well. Anton ignores it, because
-               * synthesis is off and it has no 700 to find, and the stroke is
-               * what makes it heavy. A fallback face has a real 700 and uses
-               * it. Neither path relies on the other being right.
+               * The tracking comes in slightly. Anton is condensed and wants
+               * a little air; a normal-width sans set in caps at 700 does not,
+               * and leaving it at +0.01em made the two words drift apart.
                */
+              fontFamily: "var(--font-body), ui-sans-serif, system-ui, sans-serif",
               fontWeight: 700,
-              WebkitTextStrokeWidth: `${(size / 44).toFixed(2)}px`,
-              WebkitTextStrokeColor: "currentColor",
-              paintOrder: "stroke fill",
+              letterSpacing: "-0.005em",
             }
           : null),
       }}
