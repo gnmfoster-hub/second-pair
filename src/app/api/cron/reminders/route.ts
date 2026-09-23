@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendDueReminders } from "@/lib/reminders";
 import { releaseExpiredHolds } from "@/lib/booking";
 import { releaseHeldConversations } from "@/lib/engine/release";
-import { nightlyBackup, newestBackup } from "@/lib/backup";
+import { nightlyBackup, newestBackup, recordAttempt, lastAttempt, type BackupOutcome } from "@/lib/backup";
 import { siteOrigin } from "@/lib/origin";
 import type { Studio } from "@/lib/types";
 import { forgetOldEnquiries } from "@/lib/retention";
@@ -14,6 +14,7 @@ import { watchTheEssentials } from "@/lib/watchdog";
 import { askForReviews } from "@/lib/askForReviews";
 import { sayWhatsDue } from "@/lib/sayWhatsDue";
 import { meterThisMonth } from "@/lib/meter";
+import { noteRun, sendMorningEmail } from "@/lib/morningEmail";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -208,6 +209,31 @@ export async function GET(request: NextRequest) {
         : { ran: false as const, because: "not the hour" as const };
 
   /*
+   * Whatever it said, written down where it can be read tomorrow.
+   *
+   * Only when something was actually attempted. "Not the hour" is the answer
+   * on almost every call of the day and recording it would overwrite the one
+   * answer worth keeping with noise.
+   */
+  if (backup.ran || backup.because !== "not the hour") {
+    await recordAttempt(db, backup as BackupOutcome, new Date());
+  }
+
+  /*
+   * That the sweep ran at all, and then the morning email.
+   *
+   * The heartbeat first, so the gap it reports includes this run. Both ride on
+   * this job rather than having schedules of their own: a second schedule is a
+   * second thing that can quietly stop, and if this one stops the email stops
+   * arriving — which is the loudest signal there is.
+   *
+   * Neither can fail the sweep. Somebody's reminder is more important than
+   * being told about it.
+   */
+  const sweepRuns = await noteRun(db, new Date());
+  const morning = await sendMorningEmail(db, await siteOrigin(), sweepRuns, new Date());
+
+  /*
    * And whether any of this could have worked at all.
    *
    * Asked last, so a broken model cannot stop the reminders going out — they
@@ -276,7 +302,9 @@ export async function GET(request: NextRequest) {
     released, due, sent, waiting, failures, answered, forgotten, tidied, weekly,
     reviews,
     dues,
-    backup: { ...backup, newest },
+    backup: { ...backup, newest, lastAttempt: await lastAttempt(db) },
+    sweep: sweepRuns,
+    morning,
     working,
     metered,
   };

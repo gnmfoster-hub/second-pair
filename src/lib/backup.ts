@@ -183,6 +183,63 @@ export async function nightlyBackup(
  * is looking. The only honest question is whether a file is there and how old
  * it is.
  */
+/** Where the last attempt's answer is kept. Not a backup, so never tidied away. */
+export const ATTEMPT_FILE = "last-attempt.json";
+
+export type BackupAttempt = {
+  /** When it was tried. */
+  at: string;
+  /** What nightlyBackup said, verbatim. */
+  outcome: BackupOutcome;
+};
+
+/**
+ * Writes down what the last attempt did, whether it worked or not.
+ *
+ * nightlyBackup answers with a value rather than throwing, and the scheduled
+ * job dropped that answer on the floor. So when two nights running produced no
+ * file, there was nothing anywhere saying why — not a log line, not a row, not
+ * a flag. Afterwards every part could be checked and every part worked: the
+ * key was set, all fifteen tables read, the bucket listed, a 600KB upload
+ * succeeded, and the job had run inside the window on both nights. The one
+ * thing that could not be recovered was what happened at the time.
+ *
+ * A file in the same bucket, because the bucket is already the record for
+ * backups and this needs no migration. whichToDelete only ever removes names
+ * matching the dated backup pattern, so this cannot be tidied away by mistake.
+ *
+ * Never throws and never fails the backup: this exists to report, and a
+ * reporter that can break the thing it reports on is worse than none.
+ */
+export async function recordAttempt(
+  db: SupabaseClient,
+  outcome: BackupOutcome,
+  now: Date = new Date(),
+): Promise<void> {
+  try {
+    const body: BackupAttempt = { at: now.toISOString(), outcome };
+    await db.storage
+      .from(BUCKET)
+      .upload(ATTEMPT_FILE, Buffer.from(JSON.stringify(body, null, 1), "utf8"), {
+        contentType: "application/json",
+        upsert: true,
+      });
+  } catch (e) {
+    console.error("[backup] could not record the attempt:", (e as Error)?.message);
+  }
+}
+
+/** What the last attempt said, for anything that wants to report on it. */
+export async function lastAttempt(db: SupabaseClient): Promise<BackupAttempt | null> {
+  try {
+    const { data, error } = await db.storage.from(BUCKET).download(ATTEMPT_FILE);
+    if (error || !data) return null;
+    return JSON.parse(await data.text()) as BackupAttempt;
+  } catch {
+    return null;
+  }
+}
+
 export async function newestBackup(
   db: SupabaseClient,
 ): Promise<{ name: string; bytes: number; hoursOld: number } | null> {
