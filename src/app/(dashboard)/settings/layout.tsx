@@ -1,5 +1,6 @@
 import { RailLink } from "@/components/NavLink";
 import { SettingsPicker } from "./SettingsPicker";
+import { SettingsSearch } from "./SettingsSearch";
 import { Page, PageHeader } from "@/components/PageHeader";
 import { requireStudio } from "@/lib/studio";
 import { createClient } from "@/lib/supabase/server";
@@ -164,6 +165,13 @@ export default async function SettingsLayout({ children }: { children: React.Rea
           aria-label="Settings"
           className="lg:sticky lg:top-6 lg:self-start lg:border-r lg:border-border lg:pr-6"
         >
+          {/*
+            * A box before the list, because the list is the thing that was not
+            * working. Thirteen pages and a hundred-odd fields: the rail says
+            * which page something is on only if you already know its group.
+            */}
+          <SettingsSearch owner={owns} />
+
           <SettingsPicker groups={groups} />
 
           {/* Down the side, from a laptop upwards. */}
