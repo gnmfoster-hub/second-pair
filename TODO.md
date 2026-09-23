@@ -167,14 +167,17 @@ is live and sent its first one. Without that variable it falls back to
 EMAIL_FROM, which is the company address rather than yours, so you would never
 see it. Put your own address in.
 
-**Migrations waiting:** `20260923220000_campaigns.sql` — until it runs the
-marketing screen offers campaigns and the save says so in words rather than
-failing with a table name. And `20260924190000_receptionist.sql`, which adds
+**One migration waiting:** `20260924190000_receptionist.sql`, which adds
 the two columns that let the Receptionist be sold apart from the voicemail
 response: `receptionist_allowed` (ours, set when it is sold) and
 `receptionist_on` (theirs, for the business's own line). Both default false and
 the app reads an absent column as off, so nothing changes until you run it —
 the "Receptionist sold" tick in the account panel simply will not stick.
+
+`20260923220000_campaigns.sql` was listed here as waiting and is not: the
+campaigns table answers. Checked rather than carried forward, because a list
+that says a thing is undone after it is done is how a done thing gets done
+twice.
 
 **A decision: "Handled".** You asked whether to rename the Second Pair system
 to "Handled by Second Pair". My view is to keep the name and use the word as
