@@ -183,12 +183,6 @@ export function Hero() {
    */
   const stageRef = useRef<HTMLDivElement | null>(null);
 
-  /**
-   * Whether the visitor's pointer is on the demo and therefore holding the
-   * hand. A ref, because place() reads it and must not be rebuilt when it
-   * changes — the whole point is that a mouse move does not re-run the script.
-   */
-  const pointerOwns = useRef(false);
 
   /**
    * The sentence a "Book a 15 minute chat" button sent them here with.
@@ -538,10 +532,6 @@ export function Hero() {
    * pointing at nothing.
    */
   const place = useCallback(() => {
-    /* The visitor's pointer is on it, so the hand is theirs and not the
-       script's. See onMove: everything else about the demo carries on. */
-    if (pointerOwns.current) return;
-
     const typing = stage === S.TYPING_1 || stage === S.TYPING_2 || stage === S.TYPING_3 || stage === S.TYPING_4 || waiting;
     const holding = stage === S.CARD_1 || stage === S.CARD_2;
     const swiping = stage === S.SWIPE_1 || stage === S.SWIPE_2;
@@ -705,42 +695,32 @@ export function Hero() {
       const r = e.currentTarget.getBoundingClientRect();
       setTilt({ x: (e.clientX - r.left) / r.width - 0.5, y: (e.clientY - r.top) / r.height - 0.5 });
 
-      if (waiting) return;
+      /*
+       * The demo has the hand while the demo is running.
+       *
+       * I had this backwards for a day. Giles asked for the finger to follow
+       * his mouse and I gave the pointer priority over the script, so moving
+       * the mouse anywhere near the hero pulled the hand off whatever it was
+       * demonstrating — mid-sentence, mid-swipe — and it only went back at the
+       * next stage. His correction: it should follow the demo, then follow the
+       * mouse when there is no demo running.
+       *
+       * Which is what the original guard did, so it is back. The hand belongs
+       * to the script until the run is over, and to the visitor after it —
+       * when it is theirs to type into anyway.
+       */
+      const busy = stage !== S.DONE && stage !== S.START;
+      if (busy || waiting) return;
+
       const frame = stageRef.current?.getBoundingClientRect();
       if (!frame) return;
-      /*
-       * The visitor's pointer wins while it is over the demo.
-       *
-       * This used to give way to the script for the whole twenty-four seconds
-       * — `busy` was every stage but START and DONE — so somebody who put
-       * their mouse on the hero in the first half minute got nothing, and the
-       * finger only came to them once the demo had run itself out. Giles's
-       * words: I want the finger to follow my mouse pointer like it did
-       * before. It never did during the demo; it has been this way since the
-       * hero was written. Waiting is the part that felt broken.
-       *
-       * So the pointer takes it now. Nothing about the demo is cancelled —
-       * the messages still arrive, the bookings still land, the tally still
-       * climbs — only the hand stops being told where to go, because someone
-       * is telling it. Take the mouse off the demo and the script has it back
-       * at the next stage.
-       *
-       * Deliberately not made to end the demo. Moving a mouse across a page
-       * while reading is not a decision to skip anything, and the demo is the
-       * one thing this page exists to show.
-       */
-      pointerOwns.current = true;
       /* +20/+30 so it never covers the cursor, §6.2. */
       setHand({ x: e.clientX - frame.left + 20, y: e.clientY - frame.top + 30, mode: "idle" });
     },
-    [calm, touch, waiting],
+    [calm, stage, touch, waiting],
   );
 
-  /* Off the demo: the script has the hand back. */
-  const onLeave = useCallback(() => {
-    pointerOwns.current = false;
-    setTilt({ x: 0, y: 0 });
-  }, []);
+  const onLeave = useCallback(() => setTilt({ x: 0, y: 0 }), []);
 
   /** Send what the visitor typed to the real assistant. §7. */
   const send = useCallback(async (preset?: string) => {
@@ -1314,9 +1294,29 @@ export function Hero() {
                       setStage(S.DONE);
                     }
                   }}
-                  placeholder="Ask it something — this one is real"
+                  /*
+                   * Short enough to fit beside the Send button.
+                   *
+                   * It said "Ask it something — this one is real", which wants
+                   * 216 pixels in a box that measures 146 on a phone and 154
+                   * on a laptop: cut off by seventy pixels, mid-word, hard
+                   * against the button. At every width, not only on a phone,
+                   * and since the day it was written — Giles saw it on the
+                   * phone first because that is where the box is narrowest.
+                   *
+                   * The half being chopped was the half that mattered, so the
+                   * claim moves out of the placeholder rather than being
+                   * truncated: the line above this box already says "Your turn
+                   * — this one is the real assistant", in full, where there is
+                   * room for it.
+                   */
+                  placeholder="Ask it something"
                   aria-label="Ask the assistant something"
-                  className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                  /*
+                   * And anything that outgrows the box in future tapers off
+                   * instead of being guillotined against the button.
+                   */
+                  className="min-w-0 flex-1 truncate bg-transparent text-sm outline-none"
                 />
                 <button
                   ref={sendRef}
