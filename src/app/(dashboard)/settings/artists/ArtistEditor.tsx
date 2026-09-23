@@ -138,6 +138,8 @@ export function ArtistEditor({
       <form action={action} className="space-y-5 border-t border-border p-5">
         {artist && <input type="hidden" name="id" value={artist.id} />}
 
+        <GroupTitle title="Who they are" />
+
         {/*
           * Aligned at the top, not the bottom.
           *
@@ -223,6 +225,8 @@ export function ArtistEditor({
             )}
           </Field>
         </div>
+
+        <GroupTitle title="What they charge" />
 
         {/*
           * Stacked on a phone, three across from a tablet up.
@@ -331,6 +335,15 @@ export function ArtistEditor({
         </fieldset>
         )}
 
+        {/*
+          * Not "What they do", which is the role field at the top of the page
+          * and was the first title here — two headings with the same words,
+          * three inches apart, over different things. This section is the work
+          * and when it happens: what they take on, where their diary lives,
+          * the days they keep and the one-off late nights.
+          */}
+        <GroupTitle title="Their work and hours" />
+
         <Field label="Styles" explain="Used to send an enquiry to the right person. Leave them all off and they are considered for everything.">
           <div className="flex flex-wrap gap-x-5 gap-y-2 pt-1">
             {styles.map((s) => (
@@ -358,6 +371,8 @@ export function ArtistEditor({
 
         {/* Straight after the working week, because it is the exception to it. */}
         <LateNights extra={artist?.extra_hours ?? []} noun={noun} />
+
+        <GroupTitle title="Their own link" />
 
         {/*
           * What their own link does.
@@ -550,6 +565,8 @@ export function ArtistEditor({
           </div>
         </details>
 
+        <GroupTitle title="What you decide for them" />
+
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -666,5 +683,29 @@ export function ArtistEditor({
         </div>
       </form>
     </details>
+  );
+}
+
+/**
+ * A title over a run of fields, the way the settings rail titles its groups.
+ *
+ * Giles: "cant we group the settings with titles for each person like the main
+ * settings page."
+ *
+ * A person's page was one column of eighteen fields with two fieldsets in it,
+ * and nothing between a photograph and an hourly rate to say they answer
+ * different questions. The rail beside it has done this for months — Your
+ * business, How people reach you, Messages you send — and reading down one and
+ * then the other is the moment the second one looks unfinished.
+ *
+ * The same words as the rail on purpose: same size, same weight, same colour.
+ * A second style of heading on the same screen invents a second hierarchy, and
+ * a reader then has to work out which one is the outer.
+ */
+function GroupTitle({ title }: { title: string }) {
+  return (
+    <h3 className="border-t border-border pt-5 text-[0.74rem] font-semibold text-muted first:border-t-0 first:pt-0">
+      {title}
+    </h3>
   );
 }
