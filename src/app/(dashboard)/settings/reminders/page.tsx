@@ -88,6 +88,10 @@ export default async function RemindersPage() {
    * What the email will actually look like: their picture and their policy.
    * Null until the picture migration runs, which the template handles.
    */
+  /* Whether they have been sold one message on two channels. */
+  const mayUseBoth =
+    (studio as unknown as { allow_both_channels?: boolean | null }).allow_both_channels === true;
+
   const look = {
     photoUrl: avatarUrl((studio as unknown as { photo_path?: string | null }).photo_path),
     policy: (studio as unknown as { cancellation_policy?: string | null }).cancellation_policy ?? null,
@@ -136,10 +140,10 @@ export default async function RemindersPage() {
       />
 
       {ours.map((reminder, i) => (
-        <ReminderEditor key={reminder.id} reminder={reminder} index={i} sender={sender} look={look} />
+        <ReminderEditor key={reminder.id} reminder={reminder} index={i} sender={sender} look={look} mayUseBoth={mayUseBoth} />
       ))}
 
-      <ReminderEditor index={ours.length} sender={sender} look={look} />
+      <ReminderEditor index={ours.length} sender={sender} look={look} mayUseBoth={mayUseBoth} />
 
       {/*
         * Other people's, named but not editable here.

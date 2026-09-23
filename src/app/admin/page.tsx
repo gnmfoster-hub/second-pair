@@ -311,9 +311,12 @@ export default async function AdminPage() {
     .select("id, marketing_email_on, marketing_sms_on");
 
   /* Read with the entitlements, and absent until the migration runs. */
-  const { data: capRows } = await db.from("studios").select("id, sms_monthly_cap");
+  const { data: capRows } = await db.from("studios").select("id, sms_monthly_cap, allow_both_channels");
   const caps = new Map<string, number | null>(
     (capRows ?? []).map((c) => [c.id as string, (c.sms_monthly_cap as number | null) ?? null]),
+  );
+  const bothOn = new Map<string, boolean>(
+    (capRows ?? []).map((c) => [c.id as string, c.allow_both_channels === true]),
   );
 
   const bought = new Map<string, { email: boolean; sms: boolean }>(
@@ -431,6 +434,7 @@ export default async function AdminPage() {
         marketing_email_on: bought.get(s.id)?.email ?? false,
         marketing_sms_on: bought.get(s.id)?.sms ?? false,
         smsMonthlyCap: caps.get(s.id) ?? null,
+        allowBothChannels: bothOn.get(s.id) ?? false,
         createdAt: s.created_at,
         owners: (members ?? [])
           .filter((m) => m.studio_id === s.id)

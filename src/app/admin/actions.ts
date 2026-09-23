@@ -598,6 +598,9 @@ export async function saveAccount(_prev: Result, fd: FormData): Promise<Result> 
       ...((await hasColumn(db, "studios", "sms_monthly_cap"))
         ? { sms_monthly_cap: smsCap }
         : {}),
+      ...((await hasColumn(db, "studios", "allow_both_channels"))
+        ? { allow_both_channels: fd.get("allow_both") === "on" }
+        : {}),
       account_status: status,
       billing_started_on: started,
       account_note: String(fd.get("note") ?? "").trim() || null,

@@ -79,6 +79,8 @@ export type BusinessSummary = {
   marketing_sms_on?: boolean | null;
   /** Stop sending texts past this many a month. Null means no ceiling. */
   smsMonthlyCap?: number | null;
+  /** Whether they may send one message by email AND text. Charged. */
+  allowBothChannels?: boolean | null;
   createdAt: string;
   owners: { email: string | null; userId: string }[];
   /**

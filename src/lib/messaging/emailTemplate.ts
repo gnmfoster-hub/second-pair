@@ -37,6 +37,20 @@ export type EmailParts = {
   business: string;
   /** What the message actually says. Already rendered; this only wraps it. */
   body: string;
+  /**
+   * The appointment, as facts rather than prose.
+   *
+   * The thing Fresha's does that ours did not: the message says one thing in
+   * the business's own voice, and underneath it the details sit in a table
+   * where a reader's eye can find the time without reading a sentence. Both
+   * halves matter — the prose is what makes it sound like them, the table is
+   * what somebody actually checks at eight in the morning.
+   *
+   * Optional, because a review request has no appointment to show.
+   */
+  details?: { label: string; value: string }[] | null;
+  /** A short line under the business's name. "You are booked in." */
+  heading?: string | null;
   /** An absolute URL for the picture of the business, if they have one. */
   photoUrl?: string | null;
   /** The one thing to do, if there is one. */
@@ -80,7 +94,13 @@ function paragraphs(text: string): string {
  * way — and for spam filters, which treat a missing text part as a signal.
  */
 export function emailText(parts: EmailParts): string {
-  const lines = [parts.body.trim()];
+  const lines = [];
+  if (parts.heading?.trim()) lines.push(parts.heading.trim(), "");
+  lines.push(parts.body.trim());
+  if (parts.details?.length) {
+    lines.push("");
+    for (const d of parts.details) lines.push(`${d.label}: ${d.value}`);
+  }
   if (parts.action) lines.push("", `${parts.action.label}: ${parts.action.url}`);
   if (parts.policy?.trim()) lines.push("", "If you need to cancel", parts.policy.trim());
   lines.push("", `Sent by ${parts.business}, who use Second Pair to answer and keep the diary.`);
@@ -115,6 +135,40 @@ export function buildEmail(parts: EmailParts): string {
     : "";
 
   /*
+   * The appointment, as a table a reader scans rather than a sentence.
+   *
+   * Label on the left, value on the right, one row each, hairline between —
+   * the same shape as the booking page, because somebody who follows the link
+   * should recognise where they have arrived.
+   */
+  const details = parts.details?.length
+    ? `<tr><td style="padding:4px 28px 0">
+         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+           ${parts.details
+             .map(
+               (d, i) => `<tr>
+                 <td style="padding:10px 0;width:90px;vertical-align:top;font-size:13px;color:${MUTED}${
+                   i ? `;border-top:1px solid ${LINE}` : ""
+                 }">${escapeHtml(d.label)}</td>
+                 <td style="padding:10px 0;font-size:14px;color:${INK}${
+                   i ? `;border-top:1px solid ${LINE}` : ""
+                 }">${escapeHtml(d.value)}</td>
+               </tr>`,
+             )
+             .join("")}
+         </table>
+       </td></tr>`
+    : "";
+
+  const heading = parts.heading?.trim()
+    ? `<tr><td style="padding:18px 28px 0">
+         <div style="font-size:22px;font-weight:600;line-height:1.25;color:${INK}">${escapeHtml(
+           parts.heading.trim(),
+         )}</div>
+       </td></tr>`
+    : "";
+
+  /*
    * 600px is the width every email client has agreed on for twenty years, and
    * the only one that reliably does not scroll sideways on a phone.
    */
@@ -136,7 +190,11 @@ export function buildEmail(parts: EmailParts): string {
     </tr></table>
   </td></tr>
 
-  <tr><td style="padding:20px 28px 0">${paragraphs(parts.body)}</td></tr>
+  ${heading}
+
+  <tr><td style="padding:16px 28px 0">${paragraphs(parts.body)}</td></tr>
+
+  ${details}
 
   ${action ? `<tr><td style="padding:0 28px">${action}</td></tr>` : ""}
 

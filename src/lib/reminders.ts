@@ -12,7 +12,7 @@ import { planReminders } from "@/lib/reminderSchedule";
 import { buildEmail } from "@/lib/messaging/emailTemplate";
 import { avatarUrl } from "@/components/Avatar";
 import { siteOrigin } from "@/lib/origin";
-import { chooseRoutes, preferenceOf, textsAllowed } from "@/lib/messageChannels";
+import { chooseRoutes, preferenceOf, textsAllowed, forTemplate } from "@/lib/messageChannels";
 
 /**
  * Reminders.
@@ -266,6 +266,8 @@ type DueRow = {
     cancelled_at: string | null;
     /** The customer's own page for it. Absent on bookings made before it existed. */
     public_token?: string | null;
+    /** What was booked, for the details table in the email. */
+    title?: string | null;
     artists: { id: string; name: string; studio_id: string } | null;
     /** Set when somebody typed this into the diary rather than the assistant booking it. */
     contacts: Person | null;
@@ -394,7 +396,7 @@ export async function sendDueReminders(
     .from("reminders")
     .select(
       "id, due_at, template_id, " +
-        "bookings!inner(id, starts_at, cancelled_at, public_token, " +
+        "bookings!inner(id, starts_at, cancelled_at, public_token, title, " +
         "artists!inner(id, name, studio_id), contacts(name, phone, email), " +
         "enquiries(conversations(id, channel, external_ref, last_inbound_at, " +
         "ai_paused, contacts(name, phone, email))))",
@@ -443,10 +445,14 @@ export async function sendDueReminders(
    */
   const { data: templates } = await db
     .from("reminder_templates")
-    .select("id, body, hours_before")
+    .select("*")
     .eq("studio_id", studio.id)
     .eq("enabled", true);
   const bodyFor = new Map((templates ?? []).map((t) => [t.id, t.body]));
+  /* What each template says about its own channel. Absent reads as "default". */
+  const channelFor = new Map(
+    (templates ?? []).map((t) => [t.id, (t as { channels?: string | null }).channels ?? "default"]),
+  );
   /*
    * Which of them is the confirmation, so the email can be titled properly.
    *
@@ -490,6 +496,9 @@ export async function sendDueReminders(
     (studio as unknown as { message_channels?: string | null }).message_channels,
   );
   const cap = (studio as unknown as { sms_monthly_cap?: number | null }).sms_monthly_cap ?? null;
+  /* Whether they have been sold the right to send one message on two channels. */
+  const mayUseBoth =
+    (studio as unknown as { allow_both_channels?: boolean | null }).allow_both_channels === true;
 
   /*
    * Counted from the reminders themselves rather than from the nightly meter.
@@ -634,7 +643,22 @@ export async function sendDueReminders(
      * right now. This answers the one with an opinion in it, and the default
      * is exactly what happened before the setting existed.
      */
-    let chosen = chooseRoutes(preference, route, textsAllowed(textsSoFar, cap));
+    /*
+     * This template's answer, on top of the business's.
+     *
+     * A day-before reminder and a four-paragraph aftercare note are different
+     * messages, so one template may differ from the business's general
+     * setting. "Both" is refused in forTemplate unless it has been sold —
+     * there rather than only on the screen, so a value left in the database
+     * from before an entitlement lapsed cannot keep spending.
+     */
+    const forThis = forTemplate(
+      row.template_id ? channelFor.get(row.template_id) : "default",
+      preference,
+      mayUseBoth,
+    );
+
+    let chosen = chooseRoutes(forThis, route, textsAllowed(textsSoFar, cap));
 
     // Somebody who texted STOP is not texted, whatever the preference says.
     const stopped: string[] = [];
@@ -754,10 +778,38 @@ export async function sendDueReminders(
                 policy:
                   (studio as unknown as { cancellation_policy?: string | null })
                     .cancellation_policy ?? null,
-                /* Chrome rather than their words, so it goes either way. */
+                  /* Chrome rather than their words, so it goes either way. */
                 action: bookingUrl
                   ? { label: "See your appointment", url: bookingUrl }
                   : null,
+                /*
+                 * The facts, under the sentence.
+                 *
+                 * The thing Fresha's confirmation does that ours did not:
+                 * the business's own words say one thing, and the details sit
+                 * under them where an eye finds the time without reading a
+                 * sentence. Only what we actually hold — a row saying "—" is
+                 * worse than no row.
+                 */
+                heading:
+                  row.template_id && confirms.has(row.template_id)
+                    ? person?.name
+                      ? `${person.name.split(" ")[0]}, you are booked in`
+                      : "You are booked in"
+                    : null,
+                details: [
+                  {
+                    label: "When",
+                    value: describeSlot(
+                      { starts_at: booking.starts_at, ends_at: booking.starts_at },
+                      studio.timezone,
+                    ),
+                  },
+                  ...(booking.title ? [{ label: "What", value: booking.title as string }] : []),
+                  ...(booking.artists?.name
+                    ? [{ label: "With", value: booking.artists.name }]
+                    : []),
+                ],
               })
             : undefined;
 

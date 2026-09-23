@@ -78,6 +78,23 @@ than breaking.
 Everything here is something I cannot do from this side. Roughly in the order
 it is holding something up.
 
+### HMRC — a deadline, and I do not know the date
+
+A letter arrived on 23 September asking for information within three months of
+registering. That is the whole of what I know, because I have not seen it — so
+two things need doing and only you can do the first:
+
+1. **Read the date off the letter and write it here.** "Three months of
+   registering" is three months from the registration date, not from the
+   letter, so the deadline may be sooner than it sounds. Put the actual date
+   in this heading.
+2. Then it is a calendar entry and a reminder a fortnight before.
+
+Deliberately at the top of this list and deliberately vague, rather than
+guessed at. A date invented here would be worse than no date, because it would
+be believed — and the one thing worse than forgetting a deadline is
+remembering the wrong one.
+
 ### New, 23 September
 
 **Set PLATFORM_ALERT_EMAIL in Vercel — two minutes.** The morning check email

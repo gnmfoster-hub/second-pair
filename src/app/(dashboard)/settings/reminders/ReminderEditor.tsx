@@ -16,6 +16,8 @@ export type ReminderTemplateRow = {
   body: string;
   enabled: boolean;
   sort_order: number;
+  /** How this one goes out. "default" follows the business's setting. */
+  channels?: string | null;
   /**
    * Whose it is — null for the business's.
    *
@@ -164,6 +166,7 @@ export function ReminderEditor({
   sender,
   /** The business's picture and policy, so the email preview is the real one. */
   look,
+  mayUseBoth = false,
 }: {
   reminder?: ReminderTemplateRow;
   index: number;
@@ -171,6 +174,8 @@ export function ReminderEditor({
   /** Who this arrives from, and what a customer sees on their phone. */
   sender: Sender;
   look?: { photoUrl?: string | null; policy?: string | null };
+  /** Whether this business may send one message on two channels. */
+  mayUseBoth?: boolean;
 }) {
   const [state, action] = useActionState<FormState, FormData>(saveReminder, {});
 
@@ -250,6 +255,29 @@ export function ReminderEditor({
           />
         </Field>
       </div>
+
+      {/*
+        * How this one goes out, where it differs from the business's answer.
+        *
+        * "Both" is only listed where it has been sold. A disabled control
+        * saying "ask us" is an advert; one that is simply absent is a product
+        * that knows what it sells.
+        */}
+      <Field
+        label="How this one goes"
+        hint="Leave it following your setting unless this message wants something different."
+      >
+        <select
+          name="channels"
+          defaultValue={reminder?.channels ?? "default"}
+          className="input w-64"
+        >
+          <option value="default">However you send everything else</option>
+          <option value="email">Email only</option>
+          <option value="sms">Text only</option>
+          {mayUseBoth && <option value="both">Email and text</option>}
+        </select>
+      </Field>
 
       <Field
         label="What it says"

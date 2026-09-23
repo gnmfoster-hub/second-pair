@@ -31,6 +31,30 @@ export type Route = {
 
 export const DEFAULT_PREFERENCE: Preference = "as_they_came";
 
+/**
+ * What one template says, on top of what the business says.
+ *
+ * "default" means follow the business. Anything else overrides it for this
+ * message alone — because the day-before reminder and a four-paragraph
+ * aftercare note are different messages, and making a business pick one answer
+ * for both is making them choose which to get wrong.
+ *
+ * "both" is refused unless the business has been sold it, here rather than
+ * only on the screen: a value already in the database from before an
+ * entitlement lapsed must not keep spending.
+ */
+export function forTemplate(
+  templateChoice: unknown,
+  businessChoice: unknown,
+  mayUseBoth: boolean,
+): Preference {
+  const business = preferenceOf(businessChoice);
+  if (templateChoice === "both") return mayUseBoth ? "both" : business;
+  if (templateChoice === "email") return "email_only";
+  if (templateChoice === "sms") return "sms_only";
+  return business;
+}
+
 /** Absent or unrecognised reads as today's behaviour, never as something new. */
 export function preferenceOf(value: unknown): Preference {
   return value === "both" ||

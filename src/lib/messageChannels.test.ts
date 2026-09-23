@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chooseRoutes, preferenceOf, textsAllowed } from "./messageChannels.ts";
+import { chooseRoutes, preferenceOf, textsAllowed, forTemplate } from "./messageChannels.ts";
 
 const email = { channel: "email", to: "marie@example.com", open: true };
 const sms = { channel: "sms", to: "+447700900123", open: true };
@@ -93,4 +93,32 @@ test("the ceiling is reached, not exceeded", () => {
   assert.equal(textsAllowed(99, 100), true);
   assert.equal(textsAllowed(100, 100), false);
   assert.equal(textsAllowed(101, 100), false);
+});
+
+/*
+ * One template differing from the business's general answer.
+ *
+ * The day-before reminder is the one people expect as a text; a four-paragraph
+ * aftercare note belongs in an email. Making a business pick one answer for
+ * both is making them choose which to get wrong.
+ */
+test("a template with no opinion follows the business", () => {
+  assert.equal(forTemplate("default", "email_first", true), "email_first");
+  assert.equal(forTemplate(null, "both", true), "both");
+  assert.equal(forTemplate(undefined, undefined, true), "as_they_came");
+});
+
+test("a template can override the business", () => {
+  assert.equal(forTemplate("email", "sms_only", true), "email_only");
+  assert.equal(forTemplate("sms", "email_only", true), "sms_only");
+});
+
+/*
+ * Refused in the rules, not only on the screen. A value already in the
+ * database from before an entitlement lapsed must not keep spending.
+ */
+test("both is refused when the business has not been sold it", () => {
+  assert.equal(forTemplate("both", "email_first", true), "both");
+  assert.equal(forTemplate("both", "email_first", false), "email_first");
+  assert.equal(forTemplate("both", "as_they_came", false), "as_they_came");
 });

@@ -84,6 +84,13 @@ export async function saveReminder(_prev: FormState, fd: FormData): Promise<Form
     body,
     enabled: ticked(fd, "enabled"),
     sort_order: Number(str(fd, "sort_order")) || 0,
+    /*
+     * Only where the column exists, and "both" only where it was sold —
+     * checked here as well as on the screen, because a form can be posted.
+     */
+    ...((await hasColumn(supabase, "reminder_templates", "channels"))
+      ? { channels: await allowedChannel(supabase, studio.id, str(fd, "channels")) }
+      : {}),
   };
 
   const id = str(fd, "id");
@@ -145,6 +152,29 @@ export async function saveReminder(_prev: FormState, fd: FormData): Promise<Form
  * one reads three dozen fields off a form and writes them all — a smaller
  * form posting to it would blank everything it did not carry.
  */
+/**
+ * A template's own channel, refused if it is not theirs to choose.
+ *
+ * The screen does not offer "both" to a business that has not been sold it,
+ * and a screen is not a rule: a form can be posted with anything in it.
+ */
+async function allowedChannel(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  studioId: string,
+  asked: string,
+): Promise<string> {
+  if (!["default", "email", "sms", "both"].includes(asked)) return "default";
+  if (asked !== "both") return asked;
+
+  const { data } = await supabase
+    .from("studios")
+    .select("allow_both_channels")
+    .eq("id", studioId)
+    .maybeSingle();
+
+  return data?.allow_both_channels === true ? "both" : "default";
+}
+
 export async function saveChannelChoice(_prev: FormState, fd: FormData): Promise<FormState> {
   /* requireOwner refuses anybody else, so there is no second check to forget. */
   const { studio } = await requireOwner();

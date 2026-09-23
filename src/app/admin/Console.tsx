@@ -1042,6 +1042,20 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
           * nobody agreed to. Email still goes — the point is to stop the
           * spend, not the message.
           */}
+        {/*
+          * One message on two channels, which doubles a business's text bill
+          * and is therefore something they buy rather than something they
+          * find in a dropdown.
+          */}
+        <label className="flex items-center gap-2 self-end pb-2 text-sm">
+          <input
+            type="checkbox"
+            name="allow_both"
+            defaultChecked={b.allowBothChannels === true}
+            className="accent-[var(--accent)]"
+          />
+          Email and text together
+        </label>
         <label className="block">
           <span className="label">Text ceiling</span>
           <input
