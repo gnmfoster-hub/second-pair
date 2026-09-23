@@ -26,7 +26,7 @@ async function all<T>(query: (from: number, to: number) => PromiseLike<{ data: T
 export async function loadPlatformRows(db: SupabaseClient, range: { from: string; to: string }): Promise<ReportRows> {
   const quarterAgo = new Date(Date.now() - 90 * 86_400_000).toISOString();
 
-  const [studios, conversations, messages, bookings, payments, inbound, reminders, forms, calls, members, users] = await Promise.all([
+  const [studios, conversations, messages, bookings, payments, inbound, reminders, forms, calls, members, people, users] = await Promise.all([
     all((a, b) => db.from("studios").select("id, name, vertical, kind, account_status, plan_pence, created_at, archived_at").range(a, b)),
     /*
      * The ones this report can actually say something about.
@@ -81,12 +81,13 @@ export async function loadPlatformRows(db: SupabaseClient, range: { from: string
     all((a, b) =>
       db
         .from("calls")
-        .select("studio_id, at, rang_seconds, forwarded, answered, recorded_seconds, transcribed")
+        .select("studio_id, at, rang_seconds, forwarded, answered, recorded_seconds, transcribed, artist_id")
         .gte("at", range.from)
         .lt("at", range.to)
         .range(a, b),
     ),
     all((a, b) => db.from("studio_members").select("studio_id, user_id").range(a, b)),
+    all((a, b) => db.from("artists").select("id, studio_id, name").range(a, b)),
     everyUser(db),
   ]);
 
@@ -143,6 +144,7 @@ export async function loadPlatformRows(db: SupabaseClient, range: { from: string
     })),
     forms: forms as ReportRows["forms"],
     calls: calls as ReportRows["calls"],
+    people: people as ReportRows["people"],
     lastSignIn,
     lastActivity,
   };

@@ -27,6 +27,12 @@ export type StudioRow = {
 
 export type ReportRows = {
   studios: StudioRow[];
+  /**
+   * Who works where, so a call can be priced against a name rather than a
+   * uuid. Optional: every caller of this predates it and a missing list only
+   * costs the per-person breakdown, not the report.
+   */
+  people?: { id: string; studio_id: string; name: string }[];
   conversations: { id: string; studio_id: string; channel: string; is_test: boolean | null; created_at: string; first_response_ms: number | null; status: string | null }[];
   messages: { conversation_id: string; role: string; created_at: string; usage: { cost_micros?: number } | null; delivery: string | null }[];
   bookings: { studio_id: string; created_at: string; cancelled_at: string | null; attended: boolean | null; source: string | null; starts_at: string }[];
@@ -78,6 +84,17 @@ export type BusinessReport = {
    * for how much — is a different decision.
    */
   callCostPence: number;
+  /**
+   * The telephone, split by whose it was.
+   *
+   * Giles sells a receptionist per person and has to charge for each instance,
+   * so the per-business total is not the number he needs — he needs to know
+   * what Aisha's line cost him this month, separately from the shop's.
+   *
+   * Only people with calls appear. A row of noughts for everybody in the diary
+   * is a table nobody reads.
+   */
+  callsByPerson: { name: string; calls: number; pence: number }[];
   emailAnswered: number;
   emailParked: number;
   emailIgnored: number;
@@ -214,6 +231,36 @@ export function platformReport(
       textCostPence: textsSent * TEXT_PENCE,
       calls: callMoney.calls,
       callCostPence: Math.round(callMoney.pence),
+      /*
+       * Whose line it was, from what the call recorded at the time rather
+       * than from whose number it is now — a number that changes hands must
+       * not rewrite last month's bill.
+       */
+      callsByPerson: (() => {
+        const mine = new Map<string, { calls: number; pence: number }>();
+        for (const c of calls) {
+          const id = (c as { artist_id?: string | null }).artist_id;
+          if (!id) continue;
+          /* The same shape the business total uses, one call at a time. */
+          const one = addUpCalls([
+            {
+              rangSeconds: c.rang_seconds ?? 0,
+              forwarded: Boolean(c.forwarded),
+              recordedSeconds: c.recorded_seconds ?? 0,
+              transcribed: Boolean(c.transcribed),
+            },
+          ]);
+          const got = mine.get(id) ?? { calls: 0, pence: 0 };
+          mine.set(id, { calls: got.calls + one.calls, pence: got.pence + one.pence });
+        }
+        return [...mine.entries()]
+          .map(([id, v]) => ({
+            name: (rows.people ?? []).find((p) => p.id === id)?.name ?? "somebody who has left",
+            calls: v.calls,
+            pence: Math.round(v.pence),
+          }))
+          .sort((a, b) => b.pence - a.pence);
+      })(),
       emailAnswered: inbound.filter((i) => i.verdict === "answered").length,
       emailParked: inbound.filter((i) => i.verdict === "parked").length,
       emailIgnored: inbound.filter((i) => i.verdict === "ignored").length,
@@ -261,6 +308,22 @@ export function platformReport(
     textsSent: sumBy("textsSent"),
     calls: sumBy("calls"),
     callCostPence: sumBy("callCostPence"),
+    /*
+     * Everybody with a line of their own, across every business, dearest
+     * first. This is the row Giles prices a receptionist from.
+     */
+    callsByPerson: (() => {
+      const all = new Map<string, { calls: number; pence: number }>();
+      for (const b of businesses) {
+        for (const p of b.callsByPerson) {
+          const got = all.get(p.name) ?? { calls: 0, pence: 0 };
+          all.set(p.name, { calls: got.calls + p.calls, pence: got.pence + p.pence });
+        }
+      }
+      return [...all.entries()]
+        .map(([name, v]) => ({ name, ...v }))
+        .sort((a, b) => b.pence - a.pence);
+    })(),
     textCostPence: sumBy("textCostPence"),
     emailAnswered: sumBy("emailAnswered"),
     emailParked: sumBy("emailParked"),

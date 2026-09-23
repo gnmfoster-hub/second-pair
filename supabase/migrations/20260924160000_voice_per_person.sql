@@ -39,7 +39,7 @@ alter table calls
 create index if not exists calls_artist_idx on calls (artist_id);
 
 comment on column artists.voice_on is
-  'This person has a telephone of their own. Charged per instance: see Admin -> Reports for what it costs.';
+  'This person has the Receptionist: a telephone of their own that answers. Charged per instance; Admin -> Reports prices it.';
 
 comment on column calls.artist_id is
   'Whose number was rung, as it stood at the time. Null means the business own. Never re-derived: a number can change hands.';

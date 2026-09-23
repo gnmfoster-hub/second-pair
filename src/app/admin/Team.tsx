@@ -148,7 +148,7 @@ function Person({ person }: { person: BusinessSummary["team"][number] }) {
           <Switch name="notify_own_bookings" label="Told about their bookings" on={person.notifyOwnBookings} />
           <Switch name="reminders_own" label="Sends their own reminders" on={person.remindersOwn} />
           {/* Sold per person, and priced against their name in Reports. */}
-          <Switch name="voice_on" label="Has their own telephone" on={person.voiceOn === true} />
+          <Switch name="voice_on" label="Receptionist" on={person.voiceOn === true} />
         </div>
       </div>
 

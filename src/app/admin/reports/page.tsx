@@ -341,6 +341,44 @@ export default async function ReportsPage({
             </tbody>
           </table>
         </div>
+        {/*
+          * The receptionist, priced per person.
+          *
+          * Giles sells it per instance, so the per-business total is not the
+          * number he needs — he needs to know what one person's line cost him
+          * this month. Only people with calls appear: a column of noughts for
+          * everybody in every diary is a table nobody reads.
+          */}
+        <div className="card p-5">
+          <h2 className="section-title">Receptionist, by person</h2>
+          <table className="mt-3 w-full text-sm tabular-nums">
+            <thead>
+              <tr className="text-left text-xs uppercase text-muted">
+                <th className="py-1">Who</th>
+                <th className="py-1">Calls</th>
+                <th className="py-1">Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              {totals.callsByPerson.map((p) => (
+                <tr key={p.name} className="border-t border-border">
+                  <td className="py-1.5">{p.name}</td>
+                  <td className="py-1.5">{p.calls}</td>
+                  <td className="py-1.5">{pounds(p.pence)}</td>
+                </tr>
+              ))}
+              {!totals.callsByPerson.length && (
+                <tr>
+                  <td className="hint py-2" colSpan={3}>
+                    Nobody has a line of their own yet. Calls to a business&rsquo;s own number
+                    are in the table above.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
         <div className="card p-5">
           <h2 className="section-title">By trade</h2>
           <table className="mt-3 w-full text-sm tabular-nums">
