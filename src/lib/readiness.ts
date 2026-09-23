@@ -218,7 +218,21 @@ export async function readinessOf(
       .filter(Boolean),
   });
 
-  return [
+  /*
+   * The ones this business has said are fine as they are.
+   *
+   * Advice only. Anything blocking keeps its row whatever is in here, which is
+   * enforced below rather than trusted to the caller: a business must not be
+   * able to hide the fact that nobody can book.
+   *
+   * Absent until the migration runs, which reads as nothing dismissed — the
+   * same behaviour as before it existed.
+   */
+  const dismissed = new Set(
+    ((studio as unknown as { readiness_dismissed?: string[] | null }).readiness_dismissed ?? []),
+  );
+
+  const all: Capability[] = [
     {
       key: "quote",
       can: "Give people a price",
@@ -276,9 +290,19 @@ export async function readinessOf(
       otherwise:
         `${needsLookingAt.length} of the things you do need looking at first, and a ` +
         `consultation here is ${studio.consultation_minutes} minutes. That is long ` +
-        `enough for a phone call, not for going to see it.`,
+        `enough for a phone call, not for going to see it. Twenty minutes or more ` +
+        `clears this; if ${studio.consultation_minutes} is genuinely right for you, ` +
+        `say so and it will stop asking.`,
       href: "/settings",
-      action: "Make it longer",
+      /*
+       * The number that clears it, in the words.
+       *
+       * "Make it longer" gave no target, so somebody moving it from ten to
+       * fifteen did as they were asked and watched the warning stay — which is
+       * exactly what Giles reported. A threshold nobody can see is a threshold
+       * that looks like a bug.
+       */
+      action: "Set it to 20 or more",
       blocking: false,
     },
     {
@@ -461,4 +485,13 @@ export async function readinessOf(
       blocking: false,
     },
   ];
+
+  /*
+   * A dismissed check reads as ready, so nothing downstream needs to know
+   * this exists — the setup walk-through, the morning email and the admin
+   * attention panel all keep working off `ready` alone.
+   */
+  return all.map((c) =>
+    !c.ready && !c.blocking && dismissed.has(c.key) ? { ...c, ready: true } : c,
+  );
 }

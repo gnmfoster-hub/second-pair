@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Capability } from "@/lib/readiness";
+import { dismissCheck } from "@/app/(dashboard)/readinessActions";
 
 /**
  * What the assistant can and cannot do yet.
@@ -218,6 +219,30 @@ export function Readiness({ capabilities }: { capabilities: Capability[] }) {
               <Link href={capability.href} className="btn-ghost shrink-0 py-1.5 text-xs">
                 {capability.action}
               </Link>
+            )}
+
+            {/*
+              * And the other answer, which the panel never had.
+              *
+              * Giles, on being told his consultation time was too short: if I
+              * do not want to adjust it there should be a way of getting rid
+              * of it. Some of this is advice, and advice you cannot answer is
+              * advice you learn to scroll past — along with the row above it
+              * that actually mattered.
+              *
+              * Never on a blocking one. "Nobody can book" is not a matter of
+              * opinion, and a business must not be able to put it away.
+              */}
+            {!capability.blocking && (
+              <form action={dismissCheck} className="shrink-0">
+                <input type="hidden" name="key" value={capability.key} />
+                <button
+                  type="submit"
+                  className="py-1.5 text-xs text-muted underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  That&rsquo;s fine as it is
+                </button>
+              </form>
             )}
           </li>
         ))}

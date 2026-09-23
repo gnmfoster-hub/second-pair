@@ -664,6 +664,33 @@ feeds (the database still prevents any double-booking).
 
 ## Next, in the order I would do them
 
+### 1. What a customer actually receives
+
+Giles, 23 September: the outgoing things — confirmations, reminders, review
+requests — need to look and read like a company that has thought about it.
+What the better ones do is send a short text with a link to a proper page,
+rather than trying to say everything in 160 characters.
+
+That shape is right and we are most of the way to it already:
+
+- Every message is rendered when it goes out, not when it is scheduled, so
+  changing the wording changes what is in flight.
+- forOneText already cuts a long message between sentences for SMS.
+- There are public pages a link could point at — /f/<token> for forms,
+  /prefs/<token> for marketing preferences — so the pattern and the token
+  machinery exist.
+
+What is missing is the page itself and the look of the email. A booking page
+showing what was booked, when, with who, what it costs, what to bring, and a
+button to add it to a calendar or ask a question — with the text reduced to a
+sentence and that link. Emails want the same content and a real template
+rather than plain text.
+
+Worth doing after the confirmations settle, and worth seeing the example
+Giles is getting hold of first: copying the structure of one that works is
+faster and better than inventing one.
+
+
 ### 1. Saying an appointment has moved
 
 A confirmation goes once, on purpose — dragging somebody across the diary must
