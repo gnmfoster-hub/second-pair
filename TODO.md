@@ -41,9 +41,11 @@ Still unproven: a real booking end to end. The pieces either side of it are
 checked, and the quickest proof is yours — add a confirmation on a demo, book
 something, and watch it arrive.
 
-**One waiting:** `20260917120000_assistant_books.sql` — one line, so the owner
-can keep somebody in the diary and off the channels. Until it runs, everybody
-is offered exactly as they are today.
+**Nothing waiting, as of 23 September.** Checked from here rather than from
+this list, which was wrong: it said `20260917120000_assistant_books.sql` was
+still outstanding and it had in fact been run. Every column from the last
+seven migrations is present, including the marketing entitlement Giles ran on
+the 23rd.
 
 **Run on 16 September:** `20260917100000_marketing_preferences.sql` — checked from
 here afterwards: a customer set their own preferences from their link, it

@@ -82,11 +82,30 @@ export default async function SettingsLayout({ children }: { children: React.Rea
             ],
           },
           {
-            title: "Around a booking",
+            /*
+             * Everything the business sends a customer, in one place.
+             *
+             * Giles went looking for the review setting and could not find it:
+             * it was two fields on the business page, between the privacy
+             * notice and the trade's key dates. Reminders were under "Around a
+             * booking" and marketing did not exist. Three kinds of message,
+             * three different places, none of them named after messages.
+             *
+             * Ordered by how a customer meets them: confirmed when they book,
+             * reminded before, asked afterwards, and marketed to only if they
+             * asked to be.
+             */
+            title: "Messages you send",
             links: [
-              { href: "/settings/reminders", label: "Reminders" },
-              { href: "/settings/forms", label: "Forms" },
+              { href: "/settings/reminders", label: "Confirmations and reminders" },
+              { href: "/settings/reviews", label: "Review requests" },
+              { href: "/settings/marketing", label: "Marketing" },
             ],
+          },
+          {
+            /* What a customer fills in, which is not a message. */
+            title: "Around a booking",
+            links: [{ href: "/settings/forms", label: "Forms" }],
           },
         ]
       : []),

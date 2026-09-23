@@ -679,17 +679,20 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
       privacy_notice_url: privacy || null,
 
       /*
-       * Asking for a review, and where to send them.
+       * Review requests are not written here any more.
        *
-       * Guarded on the column so a deploy that lands before the migration
-       * saves the rest of the business's settings rather than failing the lot
-       * — the same reasoning as every other column added since August.
+       * They moved to Settings -> Review requests, with an action of their
+       * own, and this must not keep writing them — it reads every field off
+       * the form and writes them all, so with the inputs gone it would have
+       * read an empty string and quietly blanked somebody's review link every
+       * time they saved their opening hours.
+       *
+       * Only carried if the form still sends them, so an older page open in a
+       * tab saves what it shows rather than wiping it.
        */
-      ...((await hasColumn(supabase, "studios", "review_url"))
+      ...(fd.has("review_url")
         ? {
             review_url: reviewUrl || null,
-            // Never on without somewhere to send them: a message with a hole
-            // in it is worse than no message.
             review_ask: ticked(fd, "review_ask") && Boolean(reviewUrl),
           }
         : {}),
