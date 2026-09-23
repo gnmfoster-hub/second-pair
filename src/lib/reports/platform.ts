@@ -13,6 +13,7 @@
 
 import { addUpCalls } from "../voice/callCost.ts";
 import { countsAsEnquiry } from "../conversationStatus.ts";
+import { chargeableCount, type Instance } from "../receptionist.ts";
 
 export type StudioRow = {
   id: string;
@@ -23,6 +24,13 @@ export type StudioRow = {
   plan_pence: number | null;
   created_at: string;
   archived_at: string | null;
+  /**
+   * Whether this business has been sold the Receptionist, and whether its own
+   * line has one. Both absent until the migration runs, and absent reads as
+   * off — see lib/receptionist.
+   */
+  receptionist_allowed?: boolean | null;
+  receptionist_on?: boolean | null;
 };
 
 export type ReportRows = {
@@ -32,7 +40,7 @@ export type ReportRows = {
    * uuid. Optional: every caller of this predates it and a missing list only
    * costs the per-person breakdown, not the report.
    */
-  people?: { id: string; studio_id: string; name: string }[];
+  people?: { id: string; studio_id: string; name: string; voice_on?: boolean | null }[];
   conversations: { id: string; studio_id: string; channel: string; is_test: boolean | null; created_at: string; first_response_ms: number | null; status: string | null }[];
   messages: { conversation_id: string; role: string; created_at: string; usage: { cost_micros?: number } | null; delivery: string | null }[];
   bookings: { studio_id: string; created_at: string; cancelled_at: string | null; attended: boolean | null; source: string | null; starts_at: string }[];
@@ -87,14 +95,29 @@ export type BusinessReport = {
   /**
    * The telephone, split by whose it was.
    *
-   * Giles sells a receptionist per person and has to charge for each instance,
-   * so the per-business total is not the number he needs — he needs to know
-   * what Aisha's line cost him this month, separately from the shop's.
+   * Giles sells per instance and has to charge for each, so the per-business
+   * total is not the number he needs — he needs to know what Aisha's line cost
+   * him this month, separately from the shop's.
    *
    * Only people with calls appear. A row of noughts for everybody in the diary
    * is a table nobody reads.
+   *
+   * This is every call to a person's own line, whatever answers it. It is not
+   * the Receptionist count and was shown under that heading for a while, which
+   * would have presented ordinary voicemail-response carriage as Receptionist
+   * cost on any salon where somebody simply has their own number. See
+   * receptionists below for the thing that is actually sold.
    */
   callsByPerson: { name: string; calls: number; pence: number }[];
+  /**
+   * How many Receptionists this business is paying for.
+   *
+   * Counted from the switches, not from calls: an instance costs whether it is
+   * rung or not, so billing it on usage would make a quiet month free. Zero
+   * for every business that has not been sold it, however many switches are
+   * set — see lib/receptionist.
+   */
+  receptionists: number;
   emailAnswered: number;
   emailParked: number;
   emailIgnored: number;
@@ -236,6 +259,19 @@ export function platformReport(
        * than from whose number it is now — a number that changes hands must
        * not rewrite last month's bill.
        */
+      /*
+       * What is switched on, which is what is charged for. The business's own
+       * line counts as one instance alongside each person who has one.
+       */
+      receptionists: chargeableCount(
+        s.receptionist_allowed,
+        [
+          { who: null, on: s.receptionist_on === true },
+          ...(rows.people ?? [])
+            .filter((p) => p.studio_id === s.id)
+            .map((p): Instance => ({ who: p.name, on: p.voice_on === true })),
+        ],
+      ),
       callsByPerson: (() => {
         const mine = new Map<string, { calls: number; pence: number }>();
         for (const c of calls) {
@@ -306,6 +342,8 @@ export function platformReport(
     repliesByChannel: mergeChannels("repliesByChannel"),
     aiCostPence: sumBy("aiCostPence"),
     textsSent: sumBy("textsSent"),
+    /* Every instance being paid for, across every business. */
+    receptionists: sumBy("receptionists"),
     calls: sumBy("calls"),
     callCostPence: sumBy("callCostPence"),
     /*

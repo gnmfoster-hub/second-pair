@@ -1056,6 +1056,32 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
           />
           Email and text together
         </label>
+
+        {/*
+          * Sold the Receptionist, which is not the voice channel beside it.
+          *
+          * Two products, and they were one word. Voice buys the voicemail
+          * response — their mobile rings first, a missed call is texted back,
+          * a message left is written down and answered by text, and nobody
+          * ever talks to a machine. This buys a line that picks up and talks.
+          * Giles had to ask which one the calls screen meant, which is the
+          * clearest evidence there is that one name for two things was one too
+          * few.
+          *
+          * Ticking it does not switch anything on. It lets them switch
+          * instances on — their own line here, each person in their settings —
+          * and unticking it stops every one of those at once, however many
+          * switches are set.
+          */}
+        <label className="flex items-center gap-2 self-end pb-2 text-sm">
+          <input
+            type="checkbox"
+            name="receptionist_allowed"
+            defaultChecked={b.receptionistAllowed === true}
+            className="accent-[var(--accent)]"
+          />
+          Receptionist sold
+        </label>
         <label className="block">
           <span className="label">Text ceiling</span>
           <input

@@ -1760,6 +1760,65 @@ export async function saveCallForwarding(
   return { ok: true };
 }
 
+/**
+ * The Receptionist on the business's own line.
+ *
+ * A separate action from the one above, because it is a separate product. That
+ * form is the voicemail response — where a call rings first, and whether an
+ * unanswered one may leave a message that is written down and answered by
+ * text. This is a line that picks up and talks, sold on its own and charged
+ * for each one switched on.
+ *
+ * Giles: "they need to be two separate things, both scoped with pricing, so I
+ * can sell them as an add on." Two things means two switches that cannot be
+ * flipped by the same save.
+ */
+export async function setReceptionist(
+  _prev: ClientStateLike,
+  fd: FormData,
+): Promise<ClientStateLike> {
+  /* What the business pays for is the owner's to decide. */
+  if (!(await isOwner())) {
+    return { error: "Only the owner can switch the Receptionist on." };
+  }
+
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  /*
+   * Sold before switched on, checked here rather than only on the screen.
+   *
+   * Read from the database rather than believed from the post: a form is a
+   * suggestion, and this one turns on something with a price against it.
+   */
+  if (!(await hasColumn(supabase, "studios", "receptionist_allowed"))) {
+    return { error: "The Receptionist is not set up on this account yet." };
+  }
+
+  const { data: sold } = await supabase
+    .from("studios")
+    .select("receptionist_allowed")
+    .eq("id", studio.id)
+    .maybeSingle();
+
+  if (sold?.receptionist_allowed !== true) {
+    return {
+      error:
+        "The Receptionist is not part of this plan. Ask us and we will switch it on — it is charged for each line that has one.",
+    };
+  }
+
+  const { error } = await supabase
+    .from("studios")
+    .update({ receptionist_on: fd.get("receptionist_on") === "on" })
+    .eq("id", studio.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/install");
+  return { ok: true };
+}
+
 type ClientStateLike = { error?: string; ok?: boolean };
 
 /**

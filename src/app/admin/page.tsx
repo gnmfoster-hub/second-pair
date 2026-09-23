@@ -319,6 +319,22 @@ export default async function AdminPage() {
     (capRows ?? []).map((c) => [c.id as string, c.allow_both_channels === true]),
   );
 
+  /*
+   * The Receptionist, on a query of its own for the same reason: a named
+   * column PostgREST does not know refuses the whole query, and asking for
+   * these beside the ceilings would take the ceilings down with them until the
+   * migration runs. No rows reads as off, which is the honest default.
+   */
+  const { data: receptionRows } = await db
+    .from("studios")
+    .select("id, receptionist_allowed, receptionist_on");
+  const receptionistAllowed = new Map<string, boolean>(
+    (receptionRows ?? []).map((r) => [r.id as string, r.receptionist_allowed === true]),
+  );
+  const receptionistOn = new Map<string, boolean>(
+    (receptionRows ?? []).map((r) => [r.id as string, r.receptionist_on === true]),
+  );
+
   const bought = new Map<string, { email: boolean; sms: boolean }>(
     (entitlements ?? []).map((e) => [
       e.id as string,
@@ -435,6 +451,8 @@ export default async function AdminPage() {
         marketing_sms_on: bought.get(s.id)?.sms ?? false,
         smsMonthlyCap: caps.get(s.id) ?? null,
         allowBothChannels: bothOn.get(s.id) ?? false,
+        receptionistAllowed: receptionistAllowed.get(s.id) ?? false,
+        receptionistOn: receptionistOn.get(s.id) ?? false,
         createdAt: s.created_at,
         owners: (members ?? [])
           .filter((m) => m.studio_id === s.id)

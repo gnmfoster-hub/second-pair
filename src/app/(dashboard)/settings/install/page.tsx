@@ -5,6 +5,7 @@ import { verticalPack } from "@/lib/verticals";
 import { Avatar } from "@/components/Avatar";
 import { Snippet } from "./Snippet";
 import { TextNumber } from "./TextNumber";
+import { Receptionist } from "./Receptionist";
 import { smsNumberFor } from "@/lib/messaging/connections";
 import { savedWords } from "@/lib/savedAt";
 import { smsConfigured } from "@/lib/messaging/sms";
@@ -206,6 +207,23 @@ export default async function ChannelsPage({
             externalId: (l as { external_id?: string | null }).external_id ?? null,
             forWho: everyone.find((a) => a.id === l.artist_id)?.name ?? null,
           }))}
+        />
+
+        {/*
+          * And the other telephone product, said as a separate thing.
+          *
+          * Giles had to ask which of the two the calls panel above was about,
+          * which is the clearest evidence there is that one heading was doing
+          * for two products. That one is the voicemail response; this is the
+          * line that talks. Shown whether or not they have been sold it: it is
+          * for sale, and a feature nobody can see is a feature nobody buys.
+          */}
+        <Receptionist
+          allowed={(studio as unknown as { receptionist_allowed?: boolean | null }).receptionist_allowed === true}
+          on={(studio as unknown as { receptionist_on?: boolean | null }).receptionist_on === true}
+          people={everyone
+            .filter((a) => (a as { voice_on?: boolean | null }).voice_on === true)
+            .map((a) => a.name)}
         />
 
         {/*

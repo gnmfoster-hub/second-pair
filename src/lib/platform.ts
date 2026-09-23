@@ -81,6 +81,17 @@ export type BusinessSummary = {
   smsMonthlyCap?: number | null;
   /** Whether they may send one message by email AND text. Charged. */
   allowBothChannels?: boolean | null;
+  /**
+   * The Receptionist, which is a different product to the voice channel.
+   *
+   * Voice buys the voicemail response: their own mobile rings first, what is
+   * missed is texted back, and a message left is written down and answered by
+   * text. This buys a line that picks up and talks. Allowed is ours to set
+   * when it is sold; on is theirs, for the business's own line, and each
+   * person has a switch of their own beside it.
+   */
+  receptionistAllowed?: boolean | null;
+  receptionistOn?: boolean | null;
   createdAt: string;
   owners: { email: string | null; userId: string }[];
   /**

@@ -54,7 +54,7 @@ export function NotOnYourPlan({ channel, business }: { channel: Channel; busines
 /** What the panel is called where a business does have it, so the two agree. */
 const HEADING: Partial<Record<Channel, string>> = {
   sms: "Text messages and missed calls",
-  voice: "Phone calls",
+  voice: "Phone calls and the voicemail response",
   instagram: "Facebook and Instagram",
   messenger: "Facebook and Instagram",
 };
@@ -69,7 +69,7 @@ const HEADING: Partial<Record<Channel, string>> = {
 const WHAT_IT_WOULD_DO: Record<Channel, string> = {
   web: "The assistant on your own website, answering while you work.",
   sms: "The only channel that reaches somebody who has not written to you first. Reminders before an appointment, and a text straight back when you miss a call, both need it.",
-  voice: "Somebody rings, your phone rings first, and if nobody picks up they can leave a message, which comes back to them as a text answering what they actually said.",
+  voice: "Somebody rings, your phone rings first, and if nobody picks up they are texted back — or they leave a message, which comes back to them as a text answering what they actually said. Nobody talks to a machine; that is the Receptionist, which is sold on its own.",
   email: "Your enquiry address forwarded in, so what arrives there is answered the same way everything else is.",
   instagram: "Messages to your Instagram answered in the same place as everything else, instead of in an app somebody has to remember to open.",
   whatsapp: "WhatsApp messages answered alongside the rest, on the number people already use.",

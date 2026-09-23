@@ -601,6 +601,18 @@ export async function saveAccount(_prev: Result, fd: FormData): Promise<Result> 
       ...((await hasColumn(db, "studios", "allow_both_channels"))
         ? { allow_both_channels: fd.get("allow_both") === "on" }
         : {}),
+      /*
+       * Sold the Receptionist, which is ours to set and never theirs.
+       *
+       * Separate from the voice channel beside it because they are two
+       * products: voice buys the voicemail response — ring their mobile, text
+       * back what was missed, write down a message and answer it by text — and
+       * this buys a line that picks up and talks. Switching this off stops
+       * every instance at once, however many people have their own switch set.
+       */
+      ...((await hasColumn(db, "studios", "receptionist_allowed"))
+        ? { receptionist_allowed: fd.get("receptionist_allowed") === "on" }
+        : {}),
       account_status: status,
       billing_started_on: started,
       account_note: String(fd.get("note") ?? "").trim() || null,
@@ -711,7 +723,35 @@ export async function fixPerson(_prev: Result, fd: FormData): Promise<Result> {
      * is worse than one that quietly leaves the telephone alone.
      */
     if (await hasColumn(db, "artists", "voice_on")) {
-      patch.voice_on = fd.get("voice_on") === "on";
+      /*
+       * And only where the business has been sold it.
+       *
+       * The screen shows this switch only to a business with the Receptionist,
+       * which is the polite half. This is the half that holds: a form is a
+       * suggestion, and this screen can see every business at once, so the
+       * entitlement is read from the database rather than believed from the
+       * post. Without it the switch is left exactly as it was — not forced
+       * off, because unticking somebody's line is a decision and a form that
+       * did not offer the choice has not made one.
+       */
+      const { data: owner } = await db
+        .from("artists")
+        .select("studio_id")
+        .eq("id", id)
+        .maybeSingle();
+
+      const sold =
+        owner?.studio_id && (await hasColumn(db, "studios", "receptionist_allowed"))
+          ? (
+              await db
+                .from("studios")
+                .select("receptionist_allowed")
+                .eq("id", owner.studio_id)
+                .maybeSingle()
+            ).data?.receptionist_allowed === true
+          : false;
+
+      if (sold) patch.voice_on = fd.get("voice_on") === "on";
     }
   }
 

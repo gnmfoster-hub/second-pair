@@ -342,15 +342,26 @@ export default async function ReportsPage({
           </table>
         </div>
         {/*
-          * The receptionist, priced per person.
+          * Calls to somebody's own line, priced per person.
           *
-          * Giles sells it per instance, so the per-business total is not the
+          * Giles sells per instance, so the per-business total is not the
           * number he needs — he needs to know what one person's line cost him
           * this month. Only people with calls appear: a column of noughts for
           * everybody in every diary is a table nobody reads.
+          *
+          * Headed "Receptionist, by person" until now, and it is not that. It
+          * is every call to a person's own line, whatever answered it — which
+          * on a salon where Aisha simply has a number of her own is ordinary
+          * voicemail-response carriage presented as the cost of an add-on she
+          * has not got. The Receptionist is counted beside it, from the
+          * switches that are actually sold.
           */}
         <div className="card p-5">
-          <h2 className="section-title">Receptionist, by person</h2>
+          <h2 className="section-title">Calls to a person&rsquo;s own line</h2>
+          <p className="hint mt-1">
+            Carriage, whatever answered it. Not the Receptionist, which is counted beside
+            this.
+          </p>
           <table className="mt-3 w-full text-sm tabular-nums">
             <thead>
               <tr className="text-left text-xs uppercase text-muted">
@@ -377,6 +388,34 @@ export default async function ReportsPage({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/*
+          * The Receptionist, counted as it is sold.
+          *
+          * From the switches rather than from calls, because that is the thing
+          * being charged for: an instance costs whether it is rung or not, and
+          * pricing it on usage would make a quiet month free. Nothing counts
+          * on a business that has not been sold it, however many switches are
+          * set, which is what makes stopping the add-on one change.
+          *
+          * No cost column, and that is deliberate rather than missing. The
+          * talking agent is not built, so nothing is running and nothing has
+          * been spent — a figure here today would be invented. The carriage
+          * these lines already cost is in the table above.
+          */}
+        <div className="card p-5">
+          <h2 className="section-title">Receptionist</h2>
+          <p className="hint mt-1">Instances switched on, which is what is charged for.</p>
+          <p className="mt-3 text-2xl tabular-nums">{totals.receptionists}</p>
+          <p className="hint mt-2 max-w-prose">
+            {totals.receptionists === 0
+              ? "Nobody is running one yet."
+              : `${totals.receptionists} line${totals.receptionists === 1 ? "" : "s"} switched on, counting each business's own line and each person separately.`}{" "}
+            Not costed here: the agent that does the talking is not built, so nothing has
+            been spent on it and a figure would be made up. What these lines cost to carry
+            is in the table above.
+          </p>
         </div>
 
         <div className="card p-5">

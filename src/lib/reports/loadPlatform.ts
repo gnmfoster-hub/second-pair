@@ -27,7 +27,12 @@ export async function loadPlatformRows(db: SupabaseClient, range: { from: string
   const quarterAgo = new Date(Date.now() - 90 * 86_400_000).toISOString();
 
   const [studios, conversations, messages, bookings, payments, inbound, reminders, forms, calls, members, people, users] = await Promise.all([
-    all((a, b) => db.from("studios").select("id, name, vertical, kind, account_status, plan_pence, created_at, archived_at").range(a, b)),
+    /*
+     * Whole, for the same reason as artists below: receptionist_allowed and
+     * receptionist_on decide what is chargeable, and a named-column query
+     * refuses everything the moment one of them is not there yet.
+     */
+    all((a, b) => db.from("studios").select("*").range(a, b)),
     /*
      * The ones this report can actually say something about.
      *
@@ -87,7 +92,13 @@ export async function loadPlatformRows(db: SupabaseClient, range: { from: string
         .range(a, b),
     ),
     all((a, b) => db.from("studio_members").select("studio_id, user_id").range(a, b)),
-    all((a, b) => db.from("artists").select("id, studio_id, name").range(a, b)),
+    /*
+     * Read whole, because voice_on is what says somebody has a Receptionist
+     * and naming a column PostgREST does not know refuses the entire query —
+     * which would take the names with it and leave every call priced against
+     * a uuid. See the migration: a deploy can land before it is run.
+     */
+    all((a, b) => db.from("artists").select("*").range(a, b)),
     everyUser(db),
   ]);
 

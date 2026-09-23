@@ -136,10 +136,9 @@ export function TextNumber({
           <div className="label">Answering calls is not on this plan</div>
           <p className="hint mt-1 max-w-prose">
             This is a texting number. Somebody who rings it hears that, and is asked to
-            send a text instead. Ringing your own phone first, and letting a caller leave
-            a message, are both part of taking calls, so there is nothing here to set.
-            Ask us if you want it: a call costs real money either way round, so it is
-            priced on its own.
+            send a text instead. Ringing your own phone first, and the voicemail response,
+            are both part of taking calls, so there is nothing here to set. Ask us if you
+            want it: a call costs real money either way round, so it is priced on its own.
           </p>
         </div>
       )}
@@ -174,7 +173,7 @@ export function TextNumber({
               className="mt-0.5 accent-[var(--accent)]"
             />
             <span>
-              Let them leave a message
+              Voicemail response
               <span className="hint block">
                 Instead of only texting &ldquo;what can we do for you?&rdquo;, the caller can
                 say it. We write down what they said, the assistant answers it by text with a

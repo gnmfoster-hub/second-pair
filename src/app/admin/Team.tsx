@@ -32,14 +32,21 @@ export function Team({ b }: { b: BusinessSummary }) {
 
       <div className="mt-4 space-y-3">
         {b.team.map((person) => (
-          <Person key={person.id} person={person} />
+          <Person key={person.id} person={person} receptionistAllowed={b.receptionistAllowed === true} />
         ))}
       </div>
     </details>
   );
 }
 
-function Person({ person }: { person: BusinessSummary["team"][number] }) {
+function Person({
+  person,
+  receptionistAllowed,
+}: {
+  person: BusinessSummary["team"][number];
+  /** Whether this business has been sold it at all. See the account panel. */
+  receptionistAllowed: boolean;
+}) {
   const [state, action] = useActionState<Result, FormData>(fixPerson, {});
 
   return (
@@ -147,8 +154,20 @@ function Person({ person }: { person: BusinessSummary["team"][number] }) {
           <Switch name="owner_managed" label="Owner manages them" on={person.ownerManaged} />
           <Switch name="notify_own_bookings" label="Told about their bookings" on={person.notifyOwnBookings} />
           <Switch name="reminders_own" label="Sends their own reminders" on={person.remindersOwn} />
-          {/* Sold per person, and priced against their name in Reports. */}
-          <Switch name="voice_on" label="Receptionist" on={person.voiceOn === true} />
+          {/*
+            * Sold per person, and only where the business has been sold it.
+            *
+            * Shown as unavailable rather than hidden, because a switch that is
+            * simply missing reads as a thing the product cannot do — and this
+            * is the one it is for sale. Off here does not mean off in the
+            * database: the entitlement is checked wherever it is read, so a
+            * switch left set from before it lapsed cannot keep costing.
+            */}
+          {receptionistAllowed ? (
+            <Switch name="voice_on" label="Receptionist" on={person.voiceOn === true} />
+          ) : (
+            <span className="text-xs text-muted">Receptionist — not sold to this business</span>
+          )}
         </div>
       </div>
 
