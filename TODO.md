@@ -109,8 +109,24 @@ Done, 23 September:
 - The client page layout, and the empty space under the form
 - A picture of the business, for the emails
 - The Receptionist: per person, switchable, and priced per person
+- Terms and privacy naming Second Pair Ltd and company number 17453965 —
+  already done and live on both pages; checked rather than assumed
 
 Open, and roughly in the order I would do them:
+
+0. **Settings: group each person's screen with titles, like the main one, and
+   add a search.** Two of his, and they belong together. The settings rail has
+   groups and a person's own page does not; and with a dozen screens across
+   four groups, "where do I set X" is a question a search answers in a second
+   and a rail answers in four guesses.
+0b. **A message to a client, from the client page** — with a copy kept on the
+   record and templates to start from. He has the shape right: the page
+   already shows what was sent and offers "Send a message", and what is
+   missing is templates and the copy being filed. Note that the copy is
+   already kept for reminders; this is the ad-hoc ones.
+0c. **Clicking a reminder or confirmation on the client page** to read it in
+   full. The timeline shows three lines of what went out; the rest is already
+   stored and simply not reachable.
 
 1. **A receipt at Complete, with an option to email it.** His reasoning is the
    right one: a receipt is a genuine reason somebody hands over an address, and
