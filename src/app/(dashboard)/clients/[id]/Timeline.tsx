@@ -39,6 +39,15 @@ export type TimelineReminder = {
   channel: string | null;
   body: string | null;
   error: string | null;
+  /**
+   * Whether this one is the booking confirmation rather than a reminder.
+   *
+   * A confirmation is a reminder template set to zero hours before — right in
+   * the database and wrong on a screen a business reads. "Reminder sent" under
+   * an appointment made two minutes ago is the kind of thing that makes
+   * somebody doubt what else the page is telling them.
+   */
+  confirmation?: boolean;
 };
 
 /**
@@ -131,13 +140,14 @@ export function Timeline({
                 aria-hidden
               />
               <div className="text-sm">
-                {failed
-                  ? "Reminder failed"
-                  : sent
-                    ? `Reminder sent${r.channel ? ` by ${r.channel}` : ""}`
-                    : skipped
-                      ? "Reminder not sent"
-                      : "Reminder due"}
+                {/* The same four states, named for what this one actually is. */}
+                {(() => {
+                  const what = r.confirmation ? "Confirmation" : "Reminder";
+                  if (failed) return `${what} failed`;
+                  if (sent) return `${what} sent${r.channel ? ` by ${r.channel}` : ""}`;
+                  if (skipped) return `${what} not sent`;
+                  return r.confirmation ? "Confirmation due" : "Reminder due";
+                })()}
               </div>
               <div className="hint num">{when(item.at)}</div>
 

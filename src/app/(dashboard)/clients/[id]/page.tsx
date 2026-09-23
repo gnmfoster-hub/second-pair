@@ -184,13 +184,37 @@ export default async function ClientPage({
   const { data: reminders } = bookings.length
     ? await supabase
         .from("reminders")
-        .select("id, booking_id, due_at, sent_at, status, channel, body, error")
+        .select("id, booking_id, due_at, sent_at, status, channel, body, error, template_id")
         .in(
           "booking_id",
           bookings.map((b) => b.id),
         )
         .order("due_at", { ascending: false })
     : { data: [] };
+
+  /*
+   * Which of those were confirmations rather than reminders.
+   *
+   * A confirmation is a template set to zero hours before — the right shape
+   * for the database and the wrong word on a screen a business reads. Read
+   * whole with select("*") because hours_before is what says so and naming
+   * columns PostgREST does not know refuses the entire query.
+   */
+  const { data: allTemplates } = await supabase
+    .from("reminder_templates")
+    .select("*")
+    .eq("studio_id", studio.id);
+
+  const confirmations = new Set(
+    (allTemplates ?? [])
+      .filter((t) => (t as { hours_before?: number }).hours_before === 0)
+      .map((t) => t.id as string),
+  );
+
+  const timelineReminders = (reminders ?? []).map((r) => ({
+    ...r,
+    confirmation: Boolean(r.template_id && confirmations.has(r.template_id as string)),
+  }));
 
   /*
    * Whether this person can be messaged, and on what.
@@ -524,7 +548,7 @@ export default async function ClientPage({
                   (Date.parse(b.ends_at) - Date.parse(b.starts_at)) / 60000,
                 ),
               }))}
-              reminders={(reminders ?? []) as TimelineReminder[]}
+              reminders={timelineReminders as TimelineReminder[]}
               artists={artists}
               timezone={studio.timezone}
             />
