@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { avatarUrl } from "@/components/Avatar";
 import { formatExactPence } from "@/lib/money";
+import { KeepInTouch } from "./KeepInTouch";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +53,7 @@ export default async function BookingPage({ params }: { params: Promise<{ token:
     ? await db
         .from("bookings")
         .select(
-          "*, artists(name, avatar_path, colour, studio_id), contacts(name)",
+          "*, artists(name, avatar_path, colour, studio_id), contacts(name, email, phone, marketing_email, marketing_sms)",
         )
         .eq("public_token", token)
         .maybeSingle()
@@ -107,7 +108,11 @@ export default async function BookingPage({ params }: { params: Promise<{ token:
   const price = booking.price_pence as number | null;
   const deposit = booking.deposit_amount_pence as number | null;
   const paid = booking.deposit_status === "paid";
-  const customer = (booking.contacts as unknown as { name: string | null } | null)?.name ?? null;
+  const contact = booking.contacts as unknown as
+    | { name: string | null; email?: string | null; phone?: string | null;
+        marketing_email?: boolean | null; marketing_sms?: boolean | null }
+    | null;
+  const customer = contact?.name ?? null;
 
   return (
     <main className="mx-auto max-w-lg px-5 py-10">
@@ -203,6 +208,31 @@ export default async function BookingPage({ params }: { params: Promise<{ token:
           {studio.name as string} directly.
         </p>
       </section>
+
+      {/*
+        * The one ask, at the bottom, under everything they came for.
+        *
+        * Nobody on the platform had opted in to anything, because there was
+        * nowhere to opt in from — so the campaign side had a send button with
+        * nobody behind it. This is the moment somebody is most willing: they
+        * are on a page about their own appointment, having tapped a link in a
+        * message from a business they chose.
+        *
+        * Only where there is a record to attach it to. A booking typed into
+        * the diary with no client attached has nobody to ask.
+        */}
+      {contact && !cancelled && (
+        <KeepInTouch
+          token={token}
+          business={studio.name as string}
+          hasEmail={Boolean(contact.email)}
+          hasPhone={Boolean(contact.phone)}
+          already={{
+            email: contact.marketing_email === true,
+            sms: contact.marketing_sms === true,
+          }}
+        />
+      )}
 
       <p className="hint mt-10 border-t border-border pt-4 text-center text-[11px]">
         Booked with {studio.name as string}, who use Second Pair to answer and keep the diary.
