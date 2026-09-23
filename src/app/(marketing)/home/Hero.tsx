@@ -425,6 +425,22 @@ export function Hero() {
 
     let frame = 0;
     let playing = false;
+    /*
+     * Once per page load, not once per glance.
+     *
+     * This used to start again every time the phone came back on screen, which
+     * was meant to fix a demo that looked stopped. It was not the fix — that
+     * was a rest-point bug of mine — and it created a worse problem: any
+     * scroll restarts the run, the script takes the hand back for another
+     * twenty-four seconds, and the finger stops following the mouse. Giles saw
+     * exactly that: the pointer does not follow after the demo finishes.
+     *
+     * So it plays when it is first properly seen and then stays finished, and
+     * the hand belongs to the visitor from there. Play it again is a button,
+     * right underneath it, which is the honest place for a decision to watch
+     * something a second time.
+     */
+    let everStarted = false;
 
     /*
      * Two thresholds with a wide gap between them, not one.
@@ -451,20 +467,27 @@ export function Hero() {
         /* The last one is the current state; a burst can deliver several. */
         const ratio = entries[entries.length - 1].intersectionRatio;
 
-        if (!playing && ratio >= START_AT) {
+        if (!playing && !everStarted && ratio >= START_AT) {
           playing = true;
+          everStarted = true;
           /* After paint: begin() resets several pieces of state and doing that
              synchronously is a second render before the first has been seen. */
           frame = window.requestAnimationFrame(begin);
           return;
         }
 
-        /* Properly gone. Stop it, so coming back starts from the top rather
-           than resuming into the middle of a sentence. */
+        /*
+         * Scrolled away while it was still running. Stop the timers rather
+         * than let a demo nobody can see play itself out — but it does not
+         * start again, so the hand is the visitor's when they come back.
+         */
         if (playing && ratio <= STOP_AT) {
           playing = false;
           window.cancelAnimationFrame(frame);
           clearAll();
+          /* Wherever it got to is where it stopped, and that is "done" as far
+             as the hand is concerned: the visitor can have it now. */
+          setStage(S.DONE);
         }
       },
       { threshold: [0, STOP_AT, START_AT, 1] },
@@ -1375,7 +1398,21 @@ export function Hero() {
             * reference has the same stacking deliberately: hand 5, diary 8,
             * phone 10.
             */}
-          <div className="relative z-10 flex min-w-0 flex-col gap-2 lg:flex-1 lg:self-stretch">
+          {/*
+            * As tall as the week it is showing, not as tall as the phone.
+            *
+            * self-stretch made this match the phone beside it, and six rows
+            * do not fill a phone — so on a laptop there were two hundred and
+            * fifty empty pixels between the last appointment and the line
+            * underneath. Giles: the diary is half empty and there is a lot of
+            * wasted space.
+            *
+            * Two panels of different heights side by side is what a real
+            * week looks like; a panel padded out to match its neighbour is
+            * what an empty diary looks like, which is the opposite of the
+            * thing this is meant to be showing.
+            */}
+          <div className="relative z-10 flex min-w-0 flex-col gap-2 lg:flex-1 lg:self-start">
           {/* --------------------------------------------------- the diary */}
           <div
             ref={diaryRef}
@@ -1390,7 +1427,7 @@ export function Hero() {
               * solid cobalt fills on the booked rows, none of which the product
               * does anywhere.
               */
-            className="flex flex-col p-3 lg:flex-1"
+            className="flex flex-col p-3"
             style={{
               background: "var(--surface)",
               border: "1px solid var(--border)",
@@ -1532,7 +1569,20 @@ export function Hero() {
           * together, and hung off the left edge it looked like it belonged to
           * the phone alone.
           */}
-        <div className="relative z-10 mt-4 flex flex-wrap items-center justify-center gap-2 lg:mt-6">
+        {/* Above the hand. The holding artwork runs down past the phone and
+            was covering "Show me a" and the first chip with a wrist. */}
+        {/*
+          * Room for the hand to rest above them.
+          *
+          * The finger settles pointing up at the ask box, which puts a 142px
+          * hand in the space under the phone — and at lg:mt-6 that space was
+          * 24px, so it lay across "Show me a" and the first chip. The gap is
+          * the finger's height now.
+          *
+          * This costs less than it just gave back: the diary no longer
+          * stretches to the phone, which freed about 250px of nothing.
+          */}
+        <div className="relative z-30 mt-4 flex flex-wrap items-center justify-center gap-2 lg:mt-28">
         <span className="text-[13px] uppercase tracking-[0.06em]">Show me a</span>
         {TRADES.map((t) => (
           <button

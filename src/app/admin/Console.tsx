@@ -17,6 +17,7 @@ import {
   fixChannel, assignNumber, setForwarding, switchLine,
   answerTicket,
   setKind,
+  setMarketing,
   snoozeAttention,
   archiveBusiness,
   markTold,
@@ -775,6 +776,7 @@ function Stat({ label, value, warn }: { label: string; value: number | string; w
 
 function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
   const [kind, kindAction] = useActionState<Result, FormData>(setKind, {});
+  const [mktg, mktgAction] = useActionState<Result, FormData>(setMarketing, {});
   const [demo, demoAction] = useActionState<Result, FormData>(openDemo, {});
   const [rebuilt, rebuildAction] = useActionState<Result, FormData>(rebuildDemo, {});
   const [reset, resetAction] = useActionState<Result, FormData>(resetLink, {});
@@ -935,6 +937,44 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
         {kind.note && <span className="hint">{kind.note}</span>}
         {kind.error && <span className="text-sm text-warn">{kind.error}</span>}
       </form>
+
+      {/*
+        * What they are buying, which is not what their customers have agreed
+        * to.
+        *
+        * Two switches rather than one because texts cost per message and email
+        * costs almost nothing, so they are sold separately — a business paying
+        * for email campaigns should not quietly acquire the ability to send a
+        * thousand texts.
+        *
+        * Neither of these gives anybody permission to write to anybody.
+        * Consent is a separate and stricter test on each person, and
+        * mayMarket() requires both. Said on the screen too, because this is
+        * the one place somebody could believe otherwise.
+        */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="label mb-0">Marketing</span>
+        {([
+          ["email", "Email", b.marketing_email_on === true],
+          ["sms", "Text", b.marketing_sms_on === true],
+        ] as const).map(([channel, label, on]) => (
+          /* One form each, because one hidden field cannot carry two
+             independent switches and a button submits a single pair. */
+          <form key={channel} action={mktgAction}>
+            <input type="hidden" name="id" value={b.id} />
+            <input type="hidden" name="channel" value={channel} />
+            <input type="hidden" name="on" value={on ? "0" : "1"} />
+            <button
+              className={`pill ${on ? "bg-accent text-on-accent" : "bg-surface-2 text-muted"}`}
+            >
+              {label} {on ? "on" : "off"}
+            </button>
+          </form>
+        ))}
+        <span className="hint">Only reaches people who have opted in.</span>
+        {mktg.note && <span className="hint">{mktg.note}</span>}
+        {mktg.error && <span className="text-sm text-warn">{mktg.error}</span>}
+      </div>
 
       {/*
         * The commercial arrangement, which exists nowhere else.

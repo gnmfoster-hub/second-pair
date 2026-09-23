@@ -67,6 +67,16 @@ export type BusinessSummary = {
   archivedAt: string | null;
   /** Inferred problems stay out of the attention panel until this date. */
   snoozedUntil: string | null;
+  /**
+   * Which marketing channels we have switched on for them, and so are charging
+   * for. Optional, because the column arrives with a migration and an absent
+   * entitlement must read as off — see marketingPlan.ts.
+   *
+   * Not consent. These say the business may run campaigns; whether a
+   * particular person may be written to is a separate and stricter test.
+   */
+  marketing_email_on?: boolean | null;
+  marketing_sms_on?: boolean | null;
   createdAt: string;
   owners: { email: string | null; userId: string }[];
   /**

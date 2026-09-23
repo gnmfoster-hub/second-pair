@@ -292,6 +292,31 @@ export default async function AdminPage() {
    * wrote crosses the wire — which is the whole point of this screen and worth
    * the extra queries.
    */
+  /*
+   * Which businesses have bought marketing, asked for on its own.
+   *
+   * Deliberately not added to the long select above. PostgREST refuses an
+   * entire query for one column it does not know, and this deploy lands before
+   * the migration does — so naming these there would take the whole back
+   * office down until the SQL was run, which is the trap this codebase has
+   * fallen into more than once.
+   *
+   * Asked separately, the failure is contained: the query errors, the map is
+   * empty, every business reads as not switched on, and the page is otherwise
+   * untouched. It starts answering properly the moment the migration lands,
+   * with no deploy.
+   */
+  const { data: entitlements } = await db
+    .from("studios")
+    .select("id, marketing_email_on, marketing_sms_on");
+
+  const bought = new Map<string, { email: boolean; sms: boolean }>(
+    (entitlements ?? []).map((e) => [
+      e.id as string,
+      { email: e.marketing_email_on === true, sms: e.marketing_sms_on === true },
+    ]),
+  );
+
   const summaries: BusinessSummary[] = await Promise.all(
     (studios ?? []).map(async (s) => {
       /*
@@ -396,6 +421,9 @@ export default async function AdminPage() {
         kind: (s.kind ?? "customer") as BusinessSummary["kind"],
         archivedAt: s.archived_at ?? null,
         snoozedUntil: s.attention_snoozed_until ?? null,
+        /* Read separately, and off until the migration runs. See `bought`. */
+        marketing_email_on: bought.get(s.id)?.email ?? false,
+        marketing_sms_on: bought.get(s.id)?.sms ?? false,
         createdAt: s.created_at,
         owners: (members ?? [])
           .filter((m) => m.studio_id === s.id)

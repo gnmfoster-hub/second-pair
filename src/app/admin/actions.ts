@@ -1346,3 +1346,57 @@ export async function markTold(_prev: Result, fd: FormData): Promise<Result> {
   revalidatePath("/admin");
   return { ok: true, note: `${ids.length} marked as written to.` };
 }
+
+/**
+ * Switching marketing on for a business, per channel.
+ *
+ * Giles: an option for email and text marketing, with the ability to turn it
+ * on and off for all in the back end, so it can be charged for — text
+ * marketing especially, because it costs per message.
+ *
+ * Ours to set rather than the business's, which is why it is here and not on
+ * a settings screen. A business can already decide who it writes to and what
+ * it says; this decides whether it is buying the feature at all. Same
+ * reasoning as the Stripe Connect key having no box in the app.
+ *
+ * Switching this on gives nobody permission to write to anybody. Consent is a
+ * separate and stricter test on each person, and mayMarket() requires both —
+ * see marketingPlan.ts, which is deliberately the only way to ask.
+ *
+ * Guarded by hasColumn so it says something useful before the migration runs
+ * rather than failing with a column name.
+ */
+export async function setMarketing(_prev: Result, fd: FormData): Promise<Result> {
+  const denied = await guard();
+  if (denied) return denied;
+
+  const id = String(fd.get("id") ?? "");
+  const channel = String(fd.get("channel") ?? "");
+  const on = String(fd.get("on") ?? "") === "1";
+
+  if (!id) return { error: "No business." };
+  if (channel !== "email" && channel !== "sms") return { error: "Unknown channel." };
+
+  const column = channel === "email" ? "marketing_email_on" : "marketing_sms_on";
+
+  const db = createAdminClient();
+
+  if (!(await hasColumn(db, "studios", column))) {
+    return {
+      error:
+        "Marketing is not switched on in the database yet — run " +
+        "20260923090000_marketing_entitlement.sql first.",
+    };
+  }
+
+  const { error } = await db.from("studios").update({ [column]: on }).eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin");
+  return {
+    ok: true,
+    note: on
+      ? `${channel === "email" ? "Email" : "Text"} marketing is on. They still only reach people who have opted in.`
+      : `${channel === "email" ? "Email" : "Text"} marketing is off.`,
+  };
+}
