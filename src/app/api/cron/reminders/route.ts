@@ -15,6 +15,7 @@ import { askForReviews } from "@/lib/askForReviews";
 import { sayWhatsDue } from "@/lib/sayWhatsDue";
 import { meterThisMonth } from "@/lib/meter";
 import { noteRun, sendMorningEmail } from "@/lib/morningEmail";
+import { sendCampaigns } from "@/lib/sendCampaigns";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -230,6 +231,22 @@ export async function GET(request: NextRequest) {
    * Neither can fail the sweep. Somebody's reminder is more important than
    * being told about it.
    */
+  /*
+   * Campaigns, last of the sending and never able to fail the run.
+   *
+   * Somebody's reminder is worth more than somebody's offer, and an offer that
+   * misses a day is worth nothing beside a reminder that does. sendCampaigns
+   * swallows its own failures for the same reason.
+   */
+  const campaigns = { sent: 0, skipped: 0, failed: 0 };
+  for (const studio of (studios ?? []) as Studio[]) {
+    if (studio.archived_at) continue;
+    const out = await sendCampaigns(db, studio, await siteOrigin(), new Date());
+    campaigns.sent += out.sent;
+    campaigns.skipped += out.skipped;
+    campaigns.failed += out.failed;
+  }
+
   const sweepRuns = await noteRun(db, new Date());
   const morning = await sendMorningEmail(db, await siteOrigin(), sweepRuns, new Date());
 
@@ -303,6 +320,7 @@ export async function GET(request: NextRequest) {
     reviews,
     dues,
     backup: { ...backup, newest, lastAttempt: await lastAttempt(db) },
+    campaigns,
     sweep: sweepRuns,
     morning,
     working,

@@ -3,6 +3,8 @@ import { requireOwner } from "@/lib/studio";
 import { createClient } from "@/lib/supabase/server";
 import { wordsFor } from "@/lib/words";
 import { channelsOn, reachable, type MarketingBusiness } from "@/lib/marketingPlan";
+import { avatarUrl } from "@/components/Avatar";
+import { CampaignEditor, type CampaignRow } from "./CampaignEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +49,32 @@ export default async function MarketingSettingsPage() {
   const byEmail = reachable(business, everyone, "email");
   const byText = reachable(business, everyone, "sms");
   const withEmail = everyone.filter((p) => p.email).length;
+
+  const picture = avatarUrl((studio as unknown as { photo_path?: string | null }).photo_path);
+
+  /*
+   * The jobs this business does, so the audience is chosen rather than typed.
+   * Campaigns match on the booking's title, which is copied from the service
+   * name — so a near miss reaches nobody and must not be possible to type.
+   */
+  const { data: services } = await supabase
+    .from("services")
+    .select("name")
+    .eq("studio_id", studio.id)
+    .eq("active", true)
+    .order("name");
+  const jobs = [...new Set((services ?? []).map((s) => s.name as string))];
+
+  /*
+   * The table arrives with a migration; until then there are no campaigns and
+   * the editors below simply have none to list.
+   */
+  const { data: rows } = await supabase
+    .from("campaigns")
+    .select("*")
+    .eq("studio_id", studio.id)
+    .order("created_at");
+  const campaigns = (rows ?? []) as unknown as CampaignRow[];
 
   const customers = words.customers.toLowerCase();
 
@@ -124,14 +152,37 @@ export default async function MarketingSettingsPage() {
         </div>
       )}
 
-      <div className="card space-y-2 p-5">
-        <div className="section-title">Campaigns</div>
-        <p className="hint max-w-prose">
-          Sending a message to everybody who had a particular service, so long after they had
-          it, from a template you can edit — and one-off offers. Being built now. This page
-          will do it from here.
-        </p>
-      </div>
+      {on.length > 0 && (
+        <>
+          <div className="pt-2">
+            <div className="section-title">Campaigns</div>
+            <p className="hint mt-1 max-w-prose">
+              A message that follows a job: six weeks after a colour, ask if they want
+              another. It runs itself, and only ever reaches people who have said yes.
+            </p>
+          </div>
+
+          {campaigns.map((c) => (
+            <CampaignEditor
+              key={c.id}
+              campaign={c}
+              business={studio.name}
+              jobs={jobs}
+              channels={on}
+              photoUrl={picture}
+              reach={{ email: byEmail, sms: byText }}
+            />
+          ))}
+
+          <CampaignEditor
+            business={studio.name}
+            jobs={jobs}
+            channels={on}
+            photoUrl={picture}
+            reach={{ email: byEmail, sms: byText }}
+          />
+        </>
+      )}
     </div>
   );
 }
