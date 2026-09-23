@@ -185,6 +185,18 @@ checked and the whole is not.
 
 ### 0. Switch the nightly backup on (5 minutes)
 
+> **23 Sep: why it stopped, and it was not the backup.** Two nights with no
+> file. Every part of the backup works — key set, all fifteen tables read,
+> bucket lists, 732KB upload succeeds. What failed was when it was allowed to
+> try: it only ran on a sweep landing between 2am and 5am, and
+> `sweep-runs.json` (48 hours of every run) held five runs with gaps of five
+> and seven and a half hours. GitHub throttles "every five minutes" to every
+> few hours, so a three-hour window is missed more often than hit — and
+> Vercel's reliable daily cron runs at seven, outside it. The window is now a
+> floor: from 2am onwards, taken in the morning rather than not at all. Same
+> throttling is why reminders have been late.
+
+
 Built, tested against the live database — 726 rows, 514 KB sealed, read back
 whole, refused with the wrong key — and waiting for a passphrase.
 
