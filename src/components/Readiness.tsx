@@ -109,11 +109,34 @@ export function Readiness({ capabilities }: { capabilities: Capability[] }) {
             * cannot do it is worse than no button: it spends the one trip
             * they were going to make.
             */}
-          {next.action && (
-            <Link href={next.href} className="btn mt-3 inline-flex bg-accent text-on-accent">
-              {next.action}
-            </Link>
-          )}
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            {next.action && (
+              <Link href={next.href} className="btn inline-flex bg-accent text-on-accent">
+                {next.action}
+              </Link>
+            )}
+
+            {/*
+              * The other answer, here too.
+              *
+              * This was only on the maintenance rows, and those are hidden
+              * while a business is still being set up — which is exactly when
+              * somebody is looking at this card and being told their
+              * consultation time is too short. The one place it was needed was
+              * the one place it was missing.
+              */}
+            {!next.blocking && (
+              <form action={dismissCheck}>
+                <input type="hidden" name="key" value={next.key} />
+                <button
+                  type="submit"
+                  className="text-sm text-muted underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  That&rsquo;s fine as it is
+                </button>
+              </form>
+            )}
+          </div>
         </div>
       )}
 
