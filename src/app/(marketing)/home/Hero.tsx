@@ -268,6 +268,40 @@ export function Hero() {
       } catch {
         /* Nothing to do: it simply will not be remembered. */
       }
+
+      /*
+       * The audio is made here, in the click, and that is the whole fix.
+       *
+       * Giles: it says sound on and off and there is no sound. It was true,
+       * and the reason is a rule every browser enforces: an AudioContext
+       * created outside a user gesture is born suspended, and a suspended
+       * context plays nothing. It was being created lazily inside blip(),
+       * which is called from the demo's timers — so it was always made by a
+       * setTimeout and never by a person, and every note since this was
+       * written has gone into a context that was never running.
+       *
+       * Nothing threw and nothing logged. The toggle said "Sound on" and the
+       * page stayed silent, which is exactly the shape of bug that survives.
+       *
+       * Creating it in the handler is what makes it allowed. resume() as well,
+       * because a context can also be suspended later — Safari does it when a
+       * tab is backgrounded — and coming back to a silent page would look like
+       * the same fault all over again.
+       */
+      if (next) {
+        try {
+          const AC =
+            window.AudioContext ??
+            (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+          if (AC) {
+            audio.current = audio.current ?? new AC();
+            void audio.current.resume();
+          }
+        } catch {
+          /* Audio is a nicety. Never let it break the page. */
+        }
+      }
+
       return next;
     });
   }, []);
@@ -281,15 +315,31 @@ export function Hero() {
         if (!AC) return;
         audio.current = audio.current ?? new AC();
         const ctx = audio.current;
+
+        /*
+         * A context can be suspended after it was running — a backgrounded
+         * tab, a device waking up. Resuming is cheap and returns a promise
+         * nothing here waits on: this note is lost either way, and the next
+         * one is what matters.
+         */
+        if (ctx.state === "suspended") void ctx.resume();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = "sine";
         osc.frequency.value = st === S.LANDED_1 || st === S.LANDED_2 ? 320 : 880;
-        gain.gain.value = 0.08;
+        /*
+         * Faded rather than cut. A gain that stops dead puts a step in the
+         * waveform, which is heard as a click — the note is 60ms, so the
+         * click is a fair share of what somebody actually hears.
+         */
+        const now = ctx.currentTime;
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.08, now + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
         osc.connect(gain);
         gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.06);
+        osc.start(now);
+        osc.stop(now + 0.07);
       } catch {
         /* Audio is a nicety. Never let it break the page. */
       }
