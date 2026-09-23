@@ -10,7 +10,7 @@ Two lists. Yours is first — accounts, DNS, decisions, things only you can do.
 Mine is at the bottom. They are separate on purpose: the last version mixed them
 up and it was impossible to tell what was blocking what.
 
-Last updated: 16 September 2026, after the overnight review of the whole site.
+Last updated: 23 September 2026, after a long day on messages to customers.
 
 ---
 
@@ -77,6 +77,29 @@ than breaking.
 
 Everything here is something I cannot do from this side. Roughly in the order
 it is holding something up.
+
+### New, 23 September
+
+**Set PLATFORM_ALERT_EMAIL in Vercel — two minutes.** The morning check email
+is live and sent its first one. Without that variable it falls back to
+EMAIL_FROM, which is the company address rather than yours, so you would never
+see it. Put your own address in.
+
+**One migration waiting:** `20260923220000_campaigns.sql`. Until it runs the
+marketing screen offers campaigns and the save says so in words rather than
+failing with a table name. Everything else from today is run and checked.
+
+**A decision: "Handled".** You asked whether to rename the Second Pair system
+to "Handled by Second Pair". My view is to keep the name and use the word as
+the line on that page instead — it is a good word and it describes the outcome
+rather than the thing, so it reads awkwardly wherever a name has to work
+("Settings → Handled by Second Pair", "your Handled by Second Pair account").
+As a headline on /system it costs nothing and gets the whole feeling. Your
+call; one pass changes it everywhere.
+
+**And the thing worth two minutes of your time above all:** add a confirmation
+on a demo, book something into the diary, and watch it arrive. Every piece is
+checked and the whole is not.
 
 ### 0. Switch the nightly backup on (5 minutes)
 
@@ -662,94 +685,92 @@ feeds (the database still prevents any double-booking).
 - **The settings menu on a phone** is the same sheet as the account corner and
   the public site's, instead of the browser's grey dropdown.
 
+## Done on 23 September
+
+A long run on one theme: what a customer actually receives, and who is allowed
+to send it.
+
+**The booking page.** /b/<token> shows a customer their own appointment — when,
+what, with whom, what it comes to, what a deposit has covered, the business's
+cancellation policy in their own words, and a button that puts it in their
+calendar. No account and no sign-in wall in front of somebody who only wants to
+check what time they said. The business is the brand: their name and picture at
+the top, Second Pair once at the bottom in small grey.
+
+**A picture of the business.** Everybody in the diary has had a photograph
+since August and the business itself had none. One box for "a photo or your
+logo", on the business settings page.
+
+**The email has a look.** Everything we sent was plain text. buildEmail is one
+function used by the sender and by the preview, so what an owner is shown is
+what leaves. Tables and inline styles, because email clients are not browsers.
+
+**You can see what goes out.** Every template — confirmations, reminders,
+review requests, campaigns — has a "How it lands" toggle: as a text, as an
+email. Both rendered by the code that sends them. The text half shows what a
+text actually carries, cut to one message where it would otherwise bill as two.
+
+**The link goes out with the message.** An email gets a button whether or not
+the business asked; a text only carries it if they write {{link}}, because
+every character past 160 costs them money and appending a URL nobody wrote
+changes the words they chose.
+
+**Review requests are theirs to write.** They were composed in code with only
+the link configurable, so every business sent the identical sentence.
+
+**Settings are grouped by what they are.** "Messages you send" holds
+confirmations and reminders, review requests and marketing. Review requests
+came out of the business page, where they were two fields among three dozen and
+could not be found.
+
+**Marketing, end to end.** An entitlement we switch on per channel from the
+back office and charge for — texts cost per message, email does not, so they
+are sold separately. Consent stays a separate and stricter test on each person.
+Somewhere for a customer to say yes, on their own booking page, which asks for
+an email address at the same time. And campaigns: a message that follows a job,
+six weeks after a colour, running itself.
+
+**A morning email.** Once a day from six, whether or not anything is wrong,
+saying what was checked and what is broken. Plus the backup recording every
+attempt, and the sweep recording that it ran.
+
+**Fixes:** the hand flickering on a phone (two causes, both mine); the demo
+replaying and stealing the pointer; the diary stretched half-empty on a laptop;
+the ask box cut off behind Send; a logo that was two thirds of every page's
+weight; Karen being told "whoever runs the business decides that" when she is
+whoever runs it; and the consultation warning that could not be answered.
+
 ## Next, in the order I would do them
 
-### 1. What a customer actually receives
+### 1. Which channel a message goes out on
 
-Giles, 23 September: the outgoing things — confirmations, reminders, review
-requests — need to look and read like a company that has thought about it.
-The better ones send a short text with a link to a proper page rather than
-cramming everything into 160 characters.
+Giles, 23 September: can the settings on all communications be email first then
+text if email is not available, both if we have the details, with the option to
+turn one or the other off.
 
-He showed me one: Fresha's, for Pure Nails and Aesthetics in Newton Abbot.
-Read properly rather than admired, because most of what makes it good is
-decisions rather than decoration.
+Today the channel is whichever one the customer came in on, falling back to
+whatever is open. That is right for a reply and arguably wrong for a
+confirmation: email costs nothing and carries the whole message and a link,
+a text costs money and carries a sentence.
 
-**What it does, in the order it does it**
+Not started. It wants a per-business setting and a change to routesFor, which
+is the function every outgoing message goes through — so it wants care and a
+test rather than a quick edit.
 
-1. Subject line carries the fact: "Please confirm your appointment on Fri,
-   Sep 25 at 3:00 PM". Readable from a lock screen without opening it.
-2. "Hi Kaz, please confirm your appointment" — first name, and the ask.
-3. The consequence immediately underneath: "Unconfirmed appointments may be
-   cancelled by Pure Nails and Aesthetics."
-4. Venue row: small photograph of the salon, name, address.
-5. Date row: a calendar icon showing 25, "Friday, September 25 at 3:00 PM",
-   then "BIAB ~ Kayleigh / Francesca" — the service and who it is with.
-6. Two buttons: Confirm appointment (solid), Manage appointment (outline).
-7. Appointment details: line item with price and duration, a Total, and a
-   booking reference.
-8. The same Confirm button again, after the detail.
-9. Location, with the photograph again and a Venue details link.
-10. Cancellation policy, with the actual amounts in bold: £25 late, £50 no-show.
-11. "Important info" — the salon's own words, passed through verbatim,
-    star decorations and all.
-12. Why you received it, and a small "Powered by Fresha".
+### 2. Prove a confirmation end to end
 
-**What is worth taking**
+Every part is checked and the whole is not: add a confirmation on a demo, book
+something, watch it arrive. Quickest done by you, in two minutes.
 
-- **The business is the brand and the platform is a footer.** It is from Pure
-  Nails and Aesthetics; Fresha appears once, small, at the bottom. That is
-  exactly the relationship we want, and the opposite of what a plain text
-  email from us currently implies.
-- **The subject line is the message** for anybody who does not open it.
-- **Money is explicit**: line item, total, and the cancellation charges as
-  real numbers rather than "fees may apply".
-- **The owner's own voice is not sanitised.** Their cancellation policy is
-  reproduced as they wrote it. We already hold cancellation_policy per
-  business and should do the same.
-- **The photograph.** One small image of the place does more for confidence
-  than a paragraph, and costs nothing.
-- **Two levels of action**: the thing to do, and the way to change it.
+### 3. The backup
 
-**What it gets wrong, and we should not copy**
+Still the one thing I cannot explain. It has produced nothing since 21
+September. Every component works when tested, the key is set, and the job ran
+inside the window on each of the last three nights. From now on last-attempt.json
+records what happened and the morning email carries it — so the next failure
+explains itself.
 
-- The amber "Action required" pill sits *underneath* the buttons, so the
-  urgency arrives after the decision.
-- The address appears twice, in full, within one screen.
-- The app download is Fresha's growth rather than the salon's, and it takes
-  more room than the cancellation policy.
-
-**What we would need**
-
-- A booking page on a token URL — the pattern exists twice already, at
-  /f/<token> for forms and /prefs/<token> for preferences — showing what was
-  booked, when, with whom, what it comes to, the business's own policy, and
-  what to do about it: add to calendar, ask a question, request a change.
-- A real email template with the business as sender and us in the footer.
-  Everything in it we already hold.
-- The text reduced to a sentence and that link. forOneText already cuts long
-  messages between sentences, so the plumbing is there.
-
-Not started. Worth doing once confirmations have settled, and worth doing in
-that order: the page first, because the email and the text are both just ways
-of pointing at it.
-
-
-### 1. Saying an appointment has moved
-
-A confirmation goes once, on purpose — dragging somebody across the diary must
-not thank them for booking a second time. But a moved appointment does want
-saying, and it is a different message with different words. Small, and the
-wording is the part worth agreeing with you first.
-
-### 4. Backups, automatically
-
-Today it is one command you run yourself. Options, cheapest first: a nightly
-job writing an encrypted file to storage; the same plus a copy somewhere off
-this platform; or manual with a reminder. The middle one is what I would do,
-and the decision is yours because it costs money.
-
-### 5. Meta channels
+### 4. Meta channels
 
 When the app is through review. Nothing to build until then.
 
