@@ -48,7 +48,39 @@ export type TimelineReminder = {
    * somebody doubt what else the page is telling them.
    */
   confirmation?: boolean;
+  /**
+   * Which of their templates wrote it, by the name they gave it.
+   *
+   * So "this one went out wrong" leads to the setting that says so. Null where
+   * the template has since been deleted, which the column allows on purpose —
+   * the record of what was sent outlives the thing that composed it.
+   */
+  template_label?: string | null;
 };
+
+/**
+ * How long after it was due it actually went.
+ *
+ * Worth saying out loud on the record, because it is rarely nothing. The sweep
+ * that sends these is driven by a schedule GitHub throttles to every few
+ * hours, so a reminder due at nine can go at eleven — and the person it
+ * answers is the customer saying "this arrived at a funny time", which nobody
+ * could check before.
+ *
+ * Silent under a quarter of an hour: a reminder is due within a window rather
+ * than to the second, and a line reading "3 minutes later than due" on every
+ * row is noise on every row.
+ */
+function lateness(due: string, sent: string | null): string {
+  if (!sent) return "";
+  const minutes = Math.round((Date.parse(sent) - Date.parse(due)) / 60_000);
+  if (!Number.isFinite(minutes) || minutes < 15) return "";
+  if (minutes < 90) return `${minutes} minutes after it was due`;
+
+  const hours = Math.round(minutes / 60);
+  if (hours < 36) return `${hours} hours after it was due`;
+  return `${Math.round(hours / 24)} days after it was due`;
+}
 
 /**
  * How long it ran, said only when it is worth saying.
@@ -131,6 +163,21 @@ export function Timeline({
           const skipped = r.status === "skipped";
           const sent = Boolean(r.sent_at);
 
+          /*
+           * Every channel it went on, and which of them the wording below is.
+           *
+           * A reminder sent on both is one row with "email, sms" in the
+           * channel column and one body — the first channel's. The wordings
+           * differ: an email carries the whole message and a text is cut to
+           * one. Showing one under a heading that names two reads as though
+           * both said this, so it says which one it is.
+           */
+          const channels = (r.channel ?? "")
+            .split(",")
+            .map((c) => c.trim())
+            .filter(Boolean);
+          const late = lateness(r.due_at, r.sent_at);
+
           return (
             <li key={`r-${r.id}`} className="relative">
               <span
@@ -139,29 +186,102 @@ export function Timeline({
                 }`}
                 aria-hidden
               />
-              <div className="text-sm">
-                {/* The same four states, named for what this one actually is. */}
-                {(() => {
-                  const what = r.confirmation ? "Confirmation" : "Reminder";
-                  if (failed) return `${what} failed`;
-                  if (sent) return `${what} sent${r.channel ? ` by ${r.channel}` : ""}`;
-                  if (skipped) return `${what} not sent`;
-                  return r.confirmation ? "Confirmation due" : "Reminder due";
-                })()}
-              </div>
-              <div className="hint num">{when(item.at)}</div>
 
-              {/* What actually went out, not what the template says now. */}
-              {r.body && (
-                <p className="mt-1 line-clamp-3 rounded-lg bg-surface-2/60 px-2.5 py-1.5 text-xs leading-relaxed text-muted">
-                  {r.body}
-                </p>
-              )}
-              {/* Red only when something actually went wrong; a reason why one
-                  was not sent is a note, not an alarm. */}
-              {r.error && (
-                <p className={`mt-1 text-xs ${failed ? "text-bad" : "text-muted"}`}>{r.error}</p>
-              )}
+              {/*
+                * Open it and read the whole thing.
+                *
+                * Giles: when the reminders are captured on the client page, can
+                * they be clicked on and looked at if required. They could not —
+                * the wording was cut to three lines with no way to see the rest,
+                * and everything else about the send was in columns this page
+                * read and never showed.
+                *
+                * A details rather than a dialog: it is a record, not a task, and
+                * the answer to "what did they actually get" should be one click
+                * away on the page you are already reading rather than a screen
+                * you have to come back from. No JavaScript either, so it works
+                * the same on a phone with a bad signal.
+                */}
+              <details className="group">
+                <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  <div className="text-sm">
+                    {/* The same four states, named for what this one actually is. */}
+                    {(() => {
+                      const what = r.confirmation ? "Confirmation" : "Reminder";
+                      if (failed) return `${what} failed`;
+                      if (sent) return `${what} sent${r.channel ? ` by ${r.channel}` : ""}`;
+                      if (skipped) return `${what} not sent`;
+                      return r.confirmation ? "Confirmation due" : "Reminder due";
+                    })()}
+                    <span className="hint ml-1.5 group-open:hidden">· read it</span>
+                  </div>
+                  <div className="hint num">{when(item.at)}</div>
+
+                  {/* What actually went out, not what the template says now. */}
+                  {r.body && (
+                    <p className="mt-1 line-clamp-3 rounded-lg bg-surface-2/60 px-2.5 py-1.5 text-xs leading-relaxed text-muted group-open:hidden">
+                      {r.body}
+                    </p>
+                  )}
+                </summary>
+
+                <div className="mt-1.5 space-y-2 rounded-lg bg-surface-2/60 px-2.5 py-2">
+                  {r.body ? (
+                    <p className="whitespace-pre-wrap text-xs leading-relaxed text-foreground">
+                      {r.body}
+                    </p>
+                  ) : (
+                    <p className="hint text-xs">
+                      Nothing was composed for this one, so there is no wording to show.
+                    </p>
+                  )}
+
+                  {/* A hairline, because the wording and the facts about it ran
+                      together as one block of text and read as one thing. */}
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 border-t border-border/60 pt-2 text-xs text-muted">
+                    <dt>Due</dt>
+                    <dd className="num text-foreground">{when(r.due_at)}</dd>
+
+                    {r.sent_at && (
+                      <>
+                        <dt>Sent</dt>
+                        <dd className="num text-foreground">
+                          {when(r.sent_at)}
+                          {late && <span className="text-muted"> · {late}</span>}
+                        </dd>
+                      </>
+                    )}
+
+                    {channels.length > 0 && (
+                      <>
+                        <dt>{channels.length > 1 ? "Went on" : "Went by"}</dt>
+                        <dd className="text-foreground">
+                          {channels.join(", ")}
+                          {channels.length > 1 && (
+                            <span className="text-muted">
+                              {" "}
+                              · the wording above is the {channels[0]} one
+                            </span>
+                          )}
+                        </dd>
+                      </>
+                    )}
+
+                    {r.template_label && (
+                      <>
+                        <dt>From</dt>
+                        <dd className="text-foreground">{r.template_label}</dd>
+                      </>
+                    )}
+                  </dl>
+
+                  {/* Red only when something actually went wrong; a reason why
+                      one was not sent is a note, not an alarm. */}
+                  {r.error && (
+                    <p className={`text-xs ${failed ? "text-bad" : "text-muted"}`}>{r.error}</p>
+                  )}
+                </div>
+              </details>
             </li>
           );
         }

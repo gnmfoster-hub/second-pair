@@ -211,9 +211,20 @@ export default async function ClientPage({
       .map((t) => t.id as string),
   );
 
+  /*
+   * And what each template is called, so an opened reminder can say which of
+   * their settings wrote it. A template that has since been deleted leaves the
+   * reminder behind with nothing to name — the column is nullable on purpose,
+   * because the record of what was sent outlives the thing that composed it.
+   */
+  const templateLabels = new Map(
+    (allTemplates ?? []).map((t) => [t.id as string, (t as { label?: string }).label ?? null]),
+  );
+
   const timelineReminders = (reminders ?? []).map((r) => ({
     ...r,
     confirmation: Boolean(r.template_id && confirmations.has(r.template_id as string)),
+    template_label: r.template_id ? (templateLabels.get(r.template_id as string) ?? null) : null,
   }));
 
   /*
