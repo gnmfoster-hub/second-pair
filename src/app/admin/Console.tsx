@@ -1057,31 +1057,6 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
           Email and text together
         </label>
 
-        {/*
-          * Sold the Receptionist, which is not the voice channel beside it.
-          *
-          * Two products, and they were one word. Voice buys the voicemail
-          * response — their mobile rings first, a missed call is texted back,
-          * a message left is written down and answered by text, and nobody
-          * ever talks to a machine. This buys a line that picks up and talks.
-          * Giles had to ask which one the calls screen meant, which is the
-          * clearest evidence there is that one name for two things was one too
-          * few.
-          *
-          * Ticking it does not switch anything on. It lets them switch
-          * instances on — their own line here, each person in their settings —
-          * and unticking it stops every one of those at once, however many
-          * switches are set.
-          */}
-        <label className="flex items-center gap-2 self-end pb-2 text-sm">
-          <input
-            type="checkbox"
-            name="receptionist_allowed"
-            defaultChecked={b.receptionistAllowed === true}
-            className="accent-[var(--accent)]"
-          />
-          Receptionist sold
-        </label>
         <label className="block">
           <span className="label">Text ceiling</span>
           <input
@@ -1127,7 +1102,7 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
               { value: "instagram", label: "Instagram" },
               { value: "whatsapp", label: "WhatsApp" },
               { value: "messenger", label: "Messenger" },
-              { value: "voice", label: "Calls" },
+              { value: "voice", label: "Calls + voicemail response" },
             ].map((c) => (
               <label
                 key={c.value}
@@ -1144,6 +1119,36 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
               </label>
             ))}
           </div>
+          {/*
+            * The other telephone product, beside the one it is confused with.
+            *
+            * It was over in the grid of ceilings between "Email and text
+            * together" and "Text ceiling", which is where limits live rather
+            * than where things are sold — and Giles could not find it. This is
+            * the row he opens to decide what a business has got, so it is the
+            * row it belongs in.
+            *
+            * Its own line rather than a seventh pill, because it is not a
+            * channel: a channel is a way in, and this is what answers one.
+            * Ticking it switches nothing on — it lets them switch instances
+            * on, their own line and each person, and unticking stops every one
+            * at once however many switches are set.
+            */}
+          <label className="mt-2.5 flex w-fit cursor-pointer items-center gap-2 rounded-full border border-border px-3 py-1.5 text-sm has-[:checked]:border-accent has-[:checked]:bg-surface-2">
+            <input
+              type="checkbox"
+              name="receptionist_allowed"
+              defaultChecked={b.receptionistAllowed === true}
+              className="size-3.5 accent-[var(--accent)]"
+            />
+            Receptionist sold
+          </label>
+          <p className="hint mt-1.5">
+            Two telephone products, and they are not the same one. Calls buys the
+            voicemail response: their own mobile rings first, what is missed is texted
+            back, a message left is written down and answered by text. The Receptionist is
+            a line that picks up and talks, charged for each line that has one.
+          </p>
           <p className="hint mt-1.5">
             The website widget is always on. Anything unticked is refused when a message
             arrives on it, and the owner is told to ask you.
