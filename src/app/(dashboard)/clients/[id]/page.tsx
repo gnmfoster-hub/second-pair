@@ -433,6 +433,68 @@ export default async function ClientPage({
                 : null
             }
           />
+
+          {/*
+            * The record, in the wide column where it can be read.
+            *
+            * History, what they have bought and their conversations all sat
+            * in the 18rem rail beside the form — so the one thing somebody
+            * opens a client's page to see was a narrow strip below four
+            * action cards, while the column beside it ended at Save and left
+            * six hundred pixels of nothing. Giles: there is a big empty space
+            * under the settings part, can we move things around.
+            *
+            * The rail keeps what belongs in a rail: things you press. The
+            * page keeps what you came to read.
+            */}
+          <section className="card p-5">
+            <h2 className="section-title mb-4 text-sm">History</h2>
+            <Timeline
+              bookings={bookings.map((b) => ({
+                ...b,
+                booked_minutes: Math.round(
+                  (Date.parse(b.ends_at) - Date.parse(b.starts_at)) / 60000,
+                ),
+              }))}
+              reminders={timelineReminders as TimelineReminder[]}
+              artists={artists}
+              timezone={studio.timezone}
+            />
+          </section>
+
+          <Bought
+            purchases={purchases}
+            timezone={studio.timezone}
+            contactId={contact.id}
+            canEmail={Boolean(contact.email)}
+          />
+
+          <section className="card p-5">
+            <h2 className="mb-3 text-sm font-medium">Conversations</h2>
+            <ul className="space-y-2">
+              {conversations
+                .sort((a, b) => Date.parse(b.last_message_at) - Date.parse(a.last_message_at))
+                .map((c) => (
+                  <li key={c.id}>
+                    <Link
+                      href={`/conversations/${c.id}`}
+                      className="block text-sm hover:text-accent"
+                    >
+                      <span className="truncate">
+                        {c.enquiries?.description ?? CONV_STATUS_LABELS[c.status]}
+                      </span>
+                      <span className="hint block">
+                        {new Date(c.last_message_at).toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "short",
+                        })}{" "}
+                        · {CONV_STATUS_LABELS[c.status]}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+            </ul>
+          </section>
         </div>
 
         <aside className="space-y-6">
@@ -539,54 +601,6 @@ export default async function ClientPage({
             </section>
           )}
 
-          <section className="card p-5">
-            <h2 className="section-title mb-4 text-sm">History</h2>
-            <Timeline
-              bookings={bookings.map((b) => ({
-                ...b,
-                booked_minutes: Math.round(
-                  (Date.parse(b.ends_at) - Date.parse(b.starts_at)) / 60000,
-                ),
-              }))}
-              reminders={timelineReminders as TimelineReminder[]}
-              artists={artists}
-              timezone={studio.timezone}
-            />
-          </section>
-
-          <Bought
-            purchases={purchases}
-            timezone={studio.timezone}
-            contactId={contact.id}
-            canEmail={Boolean(contact.email)}
-          />
-
-          <section className="card p-5">
-            <h2 className="mb-3 text-sm font-medium">Conversations</h2>
-            <ul className="space-y-2">
-              {conversations
-                .sort((a, b) => Date.parse(b.last_message_at) - Date.parse(a.last_message_at))
-                .map((c) => (
-                  <li key={c.id}>
-                    <Link
-                      href={`/conversations/${c.id}`}
-                      className="block text-sm hover:text-accent"
-                    >
-                      <span className="truncate">
-                        {c.enquiries?.description ?? CONV_STATUS_LABELS[c.status]}
-                      </span>
-                      <span className="hint block">
-                        {new Date(c.last_message_at).toLocaleDateString("en-GB", {
-                          day: "numeric",
-                          month: "short",
-                        })}{" "}
-                        · {CONV_STATUS_LABELS[c.status]}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-            </ul>
-          </section>
         </aside>
       </div>
 

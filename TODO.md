@@ -78,6 +78,55 @@ than breaking.
 Everything here is something I cannot do from this side. Roughly in the order
 it is holding something up.
 
+### Everything you have said "btw" about
+
+Giles asked for these to be kept so none get lost. They arrive mid-flow, one
+line, while something else is being built — which is exactly how a good one
+gets answered in conversation and never written down.
+
+Done, 23 September:
+
+- Mobile logo bigger, then bold, then back to Anton with the slogan under it
+- The finger following the mouse, and the demo keeping it while it plays
+- The demo playing once per page load, not on every scroll
+- The diary half empty on a laptop; the hand covering the trade chips
+- The ask box cut off behind Send
+- The logo being two thirds of every page's weight
+- The chat bubble smaller on our own site
+- The settings menu on a phone
+- A hue per section
+- Booking confirmations, and where they live in settings
+- Grouping reminders, reviews and marketing under "Messages you send"
+- Seeing the email that goes out, for every template
+- Review request wording, per business
+- Marketing: the entitlement, the opt-in, campaigns
+- Channel choice per business and per template, with a text ceiling
+- Karen being told "whoever runs the business decides that"
+- The consultation warning that could not be answered or cleared
+- The sound toggle that played nothing
+- Confirmations labelled as confirmations on the client timeline
+- Other people's set-up showing on Aisha's inbox
+- The client page layout, and the empty space under the form
+- A picture of the business, for the emails
+- The Receptionist: per person, switchable, and priced per person
+
+Open, and roughly in the order I would do them:
+
+1. **A receipt at Complete, with an option to email it.** His reasoning is the
+   right one: a receipt is a genuine reason somebody hands over an address, and
+   email costs nothing where a text costs every time. SendReceipt already
+   exists on the client page; this is about offering it at the moment the work
+   is finished.
+2. **Nobody warns when one person sends fewer reminders than the shop.** Aisha
+   is set to send her own and has written one; everybody else's clients get
+   two. The settings page warns when somebody sends nothing at all, and says
+   nothing about sending less.
+3. **The live voice Receptionist** — speech in, speech out, during the call.
+   The commercial side is built; this is the expensive part and wants latency
+   work.
+4. **Upload a picture** for each business. Built and waiting: nobody has one
+   yet, so every confirmation is going out without one.
+
 ### HMRC — a deadline, and I do not know the date
 
 A letter arrived on 23 September asking for information within three months of
