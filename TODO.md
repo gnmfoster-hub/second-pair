@@ -114,8 +114,11 @@ Done, 23 September:
 
 Open, and roughly in the order I would do them:
 
-0. **Settings: group each person's screen with titles, like the main one, and
-   add a search.** Two of his, and they belong together. The settings rail has
+0. ~~**Settings: group each person's screen with titles, and add a search.**~~
+   Both done, 24 Sep. The search indexes settings rather than pages, so
+   "deposit" lands on the deposit rule; a person's page now has five titles in
+   the same style as the rail.
+0z. **Old entry, kept for the reasoning:** Two of his, and they belong together. The settings rail has
    groups and a person's own page does not; and with a dozen screens across
    four groups, "where do I set X" is a question a search answers in a second
    and a rail answers in four guesses.
@@ -167,12 +170,17 @@ is live and sent its first one. Without that variable it falls back to
 EMAIL_FROM, which is the company address rather than yours, so you would never
 see it. Put your own address in.
 
-**One migration waiting:** `20260924190000_receptionist.sql`, which adds
+**One migration waiting:** `20260925090000_quick_messages.sql`, which adds the
+`message_templates` table behind the saved messages on a client's page.
+Until it runs the client page is exactly as it was, the settings screen offers
+the six starters, and pressing the button says so in words. The SQL is in the
+file; it is safe to run twice.
+
+`20260924190000_receptionist.sql` is **run** — checked, the columns answer and
+the Willow demo has two instances switched on. It added
 the two columns that let the Receptionist be sold apart from the voicemail
 response: `receptionist_allowed` (ours, set when it is sold) and
-`receptionist_on` (theirs, for the business's own line). Both default false and
-the app reads an absent column as off, so nothing changes until you run it —
-the "Receptionist sold" tick in the account panel simply will not stick.
+`receptionist_on` (theirs, for the business's own line).
 
 `20260923220000_campaigns.sql` was listed here as waiting and is not: the
 campaigns table answers. Checked rather than carried forward, because a list
