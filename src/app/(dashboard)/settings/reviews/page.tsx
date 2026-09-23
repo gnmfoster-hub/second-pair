@@ -1,6 +1,7 @@
 import { requireOwner } from "@/lib/studio";
 import { wordsFor } from "@/lib/words";
 import { ReviewForm } from "./ReviewForm";
+import { avatarUrl } from "@/components/Avatar";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,11 @@ export default async function ReviewsSettingsPage() {
 
   const url = (studio as unknown as { review_url?: string | null }).review_url ?? "";
   const on = (studio as unknown as { review_ask?: boolean | null }).review_ask === true;
+  /* Null means they have never written one; empty means they cleared it. */
+  const message = (studio as unknown as { review_message?: string | null }).review_message ?? null;
+  const look = {
+    photoUrl: avatarUrl((studio as unknown as { photo_path?: string | null }).photo_path),
+  };
 
   return (
     <div className="space-y-3">
@@ -29,7 +35,14 @@ export default async function ReviewsSettingsPage() {
         in the same conversation they started — so a reply comes back to you.
       </p>
 
-      <ReviewForm url={url} on={on} words={words.customers} />
+      <ReviewForm
+        url={url}
+        on={on}
+        words={words.customers}
+        business={studio.name}
+        message={message}
+        look={look}
+      />
     </div>
   );
 }

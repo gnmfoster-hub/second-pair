@@ -7,6 +7,7 @@ import { saveReminder } from "./actions";
 import { Field, FormMessage, SubmitButton } from "@/components/Form";
 import type { FormState } from "../actions";
 import { renderReminder, unknownPlaceholders } from "@/lib/reminderText";
+import { HowItLands } from "@/components/HowItLands";
 
 export type ReminderTemplateRow = {
   id: string;
@@ -67,7 +68,19 @@ export type Sender = {
  * eight in the morning, and that judgement is much easier to make when it
  * looks like the place it is going.
  */
-function Preview({ body, sender }: { body: string; sender: Sender }) {
+function Preview({
+  body,
+  sender,
+  business,
+  photoUrl,
+  policy,
+}: {
+  body: string;
+  sender: Sender;
+  business: string;
+  photoUrl?: string | null;
+  policy?: string | null;
+}) {
   /*
    * Filled with the same function that fills it for real, deliberately. A
    * preview that renders a template its own way is a preview that can be
@@ -82,55 +95,35 @@ function Preview({ body, sender }: { body: string; sender: Sender }) {
 
   return (
     <div>
-      <div className="label">
-        How it lands
+      {/*
+        * Both channels now, not just the phone.
+        *
+        * Giles: can we see the email that goes out. The same wording arrives
+        * as an email for anybody who came in by email, and nobody had ever
+        * seen what that looked like — see HowItLands, which renders each with
+        * the code that sends it.
+        */}
+      <HowItLands text={text} business={business} photoUrl={photoUrl} policy={policy} />
+
+      <div className="hint mt-2">
         <Explain label="What this preview is showing">
-          Marie and Sarah are stand-ins. The real name, time and person go in when it sends,
-          and this is filled by the same code that fills the real one, so a preview that
-          renders a template its own way is a preview that can be wrong.
+          Marie and Sarah are stand-ins. The real name, time and person go in when it
+          sends, and this is filled by the same code that fills the real one, so a
+          preview that renders a template its own way is a preview that can be wrong.
         </Explain>
-      </div>
-
-      <div className="mt-1.5 max-w-sm rounded-2xl border border-border bg-surface-2/50 p-3">
-        <div className="hint">
-          {sender.number ? (
-            <>
-              From <span className="font-mono">{sender.number}</span>
-            </>
-          ) : (
-            "From your number, once you have one"
-          )}
-        </div>
-
-        <div className="mt-1.5 rounded-2xl rounded-bl-md bg-surface px-3.5 py-2.5 text-sm leading-relaxed shadow-sm">
-          {text || <span className="text-muted">Nothing yet.</span>}
-        </div>
-
-        <div className="hint mt-1.5 text-right tabular-nums">
-          {/*
-            * Length, because it is money and nobody thinks about it while
-            * typing. A text is billed per 160 characters, so a template that
-            * runs to 161 costs twice as much for every customer, every
-            * reminder, for as long as it is switched on.
-            */}
-          {text.length} characters
-          {text.length > 160 && (
-            <span className="text-warn">
-              , over 160, so it is charged as {Math.ceil(text.length / 153)} texts
-            </span>
-          )}
-        </div>
       </div>
 
       <p className="hint mt-2 max-w-prose">
         {sender.number ? (
           <>
-            It arrives from the number your customers already have, so it reads as you rather
-            than as a stranger, and anybody who replies to it lands in your inbox.
+            A text arrives from {sender.number}, the number your customers already have, so
+            it reads as you rather than as a stranger, and anybody who replies to it lands
+            in your inbox.
           </>
         ) : (
           <>
-            You have no number yet, so nothing will send. Ask us and we will set one up.
+            You have no number yet, so nothing can be texted. Email still works. Ask us and
+            we will set one up.
           </>
         )}
         {sender.number && !sender.ready && (
@@ -151,12 +144,15 @@ export function ReminderEditor({
    */
   mine = false,
   sender,
+  /** The business's picture and policy, so the email preview is the real one. */
+  look,
 }: {
   reminder?: ReminderTemplateRow;
   index: number;
   mine?: boolean;
   /** Who this arrives from, and what a customer sees on their phone. */
   sender: Sender;
+  look?: { photoUrl?: string | null; policy?: string | null };
 }) {
   const [state, action] = useActionState<FormState, FormData>(saveReminder, {});
 
@@ -256,7 +252,13 @@ export function ReminderEditor({
         />
       </Field>
 
-      <Preview body={body} sender={sender} />
+      <Preview
+        body={body}
+        sender={sender}
+        business={sender.business}
+        photoUrl={look?.photoUrl}
+        policy={look?.policy}
+      />
 
       {confirmation && (
         <p className="hint max-w-prose">

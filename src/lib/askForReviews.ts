@@ -68,6 +68,12 @@ export async function askForReviews(
       business: studio.name,
       what: (booking as unknown as { title: string | null }).title,
       url,
+      /*
+       * Their wording if they have written one. Undefined until the migration
+       * runs, which reads as "they never opened the screen" — the built-in
+       * sentence, exactly as before.
+       */
+      template: (studio as unknown as { review_message?: string | null }).review_message ?? null,
     });
 
     /*

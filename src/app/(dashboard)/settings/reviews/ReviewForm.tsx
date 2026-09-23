@@ -4,6 +4,8 @@ import { useActionState, useState } from "react";
 import { saveReviews } from "./actions";
 import { Field, FormMessage, SubmitButton } from "@/components/Form";
 import type { FormState } from "../actions";
+import { HowItLands } from "@/components/HowItLands";
+import { fillReview, reviewMessage, REVIEW_TOKENS } from "@/lib/reviews";
 
 /**
  * Asking for a review: the cheapest marketing a small business has, and the
@@ -17,11 +19,18 @@ export function ReviewForm({
   url,
   on,
   words,
+  business,
+  message,
+  look,
 }: {
   url: string;
   on: boolean;
   /** What this trade calls the people it serves. */
   words: string;
+  business: string;
+  /** Their own wording. Null means they have never written one. */
+  message: string | null;
+  look?: { photoUrl?: string | null; policy?: string | null };
 }) {
   const [state, action] = useActionState<FormState, FormData>(saveReviews, {});
 
@@ -33,6 +42,32 @@ export function ReviewForm({
    * rather than letting somebody tick it and wonder.
    */
   const [link, setLink] = useState(url);
+
+  /*
+   * Their wording, starting from ours.
+   *
+   * A business that has never opened this screen gets the built-in sentence,
+   * and the box shows it rather than sitting empty — an empty box invites
+   * somebody to write from nothing, and the thing most likely to happen then
+   * is that they close the page and keep sending a sentence they never chose.
+   */
+  const [wording, setWording] = useState(
+    message ??
+      reviewMessage({
+        firstName: "{{name}}",
+        business: "{{business}}",
+        what: "{{what}}",
+        url: "{{link}}",
+      }),
+  );
+
+  /* The same filler the sender uses, with stand-ins. */
+  const shown = fillReview(wording, {
+    firstName: "Marie",
+    business,
+    what: "colour",
+    url: link.trim() || "https://g.page/r/your-link",
+  });
 
   return (
     <form action={action} className="card space-y-4 p-5">
@@ -72,6 +107,35 @@ export function ReviewForm({
           people is a message with a hole in it, so the switch stays off without one.
         </p>
       )}
+
+      <Field
+        label="What it says"
+        explain={REVIEW_TOKENS.map((t) => `{{${t}}}`).join(", ")}
+      >
+        <textarea
+          name="review_message"
+          value={wording}
+          onChange={(e) => setWording(e.target.value)}
+          rows={3}
+          className="input"
+        />
+      </Field>
+
+      {/*
+        * Both channels, rendered by the code that sends them.
+        *
+        * Every business sent the identical sentence until now, because the
+        * wording was written into reviews.ts and only the link was theirs. It
+        * read well for a salon and oddly for a plastering firm — and this is
+        * the one message that asks a customer for a favour, which is where
+        * sounding like the person who did the work matters most.
+        */}
+      <HowItLands
+        text={shown}
+        business={business}
+        photoUrl={look?.photoUrl}
+        policy={null}
+      />
 
       <p className="hint max-w-prose">
         This is not marketing and needs no permission: it is about an appointment your{" "}

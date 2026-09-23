@@ -9,6 +9,8 @@ import type { Channel } from "@/lib/types";
 import { isOptedOut } from "@/lib/messaging/optOut";
 import { whyNotSend } from "@/lib/whyNotSend";
 import { planReminders } from "@/lib/reminderSchedule";
+import { buildEmail } from "@/lib/messaging/emailTemplate";
+import { avatarUrl } from "@/components/Avatar";
 
 /**
  * Reminders.
@@ -619,10 +621,38 @@ export async function sendDueReminders(
        */
       const forThisChannel = route.channel === "sms" ? forOneText(body) : body;
 
+      /*
+       * An email that looks like the business sent it.
+       *
+       * Everything here went out as plain text, which arrives and threads and
+       * never renders wrong — and beside the confirmation a salon gets from
+       * anybody else reads as a system notice. The same wording, wrapped: the
+       * business's name and picture at the top, their cancellation policy in
+       * their own words, and Second Pair once at the bottom in small grey.
+       *
+       * buildEmail is the function the settings preview draws, so what an
+       * owner is shown is what leaves. Plain text still goes with it, for the
+       * people who read mail that way and for spam filters.
+       */
+      const html =
+        route.channel === "email"
+          ? buildEmail({
+              business: studio.name,
+              body: forThisChannel,
+              photoUrl: avatarUrl(
+                (studio as unknown as { photo_path?: string | null }).photo_path,
+              ),
+              policy:
+                (studio as unknown as { cancellation_policy?: string | null })
+                  .cancellation_policy ?? null,
+            })
+          : undefined;
+
       const sent = await deliver({
         channel: route.channel,
         to: route.to,
         body: forThisChannel,
+        html,
         /*
          * A reminder about an appointment they booked is a service message,
          * so STOP does not silence it here — the sweep already skips anybody

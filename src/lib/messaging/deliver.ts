@@ -48,6 +48,7 @@ export async function deliver({
   body,
   lastInboundAt,
   subject,
+  html,
   fromName,
   replyTo,
   from,
@@ -66,6 +67,14 @@ export async function deliver({
   lastInboundAt?: string | null;
   /** Email only. Everything else is a chat message and has no subject. */
   subject?: string;
+  /**
+   * Email only: the same message, laid out.
+   *
+   * Optional, and text is still always sent alongside it — some people read
+   * mail as plain text and so do spam filters. A caller that has nothing to
+   * say about the look passes nothing and gets what it always got.
+   */
+  html?: string;
   /** The business's name, so an email does not look like it came from us. */
   fromName?: string;
   /** Where a reply should go. The business, not us. */
@@ -168,6 +177,7 @@ export async function deliver({
         to: reachOn.email,
         subject: letter.subject,
         text: letter.text,
+        html,
         fromName,
         replyTo,
       });
@@ -257,6 +267,7 @@ export async function deliver({
         to,
         subject: letter.subject,
         text: letter.text,
+        html,
         fromName,
         replyTo,
       });

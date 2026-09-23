@@ -81,14 +81,53 @@ export function reviewMessage(args: {
   business: string;
   what?: string | null;
   url: string;
+  /**
+   * The business's own wording, if they have written one.
+   *
+   * Null means they never opened the screen, and they get the sentence below.
+   * An empty string means they cleared it, which is a different thing and is
+   * respected rather than silently overwritten — putting our words back in
+   * somebody's mouth because they deleted them is worse than sending nothing.
+   *
+   * The same placeholders as a reminder, so there is one thing to learn.
+   */
+  template?: string | null;
 }): string {
   const hello = args.firstName?.trim() ? `Hi ${args.firstName.trim()}` : "Hi";
   const about = args.what?.trim() ? ` with your ${args.what.trim().toLowerCase()}` : "";
+
+  if (args.template != null) {
+    return fillReview(args.template, args);
+  }
 
   return (
     `${hello} — hope everything went well${about} yesterday. ` +
     `If you have a minute, a quick review really helps ${args.business}: ${args.url}`
   );
+}
+
+/** The placeholders a review request may use. Deliberately the reminder set plus the link. */
+export const REVIEW_TOKENS = ["name", "business", "what", "link"] as const;
+
+/**
+ * Fills a business's own wording.
+ *
+ * An unknown placeholder is taken out rather than left in, which is what
+ * renderReminder does — a customer seeing {{frist_name}} is worse than a
+ * customer seeing a gap, and the editor warns about it before it is saved.
+ */
+export function fillReview(
+  template: string,
+  args: { firstName?: string | null; business: string; what?: string | null; url: string },
+): string {
+  return template
+    .replace(/\{\{\s*name\s*\}\}/gi, args.firstName?.trim() ?? "")
+    .replace(/\{\{\s*business\s*\}\}/gi, args.business)
+    .replace(/\{\{\s*what\s*\}\}/gi, args.what?.trim()?.toLowerCase() ?? "")
+    .replace(/\{\{\s*link\s*\}\}/gi, args.url)
+    .replace(/\{\{[^}]*\}\}/g, "")
+    .replace(/[ 	]{2,}/g, " ")
+    .trim();
 }
 
 /** The day either side of "yesterday", in the business's own time. */

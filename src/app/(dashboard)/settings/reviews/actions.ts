@@ -39,9 +39,24 @@ export async function saveReviews(_prev: FormState, fd: FormData): Promise<FormS
    * the two are decided together rather than separately — the same rule the
    * business page had, kept when it moved.
    */
+  /*
+   * Their wording, only when the form carries it.
+   *
+   * Absent means an older page saving what it shows; present and empty means
+   * they cleared it on purpose, which is a different thing from never having
+   * written one and is stored as such. See the migration.
+   */
+  const wording = fd.has("review_message")
+    ? { review_message: String(fd.get("review_message") ?? "") }
+    : {};
+
   const { error } = await supabase
     .from("studios")
-    .update({ review_url: url || null, review_ask: ticked(fd, "review_ask") && Boolean(url) })
+    .update({
+      review_url: url || null,
+      review_ask: ticked(fd, "review_ask") && Boolean(url),
+      ...((await hasColumn(supabase, "studios", "review_message")) ? wording : {}),
+    })
     .eq("id", studio.id);
 
   if (error) return { error: error.message };

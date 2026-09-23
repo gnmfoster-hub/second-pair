@@ -7,6 +7,7 @@ import { smsNumberFor } from "@/lib/messaging/connections";
 import { smsConfigured } from "@/lib/messaging/sms";
 import { readableNumber } from "@/lib/channels/phoneNumbers";
 import { reminderCover, whatIsMissing } from "@/lib/reminderCover";
+import { avatarUrl } from "@/components/Avatar";
 
 export default async function RemindersPage() {
   // What customers are sent — the owner's, and the page says so
@@ -81,6 +82,15 @@ export default async function RemindersPage() {
     ready: smsConfigured(),
   };
 
+  /*
+   * What the email will actually look like: their picture and their policy.
+   * Null until the picture migration runs, which the template handles.
+   */
+  const look = {
+    photoUrl: avatarUrl((studio as unknown as { photo_path?: string | null }).photo_path),
+    policy: (studio as unknown as { cancellation_policy?: string | null }).cancellation_policy ?? null,
+  };
+
   return (
     <div className="space-y-3">
       <p className="hint">
@@ -113,10 +123,10 @@ export default async function RemindersPage() {
       )}
 
       {ours.map((reminder, i) => (
-        <ReminderEditor key={reminder.id} reminder={reminder} index={i} sender={sender} />
+        <ReminderEditor key={reminder.id} reminder={reminder} index={i} sender={sender} look={look} />
       ))}
 
-      <ReminderEditor index={ours.length} sender={sender} />
+      <ReminderEditor index={ours.length} sender={sender} look={look} />
 
       {/*
         * Other people's, named but not editable here.
