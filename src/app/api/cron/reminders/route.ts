@@ -201,11 +201,39 @@ export async function GET(request: NextRequest) {
    * A guard that answers all clear without looking is worse than no guard,
    * because it is believed.
    */
+  /*
+   * And no upper bound on the hour, which is why there has been no backup
+   * since the 21st.
+   *
+   * This asked for a sweep landing between two and five in the morning. Both
+   * things that call this endpoint fail that test most nights:
+   *
+   *   GitHub's every-five-minutes schedule is throttled, and not gently.
+   *   sweep-runs.json holds every run of the last 48 hours and held five, from
+   *   06:45 to 20:15 — gaps of five and seven and a half hours. A three-hour
+   *   window is missed more often than it is hit, and on the nights it was
+   *   missed nothing was written and nothing said why.
+   *
+   *   Vercel's own daily cron is the one call a day that does reliably happen,
+   *   and it runs at seven, so the window excluded the only dependable caller
+   *   we have.
+   *
+   * nightlyBackup already refuses a second copy on a day that has one, so the
+   * window was never what stopped it running twice — it only chose the hour.
+   * From two in the morning onwards, then: a sweep at three still takes it at
+   * three, and if nothing lands until the morning it is taken in the morning
+   * rather than not at all.
+   *
+   * The early hours were chosen because the diary is least likely to be
+   * written to mid-copy. That is a real reason and it is worth less than a
+   * backup existing: a copy taken at eight with one appointment saved halfway
+   * through beats three days with no copy at all.
+   */
   const key = process.env.BACKUP_KEY ?? "";
   const backup =
     key.length < 16
       ? { ran: false as const, because: "no key" as const }
-      : hour >= 2 && hour < 5
+      : hour >= 2
         ? await nightlyBackup(db)
         : { ran: false as const, because: "not the hour" as const };
 
