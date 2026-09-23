@@ -565,6 +565,12 @@ export async function saveAccount(_prev: Result, fd: FormData): Promise<Result> 
 
   const started = String(fd.get("started") ?? "").trim() || null;
 
+  /* A ceiling on texts. Blank, nought or nonsense all mean no ceiling. */
+  const capRaw = String(fd.get("sms_cap") ?? "").trim();
+  const capNumber = Number(capRaw);
+  const smsCap =
+    capRaw && Number.isFinite(capNumber) && capNumber > 0 ? Math.round(capNumber) : null;
+
   /*
    * Channels are entitlements, like seats.
    *
@@ -584,6 +590,14 @@ export async function saveAccount(_prev: Result, fd: FormData): Promise<Result> 
       plan: String(fd.get("plan") ?? "").trim() || null,
       plan_pence: pence,
       seat_limit: seats,
+      /*
+       * Blank means no ceiling, which is every business today. Guarded on the
+       * column so a deploy before the migration saves the rest of the account
+       * rather than failing all of it.
+       */
+      ...((await hasColumn(db, "studios", "sms_monthly_cap"))
+        ? { sms_monthly_cap: smsCap }
+        : {}),
       account_status: status,
       billing_started_on: started,
       account_note: String(fd.get("note") ?? "").trim() || null,

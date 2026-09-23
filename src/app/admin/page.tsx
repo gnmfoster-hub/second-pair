@@ -310,6 +310,12 @@ export default async function AdminPage() {
     .from("studios")
     .select("id, marketing_email_on, marketing_sms_on");
 
+  /* Read with the entitlements, and absent until the migration runs. */
+  const { data: capRows } = await db.from("studios").select("id, sms_monthly_cap");
+  const caps = new Map<string, number | null>(
+    (capRows ?? []).map((c) => [c.id as string, (c.sms_monthly_cap as number | null) ?? null]),
+  );
+
   const bought = new Map<string, { email: boolean; sms: boolean }>(
     (entitlements ?? []).map((e) => [
       e.id as string,
@@ -424,6 +430,7 @@ export default async function AdminPage() {
         /* Read separately, and off until the migration runs. See `bought`. */
         marketing_email_on: bought.get(s.id)?.email ?? false,
         marketing_sms_on: bought.get(s.id)?.sms ?? false,
+        smsMonthlyCap: caps.get(s.id) ?? null,
         createdAt: s.created_at,
         owners: (members ?? [])
           .filter((m) => m.studio_id === s.id)

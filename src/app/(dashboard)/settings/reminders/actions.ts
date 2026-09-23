@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireStudio } from "@/lib/studio";
+import { requireStudio, requireOwner } from "@/lib/studio";
+import { hasColumn } from "@/lib/db/hasColumn";
 import { ticked } from "@/lib/forms";
 import type { FormState } from "../actions";
 
@@ -134,5 +135,36 @@ export async function saveReminder(_prev: FormState, fd: FormData): Promise<Form
   }
 
   revalidatePath(where);
+  return { ok: true };
+}
+
+/**
+ * How this business wants messages sent.
+ *
+ * Its own action rather than the business page's save, for the reason that
+ * one reads three dozen fields off a form and writes them all — a smaller
+ * form posting to it would blank everything it did not carry.
+ */
+export async function saveChannelChoice(_prev: FormState, fd: FormData): Promise<FormState> {
+  /* requireOwner refuses anybody else, so there is no second check to forget. */
+  const { studio } = await requireOwner();
+  const supabase = await createClient();
+
+  const choice = String(fd.get("message_channels") ?? "");
+  const allowed = ["as_they_came", "both", "email_first", "email_only", "sms_only"];
+  if (!allowed.includes(choice)) return { error: "Pick one of the options." };
+
+  if (!(await hasColumn(supabase, "studios", "message_channels"))) {
+    return { error: "Not switched on for your account yet. Tell us and we will do it." };
+  }
+
+  const { error } = await supabase
+    .from("studios")
+    .update({ message_channels: choice })
+    .eq("id", studio.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/reminders");
   return { ok: true };
 }

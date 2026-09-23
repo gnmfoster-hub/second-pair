@@ -1033,6 +1033,25 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
             placeholder="blank = no limit"
           />
         </label>
+        {/*
+          * A ceiling on texts, which is not the same as a plan allowance.
+          *
+          * texts_included is how many are in what they pay for, with overage
+          * charged past it. This is blunter: past this we stop sending, so a
+          * loop, an import or an unusually busy fortnight cannot run up a bill
+          * nobody agreed to. Email still goes — the point is to stop the
+          * spend, not the message.
+          */}
+        <label className="block">
+          <span className="label">Text ceiling</span>
+          <input
+            name="sms_cap"
+            inputMode="numeric"
+            defaultValue={b.smsMonthlyCap ?? ""}
+            className="input"
+            placeholder="blank = no ceiling"
+          />
+        </label>
         <label className="block">
           <span className="label">Status</span>
           <select name="status" defaultValue={b.status} className="input">

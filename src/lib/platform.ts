@@ -77,6 +77,8 @@ export type BusinessSummary = {
    */
   marketing_email_on?: boolean | null;
   marketing_sms_on?: boolean | null;
+  /** Stop sending texts past this many a month. Null means no ceiling. */
+  smsMonthlyCap?: number | null;
   createdAt: string;
   owners: { email: string | null; userId: string }[];
   /**

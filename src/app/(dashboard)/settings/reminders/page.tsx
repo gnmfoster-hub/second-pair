@@ -8,6 +8,8 @@ import { smsConfigured } from "@/lib/messaging/sms";
 import { readableNumber } from "@/lib/channels/phoneNumbers";
 import { reminderCover, whatIsMissing } from "@/lib/reminderCover";
 import { avatarUrl } from "@/components/Avatar";
+import { ChannelChoice } from "./ChannelChoice";
+import { preferenceOf } from "@/lib/messageChannels";
 
 export default async function RemindersPage() {
   // What customers are sent — the owner's, and the page says so
@@ -121,6 +123,17 @@ export default async function RemindersPage() {
       {cover.businessWide === 0 && (
         <SeedReminders trade={verticalPack(studio.vertical).label} />
       )}
+
+      {/*
+        * How these go out, above the wording — it applies to all of them, and
+        * to review requests and confirmations too.
+        */}
+      <ChannelChoice
+        value={preferenceOf(
+          (studio as unknown as { message_channels?: string | null }).message_channels,
+        )}
+        hasNumber={Boolean(sender.number)}
+      />
 
       {ours.map((reminder, i) => (
         <ReminderEditor key={reminder.id} reminder={reminder} index={i} sender={sender} look={look} />

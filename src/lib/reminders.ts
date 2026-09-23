@@ -12,6 +12,7 @@ import { planReminders } from "@/lib/reminderSchedule";
 import { buildEmail } from "@/lib/messaging/emailTemplate";
 import { avatarUrl } from "@/components/Avatar";
 import { siteOrigin } from "@/lib/origin";
+import { chooseRoutes, preferenceOf, textsAllowed } from "@/lib/messageChannels";
 
 /**
  * Reminders.
@@ -479,6 +480,42 @@ export async function sendDueReminders(
   }
 
   /*
+   * How this business wants messages sent, and whether texts are still
+   * allowed this month.
+   *
+   * Both read once per sweep rather than per reminder: the preference cannot
+   * change mid-run, and counting texts per message would be a query each.
+   */
+  const preference = preferenceOf(
+    (studio as unknown as { message_channels?: string | null }).message_channels,
+  );
+  const cap = (studio as unknown as { sms_monthly_cap?: number | null }).sms_monthly_cap ?? null;
+
+  /*
+   * Counted from the reminders themselves rather than from the nightly meter.
+   *
+   * The meter is a day behind by design, and a ceiling that is a day behind
+   * is a ceiling somebody can spend a day's worth of texts past. Counted live,
+   * and then kept up to date in memory as this run sends — otherwise a single
+   * sweep with four hundred reminders in it sails through a limit of fifty.
+   */
+  let textsSoFar = 0;
+  if (cap !== null) {
+    const monthStart = new Date();
+    monthStart.setUTCDate(1);
+    monthStart.setUTCHours(0, 0, 0, 0);
+
+    const { count } = await db
+      .from("reminders")
+      .select("id, bookings!inner(artists!inner(studio_id))", { count: "exact", head: true })
+      .eq("bookings.artists.studio_id", studio.id)
+      .eq("channel", "sms")
+      .gte("sent_at", monthStart.toISOString());
+
+    textsSoFar = count ?? 0;
+  }
+
+  /*
    * A reminder about Aisha's appointment goes out from Aisha's number.
    *
    * The business's line is right for anything the business sends on its own
@@ -588,10 +625,33 @@ export async function sendDueReminders(
       phone: person?.phone ?? null,
       email: person?.email ?? null,
       connected,
-    }).find((r) => r.open);
+    });
 
-    // Somebody who texted STOP is not texted a reminder.
-    if (route?.channel === "sms" && (await isOptedOut(db, studio.id, route.to))) {
+    /*
+     * What the business wants used, out of what is open.
+     *
+     * routesFor answers a technical question — which channels can carry this
+     * right now. This answers the one with an opinion in it, and the default
+     * is exactly what happened before the setting existed.
+     */
+    let chosen = chooseRoutes(preference, route, textsAllowed(textsSoFar, cap));
+
+    // Somebody who texted STOP is not texted, whatever the preference says.
+    const stopped: string[] = [];
+    for (const r of chosen as { channel: string; to: string }[]) {
+      if (r.channel === "sms" && (await isOptedOut(db, studio.id, r.to))) stopped.push(r.to);
+    }
+    chosen = chosen.filter((r) => !(r.channel === "sms" && stopped.includes(r.to)));
+
+    /*
+     * Nothing left to send on, and a reason worth keeping apart.
+     *
+     * "They texted STOP" is a decision somebody made; "nowhere to send it" is
+     * a gap in what we hold. The first is finished with, the second surfaces
+     * to the owner further down, so they must not be recorded as the same
+     * thing.
+     */
+    if (!chosen.length && stopped.length) {
       await db
         .from("reminders")
         .update({ status: "skipped", error: "They texted STOP." })
@@ -600,7 +660,7 @@ export async function sendDueReminders(
       continue;
     }
 
-    if (route) {
+    if (chosen.length) {
       /*
        * Claimed before it is sent.
        *
@@ -656,78 +716,113 @@ export async function sendDueReminders(
        * coming and when, which is the part somebody reads walking down the
        * street. See forOneText: it cuts between sentences or not at all.
        */
-      const forThisChannel = route.channel === "sms" ? forOneText(body) : body;
+      /*
+       * One message, on each chosen channel.
+       *
+       * It used to be one channel and one send. "Both" makes that a loop, and
+       * the loop is where the differences live: a text is cut to one message
+       * and an email is wrapped in the template, from the same words.
+       */
+      const outcomes: { channel: string; ok: boolean; error?: string | null; body: string }[] = [];
+
+      for (const r of chosen) {
+        /*
+         * On a text, one text.
+         *
+         * The trade's preparation advice pushes a reminder past a hundred and
+         * sixty characters, and every one of those is charged as two. Email
+         * carries the whole thing for nothing; the phone gets who is coming
+         * and when, which is the part somebody reads walking down the street.
+         */
+        const forThisChannel = r.channel === "sms" ? forOneText(body) : body;
+
+        /*
+         * An email that looks like the business sent it.
+         *
+         * buildEmail is the function the settings preview draws, so what an
+         * owner is shown is what leaves. Plain text still goes with it, for
+         * the people who read mail that way and for spam filters.
+         */
+        const html =
+          r.channel === "email"
+            ? buildEmail({
+                business: studio.name,
+                body: forThisChannel,
+                photoUrl: avatarUrl(
+                  (studio as unknown as { photo_path?: string | null }).photo_path,
+                ),
+                policy:
+                  (studio as unknown as { cancellation_policy?: string | null })
+                    .cancellation_policy ?? null,
+                /* Chrome rather than their words, so it goes either way. */
+                action: bookingUrl
+                  ? { label: "See your appointment", url: bookingUrl }
+                  : null,
+              })
+            : undefined;
+
+        const sent = await deliver({
+          /*
+           * chooseRoutes is deliberately loose about the channel name — it is
+           * a pure function about preferences and has no business importing
+           * the messaging layer's union. The routes it picks from came out of
+           * routesFor, which only ever produces real ones.
+           */
+          channel: r.channel as Channel,
+          to: r.to,
+          body: forThisChannel,
+          html,
+          /*
+           * A reminder about an appointment they booked is a service message,
+           * so STOP does not silence it here — anybody who opted out was
+           * taken off the list above, which is the right place for that
+           * decision because it also stops the row being claimed.
+           */
+          db,
+          studioId: studio.id,
+          transactional: true,
+          lastInboundAt: r.lastInboundAt,
+          from: r.channel === "sms" ? await sendingAs(booking.artists?.id) : undefined,
+          subject:
+            row.template_id && confirms.has(row.template_id)
+              ? `Your booking with ${studio.name} is confirmed`
+              : `Your appointment with ${studio.name}`,
+          fromName: studio.name,
+          replyTo: studio.email ?? undefined,
+        });
+
+        const ok =
+          sent.status === "sent" || sent.status === "delivered" || sent.status === "not_needed";
+
+        outcomes.push({ channel: r.channel, ok, error: sent.error, body: forThisChannel });
+
+        /* Count it against the month the moment it goes, not overnight. */
+        if (r.channel === "sms" && ok) textsSoFar++;
+      }
 
       /*
-       * An email that looks like the business sent it.
+       * Arrived anywhere is arrived.
        *
-       * Everything here went out as plain text, which arrives and threads and
-       * never renders wrong — and beside the confirmation a salon gets from
-       * anybody else reads as a system notice. The same wording, wrapped: the
-       * business's name and picture at the top, their cancellation policy in
-       * their own words, and Second Pair once at the bottom in small grey.
-       *
-       * buildEmail is the function the settings preview draws, so what an
-       * owner is shown is what leaves. Plain text still goes with it, for the
-       * people who read mail that way and for spam filters.
+       * One row, and now possibly two sends. A reminder that reached somebody
+       * by email and failed by text is a reminder they received, and marking
+       * it failed would have the sweep report a problem to an owner who does
+       * not have one — but the text failure is still written down, because it
+       * is the thing that would otherwise be invisible.
        */
-      const html =
-        route.channel === "email"
-          ? buildEmail({
-              business: studio.name,
-              body: forThisChannel,
-              photoUrl: avatarUrl(
-                (studio as unknown as { photo_path?: string | null }).photo_path,
-              ),
-              policy:
-                (studio as unknown as { cancellation_policy?: string | null })
-                  .cancellation_policy ?? null,
-              /*
-               * The button, which is chrome rather than the business's words
-               * — so an email gets it whether or not they used {{link}}.
-               */
-              action: bookingUrl
-                ? { label: "See your appointment", url: bookingUrl }
-                : null,
-            })
-          : undefined;
-
-      const sent = await deliver({
-        channel: route.channel,
-        to: route.to,
-        body: forThisChannel,
-        html,
-        /*
-         * A reminder about an appointment they booked is a service message,
-         * so STOP does not silence it here — the sweep already skips anybody
-         * who has opted out, a few lines above, which is the right place for
-         * that decision because it also stops the row being claimed.
-         */
-        db,
-        studioId: studio.id,
-        transactional: true,
-        lastInboundAt: route.lastInboundAt,
-        from: route.channel === "sms" ? await sendingAs(booking.artists?.id) : undefined,
-        subject:
-          row.template_id && confirms.has(row.template_id)
-            ? `Your booking with ${studio.name} is confirmed`
-            : `Your appointment with ${studio.name}`,
-        fromName: studio.name,
-        replyTo: studio.email ?? undefined,
-      });
-
-      const arrived = sent.status === "sent" || sent.status === "delivered" ||
-        sent.status === "not_needed";
+      const arrived = outcomes.some((o) => o.ok);
+      const trouble = outcomes.filter((o) => !o.ok);
 
       await db
         .from("reminders")
         .update({
           status: arrived ? "sent" : "failed",
-          // What actually went, not what was composed — so a question about
-          // what somebody was told has the right answer.
-          body: forThisChannel,
-          channel: route.channel,
-          error: sent.error ?? null,
+          // What actually went, not what was composed.
+          body: outcomes[0]?.body ?? body,
+          // Every channel it went on, so the record is not half the story.
+          channel: outcomes.map((o) => o.channel).join(", "),
+          error: trouble.length
+            ? trouble.map((o) => `${o.channel}: ${o.error ?? "failed"}`).join("; ")
+            : null,
           sent_at: arrived ? new Date().toISOString() : null,
         })
         .eq("id", row.id);
