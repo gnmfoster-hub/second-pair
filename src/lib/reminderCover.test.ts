@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { reminderCover, whatIsMissing, type CoverPerson } from "./reminderCover.ts";
+import { reminderCover, whatIsMissing, whoSendsFewer, type CoverPerson } from "./reminderCover.ts";
 
 /** What it says, having first insisted it says anything at all. */
 const said = (value: string | null): string => {
@@ -120,4 +120,81 @@ test("a template with no hours given still counts as a reminder", () => {
   assert.equal(cover.businessWide, 1);
   assert.equal(cover.confirming, false);
   assert.deepEqual(cover.sendingNothing, []);
+});
+
+/*
+ * The gap Giles found: "the team members dont seem to have the same reminders
+ * set up as the owner." Aisha has one of her own and the shop sends two, so
+ * her clients get half of what everybody else's get — and nothing anywhere
+ * said so, because the page only ever warned about sending nothing.
+ */
+test("somebody sending fewer than the business is noticed", () => {
+  const cover = reminderCover(
+    [
+      { artist_id: null, hours_before: 24 },
+      { artist_id: null, hours_before: 2 },
+      { artist_id: "aisha", hours_before: 24 },
+    ],
+    [
+      { id: "aisha", name: "Aisha", active: true, ownReminders: true },
+      { id: "sarah", name: "Sarah", active: true, ownReminders: false },
+    ],
+  );
+
+  assert.deepEqual(cover.sendingFewer, [{ name: "Aisha", theirs: 1 }]);
+  const line = whoSendsFewer(cover);
+  assert.match(line ?? "", /Aisha sends one/);
+  assert.match(line ?? "", /business sends two/);
+});
+
+test("matching the business is not worth saying", () => {
+  const cover = reminderCover(
+    [
+      { artist_id: null, hours_before: 24 },
+      { artist_id: "aisha", hours_before: 24 },
+    ],
+    [{ id: "aisha", name: "Aisha", active: true, ownReminders: true }],
+  );
+  assert.deepEqual(cover.sendingFewer, []);
+  assert.equal(whoSendsFewer(cover), null);
+});
+
+/*
+ * Somebody doing more than the shop has decided to do more. Telling an owner
+ * about that is telling them off for trying.
+ */
+test("sending more than the business is never flagged", () => {
+  const cover = reminderCover(
+    [
+      { artist_id: null, hours_before: 24 },
+      { artist_id: "aisha", hours_before: 24 },
+      { artist_id: "aisha", hours_before: 2 },
+    ],
+    [{ id: "aisha", name: "Aisha", active: true, ownReminders: true }],
+  );
+  assert.deepEqual(cover.sendingFewer, []);
+});
+
+/* Sending nothing is the louder warning and stays the only one for that person. */
+test("somebody sending nothing is not also listed as sending fewer", () => {
+  const cover = reminderCover(
+    [{ artist_id: null, hours_before: 24 }],
+    [{ id: "aisha", name: "Aisha", active: true, ownReminders: true }],
+  );
+  assert.deepEqual(cover.sendingNothing, ["Aisha"]);
+  assert.deepEqual(cover.sendingFewer, []);
+});
+
+/* The confirmation is not a reminder, so it cannot make the counts look even. */
+test("a confirmation does not count towards either side", () => {
+  const cover = reminderCover(
+    [
+      { artist_id: null, hours_before: 0 },
+      { artist_id: null, hours_before: 24 },
+      { artist_id: "aisha", hours_before: 24 },
+      { artist_id: "aisha", hours_before: 0 },
+    ],
+    [{ id: "aisha", name: "Aisha", active: true, ownReminders: true }],
+  );
+  assert.deepEqual(cover.sendingFewer, []);
 });

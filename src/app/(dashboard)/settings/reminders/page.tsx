@@ -6,7 +6,7 @@ import { verticalPack } from "@/lib/verticals";
 import { smsNumberFor } from "@/lib/messaging/connections";
 import { smsConfigured } from "@/lib/messaging/sms";
 import { readableNumber } from "@/lib/channels/phoneNumbers";
-import { reminderCover, whatIsMissing } from "@/lib/reminderCover";
+import { reminderCover, whatIsMissing, whoSendsFewer } from "@/lib/reminderCover";
 import { avatarUrl } from "@/components/Avatar";
 import { ChannelChoice } from "./ChannelChoice";
 import { preferenceOf } from "@/lib/messageChannels";
@@ -64,6 +64,7 @@ export default async function RemindersPage() {
   );
 
   const missing = whatIsMissing(cover);
+  const fewer = whoSendsFewer(cover);
 
   /** Only the business's are the owner's to write from here. */
   const ours = reminders.filter((r) => !r.artist_id);
@@ -116,6 +117,26 @@ export default async function RemindersPage() {
       {missing && (
         <p className="rounded-lg border border-warn/30 bg-warn/8 px-4 py-3 text-[13px] text-foreground">
           {missing}
+        </p>
+      )}
+
+      {/*
+        * And the quieter one: who sends fewer than the shop.
+        *
+        * Giles: "the team members dont seem to have the same reminders set up
+        * as the owner." They did not, and this page had no opinion about it —
+        * it warns when somebody sends nothing and said nothing at all when
+        * somebody sends less. Aisha's clients were getting one reminder where
+        * everybody else's got two, and every screen called that set up.
+        *
+        * A note rather than a warning, because it may well be deliberate: one
+        * text the day before and nothing else is a perfectly good way to work.
+        * The point is that it becomes a decision instead of something a client
+        * tells you.
+        */}
+      {fewer && (
+        <p className="rounded-lg border border-border bg-surface-2/60 px-4 py-3 text-[13px] text-muted">
+          {fewer}
         </p>
       )}
 
