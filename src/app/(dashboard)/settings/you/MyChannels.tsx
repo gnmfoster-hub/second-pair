@@ -39,6 +39,7 @@ export function MyChannels({
   allowed,
   subscribed,
   ownEmail,
+  alone = false,
 }: {
   firstName: string;
   business: string;
@@ -67,6 +68,11 @@ export function MyChannels({
    * business's slug and their handle and neither belongs in a panel.
    */
   ownEmail?: string | null;
+  /**
+   * Nobody else takes bookings here, so there is no "yours rather than
+   * theirs" to draw. See the panel below.
+   */
+  alone?: boolean;
 }) {
   const sharedNames = [...new Set(shared.map((c) => CHANNEL_LABELS[c.channel]))];
 
@@ -99,6 +105,55 @@ export function MyChannels({
     }));
 
   const theirs = paidFor.filter((c) => !mayHave.has(c)) as Channel[];
+
+  /*
+   * A business of one has no "your own" to distinguish from anything.
+   *
+   * Karen runs Neat & Tidy on her own. This page told her that texts, email,
+   * Instagram, WhatsApp and Messenger "of your own are not switched on for
+   * you" and that "whoever runs Neat & Tidy decides that, because anything
+   * arriving on one would come straight to you rather than being offered
+   * round" — while the business's own Channels page showed the same channels
+   * switched on. She is whoever runs it, and there is nobody to offer
+   * anything round to. Giles: the two screens need to be one or the other.
+   *
+   * So where somebody is the only person taking bookings, the distinction is
+   * not softened, it is removed: the business's channels are hers, said once,
+   * with the place to change them. The split stays exactly as it was for a
+   * salon, which is the only place it means anything — Aisha at Willow has
+   * six of her own and they are genuinely different from the shop's.
+   */
+  if (alone) {
+    return (
+      <section className="card p-5">
+        <h2 className="section-title">How people reach you</h2>
+        {sharedNames.length > 0 ? (
+          <>
+            <p className="hint mt-1">
+              You are the only person taking bookings, so {business}&rsquo;s channels are
+              yours — everything arriving on {sharedNames.length === 1 ? "it" : "them"} is
+              for you, and the assistant never asks a customer who they would like.
+            </p>
+            <ul className="mt-3 divide-y divide-border border-y border-border">
+              {shared.map((c) => (
+                <li key={c.channel} className="py-2.5 text-sm font-medium">
+                  {CHANNEL_LABELS[c.channel]}
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <p className="hint mt-1">
+            No channel is connected yet, so nothing is reaching you. The website button
+            works without one.
+          </p>
+        )}
+        <a href="/settings/install" className="btn-ghost mt-3 inline-flex">
+          Set up your channels
+        </a>
+      </section>
+    );
+  }
 
   return (
     <section className="card p-5">

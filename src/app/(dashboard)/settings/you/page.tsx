@@ -204,7 +204,10 @@ export default async function YouPage({
       {me && (
         <MyChannels
           firstName={me.name.split(" ")[0]}
-          business={words.business}
+          /* The name, not the trade word: this panel writes sentences like
+             "Whoever runs X decides that", and with the word it read
+             "Whoever runs salon decides that". */
+          business={studio.name}
           mine={
             myChannels as {
               channel: Channel;
@@ -216,6 +219,11 @@ export default async function YouPage({
           shared={sharedChannels as { channel: Channel }[]}
           allowed={(me as { own_channels?: string[] | null }).own_channels ?? []}
           subscribed={studio.channels_allowed ?? []}
+          /*
+           * Whether anybody else takes bookings here. A business of one has no
+           * "your own channels" to tell apart from the business's.
+           */
+          alone={artists.filter((a) => a.active !== false).length <= 1}
           ownEmail={
             ((me as { own_channels?: string[] | null }).own_channels ?? []).includes("email") &&
             (me as { handle?: string | null }).handle
