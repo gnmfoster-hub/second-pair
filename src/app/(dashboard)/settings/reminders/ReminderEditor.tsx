@@ -33,6 +33,16 @@ const TOKENS = [
   ["{{when}}", "the day and time"],
   ["{{practitioner}}", "who it is with"],
   ["{{business}}", "your name"],
+  /*
+   * The link is optional in a text and automatic in an email.
+   *
+   * An email gets a button whether or not this is used, because a button is
+   * chrome rather than part of the sentence. A text only gets it if the
+   * business asks, because every character past a hundred and sixty costs
+   * them money and appending a URL nobody wrote changes what they chose to
+   * say.
+   */
+  ["{{link}}", "their own page for this appointment — email always has a button"],
 ];
 
 /**
@@ -91,6 +101,7 @@ function Preview({
     practitioner: "Sarah",
     business: sender.business,
     when: "tomorrow at 2pm",
+    link: "https://www.second-pair.com/b/example",
   });
 
   return (
@@ -103,7 +114,14 @@ function Preview({
         * seen what that looked like — see HowItLands, which renders each with
         * the code that sends it.
         */}
-      <HowItLands text={text} business={business} photoUrl={photoUrl} policy={policy} />
+      <HowItLands
+        text={text}
+        business={business}
+        photoUrl={photoUrl}
+        policy={policy}
+        /* The email's button, which is not part of their sentence. */
+        action={{ label: "See your appointment", url: "https://www.second-pair.com/b/example" }}
+      />
 
       <div className="hint mt-2">
         <Explain label="What this preview is showing">

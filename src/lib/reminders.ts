@@ -11,6 +11,7 @@ import { whyNotSend } from "@/lib/whyNotSend";
 import { planReminders } from "@/lib/reminderSchedule";
 import { buildEmail } from "@/lib/messaging/emailTemplate";
 import { avatarUrl } from "@/components/Avatar";
+import { siteOrigin } from "@/lib/origin";
 
 /**
  * Reminders.
@@ -262,6 +263,8 @@ type DueRow = {
     id: string;
     starts_at: string;
     cancelled_at: string | null;
+    /** The customer's own page for it. Absent on bookings made before it existed. */
+    public_token?: string | null;
     artists: { id: string; name: string; studio_id: string } | null;
     /** Set when somebody typed this into the diary rather than the assistant booking it. */
     contacts: Person | null;
@@ -390,7 +393,7 @@ export async function sendDueReminders(
     .from("reminders")
     .select(
       "id, due_at, template_id, " +
-        "bookings!inner(id, starts_at, cancelled_at, " +
+        "bookings!inner(id, starts_at, cancelled_at, public_token, " +
         "artists!inner(id, name, studio_id), contacts(name, phone, email), " +
         "enquiries(conversations(id, channel, external_ref, last_inbound_at, " +
         "ai_paused, contacts(name, phone, email))))",
@@ -461,6 +464,21 @@ export async function sendDueReminders(
   const smsFrom = await smsNumberFor(db, studio.id);
 
   /*
+   * Where the booking pages live, worked out once.
+   *
+   * siteOrigin reads request headers, and every caller of this is a server
+   * action or a route handler — but a sweep that cannot work out its own
+   * address must still send the reminder, so this degrades to no link rather
+   * than throwing.
+   */
+  let origin = "";
+  try {
+    origin = await siteOrigin();
+  } catch {
+    origin = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  }
+
+  /*
    * A reminder about Aisha's appointment goes out from Aisha's number.
    *
    * The business's line is right for anything the business sends on its own
@@ -515,6 +533,16 @@ export async function sendDueReminders(
     // booking itself where somebody typed it into the diary.
     const person = conversation?.contacts ?? booking.contacts ?? null;
 
+    /*
+     * The customer's own page for this appointment.
+     *
+     * Empty when the origin cannot be worked out or the booking predates the
+     * token, and renderReminder strips an empty one — a sentence missing a
+     * link is better than one containing the word "undefined".
+     */
+    const bookingUrl =
+      origin && booking.public_token ? `${origin}/b/${booking.public_token}` : "";
+
     const body = renderReminder(template, {
       name: person?.name,
       practitioner: booking.artists?.name,
@@ -523,6 +551,15 @@ export async function sendDueReminders(
         { starts_at: booking.starts_at, ends_at: booking.starts_at },
         studio.timezone,
       ),
+      /*
+       * Only where the business asked for it with {{link}}.
+       *
+       * A text is theirs, every character of it costs money past a hundred
+       * and sixty, and appending a URL nobody wrote would change the sentence
+       * they chose. The email gets the link as a button either way, because a
+       * button is chrome rather than part of their words.
+       */
+      link: bookingUrl,
     });
 
     /*
@@ -645,6 +682,13 @@ export async function sendDueReminders(
               policy:
                 (studio as unknown as { cancellation_policy?: string | null })
                   .cancellation_policy ?? null,
+              /*
+               * The button, which is chrome rather than the business's words
+               * — so an email gets it whether or not they used {{link}}.
+               */
+              action: bookingUrl
+                ? { label: "See your appointment", url: bookingUrl }
+                : null,
             })
           : undefined;
 

@@ -9,13 +9,27 @@
  */
 
 /** The only names a template may use. Anything else is stripped. */
-export const REMINDER_PLACEHOLDERS = ["name", "practitioner", "business", "when"] as const;
+export const REMINDER_PLACEHOLDERS = [
+  "name",
+  "practitioner",
+  "business",
+  "when",
+  "link",
+] as const;
 
 export type ReminderValues = {
   name?: string | null;
   practitioner?: string | null;
   business?: string | null;
   when?: string | null;
+  /**
+   * The customer's own page for this appointment, at /b/<token>.
+   *
+   * Optional and stripped when absent, which is what happens to a template
+   * using it for a booking made before the page existed — a sentence with a
+   * missing link is better than one containing the word "undefined".
+   */
+  link?: string | null;
 };
 
 /**
@@ -28,6 +42,7 @@ export function renderReminder(template: string, values: ReminderValues): string
     .replace(/\{\{\s*practitioner\s*\}\}/gi, values.practitioner?.trim() || "us")
     .replace(/\{\{\s*business\s*\}\}/gi, values.business?.trim() || "us")
     .replace(/\{\{\s*when\s*\}\}/gi, values.when?.trim() || "your appointment")
+    .replace(/\{\{\s*link\s*\}\}/gi, values.link?.trim() ?? "")
     .replace(/\{\{[^}]*\}\}/g, "")
     .replace(/[ \t]{2,}/g, " ")
     .trim();

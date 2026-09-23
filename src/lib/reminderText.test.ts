@@ -132,3 +132,32 @@ test("a single sentence too long for one text is sent whole rather than cut off"
   const one = "Hi " + "a".repeat(200) + ".";
   assert.equal(forOneText(one), one);
 });
+
+/*
+ * The link to the customer's own page.
+ *
+ * Optional in a text and automatic in an email, so the template has to cope
+ * with it being absent — a booking made before the page existed has no token,
+ * and a sentence containing the word "undefined" reaches a real customer.
+ */
+test("the link is filled when there is one", () => {
+  assert.equal(
+    renderReminder("See you {{when}}: {{link}}", {
+      when: "tomorrow at 2pm",
+      link: "https://x.test/b/abc",
+    }),
+    "See you tomorrow at 2pm: https://x.test/b/abc",
+  );
+});
+
+test("a template asking for a link there is none for does not say undefined", () => {
+  const out = renderReminder("See you {{when}}. {{link}}", { when: "tomorrow" });
+  assert.doesNotMatch(out, /undefined/);
+  assert.doesNotMatch(out, /\{\{/);
+  assert.equal(out, "See you tomorrow.");
+});
+
+test("link is a known placeholder, so the editor does not warn about it", () => {
+  assert.deepEqual(unknownPlaceholders("{{link}} and {{name}}"), []);
+  assert.deepEqual(unknownPlaceholders("{{lnik}}"), ["lnik"]);
+});
