@@ -696,6 +696,23 @@ export async function fixPerson(_prev: Result, fd: FormData): Promise<Result> {
     patch.owner_managed = fd.get("owner_managed") === "on";
     patch.notify_own_bookings = fd.get("notify_own_bookings") === "on";
     patch.reminders_own = fd.get("reminders_own") === "on";
+
+    /*
+     * Their own telephone, which is a thing sold rather than a thing chosen.
+     *
+     * Giles: per person would be expensive, so I will need to charge for each
+     * individual instance. So it is switched on here, beside the other
+     * entitlements, and what it costs shows against their name in Reports —
+     * which is the other half of what he asked for and the half that decides
+     * whether the price works.
+     *
+     * Guarded on the column: a deploy lands before its migration, and a
+     * support form that refuses to save a rate because of a telephone column
+     * is worse than one that quietly leaves the telephone alone.
+     */
+    if (await hasColumn(db, "artists", "voice_on")) {
+      patch.voice_on = fd.get("voice_on") === "on";
+    }
   }
 
   const travel = String(fd.get("travel_buffer_minutes") ?? "").trim();

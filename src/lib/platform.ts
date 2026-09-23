@@ -112,6 +112,8 @@ export type BusinessSummary = {
     ownerManaged: boolean;
     notifyOwnBookings: boolean;
     remindersOwn: boolean;
+    /** Their own telephone. Sold per person; absent until the migration runs. */
+    voiceOn?: boolean | null;
     travelBufferMinutes: number | null;
     personalIcalUrl: string | null;
     personalCalendarError: string | null;

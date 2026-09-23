@@ -455,6 +455,7 @@ export default async function AdminPage() {
           ownerManaged: (a.owner_managed as boolean) ?? false,
           notifyOwnBookings: (a.notify_own_bookings as boolean) ?? true,
           remindersOwn: (a.reminders_own as boolean) ?? false,
+          voiceOn: (a as { voice_on?: boolean }).voice_on ?? false,
           travelBufferMinutes: (a.travel_buffer_minutes as number | null) ?? null,
           personalIcalUrl: (a.personal_ical_url as string | null) ?? null,
           personalCalendarError: (a.personal_calendar_error as string | null) ?? null,

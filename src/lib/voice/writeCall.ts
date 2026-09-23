@@ -36,7 +36,7 @@ export async function writeCall(
    */
   if (!(await hasColumn(db, "calls", "call_sid"))) return;
 
-  const row = {
+  const row: Record<string, unknown> = {
     studio_id: call.studioId,
     call_sid: call.callSid ?? null,
     from_number: call.from ?? null,
@@ -47,6 +47,33 @@ export async function writeCall(
     recorded_seconds: call.recordedSeconds ?? 0,
     transcribed: call.transcribed ?? false,
   };
+
+  /*
+   * Whose number was rung, as it stood at the time.
+   *
+   * Derivable later by looking the number up against the connections, and
+   * wrong the first time a number is handed from one stylist to another —
+   * it would rewrite every call that person had ever taken. Whose it was at
+   * the time is a fact about the call, so it is written on the call.
+   *
+   * Swallowed and guarded: a call that cannot be attributed is still a call
+   * worth recording, and this must never be the reason one is lost.
+   */
+  try {
+    if (call.to && (await hasColumn(db, "calls", "artist_id"))) {
+      const { data: connection } = await db
+        .from("channel_connections")
+        .select("artist_id")
+        .eq("studio_id", call.studioId)
+        .eq("external_id", call.to)
+        .maybeSingle();
+
+      /* Null is the honest value for the business's own number. */
+      row.artist_id = connection?.artist_id ?? null;
+    }
+  } catch {
+    /* Unattributed rather than unrecorded. */
+  }
 
   try {
     if (call.callSid) {
