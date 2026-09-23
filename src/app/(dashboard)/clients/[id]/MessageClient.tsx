@@ -20,15 +20,30 @@ export function MessageClient({
   name,
   routes,
   allowed,
+  templates = [],
 }: {
   contactId: string;
   name: string;
   routes: Route[];
   /** The owner may have withheld messaging from this member of staff. */
   allowed: boolean;
+  /**
+   * Their saved wordings, already filled in for this person.
+   *
+   * Empty until they write some, and empty before the migration runs — both
+   * leave the box exactly as it was, which is the right thing for each.
+   */
+  templates?: { id: string; label: string; body: string }[];
 }) {
   const open = routes.filter((r) => r.open);
   const [channel, setChannel] = useState(open[0]?.channel ?? null);
+  /*
+   * The box is controlled once there is anything to put in it, so picking a
+   * wording can fill it. Started from empty rather than from the first
+   * template: a message that types itself the moment the page loads is one
+   * somebody sends without reading.
+   */
+  const [text, setText] = useState("");
   const [state, action] = useActionState<MessageState, FormData>(messageClient, {});
 
   if (!allowed) {
@@ -101,10 +116,41 @@ export function MessageClient({
             </div>
           )}
 
+          {/*
+            * Their own wordings, on the way into the box rather than out of it.
+            *
+            * Giles: "would be good to be able to send emails/messages to the
+            * clients in the client page record a copy and have templates etc."
+            * The copy was already kept — every message sent from here is
+            * written into their conversation with the delivery beside it — so
+            * this is the wording half.
+            *
+            * Filling the box rather than sending: every one of these gets
+            * edited before it goes, which is the difference between a quick
+            * message and a reminder. A picker that sent would be a way to
+            * send the wrong thing in one click.
+            */}
+          {templates.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {templates.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setText(t.body)}
+                  className="rounded-full border border-border px-2.5 py-1 text-xs text-muted transition-colors hover:border-accent hover:text-foreground"
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           <textarea
             name="message"
             rows={3}
             className="input"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
             placeholder={
               open.length === 1
                 ? `Message ${name.split(" ")[0]} on ${channelLabel(open[0].channel).toLowerCase()}…`

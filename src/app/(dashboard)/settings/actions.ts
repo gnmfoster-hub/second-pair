@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { STARTERS } from "@/lib/quickMessages";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio, requireOwner, getArtists } from "@/lib/studio";
 import { parsePounds } from "@/lib/money";
@@ -2677,4 +2678,93 @@ export async function allowOwnChannel(_prev: FormState, fd: FormData): Promise<F
   revalidatePath("/settings/artists");
   revalidatePath("/settings/you");
   return { ok: true };
+}
+
+/**
+ * A wording a business picks from when messaging a client by hand.
+ *
+ * Giles asked for templates on the client page. These are them: chosen by a
+ * person, dropped into the box, and edited before they go — which is the whole
+ * difference between one of these and a reminder, and the reason they are a
+ * table of their own rather than a reminder with no hours on it.
+ */
+export async function saveQuickMessage(_prev: FormState, fd: FormData): Promise<FormState> {
+  /* What the business says to its customers belongs to whoever owns it. */
+  if (!(await isOwner())) {
+    return { error: "Only the owner can change the saved messages." };
+  }
+
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  if (str(fd, "intent") === "delete") {
+    const { error } = await supabase.from("message_templates").delete().eq("id", str(fd, "id"));
+    if (error) return { error: notYet(error.message) };
+    revalidatePath("/settings/messages");
+    return { ok: true };
+  }
+
+  /*
+   * The starters, written in one go for a business that has none.
+   *
+   * Offered rather than seeded on sign-up: six wordings appearing in somebody's
+   * settings without being asked for is six things to read and delete. This way
+   * they arrive because a person pressed a button, and they are ordinary
+   * editable rows the moment they land.
+   */
+  if (str(fd, "intent") === "starters") {
+    const { data: already } = await supabase
+      .from("message_templates")
+      .select("id")
+      .eq("studio_id", studio.id)
+      .limit(1);
+
+    if (already?.length) return { error: "You already have some. Add another instead." };
+
+    const { error } = await supabase.from("message_templates").insert(
+      STARTERS.map((s, i) => ({
+        studio_id: studio.id,
+        label: s.label,
+        body: s.body,
+        sort_order: i,
+      })),
+    );
+    if (error) return { error: notYet(error.message) };
+    revalidatePath("/settings/messages");
+    return { ok: true };
+  }
+
+  const label = str(fd, "label");
+  const body = str(fd, "body");
+  if (!label || !body) return { error: "It needs a name and something to say." };
+
+  const row = {
+    studio_id: studio.id,
+    label,
+    body,
+    sort_order: Number(str(fd, "sort_order")) || 0,
+  };
+
+  const id = str(fd, "id");
+  const { error } = id
+    ? await supabase.from("message_templates").update(row).eq("id", id)
+    : await supabase.from("message_templates").insert(row);
+
+  if (error) return { error: notYet(error.message) };
+
+  revalidatePath("/settings/messages");
+  return { ok: true };
+}
+
+/**
+ * A missing table said as a migration rather than as a database error.
+ *
+ * A deploy can land before its migration runs, and "relation
+ * public.message_templates does not exist" on a settings screen reads as a
+ * broken product to the one person who cannot do anything about it.
+ */
+function notYet(message: string): string {
+  return /does not exist|schema cache/i.test(message)
+    ? "Saved messages are not switched on for this account yet."
+    : message;
 }

@@ -11,6 +11,7 @@ import { CHANNEL_LABELS, CONV_STATUS_LABELS, type Channel, type ConvStatus } fro
 import { ClientForm } from "./ClientForm";
 import { siteOrigin } from "@/lib/origin";
 import { MessageClient } from "./MessageClient";
+import { fillFor } from "@/lib/quickMessages";
 import { routesFor } from "@/lib/messaging/reach";
 import { connectedChannels } from "@/lib/messaging/connections";
 import { canMessage } from "@/lib/permissions";
@@ -217,6 +218,22 @@ export default async function ClientPage({
    * reminder behind with nothing to name — the column is nullable on purpose,
    * because the record of what was sent outlives the thing that composed it.
    */
+  /*
+   * Their saved wordings, if they have written any.
+   *
+   * Read tolerantly and separately: the table arrives in a migration, and a
+   * deploy can land before it is run. No table means no picker and the box
+   * everybody already had, which is exactly what should happen.
+   */
+  const { data: quickRows } = await supabase
+    .from("message_templates")
+    .select("id, label, body")
+    .eq("studio_id", studio.id)
+    .order("sort_order")
+    .order("created_at");
+
+  const quickMessages = (quickRows ?? []) as { id: string; label: string; body: string }[];
+
   const templateLabels = new Map(
     (allTemplates ?? []).map((t) => [t.id as string, (t as { label?: string }).label ?? null]),
   );
@@ -514,6 +531,22 @@ export default async function ClientPage({
             name={contact.name ?? "them"}
             routes={routes}
             allowed={mayMessage}
+            /*
+             * Wordings they have saved, ready to drop into the box.
+             *
+             * Giles asked for templates here. Filled in on the way out rather
+             * than pasted raw: a picker that puts "{{name}}" into the box makes
+             * every use a find-and-replace, and the once somebody forgets, a
+             * customer is addressed as a curly brace.
+             */
+            templates={quickMessages.map((t) => ({
+              id: t.id,
+              label: t.label,
+              body: fillFor(t.body, {
+                name: contact.name,
+                business: studio.name,
+              }),
+            }))}
           />
 
           {/*

@@ -101,6 +101,12 @@ export default async function SettingsLayout({ children }: { children: React.Rea
               { href: "/settings/reminders", label: "Confirmations and reminders" },
               { href: "/settings/reviews", label: "Review requests" },
               { href: "/settings/marketing", label: "Marketing" },
+              /*
+               * The only one of these a person sends by hand, and the reason
+               * it belongs with the other three rather than near the diary:
+               * the group answers "where do I change what we say to people".
+               */
+              { href: "/settings/messages", label: "Saved messages" },
             ],
           },
           {

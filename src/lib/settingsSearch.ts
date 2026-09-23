@@ -88,6 +88,8 @@ export const SETTINGS: Setting[] = [
   { label: "Your review link", href: "/settings/reviews", page: "Review requests", keywords: "review link google url where they leave it", ownerOnly: true },
   { label: "Campaigns", href: "/settings/marketing", page: "Marketing", keywords: "marketing campaign offer promotion win back come back again", ownerOnly: true },
 
+  { label: "Saved messages", href: "/settings/messages", page: "Saved messages", keywords: "template quick message wording running late slot cancellation saved snippet", ownerOnly: true },
+
   /* ------------------------------------------------------ around a booking */
   { label: "Forms", href: "/settings/forms", page: "Forms", keywords: "form consent waiver questionnaire sign paperwork before", ownerOnly: true },
 
