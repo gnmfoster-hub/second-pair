@@ -568,6 +568,22 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
     return { error: "Terms URL must start with http:// or https://" };
 
   const privacy = str(fd, "privacy_notice_url");
+  /*
+   * The business's own photograph, handled before the row is built.
+   *
+   * Undefined means the form did not mention it, which must not be read as
+   * "remove it" — an older page open in a tab saves what it shows.
+   */
+  let photoPath: string | null | undefined;
+  const businessPhoto = fd.get("photo");
+  if (businessPhoto instanceof File && businessPhoto.size > 0) {
+    const uploaded = await uploadAvatar(supabase, studio.id, businessPhoto);
+    if (uploaded.error) return { error: uploaded.error };
+    photoPath = uploaded.path;
+  } else if (fd.get("remove_photo") === "true") {
+    photoPath = null;
+  }
+
   const reviewUrl = str(fd, "review_url");
   if (privacy && !/^https?:\/\//i.test(privacy))
     return { error: "Privacy notice URL must start with http:// or https://" };
@@ -677,6 +693,17 @@ export async function updateStudio(_prev: FormState, fd: FormData): Promise<Form
         ? { cancellation_policy: str(fd, "cancellation_policy") }
         : {}),
       privacy_notice_url: privacy || null,
+
+      /*
+       * The picture of the place, if one has just been chosen.
+       *
+       * Guarded on the column rather than assumed, like every other one added
+       * since August: a deploy can land before the migration and this must
+       * save the rest of the business's settings rather than failing the lot.
+       */
+      ...(photoPath !== undefined && (await hasColumn(supabase, "studios", "photo_path"))
+        ? { photo_path: photoPath }
+        : {}),
 
       /*
        * Review requests are not written here any more.

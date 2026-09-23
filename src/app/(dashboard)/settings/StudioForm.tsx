@@ -9,6 +9,7 @@ import { penceToInput } from "@/lib/money";
 import { DAY_NAMES, DEFAULT_HOURS, type Studio } from "@/lib/types";
 import { verticalPack } from "@/lib/verticals";
 import { ColourBy } from "@/app/(dashboard)/diary/ColourBy";
+import { avatarUrl } from "@/components/Avatar";
 import type { ColourMode } from "@/lib/diaryColour";
 
 export function StudioForm({
@@ -45,6 +46,9 @@ export function StudioForm({
   depositsUnready?: string;
 }) {
   const [state, action] = useActionState<FormState, FormData>(updateStudio, {});
+  /* Null until the migration lands, which reads as no picture. */
+  const photo = avatarUrl((studio as unknown as { photo_path?: string | null }).photo_path);
+
   const [depositType, setDepositType] = useState(studio.deposit_rule.type);
   const [depositMode, setDepositMode] = useState(studio.deposit_mode ?? "required");
   const [travelMode, setTravelMode] = useState(studio.travel_mode ?? "at_premises");
@@ -646,6 +650,47 @@ export function StudioForm({
           * happens to their details is the part that quietly goes, which is
           * the half the law is actually about.
           */}
+        {/*
+          * A picture of the place, which the business had no way to give.
+          *
+          * Everybody in the diary has had a photograph since August and the
+          * business itself had none — so anything a customer sees could show
+          * who they were meeting and not where they were going. Fresha's
+          * confirmation puts a small photograph of the salon beside the
+          * address and it does more for confidence than a paragraph would.
+          *
+          * One box for either. "A photo or your logo" is a choice about what
+          * to put in it rather than two things to store, and a business with
+          * both would have to be asked which wins.
+          */}
+        <Field
+          label="A picture of your business"
+          hint="Shown to customers on a booking page and beside your address. A photo of the place works better than a logo, because it is what they are looking for when they arrive — but a logo is better than nothing."
+        >
+          <div className="flex items-center gap-3">
+            {photo && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={photo}
+                alt=""
+                className="size-16 shrink-0 rounded-xl border border-border object-cover"
+              />
+            )}
+            <input
+              type="file"
+              name="photo"
+              accept="image/jpeg,image/png,image/webp"
+              className="text-xs text-muted file:mr-3 file:rounded-lg file:border file:border-border file:bg-surface-2 file:px-3 file:py-1.5 file:text-xs file:text-foreground"
+            />
+          </div>
+          {photo && (
+            <label className="hint mt-2 flex items-center gap-2">
+              <input type="checkbox" name="remove_photo" value="true" className="accent-[var(--accent)]" />
+              Remove the picture
+            </label>
+          )}
+        </Field>
+
         <Field
           label="Privacy notice URL"
           hint="On your website the widget shows it before anybody types; everywhere else it goes in the assistant's first reply. Leave it empty and people are still told they are talking to an assistant, but there is nowhere for them to read what happens to what they type. Required under UK GDPR."

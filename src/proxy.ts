@@ -108,6 +108,18 @@ const PUBLIC_PATHS = [
   "/api/meta",
   // A form sent to a customer, opened from a text or an email with its own private link.
   "/f/",
+  /*
+   * A customer's own appointment, opened from the link in their confirmation.
+   *
+   * Same shape as /f/ and the same reason: an unguessable token is the
+   * credential, and the person holding it has no account and never will.
+   * Missing from this list it is not a 404 — it is a redirect to the marketing
+   * home page, which looks exactly like the link being wrong. That is how it
+   * behaved for the ten minutes between writing the page and testing it, and
+   * it is the same fault that made the whole inbound half of text messaging
+   * unreachable for weeks.
+   */
+  "/b/",
 ];
 
 export async function proxy(request: NextRequest) {
