@@ -13,15 +13,29 @@ import { seedStarterReminders, type FormState } from "../actions";
  * say — and the wording is the part worth having.
  */
 export function SeedReminders({ trade }: { trade: string }) {
+  /* The label for a business that has not picked a trade, which is not a trade. */
+  const generic = /^something else$/i.test(trade.trim());
+
   const [state, action] = useActionState<FormState, FormData>(seedStarterReminders, {});
 
   return (
     <form action={action} className="card border-dashed p-5">
       <div className="section-title">You have no reminders set up</div>
+      {/*
+        * "the two most something else businesses send".
+        *
+        * The trade's own label goes into the sentence, and the label for a
+        * business that has not picked one is "Something else" — so the
+        * generic case read as nonsense, which is exactly the business most
+        * likely to be sitting on this screen with nothing set up.
+        *
+        * Also "the two most X businesses send" was missing its "that". Read
+        * aloud it is "the two that most tattoo businesses send".
+        */}
       <p className="hint mt-1 max-w-prose">
-        Nobody is being reminded of their appointment. Start from the two most{" "}
-        {trade.toLowerCase()} businesses send: one two days before, one the day before,
-        and change the wording to yours. Or write your own below.
+        Nobody is being reminded of their appointment. Start with the two that most{" "}
+        {generic ? "" : `${trade.toLowerCase()} `}businesses send: one two days before, one
+        the day before, and change the wording to yours. Or write your own below.
       </p>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
