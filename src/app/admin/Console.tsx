@@ -1357,7 +1357,8 @@ function Request({ ticket }: { ticket: BusinessSummary["tickets"][number] }) {
  */
 function Channels({ b }: { b: BusinessSummary }) {
   const [state, action] = useActionState<Result, FormData>(fixChannel, {});
-  const sms = b.connections.find((c) => c.channel === "sms");
+  const smsLines = b.connections.filter((c) => c.channel === "sms");
+  const sms = smsLines[0];
   const others = b.connections.filter((c) => c.channel !== "sms");
 
   /*
@@ -1407,24 +1408,42 @@ function Channels({ b }: { b: BusinessSummary }) {
           </p>
         )}
 
+        {/*
+          * Adding one, said as adding one.
+          *
+          * This box arrived filled in with whatever number the business
+          * already had, headed "Their Twilio number", under a button saying
+          * "Save their number". Typing a second number over the first did add
+          * it beside the first rather than replacing it — the action has
+          * worked that way since a business could hold more than one — but
+          * nothing on the screen said so and everything on it implied the
+          * opposite. Asked how to add a second, the only honest answer was
+          * "type it over the one that is there", which is not an answer
+          * anybody should have to be given.
+          *
+          * So the box is empty, it is called adding, and the numbers already
+          * held are the rows underneath, each with who it belongs to, what it
+          * rings and its own switch. One place to add, one row to manage.
+          */}
         <form action={action} className="space-y-3">
           <input type="hidden" name="id" value={b.id} />
+          <input type="hidden" name="mode" value="add" />
 
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block">
-              <span className="label">Their Twilio number</span>
+              <span className="label">Add {sms ? "another" : "a"} Twilio number</span>
               <input
                 name="sms_number"
-                defaultValue={sms?.externalId ?? ""}
+                defaultValue=""
                 placeholder="+447700900123"
                 className="input"
+                inputMode="tel"
               />
               <span className="hint">
                 Full international form. This is how an incoming text finds them, so a
-                number in any other shape matches nothing. A number they already have is
-                edited; a new one is added beside it, so a business can be supplied as
-                many as it pays for. Empty switches every number on this business off,
-                which is not the same as handing them back to Twilio.
+                number in any other shape matches nothing. A business can hold as many as
+                it pays for. It arrives belonging to the whole business, and the row below
+                is where it is handed to somebody.
               </span>
             </label>
 
@@ -1432,20 +1451,22 @@ function Channels({ b }: { b: BusinessSummary }) {
               <span className="label">Ring this first, for 15 seconds</span>
               <input
                 name="forward_to"
-                defaultValue={sms?.forwardTo ?? ""}
+                defaultValue=""
                 placeholder="+447700900456"
                 className="input"
+                inputMode="tel"
               />
               <span className="hint">
-                Their own mobile, never the number above. Empty is a real answer: text
-                the caller at once and do not ring anybody.
+                Their own mobile, never the number beside it. Empty is a real answer: text
+                the caller at once and do not ring anybody. Changeable afterwards on the
+                number&rsquo;s own row.
               </span>
             </label>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             <button type="submit" className="btn bg-accent text-on-accent">
-              Save their number
+              Add this number
             </button>
             {state.ok && <span className="text-sm text-ok">Saved.</span>}
             {state.error && <span className="text-sm text-warn">{state.error}</span>}
@@ -1463,22 +1484,26 @@ function Channels({ b }: { b: BusinessSummary }) {
               * in the shape a person reads it out, with the moment it saved
               * next to it. "Nothing saved yet" is the line that answers the
               * support call before it is made.
+              *
+              * It said that about the first number and only the first, which
+              * was the whole truth while there could only be one. It now
+              * counts them and names the newest, because "stored: one number"
+              * on a business holding three is the same lie in a quieter voice.
               */}
             <span className="hint ml-auto text-right">
-              {sms?.externalId ? (
-                <>
-                  Stored:{" "}
-                  <span className="font-mono">{readableNumber(sms.externalId)}</span>
-                  {sms.forwardTo && (
-                    <>
-                      , rings <span className="font-mono">{readableNumber(sms.forwardTo)}</span>
-                    </>
-                  )}
-                  {" · "}
-                  {sms.savedAt ? `saved ${sms.savedAt}` : "saved before this was recorded"}
-                </>
+              {smsLines.length === 0 ? (
+                "No number stored yet."
               ) : (
-                "Nothing saved yet."
+                <>
+                  {smsLines.length} number{smsLines.length === 1 ? "" : "s"} stored, newest{" "}
+                  <span className="font-mono">
+                    {readableNumber(smsLines[smsLines.length - 1].externalId ?? "")}
+                  </span>
+                  {" · "}
+                  {smsLines[smsLines.length - 1].savedAt
+                    ? `saved ${smsLines[smsLines.length - 1].savedAt}`
+                    : "saved before this was recorded"}
+                </>
               )}
             </span>
           </div>

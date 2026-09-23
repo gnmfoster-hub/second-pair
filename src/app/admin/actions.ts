@@ -1209,6 +1209,41 @@ export async function fixChannel(_prev: Result, fd: FormData): Promise<Result> {
   const { number, forwardTo } = read;
 
   /*
+   * The box that says "add" can only ever add.
+   *
+   * The screen sends mode=add, because the one form there is now an empty box
+   * headed "Add another number" rather than a filled one headed "their
+   * number". An empty box submitted by accident used to mean "switch every
+   * number this business has off" — which is a reasonable reading of clearing
+   * a field that showed a number, and an unreasonable one of leaving an add
+   * box untouched. Same submission, opposite meanings, so the form says which
+   * it meant rather than leaving it to be inferred.
+   *
+   * Switching a line off has its own switch on its own row, and taking one
+   * away for good is a Twilio job first.
+   */
+  const adding = String(fd.get("mode") ?? "") === "add";
+
+  if (adding && !number) {
+    return { error: "Type the number to add. To switch one off, use the switch on its row." };
+  }
+
+  if (adding && number) {
+    const { data: mine } = await db
+      .from("channel_connections")
+      .select("id")
+      .eq("studio_id", id)
+      .eq("channel", "sms")
+      .eq("external_id", number)
+      .limit(1)
+      .maybeSingle();
+
+    if (mine) {
+      return { error: "They already have that number. Its own row below is where it is changed." };
+    }
+  }
+
+  /*
    * Clearing it switches the line off rather than forgetting it happened.
    *
    * This deleted the row, which took the only record of the number with it.
