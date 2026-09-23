@@ -414,7 +414,25 @@ export default async function InboxPage({
         </div>
       )}
 
-      <Readiness capabilities={capabilities} />
+      {/*
+        * The owner's, not everybody's.
+        *
+        * Giles: information on the set-up of the other team members is showing
+        * on Aisha's inbox — only the owner should see other people's things,
+        * apart from the diary.
+        *
+        * He is right, and it was not gated at all. This panel is about the
+        * business: no services priced, nobody's phone signed up, deposits not
+        * switched on. Almost none of it is a stylist's to act on, and the part
+        * that mentions people names them — so her inbox, the screen she keeps
+        * open all day, was carrying a list of what her colleagues had not done.
+        *
+        * She is not left with nothing. The set-up walk-through already builds
+        * a different list for somebody who does not own the place — her own
+        * phone, her own Stripe, her own hours — which is the right place for
+        * it, because those are things only she can do.
+        */}
+      {owns && <Readiness capabilities={capabilities} />}
 
       {/*
         * Only on the demo, where a demonstration leaves marks.
