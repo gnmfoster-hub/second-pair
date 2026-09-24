@@ -69,6 +69,13 @@ export default async function SettingsLayout({ children }: { children: React.Rea
             title: "Your business",
             links: [
               { href: "/settings", label: title(words.business) },
+              /*
+               * The page you open when you think something is wrong, and the
+               * only one that answers about everything at once. Under the
+               * business rather than in a group of its own: it is a fact about
+               * this business, not a category of setting.
+               */
+              { href: "/settings/working", label: "Is it working?" },
               { href: "/settings/pricing", label: "Prices" },
               { href: "/settings/artists", label: title(words.practitioners) },
               { href: "/settings/money", label: "Getting paid" },

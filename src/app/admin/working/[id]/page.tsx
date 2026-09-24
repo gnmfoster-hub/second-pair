@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isPlatformAdmin } from "@/lib/platform";
 import { workingFacts } from "@/lib/workingFacts";
 import type { Studio } from "@/lib/types";
-import { Working } from "../../Working";
+import { Working } from "@/components/Working";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

@@ -243,7 +243,7 @@ export function assess(f: Facts): Thing[] {
           connected: "Switched on for somebody with no number of their own, so there is nothing for it to answer.",
         },
         fix: { href: "/settings/artists", label: "Team" },
-        where: [{ who: "us", what: "Sold, in the account panel", href: "/admin" }, { who: "owner", what: "On for the business own line", href: "/settings/install" }, { who: "person", what: "On for one person, on their card", href: "/settings/artists" }],
+        where: [{ who: "us", what: "Sold, in the account panel", href: "/admin" }, { who: "owner", what: "On for the business’s own line", href: "/settings/install" }, { who: "person", what: "On for one person, on their card", href: "/settings/artists" }],
       }),
     );
   }

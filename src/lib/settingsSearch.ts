@@ -45,6 +45,8 @@ export const SETTINGS: Setting[] = [
   { label: "Compliance", href: "/settings", page: "Business", keywords: "compliance insurance certificate licence legal gas electrical", ownerOnly: true },
   { label: "Diary", href: "/settings", page: "Business", keywords: "diary opening hours calendar days closed", ownerOnly: true },
 
+  { label: "Is it working?", href: "/settings/working", page: "Is it working?", keywords: "working broken check test setup set up not sending nothing happening why fault problem", ownerOnly: true },
+
   /* ------------------------------------------------------------ prices */
   { label: "What the assistant will quote", href: "/settings/pricing", page: "Prices", keywords: "price prices cost quote how much rates list menu services", ownerOnly: true },
   { label: "How you price", href: "/settings/pricing", page: "Prices", keywords: "price model hourly fixed day rate from", ownerOnly: true },

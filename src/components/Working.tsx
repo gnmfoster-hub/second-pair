@@ -30,10 +30,21 @@ export function Working({
   facts,
   people,
   open = false,
+  audience = "us",
 }: {
   facts: Facts;
   people: PersonFacts[];
   open?: boolean;
+  /**
+   * Whose screen this is.
+   *
+   * The same facts, read by two people who can do different things about them.
+   * In the back office "you" is Giles and "they" is the business; in the
+   * business's own settings "you" is the owner and the things we control are
+   * not theirs to change — so those rows say to ask us rather than offering a
+   * link to a screen they cannot open.
+   */
+  audience?: "us" | "owner";
 }) {
   const things = assess(facts);
   const team = assessPeople(people);
@@ -82,9 +93,17 @@ export function Working({
             <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 text-[11px] text-muted">
               {t.where.map((w) => (
                 <div key={w.href + w.what} className="contents">
-                  <dt className="font-medium">{WHO[w.who]}</dt>
+                  <dt className="font-medium">{WHO[audience][w.who]}</dt>
                   <dd>
-                    {w.what} <span className="opacity-60">· {w.href}</span>
+                    {w.what}
+                    {/*
+                      * The address, but never one they cannot open. An owner
+                      * being shown /admin is being told where a door is and
+                      * that it is locked.
+                      */}
+                    {!(audience === "owner" && w.who === "us") && (
+                      <span className="opacity-60"> · {w.href}</span>
+                    )}
                   </dd>
                 </div>
               ))}
@@ -105,7 +124,7 @@ export function Working({
         */}
       <div className="mt-5 border-t border-border pt-4">
         <div className="flex flex-wrap items-baseline gap-x-2">
-          <span className="text-sm font-medium">Their people</span>
+          <span className="text-sm font-medium">{audience === "owner" ? "Your people" : "Their people"}</span>
           <span className="hint">{summarisePeople(team)}</span>
         </div>
 
@@ -136,11 +155,17 @@ export function Working({
   );
 }
 
-/** Whose screen it is set on. The word an owner would use, not a role name. */
-const WHO: Record<"us" | "owner" | "person", string> = {
-  us: "You",
-  owner: "They",
-  person: "Per person",
+/**
+ * Whose screen a thing is set on, said from the reader's side.
+ *
+ * The same row means two different things depending on who is reading it. To
+ * us, "us" is a job on our own screen; to an owner it is something they have
+ * to ask for. Naming that honestly is the difference between a map and a
+ * list of places they cannot go.
+ */
+const WHO: Record<"us" | "owner", Record<"us" | "owner" | "person", string>> = {
+  us: { us: "You", owner: "They", person: "Per person" },
+  owner: { us: "Ask us", owner: "You", person: "Per person" },
 };
 
 const LABEL: Record<Link, string> = {
