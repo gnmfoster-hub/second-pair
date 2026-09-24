@@ -1195,6 +1195,31 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
 
       <FixSettings b={b} />
 
+      {/*
+        * The whole chain for every capability, on a page of its own.
+        *
+        * Giles: "its very hard to check everything is working from a user
+        * perspective" and "i need to work out a way of making it easier to
+        * understand whats going on with everything and where everything is
+        * located."
+        *
+        * A link rather than a panel, because answering it honestly costs about
+        * twenty queries a business — every capability asks not only whether it
+        * is configured but whether it has ever actually carried anything.
+        * Doing that for every business on every load of this screen would make
+        * the one everybody uses slow to serve the one opened now and then.
+        */}
+      <a
+        href={`/admin/working/${b.id}`}
+        className="block rounded-xl border border-border p-3 text-sm hover:border-accent"
+      >
+        Is it working?
+        <span className="hint ml-2">
+          Every capability: sold, switched on, connected, and whether it has ever carried
+          anything — with the screen each one is set on.
+        </span>
+      </a>
+
       <Channels b={b} />
 
       {/* One level down: the settings a support call is usually about. */}
