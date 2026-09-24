@@ -6,6 +6,8 @@ import { dayIn } from "@/lib/diaryGaps";
 import { WeekGrid, type Entry } from "./WeekGrid";
 import { MonthGrid } from "./MonthGrid";
 import { DayList } from "./DayList";
+import { WhoIsAsking } from "./WhoIsAsking";
+import { whoIsAsking } from "@/lib/whoIsAsking";
 import { WeekStrip, type DayLoad } from "./WeekStrip";
 import { Stepper } from "./Stepper";
 import { WhoPicker } from "./WhoPicker";
@@ -745,6 +747,52 @@ export default async function DiaryPage({
       : view === "month"
         ? `/diary?view=month&week=${shiftMonth(1)}`
         : `/diary?view=week&week=${isoDate(addDays(start, step))}`,
+  );
+
+  /*
+   * Who is currently asking for time.
+   *
+   * Read here rather than by the panel, so the diary makes one round trip and
+   * the panel stays a pure rendering of what it is given.
+   *
+   * Filtered below to the people the grid is showing, so the panel and the
+   * columns under it are always talking about the same people.
+   */
+  const { data: askingRows } = await supabase
+    .from("conversations")
+    .select("id, status, last_message_at, last_inbound_at, outbound, artist_id, contacts(name, phone, email), enquiries(description, preferred_times)")
+    .eq("studio_id", studio.id)
+    .eq("is_test", false)
+    .in("status", ["new", "qualified", "needs_human", "deposit_paid"])
+    .order("last_message_at", { ascending: false })
+    .limit(30);
+
+  const asking = whoIsAsking(
+    ((askingRows ?? []) as unknown as {
+      id: string;
+      status: string;
+      last_message_at: string | null;
+      last_inbound_at: string | null;
+      outbound: boolean | null;
+      artist_id: string | null;
+      contacts: { name: string | null; phone: string | null; email: string | null } | null;
+      enquiries: { description: string | null; preferred_times: string | null } | null;
+    }[])
+      /*
+       * Scoped the same way the grid is, by the people on screen. An enquiry
+       * nobody has been chosen for shows to whoever is looking, because the
+       * alternative is it showing to nobody.
+       */
+      .filter((r) => !r.artist_id || mine.has(r.artist_id))
+      .map((r) => ({
+        conversationId: r.id,
+        who: r.contacts?.name ?? r.contacts?.phone ?? r.contacts?.email ?? "Somebody",
+        what: r.enquiries?.description ?? null,
+        when: r.enquiries?.preferred_times ?? null,
+        status: r.status,
+        at: r.last_message_at ?? new Date().toISOString(),
+        weWroteFirst: r.outbound === true && !r.last_inbound_at,
+      })),
   );
 
   const awaiting = entries.filter(
@@ -1643,6 +1691,23 @@ export default async function DiaryPage({
           </div>
         </div>
       )}
+
+        {/*
+          * Who is asking for time, above the time.
+          *
+          * Giles: the diary looks like every other system. It does, because it
+          * is doing what every other system does — showing what is settled.
+          * This is the half none of them can show: somebody asked for
+          * Saturday, or after five in the week, and that sentence is already
+          * in the database and was never on this screen.
+          *
+          * Above the grid rather than beside it: the grid is the work and
+          * must not lose a column. Folded, and gone entirely when nobody is
+          * waiting — a panel that is always there is a panel nobody reads.
+          */}
+        <div className="mb-3">
+          <WhoIsAsking waiting={asking} />
+        </div>
 
         {view === "month" ? (
           <MonthGrid
