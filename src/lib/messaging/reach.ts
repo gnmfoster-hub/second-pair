@@ -214,3 +214,38 @@ export function routesFor({
 export function canStartCold(channel: Channel): boolean {
   return CAN_START.includes(channel);
 }
+
+/**
+ * Which channel the "send a message" box should start on.
+ *
+ * Giles: "when sending a message if multiple methods available it should
+ * default to email but give the option of all methods depending on
+ * preferences."
+ *
+ * Deliberately not COLD_ORDER, which stays as it is. That order is for
+ * messages the product sends on its own — a reminder, a cancellation offer —
+ * where a text gets read and an email gets read eventually, and where being
+ * read at the right hour is the whole job. This is a person typing, on
+ * purpose, usually about something that is not time-critical. Email costs
+ * nothing and a text costs every time, so the cheap one should be the one you
+ * do not have to choose.
+ *
+ * A stated preference still wins. Somebody who asked to be emailed gets email;
+ * somebody who asked for texts gets texts, and saving four pence is not a
+ * reason to break a promise a business made.
+ *
+ * Only ever picks something already open. This chooses which door to start at,
+ * never whether one exists.
+ */
+export function boxStartsOn(
+  routes: { channel: string; open?: boolean }[],
+  prefers?: string | null,
+): string | null {
+  const open = routes.filter((r) => r.open !== false);
+  if (open.length === 0) return null;
+
+  const asked = prefers && open.find((r) => r.channel === prefers);
+  if (asked) return asked.channel;
+
+  return (open.find((r) => r.channel === "email") ?? open[0]).channel;
+}

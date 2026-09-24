@@ -593,8 +593,18 @@ export default async function InboxPage({
                */
               const row = c as { outbound?: boolean | null; last_inbound_at?: string | null };
               const weWroteFirst = row.outbound === true && !row.last_inbound_at;
-              const nothingKnown =
-                c.status === "paperwork" ? "Filed" : weWroteFirst ? "You wrote" : "New enquiry";
+              /*
+               * My first go at this put "You wrote" in the title, which only
+               * appears when nothing at all is known about the contact — so on
+               * a real client, who has a name, it never showed once. Giles
+               * said so: "the outbound message still ended up in the inbox
+               * without a responce."
+               *
+               * The title is their name and should stay their name. What was
+               * missing is a mark on the row, which is where every other fact
+               * about a conversation lives.
+               */
+              const nothingKnown = c.status === "paperwork" ? "Filed" : "New enquiry";
               const who = named ?? description ?? nothingKnown;
               /*
                * How much of the screen this row has earned.
@@ -751,13 +761,33 @@ export default async function InboxPage({
                       </span>
                     )}
 
-                    <span
-                      className={`stamp shrink-0 ${stampClasses(c.status)}`}
-                      /* Its own lean and its own ink, from its own id. See lib/stamp. */
-                      style={stampStyle(c.id) as React.CSSProperties}
-                    >
-                      {CONV_STATUS_LABELS[c.status]}
-                    </span>
+                    {/*
+                      * A thread the business started and nobody has answered.
+                      *
+                      * It belongs in the inbox — it is a real conversation and
+                      * this is where you would look for it — but it is not an
+                      * enquiry and must not sit there looking like one. The
+                      * stamp beside it would say "New", which is the word for
+                      * somebody getting in touch.
+                      *
+                      * Replaces the status stamp rather than sitting next to
+                      * it: two marks on one row is how a list stops being
+                      * scannable, and until they reply this is the only fact
+                      * about the thread worth knowing.
+                      */}
+                    {weWroteFirst ? (
+                      <span className="stamp shrink-0 text-muted" style={stampStyle(c.id) as React.CSSProperties}>
+                        You wrote
+                      </span>
+                    ) : (
+                      <span
+                        className={`stamp shrink-0 ${stampClasses(c.status)}`}
+                        /* Its own lean and its own ink, from its own id. See lib/stamp. */
+                        style={stampStyle(c.id) as React.CSSProperties}
+                      >
+                        {CONV_STATUS_LABELS[c.status]}
+                      </span>
+                    )}
 
                     <time className="hint num hidden w-16 shrink-0 text-right sm:block">
                       {ago(c.last_message_at)}

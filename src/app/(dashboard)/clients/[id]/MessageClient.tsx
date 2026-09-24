@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { messageClient, type MessageState } from "./actions";
 import { FormMessage, SubmitButton } from "@/components/Form";
 import { ChannelIcon } from "@/components/ChannelIcon";
-import { channelLabel, type Route } from "@/lib/messaging/reach";
+import { boxStartsOn, channelLabel, type Route } from "@/lib/messaging/reach";
 
 /**
  * Sending this person a message.
@@ -21,6 +21,7 @@ export function MessageClient({
   routes,
   allowed,
   templates = [],
+  prefers = null,
 }: {
   contactId: string;
   name: string;
@@ -34,9 +35,25 @@ export function MessageClient({
    * leave the box exactly as it was, which is the right thing for each.
    */
   templates?: { id: string; label: string; body: string }[];
+  /** Which way they asked to be reached, where they have said. */
+  prefers?: string | null;
 }) {
   const open = routes.filter((r) => r.open);
-  const [channel, setChannel] = useState(open[0]?.channel ?? null);
+  /*
+   * Email first where there is a choice. See boxStartsOn.
+   *
+   * Giles: "when sending a message if multiple methods available it should
+   * default to email but give the option of all methods depending on
+   * preferences." It started on whatever routesFor put first, which is the
+   * order for messages the product sends on its own — where a text being read
+   * within the minute is the whole job. A person typing by hand is usually not
+   * in that hurry, and a text costs every time where an email costs nothing.
+   *
+   * Every open channel is still a button, and somebody who asked to be texted
+   * still starts on texts: saving four pence is not a reason to break a
+   * promise the business made.
+   */
+  const [channel, setChannel] = useState(boxStartsOn(routes, prefers) ?? open[0]?.channel ?? null);
   /*
    * The box is controlled once there is anything to put in it, so picking a
    * wording can fill it. Started from empty rather than from the first

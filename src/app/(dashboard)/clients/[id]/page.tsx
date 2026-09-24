@@ -531,6 +531,8 @@ export default async function ClientPage({
             name={contact.name ?? "them"}
             routes={routes}
             allowed={mayMessage}
+            /* What they asked for, which beats the cheap default. */
+            prefers={(contact as { prefers?: string | null }).prefers ?? null}
             /*
              * Wordings they have saved, ready to drop into the box.
              *
