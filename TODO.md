@@ -161,6 +161,13 @@ Open, and roughly in the order I would do them:
    held with the clock on it. All three were columns the screen already
    fetched and never read.
 
+2d. ~~**Text squeezed to one word a line on a phone.**~~ 25 Sep. The readiness
+   row on Living Canvas was 717 pixels tall with a word on each line: a
+   wrapping flex whose text could shrink to nothing while the button beside it
+   could not. Fixed, and `node scripts/check-phone.cjs` now sweeps every screen
+   of every business at 390px looking for the same signature — proved against
+   the bad state before it was trusted. 125 screens, nothing squeezed.
+
 3. **The live voice Receptionist** — speech in, speech out, during the call.
    The commercial side is built; this is the expensive part and wants latency
    work.
@@ -506,6 +513,19 @@ already reach you. Set it only if you want them somewhere else.
 running after any change to Vercel's environment variables. It now also checks
 whether a business can connect Stripe at all — the check that would have caught
 item 1 being three switches rather than one.
+
+The checks, and what each is for:
+
+| Check | Asks |
+|---|---|
+| `check-live.mjs` | Is the live site up, current, and able to send, take money and run the nightly job? |
+| `check-pages.cjs` | Does every screen of every business open without throwing? 222 screens. |
+| `check-phone.cjs` | Is anything squeezed to one word a line at 390px, on any business? 125 screens. |
+| `check-public.cjs` | Do the 46 pages a stranger can reach still load? |
+| `check-edges.cjs` | The awkward cases at the boundaries. |
+
+All five read only. None of them submits a form or presses a button that
+saves.
 
 ## Still open
 
