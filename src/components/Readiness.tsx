@@ -233,7 +233,25 @@ export function Readiness({ capabilities }: { capabilities: Capability[] }) {
               {capability.blocking ? "!" : ""}
             </span>
 
-            <span className="min-w-0 flex-1">
+            {/*
+              * The whole line on a phone, sharing it from a tablet up.
+              *
+              * Giles: "on the mobile view inbox the buzz your phone message is
+              * formatted wrong and stretches down the page."
+              *
+              * It did, and spectacularly: on Living Canvas the row was 717
+              * pixels tall with one word on each line. flex-1 with min-w-0 lets
+              * this shrink all the way to nothing, and the button and the
+              * "that's fine" link beside it do not shrink at all — so on a
+              * 390px screen the text was squeezed into about forty pixels and
+              * wrapped a word at a time. Wrapping was allowed; there was simply
+              * nothing to stop it shrinking first.
+              *
+              * basis-full takes the whole line, so the actions wrap underneath
+              * where there is room for them. From sm up, flex-1 puts everything
+              * back on one row, which is where it always looked right.
+              */}
+            <span className="min-w-0 basis-full sm:flex-1">
               <span className="block text-sm font-medium">{capability.can}</span>
               <span className="hint mt-0.5 block">{capability.otherwise}</span>
             </span>
