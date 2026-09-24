@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { shouldRing } from "@/lib/channels/phoneNumbers";
 import { verifySignature } from "@/lib/messaging/sms";
-import { hangUp, textsOnly, cannotTakeIt, ringThem } from "@/lib/voice/twiml";
+import { hangUp, textsOnly, cannotTakeIt, ringThem, sayAndListen } from "@/lib/voice/twiml";
 import { mayForward } from "@/lib/ceilings";
 import { takesCalls } from "@/lib/voice/takesCalls";
 
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
   const db = createAdminClient();
   const { data: connection } = await db
     .from("channel_connections")
-    .select("forward_to, studio_id, studios(name, channels_allowed, call_monthly_cap)")
+    .select("forward_to, studio_id, artist_id, studios(name, channels_allowed, call_monthly_cap, receptionist_allowed, receptionist_on), artists(voice_on)")
     .in("channel", ["sms", "voice"])
     .eq("external_id", to)
     .eq("active", true)
@@ -92,6 +92,37 @@ export async function POST(request: NextRequest) {
    */
   if (!takesCalls(studio?.channels_allowed)) {
     return xml(textsOnly(studio?.name ?? null));
+  }
+
+  /*
+   * A line with a Receptionist answers it, rather than ringing anybody.
+   *
+   * Before the forward and before the ceiling, because both are about the leg
+   * out to a mobile and this call is not going to one. The caller gets the
+   * assistant that already answers their texts, through /api/voice/talk.
+   *
+   * Everything below this line is the voicemail response, unchanged: it is
+   * what every business without a Receptionist still gets, which is all of
+   * them today.
+   */
+  const sold = (studio as { receptionist_allowed?: boolean | null } | null)?.receptionist_allowed === true;
+  const person = connection.artists as unknown as { voice_on: boolean | null } | null;
+  const lineHasOne = connection.artist_id
+    ? person?.voice_on === true
+    : (studio as { receptionist_on?: boolean | null } | null)?.receptionist_on === true;
+
+  if (sold && lineHasOne) {
+    /*
+     * The first thing said, and then it listens. Deliberately short: a caller
+     * who has just dialled a hairdresser wants to say what they want, not hear
+     * a paragraph, and a long greeting is the thing people talk over.
+     */
+    return xml(
+      sayAndListen(
+        `Hello, ${studio?.name ?? "the salon"}. How can I help?`,
+        "/api/voice/talk",
+      ),
+    );
   }
 
   /*
