@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { escapeXml, twiml, hangUp, textsOnly, cannotTakeIt, ringThem, takeAMessage } from "./twiml.ts";
+import { escapeXml, twiml, hangUp, textsOnly, cannotTakeIt, ringThem, takeAMessage, sayAndListen, sayAndFinish } from "./twiml.ts";
 
 /**
  * Every tag opened is closed, and nothing that goes in unbalances it.
@@ -87,4 +87,42 @@ test("escaping is only escaping", () => {
   assert.equal(escapeXml("plain words"), "plain words");
   assert.equal(escapeXml("a & b"), "a &amp; b");
   assert.equal(twiml("<Hangup/>"), '<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>');
+});
+
+/* ────────────────────────── the Receptionist ────────────────────────────── */
+
+test("it says something and listens for the answer", () => {
+  const xml = sayAndListen("Hello, Willow and Co.", "/api/voice/talk?call=CA123");
+  assert.match(xml, /<Gather input="speech" speechTimeout="auto" language="en-GB"/);
+  assert.match(xml, /action="\/api\/voice\/talk\?call=CA123"/);
+  assert.match(xml, /<Say voice="alice">Hello, Willow and Co\.<\/Say>/);
+});
+
+/*
+ * A Gather that hears silence falls straight through to whatever comes next.
+ * Without a line after it that is the end of the document, and the call ends
+ * mid-conversation with no explanation.
+ */
+test("silence is answered rather than dropping the call", () => {
+  const xml = sayAndListen("Anything else?", "/api/voice/talk");
+  const afterGather = xml.slice(xml.indexOf("</Gather>"));
+  assert.match(afterGather, /did not catch that/);
+  assert.match(afterGather, /text you instead/);
+});
+
+test("a business with an apostrophe in its name does not break the document", () => {
+  const xml = sayAndListen("Hello, Dave's Barbers & Sons.", "/api/voice/talk?a=1&b=2");
+  assert.ok(!xml.includes("Dave's"), "the name was not escaped");
+  assert.match(xml, /Dave&apos;s Barbers &amp; Sons/);
+  assert.match(xml, /action="[^"]*a=1&amp;b=2"/);
+});
+
+/*
+ * A Gather with nothing to gather keeps the line open for several seconds
+ * while the caller waits for a machine that has finished.
+ */
+test("the last thing said ends the call", () => {
+  const xml = sayAndFinish("You're booked in. Bye now.");
+  assert.match(xml, /<Hangup \/>/);
+  assert.ok(!xml.includes("<Gather"));
 });

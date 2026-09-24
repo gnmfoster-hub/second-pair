@@ -92,3 +92,59 @@ export function takeAMessage(said: string, to: string): string {
       `<Say voice="alice">Thanks, we will be in touch.</Say>`,
   );
 }
+
+/**
+ * The Receptionist speaking, and listening for the answer.
+ *
+ * Giles chose the Twilio route over a realtime voice API: the audio stays on
+ * the call we already have, the carrier does the speech-to-text and posts the
+ * words to a webhook, and we answer with the next thing to say. Turn by turn
+ * rather than continuous, about a second of lag, and — the part that decides
+ * it — nothing about numbers, billing, the diary or dedupe changes. The other
+ * route is more natural and takes the call off the path everything else uses.
+ *
+ * speechTimeout="auto" lets Twilio decide when somebody has stopped talking,
+ * which is better than any number we could pick: a person saying "ten... no,
+ * half ten" needs the pause and a person saying "yes" does not.
+ *
+ * The action URL carries the call's own id rather than a session of ours.
+ * Twilio posts the same CallSid on every turn, so it is the one identifier
+ * guaranteed to survive a conversation, and holding state under it means a
+ * dropped call leaves nothing behind to clean up.
+ */
+export function sayAndListen(
+  said: string,
+  action: string,
+  options: { hints?: string } = {},
+): string {
+  const hints = options.hints
+    ? ` hints="${escapeXml(options.hints)}"`
+    : "";
+
+  return twiml(
+    `<Gather input="speech" speechTimeout="auto" language="en-GB" action="${escapeXml(action)}" method="POST"${hints}>` +
+      `<Say voice="alice">${escapeXml(said)}</Say>` +
+      `</Gather>` +
+      /*
+       * What happens when somebody says nothing at all.
+       *
+       * A Gather that hears silence falls straight through to whatever comes
+       * next, and without this that is the end of the document — the call
+       * simply ends mid-conversation with no explanation. Somebody on a bad
+       * line, or who put the phone down on the table, gets told what to do
+       * instead of hearing it go dead.
+       */
+      `<Say voice="alice">Sorry, I did not catch that. I will text you instead so you can reply when you are ready.</Say>`,
+  );
+}
+
+/**
+ * The last thing said, with no question after it.
+ *
+ * Separate from sayAndListen because a Gather with nothing to gather keeps the
+ * line open for several seconds while the caller waits for a machine that has
+ * finished. Ending the call is part of answering it well.
+ */
+export function sayAndFinish(said: string): string {
+  return twiml(`<Say voice="alice">${escapeXml(said)}</Say><Hangup />`);
+}
