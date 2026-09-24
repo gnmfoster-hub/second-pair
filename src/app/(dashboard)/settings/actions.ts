@@ -1809,9 +1809,25 @@ export async function setReceptionist(
     };
   }
 
+  /*
+   * What it may do, saved with whether it is on.
+   *
+   * Giles: "can it book but have a confirm setting for deposits and making
+   * sure its all ok." Two settings rather than one, because they are two
+   * different risks — see lib/voice/whatItMayDo. Both guarded on the column so
+   * a deploy can land before the migration.
+   */
   const { error } = await supabase
     .from("studios")
-    .update({ receptionist_on: fd.get("receptionist_on") === "on" })
+    .update({
+      receptionist_on: fd.get("receptionist_on") === "on",
+      ...((await hasColumn(supabase, "studios", "receptionist_holds"))
+        ? { receptionist_holds: fd.get("receptionist_holds") === "on" }
+        : {}),
+      ...((await hasColumn(supabase, "studios", "receptionist_asks_deposit"))
+        ? { receptionist_asks_deposit: fd.get("receptionist_asks_deposit") === "on" }
+        : {}),
+    })
     .eq("id", studio.id);
 
   if (error) return { error: error.message };

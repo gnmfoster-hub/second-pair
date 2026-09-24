@@ -30,6 +30,8 @@ export function Receptionist({
   allowed,
   on,
   people,
+  holds = true,
+  asksDeposit = false,
 }: {
   /** Whether it has been sold to this business. Ours to set, never theirs. */
   allowed: boolean;
@@ -37,6 +39,10 @@ export function Receptionist({
   on: boolean;
   /** Who else has one, by name, so the page says what is being paid for. */
   people: string[];
+  /** A phone booking waits for a person. On by default. */
+  holds?: boolean;
+  /** It may text a deposit link after the call. Off by default. */
+  asksDeposit?: boolean;
 }) {
   const [state, action] = useActionState<{ error?: string; ok?: boolean }, FormData>(
     setReceptionist,
@@ -87,6 +93,52 @@ export function Receptionist({
             </span>
           </span>
         </label>
+
+        {/*
+          * What it may do once it is answering.
+          *
+          * Giles: "can it book but have a confirm setting for deposits and
+          * making sure its all ok." Two questions, because they are two
+          * different risks — hearing a name wrong puts a stranger in the
+          * diary, and asking for money is the only thing on the call that
+          * reaches into somebody's bank account.
+          */}
+        <div className="space-y-3 border-t border-border pt-3">
+          <label className="flex items-start gap-2.5 text-sm">
+            <input
+              type="checkbox"
+              name="receptionist_holds"
+              defaultChecked={holds}
+              className="mt-0.5 accent-[var(--accent)]"
+            />
+            <span>
+              Hold what it books until you have seen it
+              <span className="hint block">
+                The slot is taken straight away, so nobody else can have it, and it sits in
+                the diary with a clock on it until you confirm. Worth keeping on: over the
+                phone it is hearing a name or a time wrong that causes trouble, and that
+                cannot happen over text.
+              </span>
+            </span>
+          </label>
+
+          <label className="flex items-start gap-2.5 text-sm">
+            <input
+              type="checkbox"
+              name="receptionist_asks_deposit"
+              defaultChecked={asksDeposit}
+              className="mt-0.5 accent-[var(--accent)]"
+            />
+            <span>
+              Let it text a deposit link after the call
+              <span className="hint block">
+                Only once bookings are landing confirmed. Asking somebody for money for an
+                appointment nobody has checked is the wrong way round, so this does nothing
+                while the setting above is on.
+              </span>
+            </span>
+          </label>
+        </div>
 
         <div className="flex flex-wrap items-center gap-4">
           <Save />
