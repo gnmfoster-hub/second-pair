@@ -541,10 +541,23 @@ mobile number.
 
 # Mine — still open
 
-1. **The live voice Receptionist.** Speech in and out during a call. Everything
-   commercial is built — sold per business and per person, switchable by the
-   owner, counted for billing — and the agent that does the talking is not.
-   This is the expensive one and it wants latency work.
+1. **The live voice Receptionist.** Mostly built on the night of 25 Sep.
+   A line with it switched on answers, listens, and carries the conversation
+   through `/api/voice/talk` using the assistant that already answers texts —
+   same prices, same diary, same refusals. Twilio does the speech, turn by
+   turn, about a second of lag.
+
+   What it does on the call is settable: it books, and by default the booking
+   is **held** for a person to check the name and the time, which is the one
+   failure the phone adds that text never had. A deposit is never asked for on
+   a booking nobody has checked.
+
+   **Left to do:** the text after the call with the details; a real call
+   through a real carrier, which is the only way any of this can be proved;
+   and one press of the confirm button, which I could not drive from here.
+
+   Nothing live can reach it — neither client has been sold it, and the only
+   line switched on is the Willow demo's, whose numbers cannot ring.
 
 2. **The receipt at the till has never been used in anger.** Built 24 Sep:
    money taken from somebody with no email address offers one box. I could not
