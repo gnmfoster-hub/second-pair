@@ -3,7 +3,8 @@
 import { useActionState, useState } from "react";
 import { SendLink } from "./SendLink";
 import { capital, whatTheyHad, type Words } from "@/lib/wordsText";
-import { completeAppointment, type BillState } from "./billActions";
+import { receiptToEmail, completeAppointment, type BillState } from "./billActions";
+import { SubmitButton } from "@/components/Form";
 import { lineTotal } from "@/lib/sales";
 import { formatPence } from "@/lib/money";
 import type { Bookable } from "./ServicePick";
@@ -146,6 +147,22 @@ export function Complete({
         {state.url && state.paymentId && (
           <SendLink url={state.url} paymentId={state.paymentId} sendTo={state.sendTo ?? []} />
         )}
+
+        {/*
+          * Money taken, nowhere to send the receipt — so ask, here.
+          *
+          * Giles: "should have option to add email at complete to send receipt
+          * as this will help to get email address which is cheaper for the
+          * system." Both halves true, and the second is the reason to bother:
+          * an address turns every future reminder from a text that costs money
+          * into an email that costs nothing.
+          *
+          * At the till and nowhere else, because this is the one moment
+          * somebody actively wants us to have it — they have just paid and
+          * they are still standing there. Asked any later it is a business
+          * collecting data; asked here it is a receipt.
+          */}
+        {state.askEmail && <ReceiptEmail ask={state.askEmail} firstName={firstName} />}
         {state.error && <p className="hint mt-1 text-warn">{state.error}</p>}
         {onDone && (
           <button type="button" onClick={onDone} className="btn mt-3 w-full">
@@ -501,5 +518,59 @@ function Extra({ onAdd }: { onAdd: (name: string, pence: number) => void }) {
         Cancel
       </button>
     </div>
+  );
+}
+
+/**
+ * The address, taken at the counter.
+ *
+ * One box and one button, and it disappears the moment it has worked. Nobody
+ * standing at a till wants a form, and the person holding the card is waiting.
+ *
+ * Optional in the strongest sense: there is no "skip", because closing the
+ * appointment has already happened and this sits underneath it. Walking away
+ * is the skip.
+ */
+function ReceiptEmail({
+  ask,
+  firstName,
+}: {
+  ask: { contactId: string; paymentId: string };
+  firstName: string;
+}) {
+  const [state, action] = useActionState<BillState, FormData>(receiptToEmail, {});
+
+  if (state.ok) {
+    return <p className="hint mt-3 text-ok">Receipt sent, and the address is on their record.</p>;
+  }
+
+  return (
+    <form action={action} className="mt-3 border-t border-ok/20 pt-3">
+      <input type="hidden" name="contact_id" value={ask.contactId} />
+      <input type="hidden" name="payment_id" value={ask.paymentId} />
+
+      <label className="block">
+        <span className="label">Email the receipt to {firstName}?</span>
+        <div className="mt-1 flex flex-wrap gap-2">
+          <input
+            name="email"
+            type="email"
+            inputMode="email"
+            autoComplete="off"
+            placeholder="them@example.com"
+            className="input min-w-0 flex-1"
+          />
+          <SubmitButton className="btn-ghost" pending="Sending…">
+            Send it
+          </SubmitButton>
+        </div>
+        <span className="hint">
+          We have no address for {firstName}. Worth asking while they are here: it means
+          their reminders can come by email rather than by text.
+        </span>
+      </label>
+
+      {state.error && <p className="hint mt-1 text-warn">{state.error}</p>}
+    </form>
   );
 }

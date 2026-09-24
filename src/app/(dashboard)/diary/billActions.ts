@@ -9,6 +9,7 @@ import { buildBill, readMethod, linesFromForm, penceOf } from "@/lib/sales";
 import { formatPence } from "@/lib/money";
 import { hasColumn } from "@/lib/db/hasColumn";
 import { sendPaymentReceipt } from "@/lib/messaging/receipt";
+import { shouldAsk, mayTake } from "@/lib/receiptEmail";
 import { linkRoutes } from "../payLinkActions";
 import type { Channel } from "@/lib/types";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -25,6 +26,22 @@ export type BillState = {
   paymentId?: string;
   /** The ways the link could reach them right now: "Text 07700 900406". */
   sendTo?: { channel: Channel; label: string; to: string }[];
+  /**
+   * Money taken from somebody we hold no email address for.
+   *
+   * Giles: "should have option to add email at complete to send receipt as
+   * this will help to get email address which is cheaper for the system."
+   *
+   * Both halves are true and the second is the reason to bother. A receipt is
+   * the one moment somebody actively wants us to have their address — they are
+   * standing there having just paid — and every address collected is a client
+   * who can be reminded by email instead of by text, which costs nothing
+   * instead of costing money every time.
+   *
+   * Only where there is nobody to send to. Somebody who already has an address
+   * has already had their receipt.
+   */
+  askEmail?: { contactId: string; paymentId: string };
 };
 
 const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
@@ -300,11 +317,89 @@ export async function takePayment(_prev: BillState, fd: FormData): Promise<BillS
   // Silent where they have no address, which is most walk-ins.
   if (contactId) await sendPaymentReceipt(money, payment.id as string);
 
+  /*
+   * And where it was silent, say so and offer to fix it.
+   *
+   * "Most walk-ins" was the reason this stayed quiet, and it is also the
+   * reason it is worth asking: those are exactly the clients we hold nothing
+   * for. Asked at the till, while they are still standing there, which is the
+   * only moment somebody actually wants us to have their address.
+   */
+  const askEmail = contactId
+    ? await (async () => {
+        const { data: contact } = await supabase
+          .from("contacts")
+          .select("email")
+          .eq("id", contactId)
+          .maybeSingle();
+
+        return shouldAsk({
+          contactId,
+          email: contact?.email as string | null,
+          tookMoney: true,
+        })
+          ? { contactId, paymentId: payment.id as string }
+          : undefined;
+      })()
+    : undefined;
+
   revalidatePath("/diary");
   revalidatePath("/clients");
   if (contactId) revalidatePath(`/clients/${contactId}`);
 
-  return { ok: true, total };
+  return { ok: true, total, askEmail };
+}
+
+/**
+ * An address taken at the till, and the receipt sent to it.
+ *
+ * Never an overwrite. If somebody already has an address on their record this
+ * refuses rather than replacing it: the person at the counter is reading out
+ * an address in a hurry, and a typo landing on top of the one we have had for
+ * three years would take the reminders with it.
+ */
+export async function receiptToEmail(_prev: BillState, fd: FormData): Promise<BillState> {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  const contactId = str(fd, "contact_id");
+  const paymentId = str(fd, "payment_id");
+  /* Lower-cased and trimmed by mayTake, which is what decides it is usable. */
+  const email = str(fd, "email");
+
+  if (!contactId || !paymentId) return { error: "Nothing to send." };
+
+  const { data: contact } = await supabase
+    .from("contacts")
+    .select("id, email")
+    .eq("id", contactId)
+    .eq("studio_id", studio.id)
+    .maybeSingle();
+
+  if (!contact) return { error: "That client is no longer here." };
+
+  /*
+   * Both rules in one place and tested there: the shape, and the refusal to
+   * write over an address somebody already has. See lib/receiptEmail — a form
+   * is a suggestion, and this one is filled in at speed at a counter.
+   */
+  const take = mayTake(email, contact.email as string | null);
+  if (!take.ok) return { error: take.because };
+
+  const { error } = await supabase
+    .from("contacts")
+    .update({ email: take.email })
+    .eq("id", contactId)
+    .eq("studio_id", studio.id);
+
+  if (error) return { error: error.message };
+
+  /* Through the same path the automatic one uses, so there is one receipt. */
+  await sendPaymentReceipt(createAdminClient(), paymentId);
+
+  revalidatePath("/diary");
+  revalidatePath(`/clients/${contactId}`);
+  return { ok: true };
 }
 
 /**
