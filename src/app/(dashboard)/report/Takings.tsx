@@ -1,4 +1,5 @@
 import { formatPence } from "@/lib/money";
+import type { Margin } from "@/lib/margin";
 import { colourFor } from "@/components/Avatar";
 import type { Takings as Figures } from "@/lib/takings";
 
@@ -20,6 +21,7 @@ export function Takings({
   figures,
   byService,
   runningLow = [],
+  margin = null,
 }: {
   figures: Figures;
   byService: Figures["byService"];
@@ -31,6 +33,8 @@ export function Takings({
    * somebody reads once a week, so it is where a reorder gets noticed.
    */
   runningLow?: { name: string; stock: number }[];
+  /** What was sold over the counter and what it made. Null where nothing was. */
+  margin?: Margin | null;
 }) {
   if (figures.bookings === 0) return null;
 
@@ -122,6 +126,73 @@ export function Takings({
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/*
+        * What the things you sell actually make you.
+        *
+        * Takings are the wrong number for retail and the only one this report
+        * had: £200 of product at 62% and £200 at 15% are the same line here
+        * and are not remotely the same week. Somebody deciding whether to keep
+        * stocking a thing needs the difference.
+        *
+        * Found by auditing the database for columns the product stores and
+        * never reads. cost_pence has been on services for weeks, filled in on
+        * real products, and had never once reached a screen.
+        *
+        * Shown only where a cost is actually known. A shop that has never
+        * filled it in sees nothing rather than a margin of 100%, which is what
+        * an empty cost column produces and is a lie with a decimal point on it.
+        */}
+      {margin && margin.lines.length > 0 && (
+        <div className="mt-6 border-t border-border pt-4">
+          <div className="label">What you made on what you sold</div>
+
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-5 gap-y-1">
+            <span className="text-sm">
+              <span className="num">{formatPence(margin.tookPence)}</span>
+              <span className="hint ml-1.5">taken</span>
+            </span>
+            <span className="text-sm">
+              <span className="num">{formatPence(margin.costPence)}</span>
+              <span className="hint ml-1.5">cost you</span>
+            </span>
+            <span className="text-sm">
+              <span className="num font-medium text-ok">{formatPence(margin.madePence)}</span>
+              <span className="hint ml-1.5">
+                made{margin.percent === null ? "" : ` · ${margin.percent}%`}
+              </span>
+            </span>
+          </div>
+
+          <ul className="mt-3 space-y-1.5">
+            {margin.lines.slice(0, 6).map((line) => (
+              <li key={line.name} className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="min-w-0 truncate">
+                  {line.name}
+                  <span className="hint ml-2">{line.sold}</span>
+                </span>
+                <span className="tabular-nums">
+                  {formatPence(line.madePence)}
+                  {line.percent !== null && <span className="hint ml-2">{line.percent}%</span>}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          {/*
+            * Said rather than silently excluded. A figure that quietly leaves
+            * half the sales out is worse than no figure, and the fix — put a
+            * cost against the thing — is something only they can do.
+            */}
+          {margin.unknown > 0 && (
+            <p className="hint mt-2">
+              {margin.unknown} other {margin.unknown === 1 ? "line has" : "lines have"} no cost
+              price against {margin.unknown === 1 ? "it" : "them"}, so {margin.unknown === 1 ? "it is" : "they are"} left
+              out of these figures.
+            </p>
+          )}
         </div>
       )}
 

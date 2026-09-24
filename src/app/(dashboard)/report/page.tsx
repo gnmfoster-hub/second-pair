@@ -8,7 +8,8 @@ import { MoneyAndPeople } from "./MoneyAndPeople";
 import { EmailMeThis } from "./EmailMeThis";
 import { WeeklyEmailSwitch } from "./WeeklyEmailSwitch";
 import { wordsFor } from "@/lib/words";
-import { takingsFor, takingsByService } from "@/lib/takings";
+import { takingsFor, takingsByService, soldWithCost } from "@/lib/takings";
+import { marginOf } from "@/lib/margin";
 import { Takings } from "./Takings";
 import { WhereTheWork } from "./WhereTheWork";
 import { whereTheWorkIs, howJobsRan } from "@/lib/reportShape";
@@ -100,6 +101,14 @@ export default async function ReportPage({
    * we take" — a booking typed in by hand has no conversation, so none of it
    * counted. On the demo that is 105 of 111 bookings and five thousand pounds.
    */
+  /*
+   * What the counter sales made, which no report has ever said.
+   *
+   * See lib/margin: takings alone cannot tell £200 of product at 62% from
+   * £200 at 15%, and those are not the same week.
+   */
+  const margin = marginOf(await soldWithCost(supabase, studio.id, from, to));
+
   const [takings, byService] = await Promise.all([
     takingsFor(supabase, studio.id, from, to),
     studio.pricing_model === "services"
@@ -436,7 +445,7 @@ export default async function ReportPage({
       </div>
 
       {/* What the week came to, from the diary rather than the conversations. */}
-      <Takings figures={takings} byService={byService} runningLow={runningLow} />
+      <Takings figures={takings} byService={byService} runningLow={runningLow} margin={margin} />
 
       <MoneyAndPeople paid={paid} people={people} busy={busy} forms={forms} customers={words.customers} />
 

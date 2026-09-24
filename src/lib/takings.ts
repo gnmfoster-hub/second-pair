@@ -368,3 +368,71 @@ export async function takingsByService(
     .map(([name, v]) => ({ name, ...v }))
     .sort((a, b) => b.pence - a.pence);
 }
+
+/**
+ * What was sold over the counter, and what it made.
+ *
+ * Joins what actually went through the till to what the business says each
+ * thing costs them. Both halves have existed for weeks: payment_items records
+ * every line sold, services.cost_pence records what it cost, and nothing had
+ * ever put the two together — found by auditing the database for columns the
+ * product stores and never reads.
+ *
+ * Only paid items. A payment link nobody has clicked is not a sale, and
+ * counting it would report a margin on money that has not arrived.
+ */
+export async function soldWithCost(
+  db: SupabaseClient,
+  studioId: string,
+  from: Date,
+  to: Date,
+): Promise<{ name: string; quantity: number; unitPence: number; costPence: number | null }[]> {
+  const { data: paid } = await db
+    .from("payments")
+    .select("id")
+    .eq("studio_id", studioId)
+    .eq("status", "paid")
+    .gte("paid_at", from.toISOString())
+    .lt("paid_at", to.toISOString());
+
+  const ids = (paid ?? []).map((p) => p.id as string);
+  if (!ids.length) return [];
+
+  const { data: items } = await db
+    .from("payment_items")
+    .select("name, quantity, unit_pence, service_id")
+    .in("payment_id", ids);
+
+  const rows = (items ?? []) as {
+    name: string;
+    quantity: number;
+    unit_pence: number;
+    service_id: string | null;
+  }[];
+
+  const serviceIds = [...new Set(rows.map((r) => r.service_id).filter(Boolean))] as string[];
+
+  /*
+   * Read tolerantly: cost_pence is optional on a service and the whole feature
+   * is worth nothing to a business that has not filled it in, which must not
+   * be the same as the report failing.
+   */
+  const costs = new Map<string, number | null>();
+  if (serviceIds.length) {
+    const { data: services } = await db
+      .from("services")
+      .select("id, cost_pence")
+      .in("id", serviceIds);
+
+    for (const s of services ?? []) {
+      costs.set(s.id as string, (s.cost_pence as number | null) ?? null);
+    }
+  }
+
+  return rows.map((r) => ({
+    name: r.name,
+    quantity: r.quantity ?? 1,
+    unitPence: r.unit_pence ?? 0,
+    costPence: r.service_id ? (costs.get(r.service_id) ?? null) : null,
+  }));
+}
