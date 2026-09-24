@@ -48,7 +48,7 @@ export async function loadPlatformRows(db: SupabaseClient, range: { from: string
     all((a, b) =>
       db
         .from("conversations")
-        .select("id, studio_id, channel, is_test, created_at, first_response_ms, status, last_message_at")
+        .select("id, studio_id, channel, is_test, created_at, first_response_ms, status, last_message_at, outbound")
         .or(`created_at.gte.${range.from},last_message_at.gte.${range.from}`)
         .range(a, b),
     ),

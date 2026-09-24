@@ -244,9 +244,10 @@ export default async function AdminPage() {
   const [everyArtist, everyBand, everyConversation, everyBooking, everyMember] = await Promise.all([
     pageAll<Record<string, unknown>>("artists", "*"),
     pageAll<{ studio_id: string }>("price_bands", "studio_id"),
-    pageAll<{ studio_id: string; last_message_at: string | null; status: string | null }>(
+    pageAll<{ studio_id: string; last_message_at: string | null; status: string | null; outbound: boolean | null }>(
       "conversations",
-      "studio_id, last_message_at, status",
+      /* outbound, because a message the business sent first is not an enquiry. */
+      "studio_id, last_message_at, status, outbound",
     ),
     pageAll<{ source: string | null; cancelled_at: string | null; artists: { studio_id: string } }>(
       "bookings",
@@ -279,7 +280,7 @@ export default async function AdminPage() {
    * midnight should not make a quiet business look active.
    */
   const conversationsOf = group(
-    everyConversation.filter((c) => countsAsEnquiry(c.status)),
+    everyConversation.filter((c) => countsAsEnquiry(c.status, c)),
     (c) => c.studio_id,
   );
   const bookingsOf = group(everyBooking, (b) => b.artists?.studio_id);

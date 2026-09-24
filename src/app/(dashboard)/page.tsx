@@ -126,7 +126,10 @@ export default async function InboxPage({
       // external_ref so a row with nobody named can still say who it is from:
       // on email that is the sender's address, which is the whole of what is
       // known about a filed receipt.
-      "id, channel, status, created_at, last_message_at, artist_id, external_ref, " +
+      // outbound, so a thread the business started is not dressed as an
+      // enquiry. Giles sent a client a test message and found it in his inbox
+      // looking exactly like somebody writing in.
+      "id, channel, status, created_at, last_message_at, last_inbound_at, artist_id, external_ref, outbound, " +
         "contacts(name, instagram_handle, phone, email, alert), " +
         "enquiries(description, quote_low_pence, bookings(cancelled_at))",
     )
@@ -578,7 +581,20 @@ export default async function InboxPage({
                * point of filing a shop receipt is that nobody enquired. The
                * first filed row read "New enquiry / no contact / Email".
                */
-              const nothingKnown = c.status === "paperwork" ? "Filed" : "New enquiry";
+              /*
+               * And never "New enquiry" over something the business sent.
+               *
+               * Giles: "i sent a test message on demo account to a client in
+               * the client page, it is now in my inbox even though they
+               * havent responded, is that correct." It was not. The row is a
+               * real conversation and belongs here — but he wrote it, and it
+               * sat in the list wearing the same words as somebody getting in
+               * touch.
+               */
+              const row = c as { outbound?: boolean | null; last_inbound_at?: string | null };
+              const weWroteFirst = row.outbound === true && !row.last_inbound_at;
+              const nothingKnown =
+                c.status === "paperwork" ? "Filed" : weWroteFirst ? "You wrote" : "New enquiry";
               const who = named ?? description ?? nothingKnown;
               /*
                * How much of the screen this row has earned.

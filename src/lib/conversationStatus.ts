@@ -55,8 +55,48 @@ export const isSpent = (status: ConvStatus) =>
  * question gets asked in one place, and a business's report stops counting the
  * receipts from its own shop as enquiries it answered.
  */
-export const countsAsEnquiry = (status: string | null | undefined) =>
-  status !== "spam" && status !== "paperwork";
+/**
+ * What the conversation was, beyond its status.
+ *
+ * Optional so every caller that predates this keeps working unchanged: a row
+ * that says nothing is treated as a customer getting in touch, which is what
+ * every conversation was until the business could write first.
+ */
+export type EnquiryFacts = {
+  /** The business started it — see messageClient and reachOut. */
+  outbound?: boolean | null;
+  /** When the customer last wrote. Null means they never have. */
+  last_inbound_at?: string | null;
+};
+
+export const countsAsEnquiry = (
+  status: string | null | undefined,
+  facts?: EnquiryFacts | null,
+) => {
+  if (status === "spam" || status === "paperwork") return false;
+
+  /*
+   * A message the business sent first is not an enquiry.
+   *
+   * Giles sent a test message to a client from their page and found it in his
+   * inbox as though they had written in. They had not — he had. And it was
+   * counted: every report in the product asks this question, so a salon
+   * texting twenty regulars about a cancellation gained twenty enquiries it
+   * never received, and a conversion rate divided by a number that had nothing
+   * to do with demand.
+   *
+   * Never an enquiry, replied to or not. Somebody answering a text you sent
+   * them has still not enquired — and the reply is not lost, it is a
+   * conversation like any other, it simply is not counted as demand.
+   *
+   * The column has existed since the day the business could write first. It
+   * was written in two places and read in none, which is how a flag that was
+   * meant to prevent exactly this ends up preventing nothing.
+   */
+  if (facts?.outbound === true) return false;
+
+  return true;
+};
 
 /** Everything a status needs on a mark, ready to drop into a className. */
 export function stampClasses(status: ConvStatus): string {

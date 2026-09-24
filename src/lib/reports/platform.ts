@@ -41,7 +41,7 @@ export type ReportRows = {
    * costs the per-person breakdown, not the report.
    */
   people?: { id: string; studio_id: string; name: string; voice_on?: boolean | null }[];
-  conversations: { id: string; studio_id: string; channel: string; is_test: boolean | null; created_at: string; first_response_ms: number | null; status: string | null }[];
+  conversations: { id: string; studio_id: string; channel: string; is_test: boolean | null; created_at: string; first_response_ms: number | null; status: string | null; /** The business wrote first. Not an enquiry. */ outbound?: boolean | null }[];
   messages: { conversation_id: string; role: string; created_at: string; usage: { cost_micros?: number } | null; delivery: string | null }[];
   bookings: { studio_id: string; created_at: string; cancelled_at: string | null; attended: boolean | null; source: string | null; starts_at: string }[];
   payments: { studio_id: string; kind: string | null; status: string | null; gross_pence: number | null; fee_pence: number | null; paid_at: string | null }[];
@@ -173,7 +173,7 @@ export function platformReport(
      * inbox look like a failing one.
      */
     const convs = rows.conversations.filter(
-      (c) => c.studio_id === s.id && !c.is_test && countsAsEnquiry(c.status),
+      (c) => c.studio_id === s.id && !c.is_test && countsAsEnquiry(c.status, c),
     );
     const convIds = new Set(convs.map((c) => c.id));
     const newConvs = convs.filter((c) => inRange(c.created_at, from, to));

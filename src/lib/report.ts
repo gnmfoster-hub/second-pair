@@ -90,7 +90,7 @@ export async function weeklyReport(
   const { data: conversations } = await db
     .from("conversations")
     .select(
-      "id, status, created_at, first_response_ms, " +
+      "id, status, created_at, first_response_ms, outbound, " +
         "enquiries(id, quote_low_pence, bookings(id, starts_at, deposit_amount_pence, deposit_status, cancelled_at, attended, price_pence))",
     )
     .eq("studio_id", studio.id)
@@ -103,6 +103,8 @@ export async function weeklyReport(
   type Row = {
     id: string;
     status: string;
+    /** The business wrote first, so it is not somebody enquiring. */
+    outbound: boolean | null;
     created_at: string;
     first_response_ms: number | null;
     enquiries: {
@@ -126,7 +128,7 @@ export async function weeklyReport(
    * fifty enquiries and converted four, when eleven of the fifty were list
    * sellers, has been given a worse number than no number.
    */
-  const rows = ((conversations ?? []) as unknown as Row[]).filter((r) => countsAsEnquiry(r.status));
+  const rows = ((conversations ?? []) as unknown as Row[]).filter((r) => countsAsEnquiry(r.status, r));
 
   const report: WeeklyReport = {
     from: from.toISOString(),
