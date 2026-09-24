@@ -1,4 +1,13 @@
-import { assess, summarise, type Facts, type Link, type Step } from "@/lib/working";
+import {
+  assess,
+  assessPeople,
+  summarise,
+  summarisePeople,
+  type Facts,
+  type Link,
+  type PersonFacts,
+  type Step,
+} from "@/lib/working";
 
 /**
  * One business, every capability, the whole chain.
@@ -17,8 +26,17 @@ import { assess, summarise, type Facts, type Link, type Step } from "@/lib/worki
  * webhook was never pasted into Twilio — which is a failure this business has
  * hit, and which every setup checklist in the world would call ready.
  */
-export function Working({ facts, open = false }: { facts: Facts; open?: boolean }) {
+export function Working({
+  facts,
+  people,
+  open = false,
+}: {
+  facts: Facts;
+  people: PersonFacts[];
+  open?: boolean;
+}) {
   const things = assess(facts);
+  const team = assessPeople(people);
   const broken = things.filter((t) => t.stuckAt && t.stuckAt !== "proven");
 
   return (
@@ -74,6 +92,46 @@ export function Working({ facts, open = false }: { facts: Facts; open?: boolean 
           </li>
         ))}
       </ul>
+
+      {/*
+        * And each person, which the list above cannot see.
+        *
+        * Giles: "i will need to see what team members havent set up as well,
+        * this only covers the business." He is right, and this is the half
+        * where things actually go wrong: a business is set up once by somebody
+        * who cares, a team of six is set up six times over months, and nobody
+        * ever looks at all six together. That is how a correctly configured
+        * salon ends up with one stylist whose clients are reminded of nothing.
+        */}
+      <div className="mt-5 border-t border-border pt-4">
+        <div className="flex flex-wrap items-baseline gap-x-2">
+          <span className="text-sm font-medium">Their people</span>
+          <span className="hint">{summarisePeople(team)}</span>
+        </div>
+
+        <ul className="mt-2 space-y-2">
+          {team.map((p) => (
+            <li key={p.name} className="rounded-lg border border-border p-3">
+              <div className="flex flex-wrap items-baseline gap-x-2">
+                <span className="text-sm font-medium">{p.name}</span>
+                {p.notes.length === 0 && <span className="hint text-ok">Nothing outstanding</span>}
+              </div>
+              {p.notes.length > 0 && (
+                <ul className="mt-1.5 space-y-1">
+                  {p.notes.map((n) => (
+                    <li
+                      key={n.says}
+                      className={`text-xs ${n.kind === "fault" ? "text-warn" : "text-muted"}`}
+                    >
+                      {n.says}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
     </details>
   );
 }

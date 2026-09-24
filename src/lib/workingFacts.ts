@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Studio } from "@/lib/types";
-import type { Facts } from "./working";
+import type { Facts, PersonFacts } from "./working";
 import { emailReallyWorks } from "@/lib/messaging/email";
 import { canTakeCharges } from "@/lib/payments/connect";
 import { smsConfigured } from "@/lib/messaging/sms";
@@ -18,7 +18,10 @@ import { reminderCover } from "./reminderCover";
  * migration nobody has run would be the worst possible moment for it to be
  * the thing that is broken.
  */
-export async function workingFacts(db: SupabaseClient, studio: Studio): Promise<Facts> {
+export async function workingFacts(
+  db: SupabaseClient,
+  studio: Studio,
+): Promise<{ facts: Facts; people: PersonFacts[] }> {
   const count = async (
     table: string,
     build: (q: ReturnType<SupabaseClient["from"]>) => unknown,
@@ -97,7 +100,17 @@ export async function workingFacts(db: SupabaseClient, studio: Studio): Promise<
 
   const live = (templates.data ?? []) as { enabled?: boolean | null; hours_before?: number | null }[];
 
-  return {
+  /* Which channels each person actually has one of their own on. */
+  const ownChannelsConnected = new Map<string, string[]>();
+  for (const c of (connections.data ?? []) as { channel: string; artist_id: string | null }[]) {
+    if (!c.artist_id) continue;
+    ownChannelsConnected.set(c.artist_id, [
+      ...(ownChannelsConnected.get(c.artist_id) ?? []),
+      c.channel,
+    ]);
+  }
+
+  const facts: Facts = {
     sold: (studio.channels_allowed ?? ["web"]) as string[],
     receptionistAllowed:
       (studio as unknown as { receptionist_allowed?: boolean | null }).receptionist_allowed === true,
@@ -126,6 +139,48 @@ export async function workingFacts(db: SupabaseClient, studio: Studio): Promise<
     savedMessages,
     ever: await whatHasHappened(db, studio.id),
   };
+
+  return {
+    facts,
+    people: peopleFacts(roster, linesByArtist, ownChannelsConnected, cover.sendingNothing),
+  };
+}
+
+/**
+ * The same question about each person.
+ *
+ * Giles: "i will need to see what team members havent set up as well, this
+ * only covers the business."
+ *
+ * Read from the same rows the business facts already fetched, so asking costs
+ * nothing extra — the whole roster and every connection are in hand by the
+ * time this is called.
+ */
+export function peopleFacts(
+  roster: Record<string, unknown>[],
+  linesByArtist: Set<string>,
+  ownChannelsConnected: Map<string, string[]>,
+  sendingNothing: string[],
+): PersonFacts[] {
+  const nothing = new Set(sendingNothing);
+
+  return roster.map((p) => ({
+    name: (p.name as string) ?? "",
+    active: p.active !== false,
+    ownerManaged: p.owner_managed === true,
+    hasLogin: Boolean(p.user_id),
+    invited: Boolean((p.email as string | null)?.trim()),
+    hasRate: Boolean(p.hourly_rate_pence || p.day_rate_pence || p.min_charge_pence),
+    ownReminders: p.reminders_own === true,
+    sendsNothing: nothing.has((p.name as string) ?? ""),
+    ownChannelsAllowed: ((p.own_channels as string[] | null) ?? []).filter((c) => c !== "web"),
+    ownChannelsConnected: ownChannelsConnected.get(p.id as string) ?? [],
+    receptionistOn: p.voice_on === true,
+    hasOwnLine: linesByArtist.has(p.id as string),
+    takesBookings: p.assistant_books !== false,
+    calendarError: ((p.personal_calendar_error as string | null) ?? null) || null,
+    isResource: p.is_resource === true,
+  }));
 }
 
 /**

@@ -37,7 +37,7 @@ export default async function WorkingPage({ params }: { params: Promise<{ id: st
   const { data: studio } = await db.from("studios").select("*").eq("id", id).maybeSingle();
   if (!studio) notFound();
 
-  const facts = await workingFacts(db, studio as Studio);
+  const { facts, people } = await workingFacts(db, studio as Studio);
 
   return (
     <div className="mx-auto max-w-3xl space-y-5 p-6">
@@ -55,7 +55,7 @@ export default async function WorkingPage({ params }: { params: Promise<{ id: st
       </div>
 
       {/* Open, because on this page the panel is the page. */}
-      <Working facts={facts} open />
+      <Working facts={facts} people={people} open />
     </div>
   );
 }

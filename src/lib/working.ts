@@ -464,3 +464,164 @@ function listOf(names: string[]): string {
   if (names.length <= 1) return names[0] ?? "";
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
+
+/**
+ * And the same question about each person, which the business view cannot ask.
+ *
+ * Giles: "i think i will need to see what team members havent set up as well,
+ * this only covers the business."
+ *
+ * He is right, and it is the half where things actually go wrong. A business
+ * is set up once by somebody who cares; a team of six is set up six times, by
+ * six people, over months, and nobody ever looks at all six together. The
+ * result is a salon that is correctly configured and has one stylist whose
+ * clients are reminded of nothing.
+ *
+ * Every line is a consequence rather than a missing field, for the same reason
+ * as above: "no hourly rate" is a fact and "the assistant cannot quote for her,
+ * so it hands every pricing question about her to you" is a reason to fix it.
+ */
+export type PersonFacts = {
+  name: string;
+  active: boolean;
+  /** A room or a chair rather than somebody. Most of this does not apply. */
+  isResource: boolean;
+  /** The owner fills this person in; they have no login of their own by design. */
+  ownerManaged: boolean;
+  hasLogin: boolean;
+  /** An address to invite them at. Without one there is nothing to send. */
+  invited: boolean;
+  hasRate: boolean;
+  /** They send their own reminders rather than the shop's. */
+  ownReminders: boolean;
+  /** Their clients are sent nothing at all. From reminderCover. */
+  sendsNothing: boolean;
+  /** Channels they are allowed one of their own on. */
+  ownChannelsAllowed: string[];
+  /** Channels they actually have one on. */
+  ownChannelsConnected: string[];
+  receptionistOn: boolean;
+  hasOwnLine: boolean;
+  /** Whether the assistant may put customers in their diary. */
+  takesBookings: boolean;
+  /** What their calendar last said, when it went wrong. */
+  calendarError: string | null;
+};
+
+export type PersonNote = {
+  /** A fault is something nobody chose. A note is a choice worth seeing. */
+  kind: "fault" | "note";
+  says: string;
+};
+
+export type PersonState = {
+  name: string;
+  notes: PersonNote[];
+};
+
+export function assessPeople(people: PersonFacts[]): PersonState[] {
+  return people
+    .filter((p) => p.active)
+    .map((p) => {
+      const notes: PersonNote[] = [];
+
+      /*
+       * A room is not a person. Everything below asks about somebody who
+       * works here, and a chair with no login is not a problem to solve.
+       */
+      if (p.isResource) return { name: p.name, notes };
+
+      /*
+       * The loudest one, and the one that is always somebody's fault rather
+       * than a preference: their clients hear nothing before an appointment.
+       */
+      if (p.sendsNothing) {
+        notes.push({
+          kind: "fault",
+          says: p.ownReminders
+            ? "Sends their own reminders and has not written any, so their clients are reminded of nothing."
+            : "Their clients are sent nothing before an appointment.",
+        });
+      }
+
+      if (p.calendarError) {
+        notes.push({
+          kind: "fault",
+          says: `Their own calendar is failing: ${p.calendarError}. Their outside commitments are not being read, so the assistant can double-book them.`,
+        });
+      }
+
+      if (p.receptionistOn && !p.hasOwnLine) {
+        notes.push({
+          kind: "fault",
+          says: "Has a Receptionist switched on and no number of their own, so there is nothing for it to answer — and it is still charged for.",
+        });
+      }
+
+      const missing = p.ownChannelsAllowed.filter((c) => !p.ownChannelsConnected.includes(c));
+      if (missing.length) {
+        notes.push({
+          kind: "note",
+          says: `Allowed their own ${listOf(missing)}, but nothing is connected ${missing.length > 1 ? "on any of them" : "on it"} yet.`,
+        });
+      }
+
+      if (!p.hasRate) {
+        notes.push({
+          kind: "note",
+          says: "No rate of their own, so the assistant quotes the business's prices for them.",
+        });
+      }
+
+      /*
+       * Never invited and never signed in are different problems with
+       * different answers, and telling somebody to chase an invitation that
+       * was never sent wastes their afternoon.
+       */
+      if (!p.hasLogin && !p.ownerManaged) {
+        notes.push({
+          kind: p.invited ? "note" : "fault",
+          says: p.invited
+            ? "Invited, but has never signed in — so they cannot see their own diary."
+            : "No email address, so they have never been invited and cannot sign in at all.",
+        });
+      }
+
+      if (!p.takesBookings) {
+        notes.push({
+          kind: "note",
+          says: "The assistant never offers them, so customers can only be booked in with them by hand.",
+        });
+      }
+
+      return { name: p.name, notes };
+    })
+    /*
+     * Whoever needs something first.
+     *
+     * Roster order is creation order, which puts the person who needs fixing
+     * wherever they happen to have been added — and a list you have to read
+     * all of is a list nobody reads twice.
+     */
+    .sort((a, b) => weight(b) - weight(a) || a.name.localeCompare(b.name));
+}
+
+function weight(p: PersonState): number {
+  if (p.notes.some((n) => n.kind === "fault")) return 2;
+  return p.notes.length ? 1 : 0;
+}
+
+/** The line at the top of the people list. Faults first, because they are. */
+export function summarisePeople(states: PersonState[]): string {
+  const faults = states.filter((s) => s.notes.some((n) => n.kind === "fault"));
+  const notes = states.filter(
+    (s) => !s.notes.some((n) => n.kind === "fault") && s.notes.length > 0,
+  );
+
+  if (!states.length) return "Nobody in the diary yet.";
+  if (!faults.length && !notes.length) return `All ${states.length} are set up.`;
+  if (!faults.length) {
+    return `Nothing wrong. ${notes.length} of ${states.length} ${notes.length === 1 ? "has" : "have"} something worth knowing.`;
+  }
+  return `${listOf(faults.map((f) => f.name))} ${faults.length === 1 ? "has" : "have"} something that needs fixing.`;
+}

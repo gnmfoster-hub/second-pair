@@ -245,3 +245,131 @@ test("money taken but no account connected now is explained, not left looking wr
   assert.match(pay.because ?? "", /gone through before/i);
   assert.match(pay.because ?? "", /disconnected|expired/i);
 });
+
+/* ───────────────────────────── the people half ───────────────────────────── */
+
+import { assessPeople, summarisePeople, type PersonFacts } from "./working.ts";
+
+const person = (over: Partial<PersonFacts> = {}): PersonFacts => ({
+  name: "Sarah",
+  active: true,
+  isResource: false,
+  ownerManaged: false,
+  hasLogin: true,
+  invited: true,
+  hasRate: true,
+  ownReminders: false,
+  sendsNothing: false,
+  ownChannelsAllowed: [],
+  ownChannelsConnected: [],
+  receptionistOn: false,
+  hasOwnLine: false,
+  takesBookings: true,
+  calendarError: null,
+  ...over,
+});
+
+const says = (p: PersonFacts) => assessPeople([p])[0].notes.map((n) => n.says).join(" ");
+
+test("somebody fully set up has nothing said about them", () => {
+  assert.deepEqual(assessPeople([person()])[0].notes, []);
+});
+
+test("somebody who has left is not listed", () => {
+  assert.deepEqual(assessPeople([person({ active: false })]), []);
+});
+
+/*
+ * A chair is not a person. Everything here asks about somebody who works, and
+ * a room with no login is not a problem to solve.
+ */
+test("a room or a chair is not asked any of it", () => {
+  assert.deepEqual(assessPeople([person({ isResource: true, hasLogin: false, hasRate: false })])[0].notes, []);
+});
+
+/*
+ * The one that matters most, and the exact state Willow was in: reminders on,
+ * none written, clients reminded of nothing.
+ */
+test("sending nothing is a fault and says which kind", () => {
+  const own = assessPeople([person({ sendsNothing: true, ownReminders: true })])[0];
+  assert.equal(own.notes[0].kind, "fault");
+  assert.match(own.notes[0].says, /has not written any/);
+
+  const shop = assessPeople([person({ sendsNothing: true })])[0];
+  assert.match(shop.notes[0].says, /sent nothing before an appointment/);
+});
+
+test("a Receptionist with no line is a fault, and says it is still charged", () => {
+  const out = says(person({ receptionistOn: true, hasOwnLine: false }));
+  assert.match(out, /nothing for it to answer/);
+  assert.match(out, /still charged/);
+});
+
+test("a Receptionist with a line of their own is fine", () => {
+  assert.deepEqual(assessPeople([person({ receptionistOn: true, hasOwnLine: true })])[0].notes, []);
+});
+
+/*
+ * Never invited and never signed in are different problems with different
+ * answers. Telling somebody to chase an invitation that was never sent wastes
+ * their afternoon.
+ */
+test("never invited and never signed in are told apart", () => {
+  const never = assessPeople([person({ hasLogin: false, invited: false })])[0];
+  assert.equal(never.notes[0].kind, "fault");
+  assert.match(never.notes[0].says, /never been invited/);
+
+  const waiting = assessPeople([person({ hasLogin: false, invited: true })])[0];
+  assert.equal(waiting.notes[0].kind, "note");
+  assert.match(waiting.notes[0].says, /never signed in/);
+});
+
+/* Somebody the owner fills in has no login by design, so it is not a fault. */
+test("an owner-managed person is not chased for a login", () => {
+  assert.deepEqual(assessPeople([person({ hasLogin: false, invited: false, ownerManaged: true })])[0].notes, []);
+});
+
+test("a calendar that is failing is a fault, because it double-books them", () => {
+  const out = assessPeople([person({ calendarError: "404 from Google" })])[0];
+  assert.equal(out.notes[0].kind, "fault");
+  assert.match(out.notes[0].says, /double-book/);
+});
+
+test("allowed a channel with nothing on it is a note, not a fault", () => {
+  const out = assessPeople([person({ ownChannelsAllowed: ["instagram"], ownChannelsConnected: [] })])[0];
+  assert.equal(out.notes[0].kind, "note");
+  assert.match(out.notes[0].says, /nothing is connected/);
+});
+
+test("a choice the owner made is a note rather than a fault", () => {
+  const out = assessPeople([person({ takesBookings: false })])[0];
+  assert.equal(out.notes[0].kind, "note");
+});
+
+test("the people line names who needs fixing", () => {
+  const states = assessPeople([
+    person({ name: "Aisha", sendsNothing: true, ownReminders: true }),
+    person({ name: "Mo" }),
+  ]);
+  assert.match(summarisePeople(states), /Aisha has something that needs fixing/);
+  assert.match(summarisePeople(assessPeople([person()])), /All 1 are set up/);
+  assert.equal(summarisePeople([]), "Nobody in the diary yet.");
+});
+
+test("whoever needs something is listed first", () => {
+  const out = assessPeople([
+    person({ name: "Zoe" }),
+    person({ name: "Mo", takesBookings: false }),
+    person({ name: "Aisha", sendsNothing: true }),
+  ]).map((p) => p.name);
+  assert.deepEqual(out, ["Aisha", "Mo", "Zoe"]);
+});
+
+test("several channels read as a list, not as a chain of ands", () => {
+  const out = assessPeople([
+    person({ ownChannelsAllowed: ["email", "instagram", "voice"], ownChannelsConnected: [] }),
+  ])[0].notes[0].says;
+  assert.match(out, /email, instagram and voice/);
+  assert.ok(!out.includes("and instagram and"));
+});
