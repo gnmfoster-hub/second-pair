@@ -12,6 +12,7 @@ import {
 } from "react";
 import { categoryFor, addDays, isoDate } from "@/lib/calendar";
 import { hueFor, initialsOf, colourForName, type ColourMode } from "@/lib/diaryColour";
+import { holdOn, holdMeans, holdShort } from "@/lib/holds";
 import { EntryDialog } from "./EntryDialog";
 import type { Words } from "@/lib/wordsText";
 import type { FormNeed } from "@/lib/forms/required";
@@ -40,6 +41,8 @@ export type Entry = {
   title: string | null;
   notes: string | null;
   deposit_status: string;
+  /** When the slot stops being held for a deposit. Null for almost everything. */
+  held_until?: string | null;
   deposit_amount_pence: number;
   clientName: string | null;
   clientPhone: string | null;
@@ -1124,6 +1127,17 @@ export function WeekGrid({
                      */
                     const unpaid =
                       e.deposit_amount_pence > 0 && e.deposit_status !== "paid";
+                    /*
+                     * Being held, and for how much longer.
+                     *
+                     * The most urgent thing a diary can hold, and this screen
+                     * has never read the column. A held slot was drawn exactly
+                     * like a confirmed one right up to the moment the sweep
+                     * cancelled it — so an owner saw a full afternoon, then a
+                     * gap, and nothing ever said why. Or worse, turned a
+                     * walk-in away for a slot that was never really taken.
+                     */
+                    const hold = holdOn(e.held_until, e.deposit_status);
                     const dragging = drag?.id === e.id;
                     const startMinutes = minutesInDay(e.starts_at, timezone);
                     const endMinutes =
@@ -1228,6 +1242,14 @@ export function WeekGrid({
                            */
                           background: `color-mix(in srgb, ${hue} ${e.blocks_availability ? 22 : 12}%, var(--surface))`,
                           borderLeft: `3px solid ${unpaid ? "var(--warn)" : hue}`,
+                          /*
+                           * A dashed edge on a hold, because it is not settled
+                           * yet — the one convention every calendar already
+                           * uses for "not really yours". No new colour: the
+                           * warn edge already says a deposit is owed, and this
+                           * says the slot goes back if it stays owed.
+                           */
+                          ...(hold ? { borderStyle: "dashed", borderWidth: "1px 1px 1px 3px", borderColor: "var(--warn)" } : {}),
                           color: "var(--foreground)",
                         }}
                       >
@@ -1245,11 +1267,26 @@ export function WeekGrid({
                               {initialsOf(artist.name)}
                             </span>
                           )}
-                          {unpaid && (
+                          {unpaid && !hold && (
                             <span
                               className="size-1.5 shrink-0 rounded-full bg-warn"
                               title="Waiting on a deposit"
                             />
+                          )}
+                          {/*
+                            * The clock, in words, on the block itself.
+                            *
+                            * A dot cannot say "eighteen minutes", and the
+                            * number is the whole point: it is the difference
+                            * between ringing them now and finding a gap later.
+                            */}
+                          {hold && (
+                            <span
+                              className="shrink-0 rounded-sm bg-warn/15 px-1 text-[9px] font-medium leading-tight text-warn"
+                              title={holdMeans(hold)}
+                            >
+                              {holdShort(hold)}
+                            </span>
                           )}
                           {/*
                             * The person first, then what they are having.

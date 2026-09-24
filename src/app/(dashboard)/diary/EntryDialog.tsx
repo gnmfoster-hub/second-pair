@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { holdOn, holdMeans } from "@/lib/holds";
 import { ClientPicker } from "./ClientPicker";
 import { ServicePick, type Bookable } from "./ServicePick";
 import { ClientSummary } from "./ClientSummary";
@@ -107,6 +108,8 @@ export function EntryDialog({
 
   const existing = Boolean(entry);
   const fromClient = entry?.source === "assistant";
+  /* Whether the slot is only being held. See lib/holds. */
+  const hold = holdOn(entry?.held_until, entry?.deposit_status);
 
   /*
    * The clock, read once when the sheet opens.
@@ -467,6 +470,24 @@ export function EntryDialog({
           * regular somebody typed in is a label on the normal case, which is
           * noise on every row to carry information on a few.
           */}
+        {/*
+          * Being held, and what happens when it stops being held.
+          *
+          * Above everything else about the appointment because it is the only
+          * thing on this screen with a clock on it. "Held until 4:15" is a
+          * fact somebody has to work out the meaning of; the slot going back
+          * is the meaning.
+          */}
+        {mode === "look" && hold && (
+          <p
+            className={`mt-3 rounded-lg px-3 py-2 text-xs ${
+              hold.soon || hold.lapsed ? "bg-warn/12 text-warn" : "bg-surface-2 text-muted"
+            }`}
+          >
+            {holdMeans(hold)}
+          </p>
+        )}
+
         {mode === "look" && entry?.source === "assistant" && (
           <p className="mt-3 rounded-lg bg-accent/5 px-3 py-2 text-xs text-accent">
             Booked by your assistant. Nobody had to type this one in.

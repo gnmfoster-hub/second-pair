@@ -49,6 +49,14 @@ type RawRow = {
   notes: string | null;
   deposit_status: string;
   deposit_amount_pence: number;
+  /**
+   * When the slot stops being held, if it is being held.
+   *
+   * Fetched all along — the query reads every column — and never once looked
+   * at by this screen, so a held slot was drawn exactly like a confirmed one
+   * right up to the moment it disappeared.
+   */
+  held_until: string | null;
   price_pence: number | null;
   repeats: string;
   group_id?: string | null;
@@ -500,6 +508,7 @@ export default async function DiaryPage({
       title: r.title,
       notes: r.notes,
       deposit_status: r.deposit_status,
+      held_until: r.held_until ?? null,
       deposit_amount_pence: r.deposit_amount_pence,
       price_pence: r.price_pence,
       soldPence: soldOn.get(r.id) ?? null,
