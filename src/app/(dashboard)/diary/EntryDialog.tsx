@@ -455,6 +455,24 @@ export function EntryDialog({
           </div>
         )}
 
+        {/*
+          * How this got into the diary.
+          *
+          * Giles: "assistant vs human". One line, in the dialog rather than on
+          * the grid, because the grid is dense and this is a question somebody
+          * asks about one appointment rather than about the whole week — "did
+          * I take this, or did it take itself?"
+          *
+          * Only said where it was the assistant. "Added by hand" on every
+          * regular somebody typed in is a label on the normal case, which is
+          * noise on every row to carry information on a few.
+          */}
+        {mode === "look" && entry?.source === "assistant" && (
+          <p className="mt-3 rounded-lg bg-accent/5 px-3 py-2 text-xs text-accent">
+            Booked by your assistant. Nobody had to type this one in.
+          </p>
+        )}
+
         {mode === "look" && entry && (
           <Glance
             entry={entry}

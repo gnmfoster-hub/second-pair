@@ -8,6 +8,7 @@ import { MonthGrid } from "./MonthGrid";
 import { DayList } from "./DayList";
 import { WhoIsAsking } from "./WhoIsAsking";
 import { whoIsAsking } from "@/lib/whoIsAsking";
+import { whoBookedIt, assistantWon } from "@/lib/whoBookedIt";
 import { WeekStrip, type DayLoad } from "./WeekStrip";
 import { Stepper } from "./Stepper";
 import { WhoPicker } from "./WhoPicker";
@@ -860,6 +861,24 @@ export default async function DiaryPage({
     0,
   );
 
+  /*
+   * And how much of that the assistant won.
+   *
+   * Giles: "assistant vs human". Every other system's diary is a record of
+   * what a person typed, so the question does not arise for them. Here it is
+   * the whole question — it is what the business is paying for — and `source`
+   * has been on every booking since the diary could be written into by hand,
+   * read only to keep somebody's dentist appointment out of the takings.
+   */
+  const whoBooked = whoBookedIt(
+    counted.map((e) => ({
+      source: e.source,
+      pence: e.price_pence ?? e.quotePence ?? 0,
+      countsAsWork: e.blocks_availability && !e.all_day && e.source !== "block",
+    })),
+  );
+  const won = assistantWon(whoBooked);
+
   // Multiple people multiply the room available, so the figure means something
   // in a salon as well as in a van.
   const capacity = workingMinutes * Math.max(1, showing.length);
@@ -1373,6 +1392,28 @@ export default async function DiaryPage({
       <div className="hidden items-center gap-x-4 overflow-x-auto whitespace-nowrap border-b border-border px-4 py-2 text-xs sm:flex sm:flex-wrap sm:gap-x-6 sm:py-2.5 sm:text-sm">
         <Figure label="booked" value={asHours(bookedMinutes)} />
         <Figure label="worth" value={formatPence(worth)} />
+        {/*
+          * What the assistant won of it.
+          *
+          * Only where there is something to show. The worth figure had exactly
+          * this problem once — see the comment above it — and a nought that
+          * appears every Monday is not information, it is an accusation.
+          *
+          * Money rather than a count, because a count flatters: nine regulars
+          * typed in against one balayage the assistant won is nine-to-one by
+          * count and about even by money.
+          */}
+        {won && (
+          <Figure
+            label={
+              whoBooked.sharePercent === null
+                ? "won for you"
+                : `won for you · ${whoBooked.sharePercent}%`
+            }
+            value={formatPence(won.pence)}
+            accent
+          />
+        )}
         {/*
           * "0h free" is a lie when nobody has said when they are open.
           *
