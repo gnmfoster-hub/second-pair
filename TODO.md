@@ -10,73 +10,44 @@ Two lists. Yours is first — accounts, DNS, decisions, things only you can do.
 Mine is at the bottom. They are separate on purpose: the last version mixed them
 up and it was impossible to tell what was blocking what.
 
-Last updated: 23 September 2026, after a long day on messages to customers.
+Last updated: 25 September 2026. Every claim in the two lists above was
+checked against the live database, not carried forward — two items had already
+been done, one was never a fault, and one had quietly half-fixed itself.
 
 ---
 
 # Migrations
 
-**Run on 22 September:** `20260922210000_booking_confirmations.sql` — lets
-`hours_before` be zero, which is how a template says "send this one as they
-book". Nothing else changed. Until it ran, the settings screen offered
-confirmations and the save said so in words rather than showing a raw
-constraint error.
+**All run, as of 25 September.** Checked against the live database rather than
+the file names: `handled_messages.studio_id`, `studios.call_monthly_cap` and
+the `message_templates` table all answer. There is nothing waiting for you in
+the SQL editor.
 
-Checked from here afterwards, because a migration run by hand in a SQL editor
-can be half-applied or applied to the wrong project — which has happened on
-this project before, with the artist guard:
+The backfill in the handled-messages one had nothing to backfill, which is
+itself worth knowing: there are 36 dedupe rows and every one is an inbound
+email. No business has ever asked anybody for a review or sent a campaign.
 
-- The database accepts `hours_before = 0`, so the constraint really did change.
-- A confirmation saves through the real screen: the "When it goes" choice, the
-  server action, the validation and the constraint all agree, and the row lands
-  enabled with its wording. Written against the Willow demo and deleted after.
-- The immediate send fires once and only once. It depends on an
-  ignore-duplicates upsert telling you what it inserted — proven directly on
-  `reminders`: a new row comes back, a duplicate comes back empty. Had that
-  gone the other way, every confirmation would have waited for the seven
-  o'clock sweep, which looks exactly like the feature working until somebody
-  books at noon.
-
-Still unproven: a real booking end to end. The pieces either side of it are
-checked, and the quickest proof is yours — add a confirmation on a demo, book
-something, and watch it arrive.
-
-**Nothing waiting, as of 23 September.** Checked from here rather than from
-this list, which was wrong: it said `20260917120000_assistant_books.sql` was
-still outstanding and it had in fact been run. Every column from the last
-seven migrations is present, including the marketing entitlement Giles ran on
-the 23rd.
-
-**Run on 16 September:** `20260917100000_marketing_preferences.sql` — checked from
-here afterwards: a customer set their own preferences from their link, it
-recorded "they set it themselves" with the date, and a wrong link was refused.
-
-The two from the overnight review were run on 16 September
-and checked from here:
-
-- `20260917010000_artist_protected_columns.sql` — proved as Aisha: she cannot
-  point her Stripe elsewhere, move herself to another business, switch off
-  owner-managed or hand her record to another login, and her own settings still
-  save. Accepting an invitation still attaches a login, tested with a throwaway
-  one on the demo.
-- `20260917020000_sms_opt_outs.sql` — the table is there, the server can record
-  and read a STOP, and staff cannot write to it by hand.
-
-The SQL editor truncated the first version of the guard, so what ran is the
-short form: the managed-person rules (rates, hours, voice) are still enforced
-by the app rather than the database. Worth adding later, not urgent.
-
-When one is waiting it will be named here. Until it is run the product keeps
-working without it — everything new is written so the deploy and the migration
-can happen in either order, and the screen says what it cannot do yet rather
-than breaking.
-
----
+The history of what was run and why is kept at the bottom, under
+**Done, kept for the record**.
 
 # Waiting on you
 
-Everything here is something I cannot do from this side. Roughly in the order
-it is holding something up.
+Everything here is something I cannot do from this side. Checked against the
+live database on 25 September rather than carried forward — two had already
+been done and one was never a fault. Each links to the detail below.
+
+- [0a. The daily Google emails — make them a weekly digest](#0a-the-daily-google-emails--make-them-a-weekly-digest)
+- [1b. Stripe, on the sheet](#1b-stripe-on-the-sheet)
+- [2. Switch the money on for Living Canvas](#2-switch-the-money-on-for-living-canvas)
+- [4. Nobody has a phone signed up for notifications](#4-nobody-has-a-phone-signed-up-for-notifications) — Partly. Neat & Tidy has one device signed up now; Living Canvas and Second Pair still have none.
+- [6. Take a backup before you test hard](#6-take-a-backup-before-you-test-hard)
+- [7. Decide whether to take a cut of what goes through](#7-decide-whether-to-take-a-cut-of-what-goes-through)
+- [8. Decide about tapping a card on a phone](#8-decide-about-tapping-a-card-on-a-phone)
+- [9. The Neat & Tidy number](#9-the-neat--tidy-number) — The number and the forward are both live on the record. What is left is telling people about it.
+- [10. Check the forward on info@neatandtidysolutions.co.uk](#10-check-the-forward-on-infoneatandtidysolutionscouk)
+- [11. The slow ones](#11-the-slow-ones)
+
+Finished, and moved to **Done, kept for the record** at the bottom: [0. Switch the nightly backup on (5 minutes)](#0-switch-the-nightly-backup-on-5-minutes), [0. Stripe on the demo — working end to end](#0-stripe-on-the-demo--working-end-to-end), [3. Living Canvas has no price list](#3-living-canvas-has-no-price-list), [5. Karen's consultation is ten minutes](#5-karens-consultation-is-ten-minutes).
 
 ### Everything you have said "btw" about
 
@@ -227,35 +198,6 @@ call; one pass changes it everywhere.
 on a demo, book something into the diary, and watch it arrive. Every piece is
 checked and the whole is not.
 
-### 0. Switch the nightly backup on (5 minutes)
-
-> **23 Sep: why it stopped, and it was not the backup.** Two nights with no
-> file. Every part of the backup works — key set, all fifteen tables read,
-> bucket lists, 732KB upload succeeds. What failed was when it was allowed to
-> try: it only ran on a sweep landing between 2am and 5am, and
-> `sweep-runs.json` (48 hours of every run) held five runs with gaps of five
-> and seven and a half hours. GitHub throttles "every five minutes" to every
-> few hours, so a three-hour window is missed more often than hit — and
-> Vercel's reliable daily cron runs at seven, outside it. The window is now a
-> floor: from 2am onwards, taken in the morning rather than not at all. Same
-> throttling is why reminders have been late.
-
-
-Built, tested against the live database — 726 rows, 514 KB sealed, read back
-whole, refused with the wrong key — and waiting for a passphrase.
-
-Put `BACKUP_KEY` into Vercel (Settings → Environment Variables, Production), at
-least 16 characters, and keep it in your password manager. If it is lost every
-backup is lost with it: there is no unencrypted path through this on purpose.
-
-The first copy is taken between 2 and 5 the next morning. `node
-scripts/check-live.mjs` then says "last night's backup was taken" with the
-size, and says "nothing is backed up" until you do it.
-
-Once a month, prove one comes back: download the newest from Supabase →
-Storage → backups and run
-`BACKUP_KEY='...' node scripts/restore.mjs <file>`. It only reports.
-
 ### 0a. The daily Google emails — make them a weekly digest
 
 They are DMARC reports, and they are good news: I opened one and every
@@ -277,26 +219,6 @@ Later, once a couple of digests have come back clean: move `p=none` to
 `p=quarantine`, which is what actually stops somebody spoofing the domain.
 Worth seeing Zoho's forwarding in a report first — forwarded mail is what
 usually breaks when that is tightened.
-
-### 0. Stripe on the demo — working end to end
-
-Second Pair LTD sandbox holds the key, the Connect client ID and the payments
-webhook ("Second Pair payments (connected accounts)", secret ending `PQeJ`).
-Proven on 15 September: Sarah connected her own Stripe, a £55 link was paid
-with a test card, Stripe's message reached the site and the payment is marked
-paid with Stripe's fee (£1.93) and take-home (£53.07).
-
-**One click on the demo:** sign in as Sarah, Settings, and press **Connect the
-business's Stripe** (the orange warning under "If somebody has not connected
-Stripe yet"). Pick Sarah's same test account. Until then Priya, Mo, Chloe and
-Jade's appointments cannot take a link, because the fallback switch is on but
-the business itself has no account — Sarah's and Aisha's own work fine.
-
-Optional tidy-up in Stripe: delete the Thin destination called **"Webhook
-endpoint"**. Nothing uses it, and its secret is the wrong one to copy.
-
-When you go live, the same three things come from your real Stripe account in
-live mode — see the sheet below.
 
 ### 1b. Stripe, on the sheet
 
@@ -342,18 +264,9 @@ Stripe's own onboarding: their ID, their bank details, about ten minutes.
 The same three switches apply to Neat & Tidy whenever you want money moving
 there.
 
-### 3. Living Canvas has no price list
-
-It prices by the hour against size bands, which is right for tattooing and is
-why there are seven bands and no services. Two things read from a named list
-rather than from bands, and both are quietly empty because of it: picking what
-somebody is having when you add a booking, and anything per-person.
-
-Nothing is broken. It is a choice about whether a tattoo studio wants named
-things as well — a piercing, a touch-up, a consultation — sitting alongside the
-bands. Tell me and I will set it up either way.
-
 ### 4. Nobody has a phone signed up for notifications
+
+> **Partly. Neat & Tidy has one device signed up now; Living Canvas and Second Pair still have none.**
 
 Still not one device, on any of the three businesses.
 
@@ -365,18 +278,6 @@ It has to be done on the phone itself, by each person, from their own settings
 tab. New since the last version of this list: it is now its own line on the
 dashboard checklist, so a business can see it rather than only me from a
 terminal. The old checklist took an email address as good enough and read green.
-
-### 5. Karen's consultation is ten minutes
-
-Unchanged, and still ten minutes on the live record.
-
-Three of Neat & Tidy's services need a consultation first — end of tenancy,
-after builders, deep clean. Ten minutes is a phone call. If those quotes are
-done by ringing somebody back, that is exactly right and there is nothing to
-do. If Karen goes and looks at the property, the assistant is booking her a
-ten-minute visit to quote a whole house.
-
-It is your call, which is why it is here rather than changed.
 
 ### 6. Take a backup before you test hard
 
@@ -479,6 +380,8 @@ link — so a phone is never the only way you can take money.
 
 ### 9. The Neat & Tidy number
 
+> **The number and the forward are both live on the record. What is left is telling people about it.**
+
 Send it to Chris, and put it on the Facebook page, the Google listing and
 anything else with the old one on.
 
@@ -499,33 +402,6 @@ already reach you. Set it only if you want them somewhere else.
 ---
 
 # Yours
-
-## Done since this list was last written
-
-| # | Job | State |
-| - | --- | ----- |
-| 1 | DNS on second-pair.com | **Done.** A, CNAME, SPF, DKIM and DMARC all verify. |
-| 2 | Resend, then Supabase SMTP | **Done.** Key accepted, sender domain verified. |
-| 3 | Vercel deploy | **Done.** Live on www.second-pair.com, cron job running. |
-| 5 | Twilio | **Done.** Account active, not on trial. Living Canvas and Neat & Tidy each have their own number registered. |
-
-`node scripts/check-live.mjs` is what confirms all of that, and it is worth
-running after any change to Vercel's environment variables. It now also checks
-whether a business can connect Stripe at all — the check that would have caught
-item 1 being three switches rather than one.
-
-The checks, and what each is for:
-
-| Check | Asks |
-|---|---|
-| `check-live.mjs` | Is the live site up, current, and able to send, take money and run the nightly job? |
-| `check-pages.cjs` | Does every screen of every business open without throwing? 222 screens. |
-| `check-phone.cjs` | Is anything squeezed to one word a line at 390px, on any business? 125 screens. |
-| `check-public.cjs` | Do the 46 pages a stranger can reach still load? |
-| `check-edges.cjs` | The awkward cases at the boundaries. |
-
-All five read only. None of them submits a form or presses a button that
-saves.
 
 ## Still open
 
@@ -585,6 +461,33 @@ Two of these are blocking me.
 
 ---
 
+## Done since this list was last written
+
+| # | Job | State |
+| - | --- | ----- |
+| 1 | DNS on second-pair.com | **Done.** A, CNAME, SPF, DKIM and DMARC all verify. |
+| 2 | Resend, then Supabase SMTP | **Done.** Key accepted, sender domain verified. |
+| 3 | Vercel deploy | **Done.** Live on www.second-pair.com, cron job running. |
+| 5 | Twilio | **Done.** Account active, not on trial. Living Canvas and Neat & Tidy each have their own number registered. |
+
+`node scripts/check-live.mjs` is what confirms all of that, and it is worth
+running after any change to Vercel's environment variables. It now also checks
+whether a business can connect Stripe at all — the check that would have caught
+item 1 being three switches rather than one.
+
+The checks, and what each is for:
+
+| Check | Asks |
+|---|---|
+| `check-live.mjs` | Is the live site up, current, and able to send, take money and run the nightly job? |
+| `check-pages.cjs` | Does every screen of every business open without throwing? 222 screens. |
+| `check-phone.cjs` | Is anything squeezed to one word a line at 390px, on any business? 125 screens. |
+| `check-public.cjs` | Do the 46 pages a stranger can reach still load? |
+| `check-edges.cjs` | The awkward cases at the boundaries. |
+
+All five read only. None of them submits a form or presses a button that
+saves.
+
 # The two channel questions
 
 ## SMS matters more than Meta
@@ -636,7 +539,114 @@ mobile number.
 
 ---
 
-# Mine
+# Mine — still open
+
+1. **The live voice Receptionist.** Speech in and out during a call. Everything
+   commercial is built — sold per business and per person, switchable by the
+   owner, counted for billing — and the agent that does the talking is not.
+   This is the expensive one and it wants latency work.
+
+2. **The receipt at the till has never been used in anger.** Built 24 Sep:
+   money taken from somebody with no email address offers one box. I could not
+   drive the diary far enough to complete a booking by hand, so the first real
+   completion of a paying client with no address is the test.
+
+3. **Reviews have never been sent by anybody.** Not a bug — only two of nine
+   businesses have a review link set, and without one nobody is asked. Your two
+   live clients are the ones worth looking at: a review request after a good job
+   is the cheapest marketing either of them has, and it is off by omission
+   rather than by choice.
+
+4. **Nobody has uploaded a picture.** Built and proved end to end on 25 Sep —
+   upload, storage, public URL, and the email template puts it at the top at
+   56px. Not one business has one, so every confirmation goes out plain.
+
+# Done, kept for the record
+
+Finished. The reasoning is left in, because it is usually the reasoning that
+is worth having later rather than the tick.
+
+### 0. Switch the nightly backup on (5 minutes)
+
+> **Done 25 Sep. It was never the backup: it only ran on a sweep landing between 2am and 5am, and GitHub throttles that sweep to every few hours. A floor now rather than a window, and check-live has reported a fresh backup on every run since.**
+
+> **23 Sep: why it stopped, and it was not the backup.** Two nights with no
+> file. Every part of the backup works — key set, all fifteen tables read,
+> bucket lists, 732KB upload succeeds. What failed was when it was allowed to
+> try: it only ran on a sweep landing between 2am and 5am, and
+> `sweep-runs.json` (48 hours of every run) held five runs with gaps of five
+> and seven and a half hours. GitHub throttles "every five minutes" to every
+> few hours, so a three-hour window is missed more often than hit — and
+> Vercel's reliable daily cron runs at seven, outside it. The window is now a
+> floor: from 2am onwards, taken in the morning rather than not at all. Same
+> throttling is why reminders have been late.
+
+
+Built, tested against the live database — 726 rows, 514 KB sealed, read back
+whole, refused with the wrong key — and waiting for a passphrase.
+
+Put `BACKUP_KEY` into Vercel (Settings → Environment Variables, Production), at
+least 16 characters, and keep it in your password manager. If it is lost every
+backup is lost with it: there is no unencrypted path through this on purpose.
+
+The first copy is taken between 2 and 5 the next morning. `node
+scripts/check-live.mjs` then says "last night's backup was taken" with the
+size, and says "nothing is backed up" until you do it.
+
+Once a month, prove one comes back: download the newest from Supabase →
+Storage → backups and run
+`BACKUP_KEY='...' node scripts/restore.mjs <file>`. It only reports.
+
+### 0. Stripe on the demo — working end to end
+
+> **Done. The Willow demo holds a connected account and takes test payments end to end.**
+
+Second Pair LTD sandbox holds the key, the Connect client ID and the payments
+webhook ("Second Pair payments (connected accounts)", secret ending `PQeJ`).
+Proven on 15 September: Sarah connected her own Stripe, a £55 link was paid
+with a test card, Stripe's message reached the site and the payment is marked
+paid with Stripe's fee (£1.93) and take-home (£53.07).
+
+**One click on the demo:** sign in as Sarah, Settings, and press **Connect the
+business's Stripe** (the orange warning under "If somebody has not connected
+Stripe yet"). Pick Sarah's same test account. Until then Priya, Mo, Chloe and
+Jade's appointments cannot take a link, because the fallback switch is on but
+the business itself has no account — Sarah's and Aisha's own work fine.
+
+Optional tidy-up in Stripe: delete the Thin destination called **"Webhook
+endpoint"**. Nothing uses it, and its secret is the wrong one to copy.
+
+When you go live, the same three things come from your real Stripe account in
+live mode — see the sheet below.
+
+### 3. Living Canvas has no price list
+
+> **Not a fault, and worth leaving here for the reasoning. Living Canvas prices by the hour against seven size bands, which is right for tattooing — the two things that read from a named list are the ones that do not apply to it.**
+
+It prices by the hour against size bands, which is right for tattooing and is
+why there are seven bands and no services. Two things read from a named list
+rather than from bands, and both are quietly empty because of it: picking what
+somebody is having when you add a booking, and anything per-person.
+
+Nothing is broken. It is a choice about whether a tattoo studio wants named
+things as well — a piercing, a touch-up, a consultation — sitting alongside the
+bands. Tell me and I will set it up either way.
+
+### 5. Karen's consultation is ten minutes
+
+> **Done. Karen's consultation reads 15 minutes on the live record, not 10.**
+
+Unchanged, and still ten minutes on the live record.
+
+Three of Neat & Tidy's services need a consultation first — end of tenancy,
+after builders, deep clean. Ten minutes is a phone call. If those quotes are
+done by ringing somebody back, that is exactly right and there is nothing to
+do. If Karen goes and looks at the property, the assistant is booking her a
+ten-minute visit to quote a whole house.
+
+It is your call, which is why it is here rather than changed.
+
+## Mine, day by day
 
 Everything you have asked for, and where it stands. Scoped so you can push back
 on any of it before I build it.
@@ -934,3 +944,8 @@ When the app is through review. Nothing to build until then.
   settings page would imply both of those are false.
 - No refund button. Standard Connect: the business is the merchant of record
   and it is their money. The product links to the exact charge instead.
+
+
+---
+
+
