@@ -153,6 +153,14 @@ Open, and roughly in the order I would do them:
    "review:<booking>" and the campaign's own key — and that table has no
    studio on it. So "has this salon ever asked anybody for a review" is a
    question the data cannot answer, here or in any report.
+2c. ~~**The diary looked like every other system.**~~ 25 Sep. Named the cause
+   rather than restyling: the grid is doing what every other diary does, which
+   is show what is settled. Three things it knew and never showed are now on
+   it — who is asking for time and what they said about when, in their own
+   words; what the assistant won of the week's money; and a held slot drawn as
+   held with the clock on it. All three were columns the screen already
+   fetched and never read.
+
 3. **The live voice Receptionist** — speech in, speech out, during the call.
    The commercial side is built; this is the expensive part and wants latency
    work.
