@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { IntoTheDiary } from "./IntoTheDiary";
 import { Logo } from "@/components/Logo";
 import { Hero } from "./Hero";
 import type { Metadata } from "next";
@@ -34,6 +35,14 @@ export default function HomePage() {
       <section className="relative overflow-hidden">
         <Hero />
       </section>
+
+      {/*
+        * Seven ways in, one diary — Giles's idea, and the one thing on this
+        * page a picture says faster than a sentence. Straight after the hero,
+        * because the argument underneath it ("a diary doesn't answer") is the
+        * caption to this drawing rather than the other way round.
+        */}
+      <IntoTheDiary />
 
       {/* ──────────────────────────────────────────────────── the argument */}
       <section className="shell py-16 sm:py-24">
