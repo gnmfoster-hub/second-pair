@@ -572,6 +572,22 @@ export async function saveAccount(_prev: Result, fd: FormData): Promise<Result> 
     capRaw && Number.isFinite(capNumber) && capNumber > 0 ? Math.round(capNumber) : null;
 
   /*
+   * The call ceiling, read the same way with one deliberate difference: nought
+   * is a real answer here.
+   *
+   * On texts, a ceiling of nought and no ceiling at all are both "do not set
+   * one" — nobody buys texts in order to send none. On calls, nought means
+   * never ring their mobile, which is a setting a business can genuinely want
+   * and which the ring-me box already offers by being left empty. Treating it
+   * as "no ceiling" would silently turn the strictest setting into the
+   * loosest.
+   */
+  const callRaw = String(fd.get("call_cap") ?? "").trim();
+  const callNumber = Number(callRaw);
+  const callCap =
+    callRaw && Number.isFinite(callNumber) && callNumber >= 0 ? Math.round(callNumber) : null;
+
+  /*
    * Channels are entitlements, like seats.
    *
    * The web widget is always on: it costs nothing extra to run and a business
@@ -597,6 +613,14 @@ export async function saveAccount(_prev: Result, fd: FormData): Promise<Result> 
        */
       ...((await hasColumn(db, "studios", "sms_monthly_cap"))
         ? { sms_monthly_cap: smsCap }
+        : {}),
+      /*
+       * The call ceiling, guarded the same way and for the same reason: a
+       * deploy can land before its migration, and losing the whole account
+       * save to one unknown column is the wrong trade.
+       */
+      ...((await hasColumn(db, "studios", "call_monthly_cap"))
+        ? { call_monthly_cap: callCap }
         : {}),
       ...((await hasColumn(db, "studios", "allow_both_channels"))
         ? { allow_both_channels: fd.get("allow_both") === "on" }

@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { shouldRing } from "@/lib/channels/phoneNumbers";
 import { verifySignature } from "@/lib/messaging/sms";
 import { hangUp, textsOnly, cannotTakeIt, ringThem } from "@/lib/voice/twiml";
+import { mayForward } from "@/lib/ceilings";
 import { takesCalls } from "@/lib/voice/takesCalls";
 
 export const runtime = "nodejs";
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
   const db = createAdminClient();
   const { data: connection } = await db
     .from("channel_connections")
-    .select("forward_to, studios(name, channels_allowed)")
+    .select("forward_to, studio_id, studios(name, channels_allowed, call_monthly_cap)")
     .in("channel", ["sms", "voice"])
     .eq("external_id", to)
     .eq("active", true)
@@ -111,6 +112,43 @@ export async function POST(request: NextRequest) {
    */
   if (!shouldRing(connection.forward_to, params.ForwardedFrom, to)) {
     return xml(cannotTakeIt(studio?.name ?? null, to));
+  }
+
+  /*
+   * And the ceiling, which stops the spend without stopping the call.
+   *
+   * Giles asked for a limit on calls the way there is one on texts. A call
+   * cannot be stopped the way a text can — somebody is ringing a business
+   * right now, and refusing them is the worst thing this product could do.
+   *
+   * So the ceiling stops the expensive half instead. Of a call's four legs the
+   * dear one by a distance is this outbound leg to a mobile: a whole minute
+   * billed at roughly six times the inbound rate, every time anybody rings,
+   * answered or not. Past the ceiling it stops and nothing else changes — the
+   * call is answered, the caller is texted back within seconds, a message can
+   * still be left. Which is exactly what every business with ring-me empty
+   * already gets, by choice.
+   *
+   * Counted per calendar month. A read that fails for any reason forwards,
+   * because being slightly over a self-imposed ceiling is a smaller harm than
+   * a business's phone silently not ringing.
+   */
+  const cap = (studio as { call_monthly_cap?: number | null } | null)?.call_monthly_cap ?? null;
+  if (cap !== null && connection.studio_id) {
+    const monthStart = new Date();
+    monthStart.setUTCDate(1);
+    monthStart.setUTCHours(0, 0, 0, 0);
+
+    const { count, error } = await db
+      .from("calls")
+      .select("id", { count: "exact", head: true })
+      .eq("studio_id", connection.studio_id)
+      .eq("forwarded", true)
+      .gte("at", monthStart.toISOString());
+
+    if (!error && !mayForward(count ?? 0, cap)) {
+      return xml(cannotTakeIt(studio?.name ?? null, to));
+    }
   }
 
   return xml(ringThem(connection.forward_to, to));

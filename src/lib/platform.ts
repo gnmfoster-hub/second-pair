@@ -79,6 +79,14 @@ export type BusinessSummary = {
   marketing_sms_on?: boolean | null;
   /** Stop sending texts past this many a month. Null means no ceiling. */
   smsMonthlyCap?: number | null;
+  /**
+   * Stop ringing their mobile past this many calls a month.
+   *
+   * Deliberately not "stop taking calls". Somebody is ringing a business right
+   * now and refusing them is the worst thing this product could do; the
+   * ceiling stops the expensive outbound leg instead. See lib/ceilings.
+   */
+  callMonthlyCap?: number | null;
   /** Whether they may send one message by email AND text. Charged. */
   allowBothChannels?: boolean | null;
   /**

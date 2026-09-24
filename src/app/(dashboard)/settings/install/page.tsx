@@ -7,6 +7,7 @@ import { Snippet } from "./Snippet";
 import { TextNumber } from "./TextNumber";
 import { Receptionist } from "./Receptionist";
 import { smsNumberFor } from "@/lib/messaging/connections";
+import { describeCeiling } from "@/lib/ceilings";
 import { savedWords } from "@/lib/savedAt";
 import { smsConfigured } from "@/lib/messaging/sms";
 import { createClient } from "@/lib/supabase/server";
@@ -151,8 +152,63 @@ export default async function ChannelsPage({
     .limit(1)
     .maybeSingle();
 
+  /*
+   * Their ceilings, and what happens when one is reached.
+   *
+   * Giles asked for limits on texts and calls, and a limit an owner cannot see
+   * is a limit they discover — on the afternoon their reminders stop, with no
+   * way to tell that from a fault. Only shown where one is set, which is no
+   * business at all until somebody sets one.
+   */
+  const monthStart = new Date();
+  monthStart.setUTCDate(1);
+  monthStart.setUTCHours(0, 0, 0, 0);
+
+  const smsCap =
+    (studio as unknown as { sms_monthly_cap?: number | null }).sms_monthly_cap ?? null;
+  const callCap =
+    (studio as unknown as { call_monthly_cap?: number | null }).call_monthly_cap ?? null;
+
+  const [textsThisMonth, callsThisMonth] = await Promise.all([
+    smsCap === null
+      ? Promise.resolve(0)
+      : supabaseForNumbers
+          .from("reminders")
+          .select("id", { count: "exact", head: true })
+          .eq("channel", "sms")
+          .gte("sent_at", monthStart.toISOString())
+          .then((r) => r.count ?? 0),
+    callCap === null
+      ? Promise.resolve(0)
+      : supabaseForNumbers
+          .from("calls")
+          .select("id", { count: "exact", head: true })
+          .eq("studio_id", studio.id)
+          .eq("forwarded", true)
+          .gte("at", monthStart.toISOString())
+          .then((r) => r.count ?? 0),
+  ]);
+
+  const ceilings = [
+    describeCeiling("texts", textsThisMonth, smsCap),
+    describeCeiling("calls", callsThisMonth, callCap),
+  ].filter((line): line is string => Boolean(line));
+
   return (
     <div className="space-y-9">
+      {ceilings.length > 0 && (
+        <section className="rounded-xl border border-border bg-surface-2/50 px-4 py-3">
+          <div className="label">Your limits this month</div>
+          <ul className="mt-1 space-y-1">
+            {ceilings.map((line) => (
+              <li key={line} className="hint max-w-prose">
+                {line}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section>
         <p className="hint max-w-prose">
           Every channel belongs either to{" "}

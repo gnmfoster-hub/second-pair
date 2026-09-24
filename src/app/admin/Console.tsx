@@ -1057,6 +1057,13 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
           Email and text together
         </label>
 
+        {/*
+          * The two ceilings, side by side, because they are one decision.
+          *
+          * Giles: "give limits on texts and calls if required." They stop
+          * different things and the hints say which, because a limit whose
+          * consequence is unstated is a limit somebody discovers.
+          */}
         <label className="block">
           <span className="label">Text ceiling</span>
           <input
@@ -1066,6 +1073,24 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
             className="input"
             placeholder="blank = no ceiling"
           />
+          <span className="hint">
+            Past it, texting stops for the month. Anything that can go by email still
+            goes.
+          </span>
+        </label>
+        <label className="block">
+          <span className="label">Call ceiling</span>
+          <input
+            name="call_cap"
+            inputMode="numeric"
+            defaultValue={b.callMonthlyCap ?? ""}
+            className="input"
+            placeholder="blank = no ceiling"
+          />
+          <span className="hint">
+            Past it, calls stop ringing their mobile — the expensive leg. They are still
+            answered and still texted back, so no customer is turned away.
+          </span>
         </label>
         <label className="block">
           <span className="label">Status</span>
