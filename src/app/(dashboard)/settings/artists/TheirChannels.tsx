@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { allocateChannel, allowOwnChannel, type FormState } from "../actions";
+import { allocateChannel, allowOwnChannel, setPersonReceptionist, type FormState } from "../actions";
 import { CHANNEL_LABELS, type Channel } from "@/lib/types";
 import { mayHaveTheirOwn, whatAllowingMeans } from "@/lib/channels/whose";
 import { readableNumber } from "@/lib/channels/phoneNumbers";
@@ -34,6 +34,8 @@ export function TheirChannels({
   links,
   ownEmail,
   allowed,
+  receptionistSold = false,
+  receptionistOn = false,
 }: {
   artistId: string;
   firstName: string;
@@ -44,6 +46,10 @@ export function TheirChannels({
   ownEmail?: string | null;
   /** Channels this person is allowed one of their own on. See lib/channels/whose. */
   allowed?: string[] | null;
+  /** Whether the business has been sold the Receptionist at all. */
+  receptionistSold?: boolean;
+  /** Whether this person has one. */
+  receptionistOn?: boolean;
 }) {
   const [state, action, saving] = useActionState<FormState, FormData>(allocateChannel, {});
   const [allowState, allow] = useActionState<FormState, FormData>(allowOwnChannel, {});
@@ -207,6 +213,43 @@ export function TheirChannels({
       )}
 
       {/*
+        * What answers their calls, which is not a channel and belongs here
+        * anyway.
+        *
+        * Giles: "aisha doesn't have receptionist channel when it is turned on
+        * in back end. we need to make this cleaner and fluent."
+        *
+        * He had found a broken chain. Everything else a business is sold runs
+        * the same three steps — we sell it, the owner decides who in the shop
+        * has it, the person uses it — and the Receptionist stopped at the
+        * first. It could be sold and the shop's own line switched on, but
+        * giving it to one person could only be done from our admin screen, so
+        * an owner sold something per person had no way to give it to anybody.
+        *
+        * It sits under the channels rather than among them because it is not
+        * one. A channel is a way in; this is what answers one. Putting it in
+        * that list would make "Receptionist" look like something a customer
+        * could write to.
+        */}
+      {receptionistSold && (
+        <TheirReceptionist
+          artistId={artistId}
+          firstName={firstName}
+          business={business}
+          on={receptionistOn}
+          /*
+           * Their own line, which is what the switch actually depends on. A
+           * Receptionist answers a number, so one given to somebody with no
+           * number of their own answers nothing — and nothing on the screen
+           * would have said why.
+           */
+          hasOwnLine={links.some(
+            (l) => l.artist_id === artistId && (l.channel === "sms" || l.channel === "voice"),
+          )}
+        />
+      )}
+
+      {/*
         * Email, which needed nothing bought and nothing connected.
         *
         * It was the one channel a team member could not have their own of, and
@@ -261,4 +304,87 @@ function nothingYet(channel: Channel, firstName: string, may: boolean): string {
     return "They have an address of their own, see below.";
   }
   return "Allowed, nothing connected yet.";
+}
+
+/**
+ * Whether this person's own line picks up and talks.
+ *
+ * The middle step of the three, and the one that was missing: sold by us,
+ * given out by the owner, used by the person.
+ *
+ * It says what it costs, because it is charged for each line that has one and
+ * an owner switching it on for six people should know that before the sixth.
+ * It says what it needs, because a Receptionist answers a number and somebody
+ * with no number of their own has nothing for it to answer — which is exactly
+ * the state most people are in, and exactly the thing that would otherwise
+ * look broken.
+ */
+function TheirReceptionist({
+  artistId,
+  firstName,
+  business,
+  on,
+  hasOwnLine,
+}: {
+  artistId: string;
+  firstName: string;
+  business: string;
+  on: boolean;
+  hasOwnLine: boolean;
+}) {
+  const [state, action] = useActionState<FormState, FormData>(setPersonReceptionist, {});
+
+  return (
+    <div className="mt-4 border-t border-border pt-4">
+      <span className="label">Receptionist</span>
+      <p className="hint mt-1.5 max-w-prose">
+        A line that picks up and talks, rather than texting back what it missed. Charged
+        for each line that has one, so this is one more on your bill.
+      </p>
+
+      <form action={action} className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        <input type="hidden" name="artist" value={artistId} />
+        <input type="hidden" name="on" value={on ? "off" : "on"} />
+
+        <button
+          role="switch"
+          aria-checked={on}
+          aria-label={`Give ${firstName} a Receptionist`}
+          className={`group/sw inline-flex shrink-0 items-center gap-2 rounded-full py-1 pl-1 pr-2.5 text-[11px] font-medium transition-colors ${
+            on ? "bg-ok/12 text-ok" : "bg-surface-2 text-muted hover:text-foreground"
+          }`}
+        >
+          <span
+            className={`relative h-4 w-7 shrink-0 rounded-full transition-colors ${
+              on ? "bg-ok" : "bg-muted/35 group-hover/sw:bg-muted/50"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 size-3 rounded-full bg-surface transition-all ${
+                on ? "left-3.5" : "left-0.5"
+              }`}
+            />
+          </span>
+          {on ? "On for them" : "Off"}
+        </button>
+
+        <span className="hint min-w-0 flex-1 text-[12px]">
+          {on && !hasOwnLine
+            ? `Switched on, but ${firstName} has no number of their own yet — so there is nothing for it to answer. Give them one above, or switch this off until there is.`
+            : on
+              ? `Anybody ringing ${firstName}'s own number gets it.`
+              : hasOwnLine
+                ? `Off. Calls to ${firstName}'s number are answered the way the ${business}'s are.`
+                : `Off. ${firstName} would need a number of their own before this does anything.`}
+        </span>
+      </form>
+
+      {state.error && (
+        <p className="mt-2 text-xs text-warn" role="alert">
+          {state.error}
+        </p>
+      )}
+      {state.ok && <p className="mt-2 text-xs text-ok">Saved.</p>}
+    </div>
+  );
 }

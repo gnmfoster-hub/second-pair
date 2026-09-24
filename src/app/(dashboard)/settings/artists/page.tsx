@@ -170,6 +170,16 @@ export default async function ArtistsPage() {
               business={words.business ?? "the business"}
               sold={soldChannels}
               allowed={(artist as { own_channels?: string[] | null }).own_channels ?? []}
+              /*
+               * The middle step of the three. Sold by us, given out here, used
+               * by them — the same chain every channel follows, which the
+               * Receptionist was missing.
+               */
+              receptionistSold={
+                (studio as unknown as { receptionist_allowed?: boolean | null })
+                  .receptionist_allowed === true
+              }
+              receptionistOn={(artist as { voice_on?: boolean | null }).voice_on === true}
               ownEmail={
                 artist.handle
                   ? `${studio.slug}+${artist.handle}@${process.env.EMAIL_INBOUND_DOMAIN ?? "in.second-pair.com"}`

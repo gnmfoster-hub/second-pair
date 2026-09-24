@@ -2768,3 +2768,71 @@ function notYet(message: string): string {
     ? "Saved messages are not switched on for this account yet."
     : message;
 }
+
+/**
+ * Giving one person a Receptionist of their own.
+ *
+ * Giles: "can you check that the channels set up in back end are then
+ * available for the owner to turn on and off then the individual — for example
+ * Aisha doesn't have receptionist channel when it is turned on in back end."
+ *
+ * He had found a broken chain. Every other thing a business is sold follows
+ * the same three steps: we sell it, the owner decides who in the shop has it,
+ * and the person uses it. The Receptionist stopped at the first — it could be
+ * sold, and the business's own line switched on, but giving it to one person
+ * was only possible from our admin screen. So an owner could be sold something
+ * per person and have no way to give it to anybody.
+ *
+ * This is the missing middle step, and it is deliberately the same shape as
+ * allowOwnChannel beside it: the owner decides, the entitlement is checked
+ * against the database rather than the form, and nothing here can switch on
+ * something the business has not been sold.
+ */
+export async function setPersonReceptionist(
+  _prev: FormState,
+  fd: FormData,
+): Promise<FormState> {
+  /* Who has what is the business's shape, so it is the owner's to decide. */
+  if (!(await isOwner())) {
+    return { error: "Only the owner can change who has a Receptionist." };
+  }
+
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+
+  const artistId = str(fd, "artist");
+  if (!artistId) return { error: "No one to change." };
+
+  if (!(await hasColumn(supabase, "artists", "voice_on"))) {
+    return { error: "The Receptionist is not set up on this account yet." };
+  }
+
+  /*
+   * Sold first. Read rather than believed: this switch is only rendered for a
+   * business that has been sold it, and a form is a suggestion.
+   */
+  const { data: sold } = await supabase
+    .from("studios")
+    .select("receptionist_allowed")
+    .eq("id", studio.id)
+    .maybeSingle();
+
+  if (sold?.receptionist_allowed !== true) {
+    return {
+      error:
+        "The Receptionist is not part of this plan. Ask us and we will switch it on — it is charged for each line that has one.",
+    };
+  }
+
+  const { error } = await supabase
+    .from("artists")
+    .update({ voice_on: fd.get("on") === "on" })
+    .eq("id", artistId)
+    .eq("studio_id", studio.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/artists");
+  revalidatePath("/settings/install");
+  return { ok: true };
+}
