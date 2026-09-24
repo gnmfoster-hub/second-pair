@@ -151,10 +151,29 @@ export async function releaseExpiredHolds(
    * appointment, and a refunded one is a decision a person made rather than a
    * hold that lapsed.
    */
+  /*
+   * And only where money is actually owed.
+   *
+   * This sweep exists to release a slot somebody was given time to pay for and
+   * did not. A hold with nothing owing was never waiting for money, so a timer
+   * must not cancel it.
+   *
+   * That case arrived with the Receptionist: a booking made on the phone is
+   * held for a person to check that the assistant heard the name and the time
+   * right. It is waiting on the business, not on the customer — and without
+   * this line the sweep would have quietly cancelled a real appointment
+   * eighteen hours later because nobody had looked at it. The customer did
+   * nothing wrong and would have been told nothing at all.
+   *
+   * Nothing changes for any existing hold: the only bookings that carry a
+   * held_until today are deposit holds, and every one of those has an amount
+   * against it.
+   */
   let query = db
     .from("bookings")
     .update({ cancelled_at: new Date().toISOString() })
     .in("deposit_status", ["unpaid", "link_sent"])
+    .gt("deposit_amount_pence", 0)
     .is("cancelled_at", null)
     .lt("held_until", new Date().toISOString());
 

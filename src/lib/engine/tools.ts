@@ -9,6 +9,7 @@ import { verticalPack } from "@/lib/verticals";
 import { coversPostcode } from "@/lib/travel";
 import { dayIn } from "@/lib/diaryGaps";
 import { samePhone } from "@/lib/channels/phoneNumbers";
+import { HELD_HOURS } from "@/lib/voice/whatItMayDo";
 import { minutesForClient } from "@/lib/serviceBands";
 import { stripeConfigured, effectiveDepositMode } from "@/lib/payments/stripe";
 import { sendBookingConfirmation } from "@/lib/messaging/confirmation";
@@ -1719,6 +1720,17 @@ async function makeBooking(
   const canTakeMoney = readyForRealMoney(ctx.studio, artist);
   const takesDeposit = ctx.studio.deposit_mode !== "none" && canTakeMoney;
 
+  /*
+   * A phone booking waits for a person, unless the business has said it need
+   * not. Read from the studio rather than passed down, so switching it off
+   * takes effect on the next call rather than the next deploy.
+   */
+  const phoneHold =
+    ctx.channel === "voice" &&
+    (ctx.studio as unknown as { receptionist_holds?: boolean | null }).receptionist_holds !== false
+      ? HELD_HOURS * 60
+      : null;
+
   const result = await createBooking({
     db: ctx.db,
     studio: ctx.studio,
@@ -1727,9 +1739,24 @@ async function makeBooking(
     slot: { starts_at: startsAt, ends_at: new Date(when + minutes * 60_000).toISOString() },
     type,
     depositPence: takesDeposit ? ctx.depositPence : 0,
-    // Without a deposit there is nothing to wait for, so the slot is confirmed
-    // outright rather than held and swept away an hour later.
-    holdMinutes: takesDeposit ? 60 : null,
+    /*
+     * How long the slot is held, and the telephone is the awkward one.
+     *
+     * Without a deposit there is nothing to wait for, so a slot is confirmed
+     * outright rather than held and swept away an hour later. With one, an
+     * hour is long enough to pay a link and short enough not to block a
+     * Saturday all afternoon.
+     *
+     * A booking made on the phone is different and is held whatever the
+     * deposit says, because it is waiting on a different thing: a person
+     * checking that the assistant heard the name and the time correctly.
+     * That is the promise the Receptionist settings make — "hold what it
+     * books until you have seen it" — and this is where it is kept. Eighteen
+     * hours, because a business is shut at night and a hold that lapses at
+     * two in the morning throws away a real booking. See
+     * lib/voice/whatItMayDo.
+     */
+    holdMinutes: phoneHold ?? (takesDeposit ? 60 : null),
   });
 
   if (!result.ok) return { result: result.message };
