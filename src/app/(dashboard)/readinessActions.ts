@@ -64,7 +64,7 @@ export async function dismissCheck(fd: FormData): Promise<void> {
   }
 
   revalidatePath("/");
-  revalidatePath("/setup");
+  revalidatePath("/settings/working");
 }
 
 /** Put them all back, for somebody who wants the full list again. */
@@ -84,6 +84,6 @@ export async function restoreChecks(): Promise<{ ok?: true; error?: string }> {
   if (error) return { error: error.message };
 
   revalidatePath("/");
-  revalidatePath("/setup");
+  revalidatePath("/settings/working");
   return { ok: true };
 }

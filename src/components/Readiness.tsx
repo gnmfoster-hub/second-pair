@@ -71,7 +71,7 @@ export function Readiness({ capabilities }: { capabilities: Capability[] }) {
             {ready}/{capabilities.length} working
           </span>
           {/* The same list as a walk-through, in the order to do it in. */}
-          <Link href="/setup" className="text-sm font-medium text-accent hover:underline">
+          <Link href="/settings/working" className="text-sm font-medium text-accent hover:underline">
             {settingUp ? "Walk me through it" : "See set-up"}
           </Link>
         </span>
@@ -285,7 +285,7 @@ export function Readiness({ capabilities }: { capabilities: Capability[] }) {
               {quieter.map((c) => (
                 <Link
                   key={c.key}
-                  href={c.href || "/setup"}
+                  href={c.href || "/settings/working"}
                   className="pill border border-border bg-surface text-muted transition-colors hover:border-accent/30 hover:text-foreground"
                 >
                   {c.can}

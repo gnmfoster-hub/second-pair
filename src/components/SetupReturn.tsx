@@ -43,10 +43,10 @@ export function SetupReturn() {
 
   // Back on the list by any route — the trip is over.
   useEffect(() => {
-    if (pathname === "/setup" && onTrip()) end();
+    if (pathname === "/settings/working" && onTrip()) end();
   }, [pathname]);
 
-  if (!trip || pathname === "/setup") return null;
+  if (!trip || pathname === "/settings/working") return null;
 
   return (
     <div
@@ -59,7 +59,7 @@ export function SetupReturn() {
       className="pointer-events-none fixed inset-x-0 top-[calc(4.25rem+env(safe-area-inset-top))] z-40 flex justify-center px-4 md:bottom-6 md:top-auto md:pl-60"
     >
       <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-border bg-surface py-1 pl-1 pr-1.5 shadow-lg">
-        <Link href="/setup" className="btn rounded-full bg-accent py-2 text-sm text-on-accent">
+        <Link href="/settings/working" className="btn rounded-full bg-accent py-2 text-sm text-on-accent">
           ← Back to set-up
         </Link>
         <button

@@ -70,7 +70,7 @@ export function Working({
             {/* The chain, in order, so a break is read as a position. */}
             <div className="mt-2 flex flex-wrap gap-1.5">
               {t.steps.map((s) => (
-                <Bead key={s.link} step={s} stuck={t.stuckAt === s.link} />
+                <Bead key={s.link} step={s} stuck={t.stuckAt === s.link} audience={audience} />
               ))}
             </div>
 
@@ -168,11 +168,24 @@ const WHO: Record<"us" | "owner", Record<"us" | "owner" | "person", string>> = {
   owner: { us: "Ask us", owner: "You", person: "Per person" },
 };
 
-const LABEL: Record<Link, string> = {
-  sold: "Sold",
-  on: "Switched on",
-  connected: "Connected",
-  proven: "Proven",
+/**
+ * What each link of the chain is called, from the reader's side.
+ *
+ * Giles: "im not sure we should use the wording sold on the customer pages,
+ * can we change it to something else."
+ *
+ * He is right. "Sold" is our word for our side of the arrangement — it is
+ * what we did, not what they have — and a business reading its own settings
+ * should be told what it has, not reminded it was sold something. Same fact,
+ * two honest names for it.
+ *
+ * "Proven" goes the same way for the same reason: it is the word for somebody
+ * auditing a setup. An owner is asking whether the thing has ever actually
+ * been used.
+ */
+const LABEL: Record<"us" | "owner", Record<Link, string>> = {
+  us: { sold: "Sold", on: "Switched on", connected: "Connected", proven: "Proven" },
+  owner: { sold: "On your plan", on: "Switched on", connected: "Connected", proven: "Used" },
 };
 
 /**
@@ -183,7 +196,15 @@ const LABEL: Record<Link, string> = {
  * test, it simply was not asked one, and dressing that as a tick is how a page
  * like this starts lying in small ways.
  */
-function Bead({ step, stuck }: { step: Step; stuck: boolean }) {
+function Bead({
+  step,
+  stuck,
+  audience,
+}: {
+  step: Step;
+  stuck: boolean;
+  audience: "us" | "owner";
+}) {
   const look =
     step.state === "yes"
       ? "border-ok/30 bg-ok/10 text-ok"
@@ -196,7 +217,7 @@ function Bead({ step, stuck }: { step: Step; stuck: boolean }) {
   return (
     <span className={`rounded-full border px-2 py-0.5 text-[11px] ${look}`}>
       {step.state === "yes" ? "✓ " : step.state === "no" ? "· " : "– "}
-      {LABEL[step.link]}
+      {LABEL[audience][step.link]}
       {step.detail && <span className="opacity-70"> · {step.detail}</span>}
     </span>
   );

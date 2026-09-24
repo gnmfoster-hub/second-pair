@@ -69,7 +69,17 @@ export type Thing = {
   where: Where[];
 };
 
-/** One place a thing is controlled, and whose screen that is. */
+/**
+ * One place a thing is controlled, and whose screen that is.
+ *
+ * The wording has to read from both sides, because both read it. "Whether they
+ * have texts at all" is right in the back office and wrong in a business's own
+ * settings, where "they" is the reader. Anything on our side is phrased about
+ * the plan rather than about a person, so one sentence is true for whoever is
+ * looking at it. Giles caught the same thing in the chain itself: "sold" is
+ * our word for our side of the arrangement, not a word a business should be
+ * reading about itself.
+ */
 export type Where = {
   /** us = the back office, owner = their settings, person = one of the team. */
   who: "us" | "owner" | "person";
@@ -181,7 +191,7 @@ export function assess(f: Facts): Thing[] {
             : "Texting is not switched on at our end. That one is ours — tell us.",
         },
         fix: { href: "/settings/install", label: "Channels" },
-        where: [{ who: "us", what: "Whether they have texts at all", href: "/admin" }, { who: "owner", what: "The number, and who on the team has one", href: "/settings/install" }],
+        where: [{ who: "us", what: "Whether texts are on the plan", href: "/admin" }, { who: "owner", what: "The number, and who on the team has one", href: "/settings/install" }],
       }),
     );
   }
@@ -205,7 +215,7 @@ export function assess(f: Facts): Thing[] {
             "No call has ever reached us. If people are ringing and nothing appears, the voice webhook is missing at the phone company — that is the quiet one: texts work and every missed call goes nowhere.",
         },
         fix: { href: "/settings/install", label: "Channels" },
-        where: [{ who: "us", what: "Whether calls are on their plan", href: "/admin" }, { who: "owner", what: "Where it rings first, and the voicemail response", href: "/settings/install" }],
+        where: [{ who: "us", what: "Whether calls are on the plan", href: "/admin" }, { who: "owner", what: "Where it rings first, and the voicemail response", href: "/settings/install" }],
       }),
     );
   }
@@ -243,7 +253,7 @@ export function assess(f: Facts): Thing[] {
           connected: "Switched on for somebody with no number of their own, so there is nothing for it to answer.",
         },
         fix: { href: "/settings/artists", label: "Team" },
-        where: [{ who: "us", what: "Sold, in the account panel", href: "/admin" }, { who: "owner", what: "On for the business’s own line", href: "/settings/install" }, { who: "person", what: "On for one person, on their card", href: "/settings/artists" }],
+        where: [{ who: "us", what: "Whether the Receptionist is on the plan", href: "/admin" }, { who: "owner", what: "On for the business’s own line", href: "/settings/install" }, { who: "person", what: "On for one person, on their card", href: "/settings/artists" }],
       }),
     );
   }
@@ -266,7 +276,7 @@ export function assess(f: Facts): Thing[] {
           proven: "No email has ever been delivered, so this is untested.",
         },
         fix: { href: "/settings/install", label: "Channels" },
-        where: [{ who: "us", what: "Whether email is on their plan", href: "/admin" }, { who: "owner", what: "The address people write to", href: "/settings/install" }],
+        where: [{ who: "us", what: "Whether email is on the plan", href: "/admin" }, { who: "owner", what: "The address people write to", href: "/settings/install" }],
       }),
     );
   }
@@ -358,7 +368,7 @@ export function assess(f: Facts): Thing[] {
           proven: "No campaign has gone out yet.",
         },
         fix: { href: "/settings/marketing", label: "Marketing" },
-        where: [{ who: "us", what: "Whether they may run campaigns", href: "/admin" }, { who: "owner", what: "The campaigns themselves", href: "/settings/marketing" }],
+        where: [{ who: "us", what: "Whether campaigns are on the plan", href: "/admin" }, { who: "owner", what: "The campaigns themselves", href: "/settings/marketing" }],
       }),
     );
   }
