@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio } from "@/lib/studio";
 import { weeklyReport } from "@/lib/report";
@@ -10,6 +11,7 @@ import { WeeklyEmailSwitch } from "./WeeklyEmailSwitch";
 import { wordsFor } from "@/lib/words";
 import { takingsFor, takingsByService, soldWithCost } from "@/lib/takings";
 import { marginOf } from "@/lib/margin";
+import { callWeek, callLine } from "@/lib/callWeek";
 import { Takings } from "./Takings";
 import { WhereTheWork } from "./WhereTheWork";
 import { whereTheWorkIs, howJobsRan } from "@/lib/reportShape";
@@ -108,6 +110,47 @@ export default async function ReportPage({
    * £200 at 15%, and those are not the same week.
    */
   const margin = marginOf(await soldWithCost(supabase, studio.id, from, to));
+
+  /*
+   * What the telephone did, which no screen has ever told the business paying
+   * for it.
+   *
+   * Calls have been recorded in full since the voice webhook was built and the
+   * only thing that has ever read them is our own costing. A missed call does
+   * surface eventually, as the text back landing in their inbox; an answered
+   * one leaves no trace at all. So "is the phone thing doing anything?" had no
+   * answer anywhere.
+   *
+   * Read with the service key, and that is deliberate rather than lazy.
+   *
+   * The calls migration turns row-level security on and writes no policy, with
+   * a reason: "nobody reads these through the browser — a business sees the
+   * conversation, not the carrier's meter." That decision stands and this does
+   * not weaken it. The query is server-side, scoped to the business the
+   * session has already been proved to own, and selects three booleans and a
+   * duration. No number, nobody's name, and nothing that could be handed to
+   * another business.
+   *
+   * The first version used the ordinary client and silently got nothing back —
+   * which looked exactly like a business that had never been rung, on a client
+   * with four calls in the window. A closed table reads as an empty one.
+   */
+  const { data: callRows } = await createAdminClient()
+    .from("calls")
+    .select("forwarded, answered, rang_seconds")
+    .eq("studio_id", studio.id)
+    .gte("at", from.toISOString())
+    .lt("at", to.toISOString());
+
+  const phone = callWeek(
+    ((callRows ?? []) as { forwarded: boolean | null; answered: boolean | null; rang_seconds: number | null }[]).map(
+      (r) => ({
+        forwarded: r.forwarded === true,
+        answered: r.answered === true,
+        rangSeconds: r.rang_seconds ?? 0,
+      }),
+    ),
+  );
 
   const [takings, byService] = await Promise.all([
     takingsFor(supabase, studio.id, from, to),
@@ -411,6 +454,21 @@ export default async function ReportPage({
           label="Deposits taken"
           detail={formatPence(report.quotedValuePence) + " of work quoted"}
         />
+        {/*
+          * The telephone, where there has been one.
+          *
+          * Only where somebody actually rang. A business with no calls this
+          * week should not be told so every week — and one that has never had
+          * the telephone at all should never see it.
+          */}
+        {phone.calls > 0 && (
+          <Stat
+            tone="plain"
+            value={String(phone.calls)}
+            label={phone.calls === 1 ? "Call" : "Calls"}
+            detail={callLine(phone) ?? undefined}
+          />
+        )}
         <Stat
           tone={report.needsHuman ? "warn" : "plain"}
           value={String(report.needsHuman)}
