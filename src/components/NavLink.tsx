@@ -44,10 +44,24 @@ export function NavLink({
           : "text-muted hover:bg-surface-2/60 hover:text-foreground"
       }`}
     >
-      {/* The active marker is a rail rather than a filled block: it says which
-          page you are on without competing with the accent used for actions. */}
+      {/*
+        * The active marker is a rail rather than a filled block: it says which
+        * page you are on without competing with the accent used for actions.
+        *
+        * It was two pixels by fourteen. Measured across the whole Diary screen,
+        * that sliver and a progress bar were the only cobalt anywhere — about
+        * 740 pixels of accent on a screen of 1.15 million, on the page an owner
+        * looks at all day. Giles: "the colours inside the system seem very
+        * beige and dont seem to match the overall re theme of the site."
+        *
+        * He was right, and the palette was never the problem: the app and the
+        * marketing site load identical tokens. The brand colour was simply
+        * never used. So the rail is three pixels and the height of the row
+        * rather than a third of it — still a rail, still not competing with
+        * the orange that means act, but now actually visible.
+        */}
       {active && (
-        <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r bg-accent" />
+        <span className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r bg-accent" />
       )}
       {/*
         * The section's hue, on whether you are here or not.
@@ -148,12 +162,24 @@ export function RailLink({
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`block rounded-lg px-2.5 py-1.5 text-sm transition-colors ${
+      className={`relative block rounded-lg px-2.5 py-1.5 text-sm transition-colors ${
         active
           ? "bg-surface-2 font-medium text-foreground"
           : "text-muted hover:bg-surface-2/60 hover:text-foreground"
       }`}
     >
+      {/*
+        * The same cobalt rail as the main navigation, which this did not have.
+        *
+        * Thirteen settings pages and the only thing saying which one you were
+        * reading was a slightly paler grey fill. The rail beside the current
+        * item is the rule — see globals.css, cobalt means "you are here" — and
+        * the one list with the most places to be lost in was the one list
+        * without it.
+        */}
+      {active && (
+        <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r bg-accent" />
+      )}
       {children}
     </Link>
   );

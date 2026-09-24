@@ -1092,12 +1092,25 @@ export default async function DiaryPage({
               pixels short of holding Add, so Add sat alone on a row of its own
               with three hundred and forty empty pixels beside it. Twelve here
               and ten off the shape control is the difference. */}
+          {/*
+            * The one you are looking at, in the accent.
+            *
+            * Giles: "the colours inside the system seem very beige and dont
+            * seem to match the overall re theme of the site." Measured, he was
+            * exactly right and the palette was never the problem — the app and
+            * the site load identical tokens. Cobalt simply was not used: on
+            * the whole Diary screen it came to a two-pixel rail and a progress
+            * bar, about 740 pixels of accent on a screen of 1.15 million.
+            *
+            * Which view you are in is the definition of "you are here", which
+            * globals.css records as cobalt's job. It was grey on grey.
+            */}
           <div className="flex overflow-hidden rounded-xl border border-border bg-surface">
             <Link
               href={keepWho(`/diary?view=day&day=${isoDate(focusDay)}`)}
               className={`px-2 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
                 view === "day"
-                  ? "bg-surface-2 text-foreground"
+                  ? "bg-surface-2 text-accent"
                   : "text-muted hover:text-foreground"
               }`}
             >
@@ -1107,7 +1120,7 @@ export default async function DiaryPage({
               href={keepWho(`/diary?view=week&week=${isoDate(view === "month" ? focusDay : start)}`)}
               className={`border-l border-border px-2 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
                 view === "week"
-                  ? "bg-surface-2 text-foreground"
+                  ? "bg-surface-2 text-accent"
                   : "text-muted hover:text-foreground"
               }`}
             >
@@ -1122,7 +1135,7 @@ export default async function DiaryPage({
               href={keepWho(`/diary?view=month&week=${isoDate(anchor)}`)}
               className={`border-l border-border px-2 py-1.5 text-sm font-medium transition-colors sm:px-3.5 sm:py-2 ${
                 view === "month"
-                  ? "bg-surface-2 text-foreground"
+                  ? "bg-surface-2 text-accent"
                   : "text-muted hover:text-foreground"
               }`}
             >
