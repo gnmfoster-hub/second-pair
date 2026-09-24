@@ -131,7 +131,12 @@ Open, and roughly in the order I would do them:
    full. The timeline shows three lines of what went out; the rest is already
    stored and simply not reachable.
 
-1. **A receipt at Complete, with an option to email it.** His reasoning is the
+1. ~~**A receipt at Complete, with an option to email it.**~~ Built 24 Sep.
+   Money taken from somebody with no address now offers one box at the till.
+   Not clicked through by hand yet — the diary entry tile is a drag handle and
+   I could not drive it — so the first real completion is the test.
+
+1z. **The old note, for the reasoning:** His reasoning is the
    right one: a receipt is a genuine reason somebody hands over an address, and
    email costs nothing where a text costs every time. SendReceipt already
    exists on the client page; this is about offering it at the moment the work
