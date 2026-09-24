@@ -7,12 +7,7 @@ import { ServicePick, type Bookable } from "./ServicePick";
 import { ClientSummary } from "./ClientSummary";
 import Link from "next/link";
 import { cancelBookingGroup, type GroupState } from "./groupActions";
-import {
-  saveDiaryEntry,
-  cancelDiaryEntry,
-  cancelSeries,
-  type DiaryState,
-} from "./actions";
+import { saveDiaryEntry, cancelDiaryEntry, cancelSeries, type DiaryState, confirmHeldBooking } from "./actions";
 import { Field, SubmitButton } from "@/components/Form";
 import { useSheet, asSheet } from "@/components/useSheet";
 import { formatPence } from "@/lib/money";
@@ -479,13 +474,35 @@ export function EntryDialog({
           * is the meaning.
           */}
         {mode === "look" && hold && (
-          <p
+          <div
             className={`mt-3 rounded-lg px-3 py-2 text-xs ${
               hold.soon || hold.lapsed ? "bg-warn/12 text-warn" : "bg-surface-2 text-muted"
             }`}
           >
-            {holdMeans(hold)}
-          </p>
+            <p>{holdMeans(hold)}</p>
+
+            {/*
+              * And a way to say you have seen it.
+              *
+              * Only where the hold is waiting on a person rather than on
+              * money. The Receptionist settings promise "hold what it books
+              * until you have seen it", and until this there was nowhere to
+              * say you had — a promise with no button behind it is worse than
+              * not making it.
+              *
+              * A deposit hold looks identical here and deliberately has no
+              * button: confirming it would claim money had arrived that has
+              * not, and the slot would stop being releasable.
+              */}
+            {entry && entry.deposit_amount_pence === 0 && (
+              <form action={confirmHeldBooking} className="mt-2">
+                <input type="hidden" name="id" value={entry.id} />
+                <button type="submit" className="btn-ghost py-1 text-xs">
+                  Yes, that is right — confirm it
+                </button>
+              </form>
+            )}
+          </div>
         )}
 
         {mode === "look" && entry?.source === "assistant" && (

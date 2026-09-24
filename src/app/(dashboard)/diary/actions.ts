@@ -883,3 +883,55 @@ async function fromPicker(
     prefers: str(fd, "contact_name_prefers"),
   });
 }
+
+/**
+ * Confirming a booking the Receptionist took on the phone.
+ *
+ * The settings screen promises "hold what it books until you have seen it",
+ * and until now there was nowhere to say you had seen it. A promise with no
+ * button behind it is worse than not making it: the slot sits there with a
+ * clock on it and the only way to resolve it is to know that clearing a column
+ * in the database is what "confirm" means.
+ *
+ * Clearing held_until is the whole of it. The appointment was always real —
+ * the slot has been taken since the call — and the hold was only ever saying
+ * that nobody had checked the name and the time. Once somebody has, it is an
+ * ordinary booking.
+ *
+ * Nothing is sent from here. The confirmation the customer gets is the
+ * business's own booking confirmation, which fires on the appointment like any
+ * other, and a second message saying the same thing twice is how a product
+ * starts feeling like a machine.
+ */
+export async function confirmHeldBooking(fd: FormData) {
+  const supabase = await createClient();
+
+  const id = str(fd, "id");
+  if (!id) throw new Error("No appointment to confirm.");
+
+  /*
+   * Only a hold that is actually waiting on a person.
+   *
+   * A deposit hold looks identical in the diary and is not this: confirming it
+   * would say the money had arrived when it had not, and the sweep would stop
+   * being able to release the slot. Scoped by the same rule the sweep uses in
+   * reverse — nothing owing.
+   */
+  const { data, error } = await supabase
+    .from("bookings")
+    .update({ held_until: null })
+    .eq("id", id)
+    .eq("deposit_amount_pence", 0)
+    .is("cancelled_at", null)
+    .select("id");
+
+  if (error) throw new Error(`Could not confirm that: ${error.message}`);
+
+  if (!data?.length) {
+    throw new Error(
+      "That one is waiting on a deposit rather than on you, so there is nothing to confirm.",
+    );
+  }
+
+  revalidatePath("/diary");
+}
