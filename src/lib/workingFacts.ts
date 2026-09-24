@@ -129,6 +129,9 @@ export async function workingFacts(
     reminderTemplates: live.filter((t) => t.enabled !== false && t.hours_before !== 0).length,
     hasConfirmation: live.some((t) => t.enabled !== false && t.hours_before === 0),
     uncovered: cover.sendingNothing,
+    hasPicture: Boolean(
+      (studio as unknown as { photo_path?: string | null }).photo_path?.trim(),
+    ),
     reviewLink: Boolean(
       (studio as unknown as { review_url?: string | null }).review_url?.trim(),
     ),

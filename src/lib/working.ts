@@ -105,6 +105,8 @@ export type Facts = {
   /** People whose clients are sent nothing. See reminderCover. */
   uncovered: string[];
   reviewLink: boolean;
+  /** A picture of the business, shown on everything it sends. */
+  hasPicture: boolean;
   marketingSold: boolean;
   optedIn: number;
   savedMessages: number;
@@ -280,6 +282,37 @@ export function assess(f: Facts): Thing[] {
       }),
     );
   }
+
+  /* ------------------------------------------------------------ picture */
+  /*
+   * The cheapest thing on this page and the one a customer notices first.
+   *
+   * It goes on every confirmation, every reminder and the booking page. A
+   * message with a business's own picture at the top reads as coming from
+   * them; the same words without one read as coming from a system. Built and
+   * waiting since the 23rd, and not one business has uploaded a picture —
+   * which nothing anywhere said, because there was nowhere for it to be said.
+   */
+  things.push(
+    build({
+      key: "picture",
+      name: "Your picture",
+      what: "Sits at the top of everything you send, so it looks like it came from you.",
+      steps: [
+        yes("sold", "Included"),
+        f.hasPicture ? yes("on", "Uploaded") : no("on"),
+        na("connected"),
+        f.hasPicture && f.ever.confirmationSent
+          ? yes("proven", "It has gone out on a message")
+          : na("proven"),
+      ],
+      because: {
+        on: "Nothing to put at the top of your messages, so every confirmation and reminder goes out plain. It is the quickest thing here to fix.",
+      },
+      fix: { href: "/settings", label: "Business" },
+      where: [{ who: "owner", what: "A picture of your business", href: "/settings" }],
+    }),
+  );
 
   /* ----------------------------------------------------- confirmations */
   things.push(

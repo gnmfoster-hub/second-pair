@@ -16,6 +16,7 @@ const nothing: Facts = {
   hasConfirmation: false,
   uncovered: [],
   reviewLink: false,
+  hasPicture: false,
   marketingSold: false,
   optedIn: 0,
   savedMessages: 0,
@@ -186,6 +187,7 @@ test("the line at the top counts what matters", () => {
       hasConfirmation: true,
       reminderTemplates: 1,
       reviewLink: true,
+      hasPicture: true,
       savedMessages: 1,
       connected: { web: 1 },
       ever: {
@@ -355,6 +357,25 @@ test("the people line names who needs fixing", () => {
   assert.match(summarisePeople(states), /Aisha has something that needs fixing/);
   assert.match(summarisePeople(assessPeople([person()])), /All 1 are set up/);
   assert.equal(summarisePeople([]), "Nobody in the diary yet.");
+});
+
+/*
+ * Built on the 23rd, and on the 25th not one business had uploaded a picture —
+ * which nothing anywhere said, because there was nowhere for it to be said.
+ */
+test("no picture is named as a thing to do, with what it costs", () => {
+  const pic = find(assess(nothing), "picture");
+  assert.equal(pic.stuckAt, "on");
+  assert.match(pic.because ?? "", /goes out plain/);
+});
+
+/*
+ * Never "used" without one, and never a fault once there is one — a picture on
+ * a business that has not sent a confirmation yet is not waiting on anything.
+ */
+test("a picture uploaded is not nagged about again", () => {
+  const pic = find(assess(facts({ hasPicture: true })), "picture");
+  assert.equal(pic.stuckAt, null);
 });
 
 test("whoever needs something is listed first", () => {
