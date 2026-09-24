@@ -254,20 +254,32 @@ async function whatHasHappened(db: SupabaseClient, studioId: string): Promise<Fa
     reminderWith(false),
     reminderWith(true),
     /*
-     * Reviews and campaigns cannot be counted per business, and that is a real
-     * gap rather than an oversight here.
+     * Reviews and campaigns, now that a send says whose it was.
      *
-     * Both record that they went by claiming a row in handled_messages — the
-     * dedupe table, keyed "review:<booking>" and the campaign's own key — and
-     * that table has no studio on it. So "has this salon ever asked anybody
-     * for a review" is not a question the data can answer today.
+     * Both claim a row in handled_messages before sending — "review:<booking>"
+     * and "campaign:<campaign>:<booking>" — and that table had nothing but the
+     * key on it, so this page had to report both as unknown. The column is
+     * there now and the old rows are backfilled from the booking id in the
+     * key, so a business that has been asking for reviews for months reads as
+     * having asked rather than as never having tried.
      *
-     * Reported as unknown rather than guessed either way. A false no sends
-     * somebody hunting for a fault that is not there; a false yes is worse.
-     * Worth fixing at the source, by putting the business on that row.
+     * Still tolerant: before the migration these queries fail and `any`
+     * returns false, which is the same answer the page gave yesterday.
      */
-    Promise.resolve(false),
-    Promise.resolve(false),
+    any(() =>
+      db
+        .from("handled_messages")
+        .select("message_id", { count: "exact", head: true })
+        .eq("studio_id", studioId)
+        .like("message_id", "review:%"),
+    ),
+    any(() =>
+      db
+        .from("handled_messages")
+        .select("message_id", { count: "exact", head: true })
+        .eq("studio_id", studioId)
+        .like("message_id", "campaign:%"),
+    ),
     any(() =>
       db
         .from("client_forms")

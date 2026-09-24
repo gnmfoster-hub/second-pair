@@ -122,14 +122,14 @@ Open, and roughly in the order I would do them:
    groups and a person's own page does not; and with a dozen screens across
    four groups, "where do I set X" is a question a search answers in a second
    and a rail answers in four guesses.
-0b. **A message to a client, from the client page** — with a copy kept on the
-   record and templates to start from. He has the shape right: the page
-   already shows what was sent and offers "Send a message", and what is
-   missing is templates and the copy being filed. Note that the copy is
-   already kept for reminders; this is the ad-hoc ones.
-0c. **Clicking a reminder or confirmation on the client page** to read it in
-   full. The timeline shows three lines of what went out; the rest is already
-   stored and simply not reachable.
+0b. ~~**A message to a client, from the client page.**~~ Done 24 Sep. The copy
+   was already kept — every message sent from there is written into the
+   client's conversation — so what was built is the wordings: six starters,
+   picked from buttons above the box, arriving already addressed. Settings →
+   Saved messages.
+0c. ~~**Clicking a reminder or confirmation on the client page.**~~ Done 24 Sep.
+   Each entry opens in place: the full wording, due and sent, how late it went,
+   every channel it used, and which template wrote it.
 
 1. ~~**A receipt at Complete, with an option to email it.**~~ Built 24 Sep.
    Money taken from somebody with no address now offers one box at the till.
@@ -141,10 +141,18 @@ Open, and roughly in the order I would do them:
    email costs nothing where a text costs every time. SendReceipt already
    exists on the client page; this is about offering it at the moment the work
    is finished.
-2. **Nobody warns when one person sends fewer reminders than the shop.** Aisha
-   is set to send her own and has written one; everybody else's clients get
-   two. The settings page warns when somebody sends nothing at all, and says
-   nothing about sending less.
+2. ~~**Nobody warns when one person sends fewer reminders than the shop.**~~
+   Done 24 Sep. The reminders page now says "Aisha sends one, where the
+   business sends two. Their clients hear less before an appointment than
+   everybody else's. Fine if that is what you want." A note rather than a
+   warning, because it may well be deliberate.
+
+2b. **Reviews and campaigns cannot be counted per business.** Found by the new
+   "Is it working?" page, which has to report both as unknown. Both record
+   having gone by claiming a row in `handled_messages` — keyed
+   "review:<booking>" and the campaign's own key — and that table has no
+   studio on it. So "has this salon ever asked anybody for a review" is a
+   question the data cannot answer, here or in any report.
 3. **The live voice Receptionist** — speech in, speech out, during the call.
    The commercial side is built; this is the expensive part and wants latency
    work.

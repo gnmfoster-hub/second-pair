@@ -104,7 +104,8 @@ export async function sendCampaigns(
        */
       const { error: taken } = await db
         .from("handled_messages")
-        .insert({ message_id: one.key, channel: one.campaign.channel });
+        /* studio_id so the send can be counted; dedupe is still message_id. */
+        .insert({ message_id: one.key, channel: one.campaign.channel, studio_id: studio.id });
 
       if (taken) {
         /* 23505 is somebody else having it. Anything else is worth saying. */

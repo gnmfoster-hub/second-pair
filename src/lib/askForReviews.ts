@@ -55,9 +55,11 @@ export async function askForReviews(
     }
 
     // Once per appointment, whatever happens next.
+    /* Whose send this was, so it can be counted. See the migration: dedupe
+       is message_id alone and is unchanged by this. */
     const { error: claimed } = await db
       .from("handled_messages")
-      .insert({ message_id: `review:${booking.id}`, channel: "sms" });
+      .insert({ message_id: `review:${booking.id}`, channel: "sms", studio_id: studio.id });
     if (claimed) {
       result.skipped++;
       continue;
