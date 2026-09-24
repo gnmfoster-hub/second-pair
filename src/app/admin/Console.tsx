@@ -2220,6 +2220,87 @@ function NewBusiness({
         </label>
       </div>
 
+      {/*
+        * What they have bought, set while you are on the phone to them.
+        *
+        * Giles: "i want to be able to set each business up with channels etc
+        * and price bespokely when i do it, give limits on texts and calls if
+        * required. can we make it as easy as possible to do this."
+        *
+        * All of this was already settable — afterwards, on a different panel,
+        * behind Manage, in a grid with the owner's phone number and the
+        * account status. So every business was created on one screen and then
+        * sold on another, and the gap between the two is where a business ends
+        * up live with no channels and nobody noticing for a week.
+        *
+        * Defaults are what almost everybody gets: the website and texts, no
+        * ceilings. Everything here can still be changed later on the same
+        * fields; this is only the chance to get it right at the start.
+        */}
+      <fieldset className="rounded-xl border border-border p-4">
+        <legend className="label px-1">What they have bought</legend>
+
+        <div className="mt-1 flex flex-wrap gap-2">
+          {[
+            { value: "sms", label: "Text messages", on: true },
+            { value: "email", label: "Email", on: true },
+            { value: "voice", label: "Calls + voicemail response", on: false },
+            { value: "instagram", label: "Instagram", on: false },
+            { value: "whatsapp", label: "WhatsApp", on: false },
+            { value: "messenger", label: "Messenger", on: false },
+          ].map((c) => (
+            <label
+              key={c.value}
+              className="flex cursor-pointer items-center gap-2 rounded-full border border-border px-3 py-1.5 text-sm has-[:checked]:border-accent has-[:checked]:bg-surface-2"
+            >
+              <input
+                type="checkbox"
+                name="channel"
+                value={c.value}
+                defaultChecked={c.on}
+                className="size-3.5 accent-[var(--accent)]"
+              />
+              {c.label}
+            </label>
+          ))}
+        </div>
+
+        <label className="mt-2.5 flex w-fit cursor-pointer items-center gap-2 rounded-full border border-border px-3 py-1.5 text-sm has-[:checked]:border-accent has-[:checked]:bg-surface-2">
+          <input
+            type="checkbox"
+            name="receptionist_allowed"
+            className="size-3.5 accent-[var(--accent)]"
+          />
+          Receptionist sold
+        </label>
+
+        <p className="hint mt-1.5">
+          The website widget is always on. Anything unticked is refused when a message
+          arrives on it, and the owner is told to ask you.
+        </p>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-4">
+          <label className="block">
+            <span className="label">£ a month</span>
+            <input name="price" inputMode="decimal" className="input" placeholder="0" />
+          </label>
+          <label className="block">
+            <span className="label">Seats</span>
+            <input name="seats" inputMode="numeric" className="input" placeholder="blank = any" />
+          </label>
+          <label className="block">
+            <span className="label">Text ceiling</span>
+            <input name="sms_cap" inputMode="numeric" className="input" placeholder="blank = none" />
+            <span className="hint">Past it, texting stops. Email still goes.</span>
+          </label>
+          <label className="block">
+            <span className="label">Call ceiling</span>
+            <input name="call_cap" inputMode="numeric" className="input" placeholder="blank = none" />
+            <span className="hint">Past it, calls stop ringing their mobile. Still answered.</span>
+          </label>
+        </div>
+      </fieldset>
+
       <div className="flex items-center gap-3">
         <button type="submit" className="btn bg-accent text-on-accent">
           Set it up
@@ -2257,6 +2338,19 @@ function Handover({ state }: { state: Result }) {
           className="input w-full font-mono text-xs"
           aria-label="One-use sign-in link"
         />
+      )}
+      {/*
+        * And straight to the list of what is still missing.
+        *
+        * A business is never finished at the moment it is created — it has no
+        * number, no confirmation written, no Stripe. Landing on the page that
+        * says so, in order, is the difference between setting somebody up and
+        * creating them.
+        */}
+      {state.working && (
+        <a href={state.working} className="text-sm text-accent hover:underline">
+          See what is still to do for them →
+        </a>
       )}
     </div>
   );

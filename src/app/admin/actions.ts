@@ -11,7 +11,14 @@ import { takesCalls } from "@/lib/voice/takesCalls";
 import { siteOrigin } from "@/lib/origin";
 import { refreshDemo } from "@/lib/demo/refresh";
 
-export type Result = { ok?: true; error?: string; note?: string; link?: string };
+export type Result = {
+  ok?: true;
+  error?: string;
+  note?: string;
+  link?: string;
+  /** Where to see what is still missing for a business just created. */
+  working?: string;
+};
 
 /**
  * Every action here runs as the service role, which ignores row-level security.
@@ -110,9 +117,53 @@ export async function createBusiness(_prev: Result, fd: FormData): Promise<Resul
     created = true;
   }
 
+  /*
+   * What they have bought, at the moment they are created.
+   *
+   * Giles: "i want to be able to set each business up with channels etc and
+   * price bespokely when i do it." All of this was settable afterwards, on a
+   * different panel behind Manage, in a grid beside the owner's phone number —
+   * so every business was created on one screen and sold on another, and the
+   * gap between the two is where one ends up live with no channels and nobody
+   * noticing for a week.
+   *
+   * Web is always included and is added whatever the form says: it is the
+   * widget, it costs nothing, and a business with no channels at all can
+   * answer nobody anywhere.
+   */
+  const bought = [...new Set(["web", ...fd.getAll("channel").map(String)])];
+  const money = (key: string) => {
+    const raw = String(fd.get(key) ?? "").trim();
+    const n = Number(raw);
+    return raw && Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
+  };
+
+  const pricePounds = money("price");
+  const seats = money("seats");
+  const smsCap = money("sms_cap");
+  const callCap = money("call_cap");
+
   const { data: studio, error: studioError } = await db
     .from("studios")
-    .insert({ name, slug, vertical, owner_name: String(fd.get("owner") ?? "").trim() || null })
+    .insert({
+      name,
+      slug,
+      vertical,
+      owner_name: String(fd.get("owner") ?? "").trim() || null,
+      channels_allowed: bought,
+      plan_pence: pricePounds === null ? 0 : pricePounds * 100,
+      seat_limit: seats,
+      /*
+       * The newer columns are guarded, because a deploy can land before its
+       * migration and losing a whole business to one unknown column is the
+       * wrong trade — the ceilings can be set again in a second.
+       */
+      ...((await hasColumn(db, "studios", "sms_monthly_cap")) ? { sms_monthly_cap: smsCap } : {}),
+      ...((await hasColumn(db, "studios", "call_monthly_cap")) ? { call_monthly_cap: callCap } : {}),
+      ...((await hasColumn(db, "studios", "receptionist_allowed"))
+        ? { receptionist_allowed: fd.get("receptionist_allowed") === "on" }
+        : {}),
+    })
     .select("id, slug")
     .single();
 
@@ -215,6 +266,15 @@ export async function createBusiness(_prev: Result, fd: FormData): Promise<Resul
     link: created
       ? redeemable(link?.properties?.hashed_token, origin, "/reset-password?next=/settings/pricing")
       : undefined,
+    /*
+     * And where to see what is still missing for them.
+     *
+     * A business is never finished at the moment it is created: no number, no
+     * confirmation written, no Stripe, nobody having tried the widget. Landing
+     * on the page that lists all of that, in the order it breaks, is the
+     * difference between setting somebody up and merely creating them.
+     */
+    working: `/admin/working/${studio.id}`,
   };
 }
 
