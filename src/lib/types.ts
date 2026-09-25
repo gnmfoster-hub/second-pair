@@ -299,6 +299,14 @@ export type Service = {
    * counted and none left, and those are different sentences on a screen.
    */
   stock?: number | null;
+  /**
+   * What one of them cost the business to buy. Products only — a haircut has
+   * no cost price anybody can name — and optional, because plenty of shops do
+   * not account for their retail at all. Read by the margin figure on the
+   * report, which shows nothing rather than a margin of 100% where it is
+   * missing.
+   */
+  cost_pence?: number | null;
   active: boolean;
   sort_order: number;
   /**

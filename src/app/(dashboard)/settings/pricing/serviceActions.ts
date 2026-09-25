@@ -76,6 +76,29 @@ export async function saveService(_prev: ServiceState, fd: FormData): Promise<Se
     : {};
 
   /*
+   * What it cost you, for products only.
+   *
+   * This box was here once and was taken out in September, with good reasoning:
+   * this is not a stock-control system, and nobody wants to keep a cost price
+   * current against four bottles to be told a margin they already know.
+   *
+   * It is back narrower than it was. That reasoning holds for a service — a
+   * haircut has no cost price anybody can name — and does not hold for retail,
+   * where a shop knows what it paid because it bought it, and margin is the
+   * number that decides whether to keep stocking a thing. The report that
+   * shows that margin was built in the meantime and had nothing to read.
+   *
+   * Only written when the box was actually on the page, so editing a service
+   * leaves a product's cost alone rather than reaching over and clearing it.
+   * Blank means not accounting for this one, which stays the normal case: the
+   * report simply leaves it out rather than reporting a margin of 100%.
+   */
+  const cost: { cost_pence?: number | null } = {};
+  if (kind === "product" && fd.has("cost") && (await hasColumn(supabase, "services", "cost_pence"))) {
+    cost.cost_pence = parsePounds(fd.get("cost"));
+  }
+
+  /*
    * The form it needs first, when forms exist and the form field was on the
    * page. Checked against this business's own forms rather than trusted.
    */
@@ -106,6 +129,7 @@ export async function saveService(_prev: ServiceState, fd: FormData): Promise<Se
     sort_order: Number(str(fd, "sort_order")) || 0,
     updated_at: new Date().toISOString(),
     ...counts,
+    ...cost,
     ...formFirst,
   };
 

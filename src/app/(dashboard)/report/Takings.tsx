@@ -36,35 +36,71 @@ export function Takings({
   /** What was sold over the counter and what it made. Null where nothing was. */
   margin?: Margin | null;
 }) {
-  if (figures.bookings === 0) return null;
+  /*
+   * A quiet week is not an empty section.
+   *
+   * This used to be `if (figures.bookings === 0) return null`, which took the
+   * counter sales and the running-low shelf out with it — in the one week they
+   * matter most. The comment on runningLow already said so in as many words:
+   * "a shelf with one bottle left needs reordering in a quiet week more than a
+   * busy one", and then the line above deleted it in a quiet week.
+   *
+   * Found while proving the margin figure worked: the demo's last week had
+   * four bottles of shampoo sold against a cost and showed no margin at all,
+   * because nobody had an appointment. A shop that retails through a slow week
+   * is a real shop, and it is the one asking what the retail made.
+   *
+   * So the section appears if it has anything to say, and each part of it
+   * appears if it has anything to say.
+   */
+  const bookings = figures.bookings > 0;
+  const hasMargin = Boolean(margin && margin.lines.length > 0);
+  if (!bookings && !hasMargin && runningLow.length === 0) return null;
 
   const most = figures.byPerson[0]?.pence ?? 0;
 
   return (
     <section className="card mt-4 p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="section-title">What it came to</h2>
-        <span className="hint tabular-nums">
-          {/* "1 appointments" was on the report until a check went looking
-              for short labels wrapping in fixed boxes and found this one
-              taking two lines to be wrong. */}
-          {figures.bookings} {figures.bookings === 1 ? "appointment" : "appointments"}
-        </span>
+        {/* Not "Over the counter", which is the name of a block further down
+            this same card. Two headings with one name in one card is how
+            somebody reads the wrong figure. */}
+        <h2 className="section-title">{bookings ? "What it came to" : "What the week made"}</h2>
+        {bookings && (
+          <span className="hint tabular-nums">
+            {/* "1 appointments" was on the report until a check went looking
+                for short labels wrapping in fixed boxes and found this one
+                taking two lines to be wrong. */}
+            {figures.bookings} {figures.bookings === 1 ? "appointment" : "appointments"}
+          </span>
+        )}
       </div>
 
-      <div className="mt-1 text-2xl font-semibold tabular-nums">
-        {formatPence(figures.pence)}
-      </div>
+      {bookings && (
+        <div className="mt-1 text-2xl font-semibold tabular-nums">
+          {formatPence(figures.pence)}
+        </div>
+      )}
 
       {/*
        * Said plainly, because the total is wrong by exactly this much and
        * somebody comparing it against their own takings deserves to know why
        * rather than concluding the product cannot count.
        */}
-      {figures.unpriced > 0 && (
+      {bookings && figures.unpriced > 0 && (
         <p className="hint mt-1">
           {figures.unpriced} of them have no price on, so they are counted as
           appointments and not as money.
+        </p>
+      )}
+
+      {/*
+       * Said once, where a week with no appointments would otherwise open on a
+       * retail figure and leave somebody wondering what happened to the rest.
+       */}
+      {!bookings && (
+        <p className="hint mt-1">
+          Nothing in the diary for this range, so this is what went over the counter.
         </p>
       )}
 
@@ -215,8 +251,11 @@ export function Takings({
             <div className="label">Taken at the desk</div>
             <div className="tabular-nums">{formatPence(figures.sales.taken)}</div>
           </div>
+          {/* "out of £0 booked" is a sentence about nothing. In a week with no
+              appointments, what was taken stands on its own. */}
           <p className="hint mt-1">
-            Paid for and closed off, out of {formatPence(figures.pence)} booked. Cash, a
+            Paid for and closed off
+            {bookings ? `, out of ${formatPence(figures.pence)} booked` : ""}. Cash, a
             card machine, a phone or a link, all of it.
           </p>
         </div>
@@ -260,7 +299,8 @@ export function Takings({
           )}
 
           <p className="hint mt-2">
-            Not in the figures above, which are appointments. This is the shelf, whether it was sold at the till or added to somebody&rsquo;s bill on the way
+            {bookings ? "Not in the figures above, which are appointments. This" : "This"} is the
+            shelf, whether it was sold at the till or added to somebody&rsquo;s bill on the way
             out.
           </p>
         </div>
@@ -296,11 +336,16 @@ export function Takings({
         </div>
       )}
 
-      <p className="hint mt-4">
-        Everything in the diary, whoever booked it, the assistant, you, or
-        whoever answered the phone. Cancellations are left out; anything nobody turned
-        up to is still counted, because the slot was lost either way.
-      </p>
+      {/* What counts as an appointment, which is only worth saying when there
+          are appointments. With none, it sat under the shelf explaining a
+          figure that was not on the page. */}
+      {bookings && (
+        <p className="hint mt-4">
+          Everything in the diary, whoever booked it, the assistant, you, or
+          whoever answered the phone. Cancellations are left out; anything nobody turned
+          up to is still counted, because the slot was lost either way.
+        </p>
+      )}
     </section>
   );
 }

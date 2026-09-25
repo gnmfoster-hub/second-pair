@@ -55,13 +55,26 @@ const USUAL: [string, number, number][] = [
   ["Balayage", 180, 15000],
 ];
 
-/** What the shelf sells, for the counter sales. */
-const SHELF: [string, number][] = [
-  ["Shampoo, 250ml", 1450],
-  ["Conditioner, 250ml", 1450],
-  ["Heat protect spray", 1800],
-  ["Gift voucher", 5000],
-  ["Sea salt spray", 1600],
+/**
+ * What the shelf sells: the name, what it is charged at, and what it cost.
+ *
+ * The third number is new and is the point. Without a cost on the products,
+ * the margin figure on the report cannot appear at all — correctly, because a
+ * margin worked out against a missing cost reads as 100%, which is a lie with
+ * a decimal point on it. A demo that can never show a feature is a demo that
+ * cannot sell it.
+ *
+ * Roughly real trade prices, a little over half the retail, which is what a
+ * salon actually pays. The gift voucher has no cost, deliberately: it is the
+ * honest answer and it keeps a line in the demo that is all margin sitting
+ * next to lines that are not, which is the case the report has to handle.
+ */
+const SHELF: [string, number, number | null][] = [
+  ["Shampoo, 250ml", 1450, 620],
+  ["Conditioner, 250ml", 1450, 640],
+  ["Heat protect spray", 1800, 790],
+  ["Gift voucher", 5000, null],
+  ["Sea salt spray", 1600, 700],
 ];
 
 /*
@@ -607,7 +620,7 @@ export async function refreshDemo(db: Db, studioId: string): Promise<DemoRefresh
    * bottle sold at the end of a colour.
    */
   try {
-    for (const [i, [name, price_pence]] of SHELF.slice(0, 3).entries()) {
+    for (const [i, [name, price_pence, cost_pence]] of SHELF.slice(0, 3).entries()) {
       const { data: had } = await db
         .from("services")
         .select("id")
@@ -616,20 +629,42 @@ export async function refreshDemo(db: Db, studioId: string): Promise<DemoRefresh
         .is("artist_id", null)
         .maybeSingle();
 
+      /*
+       * The cost is written separately and allowed to fail on its own.
+       *
+       * It is the newest column on this table and a demo rebuild is not the
+       * place to find out that a migration has not been run — without this the
+       * whole shelf would fail to build over one column, and an empty shelf is
+       * three screens that look broken.
+       */
+      const withCost = async (id: string) => {
+        try {
+          await db.from("services").update({ cost_pence }).eq("id", id);
+        } catch {
+          /* No cost column yet. The shelf is still right; the margin waits. */
+        }
+      };
+
       if (had) {
         await db.from("services").update({ price_pence, active: true }).eq("id", had.id);
+        await withCost(had.id);
       } else {
-        await db.from("services").insert({
-          studio_id: studio.id,
-          name,
-          kind: "product",
-          minutes: null,
-          price_pence,
-          // A bottle is not an appointment, so it is not something to book.
-          bookable_online: false,
-          active: true,
-          sort_order: 200 + i,
-        });
+        const { data: made } = await db
+          .from("services")
+          .insert({
+            studio_id: studio.id,
+            name,
+            kind: "product",
+            minutes: null,
+            price_pence,
+            // A bottle is not an appointment, so it is not something to book.
+            bookable_online: false,
+            active: true,
+            sort_order: 200 + i,
+          })
+          .select("id")
+          .maybeSingle();
+        if (made?.id) await withCost(made.id as string);
       }
     }
   } catch {
@@ -1244,9 +1279,24 @@ async function buildSales(
 
     const made: { id: string; lines: { name: string; pence: number; qty: number }[] }[] = [];
 
+    /*
+     * Counted back from today rather than from Monday.
+     *
+     * Every seeded sale used to land before the start of this week, so the
+     * report — which opens on this week — showed an empty counter and no
+     * margin at all. The feature was there and the demo could not show it,
+     * which is the same as it not being there when somebody is being sold it.
+     *
+     * Capped at today so nothing is dated into the future: a sale that has not
+     * happened yet is a figure nobody can explain in a pitch.
+     */
+    const latest = new Date(Math.min(Date.now(), monday.getTime() + 6 * DAY));
+
     for (let i = 0; i < 18; i++) {
-      const when = new Date(monday.getTime() - (i * 2 + 1) * DAY);
+      const when = new Date(latest.getTime() - i * 2 * DAY);
       when.setHours(11 + (i % 6), (i % 4) * 15, 0, 0);
+      /* And never later than now, whatever the hour above did to it. */
+      if (when.getTime() > Date.now()) when.setTime(Date.now() - 3_600_000);
 
       // Two things in the sale now and then, which is what a sale looks like.
       const lines = [
@@ -1276,9 +1326,33 @@ async function buildSales(
       if (data) made.push({ id: data.id, lines });
     }
 
+    /*
+     * Each line joined to the thing on the shelf it actually is.
+     *
+     * The real till has always done this — both writers set service_id from
+     * the line that was picked — and the demo never did, so every seeded sale
+     * was a name and a price with nothing behind it. That is invisible on the
+     * till and on a receipt, and it is the whole story on the report: the
+     * margin figure joins a sale to a cost through this column, so without it
+     * the block cannot appear however many costs are filled in.
+     *
+     * Matched by name, which is safe here because the shelf and the price list
+     * are built from the same list a few hundred lines up. Anything unmatched
+     * stays null rather than guessing — a gift voucher bought before the
+     * product existed is a real line and not a fault.
+     */
+    const { data: shelf } = await db
+      .from("services")
+      .select("id, name")
+      .eq("studio_id", studioId)
+      .eq("kind", "product");
+
+    const idByName = new Map((shelf ?? []).map((s) => [s.name as string, s.id as string]));
+
     const items = made.flatMap((sale) =>
       sale.lines.map((l, order) => ({
         payment_id: sale.id,
+        service_id: idByName.get(l.name) ?? null,
         name: l.name,
         quantity: l.qty,
         unit_pence: l.pence,
