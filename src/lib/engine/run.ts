@@ -45,6 +45,26 @@ const MODEL = process.env.HANDLED_MODEL || "claude-opus-5";
 const EFFORT = (process.env.HANDLED_EFFORT || "medium") as "low" | "medium" | "high";
 
 /**
+ * How hard to think when somebody is holding a telephone.
+ *
+ * Measured, not guessed. The first call that recorded its own timings: four
+ * turns, fifty-five seconds, of which twenty-one and a half seconds were spent
+ * waiting for this model. Five and a half seconds a turn, on a channel where
+ * the caller is listening to silence and cannot tell whether the line has
+ * dropped. Giles: "there seems to be a big lag on the call so much its not
+ * usable."
+ *
+ * Low effort rather than a different model, deliberately. A second model for
+ * the telephone is a second set of answers to keep in step with the first, and
+ * they would not stay in step — the whole design of this product is that the
+ * phone gets the same prices, the same diary and the same refusals as every
+ * other way in. Effort changes how long it deliberates, not what it knows.
+ *
+ * Overridable, so the trade can be measured rather than argued about.
+ */
+const VOICE_EFFORT = (process.env.HANDLED_VOICE_EFFORT || "low") as "low" | "medium" | "high";
+
+/**
  * Per million tokens, in micros (millionths of a pound), at roughly $1.27/£.
  * Cache reads are a tenth of the input price, which is the whole reason the
  * studio prompt is cached — it is resent on every turn of every conversation.
@@ -1012,8 +1032,14 @@ async function generateReply(
     const response = await ctx.watch.time("model", async () => {
       const streamed = client.messages.stream({
       model: MODEL,
-      max_tokens: 2000,
-      output_config: { effort: EFFORT },
+      /*
+       * Shorter on the telephone, and it is a latency fix rather than a cost
+       * one: every token is another moment of silence on a live line, and a
+       * spoken answer that runs past three sentences is one the caller has
+       * stopped listening to anyway. Screens can take a longer reply.
+       */
+      max_tokens: ctx.channel === "voice" ? 400 : 2000,
+      output_config: { effort: ctx.channel === "voice" ? VOICE_EFFORT : EFFORT },
       system: [
         {
           type: "text",

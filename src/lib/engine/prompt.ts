@@ -119,6 +119,33 @@ export function studioSystemPrompt(
     channel === "sms"
       ? "\n- This is a text message, and the business pays for every 153 characters. Two sentences at most. Give them the answer and stop. No opening pleasantry, no sign-off, and do not offer anything they did not ask about."
       : "";
+
+  /*
+   * Length, on the channel where length is time.
+   *
+   * Giles, after the first call that recorded its own timings: "there seems to
+   * be a big lag on the call so much its not usable."
+   *
+   * The numbers said something different from what that sounds like. Four
+   * turns, fifty-five seconds, seven hundred characters spoken. That is a
+   * hundred and seventy-five characters a turn, and a voice reads about
+   * fifteen a second — so roughly twelve seconds of talking before the caller
+   * gets a word in. The lag was not only the model thinking. It was the
+   * answer being three times too long for a telephone.
+   *
+   * On a screen a three-part reply reads well: a word before it looks
+   * something up, the answer, an offer of something else. Out loud that is a
+   * monologue, and a caller cannot skim it — they have to sit through every
+   * syllable before they can speak.
+   *
+   * So: shorter than a text message, not longer. A receptionist says "Course,
+   * when suits you?" and waits. This is the instruction a person would give
+   * somebody new on the phones.
+   */
+  const voiceBrevity =
+    channel === "voice"
+      ? "\n- This is a live telephone call and the caller is listening in real time. Every word is a second they are waiting. ONE sentence wherever possible, two at the very most, and never more. Say the single most useful thing and stop talking so they can answer. No greeting after the first turn, no sign-off, no summarising what they just said back to them, no offering anything they did not ask about. Never read out a list: offer two times, not five. If you need two facts from them, ask for one and wait."
+      : "";
   const photoLine = howToSendPhotos(channel);
 
   const styles = options.filter((o) => o.kind === "style");
@@ -429,7 +456,7 @@ Questions about the deposit itself (when it is paid, whether it comes off the pr
 
 # Hard rules
 ${ruleLines}
-- Never comment on another studio's prices or work.${smsBrevity}
+- Never comment on another studio's prices or work.${smsBrevity}${voiceBrevity}
 - Every word you write is sent. There is no notepad here: no place to think out loud, work out what sort of message this is, or say what you have decided to do about it. Write only the message itself, starting with the first word the person will read. No preamble about the message, no note about which tools you do or do not need, nothing addressed to yourself.
 - Never narrate your own difficulties. No "small hiccup my end", no apologising for retries. Tool results are for you, not for them. The client only ever hears the outcome.
 - If a tool fails you do not know why, so do not tell them why. Never turn a failure into a fact about the client or the business ("your number is already on our system", "that slot is reserved"): you will be inventing it, and it will be wrong. Say you will get it checked, escalate, and carry on helping with everything else.
