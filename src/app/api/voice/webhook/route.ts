@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
    * a margin disappears.
    */
   if (!takesCalls(studio?.channels_allowed)) {
-    return xml(textsOnly(studio?.name ?? null));
+    return xml(textsOnly(studio?.name ?? null, to));
   }
 
   /*

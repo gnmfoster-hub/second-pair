@@ -39,11 +39,29 @@ export function hangUp(): string {
  * Said rather than hung up on, because a dead line reads as a broken business
  * and this one is a deliberate setting.
  */
-export function textsOnly(business: string | null): string {
+export function textsOnly(business: string | null, to: string): string {
+  /*
+   * Text them, rather than telling them to text us.
+   *
+   * Giles: "i dont want any go away and send us a text, that defeats the
+   * object."
+   *
+   * He is right, and it was worse than it sounded: this said "send us a text
+   * and we will come straight back to you" and then hung up without sending
+   * anything. Somebody who rings a business and is told to do the work again,
+   * differently, mostly does not — and this product exists so that a missed
+   * enquiry is not lost.
+   *
+   * We have their number: they just rang from it. So the call ends with a text
+   * on its way to them, and the conversation starts where the assistant can
+   * actually answer. The same redirect the missed-call path uses, so there is
+   * one place a text back is sent.
+   */
   return twiml(
     `<Say voice="alice">Thanks for calling${business ? " " + escapeXml(business) : ""}. ` +
-      "This number takes text messages only. Send us a text and we will come straight " +
-      "back to you.</Say><Hangup/>",
+      "I cannot take calls on this number, so I am texting you now and we can sort it " +
+      "out that way.</Say>" +
+      `<Redirect method="POST">/api/voice/missed?to=${encodeURIComponent(to)}&amp;textsonly=1</Redirect>`,
   );
 }
 

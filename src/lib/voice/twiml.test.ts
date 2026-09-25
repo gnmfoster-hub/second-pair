@@ -34,7 +34,7 @@ function wellFormed(xml: string): true {
 }
 
 test("a business with an apostrophe cannot break the answer", () => {
-  const xml = textsOnly("Bob's & Sons <Plastering>");
+  const xml = textsOnly("Bob's & Sons <Plastering>", "+447700900123");
   wellFormed(xml);
   assert.match(xml, /Bob&apos;s &amp; Sons &lt;Plastering&gt;/);
   assert.doesNotMatch(xml.replace(/&[a-z]+;/g, ""), /[<>]Plastering/);
@@ -43,8 +43,8 @@ test("a business with an apostrophe cannot break the answer", () => {
 test("every answer is a document Twilio can read", () => {
   for (const xml of [
     hangUp(),
-    textsOnly(null),
-    textsOnly("Cogs & Co"),
+    textsOnly(null, "+447700900123"),
+    textsOnly("Cogs & Co", "+447700900123"),
     cannotTakeIt("Willow & Co", "+447700900123"),
     ringThem("+447700900999", "+447700900123"),
     takeAMessage("Say what you need after the tone.", "+447700900123"),
@@ -125,4 +125,22 @@ test("the last thing said ends the call", () => {
   const xml = sayAndFinish("You're booked in. Bye now.");
   assert.match(xml, /<Hangup \/>/);
   assert.ok(!xml.includes("<Gather"));
+});
+
+/*
+ * Giles: "i dont want any go away and send us a text, that defeats the object."
+ *
+ * It was worse than it sounded — the old wording told somebody to send a text
+ * and then hung up without sending one. Somebody told to do the work again,
+ * differently, mostly does not, and a missed enquiry is the thing this product
+ * exists to prevent.
+ */
+test("a call to a texting-only number ends with a text on its way", () => {
+  const xml = textsOnly("Neat & Tidy", "+447460076593");
+  assert.doesNotMatch(xml, /send us a text/i);
+  assert.match(xml, /I am texting you now/);
+  assert.match(xml, /<Redirect method="POST">\/api\/voice\/missed\?to=/);
+  assert.match(xml, /textsonly=1/);
+  /* And never a dead end: nothing hangs up before the text is sent. */
+  assert.doesNotMatch(xml, /<Hangup/);
 });

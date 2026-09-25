@@ -114,7 +114,20 @@ export async function POST(request: NextRequest) {
    * no text back, no answerphone, and none of the model or carriage that go
    * with them.
    */
-  if (!takesCalls(studio?.channels_allowed)) return empty();
+  /*
+   * Unless they rang a number that only takes texts, in which case the text is
+   * the whole point.
+   *
+   * The guard above is about not doing the expensive half of a channel nobody
+   * bought — the ringing, the answerphone, the model. A single text back is
+   * the cheap half, on a channel they did buy, and it is the difference
+   * between a lost enquiry and a conversation. Giles: telling somebody to go
+   * away and text us defeats the object.
+   */
+  const textsOnlyCall = request.nextUrl.searchParams.get("textsonly") === "1";
+  const hasTexts = (studio?.channels_allowed ?? []).includes("sms");
+
+  if (!takesCalls(studio?.channels_allowed) && !(textsOnlyCall && hasTexts)) return empty();
 
   /*
    * Whether they are about to be offered the answerphone, decided before a
