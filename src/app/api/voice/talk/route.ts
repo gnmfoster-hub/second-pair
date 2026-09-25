@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { verifySignature } from "@/lib/messaging/sms";
 import { hangUp, sayAndListen, sayAndFinish } from "@/lib/voice/twiml";
 import { onTheCall, whatToSay } from "@/lib/voice/whatItMayDo";
+import { sayable } from "@/lib/voice/sayable";
 import { runTurn } from "@/lib/engine/run";
 import { siteOrigin } from "@/lib/origin";
 
@@ -130,7 +131,23 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  /*
+   * Where the second and a half actually goes.
+   *
+   * Giles, after the first real call: "there was a bit of lag." There is, and
+   * it comes from at least four places — Twilio deciding the caller has
+   * stopped speaking, the network, our own lookups, the assistant thinking,
+   * and Twilio building the audio. Guessing which to attack is how a day gets
+   * spent shaving something that was never the problem.
+   *
+   * So every turn says how long it took and how much of that was the
+   * assistant. One line per turn in the logs, and the next real call answers
+   * the question.
+   */
+  const began = Date.now();
+
   try {
+    const thinkingFrom = Date.now();
     const result = await runTurn({
       studioSlug: studio.slug,
       /* The call's own id: the same every turn, and gone when the call is. */
@@ -141,10 +158,37 @@ export async function POST(request: NextRequest) {
       forArtistId: connection?.artist_id ?? null,
     });
 
-    const reply = (result.reply ?? "").trim();
+    const thought = Date.now() - thinkingFrom;
+    const written = (result.reply ?? "").trim();
 
-    if (!reply) {
+    if (!written) {
       return xml(sayAndFinish(whatToSay(may, null) || "Thanks, I will text you the details."));
+    }
+
+    /*
+     * Said out loud, which is not what the assistant wrote.
+     *
+     * It writes for a screen, because every other channel is one. Giles heard
+     * the result on the first real call: it read the privacy link out. Nobody
+     * can write down a URL while holding a phone, and every second spent
+     * saying one is a second the caller is waiting to say what they rang
+     * about.
+     *
+     * A rule rather than an instruction to the model, because an instruction
+     * to never include a link fails on the day it matters. See lib/voice/sayable.
+     */
+    const { said: reply, links } = sayable(written);
+
+    /*
+     * And the links, by text, which is the medium they belong in.
+     *
+     * Sent as they come up rather than saved for the end of the call: a caller
+     * who rings off mid-sentence has still had the thing they were promised,
+     * and there is no end-of-call hook that fires reliably enough to trust
+     * with it.
+     */
+    if (links.length && params.From) {
+      await textTheLinks({ to: params.From, from: to, links }).catch((e) => console.error("[voice/talk] could not text the link:", (e as Error)?.message));
     }
 
     /*
@@ -154,6 +198,11 @@ export async function POST(request: NextRequest) {
      * back and start again, where a listen that nobody fills ends politely on
      * its own after the Gather times out.
      */
+    console.log(
+      `[voice/talk] turn ${Date.now() - began}ms, of which the assistant ${thought}ms` +
+        `, said ${reply.length} characters${links.length ? `, texted ${links.length} link(s)` : ""}`,
+    );
+
     return xml(sayAndListen(reply, `/api/voice/talk`));
   } catch (error) {
     /*
@@ -174,4 +223,21 @@ function xml(body: string) {
     status: 200,
     headers: { "content-type": "text/xml; charset=utf-8" },
   });
+}
+
+/**
+ * Texting the links a call could not say.
+ *
+ * Kept here rather than in the assistant because it is a fact about the
+ * telephone: on every other channel the link is simply in the reply.
+ */
+async function textTheLinks(args: { to: string; from: string; links: string[] }) {
+  const { sendSms } = await import("@/lib/messaging/sms");
+
+  const body =
+    args.links.length === 1
+      ? `Here is the link we mentioned: ${args.links[0]}`
+      : ["Here are the links we mentioned:", ...args.links].join(String.fromCharCode(10));
+
+  await sendSms({ to: args.to, from: args.from, body });
 }

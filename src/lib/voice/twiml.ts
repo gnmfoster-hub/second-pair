@@ -13,6 +13,24 @@
  * which is the half that can be checked without a telephone.
  */
 
+/**
+ * The voice, in one place.
+ *
+ * Giles, after the first real call: "it was a very american voice and didnt
+ * pronounce words correctly."
+ *
+ * Both of those are "alice", which is Twilio's oldest voice and American. It
+ * was the default when this file was four strings and nobody had heard it out
+ * loud. A British cleaning company answering in an American accent is the
+ * first thing a caller notices and the last thing anybody wants to explain.
+ *
+ * Amy is Polly's British English voice, and the neural build of it is the one
+ * that gets "Neat and Tidy" and a Devon postcode right. Named once here rather
+ * than at seven call sites, so the next opinion about how it sounds is one
+ * edit.
+ */
+const VOICE = 'voice="Polly.Amy-Neural" language="en-GB"';
+
 /** Anything that goes inside a tag or an attribute has to survive being XML. */
 export function escapeXml(value: string): string {
   return value
@@ -58,7 +76,7 @@ export function textsOnly(business: string | null, to: string): string {
    * one place a text back is sent.
    */
   return twiml(
-    `<Say voice="alice">Thanks for calling${business ? " " + escapeXml(business) : ""}. ` +
+    `<Say ${VOICE}>Thanks for calling${business ? " " + escapeXml(business) : ""}. ` +
       "I cannot take calls on this number, so I am texting you now and we can sort it " +
       "out that way.</Say>" +
       `<Redirect method="POST">/api/voice/missed?to=${encodeURIComponent(to)}&amp;textsonly=1</Redirect>`,
@@ -68,7 +86,7 @@ export function textsOnly(business: string | null, to: string): string {
 /** Nobody to ring, so the caller is told and then texted. */
 export function cannotTakeIt(business: string | null, to: string): string {
   return twiml(
-    `<Say voice="alice">Thanks for calling${business ? " " + escapeXml(business) : ""}. ` +
+    `<Say ${VOICE}>Thanks for calling${business ? " " + escapeXml(business) : ""}. ` +
       "We cannot take your call right now, so I will text you straight back.</Say>" +
       `<Redirect method="POST">/api/voice/missed?to=${encodeURIComponent(to)}</Redirect>`,
   );
@@ -104,10 +122,10 @@ export function ringThem(forwardTo: string, to: string): string {
  */
 export function takeAMessage(said: string, to: string): string {
   return twiml(
-    `<Say voice="alice">${escapeXml(said)}</Say>` +
+    `<Say ${VOICE}>${escapeXml(said)}</Say>` +
       `<Record maxLength="90" timeout="4" finishOnKey="#" playBeep="true" ` +
       `transcribe="true" transcribeCallback="/api/voice/said?to=${encodeURIComponent(to)}" />` +
-      `<Say voice="alice">Thanks, we will be in touch.</Say>`,
+      `<Say ${VOICE}>Thanks, we will be in touch.</Say>`,
   );
 }
 
@@ -141,7 +159,7 @@ export function sayAndListen(
 
   return twiml(
     `<Gather input="speech" speechTimeout="auto" language="en-GB" action="${escapeXml(action)}" method="POST"${hints}>` +
-      `<Say voice="alice">${escapeXml(said)}</Say>` +
+      `<Say ${VOICE}>${escapeXml(said)}</Say>` +
       `</Gather>` +
       /*
        * What happens when somebody says nothing at all.
@@ -152,7 +170,7 @@ export function sayAndListen(
        * line, or who put the phone down on the table, gets told what to do
        * instead of hearing it go dead.
        */
-      `<Say voice="alice">Sorry, I did not catch that. I will text you instead so you can reply when you are ready.</Say>`,
+      `<Say ${VOICE}>Sorry, I did not catch that. I will text you instead so you can reply when you are ready.</Say>`,
   );
 }
 
@@ -164,5 +182,5 @@ export function sayAndListen(
  * finished. Ending the call is part of answering it well.
  */
 export function sayAndFinish(said: string): string {
-  return twiml(`<Say voice="alice">${escapeXml(said)}</Say><Hangup />`);
+  return twiml(`<Say ${VOICE}>${escapeXml(said)}</Say><Hangup />`);
 }

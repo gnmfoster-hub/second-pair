@@ -95,7 +95,7 @@ test("it says something and listens for the answer", () => {
   const xml = sayAndListen("Hello, Willow and Co.", "/api/voice/talk?call=CA123");
   assert.match(xml, /<Gather input="speech" speechTimeout="auto" language="en-GB"/);
   assert.match(xml, /action="\/api\/voice\/talk\?call=CA123"/);
-  assert.match(xml, /<Say voice="alice">Hello, Willow and Co\.<\/Say>/);
+  assert.match(xml, /<Say voice="Polly\.Amy-Neural" language="en-GB">Hello, Willow and Co\.<\/Say>/);
 });
 
 /*
