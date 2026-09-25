@@ -29,17 +29,28 @@ export type CallRun = {
   spokenCharacters: number;
 };
 
+/**
+ * How fast a synthesised voice reads, in characters a second.
+ *
+ * About 150 words a minute is ordinary speech and a word is about five
+ * characters with its space, so fifteen. Near enough: this is used to say
+ * whether talking is seconds or tenths of a second, not to bill anybody.
+ */
+export const CHARACTERS_A_SECOND = 15;
+
 export type HowItWent = {
   calls: number;
   turns: number;
   /** Average wait per turn, in seconds to one decimal. What a caller feels. */
   perTurn: number;
-  /** Our share of that wait. */
-  oursPerTurn: number;
-  /** Everything that is not us: Twilio, the network, the line. */
+  /** Waiting for the assistant to decide what to say. */
+  thinkingPerTurn: number;
+  /** The assistant saying it, which is also us and also the caller waiting. */
+  talkingPerTurn: number;
+  /** Everything left: Twilio's endpointing, the network, the caller themselves. */
   theirsPerTurn: number;
-  /** Nought to one hundred, rounded, so the sentence can name a culprit. */
-  ourShare: number;
+  /** Which of the three is biggest. What the sentence is about. */
+  biggest: "thinking" | "talking" | "theirs";
 };
 
 export function howItWent(runs: CallRun[]): HowItWent | null {
@@ -49,6 +60,7 @@ export function howItWent(runs: CallRun[]): HowItWent | null {
   const turns = real.reduce((n, r) => n + r.turns, 0);
   const thinking = real.reduce((n, r) => n + r.thinkingMs, 0);
   const seconds = real.reduce((n, r) => n + r.seconds, 0);
+  const characters = real.reduce((n, r) => n + r.spokenCharacters, 0);
 
   /*
    * Per turn rather than per call, because a caller does not experience a
@@ -56,23 +68,47 @@ export function howItWent(runs: CallRun[]): HowItWent | null {
    * a slow one.
    */
   const perTurn = seconds / turns;
-  const oursPerTurn = thinking / 1000 / turns;
+  const thinkingPerTurn = thinking / 1000 / turns;
 
   /*
-   * Never negative, and never more than the whole. The two clocks are started
-   * in different places and a call that ends between them can leave the
-   * arithmetic slightly the wrong way round — which is a rounding artefact and
-   * must not print as "minus three tenths of a second on Twilio".
+   * How long it spent talking, which the first version of this did not
+   * separate — and that was the flaw that mattered.
+   *
+   * It split the wait two ways, ours and Twilio's, and put the time the
+   * assistant spent speaking into Twilio's half, where it read as "nothing we
+   * can do". On the first measured call that was twelve of the fourteen
+   * seconds: the reply was three times too long for a telephone, which is
+   * entirely ours to fix and is the single thing this screen should have said.
+   *
+   * A tool that points at the wrong half is worse than no tool, because
+   * somebody acts on it.
    */
-  const theirsPerTurn = Math.max(0, perTurn - oursPerTurn);
+  const talkingPerTurn = characters / CHARACTERS_A_SECOND / turns;
+
+  /*
+   * Whatever is left: Twilio deciding the caller has stopped, the network, and
+   * the caller's own thinking time. Never negative — the clocks start in
+   * different places and a call ending between them can leave the arithmetic
+   * slightly the wrong way round, which must not print as minus three tenths
+   * of a second on Twilio.
+   */
+  const theirsPerTurn = Math.max(0, perTurn - thinkingPerTurn - talkingPerTurn);
+
+  const biggest: HowItWent["biggest"] =
+    talkingPerTurn >= thinkingPerTurn && talkingPerTurn >= theirsPerTurn
+      ? "talking"
+      : thinkingPerTurn >= theirsPerTurn
+        ? "thinking"
+        : "theirs";
 
   return {
     calls: real.length,
     turns,
     perTurn: round(perTurn),
-    oursPerTurn: round(oursPerTurn),
+    thinkingPerTurn: round(thinkingPerTurn),
+    talkingPerTurn: round(talkingPerTurn),
     theirsPerTurn: round(theirsPerTurn),
-    ourShare: perTurn > 0 ? Math.round((Math.min(oursPerTurn, perTurn) / perTurn) * 100) : 0,
+    biggest,
   };
 }
 
@@ -89,14 +125,19 @@ function round(seconds: number): number {
 export function describeHowItWent(went: HowItWent | null): string {
   if (!went) return "No calls have been answered yet, so there is nothing to measure.";
 
-  const over = `Over ${went.calls} call${went.calls === 1 ? "" : "s"}`;
-  const wait = `about ${went.perTurn.toFixed(1)} seconds between somebody finishing and the answer starting`;
+  const s = (n: number) => n.toFixed(1);
+  const over = `Over ${went.calls} call${went.calls === 1 ? "" : "s"}, about ${s(went.perTurn)} seconds a turn`;
+  const split = `${s(went.thinkingPerTurn)} thinking, ${s(went.talkingPerTurn)} talking, ${s(went.theirsPerTurn)} the telephone`;
 
-  if (went.ourShare >= 60) {
-    return `${over}, ${wait} — and ${went.oursPerTurn.toFixed(1)} of that is our assistant thinking. That is the half worth attacking.`;
+  /*
+   * Each ending names a job rather than a number. A figure somebody cannot act
+   * on is a figure nobody reads twice.
+   */
+  if (went.biggest === "talking") {
+    return `${over} — ${split}. Most of it is the answer itself being long: shortening what it says is the fix, and it is ours.`;
   }
-  if (went.ourShare <= 30) {
-    return `${over}, ${wait}, and only ${went.oursPerTurn.toFixed(1)} of it is ours. The rest is the telephone deciding you have stopped speaking and building the audio, which no work at our end would shorten.`;
+  if (went.biggest === "thinking") {
+    return `${over} — ${split}. Most of it is the assistant deciding what to say, which is ours to shorten.`;
   }
-  return `${over}, ${wait} — ${went.oursPerTurn.toFixed(1)} ours and ${went.theirsPerTurn.toFixed(1)} the telephone's. Neither half is obviously the problem.`;
+  return `${over} — ${split}. Most of it is the telephone deciding you have stopped speaking, which no work at our end would shorten.`;
 }
