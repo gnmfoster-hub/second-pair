@@ -30,6 +30,32 @@ const db = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_
 
 const { data: studios } = await db.from("studios").select("*").is("archived_at", null);
 
+/*
+ * The two businesses that are meant to look unfinished.
+ *
+ * Brightwork is the "fresh" demo — scripts/demo-make.mjs builds it with the
+ * comment "Deliberately unset: hours, prices, policy, privacy notice, FAQs",
+ * because it exists to be walked through as a new owner would walk it. And the
+ * `help` studio is our own support account: it answers questions about this
+ * product and books nothing, so "cannot quote" is not a fault, it is the job.
+ *
+ * Without this the audit reported six faults that will never be fixed, on
+ * every run, forever. A checker that cries wolf is worse than no checker: it
+ * teaches whoever reads it to skim past the line that matters. The three real
+ * faults on the live and demo businesses were sitting underneath that noise.
+ *
+ * They are still printed, and still described — just said as what they are.
+ */
+const BARE_ON_PURPOSE = {
+  "brightwork-demo":
+    "bare on purpose: this is the walkthrough demo, a business created an hour ago with the set-up still to do",
+  help: "our own support account: it answers questions about this product and books nothing",
+};
+
+let real = 0;
+const shops = new Set();
+const demos = new Set();
+
 for (const s of studios) {
   const [{ data: priced }, { data: listed }, { data: people }, { data: faqs }] = await Promise.all([
     db.from("price_bands").select("size_label, requires_consultation, duration_minutes, hours_low, hours_high").eq("studio_id", s.id),
@@ -185,10 +211,59 @@ for (const s of studios) {
     faults.push("STRIPE CONNECTED AND PAYMENTS OFF — every payment link is refused before it reaches Stripe");
   }
 
+  const onPurpose = BARE_ON_PURPOSE[s.slug];
+
   console.log("=".repeat(66));
   console.log(`${s.name}  (${s.vertical}, deposits: ${s.deposit_mode})`);
   console.log("  services: " + (bands ?? []).map(b => `${b.size_label} ${b.duration_minutes ?? Math.round(b.hours_low * 60) + "-" + Math.round(b.hours_high * 60)}m${b.requires_consultation ? " [consult first]" : ""}`).join("; "));
   console.log(`  services ${bands?.length ?? 0} | people ${active.length} | open days ${openDays} | consultation ${s.consultation_minutes}m | max session ${s.max_session_minutes}m | notice ${s.notice_hours}h`);
+
+  if (onPurpose) {
+    /* Listed rather than hidden: somebody should still be able to see what is
+       unset, without it being counted against anybody. */
+    console.log(`  — ${onPurpose}`);
+    for (const f of faults) console.log("    · " + f);
+    continue;
+  }
+
   if (!faults.length) console.log("  nothing silently wrong");
   for (const f of faults) console.log("  ✗ " + f);
+
+  if (faults.length) {
+    /*
+     * A demo and a paying customer are not the same urgency, and the summary
+     * should not pretend they are. Every demo this repository builds is named
+     * with a "-demo" slug — see scripts/demo-make.mjs — so that is the test.
+     *
+     * If a real business ever turns up in the demo column, the naming is wrong
+     * and that is worth noticing too.
+     */
+    (s.slug.endsWith("-demo") ? demos : shops).add(s.name);
+    real += faults.length;
+  }
 }
+
+/*
+ * A last line, because scrolling nine businesses to work out whether anything
+ * needs doing is the reason a checker stops being run.
+ */
+console.log("=".repeat(66));
+
+if (real === 0) {
+  console.log("Nothing silently wrong on any business that is meant to be finished.");
+} else {
+  console.log(
+    shops.size
+      ? `Real businesses to look at: ${[...shops].join(", ")}.`
+      : "No real business has anything silently wrong.",
+  );
+  if (demos.size) console.log(`Demos, which only matter when one is being shown: ${[...demos].join(", ")}.`);
+  console.log(`${real} thing${real === 1 ? "" : "s"} in total.`);
+}
+
+/*
+ * Red only for a business somebody is paying us. A demo with no Stripe is
+ * worth knowing before a pitch and is not a reason for this to fail every time
+ * it is run — which is how the last checker stopped being read.
+ */
+if (shops.size) process.exitCode = 1;
