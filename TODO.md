@@ -142,8 +142,48 @@ Open, and roughly in the order I would do them:
    of every business at 390px looking for the same signature — proved against
    the bad state before it was trusted. 125 screens, nothing squeezed.
 
+3a. **How it sounds, after your second test call.** 25 Sep, on your word: "yes
+   make it the default, re-cost it, and have the ability to switch back."
+
+   **The voice.** Twilio bills speech in three tiers and this used the middle
+   one. It is now on the top one — Amy generative, which is the difference
+   between a machine reading and somebody talking. The neural voices stay,
+   marked cheaper, and the cheaper Amy is the same voice on the old engine so
+   going back is not also a change of person.
+
+   **The cost.** Four times: about 12p of talking on a six-turn call rather
+   than 3p. Metered rather than assumed — the model now has a meter for
+   speaking, billed by the character, and one for listening.
+
+   **And the hole underneath it.** A Receptionist call was never written to the
+   calls table at all: that row comes from the missed-call webhook and a line
+   that picks up never goes down that path. So the dearest thing we do, and the
+   thing being sold as an add-on, appeared nowhere — not on billing, not in a
+   report, not in the call cap it is meant to obey.
+
+   **Pronunciation.** The ampersand was the worst of it: it is in "Neat & Tidy",
+   on the first sentence of every call, and it is a shape rather than a sound.
+   Also money, times, postcodes, phone numbers, Mon–Fri. Rewritten into words
+   rather than wrapped in SSML, deliberately: those strings come from a model
+   and are escaped into XML, and a tag closing in the wrong place does not
+   degrade — Twilio cannot parse it, the call drops silently, and nobody learns
+   there was an enquiry.
+
+   **One for you, and it is quick.** Ring it. Twilio's documentation says an
+   unsupported voice "may result in error and <Say> instruction failure" rather
+   than falling back, and whether the generative tier is enabled is an account
+   setting nothing here can read. If it answers, it is proved. If it answers
+   with silence, set `RECEPTIONIST_VOICE=Polly.Amy-Neural` in Vercel and every
+   line is back on the proven voice in under a minute, without waiting for me.
+
 3. **The live voice Receptionist — the lag.** Built and answering; what is left
-   is how long it takes to answer. One real cause found and fixed on 25 Sep:
+   is how long it takes to answer. Since 25 Sep the two halves are measured
+   and said in a sentence on **Settings → Channels**: the gap per turn, how
+   much of it is our assistant thinking, and how much is the telephone deciding
+   you have stopped speaking. Those are different jobs and the second is not
+   ours to shorten. It needs one call to have something to say.
+
+   One real cause found and fixed on 25 Sep:
    the link text was being sent *before* the spoken reply went back, so on the
    turns that matter most — the booking page, the deposit link — the caller sat
    in silence through a Twilio SMS call. It now goes after, the way the text
