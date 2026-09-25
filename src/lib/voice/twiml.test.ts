@@ -157,3 +157,55 @@ test("a call to a texting-only number ends with a text on its way", () => {
   /* And never a dead end: nothing hangs up before the text is sent. */
   assert.doesNotMatch(xml, /<Hangup/);
 });
+
+/*
+ * ── The escape hatch ────────────────────────────────────────────────────────
+ *
+ * Twilio's documentation says an unsupported voice "may result in error and
+ * <Say> instruction failure" rather than falling back, and whether a premium
+ * tier is enabled is an account setting nothing here can read. So the first
+ * real call on a new voice is the test, and it happens on a live line.
+ *
+ * One environment variable has to be able to put every line back.
+ */
+test("the house voice can be overridden from the environment", () => {
+  const was = process.env.RECEPTIONIST_VOICE;
+  try {
+    process.env.RECEPTIONIST_VOICE = "Polly.Amy-Neural";
+    assert.match(
+      sayAndListen("Hello.", "/api/voice/talk"),
+      /voice="Polly\.Amy-Neural"/,
+      "a business that has chosen nothing must follow the house voice",
+    );
+  } finally {
+    if (was === undefined) delete process.env.RECEPTIONIST_VOICE;
+    else process.env.RECEPTIONIST_VOICE = was;
+  }
+});
+
+test("a nonsense override is ignored rather than spoken", () => {
+  const was = process.env.RECEPTIONIST_VOICE;
+  try {
+    process.env.RECEPTIONIST_VOICE = "Polly.DoesNotExist";
+    const xml = sayAndListen("Hello.", "/api/voice/talk");
+    assert.doesNotMatch(xml, /DoesNotExist/, "the whole point of the list is that this cannot happen");
+    assert.match(xml, /voice="Polly\.Amy-Generative"/);
+  } finally {
+    if (was === undefined) delete process.env.RECEPTIONIST_VOICE;
+    else process.env.RECEPTIONIST_VOICE = was;
+  }
+});
+
+test("a business that has chosen a voice keeps it whatever the house does", () => {
+  const was = process.env.RECEPTIONIST_VOICE;
+  try {
+    process.env.RECEPTIONIST_VOICE = "Polly.Amy-Neural";
+    assert.match(
+      sayAndListen("Hello.", "/api/voice/talk", { voice: "Polly.Brian-Neural" }),
+      /voice="Polly\.Brian-Neural"/,
+    );
+  } finally {
+    if (was === undefined) delete process.env.RECEPTIONIST_VOICE;
+    else process.env.RECEPTIONIST_VOICE = was;
+  }
+});

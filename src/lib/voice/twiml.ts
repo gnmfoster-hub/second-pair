@@ -32,7 +32,26 @@ import { saidAloud } from "./saidAloud.ts";
  * than at seven call sites, so the next opinion about how it sounds is one
  * edit.
  */
-const VOICE = `voice="${DEFAULT_VOICE}" language="en-GB"`;
+/**
+ * The house default, and a way to change it without a deploy.
+ *
+ * `RECEPTIONIST_VOICE` in the environment wins over the built-in default, as
+ * long as it names a voice on the list — anything else is ignored, because the
+ * point of the list is that an unknown name is a call that says nothing.
+ *
+ * This exists for one reason, and it is not tuning. Twilio's own documentation
+ * says an unsupported voice "may result in error and <Say> instruction
+ * failure" rather than falling back, and whether the generative tier is
+ * enabled is an account-level setting nobody here can read from code. So the
+ * first real call on a new voice is the test, and if it fails it fails on a
+ * live line in front of a customer.
+ *
+ * One variable in Vercel puts every line back on the proven voice in under a
+ * minute, without waiting for somebody to write and ship a change.
+ */
+const houseVoice = (): string => voiceFor(process.env.RECEPTIONIST_VOICE ?? DEFAULT_VOICE);
+
+const VOICE = `voice="${houseVoice()}" language="en-GB"`;
 
 /**
  * The same, for a business that has chosen a different one.
@@ -41,9 +60,12 @@ const VOICE = `voice="${DEFAULT_VOICE}" language="en-GB"`;
  * message, the missed-call handover — are the product speaking rather than a
  * business, and giving every string a voice argument would be four more places
  * to pass the same thing through for no gain.
+ *
+ * A business that has chosen nothing gets the house voice, which is the one
+ * the environment can override.
  */
 const speaksAs = (voice: string | null | undefined) =>
-  `voice="${voiceFor(voice)}" language="en-GB"`;
+  `voice="${voice ? voiceFor(voice) : houseVoice()}" language="en-GB"`;
 
 /** Anything that goes inside a tag or an attribute has to survive being XML. */
 export function escapeXml(value: string): string {
