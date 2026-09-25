@@ -44,6 +44,7 @@ been done and one was never a fault. Each links to the detail below.
 - [7. Decide whether to take a cut of what goes through](#7-decide-whether-to-take-a-cut-of-what-goes-through)
 - [8. Decide about tapping a card on a phone](#8-decide-about-tapping-a-card-on-a-phone)
 - [9. The Neat & Tidy number](#9-the-neat--tidy-number) — The number and the forward are both live on the record. What is left is telling people about it.
+- [9b. Neat & Tidy's consultation is 15 minutes, for jobs that need a visit](#9b-neat--tidys-consultation-is-15-minutes-for-jobs-that-need-a-visit) — **New, 25 Sep.** Three jobs need a consultation and a consultation is a quarter of an hour. Worth asking Karen how she actually quotes those.
 - [10. Check the forward on info@neatandtidysolutions.co.uk](#10-check-the-forward-on-infoneatandtidysolutionscouk)
 - [11. The slow ones](#11-the-slow-ones)
 
@@ -486,6 +487,27 @@ link — so a phone is never the only way you can take money.
 
 Send it to Chris, and put it on the Facebook page, the Google listing and
 anything else with the old one on.
+
+### 9b. Neat & Tidy's consultation is 15 minutes, for jobs that need a visit
+
+Found on 25 September by `node scripts/audit-setups.mjs`, which now separates
+real businesses from demos so a line like this is not buried under six demo
+warnings that will never be fixed.
+
+**End of tenancy, After builders** and **Deep clean** are all set to need a
+consultation first. The consultation length on the business is **15 minutes**.
+
+Fifteen minutes is a phone call. It is not going to look at a three-bedroom
+end-of-tenancy, and it is not enough to price an after-builders clean, which is
+the job most likely to be quoted wrong and the most expensive to get wrong.
+
+Nobody has been hurt by it yet — nothing has been booked through it. But the
+assistant offers a 15-minute slot for those three, so a customer books a
+quarter of an hour and Karen turns up to a job that needs an hour of looking.
+
+**Yours, not mine.** It is a live client's settings and a judgement about how
+they actually work: it may be that a call really is how they quote. Settings →
+Salon → how long a consultation takes. Worth asking Karen rather than guessing.
 
 ### 10. Check the forward on info@neatandtidysolutions.co.uk
 
