@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, after, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifySignature } from "@/lib/messaging/sms";
 import { hangUp, sayAndListen, sayAndFinish } from "@/lib/voice/twiml";
@@ -190,7 +190,27 @@ export async function POST(request: NextRequest) {
      * with it.
      */
     if (links.length && params.From) {
-      await textTheLinks({ to: params.From, from: to, links }).catch((e) => console.error("[voice/talk] could not text the link:", (e as Error)?.message));
+      /*
+       * After the caller has heard the sentence, not before it.
+       *
+       * This used to be awaited, which put a text-message send on the critical
+       * path of a spoken reply: the caller sat in silence for however long
+       * Twilio's API took to accept the SMS, on the very turns that matter
+       * most — the one where the booking page or the deposit link is being
+       * promised. Giles, after the first real call: "there was a bit of lag."
+       *
+       * after() is what the SMS webhook already uses for the same reason. It
+       * runs once the response has gone and keeps the function alive to
+       * finish, rather than being killed mid-send the way a bare promise is.
+       */
+      const from = params.From;
+      after(async () => {
+        try {
+          await textTheLinks({ to: from, from: to, links });
+        } catch (e) {
+          console.error("[voice/talk] could not text the link:", (e as Error)?.message);
+        }
+      });
     }
 
     /*
@@ -202,7 +222,7 @@ export async function POST(request: NextRequest) {
      */
     console.log(
       `[voice/talk] turn ${Date.now() - began}ms, of which the assistant ${thought}ms` +
-        `, said ${reply.length} characters${links.length ? `, texted ${links.length} link(s)` : ""}`,
+        `, said ${reply.length} characters${links.length ? `, ${links.length} link(s) texting after` : ""}`,
     );
 
     return xml(sayAndListen(reply, `/api/voice/talk`, { voice: studio.receptionist_voice }));

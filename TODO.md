@@ -118,12 +118,14 @@ Open, and roughly in the order I would do them:
    everybody else's. Fine if that is what you want." A note rather than a
    warning, because it may well be deliberate.
 
-2b. **Reviews and campaigns cannot be counted per business.** Found by the new
-   "Is it working?" page, which has to report both as unknown. Both record
-   having gone by claiming a row in `handled_messages` — keyed
-   "review:<booking>" and the campaign's own key — and that table has no
-   studio on it. So "has this salon ever asked anybody for a review" is a
-   question the data cannot answer, here or in any report.
+2b. ~~**Reviews and campaigns cannot be counted per business.**~~ Done, and
+   checked against the live database on 25 Sep rather than assumed. Both sends
+   claim a row in `handled_messages` — "review:&lt;booking&gt;" and the
+   campaign's own key — and that table carried nothing but the key, so "has
+   this salon ever asked anybody for a review" was a question the data could
+   not answer. `studio_id` is on the table, both writers set it, and the
+   "Is it working?" page counts them per business. Dedupe is still
+   `message_id` alone, so nothing about the claim changed.
 2c. ~~**The diary looked like every other system.**~~ 25 Sep. Named the cause
    rather than restyling: the grid is doing what every other diary does, which
    is show what is settled. Three things it knew and never showed are now on
@@ -139,9 +141,18 @@ Open, and roughly in the order I would do them:
    of every business at 390px looking for the same signature — proved against
    the bad state before it was trusted. 125 screens, nothing squeezed.
 
-3. **The live voice Receptionist** — speech in, speech out, during the call.
-   The commercial side is built; this is the expensive part and wants latency
-   work.
+3. **The live voice Receptionist — the lag.** Built and answering; what is left
+   is how long it takes to answer. One real cause found and fixed on 25 Sep:
+   the link text was being sent *before* the spoken reply went back, so on the
+   turns that matter most — the booking page, the deposit link — the caller sat
+   in silence through a Twilio SMS call. It now goes after, the way the text
+   webhook already does it.
+
+   The rest is measured rather than guessed. Every turn logs how long it took
+   and how much of that was the assistant thinking, so the next real call says
+   which of the four candidates to attack — Twilio deciding you have stopped
+   speaking, the network, our lookups, or the model. Nothing else should be
+   shaved until that line has been read.
 4. **Upload a picture** for each business. Built and waiting: nobody has one
    yet, so every confirmation is going out without one.
 
