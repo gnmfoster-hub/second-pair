@@ -75,7 +75,18 @@ for (const col of [...columns].sort()) {
    * over-counting writes only ever moves a column off the list, which is the
    * safe way for this to be wrong.
    */
-  const write = new RegExp("\\b" + col + "\\s*[:,]", "g");
+  /*
+   * And `row.column = value`, which this missed.
+   *
+   * It reported services.cost_pence as "read, never written" on the very day
+   * the box that writes it went back on the price list, because that write
+   * builds its object a property at a time — `cost.cost_pence = parsePounds()`
+   * — rather than as a literal. A guard that calls a live feature dead is the
+   * expensive kind of wrong: somebody believes it and deletes the reader.
+   *
+   * `(?!=)` keeps `col === something` a comparison rather than a write.
+   */
+  const write = new RegExp("\\b" + col + "\\s*(?:[:,]|=(?!=))", "g");
   /*
    * A read is a property access or the name in quotes.
    *

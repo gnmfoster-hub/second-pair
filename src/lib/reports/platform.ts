@@ -146,6 +146,33 @@ const inRange = (iso: string | null | undefined, from: number, to: number) => {
   return t >= from && t < to;
 };
 
+/**
+ * One call row, as the cost model wants it.
+ *
+ * Written once rather than at the two call sites it used to be, because the
+ * two drifted the moment the Receptionist added meters: the row carried what
+ * it cost to speak and to listen, and both places went on building the old
+ * four-clock shape, so the dearest calls on the system costed as if they had
+ * said nothing at all.
+ *
+ * Tolerant of the columns being absent, which they are until the migration is
+ * run by hand — a missing one reads as nought, which is exactly right for a
+ * call that predates the Receptionist.
+ */
+function asCallShape(c: Record<string, unknown>) {
+  const tier = c.spoken_tier === "neural" ? ("neural" as const) : ("generative" as const);
+  return {
+    rangSeconds: (c.rang_seconds as number) ?? 0,
+    forwarded: Boolean(c.forwarded),
+    recordedSeconds: (c.recorded_seconds as number) ?? 0,
+    transcribed: Boolean(c.transcribed),
+    spokenCharacters: (c.spoken_characters as number) ?? 0,
+    spokenTier: tier,
+    listenedSeconds: (c.listened_seconds as number) ?? 0,
+    answeredBy: (c.answered_by as string | null) ?? null,
+  };
+}
+
 function median(values: number[]): number | null {
   if (!values.length) return null;
   const sorted = [...values].sort((a, b) => a - b);
@@ -196,14 +223,7 @@ export function platformReport(
     }
 
     const calls = (rows.calls ?? []).filter((c) => c.studio_id === s.id && inRange(c.at, from, to));
-    const callMoney = addUpCalls(
-      calls.map((c) => ({
-        rangSeconds: c.rang_seconds ?? 0,
-        forwarded: Boolean(c.forwarded),
-        recordedSeconds: c.recorded_seconds ?? 0,
-        transcribed: Boolean(c.transcribed),
-      })),
-    );
+    const callMoney = addUpCalls(calls.map(asCallShape));
 
     const reminders = rows.reminders.filter((r) => r.studio_id === s.id && inRange(r.created_at, from, to));
     textsSent += reminders.filter((r) => r.status === "sent" && r.channel === "sms").length;
@@ -278,14 +298,7 @@ export function platformReport(
           const id = (c as { artist_id?: string | null }).artist_id;
           if (!id) continue;
           /* The same shape the business total uses, one call at a time. */
-          const one = addUpCalls([
-            {
-              rangSeconds: c.rang_seconds ?? 0,
-              forwarded: Boolean(c.forwarded),
-              recordedSeconds: c.recorded_seconds ?? 0,
-              transcribed: Boolean(c.transcribed),
-            },
-          ]);
+          const one = addUpCalls([asCallShape(c)]);
           const got = mine.get(id) ?? { calls: 0, pence: 0 };
           mine.set(id, { calls: got.calls + one.calls, pence: got.pence + one.pence });
         }

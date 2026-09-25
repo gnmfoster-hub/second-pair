@@ -178,3 +178,21 @@ test("a month says how many calls were actually talked through", () => {
   assert.ok(month.parts.speakingPence > 0);
   assert.ok(month.parts.listeningPence > 0);
 });
+
+test("a Receptionist call that said nothing is still a Receptionist call", () => {
+  /* The failure worth finding: it answered and never spoke. Inferring from
+     characters would file it as an answerphone and hide it. */
+  const month = addUpCalls([
+    { ...MISSED, answeredBy: "receptionist", spokenCharacters: 0 },
+    { ...MISSED, answeredBy: "answerphone", recordedSeconds: 30 },
+  ]);
+  assert.equal(month.spoken, 1);
+});
+
+test("a row written before the column existed falls back to what was spoken", () => {
+  const month = addUpCalls([
+    { ...MISSED, spokenCharacters: 400, spokenTier: "generative" },
+    MISSED,
+  ]);
+  assert.equal(month.spoken, 1);
+});

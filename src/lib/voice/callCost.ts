@@ -115,6 +115,15 @@ export type CallShape = {
   /** Which tier said them. Ignored when nothing was spoken. */
   spokenTier?: "neural" | "generative";
   /**
+   * What picked the call up, where the row says.
+   *
+   * Counted rather than inferred from spoken characters, because the calls
+   * worth finding are exactly the ones that answered and said nothing — a
+   * Receptionist that failed is still a Receptionist call, and inferring from
+   * what was spoken would file it as an answerphone and hide it.
+   */
+  answeredBy?: string | null;
+  /**
    * Seconds the line spent listening for speech, across the whole call.
    *
    * Zero for a missed call, which never gathers. Separate from the inbound
@@ -234,7 +243,14 @@ export function addUpCalls(
     parts.listeningPence += one.listeningPence;
     pence += one.pence;
     if (call.recordedSeconds > 0) answerphone++;
-    if ((call.spokenCharacters ?? 0) > 0) spoken++;
+    /*
+     * A Receptionist call is one the Receptionist answered, whether or not it
+     * managed to say anything. Falling back to "did it speak" only for rows
+     * written before the column existed.
+     */
+    if (call.answeredBy ? call.answeredBy === "receptionist" : (call.spokenCharacters ?? 0) > 0) {
+      spoken++;
+    }
   }
 
   return { calls: calls.length, answerphone, spoken, pence, parts };

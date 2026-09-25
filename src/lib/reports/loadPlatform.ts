@@ -81,12 +81,20 @@ export async function loadPlatformRows(db: SupabaseClient, range: { from: string
     ),
     // Forms may not exist yet; a failed query is simply no forms.
     all((a, b) => db.from("client_forms").select("studio_id, status, created_at, signed_at").gte("created_at", quarterAgo).range(a, b)),
-    // Nor calls, until their migration runs. `all` stops on the first error,
-    // so an absent table is an empty list rather than a broken report.
+    /*
+     * Nor calls, until their migration runs. `all` stops on the first error,
+     * so an absent table is an empty list rather than a broken report.
+     *
+     * select("*") rather than a list of names, because the Receptionist's own
+     * columns arrive with a migration run by hand and PostgREST refuses the
+     * whole query over one column it has not heard of — which would empty the
+     * call figures on the billing report rather than merely omitting the new
+     * part of them.
+     */
     all((a, b) =>
       db
         .from("calls")
-        .select("studio_id, at, rang_seconds, forwarded, answered, recorded_seconds, transcribed, artist_id")
+        .select("*")
         .gte("at", range.from)
         .lt("at", range.to)
         .range(a, b),
