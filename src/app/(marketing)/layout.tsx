@@ -244,7 +244,38 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 44px button. Neither of the two things a visitor came here to
                 press should be allowed to fold. */}
             {/* Sign in is on the phone's menu instead, where it has room. */}
-            <Link href="/login" className="btn-ghost hidden whitespace-nowrap lg:inline-flex">
+            {/*
+              * prefetch={false}, and it is not a tuning choice.
+              *
+              * Giles: "when i click sign in on the website it goes to a blank
+              * page and i have to refresh to make it go to the sign in page."
+              *
+              * Reproduced exactly, signed out, on a production build: the URL
+              * changes to /login, the body ends up holding three script tags
+              * and no markup at all, and nothing is logged — no console error,
+              * no failed request, no request of any kind. The router had the
+              * page prefetched, used what it had, and rendered nothing. A
+              * reload fetches the real document and it is fine, which is why
+              * it looks intermittent to anybody who hits it.
+              *
+              * Every other link in this header is fine, and the difference is
+              * that they stay inside this layout while /login sits directly
+              * under the root one.
+              *
+              * Turning the prefetch off makes the router go and get the page
+              * when it is clicked, and it arrives. Verified from the home
+              * page, /home and /company on a local production build, which is
+              * the only place this reproduces — it cannot be seen in dev.
+              *
+              * The exact mechanism inside Next is not established, so this is
+              * a fix that is proved rather than understood. What is certain is
+              * the shape of the failure: a prefetched /login renders blank,
+              * and an unprefetched one does not. Left in with its reasons
+              * because the obvious tidy-up is to delete it.
+              *
+              * scripts/check-public.cjs clicks it on every deploy now.
+              */}
+            <Link href="/login" prefetch={false} className="btn-ghost hidden whitespace-nowrap lg:inline-flex">
               Sign in
             </Link>
             {/* The pack allows amber for one call to action per screen. This

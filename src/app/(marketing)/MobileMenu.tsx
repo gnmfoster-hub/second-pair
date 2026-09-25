@@ -117,8 +117,11 @@ export function MobileMenu() {
             className="mt-1 flex items-center justify-between gap-3 px-4 py-3"
             style={{ borderTop: "1px solid var(--border)" }}
           >
+            {/* prefetch={false} for the reason written out in
+                (marketing)/layout.tsx: a prefetched /login arrives blank. */}
             <Link
               href="/login"
+              prefetch={false}
               onClick={() => setOpen(false)}
               className="flex min-h-[44px] items-center text-[16px] font-medium hover:opacity-70"
             >

@@ -130,9 +130,58 @@ const BAD = /Application error|Something went wrong|Internal Server Error|Unhand
     await context.close();
   }
 
+  /*
+   * And the front door: clicking Sign in, rather than loading /login.
+   *
+   * Every check above loads a page by its address, and this fault could not be
+   * seen that way — /login fetched directly is perfect. It only broke when
+   * somebody clicked the link: the router used a prefetched copy and rendered
+   * nothing, so the URL was right, the body held three script tags and no
+   * words, and not one thing was logged anywhere.
+   *
+   * Giles found it, which is the part worth fixing. A visitor who meets it
+   * gets a blank page on the single link that leads to the paying half of the
+   * product, and the only way out is a reload nobody thinks to try.
+   *
+   * So this clicks it the way a person does. Cheap, and it covers the class:
+   * a change that puts the prefetch back, or breaks that route some other
+   * way, shows up here rather than in a message from Giles.
+   */
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    try {
+      await page.goto(`${SITE}/`, { waitUntil: "networkidle", timeout: 30000 });
+      const link = page.locator('a[href="/login"]').first();
+
+      if (!(await link.count())) {
+        problems++;
+        console.log("  the front page has no Sign in link at all");
+      } else {
+        await link.click();
+        await page.waitForTimeout(2500);
+        const words = (await page.locator("body").innerText()).trim();
+        if (!/\/login/.test(page.url())) {
+          problems++;
+          console.log(`  clicking Sign in went to ${page.url()}`);
+        } else if (words.length < 40) {
+          problems++;
+          console.log(
+            `  clicking Sign in landed on a blank page (${words.length} characters).` +
+              "\n      Loading /login directly still works, which is what makes this easy to miss.",
+          );
+        }
+      }
+    } catch (e) {
+      problems++;
+      console.log(`  could not click Sign in: ${e.message || e}`);
+    }
+    await context.close();
+  }
+
   await browser.close();
   console.log(
-    `\n${pages.length * 2} looked at. ${problems ? `${problems} with something wrong.` : "Nothing wrong anywhere."}`,
+    `\n${pages.length * 2} looked at, and Sign in clicked. ${problems ? `${problems} with something wrong.` : "Nothing wrong anywhere."}`,
   );
 
   // Said in the exit code too, so the suite above cannot report a pass over it.

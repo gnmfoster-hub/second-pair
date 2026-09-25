@@ -86,7 +86,11 @@ export default async function JoinPage({
                 That invitation has expired or has already been used. Links last
                 fourteen days and work once &mdash; ask whoever sent it for a fresh one.
               </p>
-              <Link href="/login" className="btn-primary mt-6 w-full">
+              {/* prefetch={false}: see (marketing)/layout.tsx. A prefetched
+                  /login arrives blank, and this one is shown to somebody whose
+                  invitation has already failed — a second dead end would be
+                  the end of it. */}
+              <Link href="/login" prefetch={false} className="btn-primary mt-6 w-full">
                 Go to sign in
               </Link>
             </>
