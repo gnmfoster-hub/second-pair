@@ -4,6 +4,7 @@ import { shouldRing } from "@/lib/channels/phoneNumbers";
 import { verifySignature } from "@/lib/messaging/sms";
 import { hangUp, textsOnly, cannotTakeIt, ringThem, sayAndListen } from "@/lib/voice/twiml";
 import { mayForward } from "@/lib/ceilings";
+import { greetingFor } from "@/lib/voice/howItSounds";
 import { takesCalls } from "@/lib/voice/takesCalls";
 
 export const runtime = "nodejs";
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
   const db = createAdminClient();
   const { data: connection } = await db
     .from("channel_connections")
-    .select("forward_to, studio_id, artist_id, studios(name, channels_allowed, call_monthly_cap, receptionist_allowed, receptionist_on), artists(voice_on)")
+    .select("forward_to, studio_id, artist_id, studios(name, channels_allowed, call_monthly_cap, receptionist_allowed, receptionist_on, receptionist_greeting, receptionist_voice), artists(voice_on)")
     .in("channel", ["sms", "voice"])
     .eq("external_id", to)
     .eq("active", true)
@@ -117,11 +118,24 @@ export async function POST(request: NextRequest) {
      * who has just dialled a hairdresser wants to say what they want, not hear
      * a paragraph, and a long greeting is the thing people talk over.
      */
+    /*
+     * Their words and their voice, where they have chosen any.
+     *
+     * Giles: "there would need to be some added tailoring from the
+     * businesses." The greeting is the only sentence a caller judges before
+     * deciding whether this is worth their time, and a one-man trade who
+     * answers "Morning, Dave speaking" should not be made to say the salon
+     * version. See lib/voice/howItSounds.
+     */
+    const theirs = studio as unknown as {
+      receptionist_greeting?: string | null;
+      receptionist_voice?: string | null;
+    } | null;
+
     return xml(
-      sayAndListen(
-        `Hello, ${studio?.name ?? "the salon"}. How can I help?`,
-        "/api/voice/talk",
-      ),
+      sayAndListen(greetingFor(theirs?.receptionist_greeting, studio?.name), "/api/voice/talk", {
+        voice: theirs?.receptionist_voice,
+      }),
     );
   }
 

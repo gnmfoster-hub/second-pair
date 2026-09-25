@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
    */
   const { data: connection } = await db
     .from("channel_connections")
-    .select("artist_id, studios(slug, receptionist_allowed, receptionist_on, receptionist_holds, receptionist_asks_deposit), artists(voice_on)")
+    .select("artist_id, studios(slug, receptionist_allowed, receptionist_on, receptionist_holds, receptionist_asks_deposit, receptionist_voice), artists(voice_on)")
     .eq("channel", "sms")
     .eq("external_id", to)
     .eq("active", true)
@@ -90,6 +90,7 @@ export async function POST(request: NextRequest) {
         receptionist_on: boolean | null;
         receptionist_holds: boolean | null;
         receptionist_asks_deposit: boolean | null;
+        receptionist_voice: string | null;
       }
     | null;
 
@@ -127,6 +128,7 @@ export async function POST(request: NextRequest) {
     return xml(
       sayAndFinish(
         "I did not catch that, so I will text you instead and you can reply whenever you like.",
+        studio.receptionist_voice,
       ),
     );
   }
@@ -203,7 +205,7 @@ export async function POST(request: NextRequest) {
         `, said ${reply.length} characters${links.length ? `, texted ${links.length} link(s)` : ""}`,
     );
 
-    return xml(sayAndListen(reply, `/api/voice/talk`));
+    return xml(sayAndListen(reply, `/api/voice/talk`, { voice: studio.receptionist_voice }));
   } catch (error) {
     /*
      * Never a silent drop. The assistant failing is our problem and the caller

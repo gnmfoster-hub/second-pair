@@ -289,6 +289,9 @@ export default async function ChannelsPage({
           /* What it may do once it answers. See lib/voice/whatItMayDo. */
           holds={(studio as unknown as { receptionist_holds?: boolean | null }).receptionist_holds !== false}
           asksDeposit={(studio as unknown as { receptionist_asks_deposit?: boolean | null }).receptionist_asks_deposit === true}
+          greeting={(studio as unknown as { receptionist_greeting?: string | null }).receptionist_greeting ?? null}
+          voice={(studio as unknown as { receptionist_voice?: string | null }).receptionist_voice ?? null}
+          businessName={studio.name}
           people={everyone
             .filter((a) => (a as { voice_on?: boolean | null }).voice_on === true)
             .map((a) => a.name)}

@@ -1,3 +1,5 @@
+import { DEFAULT_VOICE, voiceFor } from "./howItSounds.ts";
+
 /**
  * What we hand Twilio when a phone rings, written where it can be read.
  *
@@ -29,7 +31,18 @@
  * than at seven call sites, so the next opinion about how it sounds is one
  * edit.
  */
-const VOICE = 'voice="Polly.Amy-Neural" language="en-GB"';
+const VOICE = `voice="${DEFAULT_VOICE}" language="en-GB"`;
+
+/**
+ * The same, for a business that has chosen a different one.
+ *
+ * Only the two the Receptionist uses take it. The others — the texts-only
+ * message, the missed-call handover — are the product speaking rather than a
+ * business, and giving every string a voice argument would be four more places
+ * to pass the same thing through for no gain.
+ */
+const speaksAs = (voice: string | null | undefined) =>
+  `voice="${voiceFor(voice)}" language="en-GB"`;
 
 /** Anything that goes inside a tag or an attribute has to survive being XML. */
 export function escapeXml(value: string): string {
@@ -151,7 +164,7 @@ export function takeAMessage(said: string, to: string): string {
 export function sayAndListen(
   said: string,
   action: string,
-  options: { hints?: string } = {},
+  options: { hints?: string; voice?: string | null } = {},
 ): string {
   const hints = options.hints
     ? ` hints="${escapeXml(options.hints)}"`
@@ -159,7 +172,7 @@ export function sayAndListen(
 
   return twiml(
     `<Gather input="speech" speechTimeout="auto" language="en-GB" action="${escapeXml(action)}" method="POST"${hints}>` +
-      `<Say ${VOICE}>${escapeXml(said)}</Say>` +
+      `<Say ${speaksAs(options.voice)}>${escapeXml(said)}</Say>` +
       `</Gather>` +
       /*
        * What happens when somebody says nothing at all.
@@ -170,7 +183,7 @@ export function sayAndListen(
        * line, or who put the phone down on the table, gets told what to do
        * instead of hearing it go dead.
        */
-      `<Say ${VOICE}>Sorry, I did not catch that. I will text you instead so you can reply when you are ready.</Say>`,
+      `<Say ${speaksAs(options.voice)}>Sorry, I did not catch that. I will text you instead so you can reply when you are ready.</Say>`,
   );
 }
 
@@ -181,6 +194,6 @@ export function sayAndListen(
  * line open for several seconds while the caller waits for a machine that has
  * finished. Ending the call is part of answering it well.
  */
-export function sayAndFinish(said: string): string {
-  return twiml(`<Say ${VOICE}>${escapeXml(said)}</Say><Hangup />`);
+export function sayAndFinish(said: string, voice?: string | null): string {
+  return twiml(`<Say ${speaksAs(voice)}>${escapeXml(said)}</Say><Hangup />`);
 }

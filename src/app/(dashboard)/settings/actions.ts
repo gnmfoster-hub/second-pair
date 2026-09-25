@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { voiceFor, GREETING_LIMIT } from "@/lib/voice/howItSounds";
 import { STARTERS } from "@/lib/quickMessages";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio, requireOwner, getArtists } from "@/lib/studio";
@@ -1826,6 +1827,17 @@ export async function setReceptionist(
         : {}),
       ...((await hasColumn(supabase, "studios", "receptionist_asks_deposit"))
         ? { receptionist_asks_deposit: fd.get("receptionist_asks_deposit") === "on" }
+        : {}),
+      /*
+       * How it opens and how it sounds. The voice is narrowed to the list
+       * before it is stored: an unknown name is a call that reaches somebody
+       * and says nothing at all, and Twilio does not tell us in advance.
+       */
+      ...((await hasColumn(supabase, "studios", "receptionist_greeting"))
+        ? { receptionist_greeting: str(fd, "receptionist_greeting").slice(0, GREETING_LIMIT) || null }
+        : {}),
+      ...((await hasColumn(supabase, "studios", "receptionist_voice"))
+        ? { receptionist_voice: voiceFor(str(fd, "receptionist_voice")) }
         : {}),
     })
     .eq("id", studio.id);

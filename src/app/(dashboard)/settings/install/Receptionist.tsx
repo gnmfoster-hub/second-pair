@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { setReceptionist } from "../actions";
+import { VOICES, GREETING_LIMIT, greetingFor } from "@/lib/voice/howItSounds";
 
 /**
  * The Receptionist, which is not the voicemail response above it.
@@ -32,6 +33,9 @@ export function Receptionist({
   people,
   holds = true,
   asksDeposit = false,
+  greeting = null,
+  voice = null,
+  businessName = null,
 }: {
   /** Whether it has been sold to this business. Ours to set, never theirs. */
   allowed: boolean;
@@ -43,6 +47,11 @@ export function Receptionist({
   holds?: boolean;
   /** It may text a deposit link after the call. Off by default. */
   asksDeposit?: boolean;
+  /** The first thing it says. Null uses the business's name. */
+  greeting?: string | null;
+  /** Which voice speaks. Null is the house default. */
+  voice?: string | null;
+  businessName?: string | null;
 }) {
   const [state, action] = useActionState<{ error?: string; ok?: boolean }, FormData>(
     setReceptionist,
@@ -93,6 +102,45 @@ export function Receptionist({
             </span>
           </span>
         </label>
+
+        {/*
+          * How it opens, and how it sounds.
+          *
+          * Giles, after hearing it answer for the first time: "there would
+          * need to be some added tailoring from the businesses." These two,
+          * and no more — tone of voice, house rules and never-say are already
+          * theirs on the Assistant page and already reach the phone, because
+          * it is the same assistant answering.
+          */}
+        <div className="space-y-3 border-t border-border pt-3">
+          <label className="block text-sm">
+            <span className="label">The first thing it says</span>
+            <input
+              name="receptionist_greeting"
+              defaultValue={greeting ?? ""}
+              maxLength={GREETING_LIMIT}
+              placeholder={greetingFor(null, businessName)}
+              className="input"
+            />
+            <span className="hint">
+              Leave it empty and it opens with your name, as above. Keep it short: this is
+              the one sentence somebody judges before deciding whether to carry on, and a
+              paragraph is the thing callers talk over.
+            </span>
+          </label>
+
+          <label className="block text-sm">
+            <span className="label">Whose voice</span>
+            <select name="receptionist_voice" defaultValue={voice ?? ""} className="input max-w-xs">
+              {VOICES.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.label} — {v.what}
+                </option>
+              ))}
+            </select>
+            <span className="hint">All British. Worth ringing your own number to hear it.</span>
+          </label>
+        </div>
 
         {/*
           * What it may do once it is answering.
