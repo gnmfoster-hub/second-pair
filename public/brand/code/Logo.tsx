@@ -1,3 +1,12 @@
+/*
+ * The brand pack author's handoff sample. Not used by the app, and it no
+ * longer works: it loads `svg/` files that have been deleted, because the
+ * navy/cream/orange two-hands brand it draws is not the brand any more.
+ *
+ * Left as written rather than repointed, because it is somebody else's
+ * deliverable and rewriting it would make it look maintained. The component
+ * the site actually uses is `src/components/Logo.tsx`.
+ */
 import type { CSSProperties, ImgHTMLAttributes } from "react";
 
 type Tagline = "default" | "trades" | "hands" | "none";
