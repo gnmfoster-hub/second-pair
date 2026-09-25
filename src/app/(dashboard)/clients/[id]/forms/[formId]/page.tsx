@@ -58,6 +58,27 @@ export default async function ClientFormPage({
     fileUrl = data?.signedUrl ?? null;
   }
 
+  /*
+   * Who on the team sent it.
+   *
+   * created_by has been written on every form since forms were built and read
+   * by nothing — found by the audit of columns the product writes and never
+   * looks at. It matters on a page that exists to settle disagreements: "who
+   * sent this and when" is half of what somebody wants from a consent record,
+   * and the other half — when, from where, on what — was already here.
+   *
+   * Resolved through artists.user_id, which is the only place a login has a
+   * name against it. Somebody who has left has no row, and that is said rather
+   * than guessed at: a blank is better than the wrong name on a record.
+   */
+  let sentBy: string | null = null;
+  if (form.created_by) {
+    const team = await getArtists(studio.id);
+    sentBy =
+      team.find((a) => (a as { user_id?: string | null }).user_id === form.created_by)?.name ??
+      null;
+  }
+
   const stamp = (iso: string | null) =>
     iso
       ? new Date(iso).toLocaleString("en-GB", {
@@ -225,6 +246,21 @@ export default async function ClientFormPage({
           })}{" "}
           The questions shown are the ones sent, kept with the form, so later changes to the
           form do not alter this record.
+        </p>
+      )}
+
+      {/*
+        * And who sent it, which applies whether or not anybody has signed.
+        *
+        * Separate from the block above because that one is the signature's
+        * record and this is the form's. A form still waiting is the case where
+        * this matters most: on the waiting-to-be-signed list, "whose job is
+        * this" is the question, and until now the answer was not anywhere.
+        */}
+      {sentBy && (
+        <p className="hint text-xs">
+          Sent by {sentBy}
+          {form.sent_at ? ` on ${stamp(form.sent_at as string)}` : ""}.
         </p>
       )}
     </div>

@@ -37,14 +37,32 @@ for (const block of sql.matchAll(/create table (?:if not exists )?[a-z_]+ \(([\s
   }
 }
 
+/*
+ * Both halves of the product: the app, and the tools that read it.
+ *
+ * This walked only src/, so a column read solely by a script in scripts/ came
+ * back as dead. model_spend.studio_slug was the case that gave it away — it is
+ * selected and grouped by in api-spend.mjs, which is the entire reason that
+ * column exists, and this called it written-and-never-read.
+ *
+ * Its own file is skipped, and only its own. It is the one place in the
+ * repository that names columns in prose — every comment explaining a past
+ * false positive mentions the column it was wrong about — and counting those
+ * as reads would quietly hide the next real one.
+ */
 const files = [];
 (function walk(dir) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, e.name);
     if (e.isDirectory()) walk(p);
-    else if (/\.(ts|tsx)$/.test(e.name) && !/\.test\./.test(e.name)) files.push(p);
+    else if (/\.(ts|tsx|mjs|cjs)$/.test(e.name) && !/\.test\./.test(e.name)) files.push(p);
   }
 })("src");
+
+for (const e of fs.readdirSync("scripts", { withFileTypes: true })) {
+  if (!e.isFile() || e.name === "dead-columns.mjs") continue;
+  if (/\.(ts|mjs|cjs)$/.test(e.name)) files.push(path.join("scripts", e.name));
+}
 
 const source = files.map((f) => fs.readFileSync(f, "utf8"));
 
@@ -58,7 +76,29 @@ const skip = new Set([
   "description", "cover_up", "app_id", "band_id", "calendar_id",
 ]);
 
+/*
+ * Columns that are unread on purpose, and why.
+ *
+ * Not skipped — still printed, under their own heading. A column nobody reads
+ * is worth seeing whether or not it is deliberate; what is not worth anything
+ * is the same three names appearing under "look at this" on every run until
+ * the whole list stops being read. That has already happened once to
+ * audit-setups, and the fix there was the same: say what a thing is rather
+ * than hide it.
+ *
+ * Anything here is a claim about intent, so each one names its evidence.
+ */
+const KNOWN = {
+  calendar_event_id:
+    "bookings, from the first migration. A vestige of writing appointments back into an external calendar, which was never built — the product subscribes to a calendar instead (artists.personal_ical_url). Never written by anything, so there is nothing in it.",
+  from_number:
+    "calls. Deliberate: the migration says 'there is no screen that needs a customer's call log', and the caller's number is already on the conversation the call started.",
+  to_number:
+    "calls. The same decision as from_number — which line was rung is a fact about our own numbers, not something a business needs shown back to it.",
+};
+
 const suspects = [];
+const deliberate = [];
 for (const col of [...columns].sort()) {
   if (skip.has(col) || dropped.has(col) || col.length < 6) continue;
 
@@ -129,10 +169,37 @@ for (const col of [...columns].sort()) {
   if (new RegExp("set\\s+" + col + "\\s*=", "gi").test(sql)) writes += 1;
   if (new RegExp("^\\s*" + col + "\\s+[a-z].*default", "gim").test(sql)) writes += 1;
 
-  if (writes === 0 && reads === 0) suspects.push([col, "never mentioned at all"]);
-  else if (writes === 0) suspects.push([col, "read, never written"]);
-  else if (reads === 0) suspects.push([col, "written, never read"]);
+  let verdict = null;
+  if (writes === 0 && reads === 0) verdict = "never mentioned at all";
+  else if (writes === 0) verdict = "read, never written";
+  else if (reads === 0) verdict = "written, never read";
+  if (!verdict) continue;
+
+  (KNOWN[col] ? deliberate : suspects).push([col, verdict]);
 }
 
 for (const [col, verdict] of suspects) console.log(`${col.padEnd(30)} ${verdict}`);
-console.log(`\n${suspects.length} candidates out of ${columns.size} columns`);
+
+console.log(
+  `\n${suspects.length} to look at, out of ${columns.size} columns.` +
+    (suspects.length ? "" : " Nothing stored that nothing reads."),
+);
+
+if (deliberate.length) {
+  console.log(`\nUnread on purpose — ${deliberate.length}, and why:`);
+  for (const [col, verdict] of deliberate) {
+    console.log(`\n  ${col}  (${verdict})`);
+    /* Wrapped by hand: a reason worth writing down is worth being able to
+       read at the width of a terminal. */
+    const words = KNOWN[col].split(" ");
+    let line = "   ";
+    for (const w of words) {
+      if ((line + " " + w).length > 76) {
+        console.log(line);
+        line = "   ";
+      }
+      line += ` ${w}`;
+    }
+    if (line.trim()) console.log(line);
+  }
+}
