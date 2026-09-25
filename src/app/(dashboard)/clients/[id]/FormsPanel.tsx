@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { flagged, cleanBlocks } from "@/lib/forms/blocks";
+import { formLine, wentNowhere } from "@/lib/forms/howItWent";
 import { SendForm } from "./SendForm";
 import { PaperForm } from "./PaperForm";
 import { SendQuote } from "./SendQuote";
@@ -35,7 +36,7 @@ export async function FormsPanel({
   const [{ data: forms, error }, { data: templates }] = await Promise.all([
     supabase
       .from("client_forms")
-      .select("id, title, status, sent_at, opened_at, signed_at, created_at, blocks, answers, file_type")
+      .select("id, title, status, sent_at, opened_at, signed_at, created_at, blocks, answers, file_type, sent_via")
       .eq("contact_id", contactId)
       .eq("studio_id", studioId)
       .neq("status", "void")
@@ -87,7 +88,11 @@ export async function FormsPanel({
                   </span>
                   <span className="flex shrink-0 gap-1">
                     {warn && <span className="pill bg-warn/10 text-[0.65rem] text-warn">Read answers</span>}
-                    <Status status={f.status as string} quote={String(f.title).startsWith("Quote")} />
+                    <Status
+                      status={f.status as string}
+                      sentVia={(f as { sent_via?: string | null }).sent_via ?? null}
+                      quote={String(f.title).startsWith("Quote")}
+                    />
                   </span>
                 </Link>
               </li>
@@ -113,7 +118,32 @@ export async function FormsPanel({
   );
 }
 
-function Status({ status, quote = false }: { status: string; quote?: boolean }) {
+function Status({
+  status,
+  sentVia,
+  quote = false,
+}: {
+  status: string;
+  sentVia: string | null;
+  quote?: boolean;
+}) {
+  /*
+   * A link nobody has handed over is not "Sent".
+   *
+   * The row's status is "sent" either way — it is the same row whether a text
+   * went out or a URL was put on the screen for somebody to pass on. The
+   * second kind wore a grey "Sent" badge, which reads as done and waiting on
+   * the customer. It is the opposite: it is waiting on whoever made it.
+   *
+   * So it is drawn in the warning colour rather than the quiet one, because it
+   * is a job. Nothing live is in this state today — every form that went out
+   * as a link was opened or signed, so somebody did pass it on — but a form
+   * made for a walk-in with no number and no address lands here every time.
+   */
+  if (status === "sent" && wentNowhere(sentVia)) {
+    return <span className="pill bg-warn/10 text-[0.65rem] text-warn">Not sent</span>;
+  }
+
   const look: Record<string, [string, string]> = {
     sent: ["Sent", "bg-surface-2 text-muted"],
     opened: ["Opened", "bg-accent/10 text-accent"],
@@ -124,11 +154,21 @@ function Status({ status, quote = false }: { status: string; quote?: boolean }) 
   return <span className={`pill text-[0.65rem] ${cls}`}>{label}</span>;
 }
 
-function when(f: { status: string; sent_at: string | null; opened_at: string | null; signed_at: string | null; created_at: string }) {
-  const day = (iso: string | null) =>
-    iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "";
-  if (f.status === "signed") return `Signed ${day(f.signed_at)}`;
-  if (f.status === "paper") return `Kept ${day(f.signed_at ?? f.created_at)}`;
-  if (f.status === "opened") return `Opened ${day(f.opened_at)} · not signed yet`;
-  return `Sent ${day(f.sent_at ?? f.created_at)} · not opened yet`;
+/** See lib/forms/howItWent — the wording lives there so it can be tested. */
+function when(f: {
+  status: string;
+  sent_at: string | null;
+  opened_at: string | null;
+  signed_at: string | null;
+  created_at: string;
+  sent_via?: string | null;
+}) {
+  return formLine({
+    status: f.status,
+    sentVia: f.sent_via ?? null,
+    sentAt: f.sent_at,
+    openedAt: f.opened_at,
+    signedAt: f.signed_at,
+    createdAt: f.created_at,
+  });
 }

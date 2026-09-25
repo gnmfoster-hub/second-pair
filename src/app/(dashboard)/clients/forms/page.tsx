@@ -3,6 +3,7 @@ import { requireStudio } from "@/lib/studio";
 import { createClient } from "@/lib/supabase/server";
 import { wordsFor, capital } from "@/lib/words";
 import { SendToSeveral } from "./SendToSeveral";
+import { wentNowhere } from "@/lib/forms/howItWent";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export default async function FormsOverviewPage() {
       .limit(1000),
     supabase
       .from("client_forms")
-      .select("id, title, status, sent_at, opened_at, contact_id, contacts(name)")
+      .select("id, title, status, sent_at, opened_at, contact_id, sent_via, contacts(name)")
       .eq("studio_id", studio.id)
       .in("status", ["sent", "opened"])
       .order("sent_at", { ascending: true })
@@ -107,24 +108,67 @@ export default async function FormsOverviewPage() {
         <h2 className="section-title">Waiting to be signed</h2>
         {waiting.data && waiting.data.length > 0 ? (
           <ul className="mt-3 divide-y divide-border">
-            {waiting.data.map((f) => (
-              <li key={f.id}>
-                <Link href={`/clients/${f.contact_id}/forms/${f.id}`} className="flex items-center justify-between gap-3 py-2.5 text-sm hover:text-accent">
-                  <span className="min-w-0">
-                    <span className="block truncate font-medium">{(f.contacts as unknown as { name: string | null } | null)?.name ?? "Unnamed"}</span>
-                    <span className="hint block text-xs">
-                      {f.title} · sent {age(f.sent_at as string)}
+            {waiting.data.map((f) => {
+              /*
+               * Waiting on them, or waiting on you.
+               *
+               * This list put both in one pile and labelled the whole pile
+               * "Not opened", which reads as a customer ignoring you. It is
+               * not always that: a form made for somebody with no number and
+               * no email address never goes anywhere at all — a link is put on
+               * their record for a person to hand over, and until somebody
+               * does, the customer has nothing to ignore.
+               *
+               * Those are opposite jobs. One is a nudge, the other is you
+               * owing somebody a link, and a work list that cannot tell them
+               * apart is a work list nobody trusts. See lib/forms/howItWent.
+               */
+              const unsent = f.status !== "opened" && wentNowhere((f as { sent_via?: string | null }).sent_via ?? null);
+              return (
+                <li key={f.id}>
+                  <Link href={`/clients/${f.contact_id}/forms/${f.id}`} className="flex items-center justify-between gap-3 py-2.5 text-sm hover:text-accent">
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium">{(f.contacts as unknown as { name: string | null } | null)?.name ?? "Unnamed"}</span>
+                      <span className="hint block text-xs">
+                        {f.title} · {unsent ? "link made" : "sent"} {age(f.sent_at as string)}
+                        {unsent ? " · nobody has been given it" : ""}
+                      </span>
                     </span>
-                  </span>
-                  <span className={`pill shrink-0 text-[0.65rem] ${f.status === "opened" ? "bg-accent/10 text-accent" : "bg-surface-2 text-muted"}`}>
-                    {f.status === "opened" ? "Opened" : "Not opened"}
-                  </span>
-                </Link>
-              </li>
-            ))}
+                    <span
+                      className={`pill shrink-0 text-[0.65rem] ${
+                        f.status === "opened"
+                          ? "bg-accent/10 text-accent"
+                          : unsent
+                            ? "bg-warn/10 text-warn"
+                            : "bg-surface-2 text-muted"
+                      }`}
+                    >
+                      {f.status === "opened" ? "Opened" : unsent ? "Not sent" : "Not opened"}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p className="hint mt-2 text-sm">Nothing waiting. Every form sent has been signed.</p>
+        )}
+
+        {/*
+          * Said once, under the list, rather than on every row that has it.
+          *
+          * A business seeing "Not sent" for the first time will ask what it
+          * means, and the answer is short: there was no way to reach that
+          * person when the form was made, so a link was put on their record
+          * for somebody to hand over. It is on the row because it is a job,
+          * and explained here because it only needs explaining once.
+          */}
+        {waiting.data?.some((f) => f.status !== "opened" && wentNowhere((f as { sent_via?: string | null }).sent_via ?? null)) && (
+          <p className="hint mt-3 max-w-prose text-xs">
+            &ldquo;Not sent&rdquo; means a link was made but nothing went out — usually because
+            there was no mobile number or email address on that person. Open it to get the
+            link and send it however suits.
+          </p>
         )}
       </section>
     </div>
