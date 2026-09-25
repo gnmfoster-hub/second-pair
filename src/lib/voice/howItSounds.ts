@@ -23,17 +23,57 @@
  * at all, which is the worst failure this product has — so the value can only
  * ever be one of these.
  *
- * All British, because the businesses are. The neural builds, because the
- * first real call was judged on pronunciation before anything else.
+ * All British, because the businesses are.
+ *
+ * ── Two tiers, and the reason the dear one is the default ───────────────────
+ *
+ * Giles, after a second real call: "it wasnt the best voice etc it needs
+ * improving."
+ *
+ * Twilio bills text to speech in three tiers — standard, neural, generative —
+ * at 0.08p, 0.32p and 1.3p per hundred characters. Every voice within a tier
+ * costs the same whoever makes it. This list used only the middle one, because
+ * when it was written the top one was the thing that had just been fixed:
+ * moving off Twilio's American "alice" onto a British neural voice.
+ *
+ * Generative is four times the price of neural and it is still small: a six
+ * turn call says roughly nine hundred characters, so about 12p rather than 3p.
+ * On a call the voice is not part of the experience, it is the whole of it —
+ * the caller has nothing else to judge by — and 9p is not a reason to sound
+ * like a machine to somebody deciding whether to book.
+ *
+ * So the default is generative and the neural ones stay, marked as cheaper, so
+ * a business that would rather have the pennies can go back in one click. That
+ * was Giles's condition: "make it the default, re-cost it, and have the
+ * ability to switch back."
+ *
+ * The cost is metered now rather than assumed — see lib/voice/callCost, which
+ * counts characters spoken at the rate of whichever tier said them.
  */
 export const VOICES = [
-  { id: "Polly.Amy-Neural", label: "Amy", what: "British, warm, the default" },
-  { id: "Polly.Emma-Neural", label: "Emma", what: "British, brisker" },
-  { id: "Polly.Brian-Neural", label: "Brian", what: "British, male" },
-  { id: "Polly.Arthur-Neural", label: "Arthur", what: "British, male, older" },
+  {
+    id: "Polly.Amy-Generative",
+    label: "Amy",
+    what: "British, warm — the most natural, and the default",
+    tier: "generative",
+  },
+  {
+    id: "Polly.Amy-Neural",
+    label: "Amy (cheaper)",
+    what: "The same British voice, older engine",
+    tier: "neural",
+  },
+  { id: "Polly.Emma-Neural", label: "Emma (cheaper)", what: "British, brisker", tier: "neural" },
+  { id: "Polly.Brian-Neural", label: "Brian (cheaper)", what: "British, male", tier: "neural" },
+  { id: "Polly.Arthur-Neural", label: "Arthur (cheaper)", what: "British, male, older", tier: "neural" },
 ] as const;
 
 export const DEFAULT_VOICE = VOICES[0].id;
+
+/** Which price tier a voice bills at. Unknown names bill as the default's. */
+export function tierOf(voice: string | null | undefined): "generative" | "neural" {
+  return VOICES.find((v) => v.id === voice)?.tier ?? VOICES[0].tier;
+}
 
 /**
  * The voice to speak with.

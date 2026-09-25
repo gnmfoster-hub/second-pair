@@ -28,6 +28,26 @@ export type CallRates = {
   outPence: number;
   recordingPence: number;
   transcriptionPence: number;
+  /**
+   * Speaking, per hundred characters, by tier.
+   *
+   * The Receptionist changed what a call costs and nothing here knew about it.
+   * A missed call says one sentence and hangs up; a Receptionist call holds a
+   * conversation, and every word of it is synthesised and billed by the
+   * character. Twilio prices text to speech in three tiers at the same rate
+   * whoever makes the voice, so this is two numbers rather than a table of
+   * voices.
+   */
+  speakNeuralPer100: number;
+  speakGenerativePer100: number;
+  /**
+   * Listening, per minute.
+   *
+   * Speech recognition on the Gather, which runs for as long as the caller is
+   * talking and is charged on top of the inbound leg. A call where somebody
+   * explains a job costs more than one where they say "Tuesday".
+   */
+  listenPence: number;
 };
 
 /**
@@ -49,6 +69,16 @@ export const CALL_RATES: CallRates = {
   outPence: 4.5,
   recordingPence: 0.2,
   transcriptionPence: 4,
+  /*
+   * Twilio's published tiers: $0.0032 and $0.0130 per hundred characters,
+   * at a round 80p to the dollar. Four times the price for the generative
+   * one, which is the trade Giles took deliberately — on a call the voice is
+   * not part of the experience, it is the whole of it.
+   */
+  speakNeuralPer100: 0.26,
+  speakGenerativePer100: 1.04,
+  /* Speech recognition on the Gather, roughly $0.02 a minute. */
+  listenPence: 1.6,
 };
 
 /**
@@ -73,6 +103,25 @@ export type CallShape = {
   recordedSeconds: number;
   /** Whether those words went off to be transcribed. */
   transcribed: boolean;
+  /**
+   * Characters the Receptionist actually spoke, across the whole call.
+   *
+   * Zero on every call that is not a Receptionist call, which is what a
+   * missing value means and why it defaults that way: the answerphone's own
+   * sentences are covered by SPOKEN_SECONDS on the inbound leg and were
+   * already priced.
+   */
+  spokenCharacters?: number;
+  /** Which tier said them. Ignored when nothing was spoken. */
+  spokenTier?: "neural" | "generative";
+  /**
+   * Seconds the line spent listening for speech, across the whole call.
+   *
+   * Zero for a missed call, which never gathers. Separate from the inbound
+   * leg: the caller is connected either way, and recognition is charged on
+   * top of being connected.
+   */
+  listenedSeconds?: number;
 };
 
 /** Whole minutes, rounded up, the way every carrier bills a leg. */
@@ -91,7 +140,15 @@ export function minutes(seconds: number): number {
 export function callCost(
   call: CallShape,
   rates: CallRates = CALL_RATES,
-): { inPence: number; outPence: number; recordingPence: number; transcriptionPence: number; pence: number } {
+): {
+  inPence: number;
+  outPence: number;
+  recordingPence: number;
+  transcriptionPence: number;
+  speakingPence: number;
+  listeningPence: number;
+  pence: number;
+} {
   /*
    * Every call that reaches us is connected, so every call costs at least one
    * inbound minute — the carrier's floor, not ours.
@@ -102,19 +159,44 @@ export function callCost(
    * possible outcome is a minute, not free. A channel that reads as free is
    * the exact mistake this file exists to stop.
    */
-  const connected = call.rangSeconds + call.recordedSeconds + SPOKEN_SECONDS;
+  const listened = call.listenedSeconds ?? 0;
+  const connected = call.rangSeconds + call.recordedSeconds + listened + SPOKEN_SECONDS;
 
   const inPence = minutes(connected) * rates.inPence;
   const outPence = call.forwarded ? minutes(call.rangSeconds) * rates.outPence : 0;
   const recordingPence = minutes(call.recordedSeconds) * rates.recordingPence;
   const transcriptionPence = call.transcribed ? minutes(call.recordedSeconds) * rates.transcriptionPence : 0;
 
+  /*
+   * What it cost to talk, which is billed by the character rather than the
+   * minute — the one meter on this call that is not a clock.
+   *
+   * Not rounded up to anything: Twilio bills the characters it synthesised, so
+   * a hundred and fifty of them is a hundred and fifty. Rounding a per-100
+   * rate up to whole hundreds would overstate every short sentence, and short
+   * sentences are most of a good call.
+   */
+  const per100 =
+    call.spokenTier === "neural" ? rates.speakNeuralPer100 : rates.speakGenerativePer100;
+  const speakingPence = ((call.spokenCharacters ?? 0) / 100) * per100;
+
+  /* And what it cost to hear them. Charged by the minute like every leg. */
+  const listeningPence = minutes(listened) * rates.listenPence;
+
   return {
     inPence,
     outPence,
     recordingPence,
     transcriptionPence,
-    pence: inPence + outPence + recordingPence + transcriptionPence,
+    speakingPence,
+    listeningPence,
+    pence:
+      inPence +
+      outPence +
+      recordingPence +
+      transcriptionPence +
+      speakingPence +
+      listeningPence,
   };
 }
 
@@ -122,10 +204,25 @@ export function callCost(
 export function addUpCalls(
   calls: CallShape[],
   rates: CallRates = CALL_RATES,
-): { calls: number; answerphone: number; pence: number; parts: Record<string, number> } {
-  const parts = { inPence: 0, outPence: 0, recordingPence: 0, transcriptionPence: 0 };
+): {
+  calls: number;
+  answerphone: number;
+  /** How many of them the Receptionist actually held a conversation on. */
+  spoken: number;
+  pence: number;
+  parts: Record<string, number>;
+} {
+  const parts = {
+    inPence: 0,
+    outPence: 0,
+    recordingPence: 0,
+    transcriptionPence: 0,
+    speakingPence: 0,
+    listeningPence: 0,
+  };
   let pence = 0;
   let answerphone = 0;
+  let spoken = 0;
 
   for (const call of calls) {
     const one = callCost(call, rates);
@@ -133,9 +230,12 @@ export function addUpCalls(
     parts.outPence += one.outPence;
     parts.recordingPence += one.recordingPence;
     parts.transcriptionPence += one.transcriptionPence;
+    parts.speakingPence += one.speakingPence;
+    parts.listeningPence += one.listeningPence;
     pence += one.pence;
     if (call.recordedSeconds > 0) answerphone++;
+    if ((call.spokenCharacters ?? 0) > 0) spoken++;
   }
 
-  return { calls: calls.length, answerphone, pence, parts };
+  return { calls: calls.length, answerphone, spoken, pence, parts };
 }

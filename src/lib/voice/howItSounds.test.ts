@@ -1,6 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { voiceFor, greetingFor, VOICES, DEFAULT_VOICE, GREETING_LIMIT } from "./howItSounds.ts";
+import {
+  voiceFor,
+  greetingFor,
+  tierOf,
+  VOICES,
+  DEFAULT_VOICE,
+  GREETING_LIMIT,
+} from "./howItSounds.ts";
 
 /*
  * Twilio does not validate a voice name in advance. An unknown one is a call
@@ -25,6 +32,30 @@ test("every voice on the list is British and named for a person", () => {
     assert.ok(v.label.length > 2, `${v.id} needs a name somebody would recognise`);
     assert.match(v.id, /^Polly\./);
   }
+});
+
+/*
+ * Giles: "make it the default, re-cost it, and have the ability to switch
+ * back." All three of those are facts about this list.
+ */
+test("the default is the generative voice", () => {
+  assert.equal(DEFAULT_VOICE, "Polly.Amy-Generative");
+  assert.equal(tierOf(DEFAULT_VOICE), "generative");
+});
+
+test("there is always a cheaper one to switch back to", () => {
+  const cheaper = VOICES.filter((v) => v.tier === "neural");
+  assert.ok(cheaper.length > 0, "switching back has to be possible");
+  assert.ok(
+    cheaper.some((v) => v.label.startsWith("Amy")),
+    "the same voice on the cheaper engine, so going back is not also a change of person",
+  );
+});
+
+test("the tier is what gets billed, so an unknown voice must not read as cheap", () => {
+  assert.equal(tierOf("Polly.Brian-Neural"), "neural");
+  assert.equal(tierOf("Polly.Nonsense"), "generative", "unknown falls back to the default, which is what will actually speak");
+  assert.equal(tierOf(null), "generative");
 });
 
 /*

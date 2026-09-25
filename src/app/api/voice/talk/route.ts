@@ -2,6 +2,8 @@ import { NextResponse, after, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifySignature, sendSms } from "@/lib/messaging/sms";
 import { afterCallText } from "@/lib/voice/afterTheCall";
+import { recordTurn } from "@/lib/voice/recordCall";
+import { tierOf } from "@/lib/voice/howItSounds";
 import { hangUp, sayAndListen, sayAndFinish } from "@/lib/voice/twiml";
 import { onTheCall, whatToSay } from "@/lib/voice/whatItMayDo";
 import { sayable } from "@/lib/voice/sayable";
@@ -77,7 +79,7 @@ export async function POST(request: NextRequest) {
    */
   const { data: connection } = await db
     .from("channel_connections")
-    .select("artist_id, studios(slug, name, receptionist_allowed, receptionist_on, receptionist_holds, receptionist_asks_deposit, receptionist_voice), artists(voice_on)")
+    .select("artist_id, studio_id, studios(slug, name, receptionist_allowed, receptionist_on, receptionist_holds, receptionist_asks_deposit, receptionist_voice), artists(voice_on)")
     .eq("channel", "sms")
     .eq("external_id", to)
     .eq("active", true)
@@ -280,6 +282,33 @@ export async function POST(request: NextRequest) {
         `, said ${reply.length} characters${rest.length ? `, ${rest.length} link(s) texting after` : ""}` +
         `${booked ? ", and the booking" : ""}`,
     );
+
+    /*
+     * And what this turn cost, written down after the caller has heard it.
+     *
+     * Every word spoken is billed by the character, and until now none of it
+     * was counted anywhere — a Receptionist call never reached the calls table
+     * at all, because that row is written by the missed-call webhook and a
+     * line that picks up never goes down that path. So the dearest thing this
+     * product does read as free.
+     *
+     * Per turn rather than per call: there is no end-of-call hook that fires
+     * when somebody rings off mid-sentence, and a call that ends abruptly
+     * still cost everything it spent up to that moment.
+     */
+    after(async () => {
+      const studioId = connection?.studio_id as string | undefined;
+      if (!studioId) return;
+
+      await recordTurn(db, {
+        callSid,
+        studioId,
+        from: params.From ?? null,
+        to,
+        spoke: reply.length,
+        tier: tierOf(studio.receptionist_voice),
+      });
+    });
 
     return xml(sayAndListen(reply, `/api/voice/talk`, { voice: studio.receptionist_voice }));
   } catch (error) {
