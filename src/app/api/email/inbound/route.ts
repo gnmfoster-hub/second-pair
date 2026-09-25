@@ -206,7 +206,25 @@ export async function POST(request: NextRequest) {
 
   const verdict = judge(email, {
     ownDomains: [studio.email ? domainOf(studio.email) : ""].filter(Boolean),
-    ourDomain: (process.env.EMAIL_FROM ?? "").split("@")[1] ?? "second-pair.com",
+    /*
+     * Our own domain, read with the parser that exists for exactly this.
+     *
+     * It was split("@")[1], which is right for a bare address and wrong for
+     * the form every setup guide tells you to write:
+     * `Second Pair <hello@second-pair.com>` splits to "second-pair.com>" —
+     * with the bracket — and that matches no sender ever.
+     *
+     * So the rule below it, the one that stops us treating our own post as a
+     * customer, never fired. Living Canvas got a booking notification from
+     * hello@second-pair.com and it arrived in his inbox as a qualified
+     * customer, with the assistant replying to it to explain the privacy
+     * notice. The guard was written, tested and quietly disarmed by one
+     * character.
+     *
+     * domainOf handles both shapes and is already used three lines up for the
+     * business's own domain.
+     */
+    ourDomain: domainOf(process.env.EMAIL_FROM ?? "") || "second-pair.com",
     // How much this business lets it answer on its own. See InboundMode.
     mode: readInboundMode(studio.inbound_mode),
     answerTo: (studio.inbound_addresses as string[] | null) ?? [],

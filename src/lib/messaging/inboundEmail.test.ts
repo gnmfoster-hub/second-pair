@@ -600,3 +600,38 @@ test("a pitch and a customer are not filed as paperwork", () => {
   );
   assert.equal(customer.what, "answer");
 });
+
+/*
+ * The guard that was written, tested, and disarmed by one character.
+ *
+ * Living Canvas got a booking notification from hello@second-pair.com and it
+ * arrived in his inbox as a qualified customer, with the assistant replying to
+ * explain the privacy notice. The rule below existed the whole time — what
+ * failed was the value handed to it: EMAIL_FROM written the way every setup
+ * guide shows, "Second Pair <hello@second-pair.com>", split on "@" gives
+ * "second-pair.com>" and matches no sender that has ever existed.
+ */
+test("our own post is never a customer, whichever way EMAIL_FROM is written", () => {
+  const notification = {
+    from: "Second Pair <hello@second-pair.com>",
+    subject: "New appointment: Lauren, Wed 30 Sept, 1:00 pm",
+    text: "Lauren has booked an appointment.",
+  };
+
+  for (const configured of [
+    "hello@second-pair.com",
+    "Second Pair <hello@second-pair.com>",
+    "  Second Pair  <HELLO@Second-Pair.com>  ",
+  ]) {
+    const v = judge(notification, { ourDomain: domainOf(configured) });
+    assert.equal(v.what, "ignore", `${configured}: ${v.because}`);
+    assert.match(v.because, /this assistant/);
+  }
+});
+
+/* And the shape that caused it, named so it cannot come back. */
+test("a domain taken with split rather than a parser does not match", () => {
+  const naive = "Second Pair <hello@second-pair.com>".split("@")[1];
+  assert.equal(naive, "second-pair.com>", "this is the value that was being compared");
+  assert.notEqual(naive, domainOf("Second Pair <hello@second-pair.com>"));
+});
