@@ -39,7 +39,7 @@ been done and one was never a fault. Each links to the detail below.
 - [0a. The daily Google emails — make them a weekly digest](#0a-the-daily-google-emails--make-them-a-weekly-digest)
 - [1b. Stripe, on the sheet](#1b-stripe-on-the-sheet)
 - [2. Switch the money on for Living Canvas](#2-switch-the-money-on-for-living-canvas)
-- [4. Nobody has a phone signed up for notifications](#4-nobody-has-a-phone-signed-up-for-notifications) — Partly. Neat & Tidy has one device signed up now; Living Canvas and Second Pair still have none.
+- [4. Nobody has a phone signed up for notifications](#4-nobody-has-a-phone-signed-up-for-notifications) — **The one device signed up is a Windows PC, not a phone.** Checked 25 Sep against the live database: one subscription in the whole system, on Neat & Tidy, labelled "Windows PC", added 23 Sep, never buzzed. A cleaning business is out on jobs; a desktop does not buzz anybody's pocket. Living Canvas and Second Pair still have none.
 - [6. Take a backup before you test hard](#6-take-a-backup-before-you-test-hard)
 - [7. Decide whether to take a cut of what goes through](#7-decide-whether-to-take-a-cut-of-what-goes-through)
 - [8. Decide about tapping a card on a phone](#8-decide-about-tapping-a-card-on-a-phone)
@@ -348,9 +348,29 @@ there.
 
 ### 4. Nobody has a phone signed up for notifications
 
-> **Partly. Neat & Tidy has one device signed up now; Living Canvas and Second Pair still have none.**
+> **The one device signed up is a Windows PC, not a phone.**
 
-Still not one device, on any of the three businesses.
+Checked against the live database on 25 September rather than carried forward.
+There is exactly one push subscription in the whole system: Neat & Tidy, added
+23 September, labelled **"Windows PC"**, and never buzzed once.
+
+That is worth knowing because it is not the thing you were trying to do. A
+cleaning business is out on jobs, and a desktop in an office does not buzz
+anybody's pocket — which is the entire reason for the feature. Whoever signed
+up did it at a computer. It wants doing again on the phone itself, from
+Settings → your own tab, on the phone.
+
+"Never buzzed" is not a fault, and the new screen says so: nothing has been
+left waiting for a person since the 23rd, so nothing has been sent. But it does
+mean the chain has never been proved end to end on anybody's phone.
+
+New since the last version of this list: **Settings → your own tab now shows
+which devices are signed up**, when each was added and when each was last
+actually reached, with a way to take an old one off. Built because
+`last_used_at` had been written on every send since notifications existed and
+nothing ever read it — and because a push subscription dies silently, so there
+was no way to find out that a phone had stopped until a customer rang about a
+message nobody answered.
 
 A booking sends an email *and* a push, and the email half works — so you are
 being told, just not on your phone. What is unused is the quick half, the one
