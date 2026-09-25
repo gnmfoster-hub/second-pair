@@ -1844,6 +1844,26 @@ async function makeBooking(
   );
 
   /*
+   * The booking's own page, carried out with the card.
+   *
+   * Fetched rather than built from the id: the token is a separate column so
+   * that a link cannot be guessed from a booking id somebody saw once. One
+   * small read, tolerated failing — a missing link costs a sentence in a text
+   * message and nothing else, where a throw here would lose a booking that has
+   * already happened.
+   */
+  let bookedUrl: string | undefined;
+  if (result.bookingId) {
+    const { data: token } = await ctx.db
+      .from("bookings")
+      .select("public_token")
+      .eq("id", result.bookingId)
+      .maybeSingle();
+    const value = (token as { public_token?: string | null } | null)?.public_token;
+    if (value) bookedUrl = `${ctx.origin}/b/${value}`;
+  }
+
+  /*
    * A form the service needs signed first — a patch test before colour, a
    * consent before a tattoo. Made now and given to the assistant to put in the
    * reply it is already writing, on the channel the customer is using.
@@ -1896,6 +1916,7 @@ async function makeBooking(
       label: said,
       ...slotParts(startsAt, ctx.studio.timezone),
       held: takesDeposit,
+      url: bookedUrl,
     },
   };
 }

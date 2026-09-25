@@ -1,6 +1,7 @@
 import { NextResponse, after, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { verifySignature } from "@/lib/messaging/sms";
+import { verifySignature, sendSms } from "@/lib/messaging/sms";
+import { afterCallText } from "@/lib/voice/afterTheCall";
 import { hangUp, sayAndListen, sayAndFinish } from "@/lib/voice/twiml";
 import { onTheCall, whatToSay } from "@/lib/voice/whatItMayDo";
 import { sayable } from "@/lib/voice/sayable";
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
    */
   const { data: connection } = await db
     .from("channel_connections")
-    .select("artist_id, studios(slug, receptionist_allowed, receptionist_on, receptionist_holds, receptionist_asks_deposit, receptionist_voice), artists(voice_on)")
+    .select("artist_id, studios(slug, name, receptionist_allowed, receptionist_on, receptionist_holds, receptionist_asks_deposit, receptionist_voice), artists(voice_on)")
     .eq("channel", "sms")
     .eq("external_id", to)
     .eq("active", true)
@@ -86,6 +87,7 @@ export async function POST(request: NextRequest) {
   const studio = connection?.studios as unknown as
     | {
         slug: string;
+        name: string | null;
         receptionist_allowed: boolean | null;
         receptionist_on: boolean | null;
         receptionist_holds: boolean | null;
@@ -182,14 +184,67 @@ export async function POST(request: NextRequest) {
     const { said: reply, links } = sayable(written);
 
     /*
+     * A booking, in writing, which a caller otherwise never gets.
+     *
+     * The confirmation this product sends after a booking is an email with a
+     * calendar file on it, and it needs an email address. Over text or the
+     * website people give one; on the telephone there is no natural moment to
+     * spell one out, so `sendBookingConfirmation` finds nothing and correctly
+     * does nothing — leaving the one channel where the customer cannot scroll
+     * back as the one channel with no written record at all.
+     *
+     * So the number that rang gets a text. Sent from the moment rather than by
+     * asking the database again: the day and time on it were already cut in
+     * the business's own timezone when the booking was made, which is the part
+     * that goes wrong when it is done twice.
+     *
+     * Held says "pencilled in" rather than "booked". The moment's own flag is
+     * about a deposit; `landsAs` is the Receptionist holding what it books for
+     * a person to check, which is on by default and is the more likely of the
+     * two. Either one means it is not settled yet, and telling somebody
+     * they are booked when they are not is how they arrive at a shut door.
+     */
+    const booked = result.moments?.find((m) => m.kind === "booked");
+    if (booked && params.From) {
+      const caller = params.From;
+      after(async () => {
+        try {
+          await sendSms({
+            to: caller,
+            from: to,
+            body: afterCallText({
+              day: booked.day,
+              time: booked.time,
+              person: booked.person,
+              business: studio.name ?? "us",
+              url: booked.url ?? "",
+              held: booked.held || may.landsAs === "held",
+            }),
+          });
+        } catch (e) {
+          console.error("[voice/talk] could not text the booking:", (e as Error)?.message);
+        }
+      });
+    }
+
+    /*
      * And the links, by text, which is the medium they belong in.
      *
      * Sent as they come up rather than saved for the end of the call: a caller
      * who rings off mid-sentence has still had the thing they were promised,
      * and there is no end-of-call hook that fires reliably enough to trust
      * with it.
+     *
+     * Minus the booking page, when the text above is already carrying it. The
+     * assistant usually does mention it in the turn where it books, so without
+     * this the caller's phone buzzes twice within a second with the same link
+     * — once bare, once with the appointment on it. The bare one is the one
+     * worth losing. Anything else the reply offered still goes: a consent form
+     * or a deposit link is a different errand.
      */
-    if (links.length && params.From) {
+    const rest = booked?.url ? links.filter((l) => l !== booked.url) : links;
+
+    if (rest.length && params.From) {
       /*
        * After the caller has heard the sentence, not before it.
        *
@@ -206,7 +261,7 @@ export async function POST(request: NextRequest) {
       const from = params.From;
       after(async () => {
         try {
-          await textTheLinks({ to: from, from: to, links });
+          await textTheLinks({ to: from, from: to, links: rest });
         } catch (e) {
           console.error("[voice/talk] could not text the link:", (e as Error)?.message);
         }
@@ -222,7 +277,8 @@ export async function POST(request: NextRequest) {
      */
     console.log(
       `[voice/talk] turn ${Date.now() - began}ms, of which the assistant ${thought}ms` +
-        `, said ${reply.length} characters${links.length ? `, ${links.length} link(s) texting after` : ""}`,
+        `, said ${reply.length} characters${rest.length ? `, ${rest.length} link(s) texting after` : ""}` +
+        `${booked ? ", and the booking" : ""}`,
     );
 
     return xml(sayAndListen(reply, `/api/voice/talk`, { voice: studio.receptionist_voice }));

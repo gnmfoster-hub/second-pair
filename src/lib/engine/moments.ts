@@ -71,6 +71,16 @@ export type Moment =
       time: string;
       /** Held pending a deposit, rather than confirmed outright. */
       held: boolean;
+      /**
+       * The booking's own page, where it can be seen, moved or cancelled.
+       *
+       * Optional, because a booking without a public token is possible and not
+       * worth failing a reply over. Added for the telephone: a caller cannot
+       * scroll back through what was said, and the email confirmation needs an
+       * address nobody gives out loud — so the text sent after a call carries
+       * this, and it is the only written record they get.
+       */
+      url?: string;
     }
   | { kind: "deposit"; amountPence: number; url: string }
   | { kind: "handover"; person: string | null };
