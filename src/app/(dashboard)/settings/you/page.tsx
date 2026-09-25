@@ -7,6 +7,7 @@ import { smsNumberFor } from "@/lib/messaging/connections";
 import { smsConfigured } from "@/lib/messaging/sms";
 import { readableNumber } from "@/lib/channels/phoneNumbers";
 import { Notifications } from "@/components/Notifications";
+import { YourDevices } from "./YourDevices";
 import { OnYourPhone } from "@/components/OnYourPhone";
 import { ArtistEditor } from "../artists/ArtistEditor";
 import { CalendarLinks } from "../data/CalendarLinks";
@@ -183,6 +184,17 @@ export default async function YouPage({
        */}
       <OnYourPhone />
       <Notifications />
+
+      {/*
+       * And the ones already signed up, which nothing has ever shown.
+       *
+       * The control above is about the device in your hand. This is about the
+       * old phone still on the list and the iPad that quietly stopped — a push
+       * subscription dies without telling anybody, and until now there was no
+       * way to look. Renders nothing until there is at least one, so somebody
+       * who has not turned notifications on is asked once rather than twice.
+       */}
+      <YourDevices />
 
       {/*
        * What this person is told about, which is theirs and nobody else's.
