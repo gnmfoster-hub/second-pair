@@ -4,6 +4,7 @@ import { requireStudio, getArtists } from "@/lib/studio";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { answerText, cleanBlocks, flagged, quoteTotal, isTypedSignature } from "@/lib/forms/blocks";
+import { signedRecord } from "@/lib/forms/whatTheySignedOn";
 import { QuoteTable } from "@/app/f/[token]/FillForm";
 import { AskForPayment } from "@/components/AskForPayment";
 import { payableFor } from "@/lib/payments/whoTakes";
@@ -199,11 +200,31 @@ export default async function ClientFormPage({
         </section>
       )}
 
+      {/*
+        * The record around the signature, which is what this page is for.
+        *
+        * Nobody opens a signed consent form to admire it. They open it when
+        * there is a disagreement months later, and what answers that is when,
+        * from where, and on what. The first two were here; the device was
+        * being stored and never shown — found by auditing the database for
+        * columns the product writes and never reads.
+        *
+        * It is the more useful half of the pair. "On an iPhone" is something
+        * an owner can hold against their memory of the appointment, where an
+        * IP address is four numbers they can do nothing with.
+        *
+        * See lib/forms/whatTheySignedOn: deliberately coarse, and silent
+        * rather than guessing.
+        */}
       {form.status === "signed" && (
         <p className="hint text-xs">
-          Submitted {stamp(form.signed_at as string)}
-          {form.signer_ip ? ` from ${form.signer_ip as string}` : ""}. The questions shown are the ones sent,
-          kept with the form, so later changes to the form do not alter this record.
+          {signedRecord({
+            when: stamp(form.signed_at as string),
+            ip: (form.signer_ip as string | null) ?? null,
+            agent: (form.signer_agent as string | null) ?? null,
+          })}{" "}
+          The questions shown are the ones sent, kept with the form, so later changes to the
+          form do not alter this record.
         </p>
       )}
     </div>
