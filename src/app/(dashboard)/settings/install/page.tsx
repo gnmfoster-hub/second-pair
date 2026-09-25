@@ -239,6 +239,15 @@ export default async function ChannelsPage({
            */
           voice={has("voice")}
           /*
+           * Whether the Receptionist has taken this number over, which turns
+           * everything on that form into a description of what is not
+           * happening. See TextNumber.
+           */
+          receptionistAnswers={
+            (studio as unknown as { receptionist_allowed?: boolean | null }).receptionist_allowed === true &&
+            (studio as unknown as { receptionist_on?: boolean | null }).receptionist_on === true
+          }
+          /*
            * Worked out here, in the business's own zone, because a date turned
            * into words in the browser is a date the server rendered
            * differently — which React reports as a hydration error and the

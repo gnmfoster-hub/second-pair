@@ -29,6 +29,7 @@ export function TextNumber({
   sendingReady,
   voicemail = false,
   voice = false,
+  receptionistAnswers = false,
 }: {
   number: string | null;
   /** Where a call to it rings first. Null texts the caller straight away. */
@@ -47,6 +48,21 @@ export function TextNumber({
   sendingReady: boolean;
   /** Whether an unanswered call may leave a message. Off until asked for. */
   voicemail?: boolean;
+  /**
+   * The Receptionist is answering this number, so nothing on this form runs.
+   *
+   * Giles, on a business upgrading: "it should be able to be used on the same
+   * number, if the company wants to upgrade to reception they will want to
+   * keep their number." They do, and they can — the switch is per line, so
+   * turning it on makes the number they already give out start answering.
+   *
+   * Which is exactly why this has to be said here. The moment it answers, the
+   * settings on this form stop happening: the call is picked up rather than
+   * forwarded, so "ring me on" rings nobody and the voicemail response never
+   * runs. An owner who upgrades and then wonders why their phone stopped
+   * ringing would be right to think something was broken.
+   */
+  receptionistAnswers?: boolean;
   /**
    * Whether the telephone is part of what they pay for.
    *
@@ -143,7 +159,30 @@ export function TextNumber({
         </div>
       )}
 
-      {number && voice && (
+      {/*
+        * Upgraded on the same number, so this form no longer applies.
+        *
+        * Said rather than hidden. These settings are still stored and still
+        * come back the moment the Receptionist is switched off, and a form
+        * that silently vanishes reads as a thing the product lost.
+        */}
+      {number && voice && receptionistAnswers && (
+        <div className="mt-5 rounded-xl border border-border bg-surface-2/50 px-4 py-3">
+          <div className="label">The Receptionist is answering this number</div>
+          <p className="hint mt-1 max-w-prose">
+            So none of the settings below are running: the call is picked up rather than
+            passed on, which means your phone does not ring and the voicemail response
+            never happens. That is the upgrade working, not a fault — it is the same
+            number your customers already have, answering instead of ringing out.
+          </p>
+          <p className="hint mt-1.5 max-w-prose">
+            They are kept exactly as they are, and come back the moment you switch the
+            Receptionist off.
+          </p>
+        </div>
+      )}
+
+      {number && voice && !receptionistAnswers && (
         <form action={action} className="mt-5 space-y-4">
           <Field
             label="When somebody rings it, ring me on"
