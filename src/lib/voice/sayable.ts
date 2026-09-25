@@ -60,9 +60,46 @@ export function sayable(reply: string): Spoken {
    * link existed.
    */
   if (links.length) {
-    const what = links.length === 1 ? "the link" : "the links";
-    said = said ? `${said} I will text you ${what}.` : `I will text you ${what}.`;
+    said = said ? `${said} ${promise(links)}` : promise(links);
   }
 
   return { said, links };
+}
+
+/**
+ * Saying what the link is, not just that there is one.
+ *
+ * Giles, after ringing it: "i said text the link but didnt say why, it was
+ * confusing."
+ *
+ * He is right, and it is the same fault as the original in a quieter form.
+ * "I will text you the link" leaves somebody holding a phone wondering which
+ * link, to what, and whether they were meant to have asked for it. A caller
+ * who does not know what is coming does not watch for it arriving.
+ *
+ * Named from the address, because the address already says: /b/ is their own
+ * appointment page, pay is a deposit, privacy is the notice we are obliged to
+ * give them. Anything else is described as what it plainly is rather than
+ * guessed at.
+ */
+function promise(links: string[]): string {
+  const kinds = [...new Set(links.map(describe))];
+
+  if (kinds.length === 1) return `I will text you ${kinds[0]}.`;
+  const last = kinds[kinds.length - 1];
+  return `I will text you ${kinds.slice(0, -1).join(", ")} and ${last}.`;
+}
+
+function describe(link: string): string {
+  const at = link.toLowerCase();
+
+  if (at.includes("/b/")) return "your booking page, where you can change it if you need to";
+  if (at.includes("/pay") || at.includes("checkout") || at.includes("stripe")) {
+    return "the link to pay the deposit";
+  }
+  if (at.includes("privacy")) return "our privacy notice";
+  if (at.includes("/forms") || at.includes("/f/")) return "the form to fill in";
+  if (at.includes("review")) return "the link to leave a review";
+
+  return "the link";
 }

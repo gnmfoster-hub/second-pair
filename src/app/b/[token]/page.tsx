@@ -5,10 +5,71 @@ import { KeepInTouch } from "./KeepInTouch";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
+/**
+ * What a phone shows when this link arrives in a text.
+ *
+ * Giles, after a real call: "when the text comes through, because it
+ * references the website it shows a logo, and the logo is the old hands and
+ * wrong colour background."
+ *
+ * Two faults in that, and the second is the one that matters. The card was the
+ * old two-hands mark on navy, from before the re-brand — but a customer of a
+ * cleaning company opening a text about their own appointment should never
+ * have seen a Second Pair advert at all. It is not our link. It is theirs.
+ *
+ * So the preview is the business: their name, their appointment, and their
+ * picture where they have uploaded one. Where they have not, no image —
+ * deliberately, because no picture reads as a plain link from a business, and
+ * the wrong picture reads as somebody else's brand on their message.
+ *
+ * Built per request rather than as a constant, because none of it is known
+ * until the token is looked up.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}) {
+  const { token } = await params;
+
   /* A page about one person's appointment has no business in a search index. */
-  robots: { index: false, follow: false },
-};
+  const base = { robots: { index: false, follow: false } };
+
+  if (!/^[A-Za-z0-9_-]{20,64}$/.test(token)) return { ...base, title: "Your appointment" };
+
+  const db = createAdminClient();
+  const { data } = await db
+    .from("bookings")
+    .select("starts_at, artists(studio_id)")
+    .eq("public_token", token)
+    .maybeSingle();
+
+  const studioId = (data as { artists?: { studio_id?: string } | null } | null)?.artists?.studio_id;
+  if (!studioId) return { ...base, title: "Your appointment" };
+
+  const { data: studio } = await db
+    .from("studios")
+    .select("*")
+    .eq("id", studioId)
+    .maybeSingle();
+
+  const name = (studio?.name as string | undefined) ?? null;
+  const picture = avatarUrl((studio as { photo_path?: string | null } | null)?.photo_path);
+
+  return {
+    ...base,
+    title: name ? `Your appointment with ${name}` : "Your appointment",
+    openGraph: {
+      title: name ? `Your appointment with ${name}` : "Your appointment",
+      description: "Everything about your booking, and how to change it.",
+      /*
+       * Their picture or nothing. An empty array overrides the site-wide card
+       * rather than falling through to it, which is the whole point.
+       */
+      images: picture ? [picture] : [],
+    },
+  };
+}
 
 /**
  * A customer's own appointment, opened from a text or an email.

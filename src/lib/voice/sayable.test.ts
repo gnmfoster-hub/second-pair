@@ -13,7 +13,7 @@ test("a link is taken out of what is said and kept to be texted", () => {
   assert.ok(!out.said.includes("http"));
   assert.ok(!out.said.includes("second-pair"));
   assert.deepEqual(out.links, ["https://www.second-pair.com/b/abc123"]);
-  assert.match(out.said, /I will text you the link/);
+  assert.match(out.said, /I will text you your booking page/);
 });
 
 test("a bare domain counts as a link", () => {
@@ -22,11 +22,12 @@ test("a bare domain counts as a link", () => {
   assert.equal(out.links.length, 1);
 });
 
-test("several links are all taken and mentioned once", () => {
-  const out = sayable("Details: https://a.com/x and the deposit: https://b.com/y");
+test("several links are all taken and promised once", () => {
+  const out = sayable("Details: https://a.com/x and the deposit: https://b.com/pay/y");
   assert.equal(out.links.length, 2);
-  assert.match(out.said, /I will text you the links\./);
+  /* One promise, however many links, or it sounds like a machine listing. */
   assert.equal((out.said.match(/I will text you/g) ?? []).length, 1);
+  assert.match(out.said, /deposit/);
 });
 
 /*
@@ -51,6 +52,36 @@ test("a reply with no link is left exactly as it was", () => {
  */
 test("a reply that is only a link still says something", () => {
   const out = sayable("https://www.second-pair.com/b/abc");
-  assert.equal(out.said, "I will text you the link.");
+  assert.match(out.said, /^I will text you your booking page/);
   assert.equal(out.links.length, 1);
+});
+
+/*
+ * Giles again, on the fix rather than the fault: "i said text the link but
+ * didnt say why, it was confusing." A caller who does not know what is coming
+ * does not watch for it arriving.
+ */
+test("it says what the link actually is", () => {
+  assert.match(
+    sayable("Here you go: https://www.second-pair.com/b/abc123").said,
+    /your booking page, where you can change it/,
+  );
+  assert.match(sayable("Our notice: https://x.com/privacy").said, /our privacy notice/);
+  assert.match(sayable("Pay here: https://x.com/pay/abc").said, /pay the deposit/);
+});
+
+test("two different kinds are both named", () => {
+  const said = sayable("https://a.com/b/one and https://a.com/pay/two").said;
+  assert.match(said, /booking page/);
+  assert.match(said, /deposit/);
+  assert.match(said, / and /);
+});
+
+test("the same kind twice is said once", () => {
+  const said = sayable("https://a.com/b/one https://a.com/b/two").said;
+  assert.equal((said.match(/booking page/g) ?? []).length, 1);
+});
+
+test("something unrecognised is still promised, plainly", () => {
+  assert.match(sayable("Have a look: https://example.com/thing").said, /I will text you the link\./);
 });
