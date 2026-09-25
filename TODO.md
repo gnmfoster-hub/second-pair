@@ -178,7 +178,37 @@ Open, and roughly in the order I would do them:
    owner can hold against their memory of the day where an IP address is four
    numbers they can do nothing with.
 
-6. **A contradiction on the report, and it is your call.** The margin block —
+6. ~~**The margin report read a cost nobody could enter.**~~ Done 25 Sep, on
+   your word: "do the cost box on products only."
+
+   It took four things rather than one, and the box alone would have shown
+   nobody a figure.
+
+   **The box** is back beside "how many left", products only, optional, and
+   only written when it was actually on the page — so editing a service cannot
+   reach over and clear a product's cost. Proved by typing 6.25 into a demo
+   product, saving, reading 625 back out of the database, and putting it back.
+
+   **The join.** The report gets from a sale to a cost through
+   `payment_items.service_id`. The real till has always set it; the demo
+   seeder never did, so every seeded sale was a name and a price with nothing
+   behind it. Fixed, with trade prices on the demo shelf, so the feature can be
+   shown to somebody being sold it.
+
+   **The dates.** Every seeded counter sale landed before the start of the
+   week, so the report opened on an empty counter. They count back from today
+   now, capped so nothing is dated into the future.
+
+   **And a real bug.** `Takings` returned null when there were no appointments,
+   which took the margin and the running-low shelf with it. Its own comment
+   said why that was wrong — "a shelf with one bottle left needs reordering in
+   a quiet week more than a busy one" — and the line above deleted exactly
+   that. A shop that retails through a slow week is a real shop, and it is the
+   one asking what the retail made.
+
+   The old note is below, for the reasoning.
+
+6z. **The old entry.** The margin block —
    "what you made on what you sold" — reads `services.cost_pence`. On 14
    September the box for filling that in was deliberately taken out, with the
    reasoning written into the code: this is not a stock-control system, and
@@ -191,12 +221,11 @@ Open, and roughly in the order I would do them:
    real. Nothing is visibly broken — it simply never shows — so there is no
    hurry, but it is either a dead report or a missing box.
 
-   My recommendation is the narrow version: put the cost box back **on
-   products only**, beside "how many left", clearly optional. The original
-   reasoning holds for services and does not for retail — a shop knows what it
-   paid for a bottle because it bought it, and margin is the number that
-   decides whether to keep stocking it. Say the word either way; I have not
-   touched it, because you made that decision once already.
+   My recommendation was the narrow version: the cost box back **on products
+   only**, beside "how many left", clearly optional. The original reasoning
+   holds for services and does not for retail — a shop knows what it paid for a
+   bottle because it bought it, and margin is the number that decides whether
+   to keep stocking it. You said do it, and item 6 above is what that took.
 
 ### HMRC — a deadline, and I do not know the date
 
