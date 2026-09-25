@@ -563,9 +563,23 @@ mobile number.
    failure the phone adds that text never had. A deposit is never asked for on
    a booking nobody has checked.
 
-   **Left to do:** the text after the call with the details; a real call
-   through a real carrier, which is the only way any of this can be proved;
-   and one press of the confirm button, which I could not drive from here.
+   **The text after the call is done, 25 Sep.** It was the real gap rather
+   than a nicety: the confirmation this product sends is an email with a
+   calendar file on it, and on the telephone nobody spells out an email
+   address — so the one channel where the customer cannot scroll back was the
+   one channel with no written record at all. The number that rang now gets
+   what, when, who with, and the page where they can move it. It says
+   "pencilled you in" while the booking is held, because telling somebody they
+   are booked when nobody has checked it is how they arrive at a shut door.
+
+   **The lag has one cause fixed.** The link text was being sent before the
+   spoken reply went back, so on the turns that matter most the caller sat in
+   silence through a Twilio SMS call. It goes after now. The rest is logged
+   per turn rather than guessed at — see item 3 in the "btw" list above.
+
+   **Left to do:** a real call through a real carrier, which is the only way
+   any of this can be proved; and one press of the confirm button, which I
+   could not drive from here.
 
    Nothing live can reach it — neither client has been sold it, and the only
    line switched on is the Willow demo's, whose numbers cannot ring.
