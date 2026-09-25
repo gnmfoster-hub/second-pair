@@ -156,6 +156,48 @@ Open, and roughly in the order I would do them:
 4. **Upload a picture** for each business. Built and waiting: nobody has one
    yet, so every confirmation is going out without one.
 
+5. ~~**Forms: two more columns stored and never read.**~~ 25 Sep. The audit
+   that found the margin and the call figures is down from 283 unread columns
+   to 10. Two of the remainder were on forms and both were worth having.
+
+   `sent_via` records how a form left. The label was not the point — "link" is
+   not a way of sending anything. A form made for somebody with no number and
+   no email address (a walk-in, which is the ordinary case) writes a row
+   saying "sent" and puts a URL on the screen for a person to hand over.
+   Nothing goes anywhere, and both screens said "Sent 3 Oct · not opened yet",
+   which blames a customer for ignoring something nobody gave them. The
+   waiting-to-be-signed list is the one that matters: it is a job queue, and it
+   put "waiting on them" and "waiting on you" in one pile. Both now say which.
+   Latent rather than live — all seven link forms in the database were opened
+   or signed, so somebody passed every one on. Checked before claiming
+   otherwise, having nearly claimed otherwise.
+
+   `signer_agent` records what a consent form was signed on. Worth reading
+   because of what a signed form is for: nobody opens one to admire it, they
+   open it when there is a disagreement, and "on an iPhone" is something an
+   owner can hold against their memory of the day where an IP address is four
+   numbers they can do nothing with.
+
+6. **A contradiction on the report, and it is your call.** The margin block —
+   "what you made on what you sold" — reads `services.cost_pence`. On 14
+   September the box for filling that in was deliberately taken out, with the
+   reasoning written into the code: this is not a stock-control system, and
+   nobody wants to keep a cost price current against four bottles to be told a
+   margin they already know. On 24 September I built the report that reads it,
+   found by the audit, without checking why nothing read it.
+
+   So no business can fill it in. Two services in the whole database have a
+   cost, both seeded demo products, and the block can never appear for anybody
+   real. Nothing is visibly broken — it simply never shows — so there is no
+   hurry, but it is either a dead report or a missing box.
+
+   My recommendation is the narrow version: put the cost box back **on
+   products only**, beside "how many left", clearly optional. The original
+   reasoning holds for services and does not for retail — a shop knows what it
+   paid for a bottle because it bought it, and margin is the number that
+   decides whether to keep stocking it. Say the word either way; I have not
+   touched it, because you made that decision once already.
+
 ### HMRC — a deadline, and I do not know the date
 
 A letter arrived on 23 September asking for information within three months of
