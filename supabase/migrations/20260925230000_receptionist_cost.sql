@@ -42,6 +42,31 @@ alter table calls
 alter table calls
   add column if not exists listened_seconds integer not null default 0;
 
+-- ── And how long it took, because "there was a bit of lag" needs a number ───
+--
+-- Giles has now said twice that the Receptionist is slow to answer. Both times
+-- the honest reply was that the lag comes from at least four places — Twilio
+-- deciding the caller has stopped speaking, the network, our own lookups, the
+-- assistant thinking, and Twilio building the audio — and that guessing which
+-- to attack is how a day gets spent shaving something that was never the
+-- problem.
+--
+-- Every turn already logs both numbers. Reading them means the Vercel console,
+-- which is a login and a search and therefore does not happen. Two integers
+-- here put the answer on a screen next to the call it came from.
+
+alter table calls
+  add column if not exists turns integer not null default 0;
+
+alter table calls
+  add column if not exists thinking_ms integer not null default 0;
+
+comment on column calls.turns is
+  'How many times the Receptionist answered on this call. With thinking_ms it gives the average wait per turn, which is the number somebody actually feels.';
+
+comment on column calls.thinking_ms is
+  'Milliseconds spent waiting for the assistant across the whole call — our half of the lag. What is left over between this and the call length is Twilio: endpointing, the network, and building the audio. Knowing which half is bigger is the difference between fixing the lag and shaving the wrong thing.';
+
 -- Which line answered it: the Receptionist, or the answerphone as before.
 -- Derivable from spoken_characters being above nought, but only by knowing
 -- that rule, and a column somebody can group by is worth more than a rule.

@@ -11,6 +11,8 @@ import { describeCeiling } from "@/lib/ceilings";
 import { savedWords } from "@/lib/savedAt";
 import { smsConfigured } from "@/lib/messaging/sms";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { howItWent, describeHowItWent } from "@/lib/voice/howItWent";
 import { Appearance } from "./Appearance";
 import { MetaChannels } from "./MetaChannels";
 import { WhoseChannel } from "./WhoseChannel";
@@ -194,6 +196,43 @@ export default async function ChannelsPage({
     describeCeiling("calls", callsThisMonth, callCap),
   ].filter((line): line is string => Boolean(line));
 
+  /*
+   * How the last few answered calls actually went.
+   *
+   * Read through the admin client and as counts only: `calls` has RLS enabled
+   * with no policy by design — a business sees the conversation, not the
+   * carrier's meter — so the browser's own client reads it as an empty table.
+   *
+   * Tolerated failing to nothing, because these columns arrive with a
+   * migration that is run by hand and a screen that breaks over a missing
+   * column is worse than a screen that is quiet about the lag.
+   */
+  let lag: string | null = null;
+  try {
+    const { data: recent } = await createAdminClient()
+      .from("calls")
+      .select("turns, thinking_ms, listened_seconds, spoken_characters")
+      .eq("studio_id", studio.id)
+      .gt("turns", 0)
+      .order("at", { ascending: false })
+      .limit(10);
+
+    lag = recent?.length
+      ? describeHowItWent(
+          howItWent(
+            recent.map((c) => ({
+              turns: (c.turns as number) ?? 0,
+              thinkingMs: (c.thinking_ms as number) ?? 0,
+              seconds: (c.listened_seconds as number) ?? 0,
+              spokenCharacters: (c.spoken_characters as number) ?? 0,
+            })),
+          ),
+        )
+      : null;
+  } catch {
+    /* The migration has not been run. The rest of the screen is unaffected. */
+  }
+
   return (
     <div className="space-y-9">
       {ceilings.length > 0 && (
@@ -295,6 +334,7 @@ export default async function ChannelsPage({
           people={everyone
             .filter((a) => (a as { voice_on?: boolean | null }).voice_on === true)
             .map((a) => a.name)}
+          howItWent={lag}
         />
 
         {/*

@@ -1,4 +1,5 @@
 import { DEFAULT_VOICE, voiceFor } from "./howItSounds.ts";
+import { saidAloud } from "./saidAloud.ts";
 
 /**
  * What we hand Twilio when a phone rings, written where it can be read.
@@ -172,7 +173,7 @@ export function sayAndListen(
 
   return twiml(
     `<Gather input="speech" speechTimeout="auto" language="en-GB" action="${escapeXml(action)}" method="POST"${hints}>` +
-      `<Say ${speaksAs(options.voice)}>${escapeXml(said)}</Say>` +
+      `<Say ${speaksAs(options.voice)}>${escapeXml(saidAloud(said))}</Say>` +
       `</Gather>` +
       /*
        * What happens when somebody says nothing at all.
@@ -195,5 +196,5 @@ export function sayAndListen(
  * finished. Ending the call is part of answering it well.
  */
 export function sayAndFinish(said: string, voice?: string | null): string {
-  return twiml(`<Say ${speaksAs(voice)}>${escapeXml(said)}</Say><Hangup />`);
+  return twiml(`<Say ${speaksAs(voice)}>${escapeXml(saidAloud(said))}</Say><Hangup />`);
 }

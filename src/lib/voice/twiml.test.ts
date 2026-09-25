@@ -95,7 +95,10 @@ test("it says something and listens for the answer", () => {
   const xml = sayAndListen("Hello, Willow and Co.", "/api/voice/talk?call=CA123");
   assert.match(xml, /<Gather input="speech" speechTimeout="auto" language="en-GB"/);
   assert.match(xml, /action="\/api\/voice\/talk\?call=CA123"/);
-  assert.match(xml, /<Say voice="Polly\.Amy-Neural" language="en-GB">Hello, Willow and Co\.<\/Say>/);
+  assert.match(
+    xml,
+    /<Say voice="Polly\.Amy-Generative" language="en-GB">Hello, Willow and Co\.<\/Say>/,
+  );
 });
 
 /*
@@ -113,7 +116,17 @@ test("silence is answered rather than dropping the call", () => {
 test("a business with an apostrophe in its name does not break the document", () => {
   const xml = sayAndListen("Hello, Dave's Barbers & Sons.", "/api/voice/talk?a=1&b=2");
   assert.ok(!xml.includes("Dave's"), "the name was not escaped");
-  assert.match(xml, /Dave&apos;s Barbers &amp; Sons/);
+  /*
+   * "and", not "&amp;". The ampersand is now spoken as a word before the
+   * string is escaped — see lib/voice/saidAloud — because an ampersand is a
+   * shape rather than a sound, and it sits in a business's name on the one
+   * sentence a call cannot afford to get wrong.
+   *
+   * The escaping this test exists for is unchanged: the apostrophe is still
+   * &apos; and the query string is still &amp;.
+   */
+  assert.match(xml, /Dave&apos;s Barbers and Sons/);
+  assert.doesNotMatch(xml, /Barbers &amp; Sons/, "an ampersand should never reach the voice");
   assert.match(xml, /action="[^"]*a=1&amp;b=2"/);
 });
 

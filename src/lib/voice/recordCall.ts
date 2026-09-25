@@ -33,6 +33,8 @@ export async function recordTurn(
     /** Characters actually said out loud this turn, after links were stripped. */
     spoke: number;
     tier: "generative" | "neural";
+    /** How long the assistant took on this turn. Our half of the lag. */
+    thoughtMs: number;
   },
 ): Promise<void> {
   try {
@@ -47,7 +49,7 @@ export async function recordTurn(
 
     const { data: existing } = await db
       .from("calls")
-      .select("id, spoken_characters, listened_seconds, at")
+      .select("id, spoken_characters, listened_seconds, turns, thinking_ms, at")
       .eq("call_sid", turn.callSid)
       .maybeSingle();
 
@@ -66,6 +68,8 @@ export async function recordTurn(
         spoken_characters: turn.spoke,
         spoken_tier: turn.tier,
         listened_seconds: 0,
+        turns: 1,
+        thinking_ms: turn.thoughtMs,
         answered_by: "receptionist",
       });
       return;
@@ -90,6 +94,8 @@ export async function recordTurn(
         spoken_characters: ((existing.spoken_characters as number) ?? 0) + turn.spoke,
         spoken_tier: turn.tier,
         listened_seconds: ran,
+        turns: ((existing.turns as number) ?? 0) + 1,
+        thinking_ms: ((existing.thinking_ms as number) ?? 0) + turn.thoughtMs,
       })
       .eq("id", existing.id);
   } catch (error) {

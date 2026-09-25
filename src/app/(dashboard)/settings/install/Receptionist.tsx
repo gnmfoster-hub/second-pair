@@ -36,6 +36,7 @@ export function Receptionist({
   greeting = null,
   voice = null,
   businessName = null,
+  howItWent = null,
 }: {
   /** Whether it has been sold to this business. Ours to set, never theirs. */
   allowed: boolean;
@@ -52,6 +53,13 @@ export function Receptionist({
   /** Which voice speaks. Null is the house default. */
   voice?: string | null;
   businessName?: string | null;
+  /**
+   * How the last few answered calls went, already in words.
+   *
+   * Null until a call has been answered, or until the migration that measures
+   * it has been run. See lib/voice/howItWent.
+   */
+  howItWent?: string | null;
 }) {
   const [state, action] = useActionState<{ error?: string; ok?: boolean }, FormData>(
     setReceptionist,
@@ -138,9 +146,29 @@ export function Receptionist({
                 </option>
               ))}
             </select>
-            <span className="hint">All British. Worth ringing your own number to hear it.</span>
+            <span className="hint">
+              All British. The default is the most natural one and costs a few pence more a
+              call; the ones marked cheaper are the older engine. Worth ringing your own
+              number to hear it.
+            </span>
           </label>
         </div>
+
+        {/*
+          * How long it actually takes to answer.
+          *
+          * Giles has said twice that it lags, and both times the honest reply
+          * was that the wait comes from at least four places and guessing
+          * which to attack is how a day gets spent shaving the wrong one.
+          *
+          * Every turn has logged both halves since this was built. Reading
+          * them meant the Vercel console, which is a login and a search and
+          * therefore did not happen. The same two numbers, here, next to the
+          * switch that turns the thing on.
+          */}
+        {howItWent && (
+          <p className="hint border-t border-border pt-3 text-xs">{howItWent}</p>
+        )}
 
         {/*
           * What it may do once it is answering.

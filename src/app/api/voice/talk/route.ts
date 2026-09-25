@@ -307,6 +307,7 @@ export async function POST(request: NextRequest) {
         to,
         spoke: reply.length,
         tier: tierOf(studio.receptionist_voice),
+        thoughtMs: thought,
       });
     });
 
