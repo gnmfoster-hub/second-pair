@@ -74,11 +74,16 @@ select cron.schedule(
 --
 -- Whether it is actually running, newest first. This is the one to look at if
 -- a message is ever slow again — it says whether the job ran, not whether
--- somebody thinks it did:
---   select status, start_time, return_message
---     from cron.job_run_details
---    where jobname = 'release-held-conversations'
---    order by start_time desc
+-- somebody thinks it did.
+--
+-- Joined on jobid, because cron.job_run_details does not carry the name. The
+-- first version of this note filtered on `jobname` and failed with
+-- "column jobname does not exist", which is a confusing thing to meet when
+-- you are already wondering whether the job exists at all:
+--   select j.jobname, d.status, d.start_time, d.return_message
+--     from cron.job_run_details d
+--     join cron.job j on j.jobid = d.jobid
+--    order by d.start_time desc
 --    limit 10;
 --
 -- And what it got back. net.http_get returns an id; the reply lands here:
