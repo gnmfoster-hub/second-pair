@@ -43,9 +43,27 @@ export async function releaseHeldConversations(
     .select(
       "id, studio_id, external_ref, channel, ai_paused, last_message_at, studios(slug, name, email, archived_at), contacts(name, phone, email)",
     )
+    /*
+     * Paused ones are read too, and then cleared rather than answered.
+     *
+     * This used to filter them out in the query, which meant a conversation
+     * the owner took over kept its hold for ever. Two things follow from that,
+     * and the second is the one that matters.
+     *
+     * It sits in every "held past due" count as a permanent false alarm — the
+     * Living Canvas text from 26 September was still showing 82 minutes late
+     * an hour after Giles had answered it himself.
+     *
+     * And the hold is a loaded gun. Press "Hand back to the assistant" weeks
+     * later and ai_paused goes false while hold_until is still in the past, so
+     * the very next sweep has the assistant reply to a message from another
+     * day as though it had just come in — to a customer who was answered by a
+     * person at the time.
+     *
+     * Taking a conversation over voids the hold. That is what it means.
+     */
     .lte("hold_until", now)
     .not("hold_until", "is", null)
-    .eq("ai_paused", false)
     .limit(50);
 
   let answered = 0;
@@ -81,6 +99,18 @@ export async function releaseHeldConversations(
      * reminders, in the one place nobody is watching.
      */
     if (studio?.archived_at) continue;
+
+    /*
+     * The owner picked it up. The hold has done its job and is now void.
+     *
+     * Cleared rather than skipped every sweep, so it stops being counted as
+     * late and cannot fire later if the assistant is handed the thread back.
+     */
+    if (conversation.ai_paused) {
+      await db.from("conversations").update({ hold_until: null }).eq("id", conversation.id);
+      skipped++;
+      continue;
+    }
 
     if (!studio || !conversation.external_ref) {
       // Nothing we can act on. Clear it rather than looking at it every sweep.
