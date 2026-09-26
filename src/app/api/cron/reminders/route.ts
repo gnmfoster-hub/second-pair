@@ -59,10 +59,41 @@ export async function GET(request: NextRequest) {
 
   const db = createAdminClient();
 
+  /*
+   * ── The urgent half, on its own ─────────────────────────────────────────
+   *
+   * `?only=release` does the two time-critical things and nothing else: frees
+   * slots whose deposit never arrived, and answers the enquiries the owner was
+   * given first refusal on and did not take.
+   *
+   * It exists because the rest of this route cannot safely run every minute
+   * and the release has to. A business on "when free" holds a customer's text
+   * for five minutes to give a person the first go — and until now the only
+   * thing that picked it up again ran on GitHub's scheduler, which is
+   * best-effort and, under load, does not run at all.
+   *
+   * Giles, looking at Living Canvas: "can you tell me why the sms hasnt been
+   * responded to?" It came in at 08:22 asking about a slot that morning, the
+   * hold expired at 08:27, and at 09:11 nothing had picked it up. The holding
+   * worked perfectly; the other half of the bargain did not, which makes the
+   * whole feature a way of never answering anybody.
+   *
+   * So pg_cron inside the database calls this mode every minute — it runs
+   * next to the data and cannot be queued behind somebody else's build — and
+   * the full sweep below carries on at its own pace. Five minutes now means
+   * five minutes, give or take the one this waits for.
+   */
+  const onlyRelease = request.nextUrl.searchParams.get("only") === "release";
+
   // Frees slots held for a deposit that never arrived. Also done lazily when
   // availability is read, so this is a backstop for quiet diaries.
   const holds = await releaseExpiredHolds(db);
   const released = holds.released;
+
+  if (onlyRelease) {
+    const answered = await releaseHeldConversations(db, await siteOrigin());
+    return NextResponse.json({ only: "release", released, answered });
+  }
 
   /*
    * Message ids nothing will ask about again.

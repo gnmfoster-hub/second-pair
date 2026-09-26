@@ -19,6 +19,7 @@ import {
 } from "@/lib/types";
 import { inboxScope, scopedTo } from "@/lib/inboxScope";
 import { stampStyle } from "@/lib/stamp";
+import { ukStamp, ukAgo } from "@/lib/whenUk";
 import { stampClasses } from "@/lib/conversationStatus";
 
 
@@ -58,15 +59,11 @@ function weekAgo(): string {
   return new Date(Date.now() - 7 * 86400_000).toISOString();
 }
 
-const ago = (iso: string) => {
-  const minutes = Math.round((Date.now() - Date.parse(iso)) / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.round(hours / 24);
-  return days === 1 ? "yesterday" : `${days}d ago`;
-};
+/*
+ * "ago" lived here and now lives in lib/whenUk beside the clock time, because
+ * the two are always shown together and one of them has to know about the
+ * zone. See the note on the <time> element below.
+ */
 
 export default async function InboxPage({
   searchParams,
@@ -76,6 +73,15 @@ export default async function InboxPage({
   const { whose, show } = await searchParams;
   const { studio, userId } = await requireStudio();
   const supabase = await createClient();
+
+  /*
+   * One clock for the whole page.
+   *
+   * Read once rather than per row, so every stamp in the list is measured
+   * from the same instant. Read per row, a slow render can put "Today" on one
+   * line and "Yesterday" on the one above it at midnight.
+   */
+  const now = new Date();
 
   const sevenDaysAgo = weekAgo();
 
@@ -789,8 +795,32 @@ export default async function InboxPage({
                       </span>
                     )}
 
-                    <time className="hint num hidden w-16 shrink-0 text-right sm:block">
-                      {ago(c.last_message_at)}
+                    {/*
+                      * When, and how long ago. Both, because they answer
+                      * different questions.
+                      *
+                      * This was "2h ago" and nothing else, which is right for
+                      * scanning and useless afterwards: it cannot be compared
+                      * against a phone log, read back to somebody, or used to
+                      * work out whether a reply went before or after a call —
+                      * and it quietly stops being true while the page is open.
+                      *
+                      * Giles: "can you time stamp them aswell as date." The
+                      * clock is the fact; the relative line stays underneath
+                      * it because leaving something two days is the thing you
+                      * want to notice while scanning.
+                      *
+                      * Europe/London, not the server's idea of the time. See
+                      * lib/whenUk — this page renders in UTC, so through the
+                      * summer every stamp on it was an hour early.
+                      */}
+                    <time
+                      dateTime={c.last_message_at}
+                      title={ukStamp(c.last_message_at, now)}
+                      className="hint num hidden w-24 shrink-0 text-right leading-tight sm:block"
+                    >
+                      {ukStamp(c.last_message_at, now)}
+                      <span className="block opacity-70">{ukAgo(c.last_message_at, now)}</span>
                     </time>
                   </Link>
                 </li>

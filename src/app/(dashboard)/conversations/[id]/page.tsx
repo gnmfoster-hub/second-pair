@@ -10,6 +10,7 @@ import { CHANNEL_LABELS, labelFor, type ConvStatus, type Channel } from "@/lib/t
 import { AskForPayment } from "@/components/AskForPayment";
 import { verticalPack } from "@/lib/verticals";
 import { splitQuoted } from "@/lib/messaging/quotedReply";
+import { ukStamp } from "@/lib/whenUk";
 import { ReplyBox } from "./ReplyBox";
 import { setPaused } from "./actions";
 import { StatusPicker } from "./StatusPicker";
@@ -38,6 +39,9 @@ export default async function ConversationPage({
     .maybeSingle();
 
   if (!conversation) notFound();
+
+  /* One clock for the whole thread, so "Today" cannot change part way down it. */
+  const now = new Date();
 
   const [{ data: messages }, { data: enquiry }, artists, bands, options] = await Promise.all([
     supabase
@@ -228,6 +232,27 @@ export default async function ConversationPage({
                         {m.media_urls.length > 1 ? "s" : ""}
                       </div>
                     )}
+
+                    {/*
+                      * When it was said, which this thread never showed at all.
+                      *
+                      * Giles: "timestamp all messages." Reading a conversation
+                      * back — to check what was promised, or to see how long
+                      * somebody was left waiting — could not be done without
+                      * it: a thread spanning four minutes and one spanning
+                      * four days looked exactly the same.
+                      *
+                      * Europe/London rather than the server's clock. This page
+                      * renders in UTC, so all summer every time on it would
+                      * have been an hour early, which is precisely the error
+                      * that matters when the question is how long ago.
+                      */}
+                    <time
+                      dateTime={m.created_at as string}
+                      className="num mt-1 block text-[10px] text-muted"
+                    >
+                      {ukStamp(m.created_at as string, now)}
+                    </time>
                   </div>
                 );
               })}
