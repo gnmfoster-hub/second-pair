@@ -3,7 +3,7 @@ import { settleMoments } from "./moments";
 import { joinReply } from "./reply";
 import { whoAnswers, type AnsweringMode } from "@/lib/answering";
 import { isOutOfHours } from "@/lib/report";
-import { notifyStudio } from "@/lib/notify";
+import { notifyStudio, tellThemSomebodyGotInTouch } from "@/lib/notify";
 import { whoOffers } from "./whoOffers";
 import { reachableFrom } from "./reachableFrom";
 import { isCheckSession } from "@/lib/checkSessions";
@@ -596,6 +596,27 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
         // One notification per conversation, replaced rather than stacked. Four
         // buzzes about the same customer is how people turn notifications off.
         tag: `hold-${conversation.id}`,
+      });
+
+      /*
+       * And by email, which is the one that actually arrives.
+       *
+       * The push above reaches nobody: across every business on the system one
+       * device has ever been registered for notifications, and it has never
+       * been buzzed. This is the moment the owner has been given first refusal
+       * on somebody's enquiry, and until now the only way to learn about it
+       * was to be looking at the dashboard when it happened.
+       *
+       * On 26 September a customer texted Living Canvas at 08:22 asking about
+       * a slot that morning. Nothing told anybody. It was found by chance.
+       *
+       * Once per conversation, claimed. See lib/notify.
+       */
+      await tellThemSomebodyGotInTouch(db, {
+        studioId: studio.id,
+        conversationId: conversation.id,
+        channel: input.channel,
+        said: input.message,
       });
 
       return {
@@ -1264,14 +1285,46 @@ ${text}`;
    * that happens here. notifyStudio never throws, but the ordering says what is
    * true anyway: the customer being answered comes first.
    */
-  if (isNewEnquiry && ctx.studio.notify_every_enquiry) {
-    await notifyStudio(ctx.db, ctx.studio.id, {
-      title: `A new enquiry on ${ctx.channel}`,
-      body: text.slice(0, 140),
-      url: `/conversations/${ctx.conversationId}`,
-      // One per conversation. A reply on the same one replaces rather than
-      // stacks, which is how the escalation notification already behaves.
-      tag: `enquiry-${ctx.conversationId}`,
+  /*
+   * Everything that lands in the inbox, told to somebody who is not looking
+   * at the inbox.
+   *
+   * No longer behind `notify_every_enquiry`. That column defaults to false, so
+   * eight of the nine businesses on the system had it off — not by choosing
+   * to, but by nobody ever having turned it on — and the one that did have it
+   * on got nothing anyway, because this sent a push and a push reaches nobody
+   * until a device is registered. One has been, ever: a Windows PC, never
+   * buzzed.
+   *
+   * So "tell me when somebody gets in touch" was off by default, and broken
+   * where it was on. Giles asked for the opposite of both, twice.
+   *
+   * The volume objection is answered by the claim rather than by a switch: one
+   * email per conversation however many messages it runs to, and never for an
+   * email, which is already in their inbox.
+   */
+  if (isNewEnquiry) {
+    /*
+     * By email as well as by push, which is the half that was missing.
+     *
+     * Living Canvas has had this switch on the whole time and has never had
+     * an email from it: this sent a push, and a push reaches nobody until
+     * somebody registers a device — across every business exactly one ever
+     * has, a Windows PC, never buzzed. So a setting called "tell me about
+     * every enquiry" told nobody about any of them.
+     *
+     * Giles: "can we make everything that goes in inbox also send a email
+     * notification to the users email so thy dont missit later."
+     *
+     * Once per conversation, claimed, and never for an email — telling
+     * somebody by email that an email arrived is a second copy of a thing
+     * already in their inbox. See lib/notify.
+     */
+    await tellThemSomebodyGotInTouch(ctx.db, {
+      studioId: ctx.studio.id,
+      conversationId: ctx.conversationId,
+      channel: ctx.channel,
+      /* Read from the conversation: the only text in scope here is our reply. */
     });
   }
 

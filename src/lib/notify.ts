@@ -402,3 +402,165 @@ function siteUrl(): string {
   const set = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "");
   return set || "https://www.second-pair.com";
 }
+
+/**
+ * Telling a business that somebody has got in touch — by email, once.
+ *
+ * Giles, after finding a text sitting unanswered in the Living Canvas inbox:
+ * "can we make everything that goes in inbox also send a email notification to
+ * the users email so thy dont missit later."
+ *
+ * ── Why there was no email ──────────────────────────────────────────────────
+ *
+ * There is an email path in notifyStudio and it works, but it only sends when
+ * the caller hands it wording — and the two notifications that matter most
+ * never did. The type says why, in as many words: "Left out for anything
+ * time-critical. A five-minute hold on a conversation is over before an email
+ * is read."
+ *
+ * That was sound reasoning and the morning of 26 September disproved it. The
+ * hold was not over in five minutes; it was still running eighty-two minutes
+ * later because the job that ends it had not run. The only trace of a real
+ * customer asking about a slot that morning was a row in a dashboard nobody
+ * happened to be looking at.
+ *
+ * A push would not have helped either. Push reaches nobody until somebody
+ * presses a button on the device they want buzzed, and across every business
+ * on the system exactly one device has ever been registered — a Windows PC,
+ * never once buzzed. An address, every business has.
+ *
+ * ── Why it cannot simply send one every time ────────────────────────────────
+ *
+ * The objection in that comment is still right about volume: an inbox filling
+ * with notifications is how somebody learns to ignore a sender, and then the
+ * one that mattered is ignored too.
+ *
+ * So it is once per conversation, ever, claimed through the same table and the
+ * same unique index that stops a webhook being answered twice. A ten-message
+ * conversation sends one email. Two sweeps overlapping send one email. The
+ * claim happens before the send, so the failure — if there is one — is a
+ * missing email rather than five of them.
+ */
+export async function tellThemSomebodyGotInTouch(
+  db: SupabaseClient,
+  args: {
+    studioId: string;
+    conversationId: string;
+    channel: string;
+    /**
+     * What they said, where the caller has it to hand.
+     *
+     * Left out, it is read from the conversation — which is the right thing
+     * on the path where the only text in scope is the assistant's own reply.
+     * Quoting our answer back at the owner would tell them nothing about who
+     * got in touch or why.
+     */
+    said?: string | null;
+  },
+): Promise<boolean> {
+  /*
+   * Not for email itself.
+   *
+   * Giles: "web, sms, and other exc email". An email telling somebody that an
+   * email has arrived is a second copy of a thing already in their inbox, and
+   * the fastest way to make the rest of these look like noise.
+   */
+  if (args.channel === "email") return false;
+
+  try {
+    /*
+     * Claimed before it is sent, so this can only ever go once for a given
+     * conversation. Anything but a clean insert — the row already exists, or
+     * the table cannot be reached — means somebody has already been told, or
+     * cannot be, and either way a second attempt is not wanted.
+     */
+    const { error: taken } = await db
+      .from("handled_messages")
+      .insert({
+        message_id: `gotintouch:${args.conversationId}`,
+        channel: args.channel,
+        studio_id: args.studioId,
+      });
+
+    if (taken) return false;
+
+    /*
+     * Their name, looked up here rather than passed in.
+     *
+     * Both callers have a conversation and neither has the contact loaded, and
+     * this runs after the claim — so it is one small read, once per
+     * conversation ever, on a path where nobody is waiting. Asking each caller
+     * to fetch it would have put the same query on the reply path twice.
+     */
+    let name: string | null = null;
+    const { data: conv } = await db
+      .from("conversations")
+      .select("contacts(name)")
+      .eq("id", args.conversationId)
+      .maybeSingle();
+    name = (conv?.contacts as unknown as { name: string | null } | null)?.name ?? null;
+
+    const who = name?.trim() || "Somebody";
+
+    /* Their words, from the caller or from the conversation. Never ours. */
+    let theirWords = (args.said ?? "").trim();
+    if (!theirWords) {
+      const { data: first } = await db
+        .from("messages")
+        .select("content")
+        .eq("conversation_id", args.conversationId)
+        .eq("role", "client")
+        .order("created_at")
+        .limit(1)
+        .maybeSingle();
+      theirWords = ((first?.content as string | null) ?? "").trim();
+    }
+
+    const said = theirWords.replace(/\s+/g, " ");
+    const where = CHANNEL_WORDS[args.channel] ?? args.channel;
+
+    await notifyStudio(db, args.studioId, {
+      title: `${who} got in touch`,
+      body: said.slice(0, 140),
+      url: `/conversations/${args.conversationId}`,
+      tag: `gotintouch-${args.conversationId}`,
+      email: {
+        subject: `${who} got in touch ${where}`,
+        /*
+         * Their words first, because that is the thing being told. The rest is
+         * what somebody reading it on a phone needs to decide whether to stop
+         * what they are doing — and a link, because an email is read away
+         * from the app.
+         */
+        text: [
+          said ? `"${said.slice(0, 500)}"` : "They have not said anything yet.",
+          "",
+          `${who} got in touch ${where}.`,
+          "",
+          "Your assistant is handling it. Open the conversation to read it all,",
+          "or to reply yourself — replying takes it over and the assistant stays out.",
+          "",
+          `${siteUrl()}/conversations/${args.conversationId}`,
+          "",
+          "One email per conversation, however many messages it runs to.",
+        ].join("\n"),
+      },
+    });
+
+    return true;
+  } catch (error) {
+    /* Never worth failing a reply over. */
+    console.error("[notify:gotintouch]", (error as Error).message);
+    return false;
+  }
+}
+
+/** How to say where a message came from, in a sentence rather than a label. */
+const CHANNEL_WORDS: Record<string, string> = {
+  sms: "by text",
+  web: "on your website",
+  whatsapp: "on WhatsApp",
+  instagram: "on Instagram",
+  messenger: "on Messenger",
+  voice: "by telephone",
+};
