@@ -5,6 +5,7 @@ import { emailReallyWorks } from "@/lib/messaging/email";
 import { canTakeCharges } from "@/lib/payments/connect";
 import { smsConfigured } from "@/lib/messaging/sms";
 import { reminderCover } from "./reminderCover";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * Everything the "is it working" page needs, in one pass.
@@ -256,8 +257,32 @@ async function whatHasHappened(db: SupabaseClient, studioId: string): Promise<Fa
   ] = await Promise.all([
     conv("sms"),
     conv("email"),
+    /*
+     * Counted through the service key, because a business cannot read its own
+     * call log and is not meant to.
+     *
+     * `calls` has row-level security on with no policy behind it, by design —
+     * the table is our carrier meter, not a customer-facing record, and the
+     * business sees the conversation instead. Read through their own session
+     * it comes back empty, which is indistinguishable from "no call has ever
+     * reached us".
+     *
+     * That is what this page then said, to every business on the system,
+     * including two with real calls in the table: Living Canvas had five and
+     * Neat & Tidy three. And the sentence underneath sent them to go and fix
+     * something — "the voice webhook is missing at the phone company" — which
+     * was not missing. Telling somebody to change a working configuration is
+     * worse than saying nothing.
+     *
+     * Counts only, and only for this business. Nothing about who rang or what
+     * was said crosses this line; see the note on the report, which reads it
+     * the same way for the same reason.
+     */
     any(() =>
-      db.from("calls").select("id", { count: "exact", head: true }).eq("studio_id", studioId),
+      createAdminClient()
+        .from("calls")
+        .select("id", { count: "exact", head: true })
+        .eq("studio_id", studioId),
     ),
     conv("web"),
     any(() =>
