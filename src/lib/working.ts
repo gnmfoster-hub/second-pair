@@ -350,13 +350,29 @@ export function assess(f: Facts): Thing[] {
       what: "Sent the moment somebody books, with everything they need.",
       steps: [
         yes("sold", "Included"),
-        f.hasConfirmation ? yes("on", "Written") : no("on"),
+        /*
+         * Never a cross, because one always goes.
+         *
+         * This said "You have no confirmation written, so nobody is told their
+         * booking is in" — on nine businesses out of ten, and it was untrue
+         * for every one of them. A confirmation carrying the appointment as a
+         * calendar file is built in and sent on every booking that needs no
+         * deposit. What a template adds is their own wording, and a business
+         * that has not written one is not a business whose customers hear
+         * nothing.
+         *
+         * Found when Giles asked what else on this screen might be claiming
+         * something nothing had checked.
+         */
+        f.hasConfirmation
+          ? yes("on", "In your own words")
+          : na("on", "Ours goes as standard"),
         na("connected"),
         f.ever.confirmationSent ? yes("proven", "Confirmations have gone") : no("proven"),
       ],
       because: {
-        on: "You have no confirmation written, so nobody is told their booking is in.",
-        proven: "Nothing has been confirmed yet.",
+        proven:
+          "Nothing has been confirmed yet. One goes automatically on every booking, so this turns green with the first.",
       },
       fix: { href: "/settings/reminders", label: "Confirmations and reminders" },
       where: [{ who: "owner", what: "What it says and how it goes", href: "/settings/reminders" }],

@@ -109,6 +109,47 @@ export async function sendBookingConfirmation(
     });
 
     /*
+     * And noted where the "Is it working?" page can count it.
+     *
+     * That page told nine businesses out of ten "you have no confirmation
+     * written, so nobody is told their booking is in", and it was untrue for
+     * every one of them. It counts confirmations by joining the reminders
+     * table to a template timed at nought hours — and this email is not a
+     * reminder and uses no template. It is built in, it carries the calendar
+     * file, and it goes on every booking that needs no deposit.
+     *
+     * So the product reported that nobody was being confirmed while it was
+     * confirming them. Found when Giles asked what else on that screen might
+     * be claiming something nothing had checked.
+     *
+     * The same claim table reviews and campaigns use, keyed on the booking so
+     * a resend cannot count twice. Failure ignored on purpose: a confirmation
+     * that went matters more than the note saying it did.
+     */
+    if (result.status === "sent") {
+      await db
+        .from("handled_messages")
+        .insert({
+          message_id: `confirm:${bookingId}`,
+          channel: "email",
+          /* Looked up by slug: the conversation row here does not carry the
+             id, and a claim without one cannot be counted per business. */
+          studio_id:
+            (
+              await db
+                .from("studios")
+                .select("id")
+                .eq("slug", studio.slug)
+                .maybeSingle()
+            ).data?.id ?? null,
+        })
+        .then(
+          () => undefined,
+          () => undefined,
+        );
+    }
+
+    /*
      * Written into the thread either way.
      *
      * "Did they get a confirmation?" is a question somebody asks weeks later,
