@@ -2071,26 +2071,59 @@ function FixSettings({ b }: { b: BusinessSummary }) {
           </label>
         </div>
 
-        {/* VAT changes every price the assistant says out loud. */}
-        <div className="grid gap-3 sm:grid-cols-4">
-          <label className="row flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm">
-            <input
-              type="checkbox"
-              name="vat_registered"
-              defaultChecked={b.settings.vatRegistered}
-              className="accent-[var(--accent)]"
-            />
-            VAT registered
-          </label>
-          <label className="row flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm">
-            <input
-              type="checkbox"
-              name="prices_include_vat"
-              defaultChecked={b.settings.pricesIncludeVat}
-              className="accent-[var(--accent)]"
-            />
-            Prices include it
-          </label>
+        {/*
+          * VAT changes every price the assistant says out loud.
+          *
+          * One question with three answers, not two checkboxes.
+          *
+          * Giles, setting a business up: "the only options i have for vat are
+          * VAT registered and prices include it, there should be one for NO
+          * VAT which means this across everything."
+          *
+          * He is right, and the business's own settings page has said so since
+          * it was written — "being shown 'prices include VAT' and 'add VAT
+          * before quoting' as the only options reads as though VAT is
+          * assumed". This screen never got the same treatment, so the back
+          * office kept a shape the front had already outgrown.
+          *
+          * Two checkboxes were worse than untidy. "Not registered" had to be
+          * inferred from an unticked box, which reads as unanswered rather
+          * than as an answer — and "prices include it" could be ticked without
+          * "registered", which means nothing and was perfectly saveable.
+          *
+          * The same three values the front end posts, so one save handles both.
+          */}
+        <fieldset className="rounded-xl border border-border px-3 py-2">
+          <legend className="label px-1">VAT</legend>
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            {(
+              [
+                ["none", "Not registered — never mention VAT"],
+                ["included", "Registered — prices include it"],
+                ["added", "Registered — add it on top"],
+              ] as const
+            ).map(([value, label]) => (
+              <label key={value} className="flex items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="vat_mode"
+                  value={value}
+                  defaultChecked={
+                    !b.settings.vatRegistered
+                      ? value === "none"
+                      : b.settings.pricesIncludeVat
+                        ? value === "included"
+                        : value === "added"
+                  }
+                  className="accent-[var(--accent)]"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <div className="grid gap-3 sm:grid-cols-2">
           <label className="block">
             <span className="label">VAT rate %</span>
             <input

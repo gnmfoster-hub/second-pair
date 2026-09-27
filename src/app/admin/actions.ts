@@ -953,8 +953,24 @@ export async function fixSettings(_prev: Result, fd: FormData): Promise<Result> 
   number("travel_buffer_minutes", "travel_buffer_minutes", 0, 240);
   number("vat_rate_percent", "vat_rate_percent", 0, 100);
 
-  if (fd.has("vat_registered")) patch.vat_registered = fd.get("vat_registered") === "on";
-  if (fd.has("prices_include_vat")) patch.prices_include_vat = fd.get("prices_include_vat") === "on";
+  /*
+   * One question, three answers, mapped exactly the way the business's own
+   * settings page maps it — so the back office and the front cannot come to
+   * different conclusions about what a business charges.
+   *
+   * The old pair of checkboxes is still read underneath, for a form somebody
+   * had open across the deploy. Nothing posts them now.
+   */
+  if (fd.has("vat_mode")) {
+    const mode = String(fd.get("vat_mode") ?? "").trim();
+    if (["none", "included", "added"].includes(mode)) {
+      patch.vat_registered = mode !== "none";
+      patch.prices_include_vat = mode !== "added";
+    }
+  } else {
+    if (fd.has("vat_registered")) patch.vat_registered = fd.get("vat_registered") === "on";
+    if (fd.has("prices_include_vat")) patch.prices_include_vat = fd.get("prices_include_vat") === "on";
+  }
 
   const travel = String(fd.get("travel_mode") ?? "").trim();
   if (["at_premises", "at_customer", "both"].includes(travel)) patch.travel_mode = travel;
