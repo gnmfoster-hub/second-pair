@@ -10,9 +10,20 @@ Two lists. Yours is first — accounts, DNS, decisions, things only you can do.
 Mine is at the bottom. They are separate on purpose: the last version mixed them
 up and it was impossible to tell what was blocking what.
 
-Last updated: 25 September 2026. Every claim in the two lists above was
-checked against the live database, not carried forward — two items had already
-been done, one was never a fault, and one had quietly half-fixed itself.
+Last updated: 27 September 2026. Every claim in the two lists below was
+checked against the live database rather than carried forward.
+
+**New since the last version, and worth reading first.** A tenth business is
+live — **Amber's Paws & Pastures** — set up on 26 September with a text number
+and email forwarding, and taking real email already. Three new things are on
+my list and none are started: a "not VAT registered" option, changing and
+resetting a password, and an agreement for businesses to sign when you take
+them on. That last one needs a solicitor before it goes to anybody, for
+reasons under **C** at the bottom.
+
+Three things are waiting on you and nothing else: **ring the Receptionist**,
+**sign a phone up for notifications** (the only device on the system is a
+Windows PC), and **ask Karen about the fifteen-minute consultation**.
 
 ---
 
@@ -83,6 +94,60 @@ Done, 23 September:
 - The Receptionist: per person, switchable, and priced per person
 - Terms and privacy naming Second Pair Ltd and company number 17453965 —
   already done and live on both pages; checked rather than assumed
+
+Done on 26 and 27 September:
+
+- ~~**Sign in went to a blank page.**~~ Reported three times, and the first two
+  fixes were wrong. The cause was our own chat widget: widget.js appends its
+  bubble to `<body>`, and the component that loads it took away "anything under
+  body that was not there when we started" — which, by the time React unmounts
+  that layout, includes the page React has just drawn. It deleted it, React
+  crashed reconciling nodes that no longer existed, and the error boundary said
+  "This page couldn't load". widget.js marks its own elements now.
+
+  The check I wrote for it passed twice on the broken site, because it asserted
+  the page had more than forty characters and the error page has seventy. It
+  asserts an email box and a password box now. That cost Giles two reports.
+
+- ~~**Times were an hour out all summer.**~~ These pages render on a server in
+  UTC and any formatter that does not name a zone follows the machine. Now
+  Europe/London everywhere, through `lib/whenUk`.
+
+- ~~**Messages had no times at all.**~~ Giles: "timestamp all messages." A
+  thread spanning four minutes and one spanning four days looked identical. The
+  inbox shows the clock time with how long ago underneath; the thread stamps
+  every message.
+
+- ~~**Nothing that landed in the inbox told anybody.**~~ Two faults stacked:
+  `notify_every_enquiry` defaults to false so eight of nine businesses had it
+  off by accident, and the one that had it on got nothing because it sent a
+  push — and one device has ever been registered anywhere, a Windows PC, never
+  buzzed. Both paths email now, once per conversation, never for an email.
+
+- ~~**A held message could sit for ever.**~~ The five-minute first-refusal hold
+  was released by GitHub Actions, whose scheduler is best-effort. On 26 Sep a
+  customer texted Living Canvas at 08:22 about a slot that morning; the hold
+  expired at 08:27 and nothing had picked it up by 09:11. pg_cron calls a
+  release-only endpoint every minute from inside the database now. Worst case
+  is six minutes.
+
+- ~~**Taking a conversation over left the hold loaded.**~~ Found while checking
+  the above. A thread the owner picked up kept its hold for ever, so pressing
+  "Hand back to the assistant" weeks later would have had it reply to a
+  days-old message as though it had just arrived.
+
+- ~~**Channels said email was switched off when it was on.**~~ A hardcoded
+  warning from when `in.second-pair.com` had no mail server. It does now, and
+  Amber's Paws & Pastures had two emails through it that morning while the
+  screen said otherwise. It reports when mail last actually arrived.
+
+- ~~**The Receptionist sounded like a machine, said things wrongly, and
+  lagged.**~~ Generative voice as the default with the cheaper ones kept;
+  speaking and listening metered for the first time; ampersands, money, times,
+  postcodes and phone numbers rewritten for speech; and the lag measured rather
+  than guessed — four turns, fifty-five seconds, of which twelve seconds a turn
+  was the assistant *talking*, because there was a brevity rule for texts and
+  none for the telephone.
 
 Open, and roughly in the order I would do them:
 
@@ -704,6 +769,49 @@ mobile number.
 ---
 
 # Mine — still open
+
+## New, and not started
+
+**A. A "not VAT registered" option.** Giles, 27 Sep: the only choices are VAT
+registered and whether prices include it, and there is no way to say a business
+is not registered at all — which is most sole traders. It should mean no VAT
+anywhere: not on a quote, not on an invoice, not in anything the assistant
+says. Not started.
+
+**B. Changing and resetting a password.** Giles, 27 Sep. Some of this exists
+already — the sign-in page has a "forgot" mode and there is a `/reset-password`
+page — so the first job is to find out what actually works end to end rather
+than assume, and the missing half is almost certainly changing a password from
+*inside* the app once somebody is signed in. Not started.
+
+**C. An agreement businesses sign when you take them on.** Giles, 27 Sep:
+sent when he adds them, terms and conditions, a set-up fee then a subscription
+he types in, sixty days' notice to cancel, trial options, bespoke ways of
+charging, and accounts that are only a website rather than an assistant.
+
+   Proposed rather than started, and most of it is already built: the forms
+   system sends a private link, shows paragraphs, makes somebody tick what they
+   must tick, takes a signature, and freezes the exact wording at the moment of
+   sending so editing the template later cannot change what was agreed. It also
+   has a priced `lines` block. That is a contract system; it is simply pointed
+   at customers rather than at businesses. The agreement would live on the
+   `help` studio with each owner as a contact.
+
+   **What is actually missing:** the terms as *data* rather than words — set-up
+   fee, billing period, notice days, what they bought, a link to the signed
+   copy; products, so a website-only client is a real thing rather than a
+   half-configured assistant; per-agreement pricing instead of one `plan_pence`;
+   and a "send the agreement" step in admin.
+
+   **One thing that is not mine to decide.** The terms need a solicitor before
+   one goes to a paying client. In particular a written data processing
+   agreement is a legal requirement rather than an option — their customers'
+   names, numbers and messages flow through this system, which makes them the
+   controller and us the processor, and UK GDPR Article 28 requires that in
+   writing. It does not exist. It is the most important clause in the document
+   and the one most likely to be forgotten.
+
+## In flight
 
 1. **The live voice Receptionist.** Mostly built on the night of 25 Sep.
    A line with it switched on answers, listens, and carries the conversation
