@@ -38,8 +38,41 @@ const WIDTH = 390;
 const NARROW = 110;
 const TALL = 140;
 
+/*
+ * Where to look, and a refusal to guess wrong about it.
+ *
+ * This defaulted to localhost:3130 with no check, and twice in one day it
+ * reported every screen of a business as squeezed and one as failing to load —
+ * because nothing was listening on that port. Both times the fault was here
+ * and the product was fine, and both times it cost a few minutes of looking in
+ * the wrong place.
+ *
+ * A checker that cannot reach the thing it is checking has not found faults.
+ * It has failed, and it should say so in those words.
+ */
+const SITE = process.env.SITE ?? "http://localhost:3130";
+
+async function reachable(url) {
+  try {
+    const res = await fetch(url, { redirect: "manual" });
+    return res.status > 0;
+  } catch {
+    return false;
+  }
+}
+
 (async () => {
   const only = process.argv[2] ?? null;
+
+  if (!(await reachable(SITE))) {
+    console.log(
+      `Nothing is answering at ${SITE}.\n\n` +
+        "Nothing has been checked. Start the site, or point this somewhere real:\n" +
+        "  SITE=https://www.second-pair.com node scripts/check-phone.cjs\n",
+    );
+    process.exitCode = 1;
+    return;
+  }
 
   let query = db.from("studios").select("id, slug").is("archived_at", null).order("slug");
   if (only) query = query.eq("slug", only);
@@ -96,7 +129,7 @@ const TALL = 140;
     for (const href of pages) {
       looked++;
       try {
-        await page.goto(`${process.env.SITE ?? "http://localhost:3130"}${href}`, {
+        await page.goto(`${SITE}${href}`, {
           waitUntil: "networkidle",
           timeout: 30000,
         });
