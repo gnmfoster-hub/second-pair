@@ -336,6 +336,24 @@ export async function createBooking(args: {
   slot: Slot;
   type: "consultation" | "session";
   depositPence: number;
+  /**
+   * What the appointment is worth, frozen at the moment it is taken.
+   *
+   * Never written until now, on any booking the assistant made: the insert
+   * below recorded a deposit and no price. So every assistant booking counted
+   * on the report as an appointment and as nothing in money — and the one
+   * number this product exists to produce, what the assistant won a business,
+   * could not be produced from the assistant's own bookings.
+   *
+   * Found by adding two live clients' money up by hand. Four assistant
+   * bookings between them, every one with no price. Willow's three hundred
+   * and eighty-nine have one because a person typed them in.
+   *
+   * Frozen here rather than read back from the enquiry later: a quote can be
+   * given again at a different number, and what an appointment was worth on
+   * the day it was taken does not change afterwards.
+   */
+  pricePence?: number | null;
   /** Null confirms outright, for businesses that take no deposit. */
   holdMinutes?: number | null;
   /**
@@ -376,6 +394,8 @@ export async function createBooking(args: {
       ends_at: slot.ends_at,
       deposit_amount_pence: depositPence,
       deposit_status: "unpaid",
+      /* Only when it is known. A nought here would read as free work. */
+      ...(args.pricePence ? { price_pence: args.pricePence } : {}),
       held_until:
         holdMinutes == null
           ? null

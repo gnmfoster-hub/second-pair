@@ -1757,6 +1757,20 @@ async function makeBooking(
      * lib/voice/whatItMayDo.
      */
     holdMinutes: phoneHold ?? (takesDeposit ? 60 : null),
+
+    /*
+     * What it is worth, from the quote already given.
+     *
+     * The bottom of the range rather than the middle or the top, and that is
+     * a deliberate choice about a money figure: a range describes work that
+     * varies, and the only part of it a business can count on is the bottom.
+     * A report that overstates the week is worse than one that understates
+     * it — the first gets believed and then contradicted by the bank.
+     *
+     * Where a business prices by named services the range has already
+     * collapsed to one number, so low is simply the price.
+     */
+    pricePence: await quotedValue(ctx),
   });
 
   if (!result.ok) return { result: result.message };
@@ -2303,3 +2317,32 @@ const REASON_TITLES: Record<string, string> = {
   under_18: "Someone under 18 got in touch",
   asked_for_human: "Someone asked for a person",
 };
+
+/**
+ * What the assistant has already told this customer the work costs.
+ *
+ * Read off the enquiry, where the quote was written when it was given. The
+ * booking row is the thing that gets counted on the report, so the number has
+ * to be copied onto it at the moment the slot is taken — see createBooking for
+ * why it is frozen rather than looked up again later.
+ *
+ * Nothing quoted means nothing recorded. A booking somebody made without ever
+ * being given a price is genuinely worth an unknown amount, and the report
+ * already says so in those words: "counted as appointments and not as money".
+ * Inventing a figure to fill the column would be worse than the gap.
+ */
+async function quotedValue(ctx: ToolContext): Promise<number | null> {
+  try {
+    const { data } = await ctx.db
+      .from("enquiries")
+      .select("quote_low_pence")
+      .eq("id", ctx.enquiryId)
+      .maybeSingle();
+
+    const low = (data?.quote_low_pence as number | null) ?? null;
+    return low && low > 0 ? low : null;
+  } catch {
+    /* A booking is worth more than a figure about it. */
+    return null;
+  }
+}
