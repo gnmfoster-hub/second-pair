@@ -457,6 +457,20 @@ export async function tellThemSomebodyGotInTouch(
      */
     said?: string | null;
     /**
+     * A rehearsal, or a check running — not a customer.
+     *
+     * Nothing goes out for these, and the reason is a real email a real
+     * client received. Running `check-answers.mjs neat-tidy-solutions` holds
+     * a genuine conversation with the assistant and deletes it afterwards;
+     * everything else in the product already knows to ignore those, because
+     * they are marked. This did not, so Karen got "somebody got in touch" and
+     * "somebody has replied" about a conversation that no longer existed, and
+     * opened an inbox with nothing in it.
+     *
+     * An owner trying their own assistant would have done the same.
+     */
+    isTest?: boolean;
+    /**
      * They have written again on a conversation that already exists.
      *
      * Notified too, but throttled by the hour rather than once for ever. One
@@ -476,6 +490,17 @@ export async function tellThemSomebodyGotInTouch(
    * the fastest way to make the rest of these look like noise.
    */
   if (args.channel === "email") return false;
+
+  /*
+   * And never for a rehearsal or a check.
+   *
+   * These conversations are deleted the moment the check finishes, so an email
+   * about one points at an inbox with nothing in it — which is exactly what a
+   * live client saw on 27 September after I ran the answer checks against
+   * their account. Every figure in this product already excludes test turns;
+   * this was the one thing that did not.
+   */
+  if (args.isTest) return false;
 
   try {
     /*

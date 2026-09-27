@@ -617,6 +617,8 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
         conversationId: conversation.id,
         channel: input.channel,
         said: input.message,
+        /* A rehearsal or a check is not a customer. See lib/notify. */
+        isTest: input.isTest === true || isCheckSession(input.sessionKey),
       });
 
       return {
@@ -1325,6 +1327,7 @@ ${text}`;
       conversationId: ctx.conversationId,
       channel: ctx.channel,
       /* Read from the conversation: the only text in scope here is our reply. */
+      isTest: ctx.isTest === true,
     });
   } else {
     /*
@@ -1348,6 +1351,7 @@ ${text}`;
       conversationId: ctx.conversationId,
       channel: ctx.channel,
       replied: true,
+      isTest: ctx.isTest === true,
     });
   }
 
