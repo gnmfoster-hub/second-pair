@@ -870,7 +870,24 @@ export function recentHistory<M extends { role: string; content: string | null }
 async function generateReply(
   ctx: ReplyContext & { watch: ReturnType<typeof stopwatch> },
 ): Promise<{ text: string; moments: Moment[] }> {
-  const client = new Anthropic();
+  /*
+   * A rehearsal spends on its own key, when there is one.
+   *
+   * Reading the real bill against our own figures showed three days of
+   * September carrying half the month — 19th to 21st, when the demos were
+   * being rebuilt and the guardrail checks were run hard. Every one of those
+   * conversations goes through the real API on the same key a paying client's
+   * does, so "what does the product cost" and "what did a day of testing cost"
+   * are one number and cannot be told apart. It is also how a balance gets
+   * drained by work nobody would have called spending.
+   *
+   * ANTHROPIC_API_KEY_TEST, when set, takes the checks and the owner's own
+   * rehearsals. Nothing changes without it: no key, same key as before, and a
+   * customer is never on it either way.
+   */
+  const rehearsal = ctx.isTest === true;
+  const testKey = process.env.ANTHROPIC_API_KEY_TEST;
+  const client = rehearsal && testKey ? new Anthropic({ apiKey: testKey }) : new Anthropic();
 
   const { data: history } = await ctx.db
     .from("messages")

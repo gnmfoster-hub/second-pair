@@ -149,6 +149,29 @@ Done on 26 and 27 September:
   was the assistant *talking*, because there was a brevity rule for texts and
   none for the telephone.
 
+### 12. A second Anthropic key, so testing stops looking like customers
+
+**Five minutes, and only you can do it.** The September bill was $30.55, and
+three days of it — the 19th to the 21st, when the demos were being rebuilt and
+the guardrail checks were run hard — carried half the month. Since the 22nd it
+has been $1.60 across six days.
+
+Every one of those rehearsal conversations goes through the real API on the
+same key a paying client's does. So "what does the product cost" and "what did
+a day of testing cost" are one number, cannot be told apart, and one of them is
+the number the subscription gets priced from.
+
+1. **console.anthropic.com → API keys** → create one called something like
+   `development`.
+2. Add it to Vercel as **`ANTHROPIC_API_KEY_TEST`**.
+
+That is all. The code already looks for it: a check session or an owner trying
+their own assistant goes on that key, everything else stays exactly as it is,
+and with no key set nothing changes at all. A customer is never on it either
+way.
+
+Worth doing before the next demo rebuild rather than after.
+
 ### The verification sweep, 27 September
 
 Giles: "lets keep checking everything works and things report correctly,
