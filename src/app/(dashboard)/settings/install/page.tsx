@@ -13,6 +13,7 @@ import { smsConfigured } from "@/lib/messaging/sms";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { howItWent, describeHowItWent } from "@/lib/voice/howItWent";
+import { ukStamp, ukAgo } from "@/lib/whenUk";
 import { Appearance } from "./Appearance";
 import { MetaChannels } from "./MetaChannels";
 import { WhoseChannel } from "./WhoseChannel";
@@ -207,6 +208,24 @@ export default async function ChannelsPage({
    * migration that is run by hand and a screen that breaks over a missing
    * column is worse than a screen that is quiet about the lag.
    */
+  /*
+   * When email last actually arrived for this business.
+   *
+   * The only honest way to tell somebody their forwarding works: not that we
+   * believe it should, but that something came through it. One indexed read
+   * of the newest email conversation.
+   */
+  const { data: lastEmail } = await supabaseForNumbers
+    .from("conversations")
+    .select("created_at")
+    .eq("studio_id", studio.id)
+    .eq("channel", "email")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const lastEmailAt = (lastEmail?.created_at as string | null) ?? null;
+
   let lag: string | null = null;
   try {
     const { data: recent } = await createAdminClient()
@@ -383,14 +402,41 @@ export default async function ChannelsPage({
             * there was nothing to go and fetch. An address on a screen is a
             * promise that something is listening at the other end.
             */}
-          <p className="mt-4 rounded-lg bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">
-            <strong>Not switched on yet.</strong> Do not set up forwarding to this
-            address until it says otherwise here. The domain has no mail server behind
-            it, so anything sent to it bounces, including the code your provider sends
-            to verify the forward.
-          </p>
+          {/*
+            * What is actually true, rather than what was true in August.
+            *
+            * This said "Not switched on yet. Do not set up forwarding to this
+            * address" — hardcoded, on every business, for ever. It was right
+            * when it was written: in.second-pair.com had no mail server, so a
+            * forward set up to it would bounce along with the verification
+            * code the provider sends to prove ownership.
+            *
+            * It is not right any more. The domain has an MX record and mail
+            * is arriving: Amber's Paws & Pastures had two emails through it on
+            * the morning of 27 September, and the screen was telling her it
+            * was switched off while her assistant answered them.
+            *
+            * Giles found it: "in channels it says email not switched on when i
+            * think it is."
+            *
+            * So it says what has happened rather than what somebody once had
+            * to warn about. A business that has had mail through this address
+            * is told so, with when — that is proof, not a promise, and it is
+            * the only thing on this screen that can be sure.
+            */}
+          {lastEmailAt ? (
+            <p className="mt-4 rounded-lg bg-ok/10 px-3 py-2 text-xs leading-relaxed text-ok">
+              <strong>Working.</strong> The last email came through here{" "}
+              {ukAgo(lastEmailAt)} — {ukStamp(lastEmailAt)}.
+            </p>
+          ) : (
+            <p className="hint mt-4 max-w-prose text-xs leading-relaxed">
+              Ready for forwarding. Nothing has come through yet, so this screen will say
+              so as soon as the first one does.
+            </p>
+          )}
 
-          <code className="mt-3 block overflow-x-auto rounded-lg border border-border bg-surface-2/60 px-3 py-2 font-mono text-[11px] opacity-60">
+          <code className="mt-3 block overflow-x-auto rounded-lg border border-border bg-surface-2/60 px-3 py-2 font-mono text-[11px]">
             {studio.slug}@in.second-pair.com
           </code>
 
