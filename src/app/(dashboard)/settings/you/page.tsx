@@ -8,6 +8,7 @@ import { smsConfigured } from "@/lib/messaging/sms";
 import { readableNumber } from "@/lib/channels/phoneNumbers";
 import { Notifications } from "@/components/Notifications";
 import { YourDevices } from "./YourDevices";
+import { ChangePassword } from "./ChangePassword";
 import { OnYourPhone } from "@/components/OnYourPhone";
 import { ArtistEditor } from "../artists/ArtistEditor";
 import { CalendarLinks } from "../data/CalendarLinks";
@@ -64,7 +65,18 @@ export default async function YouPage({
 
   const me = artists.find((a) => a.user_id === userId) ?? null;
 
+  /*
+   * The address this person signs in with.
+   *
+   * From the session rather than from their artist record: the two can differ
+   * — a stylist's contact email is a business fact and their login is an
+   * account fact — and changing a password has to check the one they actually
+   * sign in with. Read here so the client component is handed a value rather
+   * than going looking for a session of its own.
+   */
   const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  const signInEmail = auth?.user?.email ?? null;
 
   /*
    * Who a reminder arrives from. The same answer as the business's own page,
@@ -195,6 +207,14 @@ export default async function YouPage({
        * who has not turned notifications on is asked once rather than twice.
        */}
       <YourDevices />
+
+      {/*
+       * Changing a password, which could not be done at all from inside the
+       * app. Forgetting one always worked; somebody who simply wanted a new
+       * one had to sign out and pretend to have forgotten it, which most
+       * people will not bother doing. See ChangePassword.
+       */}
+      <ChangePassword email={signInEmail} />
 
       {/*
        * What this person is told about, which is theirs and nobody else's.
