@@ -456,6 +456,16 @@ export async function tellThemSomebodyGotInTouch(
      * got in touch or why.
      */
     said?: string | null;
+    /**
+     * They have written again on a conversation that already exists.
+     *
+     * Notified too, but throttled by the hour rather than once for ever. One
+     * email per conversation is right for a thread that runs ten messages in
+     * ten minutes and wrong for somebody replying the next morning with "yes,
+     * Tuesday works" — which is the message a business most wants to see, and
+     * which used to send nothing at all.
+     */
+    replied?: boolean;
   },
 ): Promise<boolean> {
   /*
@@ -474,10 +484,22 @@ export async function tellThemSomebodyGotInTouch(
      * the table cannot be reached — means somebody has already been told, or
      * cannot be, and either way a second attempt is not wanted.
      */
+    /*
+     * First contact is claimed once for ever; a reply is claimed for the hour.
+     *
+     * The hour is in the key, so the unique index does the throttling and
+     * nothing has to remember anything. Ten messages in ten minutes send one
+     * email; a reply tomorrow morning sends another.
+     */
+    const hour = new Date().toISOString().slice(0, 13);
+    const key = args.replied
+      ? `replied:${args.conversationId}:${hour}`
+      : `gotintouch:${args.conversationId}`;
+
     const { error: taken } = await db
       .from("handled_messages")
       .insert({
-        message_id: `gotintouch:${args.conversationId}`,
+        message_id: key,
         channel: args.channel,
         studio_id: args.studioId,
       });
@@ -505,27 +527,43 @@ export async function tellThemSomebodyGotInTouch(
     /* Their words, from the caller or from the conversation. Never ours. */
     let theirWords = (args.said ?? "").trim();
     if (!theirWords) {
-      const { data: first } = await db
+      /*
+       * The newest on a reply, the first on a new enquiry.
+       *
+       * Quoting the opening line back at somebody as though it were the reply
+       * is worse than quoting nothing: the business reads a message they have
+       * already dealt with and decides there is nothing new here.
+       */
+      const { data: pick } = await db
         .from("messages")
         .select("content")
         .eq("conversation_id", args.conversationId)
         .eq("role", "client")
-        .order("created_at")
+        .order("created_at", { ascending: !args.replied })
         .limit(1)
         .maybeSingle();
-      theirWords = ((first?.content as string | null) ?? "").trim();
+      theirWords = ((pick?.content as string | null) ?? "").trim();
     }
 
     const said = theirWords.replace(/\s+/g, " ");
     const where = CHANNEL_WORDS[args.channel] ?? args.channel;
 
+    /*
+     * A reply is a different sentence from a first message.
+     *
+     * "Amber got in touch on your website" about the fourth message of a
+     * conversation reads as a second customer, and a business acting on that
+     * opens a thread expecting a stranger.
+     */
+    const headline = args.replied ? `${who} has replied` : `${who} got in touch`;
+
     await notifyStudio(db, args.studioId, {
-      title: `${who} got in touch`,
+      title: headline,
       body: said.slice(0, 140),
       url: `/conversations/${args.conversationId}`,
       tag: `gotintouch-${args.conversationId}`,
       email: {
-        subject: `${who} got in touch ${where}`,
+        subject: args.replied ? `${who} has replied` : `${who} got in touch ${where}`,
         /*
          * Their words first, because that is the thing being told. The rest is
          * what somebody reading it on a phone needs to decide whether to stop
@@ -535,14 +573,18 @@ export async function tellThemSomebodyGotInTouch(
         text: [
           said ? `"${said.slice(0, 500)}"` : "They have not said anything yet.",
           "",
-          `${who} got in touch ${where}.`,
+          args.replied
+            ? `${who} has written again ${where}.`
+            : `${who} got in touch ${where}.`,
           "",
           "Your assistant is handling it. Open the conversation to read it all,",
           "or to reply yourself — replying takes it over and the assistant stays out.",
           "",
           `${siteUrl()}/conversations/${args.conversationId}`,
           "",
-          "One email per conversation, however many messages it runs to.",
+          args.replied
+            ? "At most one of these an hour per conversation, however fast they type."
+            : "One of these when somebody first gets in touch.",
         ].join("\n"),
       },
     });

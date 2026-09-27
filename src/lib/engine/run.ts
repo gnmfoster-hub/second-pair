@@ -1326,6 +1326,29 @@ ${text}`;
       channel: ctx.channel,
       /* Read from the conversation: the only text in scope here is our reply. */
     });
+  } else {
+    /*
+     * And when they write again, which the first version did not cover.
+     *
+     * Giles: "we also need to impliment a email notification where someone
+     * responds to a message in the inbox."
+     *
+     * He is right and the gap was mine. One email per conversation, ever, is
+     * the correct answer to a thread that runs ten messages in ten minutes
+     * and the wrong one to a customer who replies the next morning with "yes,
+     * Tuesday works" — which is the message the business most wants to see,
+     * and which sent nothing at all.
+     *
+     * So a reply notifies too, throttled by the hour rather than silenced for
+     * ever: a back-and-forth while somebody is typing sends one, and a reply
+     * a day later sends another. Same claim table, an hour in the key.
+     */
+    await tellThemSomebodyGotInTouch(ctx.db, {
+      studioId: ctx.studio.id,
+      conversationId: ctx.conversationId,
+      channel: ctx.channel,
+      replied: true,
+    });
   }
 
   return { text, moments: settleMoments(moments) };
