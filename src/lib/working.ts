@@ -478,9 +478,22 @@ export function assess(f: Facts): Thing[] {
          * "connected" beside a green "proven" with nothing to explain it.
          * That reads as the page being broken rather than the setup.
          */
+        /*
+         * "No account connected" was not quite true, and the difference sent
+         * somebody the wrong way.
+         *
+         * Checked against Stripe directly for the one business that has an
+         * account: charges_enabled false, details_submitted false. The account
+         * exists and is linked. Stripe simply will not let it charge, because
+         * the form was started and never finished.
+         *
+         * Told there is no account, a person connects one again and lands back
+         * on the same half-finished form. Told the form is unfinished, they
+         * finish it. The same red cross, and opposite actions.
+         */
         connected: f.ever.paymentTaken
-          ? "Money has gone through before, but no account is connected now — so nothing can be charged today. Usually means it was disconnected or the connection expired."
-          : "No account connected, so nothing can be charged and no deposit can be held.",
+          ? "Money has gone through before, but nothing can be charged today. Usually the Stripe form was started and never finished — Stripe allows no charges until it is — or the account has since been disconnected."
+          : "Nothing can be charged and no deposit can be held. Either no account has been connected, or one was started and the Stripe form was never finished.",
         proven: "No payment has gone through yet.",
       },
       fix: { href: "/settings/money", label: "Getting paid" },
