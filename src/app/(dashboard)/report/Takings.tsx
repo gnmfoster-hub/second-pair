@@ -89,8 +89,12 @@ export function Takings({
        */}
       {bookings && figures.unpriced > 0 && (
         <p className="hint mt-1">
-          {figures.unpriced} of them have no price on, so they are counted as
-          appointments and not as money.
+          {/* "1 of them have" was on a money report until the figures were
+              checked by hand against the database. The arithmetic was exact;
+              the sentence about it was not. */}
+          {figures.unpriced === 1
+            ? "One of them has no price on, so it is counted as an appointment and not as money."
+            : `${figures.unpriced} of them have no price on, so they are counted as appointments and not as money.`}
         </p>
       )}
 
