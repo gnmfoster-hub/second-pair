@@ -110,6 +110,14 @@ export type Facts = {
   marketingSold: boolean;
   optedIn: number;
   savedMessages: number;
+  /**
+   * When the widget last loaded on the business's own website, and where.
+   *
+   * The only proof the code is installed. Counting connections could never be
+   * — there is no web connection row for anybody. See lib/widget/seen.
+   */
+  widgetSeenAt?: string | null;
+  widgetSeenOn?: string | null;
   /** What has actually happened, which is the only proof there is. */
   ever: {
     textDelivered: boolean;
@@ -156,7 +164,27 @@ export function assess(f: Facts): Thing[] {
       steps: [
         yes("sold", "Always included"),
         na("on"),
-        live("web") || f.ever.webChat ? yes("connected", "On your site") : no("connected"),
+        /*
+         * Seen loading on their own site, rather than counted in a table.
+         *
+         * This was `live("web")`, which counts rows in channel_connections —
+         * and there has never been a web row for anybody, because the widget
+         * is served from us and needs nothing connecting. So the only way this
+         * could go green was for a customer to use the chat, and a business
+         * that had installed the code properly and was waiting for its first
+         * enquiry was told the code was not on its website. The one state
+         * where somebody wants reassurance got a red cross.
+         *
+         * Giles, on Amber's: "it says not live on a website when it is." Her
+         * site carried the script with her own slug on it.
+         *
+         * The widget asks us for its colours and opening hours every time it
+         * loads, so being asked is proof the code is on a page somebody
+         * opened. See lib/widget/seen.
+         */
+        f.widgetSeenOn || f.widgetSeenAt || live("web") || f.ever.webChat
+          ? yes("connected", f.widgetSeenOn ? `On ${f.widgetSeenOn}` : "On your site")
+          : no("connected"),
         f.ever.webChat ? yes("proven", "Somebody has used it") : no("proven"),
       ],
       because: {

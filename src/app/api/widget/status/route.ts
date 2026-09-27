@@ -1,5 +1,6 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, after, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { noteWidgetSeen } from "@/lib/widget/seen";
 import { statusFor } from "@/lib/widgetStatus";
 import { paint } from "@/lib/widget/colour";
 import {
@@ -98,6 +99,23 @@ export async function GET(request: NextRequest) {
       teaser: null,
     });
   }
+
+  /*
+   * A note that the code is genuinely on a page somebody opened.
+   *
+   * This request is the only honest proof of that. The "Is it working?" page
+   * decided it by counting connection rows, and there has never been a web row
+   * for anybody — the widget is served from us and needs nothing connecting —
+   * so the only way that line could go green was for a customer to use the
+   * chat. A business that had installed the code correctly and was waiting for
+   * its first enquiry was told the code was not on its website.
+   *
+   * Giles, on Amber's: "it says not live on a website when it is."
+   *
+   * Deferred, so a visitor's launcher never waits on a write of ours and a
+   * failed write cannot turn a chat button into nothing.
+   */
+  after(() => void noteWidgetSeen(db, slug, request));
 
   /*
    * Both colours, worked out once, here.

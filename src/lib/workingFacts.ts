@@ -140,6 +140,19 @@ export async function workingFacts(
       (studio as unknown as { marketing_sms_on?: boolean | null }).marketing_sms_on === true,
     optedIn,
     savedMessages,
+    /*
+     * Proof the widget is installed, which nothing else here could give.
+     *
+     * Read off the studio rather than counted: these are written by the
+     * status endpoint the launcher calls every time it loads. Optional
+     * chaining because the columns arrive with a migration run by hand, and
+     * absent reads as "never seen", which is what every business showed
+     * before this existed.
+     */
+    widgetSeenAt:
+      (studio as unknown as { widget_seen_at?: string | null }).widget_seen_at ?? null,
+    widgetSeenOn:
+      (studio as unknown as { widget_seen_on?: string | null }).widget_seen_on ?? null,
     ever: await whatHasHappened(db, studio.id),
   };
 
