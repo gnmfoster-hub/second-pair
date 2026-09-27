@@ -154,7 +154,13 @@ export async function workingFacts(
       (studio as unknown as { widget_seen_at?: string | null }).widget_seen_at ?? null,
     widgetSeenOn:
       (studio as unknown as { widget_seen_on?: string | null }).widget_seen_on ?? null,
-    ever: await whatHasHappened(db, studio.id),
+    weeklyReport:
+      (studio as unknown as { weekly_report_email?: boolean | null }).weekly_report_email === true,
+    ever: await whatHasHappened(
+      db,
+      studio.id,
+      Boolean((studio as unknown as { weekly_report_sent_on?: string | null }).weekly_report_sent_on),
+    ),
   };
 
   return {
@@ -212,7 +218,12 @@ export function peopleFacts(
  * never how often, and reading the rows to find out would be reading the
  * business's own messages to render a tick.
  */
-async function whatHasHappened(db: SupabaseClient, studioId: string): Promise<Facts["ever"]> {
+async function whatHasHappened(
+  db: SupabaseClient,
+  studioId: string,
+  /* Read off the studio, not counted: the send stamps a date on the row. */
+  weeklyReportSent = false,
+): Promise<Facts["ever"]> {
   const any = async (run: () => PromiseLike<{ count: number | null; error: unknown }>) => {
     try {
       const { count, error } = await run();
@@ -353,5 +364,6 @@ async function whatHasHappened(db: SupabaseClient, studioId: string): Promise<Fa
     campaignSent,
     formSigned,
     messageByHand,
+    weeklyReportSent,
   };
 }

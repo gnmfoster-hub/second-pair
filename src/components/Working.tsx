@@ -59,8 +59,43 @@ export function Working({
         </span>
       </summary>
 
-      <ul className="mt-4 space-y-3">
-        {things.map((t) => (
+      {/*
+        * In the order somebody would do them, not the order they were written.
+        *
+        * Giles: "make the set up process easier to follow." This listed
+        * thirteen things in the order the code happens to build them, with no
+        * regard for whether anything was wrong — so a business opening it on
+        * day one met thirteen rows, most of them red, with the two that
+        * mattered somewhere in the middle.
+        *
+        * Three groups, and the headings say what each is for: what needs a
+        * decision; what is set up and simply has not happened yet, which needs
+        * patience rather than work; and what is done, which is worth seeing
+        * and worth seeing last.
+        */}
+      {[
+        {
+          key: "todo",
+          title: "Needs you",
+          rows: things.filter((t) => t.stuckAt && t.stuckAt !== "proven"),
+        },
+        {
+          key: "waiting",
+          title: "Set up, not used yet",
+          rows: things.filter((t) => t.stuckAt === "proven"),
+        },
+        { key: "done", title: "Working", rows: things.filter((t) => !t.stuckAt) },
+      ]
+        .filter((group) => group.rows.length > 0)
+        .map((group) => (
+          <section key={group.key} className="mt-4">
+            <h3 className="label">
+              {group.title}
+              <span className="ml-2 opacity-60">{group.rows.length}</span>
+            </h3>
+
+            <ul className="mt-2 space-y-3">
+              {group.rows.map((t) => (
           <li key={t.key} className="rounded-lg border border-border p-3">
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <span className="text-sm font-medium">{t.name}</span>
@@ -108,9 +143,11 @@ export function Working({
                 </div>
               ))}
             </dl>
-          </li>
+              </li>
+              ))}
+            </ul>
+          </section>
         ))}
-      </ul>
 
       {/*
         * And each person, which the list above cannot see.

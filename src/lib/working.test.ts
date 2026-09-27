@@ -32,6 +32,7 @@ const nothing: Facts = {
     campaignSent: false,
     formSigned: false,
     messageByHand: false,
+    weeklyReportSent: false,
   },
 };
 
@@ -176,7 +177,20 @@ test("a thing with nothing to switch on is not stuck at the switch", () => {
 
 test("every broken thing offers somewhere to go", () => {
   for (const t of assess(facts({ sold: ["web", "sms", "voice", "email"], marketingSold: true }))) {
-    if (t.stuckAt) assert.ok(t.fix?.href.startsWith("/settings"), `${t.key} has nowhere to go`);
+    /*
+     * Somewhere in the app, rather than somewhere under /settings.
+     *
+     * The point of this test is that a broken thing is never a dead end. It
+     * asserted a path prefix, which is a narrower claim, and it failed the
+     * first time something was controlled from a screen that is not a settings
+     * page — the Monday report is switched on at the top of the report it
+     * sends, which is the right place for it. Away from the thing it emails it
+     * would be one more switch in a list of switches.
+     */
+    if (t.stuckAt) {
+      assert.ok(t.fix?.href.startsWith("/"), `${t.key} has nowhere to go`);
+      assert.ok(t.fix?.label, `${t.key} has a link with no words on it`);
+    }
   }
 });
 
@@ -189,6 +203,7 @@ test("the line at the top counts what matters", () => {
       reviewLink: true,
       hasPicture: true,
       savedMessages: 1,
+      weeklyReport: true,
       connected: { web: 1 },
       ever: {
         webChat: true,
@@ -197,6 +212,7 @@ test("the line at the top counts what matters", () => {
         reminderSent: true,
         reviewAsked: true,
         messageByHand: true,
+        weeklyReportSent: true,
       },
     }),
   );

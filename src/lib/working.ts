@@ -110,6 +110,8 @@ export type Facts = {
   marketingSold: boolean;
   optedIn: number;
   savedMessages: number;
+  /** Whether last week's report is emailed without being asked for. */
+  weeklyReport?: boolean;
   /**
    * When the widget last loaded on the business's own website, and where.
    *
@@ -131,6 +133,8 @@ export type Facts = {
     campaignSent: boolean;
     formSigned: boolean;
     messageByHand: boolean;
+    /** Whether a Monday report has ever actually gone out. */
+    weeklyReportSent: boolean;
   };
 };
 
@@ -502,6 +506,38 @@ export function assess(f: Facts): Thing[] {
       },
       fix: { href: "/settings/messages", label: "Saved messages" },
       where: [{ who: "owner", what: "The wordings", href: "/settings/messages" }],
+    }),
+  );
+
+  /* ------------------------------------------------- the weekly report */
+  things.push(
+    build({
+      key: "weekly",
+      name: "Your Monday morning report",
+      what: "Last week's work, emailed to you without being asked for.",
+      steps: [
+        yes("sold", "Included"),
+        f.weeklyReport ? yes("on", "On") : no("on"),
+        na("connected"),
+        f.ever.weeklyReportSent ? yes("proven", "One has gone") : no("proven"),
+      ],
+      because: {
+        /*
+         * On this list because it was reaching nobody.
+         *
+         * The switch lives on the report page, defaults to off, and has never
+         * been on for a single business — so a thing built to arrive every
+         * Monday has never arrived once. Nothing was broken; it was simply
+         * never asked about, and a question nobody is asked is a question
+         * nobody answers.
+         *
+         * Giles: "add the weekly report question to the set up process."
+         */
+        on: "Nothing arrives on a Monday, so what your assistant did last week is only ever seen by somebody who goes looking for it.",
+        proven: "None has been sent yet. The first goes on the Monday after you switch it on.",
+      },
+      fix: { href: "/report", label: "Reports" },
+      where: [{ who: "owner", what: "Switching it on, at the top of Reports", href: "/report" }],
     }),
   );
 
