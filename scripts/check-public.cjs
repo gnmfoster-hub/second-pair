@@ -158,17 +158,42 @@ const BAD = /Application error|Something went wrong|Internal Server Error|Unhand
         problems++;
         console.log("  the front page has no Sign in link at all");
       } else {
+        const crashes = [];
+        page.on("pageerror", (e) => crashes.push(e.message.slice(0, 120)));
+
         await link.click();
         await page.waitForTimeout(2500);
         const words = (await page.locator("body").innerText()).trim();
+
+        /*
+         * What it must actually contain, rather than how much of it there is.
+         *
+         * The first version of this checked `words.length < 40` and passed,
+         * twice, on a page reading "This page couldn't load. Reload to try
+         * again, or go back." — seventy characters of error boundary counted
+         * as success, so it told me the fault was fixed when it was not. Giles
+         * had to report the same bug a third time.
+         *
+         * A sign-in page has somewhere to type an email and a password. That
+         * is the thing worth asserting, and no error page can fake it.
+         */
+        const boxes = await page.locator("input").count();
+
         if (!/\/login/.test(page.url())) {
           problems++;
           console.log(`  clicking Sign in went to ${page.url()}`);
-        } else if (words.length < 40) {
+        } else if (/couldn.t load|something went wrong/i.test(words)) {
           problems++;
           console.log(
-            `  clicking Sign in landed on a blank page (${words.length} characters).` +
+            `  clicking Sign in crashed the page: "${words.split("\n")[0]}"` +
+              (crashes.length ? `\n      ${crashes[0]}` : "") +
               "\n      Loading /login directly still works, which is what makes this easy to miss.",
+          );
+        } else if (boxes < 2) {
+          problems++;
+          console.log(
+            `  clicking Sign in landed on a page with ${boxes} input(s) and ${words.length} characters.` +
+              "\n      A sign-in page needs an email box and a password box.",
           );
         }
       }

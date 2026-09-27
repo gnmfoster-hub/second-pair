@@ -37,7 +37,6 @@ export function SiteWidget() {
   const path = usePathname();
 
   useEffect(() => {
-    const before = new Set(Array.from(document.body.children));
     let script: HTMLScriptElement | null = null;
 
     const id = window.setTimeout(() => {
@@ -64,9 +63,33 @@ export function SiteWidget() {
     return () => {
       window.clearTimeout(id);
       script?.remove();
-      for (const el of Array.from(document.body.children)) {
-        if (!before.has(el) && el !== script) el.remove();
+
+      /*
+       * Only what the widget marked as its own.
+       *
+       * This used to remove every child of <body> that had not been there when
+       * the effect ran, which sounded safe and was not: by the time React
+       * unmounts this layout it has already inserted the next page, so "new
+       * since we started" included React's own freshly rendered content. It
+       * was deleted, React then crashed reconciling nodes that no longer
+       * existed — "Failed to execute 'insertBefore'... not a child of this
+       * node" — and the error boundary showed "This page couldn't load".
+       *
+       * Which is what Giles kept hitting on Sign in, twice, after I said it
+       * was fixed. The first fix was a prefetch guess and it was wrong; this
+       * is the actual cause, reproduced and read off the stack.
+       *
+       * A selector can only ever match the widget's own elements. If somebody
+       * is on a cached widget.js without the attribute, nothing is removed and
+       * the bubble lingers for one navigation — the old, small bug — rather
+       * than the page dying. That is the right way round to fail.
+       */
+      for (const el of Array.from(
+        document.querySelectorAll("[data-secondpair-widget]"),
+      )) {
+        el.remove();
       }
+      document.getElementById("sp-widget-keyframes")?.remove();
     };
   }, [path]);
 

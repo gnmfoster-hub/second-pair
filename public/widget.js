@@ -1058,6 +1058,24 @@
   });
 
   function mount() {
+    /*
+     * Marked, so whoever put this on a page can find it again.
+     *
+     * Not a teardown API — this script still cleans up after nobody and needs
+     * no cooperation from anybody. It is an identifier, and it exists because
+     * our own marketing site has to take the widget away when a visitor
+     * navigates off it, and the only way it could tell which elements were
+     * ours was "anything that turned up under <body> since we started".
+     *
+     * That caught React's own freshly rendered page and deleted it. React then
+     * crashed reconciling nodes that were no longer there, and every visitor
+     * who pressed Sign in got "This page couldn't load". Three attributes are
+     * a cheaper fix than a guess, and they cost a customer's site nothing.
+     */
+    panel.setAttribute("data-secondpair-widget", "");
+    teaser.setAttribute("data-secondpair-widget", "");
+    button.setAttribute("data-secondpair-widget", "");
+
     document.body.appendChild(panel);
     /*
      * One keyframe, and nothing else.
