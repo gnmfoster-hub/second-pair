@@ -72,7 +72,23 @@ const VOICE_EFFORT = (process.env.HANDLED_VOICE_EFFORT || "low") as "low" | "med
 const PRICE_MICROS = {
   input: 3_940_000,
   output: 19_700_000,
-  cache_write: 4_925_000,
+  /*
+   * Two cache-write prices, because this product uses two caches.
+   *
+   * Anthropic charges a five-minute cache write at 1.25× the input price and a
+   * one-hour write at 2×. A read is a tenth either way.
+   *
+   * This had one rate, 1.25×, and marked the system prompt for an hour — so
+   * the biggest cache write in every turn was costed at five-eighths of what
+   * it cost. Found by comparing our own figures with the real bill: the
+   * arithmetic was close enough by luck, and wrong by construction.
+   *
+   * It matters because Giles prices the subscription off these numbers. A
+   * cost model that understates the dearest line is exactly the one that
+   * produces a price that does not cover it.
+   */
+  cache_write_5m: 4_925_000,
+  cache_write_1h: 7_880_000,
   cache_read: 394_000,
 } as const;
 
@@ -81,13 +97,37 @@ function costOf(usage: {
   output_tokens: number;
   cache_read_input_tokens?: number | null;
   cache_creation_input_tokens?: number | null;
+  /**
+   * The split, where the API gives one.
+   *
+   * Newer replies break the cache write into the two lengths. Older ones give
+   * a single total, and there the honest assumption is the hour: the system
+   * prompt is by far the largest thing cached in a turn and it is the one
+   * marked for an hour, so guessing five minutes would understate almost
+   * every turn. A cost figure should round towards the truth being dearer.
+   */
+  cache_creation?: {
+    ephemeral_5m_input_tokens?: number | null;
+    ephemeral_1h_input_tokens?: number | null;
+  } | null;
 }) {
   const read = usage.cache_read_input_tokens ?? 0;
   const write = usage.cache_creation_input_tokens ?? 0;
+
+  const split = usage.cache_creation;
+  const fiveMinutes = split?.ephemeral_5m_input_tokens ?? null;
+  const anHour = split?.ephemeral_1h_input_tokens ?? null;
+
+  const writeCost =
+    fiveMinutes == null && anHour == null
+      ? write * PRICE_MICROS.cache_write_1h
+      : (fiveMinutes ?? 0) * PRICE_MICROS.cache_write_5m +
+        (anHour ?? 0) * PRICE_MICROS.cache_write_1h;
+
   return Math.round(
     (usage.input_tokens * PRICE_MICROS.input +
       usage.output_tokens * PRICE_MICROS.output +
-      write * PRICE_MICROS.cache_write +
+      writeCost +
       read * PRICE_MICROS.cache_read) /
       1_000_000,
   );
