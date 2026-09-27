@@ -149,6 +149,50 @@ Done on 26 and 27 September:
   was the assistant *talking*, because there was a brevity rule for texts and
   none for the telephone.
 
+### The verification sweep, 27 September
+
+Giles: "lets keep checking everything works and things report correctly,
+money reports settings in for everything we need to make sure all is working
+perfectly."
+
+**Four false claims found and fixed.** Every one was a screen stating something
+nothing had checked, and every one read as confident:
+
+- **"Email not switched on"** — a hardcoded warning from before the mail domain
+  existed. Amber's had two emails through it that morning.
+- **"Not live on a website"** — counted rows in a table that is empty for
+  everybody, so it could only go green once a customer used the chat.
+- **"No confirmation written, so nobody is told their booking is in"** — on
+  nine businesses out of ten, and untrue for all of them. A confirmation with a
+  calendar file is built in.
+- **"No call has ever reached us — the voice webhook is missing at the phone
+  company"** — blocked by the table's own security. Living Canvas has five
+  calls, Neat & Tidy three. The worst of the four, because it sent somebody to
+  change a working configuration.
+
+**And one real fault, in the money.** No booking the assistant made has ever
+recorded what it was worth — the insert wrote a deposit and no price. So every
+assistant booking counted as an appointment and as nothing in money, and both
+live clients' reports said they had taken nothing. Fixed for new bookings; the
+four existing ones are left blank rather than backfilled.
+
+**Verified correct, and worth knowing:**
+
+- The report's arithmetic is exact. Willow's 389 appointments, £24,627, and
+  every per-person figure match the raw tables to the penny.
+- "Booked in" counts only what the assistant won; the diary totals count every
+  booking whoever made it. Those two questions were already being asked
+  separately.
+- Reminders work. Six sent, two pending and correctly due in the future, two
+  failed for a good reason (no phone or email on the customer).
+- All three live assistants answer well: real prices, real times, honest about
+  closures. `node scripts/check-answers.mjs <slug>`.
+- The weekly report email uses the same two functions as the report page, so
+  its figures cannot disagree with ones already checked.
+
+**New tools:** `scripts/check-claims.cjs` prints what the "Is it working?" page
+tells every business in one go — it is how three of the four were found.
+
 Open, and roughly in the order I would do them:
 
 0. ~~**Settings: group each person's screen with titles, and add a search.**~~
