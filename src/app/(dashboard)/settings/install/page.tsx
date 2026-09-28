@@ -19,6 +19,7 @@ import { MetaChannels } from "./MetaChannels";
 import { WhoseChannel } from "./WhoseChannel";
 import { YourNumbers } from "./YourNumbers";
 import { NotOnYourPlan } from "./NotOnYourPlan";
+import { BookNow } from "./BookNow";
 import type { Channel } from "@/lib/types";
 import { WhoItOffers } from "./WhoItOffers";
 
@@ -591,6 +592,27 @@ export default async function ChannelsPage({
           and they get their own link and their own accounts here, separate from yours.
         </p>
       )}
+
+      {/*
+        * Facebook and Instagram, next to the website instructions.
+        *
+        * Beside them rather than up with the channels, because it is the same
+        * kind of job: a link this product gives you and somewhere outside this
+        * product to paste it. Nothing about it depends on what the business has
+        * been sold, which is why it is outside the entitlement gates above.
+        */}
+      <BookNow
+        link={shopLink}
+        people={
+          solo
+            ? []
+            : artists.map((a) => ({
+                name: a.name,
+                link: `${shopLink}?with=${a.handle ?? ""}`,
+              }))
+        }
+        customer={words.customer}
+      />
 
       <section>
         <div className="section-title">Where the website code goes</div>

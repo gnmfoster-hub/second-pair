@@ -43,7 +43,7 @@ export type QuickMessage = {
 export const STARTERS: { label: string; body: string }[] = [
   {
     label: "Running late",
-    body: "Hi {{name}}, so sorry — we're running about fifteen minutes behind today. You're still very much booked in, just wanted you to know so you're not waiting.",
+    body: "Hi {{name}}, so sorry. We're running about fifteen minutes behind today. You're still very much booked in, just wanted you to know so you're not waiting.",
   },
   {
     label: "A slot has come up",
@@ -51,19 +51,19 @@ export const STARTERS: { label: string; body: string }[] = [
   },
   {
     label: "Sorry we missed you",
-    body: "Hi {{name}}, sorry we missed you today. No hard feelings at all — just let us know when you'd like to come in and we'll sort something out.",
+    body: "Hi {{name}}, sorry we missed you today. No hard feelings at all. Just let us know when you'd like to come in and we'll sort something out.",
   },
   {
     label: "Thanks for coming in",
-    body: "Thanks for coming in today {{name}} — lovely to see you. Anything at all you're not happy with, tell us and we'll put it right.",
+    body: "Thanks for coming in today {{name}}, lovely to see you. Anything at all you're not happy with, tell us and we'll put it right.",
   },
   {
     label: "Chasing a deposit",
-    body: "Hi {{name}}, just a nudge about the deposit for your appointment — it's not gone through yet and the slot is only held until it does. Any trouble with the link, tell me and I'll sort it.",
+    body: "Hi {{name}}, just a nudge about the deposit for your appointment. It's not gone through yet and the slot is only held until it does. Any trouble with the link, tell me and I'll sort it.",
   },
   {
     label: "We're closed that day",
-    body: "Hi {{name}}, just to let you know we're closed on the day you asked about. Happy to find you another time that works — what suits?",
+    body: "Hi {{name}}, just to let you know we're closed on the day you asked about. Happy to find you another time that works. What suits?",
   },
 ];
 

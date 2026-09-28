@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { fillFor, firstNameOf, STARTERS } from "./quickMessages.ts";
+import { segments } from "./reminderText.ts";
 
 test("it greets somebody by the name they are called", () => {
   assert.equal(firstNameOf("Margaret Thatcher-Wilson"), "Margaret");
@@ -68,4 +69,51 @@ test("no starter invents a price", () => {
 
 test("the picker stays short enough to read", () => {
   assert.ok(STARTERS.length <= 8);
+});
+
+/*
+ * ── What these cost to send ─────────────────────────────────────────────────
+ *
+ * Added 29 September, after the same fault was found in the shipped reminders.
+ *
+ * A text is 160 characters, and one character outside the GSM alphabet drops it
+ * to 70. Five of these six wordings carried an em dash, so they were charged as
+ * two or three texts each: fourteen texts across the six, where seven will do.
+ * These are the messages a business sends constantly - running late, a slot has
+ * come up, sorry we missed you - so it is the same money over and over.
+ *
+ * Unlike a reminder, nothing cuts these down on the way out. forOneText is
+ * applied to reminders and campaigns and not to a message somebody types by
+ * hand, so they arrived whole and simply cost more. That is worth being precise
+ * about: the money was real, the lost sentence was not.
+ */
+test("a starter is not quietly charged as two texts", () => {
+  const dear = [];
+  for (const s of STARTERS) {
+    const filled = fillFor(s.body, { name: "Marie", business: "Amber's Paws" });
+    const odd = [...new Set([...filled].filter((c) => c.charCodeAt(0) > 127))];
+    if (odd.length) dear.push(`${s.label}: ${odd.join(" ")}`);
+  }
+  assert.deepEqual(
+    dear,
+    [],
+    `one character outside GSM takes a text from 160 to 70: ${dear.join("; ")}`,
+  );
+});
+
+/*
+ * And the outcome that actually matters, which is the count itself.
+ *
+ * One of the six is over 160 characters on its own merits - chasing a deposit
+ * runs to 182 - so it is two texts for a good reason rather than a bad one, and
+ * is named here rather than allowed by a rule. Everything else fits in one.
+ */
+test("five of the six fit in a single text, and the sixth is long for a reason", () => {
+  const over = [];
+  for (const s of STARTERS) {
+    const filled = fillFor(s.body, { name: "Marie", business: "Amber's Paws" });
+    if (segments(filled) > 1) over.push(`${s.label} (${filled.length} chars)`);
+  }
+  assert.equal(over.length, 1, `expected only the deposit chase to run long: ${over.join("; ")}`);
+  assert.match(over[0], /deposit/i);
 });
