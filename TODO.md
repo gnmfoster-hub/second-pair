@@ -10,18 +10,30 @@ Two lists. Yours is first — accounts, DNS, decisions, things only you can do.
 Mine is at the bottom. They are separate on purpose: the last version mixed them
 up and it was impossible to tell what was blocking what.
 
-Last updated: 28 September 2026. Every claim in the two lists below was
-checked against the live database rather than carried forward.
+Last updated: 29 September 2026, overnight. Every claim in the two lists below
+was checked against the live database or the code rather than carried forward —
+and two entries turned out to be wrong in my favour, which is noted where they
+were.
 
-**New since the last version, and worth reading first.** A tenth business is
-live — **Amber's Paws & Pastures** — set up on 26 September with a text number
-and email forwarding, and taking real email already. Four new things are on
-my list and none are started: a "not VAT registered" option, changing and
-resetting a password, an agreement for businesses to sign when you take them
-on, and **booking from Facebook and Instagram**. The agreement needs a
-solicitor before it goes to anybody, for reasons under **C** at the bottom.
-The Facebook one splits into a half worth doing this week and a half that is a
-partnership rather than a feature — **D**.
+**New since the last version, and worth reading first.** The four things you
+found setting up Amber's are done and live. **Three of the four were already
+built and impossible to find**, which is now the dominant fault on this product:
+a working number with "coming shortly" printed under it, a repeat control folded
+under "Anything else", and a field list that was written out by hand three times
+and wrong twice.
+
+A fifth came out of it that nobody was looking for: **every reminder text has
+been charged twice and losing its last sentence since August**, because of one em
+dash. Both are under *The four from setting up Amber's* below.
+
+**Two things on my list said "not started" and were finished** — the VAT option
+and the password change. Corrected by reading the code. A list that says a done
+thing is undone is how a done thing gets done twice.
+
+Still open and mine: the agreement's send-and-sign half (**C**, and it needs a
+solicitor before one goes to anybody), booking from Facebook and Instagram
+(**D**, half of which is a partnership rather than a feature), and ten lint
+errors that are older than tonight.
 
 Three things are waiting on you and nothing else: **ring the Receptionist**,
 **sign a phone up for notifications** (the only device on the system is a
@@ -173,6 +185,111 @@ and with no key set nothing changes at all. A customer is never on it either
 way.
 
 Worth doing before the next demo rebuild rather than after.
+
+### The four from setting up Amber's, 28–29 September
+
+Giles reported four things from one evening. Three were "already built and
+impossible to find", which is now clearly the dominant fault on this product
+rather than an occasional one. All four are deployed and live on 1c22b98.
+
+- ~~**"Text messaging coming soon" when she already had it.**~~ A summary card
+  at the foot of Settings → Channels listed four channels, each with a hardcoded
+  grey "Coming shortly" pill — every row, every business, for ever. Her number
+  had been live two days and had carried a text, and the real panel saying so
+  was four inches up the same page. **Her record was checked first:**
+  `channels_allowed` does include sms, so no message was ever refused; it was
+  only a screen. The rows are gone rather than corrected, because every channel
+  they named has a panel above that reads the database. New
+  `scripts/check-entitlements.mjs` prints sold against connected against actual
+  traffic for every business, which is how that was settled in one command.
+
+- ~~**Clicking a day then booking did not default to that day.**~~ It never did.
+  The month grid navigates to `?view=day&day=…`, the server reads it correctly,
+  and the page then never handed it to the add button — which worked its own
+  date out from the browser clock. Month view has no other way in, so planning
+  ahead meant choosing the day twice, the second time on a field you would
+  reasonably think was already right.
+
+- ~~**No template for a booking confirmation, and no way to add fields.**~~
+  Both true, and the second was worse than it looked. Three screens each printed
+  a different list of fields and two were wrong. Marketing told owners to use
+  `{{what}}` — and nothing filled it; the preview filled it in because that call
+  ended `as never`, casting past the fact that the renderer did not accept it.
+  So the screen showed "since your colour" and the customer got "since your  ".
+  It is a real field now, filled from the booking's title. Saved messages offered
+  `{{when}}` and `{{link}}`, which that screen cannot fill. One list in
+  `lib/messageFields` now, per kind, read by the buttons and the validators
+  alike, and fields insert at the cursor because that is where they go.
+  `lib/messageStarters` ships three wordings each for a confirmation and a
+  reminder — a trade pack ships two reminders and no confirmation, so ten
+  businesses in a row were handed an empty box and left to invent the most-read
+  message we send.
+
+- ~~**Booking one thing on several days.**~~ Half of it existed: "Every day"
+  and "Every weekday" with an end date have done the cat-visit case since
+  August, folded away inside a `<details>` headed "Anything else". It is one row
+  beside the date now, reading "Just the once" until changed. What was genuinely
+  missing is days with no pattern — away Friday to Monday, then the weekend
+  after — so **"On days I pick"** is new, with a running count because the button
+  writes that many real appointments. No migration: see below.
+
+### And one nobody asked for, which was costing money every day
+
+**Every reminder text was charged twice and lost its last sentence.** Found by a
+test asking whether a starter wording fits in one text. It did not, and nor did
+what we have been shipping since August.
+
+A text is 160 characters. **One character outside the GSM alphabet drops it to
+70** — and the day-before reminder in all 34 trade packs contained an em dash.
+Filled in it is 87 characters: comfortably one text, charged as two. Then
+`forOneText` cuts it to a single segment on the way out, so what actually
+arrived was
+
+> "See you tomorrow, Marie, tomorrow at 2pm with Amber."
+
+and **"Reply here if anything's changed." was dropped in silence** — the one
+sentence in a reminder that does any work, on every business, for six weeks,
+with nothing on any screen saying so.
+
+One character removed from each. Giles had already had the long dash taken out
+of the assistant, the website and every screen for how it reads; nobody knew it
+was also doubling the price of every reminder. Two tests pin it now.
+
+Deliberately not "fixed" for the two-days-before reminder: that one is long on
+purpose because it carries the trade's preparation advice, and the email
+delivers it whole. A test that objects to a decision gets the decision changed
+to quieten it, which is the wrong way round.
+
+### check-migrations was checking two enums out of three
+
+Worth writing down because **the check was run during the above work and said
+"nothing waiting" about a column it had never looked at.** It was right by
+accident. `bookings.repeats` is a Postgres enum, and writing a value it does not
+know is refused outright — the fault that emptied every inbox this month. The
+design avoids it by storing "none" for picked days, which is true rather than a
+fudge, so **no migration is waiting on anybody**.
+
+`bookings.repeats` is on the list now. Two silent skips in that check are
+failures rather than clean sheets: a union it cannot find, and one that parses
+to no values — both printed "every migration has landed" while checking nothing.
+Proved by injecting a value the enum does not have and watching it be named,
+before trusting the clean run. Third time this month the reported fault has been
+in a checker rather than the product.
+
+### Lint is red, with ten errors, all older than tonight
+
+`npx eslint src` exits 1. None of the ten are in anything changed tonight — one
+was, in the diary, and it is fixed: the home-screen shortcut read `?add=1` in an
+effect and set state from it, so the server reads it now and the first render is
+the one with the sheet open.
+
+The remaining ten are worth a pass because some are real rather than tidiness:
+`FullDiary.tsx` uses `set` in a key handler declared above where `set` is
+defined, and `DayList.tsx` writes to a ref during render. Others look like the
+rule over-applying to server components — `clients/[id]/page.tsx` is flagged for
+calling `Date.now()` during render, which is a server component where that is
+fine. **Worth triaging one at a time rather than silencing as a batch**, which is
+why it is a job on this list rather than something done in passing.
 
 ### The verification sweep, 27 September
 
@@ -841,17 +958,29 @@ mobile number.
 
 ## New, and not started
 
-**A. A "not VAT registered" option.** Giles, 27 Sep: the only choices are VAT
-registered and whether prices include it, and there is no way to say a business
-is not registered at all — which is most sole traders. It should mean no VAT
-anywhere: not on a quote, not on an invoice, not in anything the assistant
-says. Not started.
+~~**A. A "not VAT registered" option.**~~ **Done, and this entry was wrong.**
+Checked on 29 Sep by reading the code rather than the list. The back office has
+had a three-way VAT question since the day Giles reported it — "Not registered —
+never mention VAT", "Registered — prices include it", "Registered — add it on
+top" — replacing two checkboxes where "not registered" had to be inferred from
+an unticked box. The business's own settings page has the same three answers.
 
-**B. Changing and resetting a password.** Giles, 27 Sep. Some of this exists
-already — the sign-in page has a "forgot" mode and there is a `/reset-password`
-page — so the first job is to find out what actually works end to end rather
-than assume, and the missing half is almost certainly changing a password from
-*inside* the app once somebody is signed in. Not started.
+Followed all the way through rather than trusting the screen: `withVat` returns
+no uplift and an empty note when a business is not registered, the receipt sends
+`vat: null`, and the assistant's prompt does not mention VAT anywhere at all, so
+the only way it could say the word is a quote note that is empty. **No VAT means
+no VAT.**
+
+~~**B. Changing and resetting a password.**~~ **Done.** Commit 43c255b, "You can
+change your password without pretending to have forgotten it". Settings → You
+holds `ChangePassword`, which is rendered rather than merely written, and it
+calls `supabase.auth.updateUser`. The forgotten-password half was already there:
+the sign-in page has a forgot mode and `/reset-password` exists.
+
+**Both of the above were on this list as "not started" while they were finished**,
+which is the fault this file warns about in its own migrations section: a list
+that says a done thing is undone is how a done thing gets done twice. Corrected
+by reading the code, not by remembering.
 
 **C. An agreement businesses sign when you take them on.** Giles, 27 Sep:
 sent when he adds them, terms and conditions, a set-up fee then a subscription
