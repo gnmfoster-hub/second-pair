@@ -10,16 +10,18 @@ Two lists. Yours is first — accounts, DNS, decisions, things only you can do.
 Mine is at the bottom. They are separate on purpose: the last version mixed them
 up and it was impossible to tell what was blocking what.
 
-Last updated: 27 September 2026. Every claim in the two lists below was
+Last updated: 28 September 2026. Every claim in the two lists below was
 checked against the live database rather than carried forward.
 
 **New since the last version, and worth reading first.** A tenth business is
 live — **Amber's Paws & Pastures** — set up on 26 September with a text number
-and email forwarding, and taking real email already. Three new things are on
+and email forwarding, and taking real email already. Four new things are on
 my list and none are started: a "not VAT registered" option, changing and
-resetting a password, and an agreement for businesses to sign when you take
-them on. That last one needs a solicitor before it goes to anybody, for
-reasons under **C** at the bottom.
+resetting a password, an agreement for businesses to sign when you take them
+on, and **booking from Facebook and Instagram**. The agreement needs a
+solicitor before it goes to anybody, for reasons under **C** at the bottom.
+The Facebook one splits into a half worth doing this week and a half that is a
+partnership rather than a feature — **D**.
 
 Three things are waiting on you and nothing else: **ring the Receptionist**,
 **sign a phone up for notifications** (the only device on the system is a
@@ -877,6 +879,41 @@ charging, and accounts that are only a website rather than an assistant.
    controller and us the processor, and UK GDPR Article 28 requires that in
    writing. It does not exist. It is the most important clause in the document
    and the one most likely to be forgotten.
+
+**D. Booking from Facebook and Instagram, the way the big ones have it.**
+Giles, 28 Sep: "create an integrated Facebook booking add-on like they have
+available." Not started, and worth splitting in two before any of it is costed,
+because one half is an afternoon and the other half is not ours to grant.
+
+   **The half we can have this week — the Book Now button.** A Facebook Page
+   and an Instagram professional account each have one action button, and it
+   can be set to "Book now" pointing at any web address. Every business on here
+   already has a booking page, and every *person* has one, so there is nothing
+   to build: it is a field in settings that hands the owner the right URL, plus
+   a line in the set-up checklist telling them where to paste it. A customer
+   taps Book now on the salon's Facebook page and lands on the salon's own
+   booking page with the assistant on it. This is what most small trades
+   actually mean when they ask for Facebook booking, and it needs no approval
+   from Meta at all.
+
+   **The half that is a partnership, not a feature.** Being one of the booking
+   systems Meta offers *inside* Facebook — where the appointment is made
+   without leaving the app, the way Fresha and Booksy appear — is a listed
+   partner integration. That is applied for and granted, not built, and I do
+   not know the current state of that programme well enough to tell you whether
+   it is open, what it costs, or what volume it wants to see first. **It needs
+   checking before it goes on any plan**, and I would check it at the same time
+   as the Meta app review at item 6 under *Yours*, since that verification is a
+   prerequisite for anything on Meta either way.
+
+   **Worth knowing about the order.** Messenger is already on the Meta review
+   you are submitting — so the assistant answering Facebook messages arrives
+   with that, and answering is where a booking comes from for most of these
+   trades anyway. Somebody messages the page asking if there is anything
+   Saturday; the assistant answers and books. That path needs no button and no
+   partnership, and it is the one already half-built. The Book Now button is
+   worth doing because it costs nothing; the partnership is worth *asking
+   about* before it is worth planning.
 
 ## In flight
 
