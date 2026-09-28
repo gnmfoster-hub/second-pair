@@ -7,6 +7,8 @@ import {
   parseIsoDate,
   repeatDates,
   nextHalfHour,
+  extraDates,
+  MOST_CHOSEN_DAYS,
 } from "./calendar.ts";
 
 /**
@@ -210,4 +212,67 @@ test("it reads the clock where the business is, not where the server is", () => 
   const instant = new Date("2026-06-15T23:10:00Z");
   assert.equal(nextHalfHour(LONDON, instant), "00:30", "British Summer Time is an hour ahead");
   assert.equal(nextHalfHour("UTC", instant), "23:30", "and UTC is capped instead");
+});
+
+/*
+ * ── Days named one at a time ────────────────────────────────────────────────
+ *
+ * Added 28 September for Giles's cat visits: somebody going away Friday to
+ * Monday and again the weekend after wants six days no rule generates. Before
+ * this the honest answer was to book it six times.
+ */
+test("named days are sorted, de-duplicated and parsed", () => {
+  const days = extraDates("2026-10-05,2026-10-03,2026-10-05,2026-10-04");
+  assert.deepEqual(days.map(isoDate), ["2026-10-03", "2026-10-04", "2026-10-05"]);
+});
+
+/*
+ * The booking's own date must not come back as an extra.
+ *
+ * Every occurrence is a real row and the diary refuses an overlap, so a
+ * duplicate would be skipped on insert — which the owner would read as a day
+ * they picked quietly going missing.
+ */
+test("the booking's own day is never repeated as an extra", () => {
+  const days = extraDates("2026-10-03,2026-10-04", parseIsoDate("2026-10-03"));
+  assert.deepEqual(days.map(isoDate), ["2026-10-04"]);
+});
+
+/*
+ * Rubbish is dropped rather than thrown. The value comes from a form whose rows
+ * are added and removed by hand, so an empty one is the ordinary case and not a
+ * reason to refuse the booking.
+ */
+test("empty and malformed days are dropped, not thrown", () => {
+  assert.deepEqual(extraDates("").map(isoDate), []);
+  assert.deepEqual(extraDates(null).map(isoDate), []);
+  assert.deepEqual(extraDates(undefined).map(isoDate), []);
+  assert.deepEqual(extraDates(",, ,").map(isoDate), []);
+  assert.deepEqual(extraDates("not-a-date,2026-10-04").map(isoDate), ["2026-10-04"]);
+});
+
+/*
+ * A date that is the right shape but not a real day.
+ *
+ * parseIsoDate falls back to today rather than throwing, which is right for a
+ * URL and quite wrong here — "today" is not a day anybody picked, and it would
+ * arrive as a visit nobody booked. Caught by checking it round-trips.
+ */
+test("a day that looks right but is not real is refused rather than becoming today", () => {
+  assert.deepEqual(extraDates("2026-02-31").map(isoDate), []);
+  assert.deepEqual(extraDates("2026-13-01").map(isoDate), []);
+});
+
+test("there is a ceiling on how many days can be named", () => {
+  const many = Array.from({ length: 60 }, (_, i) => `2026-11-${String((i % 28) + 1).padStart(2, "0")}`);
+  assert.equal(extraDates(many.join(",")).length, MOST_CHOSEN_DAYS - 2, "28 distinct days exist in that month");
+});
+
+/*
+ * "On days I pick" generates nothing by itself, which is what makes a
+ * half-filled form behave like a single booking rather than an error.
+ */
+test("picking days generates no pattern of its own", () => {
+  const first = new Date(2026, 9, 3);
+  assert.deepEqual(repeatDates(first, "dates", null).map(isoDate), ["2026-10-03"]);
 });

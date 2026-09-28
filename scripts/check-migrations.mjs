@@ -185,12 +185,50 @@ if (guarding.length) {
 const ENUMS = [
   { type: "ConvStatus", table: "conversations", column: "status" },
   { type: "DepositStatus", table: "bookings", column: "deposit_status" },
+  /*
+   * bookings.repeats, added 28 September, and worth saying why.
+   *
+   * This check covered two enums and the database has three. So while "On days
+   * I pick" was being built it was run to ask whether the column knew about a
+   * new value, and it answered "nothing waiting" — about a column it had never
+   * looked at. It happened to be right, because the design stores "none" rather
+   * than a new value. Had it gone the other way the check would have blessed a
+   * write the database refuses, which is the precise fault it exists to catch.
+   *
+   * StoredRepeat rather than RepeatRule on purpose. RepeatRule is what the diary
+   * offers and includes "dates", which is deliberately never written: it lives
+   * between the form and the action and storedRepeat() turns it into "none".
+   * Checking RepeatRule here would report a missing value for ever, on every
+   * run, and a check that cries wolf teaches whoever reads it to skim past the
+   * line that matters.
+   */
+  {
+    type: "StoredRepeat",
+    table: "bookings",
+    column: "repeats",
+    file: "src/lib/calendar.ts",
+  },
 ];
 
-const types = fs.readFileSync("src/lib/types.ts", "utf8");
-const unknown = [];
+const DEFAULT_TYPES_FILE = "src/lib/types.ts";
+const sourceCache = new Map();
+const readTypes = (file) => {
+  if (!sourceCache.has(file)) sourceCache.set(file, fs.readFileSync(file, "utf8"));
+  return sourceCache.get(file);
+};
 
-for (const { type, table, column } of ENUMS) {
+const unknown = [];
+/*
+ * Types this could not find, which used to be a silent `continue`.
+ *
+ * A renamed or moved union meant this loop quietly checked nothing and the run
+ * still printed a clean sheet. That is the same failure as the semicolon below:
+ * the check passes while the thing it checks is unguarded.
+ */
+const notDeclared = [];
+
+for (const { type, table, column, file } of ENUMS) {
+  const types = readTypes(file ?? DEFAULT_TYPES_FILE);
   /*
    * Up to the semicolon that ends the line, not the first one anywhere.
    *
@@ -201,10 +239,23 @@ for (const { type, table, column } of ENUMS) {
    * which is the fault it was written to catch, in the check itself.
    */
   const declared = new RegExp("export type " + type + " =([\\s\\S]*?);\\s*\\n").exec(types);
-  if (!declared) continue;
+  if (!declared) {
+    notDeclared.push(`${type} — not found in ${file ?? DEFAULT_TYPES_FILE}, so ${table}.${column} was not checked`);
+    continue;
+  }
 
   // Quoted values only, so a word out of a comment is never mistaken for one.
   const values = [...declared[1].matchAll(/\|\s*"([a-z_]+)"/g)].map((m) => m[1]);
+  /*
+   * A union that parsed to nothing is not a union with no values, it is a regex
+   * that missed — and it would print a clean sheet either way. The commonest
+   * cause is a declaration written on one line, where the first value has no
+   * leading pipe.
+   */
+  if (values.length === 0) {
+    notDeclared.push(`${type} — parsed to no values, so ${table}.${column} was not checked`);
+    continue;
+  }
   for (const value of values) {
     const { error } = await db.from(table).select("id").eq(column, value).limit(0);
     if (error && /invalid input value for enum/.test(error.message)) {
@@ -219,6 +270,22 @@ if (unknown.length) {
   console.log("\n  These are worse than a missing column: a query naming one is refused");
   console.log("  whole, so it loses every row rather than one field.");
   missing += unknown.length;
+}
+
+/*
+ * Said out loud rather than passed over.
+ *
+ * A check that could not look is not a check that found nothing, and on this
+ * project the reported fault has repeatedly turned out to be in the checker
+ * rather than the product. This is counted as a failure for that reason: a run
+ * that silently examined two of three enums is worth stopping for.
+ */
+if (notDeclared.length) {
+  console.log("\n✗ fixed lists this could not read, so nothing was checked about them");
+  for (const n of notDeclared) console.log(`    ${n}`);
+  console.log("\n  Fix the check before trusting the run. A clean sheet from a check that");
+  console.log("  could not look is the worst answer there is.");
+  missing += notDeclared.length;
 }
 
 console.log("");

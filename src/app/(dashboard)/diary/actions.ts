@@ -10,7 +10,13 @@ import { verticalPack } from "@/lib/verticals";
 import { requireStudio, getArtists } from "@/lib/studio";
 import { instantFrom } from "@/lib/booking/tz";
 import { samePhone } from "@/lib/channels/phoneNumbers";
-import { categoryFor, repeatDates, type RepeatRule } from "@/lib/calendar";
+import {
+  categoryFor,
+  extraDates,
+  repeatDates,
+  storedRepeat,
+  type RepeatRule,
+} from "@/lib/calendar";
 import { dropReminders } from "@/lib/reminders";
 import { scheduleReminders } from "@/lib/reminders";
 import { DIARY_LAYOUT_COOKIE, type DiaryLayout } from "@/lib/diaryLayout";
@@ -148,13 +154,54 @@ export async function saveDiaryEntry(
     // Nothing the owner adds is waiting on a deposit, so the unpaid-hold sweep
     // must never touch it.
     deposit_status: "paid",
-    repeats,
-    repeat_until: untilRaw || null,
+    /*
+     * ── Why "on days I pick" is stored as "none" ──────────────────────────────
+     *
+     * `repeats` is a Postgres enum, repeat_rule, and it has six values. Writing
+     * 'dates' into it would be refused by the database — and a refused insert is
+     * the exact family of fault that emptied every inbox on every business this
+     * month: PostgREST does not ignore a value the type has not been told
+     * about, it rejects the whole write. Migrations here are run by hand, so a
+     * feature that works on my machine and fails silently until somebody runs
+     * SQL is the worst of both.
+     *
+     * It does not need the enum, because picked days are not a pattern. Nothing
+     * generates any more of them: the set is fully described by the rows
+     * themselves, joined by repeat_parent_id exactly as every other repeating
+     * set already is. So 'none' is not a fudge, it is true — there is no rule to
+     * carry forward — and no migration is waiting on anybody.
+     *
+     * The one thing given up is the sentence on the edit sheet that says "part
+     * of a repeating set", which reads the rule rather than the parent. Worth a
+     * separate pass at some point; not worth a migration tonight.
+     */
+    repeats: storedRepeat(repeats),
+    /* Named days have no end date, because they have no pattern to end. */
+    repeat_until: repeats === "dates" ? null : untilRaw || null,
   };
 
   const length = ends.getTime() - starts.getTime();
   const [y, m, d] = str(fd, "date").split("-").map(Number);
-  const occurrences = repeatDates(new Date(y, m - 1, d), repeats, until);
+  const firstDay = new Date(y, m - 1, d);
+
+  /*
+   * The days, whether they came from a rule or were named one at a time.
+   *
+   * Giles, 28 Sep: "a way of adding multiple days for the same thing — for
+   * example if somebody is booking in cat visits." A run of visits over a
+   * holiday often has no pattern at all: away Friday to Monday, then the
+   * weekend after. No rule generates those six days, so before this the honest
+   * answer was to book it six times.
+   *
+   * The booking's own date is always the first occurrence, which is what keeps
+   * the required date field meaning exactly what it did before; the picked days
+   * are extras beside it, and extraDates drops the first one if it appears in
+   * both so it cannot clash with itself.
+   */
+  const occurrences =
+    repeats === "dates"
+      ? [firstDay, ...extraDates(str(fd, "repeat_dates"), firstDay)]
+      : repeatDates(firstDay, repeats, until);
 
   // Inserted one at a time, so a single clash skips that date rather than
   // failing the whole pattern — a weekly meeting should still land on the other

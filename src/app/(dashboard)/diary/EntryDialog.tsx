@@ -16,7 +16,13 @@ import { Complete } from "./Complete";
 import { Glance } from "./Glance";
 import { capital, type Words } from "@/lib/wordsText";
 import type { ShelfItem } from "./Complete";
-import { CATEGORIES, OWNER_CATEGORIES, categoryFor, REPEATS } from "@/lib/calendar";
+import {
+  CATEGORIES,
+  OWNER_CATEGORIES,
+  categoryFor,
+  REPEATS,
+  MOST_CHOSEN_DAYS,
+} from "@/lib/calendar";
 import type { Artist } from "@/lib/types";
 import type { Entry } from "./WeekGrid";
 
@@ -24,6 +30,53 @@ import type { Entry } from "./WeekGrid";
 function daysBetween(from: string, to: string): number {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) return 1;
   return Math.max(1, Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86_400_000) + 1);
+}
+
+/**
+ * A day as somebody says it: "Fri 3 Oct".
+ *
+ * Only ever shown beside a date field the reader can see, so the year is left
+ * off. Weekday first because that is what somebody booking a run of visits is
+ * actually checking — "did I pick the Saturday" rather than the number.
+ */
+function niceDay(iso: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "";
+  return new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+}
+
+/**
+ * A sensible day to offer when another row is added.
+ *
+ * The day after the last one already on the list, or after the booking's own
+ * date if the list is empty — because a run of visits is usually consecutive,
+ * and offering a blank box means a date picker opened from scratch every time.
+ */
+function nextDayAfter(picked: string[], firstDay: string): string {
+  const last = [...picked].filter(Boolean).sort().pop() ?? firstDay;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(last)) return "";
+  const at = new Date(`${last}T12:00:00Z`);
+  at.setUTCDate(at.getUTCDate() + 1);
+  return at.toISOString().slice(0, 10);
+}
+
+/**
+ * How many appointments this would actually make.
+ *
+ * The booking's own day plus the named ones, ignoring blank rows and any
+ * duplicate — counted the same way the action counts them, so the number on the
+ * screen is the number of rows written. Getting this wrong would be worse than
+ * not showing it: it is the figure somebody checks before filling a week of
+ * their diary in one press.
+ */
+function countOf(firstDay: string, picked: string[]): number {
+  const days = new Set(picked.filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)));
+  days.delete(firstDay);
+  return days.size + (/^\d{4}-\d{2}-\d{2}$/.test(firstDay) ? 1 : 0);
 }
 
 /** The last millisecond of today, in this browser's own day. */
@@ -256,6 +309,15 @@ export function EntryDialog({
     return d.toISOString().slice(0, 10);
   });
   const [repeats, setRepeats] = useState("none");
+  /*
+   * The days somebody named, one at a time.
+   *
+   * Held as a list of YYYY-MM-DD and submitted as one comma-separated field,
+   * because the rows are added and removed by hand and a fixed set of named
+   * inputs cannot follow that. An empty string is a row somebody has added and
+   * not filled in yet, which is the ordinary state of a form mid-typing.
+   */
+  const [pickedDays, setPickedDays] = useState<string[]>([]);
   const chosen = categoryFor(category);
   // Appointments and consultations are for a person; a delivery is not.
   const isClientWork = category === "appointment" || category === "consultation";
@@ -789,6 +851,130 @@ export function EntryDialog({
             )}
           </div>
 
+          {/*
+            * ── How often, beside when ──────────────────────────────────────
+            *
+            * This was inside the "Anything else" fold, closed by default. The
+            * reasoning for folding it was sound — five rarely-used fields on a
+            * sheet whose common case is a name, a service and a time — but it
+            * put the repeat with the notes and the category rather than with
+            * the date, and the consequence was that a business booking runs of
+            * visits could not find it at all.
+            *
+            * Giles, 28 Sep, setting up a pet-care business: "can we add a way
+            * of adding multiple days for the same thing, for example if
+            * somebody is booking in cat visits." Every day with an end date
+            * has done exactly that since August. He had no way of knowing,
+            * because it was folded away under a heading that says this is not
+            * the thing you are looking for.
+            *
+            * One row, and it reads "Just the once" until somebody changes it,
+            * so the common case costs a line of screen and no decision.
+            */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="How often">
+              <select
+                name="repeats"
+                value={repeats}
+                onChange={(e) => setRepeats(e.target.value)}
+                className="input"
+                /*
+                 * Editing one of a set changes that one. Offering the rule again
+                 * would imply this sheet can re-cut the whole pattern, which it
+                 * cannot — see the note further down.
+                 */
+                disabled={existing}
+              >
+                {REPEATS.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            {!existing && repeats !== "none" && repeats !== "dates" && (
+              <Field label="Until" hint="Leave blank for the next six months.">
+                <input type="date" name="repeat_until" className="input" />
+              </Field>
+            )}
+          </div>
+
+          {/*
+            * The days, named one at a time.
+            *
+            * Native date inputs rather than a calendar widget: they are one tap
+            * on a phone, they already speak the owner's locale, and this screen
+            * is used with a customer on the line. The first day is the booking's
+            * own date above, so these are the ones after it.
+            */}
+          {!existing && repeats === "dates" && (
+            <div className="rounded-xl border border-border px-3.5 py-3">
+              <div className="label">Which other days</div>
+              <p className="hint mt-0.5 max-w-prose">
+                {fromDate
+                  ? `${niceDay(fromDate)} is already booked from the date above. Add the rest here.`
+                  : "Pick the date above first, then add the rest here."}
+              </p>
+
+              <div className="mt-2.5 space-y-2">
+                {pickedDays.map((day, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={day}
+                      min={fromDate || undefined}
+                      onChange={(e) =>
+                        setPickedDays(pickedDays.map((d, j) => (j === i ? e.target.value : d)))
+                      }
+                      className="input"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPickedDays(pickedDays.filter((_, j) => j !== i))}
+                      className="btn-ghost px-2.5 py-1 text-sm"
+                      aria-label="Take this day off the list"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-2.5 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPickedDays([...pickedDays, nextDayAfter(pickedDays, fromDate)])}
+                  className="btn-ghost px-3 py-1.5 text-sm"
+                  disabled={pickedDays.length >= MOST_CHOSEN_DAYS}
+                >
+                  Add another day
+                </button>
+                {/*
+                  * Said before saving, because this button writes many rows.
+                  *
+                  * Every occurrence is a real appointment. "That is 6 visits" is
+                  * the one number somebody wants confirmed before pressing a
+                  * button that fills a week of their diary.
+                  */}
+                <span className="hint">
+                  {countOf(fromDate, pickedDays) === 1
+                    ? "One visit so far."
+                    : `That makes ${countOf(fromDate, pickedDays)} visits.`}
+                </span>
+              </div>
+
+              {/* Submitted as one field; see extraDates in lib/calendar. */}
+              <input type="hidden" name="repeat_dates" value={pickedDays.join(",")} />
+
+              <p className="hint mt-2 max-w-prose">
+                Each one is its own appointment, so any of them can be moved or
+                cancelled on its own. A day already taken is skipped rather than
+                stopping the rest, and you are told which.
+              </p>
+            </div>
+          )}
+
           <Field label={artists.length > 1 ? "Who for" : "Diary"}>
             <select
               name="artist_id"
@@ -827,30 +1013,12 @@ export function EntryDialog({
           >
             <summary className="cursor-pointer text-sm text-muted">Anything else</summary>
             <div className="mt-3 space-y-4">
-          {!existing && !fromClient && (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Repeat">
-                <select
-                  name="repeats"
-                  value={repeats}
-                  onChange={(e) => setRepeats(e.target.value)}
-                  className="input"
-                >
-                  {REPEATS.map((r) => (
-                    <option key={r.value} value={r.value}>
-                      {r.label}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              {repeats !== "none" && (
-                <Field label="Until" hint="Leave blank for the next six months.">
-                  <input type="date" name="repeat_until" className="input" />
-                </Field>
-              )}
-            </div>
-          )}
-
+          {/*
+            * The repeat used to be here, folded. It is up beside the date now —
+            * see the comment there. Nothing replaces it in this fold, which is
+            * the point: a business looking for "book this on six days" was
+            * looking at the date, not under "Anything else".
+            */}
           {existing && entry?.repeats && entry.repeats !== "none" && (
             <p className="hint">
               Part of a repeating set. Saving changes this one only.
