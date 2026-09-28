@@ -132,6 +132,26 @@ const checks = [
     /** Twelve questions to the support account, cleared up after. */
     writes: true,
   },
+  /*
+   * One press of one button that writes several appointments.
+   *
+   * The only thing here where the gap between "the screen said it worked" and
+   * "it worked" is four rows wide. A day quietly missing from a run of cat
+   * visits is somebody paying for four visits and the cat being fed three
+   * times, and no screen would say so — the diary would simply show three.
+   *
+   * It asserts rows rather than wording: every day picked, joined by
+   * repeat_parent_id, the same wall-clock time on each, and a value the repeats
+   * enum actually accepts. Worth knowing that its own selector was wrong twice
+   * before the product was proved right — it pressed "Add another day" and
+   * reported "nothing was written at all".
+   */
+  {
+    name: "booking one thing on several days",
+    run: ["node", "scripts/check-many-days.cjs"],
+    /** Four appointments on a demo, forty days out, removed either way. */
+    writes: true,
+  },
   {
     name: "every screen of every business",
     run: ["node", "scripts/check-pages.cjs"],
