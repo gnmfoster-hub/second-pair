@@ -122,6 +122,17 @@ export async function sendCampaigns(
         when: "",
         practitioner: "",
         link: "",
+        /*
+         * What they had, which this screen has told owners to write as
+         * {{what}} since campaigns were built and nothing has ever filled.
+         *
+         * The title is the service name, copied when the booking was made, and
+         * it is the same field that decided this campaign follows this booking
+         * at all — see campaigns.ts sameJob. So a campaign set up to follow a
+         * colour can only reach somebody whose booking said colour, which is
+         * what makes it safe to drop into the sentence.
+         */
+        what: one.booking.title,
       });
 
       try {

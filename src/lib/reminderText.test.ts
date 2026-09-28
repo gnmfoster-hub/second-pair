@@ -73,6 +73,85 @@ test("every trade pack reminder uses only placeholders that exist", () => {
   assert.deepEqual(broken, [], `these would go out with a hole in them:\n${broken.join("\n")}`);
 });
 
+/*
+ * ── One character that doubled the price of every reminder ──────────────────
+ *
+ * Found on 28 September while writing starter wordings, by a test asking
+ * whether a starter fit in one text. It did not, and neither did the reminders
+ * we have been shipping since August.
+ *
+ * A text is 160 characters. One character outside the GSM alphabet drops the
+ * whole message to 70 per piece — and the day-before reminder in 34 of the 34
+ * trade packs contained an em dash. Filled in, it is 87 characters: comfortably
+ * one text, charged as two.
+ *
+ * The money is the smaller half. forOneText cuts a reminder to a single segment
+ * on the way out, so what actually arrived was:
+ *
+ *     "See you tomorrow, Marie — tomorrow at 2pm with Amber."
+ *
+ * and "Reply here if anything's changed." was dropped in silence. The sentence
+ * telling a customer how to change an appointment is the one sentence in a
+ * reminder that does any work, and no screen anywhere said it was being cut.
+ *
+ * Giles had already had the long dash taken out of the assistant, the website
+ * and every screen in the app, for how it reads. These were missed, and it
+ * turns out they were the place it was also costing him money.
+ */
+test("no shipped reminder contains a character that doubles the price of a text", () => {
+  const dear: string[] = [];
+  for (const trade of VERTICAL_LIST) {
+    for (const reminder of trade.reminders) {
+      const out = renderReminder(reminder.body, values);
+      /* Code points rather than a regex: an escape in a character class is one
+       * transcription away from being a real control byte in this file. */
+      const odd = [...new Set([...out].filter((c) => c.charCodeAt(0) > 127))];
+      if (odd.length) dear.push(`${trade.id} "${reminder.label}": ${odd.join(" ")}`);
+    }
+  }
+  assert.deepEqual(
+    dear,
+    [],
+    `these are charged as two texts and lose their last sentence: ${dear.join("; ")}`,
+  );
+});
+
+/*
+ * And the whole point of the above: the day-before one has to survive the cut.
+ *
+ * Only that one. Writing this as "every reminder arrives whole" failed on the
+ * two-days-before reminder of all twenty-four travelling trades, and that one is
+ * long on purpose: it carries the trade's own preparation advice — somewhere to
+ * park, access to the work, have a proper meal beforehand — which runs to about
+ * 210 characters and has always been charged as two texts. forOneText exists to
+ * keep the sentence that matters and drop the advice, and the email carries the
+ * whole thing for nothing either way. That was a decision, and it is written
+ * down in the function's own comment.
+ *
+ * The day-before reminder is different. It is short enough to arrive whole and
+ * was losing its last sentence anyway, purely because of one em dash. So this
+ * pins the case where a loss means a fault, and says nothing about the case
+ * where a loss was chosen — a test that objects to a deliberate decision gets
+ * the decision changed to quieten it, which is the wrong way round.
+ */
+test("the day-before reminder arrives whole in one text", () => {
+  const cut: string[] = [];
+  for (const trade of VERTICAL_LIST) {
+    for (const reminder of trade.reminders) {
+      if (reminder.hours_before !== 24) continue;
+      const out = renderReminder(reminder.body, values);
+      if (forOneText(out) !== out) {
+        cut.push(`${trade.id} loses: ${out.slice(forOneText(out).length)}`);
+      }
+    }
+  }
+  assert.deepEqual(
+    cut,
+    [],
+    `the day before, these lose a sentence when texted: ${cut.join("; ")}`,
+  );
+});
+
 test("every shipped reminder still says something once filled", () => {
   const broken: string[] = [];
   for (const trade of VERTICAL_LIST) {

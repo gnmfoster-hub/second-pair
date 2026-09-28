@@ -2,11 +2,14 @@
 
 import { Explain } from "@/components/Explain";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { saveReminder } from "./actions";
 import { Field, FormMessage, SubmitButton } from "@/components/Form";
 import type { FormState } from "../actions";
-import { renderReminder, unknownPlaceholders } from "@/lib/reminderText";
+import { renderReminder } from "@/lib/reminderText";
+import { sayTheFields, unknownIn } from "@/lib/messageFields";
+import { InsertFields } from "@/components/InsertFields";
+import { startersFor } from "@/lib/messageStarters";
 import { HowItLands } from "@/components/HowItLands";
 
 export type ReminderTemplateRow = {
@@ -29,23 +32,12 @@ export type ReminderTemplateRow = {
   artist_id?: string | null;
 };
 
-/** Substitutions the owner can use, explained where they are typed. */
-const TOKENS = [
-  ["{{name}}", "their first name"],
-  ["{{when}}", "the day and time"],
-  ["{{practitioner}}", "who it is with"],
-  ["{{business}}", "your name"],
-  /*
-   * The link is optional in a text and automatic in an email.
-   *
-   * An email gets a button whether or not this is used, because a button is
-   * chrome rather than part of the sentence. A text only gets it if the
-   * business asks, because every character past a hundred and sixty costs
-   * them money and appending a URL nobody wrote changes what they chose to
-   * say.
-   */
-  ["{{link}}", "their own page for this appointment — email always has a button"],
-];
+/*
+ * The list of fields used to be written out here, and again on the marketing
+ * screen, and again on the saved-messages screen. All three were different and
+ * two of them were wrong. It lives in lib/messageFields now, which is also what
+ * InsertFields reads, so the buttons and the warning cannot disagree.
+ */
 
 /**
  * Who a reminder arrives from.
@@ -167,6 +159,7 @@ export function ReminderEditor({
   /** The business's picture and policy, so the email preview is the real one. */
   look,
   mayUseBoth = false,
+  travels = false,
 }: {
   reminder?: ReminderTemplateRow;
   index: number;
@@ -176,6 +169,15 @@ export function ReminderEditor({
   look?: { photoUrl?: string | null; policy?: string | null };
   /** Whether this business may send one message on two channels. */
   mayUseBoth?: boolean;
+  /**
+   * Whether the business goes to the customer rather than the other way round.
+   *
+   * Only used to pick which set of starter wordings to offer. "You're booked in
+   * with Amber" is wrong for a dog walker and "Amber will be with you" is wrong
+   * for a salon, and a starter that has to be rewritten before it can be saved
+   * is not a starter.
+   */
+  travels?: boolean;
 }) {
   const [state, action] = useActionState<FormState, FormData>(saveReminder, {});
 
@@ -187,7 +189,10 @@ export function ReminderEditor({
    * submits the same field the same way.
    */
   const [body, setBody] = useState(reminder?.body ?? "");
-  const wrong = unknownPlaceholders(body);
+  const wrong = unknownIn(body, "reminder");
+
+  /* So a field can be put in where the cursor is rather than at the end. */
+  const box = useRef<HTMLTextAreaElement>(null);
 
   /*
    * Whether this one is the confirmation.
@@ -279,11 +284,48 @@ export function ReminderEditor({
         </select>
       </Field>
 
-      <Field
-        label="What it says"
-        explain={TOKENS.map(([token, means]) => `${token} is ${means}`).join("; ")}
-      >
+      {/*
+        * Wordings to start from, which is the half that was missing.
+        *
+        * Giles, 28 Sep: "when setting up the booking confirmation there needs
+        * to be a template to use." There was not one. A trade pack ships two
+        * reminders and no confirmation, so switching confirmations on gave an
+        * empty box and left the owner to invent the most-read message this
+        * product sends — ten businesses in a row.
+        *
+        * Offered rather than filled in, and only while the box is empty:
+        * quietly rewriting something somebody has typed is the one thing a
+        * picker must never do. Saving is still a separate press, so a starter
+        * can be read, edited, or ignored.
+        */}
+      {body.trim() === "" && (
+        <div>
+          <div className="label">
+            {confirmation ? "Start from one of these" : "Or start from one of these"}
+          </div>
+          <div className="mt-1.5 flex flex-wrap gap-2">
+            {startersFor(confirmation, { travels }).map((starter) => (
+              <button
+                key={starter.label}
+                type="button"
+                onClick={() => setBody(starter.body)}
+                className="btn-ghost px-3 py-1.5 text-[13px]"
+                title={starter.body}
+              >
+                {starter.label}
+              </button>
+            ))}
+          </div>
+          <p className="hint mt-1.5 max-w-prose">
+            Each one is a starting point, not a finished message. Put one in, read how it
+            lands underneath, and change it to sound like you.
+          </p>
+        </div>
+      )}
+
+      <Field label="What it says">
         <textarea
+          ref={box}
           name="body"
           value={body}
           onChange={(e) => setBody(e.target.value)}
@@ -292,10 +334,20 @@ export function ReminderEditor({
           placeholder={
             confirmation
               ? "Thanks {{name}}, you are booked in for {{when}} with {{practitioner}}."
-              : "See you tomorrow, {{name}} — {{when}} with {{practitioner}}."
+              : "See you tomorrow, {{name}}, {{when}} with {{practitioner}}."
           }
           required
         />
+        {/*
+          * The fields as buttons, under the box they go into.
+          *
+          * They were listed in a tooltip and in the grey example text, which
+          * vanishes the moment anybody types — so from the second sentence
+          * onwards the only way to add one was to remember the name and spell
+          * it exactly. Getting it wrong fails silently: the renderer strips
+          * what it cannot fill and the customer reads a sentence with a hole.
+          */}
+        <InsertFields kind="reminder" target={box} value={body} onChange={setBody} />
       </Field>
 
       <Preview
@@ -328,7 +380,8 @@ export function ReminderEditor({
             {wrong.length === 1 ? "This is not one of them:" : "These are not any of them:"}
           </strong>{" "}
           {wrong.map((w) => `{{${w}}}`).join(", ")}, it will be taken out and leave a
-          gap in the sentence. The four above are the whole list.
+          gap in the sentence. {sayTheFields("reminder")} are the whole list, and the
+          buttons under the box put them in for you.
         </p>
       )}
 

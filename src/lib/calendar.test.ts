@@ -1,6 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { startOfWeek, addDays, isoDate, parseIsoDate, repeatDates } from "./calendar.ts";
+import {
+  startOfWeek,
+  addDays,
+  isoDate,
+  parseIsoDate,
+  repeatDates,
+  nextHalfHour,
+} from "./calendar.ts";
 
 /**
  * The date arithmetic the diary is laid out on.
@@ -147,4 +154,60 @@ test("monthly on the 31st keeps to the end of short months and comes back to the
 test("monthly on an ordinary day stays on that day", () => {
   const dates = repeatDates(new Date(2026, 8, 15), "monthly", new Date(2026, 11, 20));
   assert.deepEqual(dates.map((d) => d.getDate()), [15, 15, 15, 15]);
+});
+
+/*
+ * ── The time the Add button opens at ────────────────────────────────────────
+ *
+ * Only used when the day being looked at is today. It was inside a click
+ * handler before, where the two cases worth checking — landing exactly on the
+ * half hour, and the last one of the day — could not be reached from a test
+ * without waiting for the right minute of the right hour to come round.
+ */
+const LONDON = "Europe/London";
+
+test("a time in the middle of a half hour rounds up to the end of it", () => {
+  /* 09:07 London (BST, so 08:07 UTC). */
+  assert.equal(nextHalfHour(LONDON, new Date("2026-09-28T08:07:00Z")), "09:30");
+  assert.equal(nextHalfHour(LONDON, new Date("2026-09-28T08:31:00Z")), "10:00");
+});
+
+/*
+ * Exactly on the half hour stays there rather than jumping forward.
+ *
+ * Math.ceil of a whole number is itself, which is the behaviour wanted: at
+ * half past nine on the dot, "the next half hour" is now. Offering ten o'clock
+ * to somebody with a customer in front of them is half an hour of the diary
+ * quietly given away.
+ */
+test("exactly on the half hour is that time", () => {
+  assert.equal(nextHalfHour(LONDON, new Date("2026-09-28T08:30:00Z")), "09:30");
+  assert.equal(nextHalfHour(LONDON, new Date("2026-09-28T08:00:00Z")), "09:00");
+});
+
+/*
+ * Late at night it stops rather than rolling over.
+ *
+ * Rounding 23:40 up gives midnight, and midnight belongs to the following day
+ * while the date field still says today — so the appointment would be filed
+ * twenty-four hours from where whoever typed it meant, at the one hour nobody
+ * would think to look.
+ */
+test("the last half hour of the day does not become midnight", () => {
+  assert.equal(nextHalfHour(LONDON, new Date("2026-09-28T22:40:00Z")), "23:30");
+  assert.equal(nextHalfHour(LONDON, new Date("2026-09-28T22:59:00Z")), "23:30");
+});
+
+/*
+ * The timezone is honoured, which is the reason this takes one at all.
+ *
+ * The server runs on UTC. In summer a booking added at half past midnight
+ * London time is still the previous evening by the machine's clock, and that
+ * hour of difference is exactly the fault that put every time on every screen
+ * an hour out all summer.
+ */
+test("it reads the clock where the business is, not where the server is", () => {
+  const instant = new Date("2026-06-15T23:10:00Z");
+  assert.equal(nextHalfHour(LONDON, instant), "00:30", "British Summer Time is an hour ahead");
+  assert.equal(nextHalfHour("UTC", instant), "23:30", "and UTC is capped instead");
 });

@@ -8,13 +8,29 @@
  * Nothing here touches the database or the network, deliberately.
  */
 
-/** The only names a template may use. Anything else is stripped. */
+/**
+ * The names this renderer can fill. Anything else is stripped.
+ *
+ * Which of them a given *screen* may offer is a narrower question, and it lives
+ * in lib/messageFields — a campaign has no appointment to link to, and a message
+ * typed by hand has no time. This list is only what the renderer knows how to
+ * substitute; offering a name from it is not the same as being able to fill it.
+ */
 export const REMINDER_PLACEHOLDERS = [
   "name",
   "practitioner",
   "business",
   "when",
   "link",
+  /*
+   * What they had.
+   *
+   * Added 28 Sep. The marketing screen has recommended {{what}} since campaigns
+   * were built — "{{what}} is the job", with an example using it — and nothing
+   * ever filled it, so it was stripped on the way out and a customer read "it
+   * has been a while since your  — fancy booking another?". See messageFields.
+   */
+  "what",
 ] as const;
 
 export type ReminderValues = {
@@ -30,6 +46,13 @@ export type ReminderValues = {
    * missing link is better than one containing the word "undefined".
    */
   link?: string | null;
+  /**
+   * What they had, for a message that follows a job.
+   *
+   * The booking's own title, which is copied from the service when it is
+   * booked. Stripped when absent, like the link — a reminder has no use for it.
+   */
+  what?: string | null;
 };
 
 /**
@@ -43,6 +66,15 @@ export function renderReminder(template: string, values: ReminderValues): string
     .replace(/\{\{\s*business\s*\}\}/gi, values.business?.trim() || "us")
     .replace(/\{\{\s*when\s*\}\}/gi, values.when?.trim() || "your appointment")
     .replace(/\{\{\s*link\s*\}\}/gi, values.link?.trim() ?? "")
+    /*
+     * Lower-cased, because it goes mid-sentence.
+     *
+     * The title is whatever was typed when the booking was made, which is
+     * often "Full Head Colour" off a price list. "it has been a while since
+     * your Full Head Colour" reads like a form letter, which is the one thing
+     * this message must not read like.
+     */
+    .replace(/\{\{\s*what\s*\}\}/gi, values.what?.trim().toLowerCase() ?? "")
     .replace(/\{\{[^}]*\}\}/g, "")
     .replace(/[ \t]{2,}/g, " ")
     .trim();

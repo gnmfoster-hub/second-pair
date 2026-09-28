@@ -208,3 +208,38 @@ export function repeatDates(first: Date, rule: RepeatRule, until: Date | null): 
 
   return dates;
 }
+
+// ------------------------------------------------------- the next half hour
+
+/**
+ * The next half hour where the business is, as "HH:MM".
+ *
+ * What the diary's Add button opens at when the day being looked at is today.
+ * Pulled out of the component so it can be tested: it was three lines of
+ * Intl.DateTimeFormat inside a click handler, and the interesting cases — the
+ * half hour exactly, and the last one of the day — could not be reached from a
+ * test at all without waiting for the right minute to come round.
+ *
+ * `now` is a parameter for the same reason every other date function here takes
+ * one: a test that depends on the wall clock passes and fails by the hour.
+ *
+ * Capped at 23:30 rather than rolling over to 00:00. Half past eleven at night
+ * is already a strange thing to offer somebody; midnight *the previous day* is
+ * a wrong one, and it would arrive as an appointment nobody could find.
+ */
+export function nextHalfHour(timezone: string, now: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+  const at = Object.fromEntries(parts.map((p) => [p.type, p.value])) as Record<string, string>;
+
+  // Midnight comes back as "24" from some runtimes, as it does in voice/regular.
+  const hour = at.hour === "24" ? 0 : Number(at.hour);
+  const minutes = hour * 60 + Number(at.minute);
+  const next = Math.min(23 * 60 + 30, Math.ceil(minutes / 30) * 30);
+
+  return `${String(Math.floor(next / 60)).padStart(2, "0")}:${String(next % 60).padStart(2, "0")}`;
+}

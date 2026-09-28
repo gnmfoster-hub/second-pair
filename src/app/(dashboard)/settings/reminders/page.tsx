@@ -93,6 +93,16 @@ export default async function RemindersPage() {
   const mayUseBoth =
     (studio as unknown as { allow_both_channels?: boolean | null }).allow_both_channels === true;
 
+  /*
+   * Whether this business goes out to the customer, for the starter wordings.
+   *
+   * The same fact the trade packs already use to pick which of their two
+   * reminders to ship. Read from the pack rather than guessed from the trade
+   * name, because a business can be "both" and the pack knows.
+   */
+  const pack = verticalPack(studio.vertical);
+  const travels = pack.location !== "at_premises";
+
   const look = {
     photoUrl: avatarUrl((studio as unknown as { photo_path?: string | null }).photo_path),
     policy: (studio as unknown as { cancellation_policy?: string | null }).cancellation_policy ?? null,
@@ -146,7 +156,7 @@ export default async function RemindersPage() {
         * a page holding only somebody's own reminder looks exactly that way.
         */}
       {cover.businessWide === 0 && (
-        <SeedReminders trade={verticalPack(studio.vertical).label} />
+        <SeedReminders trade={pack.label} />
       )}
 
       {/*
@@ -161,10 +171,24 @@ export default async function RemindersPage() {
       />
 
       {ours.map((reminder, i) => (
-        <ReminderEditor key={reminder.id} reminder={reminder} index={i} sender={sender} look={look} mayUseBoth={mayUseBoth} />
+        <ReminderEditor
+          key={reminder.id}
+          reminder={reminder}
+          index={i}
+          sender={sender}
+          look={look}
+          mayUseBoth={mayUseBoth}
+          travels={travels}
+        />
       ))}
 
-      <ReminderEditor index={ours.length} sender={sender} look={look} mayUseBoth={mayUseBoth} />
+      <ReminderEditor
+        index={ours.length}
+        sender={sender}
+        look={look}
+        mayUseBoth={mayUseBoth}
+        travels={travels}
+      />
 
       {/*
         * Other people's, named but not editable here.

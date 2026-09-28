@@ -34,18 +34,33 @@ import { WhoItOffers } from "./WhoItOffers";
  * says whose job it is, rather than offering a button that does nothing.
  */
 
-type ChannelKey = "web" | "whatsapp" | "instagram" | "messenger" | "sms";
-
-const CHANNELS: {
-  key: ChannelKey;
-  label: string;
-  note: string;
-}[] = [
-  { key: "whatsapp", label: "WhatsApp", note: "Needs a number that isn't on the WhatsApp app" },
-  { key: "instagram", label: "Instagram DMs", note: "Needs a Professional account linked to a Facebook Page" },
-  { key: "messenger", label: "Messenger", note: "Comes with the Facebook Page" },
-  { key: "sms", label: "Text messages", note: "Needs a number of its own" },
-];
+/*
+ * ── The list of "Coming shortly" rows that used to live here ────────────────
+ *
+ * Giles, 28 Sep, setting up Amber's Paws & Pastures: "in her settings it says
+ * text messaging coming soon when she already has it."
+ *
+ * He was reading a summary card at the bottom of this page that listed
+ * WhatsApp, Instagram, Messenger and *text messages*, each with a grey
+ * "Coming shortly" pill. The pill was hardcoded — every row, every business,
+ * for ever. It was written when none of these channels existed, and it was
+ * true then.
+ *
+ * By the time Amber read it, her own number had been live for two days and had
+ * already carried a text. And the real panel saying so was four inches higher
+ * up the same page, so the page contradicted itself: a working number at the
+ * top, "coming shortly" at the bottom.
+ *
+ * The rows are gone rather than corrected, because every channel they listed
+ * now has a panel of its own above — text messages, email, and Facebook and
+ * Instagram — and each of those reads the database instead of asserting. A
+ * second list summarising the first can only ever drift out of step with it,
+ * which is exactly what happened. What the cards below keep is the part that
+ * was never a claim: the links.
+ *
+ * Same family as the four false claims found on 27 September. A screen stating
+ * something nothing had checked, reading as confident.
+ */
 
 
 export default async function ChannelsPage({
@@ -497,12 +512,6 @@ export default async function ChannelsPage({
               <Snippet value={embed} label="For your website" />
             </div>
           </div>
-
-          {CHANNELS.filter((c) => c.key !== "instagram" && c.key !== "messenger").map(
-            (channel) => (
-              <ChannelRow key={channel.key} label={channel.label} note={channel.note} />
-            ),
-          )}
         </div>
       </section>
 
@@ -559,13 +568,16 @@ export default async function ChannelsPage({
                 </div>
               </div>
 
-              {CHANNELS.map((channel) => (
-                <ChannelRow
-                  key={channel.key}
-                  label={channel.label}
-                  note={`${person.name.split(" ")[0]}'s own`}
-                />
-              ))}
+              {/*
+                * Their channels are not listed here on purpose.
+                *
+                * This card used to repeat all four with a "Coming shortly"
+                * pill, which was wrong twice over: a person can have a number
+                * of their own and several do, and whether they are allowed one
+                * at all is a decision made on their own record. Settings →
+                * the team → their name is where that lives, and it reads the
+                * three gates rather than asserting anything.
+                */}
             </div>
           </section>
         ))}
@@ -638,25 +650,6 @@ export default async function ChannelsPage({
         position={studio.widget_position ?? "right"}
         teaser={studio.widget_teaser ?? null}
       />
-    </div>
-  );
-}
-
-/**
- * A messaging channel that is not connectable yet.
- *
- * Deliberately not a button. The Meta app review is a job for Second Pair, not for
- * the business, and offering a dead "Connect" would be a lie that generates a
- * support message.
- */
-function ChannelRow({ label, note }: { label: string; note: string }) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-2 p-4">
-      <div className="min-w-0">
-        <div className="text-sm font-medium">{label}</div>
-        <p className="hint mt-0.5">{note}</p>
-      </div>
-      <span className="pill shrink-0 bg-surface-2 text-muted">Coming shortly</span>
     </div>
   );
 }

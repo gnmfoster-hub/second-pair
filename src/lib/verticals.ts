@@ -333,8 +333,8 @@ function defaultReminders(travels: boolean): ReminderTemplate[] {
       hours_before: 24,
       label: "The day before",
       body: travels
-        ? "See you tomorrow, {{name}} — {{practitioner}} will be with you {{when}}. Reply here if anything's changed."
-        : "See you tomorrow, {{name}} — {{when}} with {{practitioner}}. Reply here if anything's changed.",
+        ? "See you tomorrow, {{name}}, {{practitioner}} will be with you {{when}}. Reply here if anything's changed."
+        : "See you tomorrow, {{name}}, {{when}} with {{practitioner}}. Reply here if anything's changed.",
     },
   ];
 }
@@ -936,7 +936,7 @@ const TATTOO = trade({
       hours_before: 24,
       label: "The day before",
       body:
-        "See you tomorrow, {{name}} — {{when}} with {{practitioner}}. Wear something that " +
+        "See you tomorrow, {{name}}, {{when}} with {{practitioner}}. Wear something that " +
         "gives easy access to the area. Reply here if anything's changed.",
     },
   ],
@@ -1028,7 +1028,7 @@ const BEAUTY: VerticalPack[] = [
         hours_before: 24,
         label: "The day before",
         body:
-          "See you tomorrow, {{name}} — {{when}} with {{practitioner}}. Reply here if anything's changed.",
+          "See you tomorrow, {{name}}, {{when}} with {{practitioner}}. Reply here if anything's changed.",
       },
     ],
   }),

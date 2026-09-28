@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { saveQuickMessage } from "../actions";
 import { FormMessage, SubmitButton } from "@/components/Form";
-import { REMINDER_PLACEHOLDERS } from "@/lib/reminderText";
+import { sayTheFields } from "@/lib/messageFields";
+import { InsertFields } from "@/components/InsertFields";
 
 /**
  * The wordings a business picks from on a client's page.
@@ -47,6 +48,10 @@ function One({
     {},
   );
 
+  /* Controlled only so the field buttons have something to write into. */
+  const [body, setBody] = useState(template?.body ?? "");
+  const box = useRef<HTMLTextAreaElement>(null);
+
   return (
     <form action={action} className="card space-y-3 p-5">
       {template && <input type="hidden" name="id" value={template.id} />}
@@ -68,21 +73,36 @@ function One({
 
       <label className="block">
         <span className="label">What it says</span>
+        {/*
+          * Controlled now, only so the field buttons can write into it.
+          *
+          * It submits the same field the same way; nothing else about this form
+          * changed.
+          */}
         <textarea
+          ref={box}
           name="body"
-          defaultValue={template?.body ?? ""}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
           rows={3}
-          placeholder="Hi {{name}}, so sorry — we're running about fifteen minutes behind today."
+          placeholder="Hi {{name}}, so sorry, we're running about fifteen minutes behind today."
           className="input"
         />
+        {/*
+          * Three fields, not five.
+          *
+          * This screen used to print the whole reminder list, which includes
+          * {{when}} and {{link}}. A message typed by hand is attached to a
+          * person and not to an appointment, so neither has an honest value and
+          * both are silently stripped on the way out. That was written down in
+          * a comment in lib/quickMessages and contradicted by the sentence
+          * printed directly above it, where an owner would actually read it.
+          */}
+        <InsertFields kind="quick" target={box} value={body} onChange={setBody} />
         <span className="hint">
-          {/*
-            * Named rather than described, because somebody typing {{firstname}}
-            * gets a sentence with a hole in it and no error anywhere.
-            */}
-          You can use {REMINDER_PLACEHOLDERS.map((p) => `{{${p}}}`).join(", ")}. Anything
-          else is left out. It is filled in for whoever you are writing to, and you can
-          change every word of it before it goes.
+          {sayTheFields("quick")} are the whole list here. There is no {"{{when}}"} or
+          appointment link, because a message you send by hand is not attached to a
+          booking. You can change every word before it goes.
         </span>
       </label>
 

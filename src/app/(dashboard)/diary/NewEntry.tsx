@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { nextHalfHour } from "@/lib/calendar";
 import { EntryDialog } from "./EntryDialog";
 import type { Words } from "@/lib/wordsText";
 import { AddMenu } from "./AddMenu";
@@ -15,14 +16,18 @@ import type { Artist } from "@/lib/types";
  * before. A calendar with no visible add button looks unfinished, whatever
  * else it can do.
  *
- * It opens at the next half hour rather than at nothing, because that is
- * nearly always what somebody adding an appointment means.
+ * It opens on the day being looked at, at the next half hour when that day is
+ * today, because that is nearly always what somebody adding an appointment
+ * means.
  */
 export function NewEntry({
   artists,
   timezone,
   services,
   words,
+  day,
+  today,
+  openOnArrival,
 }: {
   artists: Artist[];
   timezone: string;
@@ -30,6 +35,25 @@ export function NewEntry({
   services: Bookable[];
   /** What this business calls things, from its trade and its own changes. */
   words: Words;
+  /**
+   * The day the diary is showing, as YYYY-MM-DD, worked out on the server in
+   * the business's own timezone. See the call site for how week and month view
+   * answer a question that is really about a range.
+   */
+  day: string;
+  /** Today where the business is, so the clock is only used when it applies. */
+  today: string;
+  /**
+   * Whether the address said ?add=1, read on the server.
+   *
+   * The home-screen shortcut. This used to be read here in an effect, which
+   * then called setState in the effect body — a lint error this file has been
+   * failing on since the shortcut was built, and a real cascading render as
+   * well. It is a prop now: the server already reads the address, so the first
+   * render can simply be the one with the sheet open. No effect, and no
+   * difference between what the server drew and what the browser expected.
+   */
+  openOnArrival?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [when, setWhen] = useState<{ date: string; time: string } | null>(null);
@@ -43,58 +67,58 @@ export function NewEntry({
    * timing usable at all — it cannot set aside her extra twenty minutes until
    * it knows it is her.
    */
-  const [asking, setAsking] = useState(false);
+  const [asking, setAsking] = useState(openOnArrival === true);
   const [kind, setKind] = useState<"client" | "walkin" | "other">("walkin");
 
-  // Computed on click rather than in render: the clock is not a pure value,
-  // and a server-rendered "now" would be wrong by the time it arrived.
-  const start = () => {
-    const now = new Date();
-    const local = new Intl.DateTimeFormat("en-CA", {
-      timeZone: timezone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).formatToParts(now);
-    const at = Object.fromEntries(local.map((p) => [p.type, p.value]));
+  /*
+   * The day comes from the page; only the time comes from the clock.
+   *
+   * The clock is still read on click rather than in render, for the reason it
+   * always was: it is not a pure value, and a server-rendered "now" would be
+   * wrong by the time it arrived. What changed is that it no longer decides the
+   * *date*. It used to, which is the whole bug — the diary could be showing the
+   * 14th of October and this would quietly hand the dialog today.
+   *
+   * "The next half hour" only means anything on today. On any other day there
+   * is no next half hour, so it opens at ten, which is what the dialog has
+   * always fallen back to when nothing prefilled it. Deliberately not the
+   * business's first opening time: this component is not given the hours, and
+   * reading them to save one tap is not worth another round trip on the screen
+   * people open twenty times a day.
+   */
+  const start = () => setAsking(true);
 
-    const minutes = Number(at.hour) * 60 + Number(at.minute);
-    const next = Math.min(23 * 60 + 30, Math.ceil(minutes / 30) * 30);
-
-    setWhen({
-      date: `${at.year}-${at.month}-${at.day}`,
-      time: `${String(Math.floor(next / 60)).padStart(2, "0")}:${String(next % 60).padStart(2, "0")}`,
-    });
-    setAsking(true);
-  };
-
+  /*
+   * The time is settled here rather than when the sheet opens.
+   *
+   * Once per dialog, at the moment the kind is chosen, so it cannot drift while
+   * somebody reads the menu — and so nothing is computed during render, where
+   * reading a clock would give the server and the browser different answers.
+   */
   function chose(picked: "client" | "walkin" | "other") {
     setKind(picked);
+    setWhen({ date: day, time: day === today ? nextHalfHour(timezone) : "10:00" });
     setAsking(false);
     setOpen(true);
   }
 
   /*
-   * Opened straight away when the home screen shortcut was used.
+   * The shortcut's parameter taken back out of the address.
    *
-   * Long-pressing the app icon offers "Add an appointment", and a shortcut
-   * that lands on the diary and leaves you to find the button is not a
-   * shortcut — it is a link with a promise on it. The parameter is taken out
-   * of the address afterwards so that a refresh, or going back, does not open
-   * the dialog a second time.
+   * Long-pressing the app icon offers "Add an appointment", and a shortcut that
+   * lands on the diary and leaves you to find the button is not a shortcut, it
+   * is a link with a promise on it. Whether to open is decided on the server
+   * now (see openOnArrival); all that is left here is tidying the address, so a
+   * refresh or a press of Back does not open the sheet a second time.
+   *
+   * This is the shape the effect always wanted: it updates an external system —
+   * the browser's history — and touches no React state at all.
    */
   useEffect(() => {
     const url = new URL(window.location.href);
     if (url.searchParams.get("add") !== "1") return;
-
     url.searchParams.delete("add");
     window.history.replaceState({}, "", url.pathname + url.search);
-    start();
-    // Once, on arrival. Deliberately not re-run when anything changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // N adds something, in the same idiom as the other single-key shortcuts.

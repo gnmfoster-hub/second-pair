@@ -111,9 +111,25 @@ export default async function DiaryPage({
     who?: string;
     /** One appointment to open on arrival, from a link that knew which. */
     entry?: string;
+    /**
+     * "1" from the home-screen shortcut, which means open the add sheet.
+     *
+     * Read here rather than in the browser so the very first render can be the
+     * one with the sheet already open. NewEntry used to read the address itself
+     * in an effect and then set state from it — a cascading render, and a lint
+     * error this file has been failing on since the shortcut was built.
+     */
+    add?: string;
   }>;
 }) {
-  const { week, view: viewParam, day: dayParam, who, entry: openId } = await searchParams;
+  const {
+    week,
+    view: viewParam,
+    day: dayParam,
+    who,
+    entry: openId,
+    add: addOnArrival,
+  } = await searchParams;
   const { studio, userId } = await requireStudio();
   const supabase = await createClient();
   const artists = await getArtists(studio.id);
@@ -1342,7 +1358,40 @@ export default async function DiaryPage({
            * nobody finds on their own. Amber, because the pack allows one call
            * to action per screen and on this page it is obviously this.
            */}
-          <NewEntry artists={team} timezone={studio.timezone} services={bookable} words={words} />
+          {/*
+           * The day being looked at, so Add starts on it.
+           *
+           * Giles, 28 Sep: "when you click on a day and book the booking date
+           * doesn't default to the date you clicked."
+           *
+           * It never did. Clicking a cell in the month grid navigates to
+           * ?view=day&day=… and the server reads that correctly into focusDay —
+           * and then this line never handed it on, so the dialog worked its own
+           * date out from the browser clock and always said today. Somebody
+           * planning three weeks ahead had to choose the day twice, and the
+           * second time was on a field they had every reason to think was
+           * already right.
+           *
+           * In week and month view "the day being looked at" is a range rather
+           * than a day, so today is used when today is inside it — which is
+           * what somebody adding to this week means — and the first day of the
+           * range when it is not.
+           */}
+          <NewEntry
+            artists={team}
+            timezone={studio.timezone}
+            services={bookable}
+            words={words}
+            day={
+              view === "day"
+                ? isoDate(focusDay)
+                : todayHere >= isoDate(start) && todayHere < isoDate(end)
+                  ? todayHere
+                  : isoDate(start)
+            }
+            today={todayHere}
+            openOnArrival={addOnArrival === "1"}
+          />
         </div>
       </div>
 

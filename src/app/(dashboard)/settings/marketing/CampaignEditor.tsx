@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { saveCampaign } from "./actions";
 import { Field, FormMessage, SubmitButton } from "@/components/Form";
 import { HowItLands } from "@/components/HowItLands";
-import { renderReminder, unknownPlaceholders } from "@/lib/reminderText";
+import { renderReminder } from "@/lib/reminderText";
+import { sayTheFields, unknownIn } from "@/lib/messageFields";
+import { InsertFields } from "@/components/InsertFields";
 import type { FormState } from "../actions";
 
 export type CampaignRow = {
@@ -54,8 +56,26 @@ export function CampaignEditor({
   );
   const [service, setService] = useState(campaign?.after_service ?? "");
 
-  const wrong = unknownPlaceholders(body);
+  const wrong = unknownIn(body, "campaign");
 
+  /* So a field can be put in where the cursor is rather than at the end. */
+  const box = useRef<HTMLTextAreaElement>(null);
+
+  /*
+   * ── The cast that hid a real fault, and what it was hiding ─────────────────
+   *
+   * This call used to end `} as never)`, because `what` was not a field
+   * renderReminder accepted. The cast made the compiler agree to it, and the
+   * consequence was the worst kind: the *preview* filled {{what}} in, so an
+   * owner watching this screen saw "it has been a while since your colour" and
+   * had every reason to believe it. The renderer strips what it cannot fill, so
+   * what actually went to the customer was "it has been a while since your  —
+   * fancy booking another?", and the validator on this very page flagged
+   * {{what}} as unknown while the label above recommended it.
+   *
+   * {{what}} is a real field now, filled from the booking's own title, so the
+   * cast is gone and the preview and the send are the same code again.
+   */
   const shown = renderReminder(body, {
     name: "Marie",
     business,
@@ -63,7 +83,7 @@ export function CampaignEditor({
     when: "",
     practitioner: "",
     link: "",
-  } as never);
+  });
 
   return (
     <form action={action} className="card space-y-4 p-5">
@@ -125,24 +145,37 @@ export function CampaignEditor({
         </Field>
       </div>
 
-      <Field
-        label="What it says"
-        explain="{{name}} is their first name, {{business}} is your name, {{what}} is the job."
-      >
+      {/*
+        * The fields, as buttons, from the one list.
+        *
+        * The sentence that used to be here was hand-written and it was the
+        * reason {{what}} went unfilled for as long as it did: it read
+        * "{{what}} is the job", which is an instruction, and nothing anywhere
+        * checked that the instruction was true.
+        *
+        * Deliberately no {{when}} and no {{link}}. A campaign follows a job
+        * that has already happened, so there is no appointment to link to and
+        * no time to give, and putting a date in a sentence about the past is
+        * how somebody turns up expecting an appointment they have not got.
+        */}
+      <Field label="What it says">
         <textarea
+          ref={box}
           name="body"
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={3}
           className="input"
-          placeholder="Hi {{name}}, it has been a while since your {{what}} — fancy booking another?"
+          placeholder="Hi {{name}}, it has been a while since your {{what}}. Fancy booking another?"
         />
+        <InsertFields kind="campaign" target={box} value={body} onChange={setBody} />
       </Field>
 
       {wrong.length > 0 && (
         <p className="rounded-lg bg-warn/10 px-3 py-2 text-sm text-warn">
           <strong>{wrong.length === 1 ? "This is not one of them:" : "These are not:"}</strong>{" "}
-          {wrong.map((w) => `{{${w}}}`).join(", ")} — it will be taken out and leave a gap.
+          {wrong.map((w) => `{{${w}}}`).join(", ")}, it will be taken out and leave a gap.{" "}
+          {sayTheFields("campaign")} are the whole list here, and the buttons put them in.
         </p>
       )}
 
