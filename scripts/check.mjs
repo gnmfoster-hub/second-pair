@@ -152,6 +152,19 @@ const checks = [
     /** Four appointments on a demo, forty days out, removed either way. */
     writes: true,
   },
+  /*
+   * Writing the message a customer actually gets.
+   *
+   * The wordings have unit tests — every field they use is one the renderer
+   * fills, none costs two texts, none invents a price. What no test can reach is
+   * whether pressing the button does anything, which was the entire complaint:
+   * "there is no way of adding customer name and other required fields."
+   */
+  {
+    name: "starting a wording, and putting a field in it",
+    run: ["node", "scripts/check-wordings.cjs"],
+    /** Fills boxes and never presses Save, so it writes nothing at all. */
+  },
   {
     name: "every screen of every business",
     run: ["node", "scripts/check-pages.cjs"],
