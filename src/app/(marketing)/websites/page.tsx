@@ -71,6 +71,26 @@ export default function Page() {
         }
       />
 
+      {/*
+        * Two, because one reads as the only one there has ever been.
+        *
+        * Deliberately unlike each other — a tattoo studio and a dog walker.
+        * The question a visitor is actually asking is "would you know what to
+        * do with mine", and two different trades answer it better than any
+        * sentence about being adaptable.
+        */}
+      <Shot
+        src="/shots/amberspaws.webp"
+        alt="amberspawsandpastures.com, a dog walking and horse care site built by Second Pair."
+        address="amberspawsandpastures.com"
+        caption={
+          <>
+            Dog walking, pet sitting and horse care near Newton Abbot. Built, hosted, and
+            answering by text and email — the bubble in the corner is the real one.
+          </>
+        }
+      />
+
       <Ask line="Tell us what yours needs to do." cta="Book a 15 minute chat" />
 
       <Section title="Recently" tinted>

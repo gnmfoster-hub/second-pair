@@ -40,12 +40,14 @@ export default function Page() {
           assistant answers on it. Enquiries at nine on a Tuesday night get a price and a
           slot rather than a wait until morning.
         </Item>
+        <Item head="Amber&rsquo;s Paws &amp; Pastures">
+          Dog walking, pet sitting and horse care around Newton Abbot. We built
+          amberspawsandpastures.com, and the assistant answers on it by text and by email
+          — including the enquiries that arrive after she has finished for the day.
+        </Item>
         <Item head="[CLIENT]">
           A cleaning business, with the assistant on its enquiries. Named here once they
           have said they are happy to be.
-        </Item>
-        <Item head="[NEXT CLIENT]">
-          In build. This is left empty rather than filled, which is the point of the page.
         </Item>
       </Section>
 
@@ -55,6 +57,27 @@ export default function Page() {
         address="livingcanvastattoo.ink"
         tinted
         caption="Living Canvas Tattoo. The site, the hosting and the assistant, all ours."
+      />
+
+      {/*
+        * Amber's, the week it went live.
+        *
+        * The chat bubble is in the corner of the picture on purpose. It is the
+        * product, on a real customer's site, saying "closed, but I can still
+        * book you" at the hour the photograph was taken — which is the whole
+        * argument this page is making, made by a screenshot rather than by a
+        * sentence.
+        *
+        * Photographed with the browser asking for reduced motion, so the
+        * headline is the finished sentence rather than halfway through typing
+        * itself. It took four goes to notice the animation was purely visual
+        * and that no amount of waiting on the DOM would ever catch it whole.
+        */}
+      <Shot
+        src="/shots/amberspaws.webp"
+        alt="amberspawsandpastures.com, built by Second Pair with the assistant answering on it."
+        address="amberspawsandpastures.com"
+        caption="Amber&rsquo;s Paws &amp; Pastures. Built, hosted and answering — the bubble in the corner is the real one."
       />
 
       <Ask line="Want one of these for your trade?" />
