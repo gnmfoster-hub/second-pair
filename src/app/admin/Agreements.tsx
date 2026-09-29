@@ -46,8 +46,22 @@ export function Agreements({
   rows: AgreementRow[];
   ownerEmail: string | null;
 }) {
-  const [open, setOpen] = useState(false);
   const [sent, sendAction] = useActionState<AgreementResult, FormData>(sendAgreement, {});
+  const [open, setOpen] = useState(false);
+
+  /*
+   * The form closes itself once one has actually been sent.
+   *
+   * It used to stay open with every figure still in it, which reads as "that
+   * did not work" and invites a second press - and a second press sends a
+   * second agreement to the same person with the same terms and a different
+   * link. They then have two, and only one of them is the one they sign.
+   *
+   * Derived rather than set in an effect: `sent.ok` is already the answer, and
+   * an effect calling setState on it would be the same cascading render this
+   * codebase has ten of.
+   */
+  const showing = open && !sent.ok;
   const [voided, voidAction] = useActionState<AgreementResult, FormData>(voidAgreement, {});
   const [noted, noticeAction] = useActionState<AgreementResult, FormData>(giveNotice, {});
 
@@ -62,11 +76,11 @@ export function Agreements({
           onClick={() => setOpen((o) => !o)}
           className="btn-ghost px-3 py-1 text-sm"
         >
-          {open ? "Never mind" : live.length ? "Send another" : "Send one"}
+          {showing ? "Never mind" : live.length || sent.ok ? "Send another" : "Send one"}
         </button>
       </div>
 
-      {rows.length === 0 && !open && (
+      {rows.length === 0 && !showing && !sent.ok && (
         <p className="hint mt-1">
           Nothing sent to {business} yet. Everything about what they pay, and the notice to
           end it, is per agreement rather than a plan.
@@ -159,7 +173,7 @@ export function Agreements({
       )}
 
       {/* ─────────────────────────────────────────────────────── sending a new one */}
-      {open && (
+      {showing && (
         <form action={sendAction} className="mt-4 space-y-3 border-t border-border pt-4">
           <input type="hidden" name="studio_id" value={studioId} />
 

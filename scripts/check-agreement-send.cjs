@@ -123,8 +123,18 @@ const bad = (w, d) => {
       throw new Error("no card");
     }
     await card.scrollIntoViewIfNeeded().catch(() => {});
-    await card.getByText(studio.name, { exact: false }).first().click().catch(() => {});
-    await page.waitForTimeout(900);
+    /*
+     * "Manage", which is the button that renders the panel at all.
+     *
+     * Clicking the business name does nothing - it is a heading. The previous
+     * run said "there is no agreement panel on this business", which was true
+     * and was about a card nobody had opened.
+     */
+    const manage = card.getByRole("button", { name: /^Manage$/ }).first();
+    if (await manage.count()) {
+      await manage.click();
+      await page.waitForTimeout(900);
+    }
 
     // ------------------------------------------------------- 1. is it there
     const sendOne = card.getByRole("button", { name: /^(Send one|Send another)$/ }).first();
@@ -137,7 +147,8 @@ const bad = (w, d) => {
     await sendOne.click();
     await page.waitForTimeout(600);
 
-    const form = card.locator("form").filter({ has: card.locator('input[name="sent_to"]') }).first();
+    /* CSS :has rather than filter({has}), which re-scopes its inner locator. */
+    const form = card.locator('form:has(input[name="sent_to"])').first();
 
     /*
      * The gate. Whatever the navigation did, this form is going to act on the
@@ -226,7 +237,7 @@ const bad = (w, d) => {
     const again = card.getByRole("button", { name: /^(Send one|Send another)$/ }).first();
     await again.click();
     await page.waitForTimeout(600);
-    const form2 = card.locator("form").filter({ has: card.locator('input[name="sent_to"]') }).first();
+    const form2 = card.locator('form:has(input[name="sent_to"])').first();
     const target2 = await form2.locator('input[name="studio_id"]').inputValue();
     if (target2 !== studio.id) throw new Error("the second form belongs to another business");
     await form2.locator('input[name="sent_to"]').fill(siteTo);
