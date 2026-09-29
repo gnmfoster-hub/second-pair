@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { CopyLink } from "@/components/CopyLink";
 import { formatPence } from "@/lib/money";
 import {
@@ -46,22 +46,23 @@ export function Agreements({
   rows: AgreementRow[];
   ownerEmail: string | null;
 }) {
-  const [sent, sendAction] = useActionState<AgreementResult, FormData>(sendAgreement, {});
-  const [open, setOpen] = useState(false);
-
   /*
-   * The form closes itself once one has actually been sent.
+   * Which round of sending this is.
    *
-   * It used to stay open with every figure still in it, which reads as "that
-   * did not work" and invites a second press - and a second press sends a
-   * second agreement to the same person with the same terms and a different
-   * link. They then have two, and only one of them is the one they sign.
+   * The form lives in its own component below, keyed on this number, so asking
+   * to send another gives a genuinely new one - empty boxes and no memory of the
+   * last result.
    *
-   * Derived rather than set in an effect: `sent.ok` is already the answer, and
-   * an effect calling setState on it would be the same cascading render this
-   * codebase has ten of.
+   * The version before this derived visibility from "has one been sent", which
+   * closed the form after a send as intended and then made it impossible to open
+   * again: the send result never goes away, so the condition hiding the form was
+   * true for ever. Found by a check that tried to send a second and could not.
+   * Remounting is the React answer to "start again" and a boolean was never
+   * going to be.
    */
-  const showing = open && !sent.ok;
+  const [round, setRound] = useState(0);
+  const [open, setOpen] = useState(false);
+  const [lastSent, setLastSent] = useState<AgreementResult | null>(null);
   const [voided, voidAction] = useActionState<AgreementResult, FormData>(voidAgreement, {});
   const [noted, noticeAction] = useActionState<AgreementResult, FormData>(giveNotice, {});
 
@@ -73,14 +74,18 @@ export function Agreements({
         <h3 className="section-title">Agreement</h3>
         <button
           type="button"
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => {
+            /* A new round each time it is opened, so nothing is carried over. */
+            if (!open) setRound((r) => r + 1);
+            setOpen((o) => !o);
+          }}
           className="btn-ghost px-3 py-1 text-sm"
         >
-          {showing ? "Never mind" : live.length || sent.ok ? "Send another" : "Send one"}
+          {open ? "Never mind" : live.length || lastSent ? "Send another" : "Send one"}
         </button>
       </div>
 
-      {rows.length === 0 && !showing && !sent.ok && (
+      {rows.length === 0 && !open && !lastSent && (
         <p className="hint mt-1">
           Nothing sent to {business} yet. Everything about what they pay, and the notice to
           end it, is per agreement rather than a plan.
@@ -173,7 +178,77 @@ export function Agreements({
       )}
 
       {/* ─────────────────────────────────────────────────────── sending a new one */}
-      {showing && (
+      {open && (
+        <SendForm
+          key={round}
+          studioId={studioId}
+          ownerEmail={ownerEmail}
+          onSent={(result) => {
+            setLastSent(result);
+            /* Closed once it has gone, so a second press cannot send a second. */
+            setOpen(false);
+          }}
+        />
+      )}
+
+      {[lastSent, voided, noted].map((state, i) =>
+        state?.error ? (
+          <p key={i} className="mt-2 text-sm text-warn">
+            {state.error}
+          </p>
+        ) : state?.note ? (
+          <p key={i} className="hint mt-2">
+            {state.note}
+          </p>
+        ) : null,
+      )}
+
+      {lastSent?.link && (
+        <div className="mt-2">
+          <CopyLink url={lastSent.link} />
+        </div>
+      )}
+    </section>
+  );
+}
+
+const said = (period: string) =>
+  period === "yearly" ? "a year" : period === "quarterly" ? "a quarter" : "a month";
+
+/**
+ * The form that builds and sends one.
+ *
+ * Its own component so the parent can hand it a new key and get a genuinely
+ * fresh one: empty boxes, and no memory of the last send sitting in a hook.
+ * The alternative was deriving "is the form showing" from "has one been sent",
+ * which closed it after a send and then never let it open again, because a send
+ * result does not go away.
+ */
+function SendForm({
+  studioId,
+  ownerEmail,
+  onSent,
+}: {
+  studioId: string;
+  ownerEmail: string | null;
+  onSent: (result: AgreementResult) => void;
+}) {
+  const [sent, sendAction] = useActionState<AgreementResult, FormData>(sendAgreement, {});
+
+  /*
+   * Told upwards once, when it has actually gone.
+   *
+   * An effect rather than something derived, because the parent owns what
+   * happens next and this is the one moment worth telling it about. Guarded on
+   * sent.ok so it fires on success and not on an error.
+   */
+  useEffect(() => {
+    if (sent.ok) onSent(sent);
+    // Only when the outcome changes; onSent is a fresh closure every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sent]);
+
+  return (
         <form action={sendAction} className="mt-4 space-y-3 border-t border-border pt-4">
           <input type="hidden" name="studio_id" value={studioId} />
 
@@ -264,28 +339,5 @@ export function Agreements({
             optional in law.
           </p>
         </form>
-      )}
-
-      {[sent, voided, noted].map((state, i) =>
-        state.error ? (
-          <p key={i} className="mt-2 text-sm text-warn">
-            {state.error}
-          </p>
-        ) : state.note ? (
-          <p key={i} className="hint mt-2">
-            {state.note}
-          </p>
-        ) : null,
-      )}
-
-      {sent.link && (
-        <div className="mt-2">
-          <CopyLink url={sent.link} />
-        </div>
-      )}
-    </section>
   );
 }
-
-const said = (period: string) =>
-  period === "yearly" ? "a year" : period === "quarterly" ? "a quarter" : "a month";
