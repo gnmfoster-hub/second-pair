@@ -184,6 +184,21 @@ const checks = [
     /** Its own agreement on a demo, against a throwaway token, removed after. */
     writes: true,
   },
+  /*
+   * Whether a customer is ever actually told their booking went through.
+   *
+   * The oldest thing on the worklist — "every part is checked and the whole is
+   * not" — and it reads real rows rather than making a booking happen. "Can I
+   * make one on a demo" is a rehearsal; "has one ever reached a customer" is the
+   * question, it is answerable from what already exists, and it costs no API
+   * turns and leaves nothing in anybody's diary.
+   */
+  {
+    name: "a confirmation actually reaches somebody",
+    run: ["node", "scripts/check-confirmation.cjs"],
+    /** Reads only. Nothing is written anywhere. */
+    quick: true,
+  },
   {
     name: "every screen of every business",
     run: ["node", "scripts/check-pages.cjs"],

@@ -217,6 +217,38 @@ way.
 
 Worth doing before the next demo rebuild rather than after.
 
+### 13. Your three real clients tell nobody their booking went through
+
+**Two minutes each, and it is now two minutes rather than a blank page.** Found
+on 29 September by the new `scripts/check-confirmation.cjs`, which reads what has
+actually been sent rather than what a screen claims.
+
+| Business | Confirmation set up |
+| --- | --- |
+| Living Canvas Tattoo | **No** |
+| Neat & Tidy Solutions | **No** |
+| Amber's Paws & Pastures | **No** |
+| the `help` studio | Yes, and one has gone out |
+
+So somebody books with any of your three real clients and hears nothing back.
+Whether it worked is something they find out by turning up.
+
+**The good news, and it is the answer to the oldest item on this list.** The whole
+path works. One confirmation has genuinely gone out, it went at once rather than
+waiting for the sweep, and it read properly: *"Thanks Giles, you're booked in…"*
+with the day, the time and the person all filled in. Nothing is sitting pending,
+nothing failed for a reason of ours, and no booking has ever been confirmed
+twice. **"Every part is checked and the whole is not" is now checked.**
+
+It is Settings → Messages you send → add a confirmation, and since last night
+there are three starter wordings to pick from instead of an empty box. **Not done
+for you** because it is a live client's own words going to their own customers,
+and Living Canvas's settings are not mine to touch.
+
+One thing to know when you write them: the wording that has gone out contains a
+long dash. On an email that costs nothing. As a text it would be charged double,
+which is the fault described below.
+
 ### The four from setting up Amber's, 28–29 September
 
 Giles reported four things from one evening. Three were "already built and
