@@ -262,11 +262,19 @@ export function DayList({
   const now = Date.parse(nowIso);
 
   /*
-   * Reset each render, because the marker is assigned while rendering the
-   * rows and there is exactly one of it per pass.
+   * Which row gets the "next" marker, as a plain variable.
+   *
+   * It used to be a ref, reset to false at the top of every render — and the
+   * comment saying so was the argument against a ref. A ref is for a value that
+   * outlives a render; this one is deliberately discarded by the next one, and
+   * writing to `.current` while rendering is what React asks you not to do,
+   * because a pass that is started and abandoned leaves the mark set for the
+   * pass that replaces it.
+   *
+   * A `let` lives exactly as long as the pass that uses it, which is the whole
+   * requirement. Same behaviour, two fewer lint errors.
    */
-  const markedNext = useRef(false);
-  markedNext.current = false;
+  let markedNext = false;
 
   /*
    * Land on now, when today is one of the days being shown.
@@ -424,7 +432,7 @@ export function DayList({
            * over a layout that changes. The browser already knows where this
            * element is.
            */
-          const isNext = !past && !markedNext.current && (markedNext.current = true);
+          const isNext = !past && !markedNext && (markedNext = true);
 
           return (
             <li key={e.id} data-row {...(isNext ? { "data-next": "" } : {})}>

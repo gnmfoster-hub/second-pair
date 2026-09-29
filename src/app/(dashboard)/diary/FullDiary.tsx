@@ -24,6 +24,26 @@ const REMEMBERED = "diary-focus";
 export function FullDiary() {
   const [full, setFull] = useState(false);
 
+  /*
+   * Declared before the effects, because one of them calls it.
+   *
+   * It used to sit below them, and the Escape handler forty lines above
+   * referred to it. That works at runtime — by the time a key is pressed the
+   * const is long since assigned — but it is a real complaint and not a
+   * stylistic one: a function used before it is defined cannot be reasoned
+   * about by anything reading top to bottom, the linter included, and the next
+   * person to add a dependency array here would have had no way to know.
+   */
+  const set = (want: boolean) => {
+    setFull(want);
+    document.body.classList.toggle(CLASS, want);
+    try {
+      window.localStorage.setItem(REMEMBERED, want ? "1" : "0");
+    } catch {
+      // Then it lasts for this sitting, which is most of the value anyway.
+    }
+  };
+
   // On mount, because localStorage does not exist on the server and a guess
   // would flash the wrong layout before correcting itself.
   useEffect(() => {
@@ -65,16 +85,6 @@ export function FullDiary() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   });
-
-  const set = (want: boolean) => {
-    setFull(want);
-    document.body.classList.toggle(CLASS, want);
-    try {
-      window.localStorage.setItem(REMEMBERED, want ? "1" : "0");
-    } catch {
-      // Then it lasts for this sitting, which is most of the value anyway.
-    }
-  };
 
   return (
     <button
