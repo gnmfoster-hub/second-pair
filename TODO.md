@@ -49,7 +49,11 @@ solicitor**.
 owner the link and says where it goes on a page and on an Instagram profile. The
 other half of that ask is a partnership rather than a feature — **D**.
 
-Still mine: seven lint errors older than last night, and the eighty-odd long
+**New, 29 Sep: what the messages look like** — **E** below. The wording had a
+long run this week; the presentation has never been designed, only built. Worth
+doing after your three clients have confirmations switched on, not before.
+
+Still mine: seven lint errors older than last night, and the ninety-odd long
 dashes still in screen copy, which are deliberately not being fixed in bulk.
 
 Three things are waiting on you and nothing else: **ring the Receptionist**,
@@ -1157,6 +1161,49 @@ because one half is an afternoon and the other half is not ours to grant.
    partnership, and it is the one already half-built. The Book Now button is
    worth doing because it costs nothing; the partnership is worth *asking
    about* before it is worth planning.
+
+**E. What the messages actually look like.** Giles, 29 Sep: "need to work on
+format of reminders etc, what they look like." Not started.
+
+   Deliberately recorded as *the look*, separate from the wording, because the
+   wording had a long run of work this week and this is the other half. The
+   words are now good and the presentation has never been designed — only built.
+
+   **What exists today.** Everything goes through one function, `buildEmail`,
+   and the same function renders the preview an owner sees, so what is shown is
+   what leaves. It is tables and inline styles, because email clients are not
+   browsers. It carries the business's picture at 56px, their name, the body,
+   an optional button, and their cancellation policy. The text version is the
+   same wording cut to one message where it would otherwise bill as two.
+
+   **What is wrong with it, from a night of looking at real ones:**
+
+   - **It is one shape for five different messages.** A confirmation, a
+     reminder, a review request, a campaign and a receipt all arrive looking
+     identical. A confirmation wants the day and time big enough to read from
+     the lock screen; a receipt wants a figure and a line of items; a reminder
+     wants one sentence and nothing else.
+   - **Nobody has uploaded a picture**, so every email currently goes out with
+     the top of it empty. That is on the list separately and it is the single
+     biggest visual difference available for no work.
+   - **The calendar attachment is not offered as a button.** It goes as a file,
+     which on a phone is a grey box most people do not press.
+   - **The text half has no shape at all** and cannot have much — but line
+     breaks, and where the link sits, are still decisions nobody has made.
+   - **Dark mode is untested.** A white table with a business's logo on it, in
+     a mail client that inverts, is the commonest way an email ends up
+     unreadable, and nothing here has ever been looked at in one.
+
+   **How I would do it, for you to push back on.** One pass with a real inbox
+   open: send one of each of the five to a real address, in Gmail, Outlook and
+   Apple Mail, light and dark, on a phone and a laptop. Then design from what
+   is actually wrong rather than from what looks wrong in a preview pane. The
+   preview in the app is honest about the wording and says nothing about how a
+   mail client will treat it.
+
+   Worth doing after the confirmations are switched on for your three clients,
+   not before — there is no point polishing the look of a message nobody is
+   sending.
 
 ## In flight
 
