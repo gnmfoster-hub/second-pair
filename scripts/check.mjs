@@ -168,20 +168,36 @@ const checks = [
   /*
    * The agreement a business signs, end to end.
    *
-   * In the suite while the table it needs does not exist yet, which is
-   * deliberate rather than untidy: it says so and exits clean, so it turns
-   * nothing red for a migration that is on somebody else's list — and the day
-   * that SQL is run, this is what proves the feature instead of somebody
-   * clicking through it hopefully.
-   *
-   * Worth knowing when reading its output for the first time: unlike every other
-   * check here, this one has never been seen to pass. It could not be, because
-   * the table is not there. That is the honest state of it.
+   * Written before the table existed and kept in the suite while it did not,
+   * saying so and exiting clean rather than turning the run red for a migration
+   * on somebody else's list. Giles ran that SQL on 29 September and it passed
+   * first time, all nine assertions. It still handles the table being absent, for
+   * anybody setting this up from scratch.
    */
   {
     name: "an agreement can be signed once, and not twice",
     run: ["node", "scripts/check-agreement.cjs"],
     /** Its own agreement on a demo, against a throwaway token, removed after. */
+    writes: true,
+  },
+  /*
+   * And the half Giles actually touches.
+   *
+   * The one above proves reading and signing, and it does that by inserting the
+   * row itself - so it says nothing about the panel, the figures typed into it,
+   * the wording it builds, or the email. Two checks because they are two halves,
+   * and the first one passing was no evidence at all about the second.
+   *
+   * It is also the one that found the near miss worth remembering: an earlier
+   * version looked the business up by name, took the first match, and sent an
+   * agreement naming a live client while claiming to run on a demo. Nothing was
+   * left behind. It now reads the form's own studio_id back and refuses to press
+   * anything if it is not the business it was told to use.
+   */
+  {
+    name: "an agreement can be built and sent from the back office",
+    run: ["node", "scripts/check-agreement-send.cjs"],
+    /** Two agreements on a demo, to addresses that cannot exist, removed after. */
     writes: true,
   },
   /*
