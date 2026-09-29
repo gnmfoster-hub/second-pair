@@ -213,38 +213,81 @@ export function storedRepeat(rule: RepeatRule): StoredRepeat {
  */
 export const MOST_CHOSEN_DAYS = 30;
 
+/** One of the days somebody named, and what time it is at. */
+export type ChosenDay = {
+  day: Date;
+  /**
+   * "HH:MM", or null to use the booking's own time.
+   *
+   * Giles, 29 Sep: "if there are multiple bookings give the ability to adjust
+   * time on each but default to original." Null is that default, and it is a
+   * null rather than a copy of the first time on purpose: a copy would freeze
+   * whatever the start time happened to be when the row was added, so changing
+   * the appointment's time afterwards would move the first visit and leave the
+   * others behind. Null means "whatever this booking says", which is what
+   * somebody who never touched the box meant.
+   */
+  time: string | null;
+};
+
 /**
- * The extra days somebody named, as plain local dates.
+ * The extra days somebody named, in order, with any time they gave each one.
  *
- * Submitted as one comma-separated field of YYYY-MM-DD, because the form grows
- * and shrinks its own rows and a fixed set of named inputs cannot follow that.
+ * Submitted as one comma-separated field, because the form grows and shrinks its
+ * own rows and a fixed set of named inputs cannot follow that. Each entry is
+ * either "YYYY-MM-DD" or "YYYY-MM-DD@HH:MM" - the "@" rather than a "T" so that
+ * nothing downstream mistakes one of these for an ISO instant, which it is not:
+ * it is a wall-clock time in the business's own zone and has no timezone in it
+ * at all.
  *
- * Sorted, de-duplicated, and anything unparseable dropped rather than thrown:
- * the value comes from a form, and an empty row somebody added and did not fill
- * in is the ordinary case, not an error worth stopping a booking for.
+ * Sorted, de-duplicated by day, and anything unparseable dropped rather than
+ * thrown: the value comes from a form whose rows are added by hand, and a row
+ * somebody added and did not fill in is the ordinary case, not an error worth
+ * refusing a booking over.
  *
  * `first` is excluded, because it is already the booking's own date and adding
- * it twice would make the second one clash with the first and be silently
- * skipped — which would look to the owner like a day they picked going missing.
+ * it twice would make the second clash with the first and be silently skipped -
+ * which would look to the owner like a day they picked going missing.
  */
-export function extraDates(raw: string | null | undefined, first?: Date | null): Date[] {
+export function extraDates(
+  raw: string | null | undefined,
+  first?: Date | null,
+): ChosenDay[] {
   const firstKey = first ? isoDate(first) : null;
-  const seen = new Set<string>();
+  const seen = new Map<string, string | null>();
 
   for (const piece of (raw ?? "").split(",")) {
-    const key = piece.trim();
+    const entry = piece.trim();
+    if (!entry) continue;
+
+    const [key, clock] = entry.split("@");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) continue;
     if (key === firstKey) continue;
+
     const at = parseIsoDate(key);
     /* parseIsoDate falls back to today on nonsense, so check it round-trips. */
     if (isoDate(at) !== key) continue;
-    seen.add(key);
+
+    /*
+     * A time only if it is a real one. "25:00" and "9am" are dropped back to
+     * null rather than refused, because the fallback is the booking's own time
+     * and a visit at the usual hour is a better answer than no visit.
+     */
+    const time = /^([01]\d|2[0-3]):[0-5]\d$/.test(clock ?? "") ? clock : null;
+
+    /*
+     * The last one named wins, which is what somebody editing a row means. A
+     * plain repeat of the same day with no time must not wipe a time already
+     * given for it, so a null never overwrites a real one.
+     */
+    const already = seen.get(key);
+    seen.set(key, time ?? already ?? null);
   }
 
-  return [...seen]
-    .sort()
+  return [...seen.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
     .slice(0, MOST_CHOSEN_DAYS)
-    .map((key) => parseIsoDate(key));
+    .map(([key, time]) => ({ day: parseIsoDate(key), time }));
 }
 
 /** How far ahead repeats are generated when no end date is given. */

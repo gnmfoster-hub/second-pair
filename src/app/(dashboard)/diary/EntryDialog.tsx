@@ -56,8 +56,13 @@ function niceDay(iso: string): string {
  * date if the list is empty — because a run of visits is usually consecutive,
  * and offering a blank box means a date picker opened from scratch every time.
  */
-function nextDayAfter(picked: string[], firstDay: string): string {
-  const last = [...picked].filter(Boolean).sort().pop() ?? firstDay;
+function nextDayAfter(picked: { day: string }[], firstDay: string): string {
+  const last =
+    [...picked]
+      .map((p) => p.day)
+      .filter(Boolean)
+      .sort()
+      .pop() ?? firstDay;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(last)) return "";
   const at = new Date(`${last}T12:00:00Z`);
   at.setUTCDate(at.getUTCDate() + 1);
@@ -73,8 +78,8 @@ function nextDayAfter(picked: string[], firstDay: string): string {
  * not showing it: it is the figure somebody checks before filling a week of
  * their diary in one press.
  */
-function countOf(firstDay: string, picked: string[]): number {
-  const days = new Set(picked.filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)));
+function countOf(firstDay: string, picked: { day: string }[]): number {
+  const days = new Set(picked.map((p) => p.day).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)));
   days.delete(firstDay);
   return days.size + (/^\d{4}-\d{2}-\d{2}$/.test(firstDay) ? 1 : 0);
 }
@@ -317,7 +322,7 @@ export function EntryDialog({
    * inputs cannot follow that. An empty string is a row somebody has added and
    * not filled in yet, which is the ordinary state of a form mid-typing.
    */
-  const [pickedDays, setPickedDays] = useState<string[]>([]);
+  const [pickedDays, setPickedDays] = useState<{ day: string; time: string }[]>([]);
   const chosen = categoryFor(category);
   // Appointments and consultations are for a person; a delivery is not.
   const isClientWork = category === "appointment" || category === "consultation";
@@ -917,22 +922,60 @@ export function EntryDialog({
                   : "Pick the date above first, then add the rest here."}
               </p>
 
+              {/*
+                * A time of its own on each, defaulting to the booking's.
+                *
+                * Giles, 29 Sep: "if there are multiple bookings give the ability
+                * to adjust time on each but default to original." Somebody away
+                * for a week wants the cat seen at nine most days and at two on
+                * the Wednesday, and having to book that day separately is what
+                * this whole control exists to avoid.
+                *
+                * The box shows the booking's own time as a placeholder rather
+                * than as a value, so an untouched row stays genuinely empty. A
+                * value would freeze whatever the start time happened to be when
+                * the row was added, and then changing the appointment's time
+                * would move the first visit and leave the rest behind at the old
+                * one, which is the opposite of "default to original".
+                */}
               <div className="mt-2.5 space-y-2">
-                {pickedDays.map((day, i) => (
-                  <div key={i} className="flex items-center gap-2">
+                {pickedDays.map((picked, i) => (
+                  <div key={i} className="flex flex-wrap items-center gap-2">
                     <input
                       type="date"
-                      value={day}
+                      value={picked.day}
                       min={fromDate || undefined}
                       onChange={(e) =>
-                        setPickedDays(pickedDays.map((d, j) => (j === i ? e.target.value : d)))
+                        setPickedDays(
+                          pickedDays.map((p, j) => (j === i ? { ...p, day: e.target.value } : p)),
+                        )
                       }
-                      className="input"
+                      className="input w-auto"
                     />
+                    <input
+                      type="time"
+                      value={picked.time}
+                      /*
+                       * Empty means "same as the booking", and the placeholder
+                       * says which time that is. A native time input shows its
+                       * own placeholder when empty in most browsers, so the word
+                       * beside it is what actually carries the meaning.
+                       */
+                      onChange={(e) =>
+                        setPickedDays(
+                          pickedDays.map((p, j) => (j === i ? { ...p, time: e.target.value } : p)),
+                        )
+                      }
+                      className="input w-auto"
+                      aria-label={`Time on this day, or leave blank for ${startFields.time}`}
+                    />
+                    <span className="hint">
+                      {picked.time ? "" : `same as above, ${startFields.time}`}
+                    </span>
                     <button
                       type="button"
                       onClick={() => setPickedDays(pickedDays.filter((_, j) => j !== i))}
-                      className="btn-ghost px-2.5 py-1 text-sm"
+                      className="btn-ghost ml-auto px-2.5 py-1 text-sm"
                       aria-label="Take this day off the list"
                     >
                       Remove
@@ -944,7 +987,13 @@ export function EntryDialog({
               <div className="mt-2.5 flex flex-wrap items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => setPickedDays([...pickedDays, nextDayAfter(pickedDays, fromDate)])}
+                  onClick={() =>
+                    setPickedDays([
+                      ...pickedDays,
+                      /* Empty time: the booking’s own, until somebody says otherwise. */
+                      { day: nextDayAfter(pickedDays, fromDate), time: "" },
+                    ])
+                  }
                   className="btn-ghost px-3 py-1.5 text-sm"
                   disabled={pickedDays.length >= MOST_CHOSEN_DAYS}
                 >
@@ -965,7 +1014,14 @@ export function EntryDialog({
               </div>
 
               {/* Submitted as one field; see extraDates in lib/calendar. */}
-              <input type="hidden" name="repeat_dates" value={pickedDays.join(",")} />
+              <input
+                type="hidden"
+                name="repeat_dates"
+                value={pickedDays
+                  .filter((p) => p.day)
+                  .map((p) => (p.time ? `${p.day}@${p.time}` : p.day))
+                  .join(",")}
+              />
 
               <p className="hint mt-2 max-w-prose">
                 Each one is its own appointment, so any of them can be moved or

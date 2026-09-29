@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Studio } from "@/lib/types";
 import { describeSlot } from "@/lib/booking";
 import { renderReminder, forOneText } from "@/lib/reminderText";
+import { describeSeries } from "@/lib/booking/series";
 import { deliver } from "@/lib/messaging/deliver";
 import { routesFor } from "@/lib/messaging/reach";
 import { connectedChannels, smsNumberFor, smsNumberForPerson } from "@/lib/messaging/connections";
@@ -100,6 +101,24 @@ export async function scheduleReminders(
    * the right answer for almost everybody.
    */
   artistId?: string | null,
+  /**
+   * Whether this booking should confirm itself.
+   *
+   * False for every visit after the first in a run booked in one press. Giles,
+   * 29 Sep: "if a booking is made with multiple repeated days summarise this in
+   * the confirmation, don't send one for each day."
+   *
+   * Six cat visits booked in one go wrote six confirmations, so a customer who
+   * booked once was told six times that they were booked in - which does not
+   * read as thoroughness, it reads as six appointments, and the sixth arrives
+   * while they are deciding whether to ring and complain.
+   *
+   * Only the confirmation is suppressed. The timed reminders still go for every
+   * visit, because "you are in tomorrow at nine" is wanted before each one, and
+   * that is the difference between the two kinds of message: a confirmation
+   * confirms the act of booking, which happened once.
+   */
+  opts?: { confirm?: boolean },
 ): Promise<number> {
   /*
    * Everything the business has, read whole.
@@ -148,7 +167,8 @@ export async function scheduleReminders(
     sent_at: null,
   });
 
-  const confirmations = plan.confirmations.map(row);
+  /* Suppressed for every visit after the first of a set. See `opts`. */
+  const confirmations = opts?.confirm === false ? [] : plan.confirmations.map(row);
   const timed = plan.timed.map(row);
 
   let written = 0;
@@ -536,6 +556,44 @@ export async function sendDueReminders(
    * Cached per person for the batch. A salon reminding forty people about six
    * stylists should ask six questions, not forty.
    */
+  /*
+   * The other days of a run, for the one confirmation that describes it.
+   *
+   * A set of visits booked in one press confirms once, and that one has to say
+   * "4 visits, Tuesday 3 November to Saturday 7 November" rather than naming its
+   * own first morning. The days are read here rather than inside the loop, in
+   * one query for the whole batch: the loop runs per due reminder, and a sibling
+   * lookup in there would be a query each on a sweep of two hundred.
+   *
+   * Only confirmations are asked about. Every other reminder is about one
+   * appointment and always was.
+   */
+  const confirmingBookings = rows
+    .filter((r) => r.template_id && confirms.has(r.template_id))
+    .map((r) => r.bookings?.id)
+    .filter(Boolean) as string[];
+
+  const daysInSet = new Map<string, string[]>();
+  if (confirmingBookings.length) {
+    /*
+     * Children point at the first booking, so this asks for everything whose
+     * parent is one of the bookings being confirmed. A booking with no children
+     * simply gets nothing back and is described exactly as it was before.
+     */
+    const { data: siblings } = await db
+      .from("bookings")
+      .select("repeat_parent_id, starts_at, cancelled_at")
+      .in("repeat_parent_id", confirmingBookings);
+
+    for (const s of siblings ?? []) {
+      if (s.cancelled_at) continue;
+      const parent = s.repeat_parent_id as string;
+      const list = daysInSet.get(parent);
+      if (list) list.push(s.starts_at as string);
+      else daysInSet.set(parent, [s.starts_at as string]);
+    }
+  }
+
   const numberFor = new Map<string, string | null>();
   const sendingAs = async (artistId: string | null | undefined): Promise<string | null> => {
     if (!artistId) return smsFrom;
@@ -593,10 +651,35 @@ export async function sendDueReminders(
       name: person?.name,
       practitioner: booking.artists?.name,
       business: studio.name,
-      when: describeSlot(
-        { starts_at: booking.starts_at, ends_at: booking.starts_at },
-        studio.timezone,
-      ),
+      /*
+       * The whole run where there is one, and this appointment where there is
+       * not.
+       *
+       * A booking with other days hanging off it is the head of a set booked in
+       * one press, and this is its only confirmation - so naming its own first
+       * morning would tell somebody they had booked one visit when they have
+       * booked six. See lib/booking/series for why it is a count and a span
+       * rather than a list: it has to fit in a text.
+       */
+      when: (() => {
+        const others = daysInSet.get(booking.id);
+        if (!others?.length) {
+          return describeSlot(
+            { starts_at: booking.starts_at, ends_at: booking.starts_at },
+            studio.timezone,
+          );
+        }
+        /*
+         * "visits", which is the helper's own default.
+         *
+         * The trade vocabulary has words for the practitioner, the service and
+         * the customer, and none for one appointment - so there is nothing
+         * better to pass and inventing one here would put a word in front of a
+         * customer that no business ever chose. It reads right for the trade
+         * that asked for this, and acceptably everywhere else.
+         */
+        return describeSeries([booking.starts_at, ...others], studio.timezone);
+      })(),
       /*
        * Only where the business asked for it with {{link}}.
        *

@@ -198,10 +198,28 @@ export async function saveDiaryEntry(
    * are extras beside it, and extraDates drops the first one if it appears in
    * both so it cannot clash with itself.
    */
-  const occurrences =
+  /*
+   * Every day this booking lands on, and what time each one is at.
+   *
+   * Giles, 29 Sep: "if there are multiple bookings give the ability to adjust
+   * time on each but default to original." So a named day may carry its own
+   * time, and a null means the booking's own - not a copy of it. The difference
+   * matters: a copy would freeze whatever the start time happened to be when
+   * the row was added, so changing the appointment's time afterwards would move
+   * the first visit and leave the rest behind.
+   */
+  const bookingTime = allDay ? "00:00" : str(fd, "start_time");
+  const occurrences: { day: Date; time: string }[] =
     repeats === "dates"
-      ? [firstDay, ...extraDates(str(fd, "repeat_dates"), firstDay)]
-      : repeatDates(firstDay, repeats, until);
+      ? [
+          { day: firstDay, time: bookingTime },
+          ...extraDates(str(fd, "repeat_dates"), firstDay).map((c) => ({
+            day: c.day,
+            /* Their own time, or the booking's. All-day ignores both. */
+            time: allDay ? "00:00" : (c.time ?? bookingTime),
+          })),
+        ]
+      : repeatDates(firstDay, repeats, until).map((day) => ({ day, time: bookingTime }));
 
   // Inserted one at a time, so a single clash skips that date rather than
   // failing the whole pattern — a weekly meeting should still land on the other
@@ -211,11 +229,12 @@ export async function saveDiaryEntry(
   let firstId: string | null = null;
 
   for (const occurrence of occurrences) {
+    const { day, time } = occurrence;
     const at = instantFrom(
-      `${occurrence.getFullYear()}-${String(occurrence.getMonth() + 1).padStart(2, "0")}-${String(
-        occurrence.getDate(),
+      `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(
+        day.getDate(),
       ).padStart(2, "0")}`,
-      allDay ? "00:00" : str(fd, "start_time"),
+      time,
       studio.timezone,
     );
     if (!at) continue;
@@ -251,12 +270,64 @@ export async function saveDiaryEntry(
      * who booked by talking to somebody, were the ones who never got one.
      */
     if (contactId && !allDay && (category === "appointment" || category === "consultation")) {
-      await scheduleReminders(supabase, studio.id, result.data.id, at.toISOString(), artistId);
+      /*
+       * Every visit gets its reminders. The confirmation waits until the end.
+       *
+       * Two things are going on. A run booked in one press wrote six
+       * confirmations, so a customer who booked once was told six times they
+       * were booked in - which does not read as thoroughness, it reads as six
+       * appointments. And the confirmation is SENT as it is scheduled, so even
+       * suppressing five of the six would not work from in here: at the moment
+       * the first one goes, the other days have not been inserted yet and there
+       * is nothing for it to summarise. It would have gone out describing a
+       * single visit, which is the fault it was meant to fix.
+       *
+       * So a set confirms once, after the loop, when every day exists. A single
+       * booking still confirms from right here, exactly as it always did.
+       *
+       * The timed reminders are untouched either way: "you are in tomorrow at
+       * nine" is wanted before every visit. It is only being told six times
+       * that you have booked that is wrong.
+       */
+      await scheduleReminders(supabase, studio.id, result.data.id, at.toISOString(), artistId, {
+        confirm: occurrences.length === 1,
+      });
     }
   }
 
   if (added === 0) {
     return { error: clashMessage("23P01", "Could not add that.") };
+  }
+
+  /*
+   * One confirmation for the whole run, now that every day of it exists.
+   *
+   * Hung off the first booking that actually landed rather than the first one
+   * tried, because a clash skips a day - and if the skipped day were the one
+   * carrying the confirmation, somebody would be booked in for five visits and
+   * told about none of them.
+   *
+   * What it says is worked out at send time from the set itself: see
+   * lib/booking/series. Nothing here has to know the wording.
+   */
+  if (occurrences.length > 1 && firstId && contactId && !allDay) {
+    if (category === "appointment" || category === "consultation") {
+      const { data: head } = await supabase
+        .from("bookings")
+        .select("starts_at")
+        .eq("id", firstId)
+        .maybeSingle();
+      if (head?.starts_at) {
+        await scheduleReminders(
+          supabase,
+          studio.id,
+          firstId,
+          head.starts_at as string,
+          artistId,
+          { confirm: true },
+        );
+      }
+    }
   }
 
   revalidatePath("/diary");

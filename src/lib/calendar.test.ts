@@ -223,7 +223,7 @@ test("it reads the clock where the business is, not where the server is", () => 
  */
 test("named days are sorted, de-duplicated and parsed", () => {
   const days = extraDates("2026-10-05,2026-10-03,2026-10-05,2026-10-04");
-  assert.deepEqual(days.map(isoDate), ["2026-10-03", "2026-10-04", "2026-10-05"]);
+  assert.deepEqual(days.map((c) => isoDate(c.day)), ["2026-10-03", "2026-10-04", "2026-10-05"]);
 });
 
 /*
@@ -235,7 +235,7 @@ test("named days are sorted, de-duplicated and parsed", () => {
  */
 test("the booking's own day is never repeated as an extra", () => {
   const days = extraDates("2026-10-03,2026-10-04", parseIsoDate("2026-10-03"));
-  assert.deepEqual(days.map(isoDate), ["2026-10-04"]);
+  assert.deepEqual(days.map((c) => isoDate(c.day)), ["2026-10-04"]);
 });
 
 /*
@@ -244,11 +244,11 @@ test("the booking's own day is never repeated as an extra", () => {
  * reason to refuse the booking.
  */
 test("empty and malformed days are dropped, not thrown", () => {
-  assert.deepEqual(extraDates("").map(isoDate), []);
-  assert.deepEqual(extraDates(null).map(isoDate), []);
-  assert.deepEqual(extraDates(undefined).map(isoDate), []);
-  assert.deepEqual(extraDates(",, ,").map(isoDate), []);
-  assert.deepEqual(extraDates("not-a-date,2026-10-04").map(isoDate), ["2026-10-04"]);
+  assert.deepEqual(extraDates("").map((c) => isoDate(c.day)), []);
+  assert.deepEqual(extraDates(null).map((c) => isoDate(c.day)), []);
+  assert.deepEqual(extraDates(undefined).map((c) => isoDate(c.day)), []);
+  assert.deepEqual(extraDates(",, ,").map((c) => isoDate(c.day)), []);
+  assert.deepEqual(extraDates("not-a-date,2026-10-04").map((c) => isoDate(c.day)), ["2026-10-04"]);
 });
 
 /*
@@ -259,8 +259,8 @@ test("empty and malformed days are dropped, not thrown", () => {
  * arrive as a visit nobody booked. Caught by checking it round-trips.
  */
 test("a day that looks right but is not real is refused rather than becoming today", () => {
-  assert.deepEqual(extraDates("2026-02-31").map(isoDate), []);
-  assert.deepEqual(extraDates("2026-13-01").map(isoDate), []);
+  assert.deepEqual(extraDates("2026-02-31").map((c) => isoDate(c.day)), []);
+  assert.deepEqual(extraDates("2026-13-01").map((c) => isoDate(c.day)), []);
 });
 
 test("there is a ceiling on how many days can be named", () => {
@@ -274,5 +274,71 @@ test("there is a ceiling on how many days can be named", () => {
  */
 test("picking days generates no pattern of its own", () => {
   const first = new Date(2026, 9, 3);
+  /* repeatDates still returns plain days; only extraDates carries a time. */
   assert.deepEqual(repeatDates(first, "dates", null).map(isoDate), ["2026-10-03"]);
+});
+
+/*
+ * ── A time of its own, per day ──────────────────────────────────────────────
+ *
+ * Giles, 29 Sep: "if there are multiple bookings give the ability to adjust
+ * time on each but default to original."
+ *
+ * Written "YYYY-MM-DD@HH:MM". An "@" rather than a "T" on purpose: nothing
+ * downstream should be able to mistake one of these for an ISO instant, which
+ * it is not. It is a wall-clock time in the business's own zone and carries no
+ * timezone at all.
+ */
+test("a day can carry its own time", () => {
+  const days = extraDates("2026-10-03@09:00,2026-10-04@14:30");
+  assert.deepEqual(days.map((c) => [isoDate(c.day), c.time]), [
+    ["2026-10-03", "09:00"],
+    ["2026-10-04", "14:30"],
+  ]);
+});
+
+/*
+ * No time means null, and null means "whatever the booking says".
+ *
+ * Deliberately not a copy of the booking's time taken at the moment the row was
+ * added: a copy would freeze it, so changing the appointment's time afterwards
+ * would move the first visit and leave the others behind at the old one.
+ */
+test("a day with no time of its own says so, rather than guessing one", () => {
+  assert.deepEqual(extraDates("2026-10-03").map((c) => c.time), [null]);
+});
+
+/*
+ * A time that is not a time falls back rather than refusing the booking. The
+ * fallback is the usual hour, and a visit at the usual hour is a better answer
+ * than no visit.
+ */
+test("a time that is not a real time falls back to the booking's own", () => {
+  for (const bad of ["25:00", "9am", "0900", "9:5", "", "24:00", "12:60"]) {
+    assert.deepEqual(
+      extraDates(`2026-10-03@${bad}`).map((c) => c.time),
+      [null],
+      bad,
+    );
+  }
+  /* And the edges that are real. */
+  assert.deepEqual(extraDates("2026-10-03@00:00").map((c) => c.time), ["00:00"]);
+  assert.deepEqual(extraDates("2026-10-03@23:59").map((c) => c.time), ["23:59"]);
+});
+
+/*
+ * The same day twice, once with a time and once without.
+ *
+ * It happens while somebody is editing rows. A bare repeat must not wipe a time
+ * already given, because the visible row still shows that time and the booking
+ * would quietly go in at a different hour.
+ */
+test("repeating a day without a time does not wipe the time it had", () => {
+  assert.deepEqual(extraDates("2026-10-03@08:00,2026-10-03").map((c) => c.time), ["08:00"]);
+  assert.deepEqual(extraDates("2026-10-03,2026-10-03@08:00").map((c) => c.time), ["08:00"]);
+  /* And a second real time wins, which is what editing the box means. */
+  assert.deepEqual(
+    extraDates("2026-10-03@08:00,2026-10-03@09:30").map((c) => c.time),
+    ["09:30"],
+  );
 });
