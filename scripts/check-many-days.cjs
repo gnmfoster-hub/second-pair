@@ -27,9 +27,15 @@
  *      that they are one job. "dates" is never written to the repeats column
  *      (it is a Postgres enum and does not have it) so the parent link is all
  *      there is.
- *   3. The time is the same on each, in the business's own zone. Adding days in
- *      milliseconds is how a Tuesday five o'clock visit becomes four o'clock in
- *      November, which nobody would notice for a week.
+ *   3. The times are what was asked for: the one day given a time of its own is
+ *      at that time, and every day left alone is at the booking's. Read in the
+ *      business's own zone, because adding days in milliseconds is how a Tuesday
+ *      five o'clock visit becomes four o'clock in November.
+ *
+ * Then a second scenario, for the other half of the same feature: a run booked
+ * for one client sends ONE confirmation describing the whole thing, not one per
+ * day. Somebody who books once being told six times they are booked in does not
+ * read as thoroughness, it reads as six appointments.
  *
  * Runs on a demo, and takes its own rows out afterwards whether it passed or
  * failed. It must never be pointed at a real business: it writes appointments.
@@ -102,6 +108,11 @@ const dayFromNow = (n) => {
   const picked = [dayFromNow(41), dayFromNow(43), dayFromNow(46)];
   const wanted = [first, ...picked];
 
+  /* One day given a time of its own; the rest inherit the booking's. */
+  const ODD_DAY = picked[1];
+  const ODD_TIME = "14:30";
+  const USUAL_TIME = "09:00";
+
   console.log(`\nBooking "${tag}" on ${wanted.length} days at ${studio.name}`);
   console.log(`  ${wanted.join("  ")}\n`);
 
@@ -134,7 +145,7 @@ const dayFromNow = (n) => {
 
     const sheet = page.locator("form").filter({ has: page.locator('input[name="date"]') }).first();
     await sheet.locator('input[name="date"]').fill(first);
-    await sheet.locator('input[name="start_time"]').fill("09:00");
+    await sheet.locator('input[name="start_time"]').fill(USUAL_TIME);
 
     /*
      * The title field is named differently depending on what the add menu said,
@@ -146,9 +157,20 @@ const dayFromNow = (n) => {
     /* The control this whole check is about. */
     await sheet.locator('select[name="repeats"]').selectOption("dates");
 
+    /*
+     * Each day, and a different time on the middle one.
+     *
+     * Giles, 29 Sep: "give the ability to adjust time on each but default to
+     * original." Both halves of that are worth proving, so one row is given its
+     * own time and the others are left alone - and the rows left alone have to
+     * come out at the booking's time, not blank and not midnight.
+     */
     for (const [i, day] of picked.entries()) {
       await sheet.getByRole("button", { name: /Add another day/i }).click();
       await sheet.locator('input[type="date"]').nth(i + 1).fill(day);
+      if (day === ODD_DAY) {
+        await sheet.locator('input[type="time"]').nth(i + 1).fill(ODD_TIME);
+      }
     }
 
     /*
@@ -235,19 +257,44 @@ const dayFromNow = (n) => {
         );
       }
 
-      /* 3 — the same wall-clock time on each, in the business's own zone. */
-      const times = new Set(
-        live.map((r) =>
-          new Intl.DateTimeFormat("en-GB", {
-            timeZone: studio.timezone,
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          }).format(new Date(r.starts_at)),
-        ),
-      );
-      if (times.size === 1) ok(`each one is at ${[...times][0]} where the business is`);
-      else bad("the time drifts between days", [...times].join(", "));
+      /*
+       * 3 - the times, which are no longer all the same on purpose.
+       *
+       * One day was given 14:30 and the rest were left alone. So the check is
+       * that the one asked for is at 14:30 and every other is at the booking's
+       * own 09:00 - which is both halves of "adjust time on each, default to
+       * original" in one assertion. Read in the business's own zone, because
+       * adding days in milliseconds is how a Tuesday five o'clock becomes four
+       * o'clock in November.
+       */
+      const clock = (iso) =>
+        new Intl.DateTimeFormat("en-GB", {
+          timeZone: studio.timezone,
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }).format(new Date(iso));
+
+      const dayOf = (iso) =>
+        new Intl.DateTimeFormat("en-CA", { timeZone: studio.timezone, dateStyle: "short" })
+          .format(new Date(iso))
+          .replaceAll("/", "-");
+
+      const odd = live.find((r) => dayOf(r.starts_at) === ODD_DAY);
+      const rest = live.filter((r) => dayOf(r.starts_at) !== ODD_DAY);
+
+      if (odd && clock(odd.starts_at) === ODD_TIME) {
+        ok(`the day given its own time is at ${ODD_TIME}`);
+      } else {
+        bad(`the day given ${ODD_TIME} is at ${odd ? clock(odd.starts_at) : "no time at all"}`);
+      }
+
+      const others = new Set(rest.map((r) => clock(r.starts_at)));
+      if (others.size === 1 && others.has(USUAL_TIME)) {
+        ok(`the ${rest.length} left alone are all at ${USUAL_TIME}, the booking's own`);
+      } else {
+        bad("the days left alone did not inherit the booking's time", [...others].join(", "));
+      }
 
       /* And the value that would have been refused by the enum. */
       const stored = new Set(live.map((r) => r.repeats));
@@ -268,6 +315,182 @@ const dayFromNow = (n) => {
     await db.from("bookings").delete().eq("title", tag);
   } finally {
     await browser.close();
+  }
+
+  // ══════════════════════════════════ and one confirmation for the whole run
+  /*
+   * Giles, 29 Sep: "if a booking is made with multiple repeated days summarise
+   * this in the confirmation, don't send one for each day."
+   *
+   * The first half of that is the half with the consequence. A run booked in one
+   * press used to write one confirmation per day, so somebody who booked once
+   * was told six times they were booked in - which does not read as
+   * thoroughness, it reads as six appointments.
+   *
+   * This is its own scenario rather than part of the one above, because it needs
+   * three things the first does not: a client to send to, a category that
+   * schedules reminders at all, and a confirmation wording to render. All three
+   * are made here and taken back out afterwards.
+   */
+  await confirmsOnce();
+
+  async function confirmsOnce() {
+    const runTag = `zz-conf-${randomBytes(4).toString("hex")}`;
+    const days = [dayFromNow(60), dayFromNow(61), dayFromNow(62)];
+    let madeTemplate = null;
+
+    console.log(`
+  A run of ${days.length} for one client, and what they get told
+`);
+
+    const browser2 = await chromium.launch({ channel: "chrome", headless: true });
+    const context2 = await browser2.newContext({ viewport: { width: 1280, height: 1000 } });
+
+    try {
+      /*
+       * A confirmation to render. Pawfect has none, which is itself a finding
+       * that check-confirmation reports - three of four real businesses are in
+       * the same state. Made here so this can check what it is here to check.
+       */
+      const { data: made, error: te } = await db
+        .from("reminder_templates")
+        .insert({
+          studio_id: studio.id,
+          label: runTag,
+          hours_before: 0,
+          body: "That's booked in, {{name}}: {{when}}.",
+          enabled: true,
+          sort_order: 98,
+        })
+        .select("id")
+        .single();
+      if (te) throw new Error(`could not add a confirmation: ${te.message}`);
+      madeTemplate = made.id;
+
+      const page = await signIn(context2, owner.user_id, "/diary");
+      await page.getByRole("button", { name: /^Add something/ }).click();
+      await page.getByRole("button", { name: /Somebody new, or a walk-in/i }).first().click();
+
+      const sheet = page.locator("form").filter({ has: page.locator('input[name="date"]') }).first();
+
+      /*
+       * A client with an email address, made first and then picked.
+       *
+       * Both halves are deliberate. The picker has one box with no name
+       * attribute, and typing into it is not enough - a name only becomes a
+       * client when the button that appears underneath is pressed, which an
+       * earlier check spent two runs failing to notice.
+       *
+       * And the address is the reason this is made in the database rather than
+       * typed as a walk-in. The first version added a bare name, and the
+       * confirmation came out with no words in it - correctly: there is nowhere
+       * to send a message to somebody with no phone and no email, so the row
+       * stays pending and is never rendered. That is right behaviour and it
+       * proves nothing about the wording, which is what this is here for.
+       */
+      const { data: person, error: pe } = await db
+        .from("contacts")
+        .insert({
+          studio_id: studio.id,
+          name: `${runTag} Barker`,
+          email: `${runTag}@example.invalid`,
+        })
+        .select("id")
+        .single();
+      if (pe) throw new Error(`could not add a client: ${pe.message}`);
+
+      await sheet
+        .locator('input:not([name]):not([type=checkbox]):not([type=hidden])')
+        .nth(0)
+        .fill(`${runTag} Barker`);
+      await page.waitForTimeout(1200);
+      /*
+       * The existing one, not "add as a new client" - which would make a second
+       * with the same name and no address, and put us back where we started.
+       */
+      await sheet
+        .getByRole("button", { name: new RegExp(`${runTag} Barker`) })
+        .filter({ hasNotText: /as a new client/i })
+        .first()
+        .click();
+      await page.waitForTimeout(600);
+      void person;
+
+      await sheet.locator('input[name="date"]').fill(days[0]);
+      await sheet.locator('input[name="start_time"]').fill("09:00");
+      await sheet.locator('select[name="repeats"]').selectOption("dates");
+
+      for (const [i, day] of days.slice(1).entries()) {
+        await sheet.getByRole("button", { name: /Add another day/i }).click();
+        await sheet.locator('input[type="date"]').nth(i + 1).fill(day);
+      }
+
+      await sheet.getByRole("button", { name: /^Add it$/ }).click();
+      await page.waitForTimeout(6000);
+
+      const { data: booked } = await db
+        .from("bookings")
+        .select("id, starts_at, repeat_parent_id")
+        .ilike("title", `%${runTag}%`);
+
+      if ((booked ?? []).length !== days.length) {
+        bad(`${(booked ?? []).length} of ${days.length} visits went in`, "cannot check the rest");
+        return;
+      }
+      ok(`${booked.length} visits booked for one client`);
+
+      const ids = booked.map((b) => b.id);
+      const { data: told } = await db
+        .from("reminders")
+        .select("id, booking_id, body, status, sent_at")
+        .in("booking_id", ids)
+        .eq("template_id", madeTemplate);
+
+      /* The whole point. One, not one per day. */
+      if ((told ?? []).length === 1) {
+        ok("one confirmation for the run, not one per day");
+      } else {
+        bad(
+          `${(told ?? []).length} confirmations for ${days.length} visits`,
+          "somebody who booked once is told that many times",
+        );
+      }
+
+      const one = (told ?? [])[0];
+      if (one?.body) {
+        if (new RegExp(`${days.length} visits`).test(one.body)) {
+          ok(`and it says what the run is: "${one.body}"`);
+        } else {
+          bad(
+            "the confirmation describes one visit rather than the run",
+            one.body,
+          );
+        }
+      } else if (one) {
+        bad("the confirmation went with no words in it", `row ${one.id}`);
+      }
+
+      /* And it is hung off the first day, which is the one it describes from. */
+      const head = booked.find((b) => !b.repeat_parent_id);
+      if (one && head && one.booking_id === head.id) {
+        ok("it is against the first visit of the run");
+      } else if (one) {
+        bad("the confirmation is against the wrong visit of the run");
+      }
+    } catch (e) {
+      bad("the confirmation run did not finish", e.message);
+    } finally {
+      await browser2.close();
+      const { data: mine } = await db
+        .from("bookings")
+        .select("id")
+        .ilike("title", `%${runTag}%`);
+      for (const b of mine ?? []) await db.from("reminders").delete().eq("booking_id", b.id);
+      await db.from("bookings").delete().ilike("title", `%${runTag}%`);
+      await db.from("contacts").delete().ilike("name", `%${runTag}%`);
+      if (madeTemplate) await db.from("reminder_templates").delete().eq("id", madeTemplate);
+      ok("that run, its client and its wording taken back out");
+    }
   }
 
   console.log("");
