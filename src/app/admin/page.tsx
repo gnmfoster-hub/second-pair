@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { agreementsByStudio } from "@/lib/agreements/read";
 import { createClient } from "@/lib/supabase/server";
 import { countsAsEnquiry } from "@/lib/conversationStatus";
 import { isPlatformAdmin, type BusinessSummary, type PlatformKpis } from "@/lib/platform";
@@ -348,6 +349,17 @@ export default async function AdminPage() {
     ]),
   );
 
+  /*
+   * What each business has signed, read once for all of them.
+   *
+   * One query rather than one per business: this page draws every business at
+   * once, and a query each would be thirty round trips to another continent to
+   * fill in a panel that is usually empty. It cannot throw and returns nothing
+   * at all while the migration is outstanding, which is what lets this ship
+   * before the table exists.
+   */
+  const agreements = await agreementsByStudio(db);
+
   const summaries: BusinessSummary[] = await Promise.all(
     (studios ?? []).map(async (s) => {
       /*
@@ -448,6 +460,8 @@ export default async function AdminPage() {
         id: s.id,
         name: s.name,
         slug: s.slug,
+        /* Read in one go above, and empty until the migration has been run. */
+        agreements: agreements.get(s.id as string) ?? [],
         vertical: s.vertical,
         kind: (s.kind ?? "customer") as BusinessSummary["kind"],
         archivedAt: s.archived_at ?? null,

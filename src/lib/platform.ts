@@ -1,4 +1,5 @@
 import { createClient } from "./supabase/server";
+import type { AgreementRow } from "./agreements/state";
 
 /**
  * Who is allowed to run the whole platform, as opposed to one business.
@@ -102,6 +103,16 @@ export type BusinessSummary = {
   receptionistOn?: boolean | null;
   createdAt: string;
   owners: { email: string | null; userId: string }[];
+  /**
+   * What they have signed, or been sent and not signed.
+   *
+   * Attached by the admin page rather than gathered in here, because the table
+   * arrives with a migration that is run by hand: a read for it belongs
+   * somewhere that can come back empty without taking the whole console down.
+   * Absent and empty mean the same thing to the panel, which is the honest
+   * answer while the migration is outstanding.
+   */
+  agreements?: AgreementRow[];
   /**
    * The views a demo can be opened as. Empty for everything else.
    *

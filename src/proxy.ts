@@ -120,6 +120,18 @@ const PUBLIC_PATHS = [
    * unreachable for weeks.
    */
   "/b/",
+  /*
+   * The agreement a business signs when we take them on.
+   *
+   * Third of the same shape, and added in the same commit as the route because
+   * of what the comment above says happens otherwise: not a 404, a redirect to
+   * the marketing home page, which looks exactly like the link being wrong.
+   *
+   * This is the one where that would matter most. A prospective client's first
+   * act with this company would be to press a link we sent them and land on an
+   * advert for it.
+   */
+  "/a/",
 ];
 
 export async function proxy(request: NextRequest) {

@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { signOut } from "@/app/(dashboard)/actions";
 import type { BusinessSummary } from "@/lib/platform";
+import { Agreements } from "./Agreements";
 import { supplyOf } from "@/lib/voice/numberCost";
 import { Team } from "./Team";
 import {
@@ -1244,6 +1245,20 @@ function Manage({ b, owner }: { b: BusinessSummary; owner: string | null }) {
           anything — with the screen each one is set on.
         </span>
       </a>
+
+      {/*
+        * What they have agreed to, above the channels.
+        *
+        * Deliberately near the top of Manage rather than buried: it is the
+        * first thing to do when taking somebody on, and the panel is where
+        * anybody would come looking for a signed copy months later.
+        */}
+      <Agreements
+        studioId={b.id}
+        business={b.name}
+        rows={b.agreements ?? []}
+        ownerEmail={b.owners[0]?.email ?? null}
+      />
 
       <Channels b={b} />
 
