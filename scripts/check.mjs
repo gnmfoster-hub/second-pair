@@ -165,6 +165,25 @@ const checks = [
     run: ["node", "scripts/check-wordings.cjs"],
     /** Fills boxes and never presses Save, so it writes nothing at all. */
   },
+  /*
+   * The agreement a business signs, end to end.
+   *
+   * In the suite while the table it needs does not exist yet, which is
+   * deliberate rather than untidy: it says so and exits clean, so it turns
+   * nothing red for a migration that is on somebody else's list — and the day
+   * that SQL is run, this is what proves the feature instead of somebody
+   * clicking through it hopefully.
+   *
+   * Worth knowing when reading its output for the first time: unlike every other
+   * check here, this one has never been seen to pass. It could not be, because
+   * the table is not there. That is the honest state of it.
+   */
+  {
+    name: "an agreement can be signed once, and not twice",
+    run: ["node", "scripts/check-agreement.cjs"],
+    /** Its own agreement on a demo, against a throwaway token, removed after. */
+    writes: true,
+  },
   {
     name: "every screen of every business",
     run: ["node", "scripts/check-pages.cjs"],
