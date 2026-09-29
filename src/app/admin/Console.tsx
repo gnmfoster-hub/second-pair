@@ -492,6 +492,19 @@ function Business({ b }: { b: BusinessSummary }) {
      */
     <div
       id={`b-${b.id}`}
+      /*
+       * Which business this card is, addressable from outside.
+       *
+       * Added after a check meant for a demo opened the wrong card and sent an
+       * agreement naming a live client. It was removed again and nothing was
+       * left behind, but the check had asked for a business by name and the
+       * page gave it whichever one matched first - and a screen where every
+       * business looks alike is one where that will happen to a person too.
+       *
+       * The id rather than the name, because two businesses can share a name
+       * and never share this.
+       */
+      data-studio={b.id}
       className="card scroll-mt-6 rounded-2xl p-4 transition-[border-color,box-shadow,transform] hover:border-accent/25 sm:p-5"
       style={{ boxShadow: "0 1px 2px rgba(22,21,15,0.05), 0 8px 20px -14px rgba(22,21,15,0.35)" }}
     >
