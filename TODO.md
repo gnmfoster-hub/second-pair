@@ -30,10 +30,18 @@ dash. Both are under *The four from setting up Amber's* below.
 and the password change. Corrected by reading the code. A list that says a done
 thing is undone is how a done thing gets done twice.
 
-Still open and mine: the agreement's send-and-sign half (**C**, and it needs a
-solicitor before one goes to anybody), booking from Facebook and Instagram
-(**D**, half of which is a partnership rather than a feature), and ten lint
-errors that are older than tonight.
+**The agreement is built** — back office panel, public signing page, the lot.
+**C** below has what it does and the two decisions worth arguing with. Two things
+are waiting on you and nothing else: **run
+`20260927180000_agreements.sql`**, and **get the wording in front of a
+solicitor**.
+
+**The Facebook Book now button is built too.** Settings → Channels now hands an
+owner the link and says where it goes on a page and on an Instagram profile. The
+other half of that ask is a partnership rather than a feature — **D**.
+
+Still mine: seven lint errors older than last night, and the eighty-odd long
+dashes still in screen copy, which are deliberately not being fixed in bulk.
 
 Three things are waiting on you and nothing else: **ring the Receptionist**,
 **sign a phone up for notifications** (the only device on the system is a
@@ -43,10 +51,24 @@ Windows PC), and **ask Karen about the fifteen-minute consultation**.
 
 # Migrations
 
-**All run, as of 25 September.** Checked against the live database rather than
-the file names: `handled_messages.studio_id`, `studios.call_monthly_cap` and
-the `message_templates` table all answer. There is nothing waiting for you in
-the SQL editor.
+> **One is waiting, and it is the only thing between you and a working
+> agreement: `20260927180000_agreements.sql`.** Checked against the live
+> database on 29 September — `agreements` does not answer. It creates one table
+> and touches nothing that exists, so running it changes nothing about any
+> business until an agreement is actually sent. Afterwards, `node
+> scripts/check-agreement.cjs` proves the whole send-and-sign path in one
+> command.
+
+**Everything else is run, as of 25 September.** Checked against the live
+database rather than the file names: `handled_messages.studio_id`,
+`studios.call_monthly_cap` and the `message_templates` table all answer.
+
+**And one that is deliberately *not* needed.** "On days I pick", the new way to
+book one thing on several days, wanted a seventh value in the `repeat_rule`
+enum — which would have meant SQL in your hands before the feature worked, and
+a silent refusal until then. It does not need one: picked days are not a
+pattern, so each is stored as `none` and the set is held together by the parent
+link like every other repeating booking. No migration, nothing waiting.
 
 The backfill in the handled-messages one had nothing to backfill, which is
 itself worth knowing: there are 36 dedupe rows and every one is an inbound
@@ -981,6 +1003,57 @@ the sign-in page has a forgot mode and `/reset-password` exists.
 which is the fault this file warns about in its own migrations section: a list
 that says a done thing is undone is how a done thing gets done twice. Corrected
 by reading the code, not by remembering.
+
+### C is built. One thing is waiting on you, and it is five minutes
+
+~~**An agreement businesses sign when you take them on.**~~ **Built overnight,
+29 September, and deployed.** The old entry is kept below for the reasoning.
+
+**What is there now.** In the back office, on every business, above the
+channels: what they have signed, what they have been sent and not signed, and a
+form to send a new one. Every figure is per agreement — set-up fee, the
+recurring amount, monthly or quarterly or yearly, a trial date, the notice
+period, and what they are taking on as free text. No plans and no tiers, because
+that is how these are actually sold, and the first client who did not fit a tier
+list would be a migration.
+
+A public page at `/a/<token>`, built alongside the consent form because it is
+the same job with the parties swapped: a private link, a document nobody can
+alter after sending, a tick, a signature, and a record of who signed and when.
+
+**Two things you may want to argue with.**
+
+- *The form is deliberately empty* rather than filled in from the plan and price
+  already on the business. Those say what is true today; the form states what is
+  about to be agreed. Renewing somebody at a new price would otherwise show last
+  year's figure in the box, and a figure you did not type is a figure you do not
+  check.
+- *A signed one cannot be edited or withdrawn.* The way to change what was
+  agreed is a second agreement, not the quiet disappearance of the first. The
+  server refuses it rather than the screen hiding the button.
+
+**Waiting on you — 1. Run the migration.**
+`20260927180000_agreements.sql`, in the Supabase SQL editor. Until it is run the
+panel is empty and pressing send says exactly that. Everything shipped safely
+ahead of it: the read cannot throw, and the public page treats a missing table
+as a link that matches nothing, which is true.
+
+Then `node scripts/check-agreement.cjs` proves the whole path — it is written and
+waiting, and it currently says "agreements does not exist yet" and stops.
+
+**Waiting on you — 2. A solicitor.** This is now said on the screen where an
+agreement gets sent, not only in a comment. The clauses worth an hour of one are
+marked with a star, and the data processing agreement in section 6 is a legal
+requirement rather than a nicety.
+
+**What is verified and what is not.** The public route serves rather than
+redirecting — 200 on `/a/<anything>`, with "This agreement is not available",
+which is right for a token matching nothing and is also the proof that the proxy
+entry works. Everything past that point is written and unproven, because the
+table does not exist. Worth being plain about: `check-agreement.cjs` has never
+been seen to pass and cannot be until the SQL is run.
+
+**The old entry, for the reasoning:**
 
 **C. An agreement businesses sign when you take them on.** Giles, 27 Sep:
 sent when he adds them, terms and conditions, a set-up fee then a subscription
