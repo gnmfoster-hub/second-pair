@@ -1,6 +1,15 @@
 # What needs doing
 
+**Overnight, 28–29 September, as a page:**
+https://claude.ai/artifact/Gp4J5vqxMSmE4ThVcrqkX8 — the four things found setting
+up Amber's, the reminder fault nobody was looking for, and the two jobs waiting
+on Giles at the top of it.
+
 **The worklist, as a page:** https://claude.ai/artifact/RUkxMxmooA3VsckxfAVan9
+— **a week behind this file** as of 29 September; it still says 22 September.
+Worth a rebuild, and not done overnight because it is 178KB of hand-written page
+and rebuilding it unsupervised at four in the morning is how an index that
+people trust stops being trustworthy.
 — with links at the top to the **Stripe sheet**
 (https://claude.ai/code/artifact/ce6ed7c3-5feb-4c27-a7c0-71d904f6b3f4) and the
 **Willow & Co test pass**
