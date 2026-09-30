@@ -168,6 +168,57 @@ const bad = (w, d) => {
     await form.locator('input[name="notice_days"]').fill("30");
 
     /*
+     * ── A priced schedule, which is where the money now lives ────────────────
+     *
+     * Giles, 30 Sep: "should really have separate lines to add services and
+     * costs etc."
+     *
+     * Three lines on purpose, and one of them once: it is the mix that has
+     * something to go wrong in it. A build and two subscriptions is the ordinary
+     * shape of a real agreement here, and it is the shape where the totals are
+     * sums rather than figures.
+     */
+    const SCHEDULE = [
+      { what: "A website", amount: "450", when: "once" },
+      { what: "The assistant", amount: "20", when: "monthly" },
+      { what: "The Receptionist", amount: "15", when: "monthly" },
+    ];
+    for (const [i, line] of SCHEDULE.entries()) {
+      await form.getByRole("button", { name: /^Add (a|another) line$/ }).click();
+      const row = form.locator("div").filter({ has: form.locator('select[aria-label="How often"]') });
+      await form.locator('input[placeholder="A website"]').nth(i).fill(line.what);
+      await form.locator('input[aria-label="Price in pounds"]').nth(i).fill(line.amount);
+      await form.locator('select[aria-label="How often"]').nth(i).selectOption(line.when);
+      void row;
+    }
+    await page.waitForTimeout(500);
+
+    /*
+     * The totals have to become sums, and have to become uneditable.
+     *
+     * Two statements of one number is how a document disagrees with itself, and
+     * this is a document somebody signs. If the boxes stayed typeable, the prose
+     * could say one price while the column the back office adds up said another.
+     */
+    const setupBox = form.locator('input[name="setup_fee"]');
+    const recurringBox = form.locator('input[name="recurring"]');
+    const totalsRight =
+      (await setupBox.inputValue()) === "450" && (await recurringBox.inputValue()) === "35";
+    const locked =
+      (await setupBox.getAttribute("readonly")) !== null &&
+      (await recurringBox.getAttribute("readonly")) !== null;
+
+    if (totalsRight) ok("the totals are the sums of the lines: £450 once, £35 a month");
+    else {
+      bad(
+        "the totals are not the sums of the lines",
+        `${await setupBox.inputValue()} / ${await recurringBox.inputValue()}`,
+      );
+    }
+    if (locked) ok("and they cannot be typed over, so they cannot disagree with them");
+    else bad("the totals are still editable beside a schedule", "they can drift apart");
+
+    /*
      * ── The wording, read before anything is sent ─────────────────────────────
      *
      * Giles, 30 Sep: "you can't preview, amend etc." This is the half that was
@@ -185,9 +236,13 @@ const bad = (w, d) => {
       await page.waitForTimeout(400);
       const shown = await readIt.innerText();
       const missing = [
-        [/Setting up: £250, once/, "the set-up fee as typed"],
-        [/Then: £22\.50 a month/, "the recurring amount as typed"],
+        [/A website: £450, once/, "the first line of the schedule"],
+        [/The assistant: £20 a month/, "a recurring line, without a stray comma"],
+        [/Once, at the start: £450/, "the once total"],
+        [/Then: £35 a month/, "the recurring total"],
         [/30 days' notice/, "the notice period as typed, not the default sixty"],
+        [/Everything you give us stays yours/, "the clause about who owns what"],
+        [/has to be yours to give/, "the clause about material they supply"],
       ].filter(([pattern]) => !pattern.test(shown));
       if (missing.length === 0) {
         ok("the wording can be read before sending, and follows the figures typed");
@@ -202,13 +257,17 @@ const bad = (w, d) => {
        * And that it changes when a figure does, which is the whole claim. A
        * preview rendered once and then left behind would pass the check above.
        */
-      await form.locator('input[name="recurring"]').fill("31");
-      await page.waitForTimeout(400);
+      /* A line changing has to move both the schedule and the total under it. */
+      await form.locator('input[aria-label="Price in pounds"]').nth(1).fill("26");
+      await page.waitForTimeout(500);
       const again = await readIt.innerText();
-      if (/Then: £31 a month/.test(again)) ok("and it follows a figure being changed");
-      else bad("the wording did not follow a changed figure", again.slice(0, 100));
-      await form.locator('input[name="recurring"]').fill("22.50");
-      await page.waitForTimeout(300);
+      if (/The assistant: £26 a month/.test(again) && /Then: £41 a month/.test(again)) {
+        ok("and both the line and the total follow a price being changed");
+      } else {
+        bad("the wording did not follow a changed line", again.slice(0, 140).split(/\s+/).join(" "));
+      }
+      await form.locator('input[aria-label="Price in pounds"]').nth(1).fill("20");
+      await page.waitForTimeout(400);
     }
 
     await form.getByRole("button", { name: /Build it and email the link/i }).click();
@@ -233,10 +292,10 @@ const bad = (w, d) => {
      * the reason every system that got it wrong found out.
      */
     const money =
-      Number(row.setup_fee_pence) === 25000 &&
-      Number(row.recurring_pence) === 2250 &&
+      Number(row.setup_fee_pence) === 45000 &&
+      Number(row.recurring_pence) === 3500 &&
       Number(row.notice_days) === 30;
-    if (money) ok("£250 and £22.50 stored as 25000 and 2250, and 30 days' notice");
+    if (money) ok("the summed totals stored as 45000 and 3500, and 30 days' notice");
     else {
       bad(
         "the figures are not what was typed",
@@ -247,10 +306,18 @@ const bad = (w, d) => {
     // ------------------------------------------------ 3. the frozen wording
     const terms = String(row.terms_text ?? "");
     const saysIt = [
-      [/Setting up: £250, once/, "the set-up fee"],
-      [/Then: £22\.50 a month/, "what it costs after that"],
+      [/A website: £450, once/, "the schedule, line by line"],
+      [/The assistant: £20 a month/, "a recurring line, and without a stray comma"],
+      [/Once, at the start: £450/, "the once total"],
+      [/Then: £35 a month/, "the summed recurring total"],
       [/30 days' notice/, "the notice period as typed, not the default sixty"],
       [/you are the controller of that information and we are your processor/, "the data processing agreement"],
+      /*
+       * The clause that was actually missing until 30 September. This company
+       * builds websites and the agreement said nothing about who owns one.
+       */
+      [/Everything you give us stays yours/, "who owns what"],
+      [/has to be yours to give/, "material the client supplies being theirs to supply"],
       [new RegExp(studio.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").toUpperCase()), "who it is with"],
     ].filter(([pattern]) => !pattern.test(terms));
 
@@ -260,6 +327,21 @@ const bad = (w, d) => {
     if (row.terms_version) ok(`stamped with the wording it was built from: ${row.terms_version}`);
     else bad("nothing says which wording this is", "so nobody can say what was signed");
 
+    /*
+     * The schedule itself, on the row.
+     *
+     * The wording carries it in prose either way, because that is built before
+     * the insert. This is the other half: the lines as data, so that changing an
+     * agreement can read them back into the form rather than making somebody
+     * retype four lines to correct one price.
+     */
+    const stored = Array.isArray(row.lines) ? row.lines : [];
+    if (stored.length === 3 && Number(stored[0]?.pence) === 45000 && stored[0]?.when === "once") {
+      ok("the three lines are stored as data, not only as prose");
+    } else {
+      bad(`${stored.length} lines stored`, JSON.stringify(stored).slice(0, 110));
+    }
+
     if (row.token && row.sent_at) ok("it has a link and a sent date");
     else bad("no link or no sent date", `token ${row.token ? "yes" : "no"}`);
 
@@ -268,7 +350,7 @@ const bad = (w, d) => {
       const opened = await context.newPage();
       const res = await opened.goto(`${SITE}/a/${row.token}`, { waitUntil: "domcontentloaded" });
       const shown = await opened.locator("body").innerText();
-      if (res?.status() === 200 && /Setting up: £250/.test(shown)) {
+      if (res?.status() === 200 && /A website: £450, once/.test(shown)) {
         ok("and the link opens on the agreement it made");
       } else {
         bad("the link does not open on the agreement", `status ${res?.status()}`);
@@ -302,7 +384,7 @@ const bad = (w, d) => {
         replaces: await form3.locator('input[name="replaces"]').inputValue().catch(() => ""),
       };
 
-      if (filled.to === to && filled.recurring === "22.5" && filled.notice === "30") {
+      if (filled.to === to && filled.recurring === "35" && filled.notice === "30") {
         ok("changing one opens the form already filled in from it");
       } else {
         bad(
@@ -313,8 +395,21 @@ const bad = (w, d) => {
       if (filled.replaces === row.id) ok("and it knows which one it replaces");
       else bad("it does not know which one it replaces", filled.replaces || "nothing");
 
-      /* Change the one figure, the way somebody correcting a price would. */
-      await form3.locator('input[name="recurring"]').fill("35");
+      /*
+       * The schedule has to come back too, or correcting one price means retyping
+       * four lines - which is the whole reason changing one exists.
+       */
+      const backAgain = await form3.locator('input[placeholder="A website"]').count();
+      if (backAgain === 3) ok("and the three lines come back with it");
+      else bad(`${backAgain} lines came back`, "correcting one price would mean retyping them");
+
+      /*
+       * Change a LINE, not the total. The total is read-only beside a schedule -
+       * the first version of this tried to type into it and Playwright refused,
+       * correctly, which is the product doing exactly what it should.
+       */
+      await form3.locator('input[aria-label="Price in pounds"]').nth(1).fill("35");
+      await page.waitForTimeout(500);
       await form3.getByRole("button", { name: /Replace it and email the new link/i }).click();
       await page.waitForTimeout(6000);
 
@@ -324,7 +419,7 @@ const bad = (w, d) => {
         .eq("studio_id", studio.id)
         .order("created_at", { ascending: false });
 
-      const replacement = (after ?? []).find((a) => Number(a.recurring_pence) === 3500);
+      const replacement = (after ?? []).find((a) => Number(a.recurring_pence) === 5000);
       const original = (after ?? []).find((a) => a.id === row.id);
 
       if (replacement) ok("the corrected one was sent, at the new price");
@@ -344,7 +439,7 @@ const bad = (w, d) => {
       }
 
       /* And the new wording says the new price, frozen onto the new row. */
-      if (replacement && /Then: £35 a month/.test(String(replacement.terms_text ?? ""))) {
+      if (replacement && /Then: £50 a month/.test(String(replacement.terms_text ?? ""))) {
         ok("the new wording carries the corrected price");
       } else if (replacement) {
         bad("the corrected wording does not say the new price");
