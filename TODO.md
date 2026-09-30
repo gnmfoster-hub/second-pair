@@ -1189,6 +1189,51 @@ because one half is an afternoon and the other half is not ours to grant.
    worth doing because it costs nothing; the partnership is worth *asking
    about* before it is worth planning.
 
+~~**F. Pick how a reply goes out.**~~ **Done 30 Sep.** Giles: "when an enquiry
+comes in on website and the assistant gets a contact detail, can you make it so
+the user can pick method to respond."
+
+The inbox now offers **Text / Email / In the chat** above the reply box, wherever
+there is more than one honest way to answer, with the number or address printed
+beside it so it can be checked before pressing send.
+
+**The default is unchanged on purpose.** A website enquiry already went text then
+email, and that is still what is selected. Adding the choice changes nothing for
+anybody who ignores it, and there is a test whose only job is to hold that.
+
+**Offered on every channel, not just the website**, because a Meta thread refuses
+a free message more than a day after the customer's last one — so the channel
+somebody arrived on is sometimes the one channel that cannot be used, and a
+mobile the assistant took is the difference between answering and not. Picking
+Text on an Instagram conversation genuinely leaves Instagram.
+
+Three things it refuses to get wrong: a way is only offered if the business can
+actually send on it; the choice is re-checked on the server, because a stale tab
+is enough to ask for one that cannot be honoured; and "In the chat" sends nothing
+and says so.
+
+### ~~The Receptionist voice~~ — Amber's line answered with silence, 30 Sep
+
+**Fixed and deployed. Worth ringing again to confirm.** Giles: "when it stopped
+ringing it was like it answered but didn't say anything" — and the text still
+arrived.
+
+That is the failure this code predicted in writing on 25 September: Twilio does
+not fall back from a voice the account cannot use, it fails the `<Say>`, and the
+caller hears nothing. The generative tier is an account-level setting and nothing
+in the code can read it.
+
+`Polly.Amy-Neural` is the default again. **This reverses a decision you made
+deliberately**, and the reason is that it does not work rather than that it was
+wrong. To go back once generative is switched on at Twilio:
+`RECEPTIONIST_VOICE=Polly.Amy-Generative` in Vercel. Same voice, better engine.
+
+**What is inference rather than diagnosis:** Twilio's credentials are only in
+Vercel, so its error log could not be read and **the actual error has not been
+seen**. What is known is that the spoken text is never empty and the text
+message went, so the webhook ran and the `<Say>` specifically produced no audio.
+If the silence comes back on the neural voice, the voice was not the cause.
+
 **E. What the messages actually look like.** Giles, 29 Sep: "need to work on
 format of reminders etc, what they look like." Not started.
 
