@@ -42,6 +42,47 @@ import { asEmail } from "./asEmail.ts";
 
 
 
+/**
+ * A reply to a website enquiry, dressed as an email rather than posted raw.
+ *
+ * Pulled out of the web branch on 30 September so that the branch can try email
+ * first when the owner asked for email, without two copies of the letter-writing
+ * drifting apart.
+ *
+ * The words are written once and go wherever somebody can be reached, which is
+ * right — four versions of "we can do Thursday at two" is how three of them go
+ * stale. But the same words in an inbox with no greeting, no sign-off and a
+ * subject reading "Message from Willow & Co" arrive looking like a text that has
+ * wandered in, and read as a mail filter's idea of junk.
+ */
+async function asEmailTo(
+  reachOn: { email?: string | null; firstName?: string | null },
+  parts: {
+    body: string;
+    html?: string;
+    fromName?: string;
+    replyTo?: string;
+    subject?: string;
+  },
+): Promise<Delivery> {
+  const letter = asEmail({
+    body: parts.body,
+    businessName: parts.fromName ?? "",
+    firstName: reachOn.firstName,
+    canReply: Boolean(parts.replyTo),
+    about: parts.subject,
+  });
+
+  return sendEmail({
+    to: reachOn.email as string,
+    subject: letter.subject,
+    text: letter.text,
+    html: parts.html,
+    fromName: parts.fromName,
+    replyTo: parts.replyTo,
+  });
+}
+
 export async function deliver({
   channel,
   to,
@@ -127,6 +168,17 @@ export async function deliver({
     email?: string | null;
     /** Who it is going to, so an email can greet them by name. */
     firstName?: string | null;
+    /**
+     * Which way the owner chose, where they were given a choice.
+     *
+     * Giles, 30 Sep: "can you make it so the user can pick method to respond."
+     * Absent means what it always meant - text if there is a number, then email -
+     * so nothing about an automatic send changes.
+     *
+     * "chat" is the one that sends nothing. A reply to somebody still sitting in
+     * the widget is read there, and the row in the thread is the whole of it.
+     */
+    prefer?: "sms" | "email" | "chat" | null;
   } | null;
 }): Promise<Delivery> {
   if (!body.trim()) return { status: "failed", error: "Nothing to send." };
@@ -147,6 +199,32 @@ export async function deliver({
    * send it.
    */
   if (channel === "web") {
+    /*
+     * ── What the owner asked for, where they asked for something ──────────────
+     *
+     * "chat" means the reply is for somebody still looking at the widget: the row
+     * in the thread is the message, and there is nothing to send. Reported as
+     * sent rather than skipped, because it did reach where it was aimed.
+     */
+    if (reachOn?.prefer === "chat") {
+      return { status: "sent" };
+    }
+
+    /*
+     * A chosen way is tried first and the other is still there if it fails.
+     *
+     * Not exclusive, deliberately. Somebody who picked email and whose email
+     * bounces is better served by a text arriving than by nothing arriving, and
+     * the delivery record says which channel actually carried it - so the owner
+     * can see that it went the other way rather than having to guess.
+     */
+    const emailFirst = reachOn?.prefer === "email";
+
+    if (emailFirst && reachOn?.email) {
+      const posted = await asEmailTo(reachOn, { body, html, fromName, replyTo, subject });
+      if (posted.status === "sent") return posted;
+    }
+
     if (reachOn?.phone) {
       const texted = await sendSms({ to: reachOn.phone, body, from });
       // Falling through to email on failure, because a customer who cannot be
@@ -155,32 +233,7 @@ export async function deliver({
     }
 
     if (reachOn?.email) {
-      /*
-       * Dressed as an email rather than posted as a chat message.
-       *
-       * The words are written once and go wherever somebody can be reached,
-       * which is right — four versions of "we can do Thursday at two" is how
-       * three of them go stale. But the same words in an inbox with no
-       * greeting, no sign-off and a subject reading "Message from Willow & Co"
-       * arrive looking like a text that has wandered in, and read as a mail
-       * filter's idea of junk.
-       */
-      const letter = asEmail({
-        body,
-        businessName: fromName ?? "",
-        firstName: reachOn.firstName,
-        canReply: Boolean(replyTo),
-        about: subject,
-      });
-
-      return sendEmail({
-        to: reachOn.email,
-        subject: letter.subject,
-        text: letter.text,
-        html,
-        fromName,
-        replyTo,
-      });
+      return asEmailTo(reachOn, { body, html, fromName, replyTo, subject });
     }
 
     return {

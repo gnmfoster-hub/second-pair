@@ -12,6 +12,9 @@ import { verticalPack } from "@/lib/verticals";
 import { splitQuoted } from "@/lib/messaging/quotedReply";
 import { ukStamp } from "@/lib/whenUk";
 import { ReplyBox } from "./ReplyBox";
+import { waysToReply } from "@/lib/messaging/waysToReply";
+import { smsConfigured } from "@/lib/messaging/sms";
+import { emailConfigured } from "@/lib/messaging/email";
 import { setPaused } from "./actions";
 import { StatusPicker } from "./StatusPicker";
 import { Remove } from "./Remove";
@@ -279,7 +282,26 @@ export default async function ConversationPage({
                 The assistant is paused. Replies here are yours alone.
               </p>
             )}
-            <ReplyBox conversationId={conversation.id} />
+            {/*
+              * How the reply goes, chosen rather than decided for them.
+              *
+              * Giles, 30 Sep: "when an enquiry comes in on website and the
+              * assistant gets a contact detail, can you make it so the user can
+              * pick method to respond." The ways are worked out in
+              * lib/messaging/waysToReply, which is where the rules and their
+              * reasons live; this only hands it what it needs to decide.
+              */}
+            <ReplyBox
+              conversationId={conversation.id}
+              ways={waysToReply({
+                channel: String(conversation.channel ?? ""),
+                phone: (contact?.phone as string | null) ?? null,
+                email: (contact?.email as string | null) ?? null,
+                externalRef: (conversation.external_ref as string | null) ?? null,
+                smsReady: smsConfigured(),
+                emailReady: emailConfigured(),
+              })}
+            />
 
             {/*
               * And money, in the place you are already talking to them.

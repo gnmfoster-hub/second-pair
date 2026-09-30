@@ -70,8 +70,55 @@ export async function sendOwnerReply(
     email: string | null;
   } | null;
 
+  /*
+   * ── Which way the owner asked for ─────────────────────────────────────────
+   *
+   * Giles, 30 Sep: "can you make it so the user can pick method to respond."
+   *
+   * The choice is read here rather than trusted from the screen, and it changes
+   * the CHANNEL rather than only a preference - because picking "Text" on an
+   * Instagram conversation means genuinely leaving Instagram, which is the whole
+   * point when Facebook has stopped accepting free messages on that thread.
+   *
+   * Absent, everything behaves exactly as it did: the conversation's own channel,
+   * and for a website enquiry that means text then email.
+   */
+  const via = String(fd.get("via") ?? "").trim();
+  const asked = via === "sms" || via === "email" || via === "chat" ? via : null;
+
+  const contactPhone = contact?.phone ?? null;
+  const contactEmail = contact?.email ?? null;
+
+  /*
+   * A chosen way is refused here if there is nowhere for it to go.
+   *
+   * The screen only offers what it can, but the screen is advisory: a stale tab
+   * and a client record that has since been edited are enough to submit a choice
+   * that cannot be honoured, and the failure would otherwise arrive as "sent" on
+   * a channel with no address.
+   */
+  if (asked === "sms" && !contactPhone) {
+    return { error: "There is no phone number on this conversation to text." };
+  }
+  if (asked === "email" && !contactEmail) {
+    return { error: "There is no email address on this conversation to write to." };
+  }
+
+  /*
+   * Leaving the thread's own channel, where that is what was asked for.
+   *
+   * Sent as a website reply, because that branch is the one that already knows
+   * how to reach somebody by whatever detail was collected rather than by a
+   * thread address - and it dresses an email as a letter instead of posting a
+   * bare chat line into somebody's inbox.
+   */
+  const leaving =
+    asked === "sms" || asked === "email"
+      ? conversation.channel !== asked
+      : false;
+
   const result = await deliver({
-    channel: conversation.channel as Channel,
+    channel: leaving ? "web" : (conversation.channel as Channel),
     db: supabase,
     studioId: studio.id,
     // The number the thread is on first; the saved one only if there is none.
@@ -91,11 +138,17 @@ export async function sendOwnerReply(
      * them is the only way back to them.
      */
     reachOn: {
-          phone: contact?.phone ?? null,
-          email: contact?.email ?? null,
-          // So an email opens with their name rather than "Hello,".
-          firstName: (contact?.name ?? null) as string | null,
-        },
+      phone: contactPhone,
+      email: contactEmail,
+      // So an email opens with their name rather than "Hello,".
+      firstName: (contact?.name ?? null) as string | null,
+      /*
+       * What the owner picked. Only meaningful on the website branch, which is
+       * the one that chooses between a number and an address - every other
+       * channel has exactly one place to go.
+       */
+      prefer: asked,
+    },
     fromName: studio.name,
     replyTo: replyToFor(studio),
   });
