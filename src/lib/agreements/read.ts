@@ -63,6 +63,7 @@ export async function agreementsByStudio(
         noticeGivenOn: (r.notice_given_on as string | null) ?? null,
         endsOn: (r.ends_on as string | null) ?? null,
         termsVersion: String(r.terms_version ?? ""),
+        termsText: String(r.terms_text ?? ""),
         sentTo: (r.sent_to as string | null) ?? null,
         sentAt: (r.sent_at as string | null) ?? null,
         openedAt: (r.opened_at as string | null) ?? null,

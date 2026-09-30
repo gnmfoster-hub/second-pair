@@ -10,6 +10,7 @@ import {
   type AgreementResult,
 } from "./agreementActions";
 import { whereItGot, type AgreementRow } from "@/lib/agreements/state";
+import { buildTerms, TERMS_VERSION } from "@/lib/agreements/terms";
 
 /**
  * The agreements a business has, and sending them a new one.
@@ -63,6 +64,21 @@ export function Agreements({
   const [round, setRound] = useState(0);
   const [open, setOpen] = useState(false);
   const [lastSent, setLastSent] = useState<AgreementResult | null>(null);
+  /*
+   * The unsigned one being corrected, if any.
+   *
+   * Giles, 30 Sep: "you can't preview, amend etc." Amending an UNSIGNED one is
+   * the thing that was missing. A signed one still cannot be touched, and that
+   * is not an oversight: it is the record of what somebody put their name to.
+   *
+   * What this does is not an edit. The old one is withdrawn and a new one is
+   * sent, with a new link, which is the honest shape - the wording on an
+   * agreement is frozen at the moment it is sent, and the whole reason a
+   * signature means anything is that nothing can go back and change it
+   * afterwards. So this saves the retyping without pretending a document can be
+   * amended in place.
+   */
+  const [amending, setAmending] = useState<AgreementRow | null>(null);
   const [voided, voidAction] = useActionState<AgreementResult, FormData>(voidAgreement, {});
   const [noted, noticeAction] = useActionState<AgreementResult, FormData>(giveNotice, {});
 
@@ -77,6 +93,7 @@ export function Agreements({
           onClick={() => {
             /* A new round each time it is opened, so nothing is carried over. */
             if (!open) setRound((r) => r + 1);
+            else setAmending(null);
             setOpen((o) => !o);
           }}
           className="btn-ghost px-3 py-1 text-sm"
@@ -139,7 +156,41 @@ export function Agreements({
                   */}
                 {row.link && <CopyLink url={row.link} />}
 
+                {/*
+                  * The wording, readable from here.
+                  *
+                  * The one moment anybody needs to read a signed agreement is
+                  * when there is a disagreement about it, and until now the only
+                  * way was to open the client's own private link. On a signed one
+                  * this is the actual evidence; on an unsent one it is what you
+                  * are about to be held to.
+                  */}
+                {row.termsText && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-sm text-muted">
+                      Read the wording
+                    </summary>
+                    <div className="mt-2 max-h-80 overflow-y-auto whitespace-pre-line rounded-lg bg-surface-2/60 p-3 text-[12.5px] leading-relaxed">
+                      {row.termsText}
+                    </div>
+                  </details>
+                )}
+
                 <div className="mt-2 flex flex-wrap items-center gap-3">
+                  {!row.signedAt && !row.voidAt && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAmending(row);
+                        setRound((r) => r + 1);
+                        setOpen(true);
+                      }}
+                      className="text-sm text-muted hover:text-foreground"
+                    >
+                      Change it
+                    </button>
+                  )}
+
                   {!row.signedAt && !row.voidAt && (
                     <form action={voidAction}>
                       <input type="hidden" name="id" value={row.id} />
@@ -182,9 +233,12 @@ export function Agreements({
         <SendForm
           key={round}
           studioId={studioId}
+          business={business}
           ownerEmail={ownerEmail}
+          amending={amending}
           onSent={(result) => {
             setLastSent(result);
+            setAmending(null);
             /* Closed once it has gone, so a second press cannot send a second. */
             setOpen(false);
           }}
@@ -226,14 +280,83 @@ const said = (period: string) =>
  */
 function SendForm({
   studioId,
+  business,
   ownerEmail,
+  /** An unsigned one being corrected, whose figures start this off. */
+  amending,
   onSent,
 }: {
   studioId: string;
+  business: string;
   ownerEmail: string | null;
+  amending?: AgreementRow | null;
   onSent: (result: AgreementResult) => void;
 }) {
   const [sent, sendAction] = useActionState<AgreementResult, FormData>(sendAgreement, {});
+
+  /*
+   * ── Controlled, so the wording can be read before it is sent ──────────────
+   *
+   * Giles, 30 Sep: "you can't preview, amend etc the agreement which is weird."
+   *
+   * He is right, and it was worse than weird. You typed four figures, pressed a
+   * button, and the first person to read the document was the client. For a
+   * legal agreement with a notice period and a data processing clause in it,
+   * "send it and then open the client's own link to see what you sent" is not a
+   * workflow, it is a hope.
+   *
+   * buildTerms imports nothing at all, which is what makes this honest rather
+   * than approximate: the panel below is not a mock-up of the wording, it is the
+   * wording, from the same function the action calls. If the two could ever
+   * disagree the preview would be worse than none.
+   */
+  const [to, setTo] = useState(amending?.sentTo ?? ownerEmail ?? "");
+  const [includes, setIncludes] = useState(
+    (amending?.includes ?? ["the assistant"]).join(", "),
+  );
+  const [setupFee, setSetupFee] = useState(
+    amending ? String(amending.setupFeePence / 100) : "",
+  );
+  const [recurring, setRecurring] = useState(
+    amending ? String(amending.recurringPence / 100) : "",
+  );
+  const [period, setPeriod] = useState(amending?.period ?? "monthly");
+  const [trialEndsOn, setTrialEndsOn] = useState(amending?.trialEndsOn ?? "");
+  const [noticeDays, setNoticeDays] = useState(String(amending?.noticeDays ?? 60));
+
+  /*
+   * The same arithmetic the action does, for the same reason.
+   *
+   * Pounds typed, pence stored, rounded rather than truncated. If this rounded
+   * differently the preview would show one price and the document carry another,
+   * which is the one way a preview can do harm.
+   */
+  const pence = (raw: string) => {
+    const clean = raw.trim().replace(/[£,\s]/g, "");
+    if (!clean) return 0;
+    const pounds = Number(clean);
+    if (!Number.isFinite(pounds) || pounds < 0) return 0;
+    return Math.round(pounds * 100);
+  };
+
+  const wording = buildTerms(business, {
+    setupFeePence: pence(setupFee),
+    recurringPence: pence(recurring),
+    period: (period === "quarterly" || period === "yearly" ? period : "monthly") as
+      | "monthly"
+      | "quarterly"
+      | "yearly",
+    trialEndsOn: /^\d{4}-\d{2}-\d{2}$/.test(trialEndsOn) ? trialEndsOn : null,
+    noticeDays: (() => {
+      const n = Math.round(Number(noticeDays));
+      return Number.isFinite(n) && n >= 0 && n <= 365 ? n : 60;
+    })(),
+    includes: includes
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, 6),
+  });
 
   /*
    * Told upwards once, when it has actually gone.
@@ -257,7 +380,8 @@ function SendForm({
             <input
               name="sent_to"
               type="email"
-              defaultValue={ownerEmail ?? ""}
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
               placeholder="them@theirbusiness.co.uk"
               className="input"
             />
@@ -275,7 +399,8 @@ function SendForm({
               */}
             <input
               name="includes"
-              defaultValue="the assistant"
+              value={includes}
+              onChange={(e) => setIncludes(e.target.value)}
               placeholder="the assistant, a website"
               className="input"
             />
@@ -288,15 +413,34 @@ function SendForm({
           <div className="grid gap-3 sm:grid-cols-3">
             <label className="block">
               <span className="label">Set-up fee £</span>
-              <input name="setup_fee" inputMode="decimal" placeholder="0" className="input" />
+              <input
+                name="setup_fee"
+                inputMode="decimal"
+                value={setupFee}
+                onChange={(e) => setSetupFee(e.target.value)}
+                placeholder="0"
+                className="input"
+              />
             </label>
             <label className="block">
               <span className="label">Then £</span>
-              <input name="recurring" inputMode="decimal" placeholder="20" className="input" />
+              <input
+                name="recurring"
+                inputMode="decimal"
+                value={recurring}
+                onChange={(e) => setRecurring(e.target.value)}
+                placeholder="20"
+                className="input"
+              />
             </label>
             <label className="block">
               <span className="label">How often</span>
-              <select name="period" defaultValue="monthly" className="input">
+              <select
+                name="period"
+                value={period}
+                onChange={(e) => setPeriod(e.target.value)}
+                className="input"
+              >
                 <option value="monthly">a month</option>
                 <option value="quarterly">a quarter</option>
                 <option value="yearly">a year</option>
@@ -307,7 +451,13 @@ function SendForm({
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block">
               <span className="label">Free until</span>
-              <input type="date" name="trial_ends_on" className="input" />
+              <input
+                type="date"
+                name="trial_ends_on"
+                value={trialEndsOn}
+                onChange={(e) => setTrialEndsOn(e.target.value)}
+                className="input"
+              />
               <span className="hint">Leave blank for no trial, which is the usual answer.</span>
             </label>
             <label className="block">
@@ -315,14 +465,44 @@ function SendForm({
               <input
                 name="notice_days"
                 inputMode="numeric"
-                defaultValue="60"
+                value={noticeDays}
+                onChange={(e) => setNoticeDays(e.target.value)}
                 className="input"
               />
             </label>
           </div>
 
+          {/*
+            * The document itself, before it goes anywhere.
+            *
+            * Folded rather than always open: the common case is sending the same
+            * shape of agreement you sent the last one, and two hundred lines of
+            * terms above the button would bury it. Open it once for a new price
+            * or a new kind of client, which is exactly when it matters.
+            *
+            * Rendered by buildTerms, which is what the action calls. Not a
+            * preview of the wording - the wording.
+            */}
+          <details className="rounded-xl border border-border px-3.5 py-2.5">
+            <summary className="cursor-pointer text-sm text-muted">
+              Read it before you send it. Version {TERMS_VERSION}.
+            </summary>
+            <div className="mt-3 max-h-96 overflow-y-auto whitespace-pre-line rounded-lg bg-surface-2/60 p-3 text-[12.5px] leading-relaxed">
+              {wording}
+            </div>
+            <p className="hint mt-2 max-w-prose">
+              This is what gets written onto the agreement and frozen there. Change a
+              figure above and it changes here. The clauses marked with a star are the
+              ones worth a solicitor&rsquo;s hour.
+            </p>
+          </details>
+
+          {amending && (
+            <input type="hidden" name="replaces" value={amending.id} />
+          )}
+
           <button type="submit" className="btn bg-accent px-4 py-2 text-on-accent">
-            Build it and email the link
+            {amending ? "Replace it and email the new link" : "Build it and email the link"}
           </button>
 
           {/*

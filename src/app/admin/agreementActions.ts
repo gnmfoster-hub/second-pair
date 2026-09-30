@@ -167,6 +167,54 @@ export async function sendAgreement(
   if (insert) return { error: missingTable(insert.message) ? NOT_YET : insert.message };
 
   /*
+   * ── Replacing one that has not been signed ────────────────────────────────
+   *
+   * Giles, 30 Sep: "you can't preview, amend etc." Amending is this: the old one
+   * is withdrawn and this new one stands in its place.
+   *
+   * Deliberately not an edit. The wording on an agreement is frozen at the
+   * moment it is sent, and that freeze is the only reason a signature on one
+   * means anything - so a document cannot be changed, only superseded. What the
+   * screen saves is the retyping, not the principle.
+   *
+   * Done after the new one exists rather than before, and refused on anything
+   * signed. The order matters: withdrawing first and then failing to insert
+   * would leave a business with a dead link and nothing to replace it, and they
+   * would find out by pressing it.
+   */
+  const replaces = String(fd.get("replaces") ?? "").trim();
+  if (replaces) {
+    const { data: gone, error: withdrew } = await db
+      .from("agreements")
+      .update({ void_at: now, updated_at: now })
+      .eq("id", replaces)
+      .eq("studio_id", studio.id)
+      .is("signed_at", null)
+      .select("id");
+
+    if (withdrew) {
+      return {
+        ok: true,
+        link: url,
+        note: `Sent the new one, but could not withdraw the old: ${withdrew.message}. Both links work - withdraw the old one by hand.`,
+      };
+    }
+    if (!gone?.length) {
+      /*
+       * Nothing matched, which means it was signed, already withdrawn, or
+       * belongs to another business. Said rather than swallowed: two live links
+       * to two different sets of terms is exactly the confusion this feature is
+       * meant to remove.
+       */
+      return {
+        ok: true,
+        link: url,
+        note: "Sent the new one. The old one was not withdrawn, because it has been signed or was already withdrawn - so both links still open.",
+      };
+    }
+  }
+
+  /*
    * The email, sent directly rather than through `deliver`.
    *
    * deliver is for messages to a business's own customers: it checks their

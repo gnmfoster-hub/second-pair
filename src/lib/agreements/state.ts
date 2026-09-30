@@ -24,6 +24,15 @@ export type AgreementRow = {
   noticeGivenOn: string | null;
   endsOn: string | null;
   termsVersion: string;
+  /**
+   * The wording, exactly as it was sent.
+   *
+   * Carried into the back office rather than left on the public page, because
+   * the one moment anybody needs to read a signed agreement is when there is a
+   * disagreement about it - and following a client's own private link to find
+   * out what we agreed is a strange way to run a company.
+   */
+  termsText: string;
   sentTo: string | null;
   sentAt: string | null;
   openedAt: string | null;
