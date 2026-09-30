@@ -6,6 +6,7 @@ import { isOutOfHours } from "@/lib/report";
 import { notifyStudio, tellThemSomebodyGotInTouch } from "@/lib/notify";
 import { whoOffers } from "./whoOffers";
 import { reachableFrom } from "./reachableFrom";
+import { splitQuoted } from "@/lib/messaging/quotedReply";
 import { isCheckSession } from "@/lib/checkSessions";
 import { isFirstReply } from "./firstReply";
 import Anthropic from "@anthropic-ai/sdk";
@@ -250,6 +251,70 @@ export type TurnResult = {
    */
   spent?: Spent;
 };
+
+/**
+ * A customer's email, with their own words told apart from their mail client's
+ * copy of what came before.
+ *
+ * ── The reply this exists because of ────────────────────────────────────────
+ *
+ * 30 September, Neat & Tidy. Samantha asked on the website about a regular
+ * clean and was quoted. Karen then wrote to her by hand, from her own mail, and
+ * said: "It would be good to have a quick chat about what you are looking for,
+ * and then I can pop round to see the place and give you a firm price."
+ *
+ * Samantha replied from her iPhone with the days she is at home, meaning the
+ * visit. Her mail client quoted Karen's whole email underneath, as every mail
+ * client does.
+ *
+ * The assistant was handed the subject and the entire body as one string - so
+ * Karen's words arrived as part of what the customer had said. It read them as
+ * the customer's, and answered by offering to book a two hour clean at forty
+ * pounds. Which is the opposite of what Karen had offered, to somebody who had
+ * just written "we've never had a cleaner before so I have no idea what to ask
+ * for".
+ *
+ * ── Why the history is kept rather than dropped ─────────────────────────────
+ *
+ * Trimming it and passing only her words would have been easier and would have
+ * been wrong in a different direction: the assistant would then never have
+ * known Karen had replied at all, because she wrote from her own mail client
+ * and nothing about that reply reaches this system except as the quoted copy.
+ * So the quoted part is the only record there is of half the conversation.
+ *
+ * Both, labelled. Her words are her words; the history is marked as earlier and
+ * as possibly the business's own. The model can then tell who offered what.
+ *
+ * Nothing about what is stored changes. The database keeps the message exactly
+ * as it arrived, because that is the record of what was sent, and the inbox
+ * folds the quoted half away on screen exactly as it did.
+ */
+function asTheySaidIt(content: string | null): string {
+  const whole = content || "(no text)";
+  const { said, quoted } = splitQuoted(whole);
+
+  /* Nothing quoted, which is every text message and most emails. */
+  if (!quoted.trim()) return whole;
+
+  /*
+   * Nothing above the quote either.
+   *
+   * A forward, or a reply where somebody wrote nothing. Passing an empty
+   * message and a wall of history would invite an answer to the history, so the
+   * whole thing goes through as it always did and the model sees what arrived.
+   */
+  if (!said.trim()) return whole;
+
+  return [
+    said.trim(),
+    "",
+    "[Earlier in this conversation, quoted back by their email program. It may be",
+    "something this business already sent them by hand, so read it as what has",
+    "already been said and offered rather than as a new request.]",
+    "",
+    quoted.trim(),
+  ].join("\n");
+}
 
 export async function runTurn(input: TurnInput): Promise<TurnResult> {
   const db = createAdminClient();
@@ -952,7 +1017,7 @@ async function generateReply(
   const messages: Anthropic.MessageParam[] = recentHistory(inOrder).map((m) => ({
     // An owner's own reply reads as the assistant's voice to the client.
     role: m.role === "client" ? "user" : "assistant",
-    content: m.content || "(no text)",
+    content: m.role === "client" ? asTheySaidIt(m.content) : m.content || "(no text)",
   }));
 
   // Per-turn state as a mid-conversation system message: it stays out of the

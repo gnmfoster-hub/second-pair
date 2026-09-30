@@ -54,11 +54,39 @@ export type Split = {
   quoted: string;
 };
 
+/**
+ * A line with its quote marks taken off, for matching against the markers.
+ *
+ * ── The bug this exists because of ──────────────────────────────────────────
+ *
+ * Every mail client that quotes in plain text prefixes the history with ">", and
+ * Apple Mail on an iPhone writes the marker line itself inside the quote:
+ *
+ *   > On 30 Sep 2026, at 14:25, info@neatandtidysolutions.co.uk wrote:
+ *
+ * Every marker below is anchored with ^\s*, so none of them matched that, which
+ * meant an iPhone reply was never split at all. This was written for Outlook's
+ * underscore rule, tested against Outlook, and shipped.
+ *
+ * On 30 September it stopped being a display problem. The same text is now what
+ * the assistant reads, and a whole email from the business arrived inside what it
+ * believed the customer had said — so it answered the business's own words.
+ */
+const unquoted = (line: string) => line.replace(/^\s*(?:>\s?)+/, "");
+
+/**
+ * Whether a line is part of a plain-text quote at all.
+ *
+ * The universal convention, and the fallback for when no marker line is
+ * recognised: a run of ">" lines is history whatever introduced it.
+ */
+const isQuoteLine = (line: string) => /^\s*>/.test(line);
+
 export function splitQuoted(body: string): Split {
   const lines = (body ?? "").split(/\r?\n/);
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    const line = unquoted(lines[i]);
 
     for (const { pattern, sure } of MARKERS) {
       if (!pattern.test(line)) continue;
@@ -71,7 +99,7 @@ export function splitQuoted(body: string): Split {
        * a mail client's header block and nothing else.
        */
       if (!sure) {
-        const following = lines.slice(i + 1, i + 5);
+        const following = lines.slice(i + 1, i + 5).map(unquoted);
         if (!following.some((l) => HEADER.test(l))) continue;
       }
 
@@ -89,6 +117,24 @@ export function splitQuoted(body: string): Split {
 
       return { said, quoted };
     }
+  }
+
+  /*
+   * No marker line anywhere, but a block of ">" lines.
+   *
+   * Some clients quote with no introduction, and some people delete the
+   * "On … wrote:" line and leave the quote behind. Two consecutive quoted lines
+   * is history; one on its own is somebody using a chevron in a sentence.
+   */
+  for (let i = 0; i < lines.length - 1; i++) {
+    if (!isQuoteLine(lines[i]) || !isQuoteLine(lines[i + 1])) continue;
+
+    const said = lines.slice(0, i).join("\n").trimEnd();
+    const quoted = lines.slice(i).join("\n").trim();
+
+    /* Never leave somebody with nothing. Same reason as above. */
+    if (!said.trim()) return { said: body.trim(), quoted: "" };
+    return { said, quoted };
   }
 
   return { said: (body ?? "").trim(), quoted: "" };

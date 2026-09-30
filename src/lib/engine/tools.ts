@@ -692,7 +692,25 @@ async function saveContact(
        * Found on the demo the first time a whole conversation was run through
        * it, which produced a second Leila Osman within a minute.
        */
-      patch[key] = key === "phone" ? samePhone(value) : value.trim();
+      /*
+       * And the same for an email, for exactly the reason written above.
+       *
+       * The argument in that comment is about a phone number and applies word
+       * for word to an address, and only the phone half of it was ever
+       * implemented. On 30 September it cost a real customer: Samantha typed
+       * "Samanthamcquire2018@gmail.com" into the website with a capital S, and
+       * when she replied by email her client sent it lowercased. Compared
+       * literally those are two different people, so Neat & Tidy got two client
+       * records and two conversations for one woman - and the assistant answering
+       * the second one had no idea she had already been quoted, or that Karen had
+       * written to her offering to come and look at the place.
+       *
+       * Nobody's address is case sensitive in practice. Every mail provider
+       * treats the local part as case insensitive, and the cost of pretending
+       * otherwise is somebody's history split in two.
+       */
+      patch[key] =
+        key === "phone" ? samePhone(value) : key === "email" ? value.trim().toLowerCase() : value.trim();
       saved.push(key);
     }
   }
@@ -760,6 +778,37 @@ async function saveContact(
   }
 
   /*
+   * ── Joining up somebody who gave only an email ────────────────────────────
+   *
+   * The block above only runs when the save FAILED, because a duplicate phone
+   * number is refused by the database and that refusal is what triggered it. An
+   * email is not unique in the table, so a second record with the same address
+   * saves perfectly happily and nothing ever noticed.
+   *
+   * So it is asked here, on the way through, whenever an address was saved: is
+   * there already a record with this address, and does the name agree? That is
+   * the case this product sees most - a website enquiry gives an email and no
+   * number, because typing a number into a chat window is a thing people do not
+   * do.
+   *
+   * Quiet either way. Joining is the good case and not worth a word to the
+   * customer, and finding somebody else's address is handled exactly as a
+   * mistyped number is: leave the two apart and say nothing.
+   */
+  if (typeof patch.email === "string" && patch.email) {
+    const joined = await rejoin(ctx, patch);
+    if (joined === "joined") {
+      const facts = await saveFacts(ctx, (input.facts ?? null) as Record<string, unknown> | null);
+      return {
+        result:
+          `Saved: ${[...saved, ...facts.saved].join(", ")}. They have been here before, so this ` +
+          "conversation is now on their existing record, and anything already discussed with " +
+          "them is above. Do not mention any of this; just carry on.",
+      };
+    }
+  }
+
+  /*
    * And the trade's own fields, after the contact is settled rather than
    * before — a returning customer's conversation is moved onto the record
    * they already had, and facts written to the blank first would go with it.
@@ -787,11 +836,33 @@ async function rejoin(
   ctx: ToolContext,
   patch: Record<string, unknown>,
 ): Promise<"joined" | "someone else" | "no"> {
+  /*
+   * Found by whichever they gave, rather than only by a number.
+   *
+   * This matched on phone alone, because it was written as a recovery from the
+   * unique-phone constraint failing. An email has no such constraint, so nothing
+   * ever brought this code anywhere near one - and a customer who gives only an
+   * address, which is most website enquiries, could never be joined to the record
+   * she already had.
+   *
+   * That is what happened to Samantha at Neat & Tidy on 30 September: website
+   * enquiry with an email and no number, then a reply by email, and two client
+   * records for one woman.
+   */
+  const by =
+    typeof patch.phone === "string" && patch.phone
+      ? { column: "phone", value: samePhone(String(patch.phone)) }
+      : { column: "email", value: String(patch.email ?? "").trim().toLowerCase() };
+
+  if (!by.value) return "no";
+
   const { data: existing } = await ctx.db
     .from("contacts")
-    .select("id, name, email")
+    .select("id, name, email, phone")
     .eq("studio_id", ctx.studio.id)
-    .eq("phone", samePhone(String(patch.phone)))
+    .eq(by.column, by.value)
+    .neq("id", ctx.contactId)
+    .limit(1)
     .maybeSingle();
 
   if (!existing || existing.id === ctx.contactId) return "no";
