@@ -36,20 +36,92 @@
 /** Bump when the wording changes in a way that matters. Stamped on each one. */
 export const TERMS_VERSION = "2026-09-draft-1";
 
+export type Period = "monthly" | "quarterly" | "yearly";
+
+/**
+ * One priced line of the schedule.
+ *
+ * Giles, 30 Sep: "the agreement isn't very in depth and should really have
+ * separate lines to add services and costs etc."
+ *
+ * He is right, and a set-up fee plus one recurring figure is not a schedule. A
+ * real one for this business is a website built once, an assistant every month,
+ * the Receptionist every month, and a bundle of texts on top - four lines, three
+ * of them recurring, two different kinds of thing. Rolled into two numbers, the
+ * client cannot see what they are paying for and neither can we a year later when
+ * they ask why it is thirty-five pounds.
+ *
+ * `when` is on the line rather than on the agreement, because it genuinely
+ * differs per line: a build is once and a subscription is not, and an agreement
+ * with both is the ordinary case rather than the awkward one.
+ */
+export type Line = {
+  /** What it is, in the words the client will read. */
+  what: string;
+  pence: number;
+  when: "once" | Period;
+};
+
 export type Money = {
+  /**
+   * The totals, kept because the back office searches and adds them up.
+   *
+   * Where there are lines these are the sums of them, worked out by whatever is
+   * writing the agreement rather than typed twice. Where there are none they are
+   * the whole story, which is how every agreement before 30 September worked and
+   * still reads correctly.
+   */
   setupFeePence: number;
   recurringPence: number;
-  period: "monthly" | "quarterly" | "yearly";
+  period: Period;
   trialEndsOn: string | null;
   noticeDays: number;
   /** "the assistant", "a website" — said in the business's own words. */
   includes: string[];
+  /**
+   * The schedule, where one was given.
+   *
+   * Optional on purpose: an agreement written before this existed has none, and
+   * must go on rendering exactly as it did. A signature is against a wording, and
+   * changing how an old one would render is the one thing this file must never
+   * do.
+   */
+  lines?: Line[];
 };
+
+/** What the totals come to, given a schedule. Used by whatever writes one. */
+export function totalsFor(lines: Line[]): {
+  setupFeePence: number;
+  recurringPence: number;
+  period: Period;
+} {
+  const once = lines.filter((l) => l.when === "once");
+  const repeating = lines.filter((l) => l.when !== "once");
+
+  /*
+   * The period for the totals is whichever the recurring lines share.
+   *
+   * Where they do not share one - a monthly assistant and a yearly domain - the
+   * summed "recurring" figure is not a real number, so the schedule below is the
+   * only honest statement of it and the total is left as the monthly part. The
+   * columns exist for the back office to sort by, not to be quoted at anybody.
+   */
+  const periods = [...new Set(repeating.map((l) => l.when as Period))];
+  const period: Period = periods.length === 1 ? periods[0] : "monthly";
+
+  return {
+    setupFeePence: once.reduce((n, l) => n + l.pence, 0),
+    recurringPence: repeating
+      .filter((l) => l.when === period)
+      .reduce((n, l) => n + l.pence, 0),
+    period,
+  };
+}
 
 const money = (pence: number) =>
   pence % 100 === 0 ? `£${pence / 100}` : `£${(pence / 100).toFixed(2)}`;
 
-const PERIOD: Record<Money["period"], string> = {
+const PERIOD: Record<Period, string> = {
   monthly: "a month",
   quarterly: "a quarter",
   yearly: "a year",

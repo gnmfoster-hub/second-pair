@@ -51,17 +51,46 @@
  * counts characters spoken at the rate of whichever tier said them.
  */
 export const VOICES = [
-  {
-    id: "Polly.Amy-Generative",
-    label: "Amy",
-    what: "British, warm — the most natural, and the default",
-    tier: "generative",
-  },
+  /*
+   * ── Neural first, and why it is the default again ──────────────────────────
+   *
+   * Giles, 30 Sep, ringing Amber's number: "it did send the text but when it
+   * stopped ringing it was like it answered but didn't say anything."
+   *
+   * Which is the failure this file's own comment predicted, in writing, in the
+   * paragraph below: an unsupported voice does not fall back, it fails the
+   * <Say>, and a caller hears silence. The generative tier is enabled per Twilio
+   * account and nothing here can read whether it is on. It evidently is not.
+   *
+   * So the proven voice is the default and generative is a choice. That inverts
+   * the risk in the only direction that makes sense: the worst case is now a
+   * slightly less natural British voice, where before it was a live client's
+   * phone line answering a stranger with nothing at all. A voice that might not
+   * speak has no business being what every business gets by default.
+   *
+   * This reverses a decision Giles made deliberately - "make it the default,
+   * re-cost it, and have the ability to switch back" - and the reason is that it
+   * does not work, not that it was the wrong call. The switch back is one
+   * variable: RECEPTIONIST_VOICE=Polly.Amy-Generative in Vercel, once generative
+   * is enabled on the Twilio account. Same voice, same person, better engine.
+   *
+   * Worth being honest about the diagnosis: Twilio's credentials live only in
+   * Vercel, so its error log could not be read from here. The spoken text is
+   * never empty and the text message went, so the webhook ran and the <Say>
+   * specifically produced no audio - which points hard at the voice attribute
+   * and is not the same as having seen the error.
+   */
   {
     id: "Polly.Amy-Neural",
-    label: "Amy (cheaper)",
-    what: "The same British voice, older engine",
+    label: "Amy",
+    what: "British, warm. The default, and proved on a real call",
     tier: "neural",
+  },
+  {
+    id: "Polly.Amy-Generative",
+    label: "Amy (most natural, needs enabling at Twilio)",
+    what: "The same British voice on the newest engine. Four times the price, and silent unless the generative tier is switched on for the Twilio account",
+    tier: "generative",
   },
   { id: "Polly.Emma-Neural", label: "Emma (cheaper)", what: "British, brisker", tier: "neural" },
   { id: "Polly.Brian-Neural", label: "Brian (cheaper)", what: "British, male", tier: "neural" },
@@ -70,7 +99,12 @@ export const VOICES = [
 
 export const DEFAULT_VOICE = VOICES[0].id;
 
-/** Which price tier a voice bills at. Unknown names bill as the default's. */
+/**
+ * Which price tier a voice bills at. Unknown names bill as the default's.
+ *
+ * Reads VOICES[0] rather than naming a tier, so moving the default between tiers
+ * cannot leave the meter quoting the old price.
+ */
 export function tierOf(voice: string | null | undefined): "generative" | "neural" {
   return VOICES.find((v) => v.id === voice)?.tier ?? VOICES[0].tier;
 }

@@ -1,6 +1,18 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { escapeXml, twiml, hangUp, textsOnly, cannotTakeIt, ringThem, takeAMessage, sayAndListen, sayAndFinish } from "./twiml.ts";
+import { DEFAULT_VOICE } from "./howItSounds.ts";
+
+/*
+ * The default, read rather than written out.
+ *
+ * These two assertions named "Polly.Amy-Generative" as a literal, so changing
+ * the default voice - which happened on 30 September, because the generative one
+ * answered a live client's caller with silence - failed two tests that have
+ * nothing to say about which voice is right. What they are actually checking is
+ * that the house voice reaches the tag, whatever it currently is.
+ */
+const HOUSE = DEFAULT_VOICE.replace(".", "\.");
 
 /**
  * Every tag opened is closed, and nothing that goes in unbalances it.
@@ -97,7 +109,7 @@ test("it says something and listens for the answer", () => {
   assert.match(xml, /action="\/api\/voice\/talk\?call=CA123"/);
   assert.match(
     xml,
-    /<Say voice="Polly\.Amy-Generative" language="en-GB">Hello, Willow and Co\.<\/Say>/,
+    new RegExp(`<Say voice="${HOUSE}" language="en-GB">Hello, Willow and Co\.</Say>`),
   );
 });
 
@@ -189,7 +201,7 @@ test("a nonsense override is ignored rather than spoken", () => {
     process.env.RECEPTIONIST_VOICE = "Polly.DoesNotExist";
     const xml = sayAndListen("Hello.", "/api/voice/talk");
     assert.doesNotMatch(xml, /DoesNotExist/, "the whole point of the list is that this cannot happen");
-    assert.match(xml, /voice="Polly\.Amy-Generative"/);
+    assert.match(xml, new RegExp(`voice="${HOUSE}"`));
   } finally {
     if (was === undefined) delete process.env.RECEPTIONIST_VOICE;
     else process.env.RECEPTIONIST_VOICE = was;

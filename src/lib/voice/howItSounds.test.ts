@@ -35,12 +35,31 @@ test("every voice on the list is British and named for a person", () => {
 });
 
 /*
- * Giles: "make it the default, re-cost it, and have the ability to switch
- * back." All three of those are facts about this list.
+ * ── The default has to be a voice that definitely speaks ────────────────────
+ *
+ * This test asserted the opposite until 30 September, because Giles had asked
+ * for the generative voice as the default: "make it the default, re-cost it, and
+ * have the ability to switch back."
+ *
+ * Then he rang Amber's number and it answered a caller with silence. Twilio does
+ * not fall back from a voice the account cannot use - it fails the <Say> - and
+ * whether the generative tier is enabled is an account setting nothing here can
+ * read. So the rule this file has to keep is not "the default is the best one",
+ * it is "the default is one that has been heard to work".
+ *
+ * Generative stays on the list, so the switch Giles asked for is still there and
+ * is one variable in Vercel. What changed is which way round the risk sits.
  */
-test("the default is the generative voice", () => {
-  assert.equal(DEFAULT_VOICE, "Polly.Amy-Generative");
-  assert.equal(tierOf(DEFAULT_VOICE), "generative");
+test("the default is a voice that has been proved on a real call", () => {
+  assert.equal(DEFAULT_VOICE, "Polly.Amy-Neural");
+  assert.equal(tierOf(DEFAULT_VOICE), "neural");
+});
+
+test("the most natural one is still offered, and says what it needs", () => {
+  const generative = VOICES.find((v) => v.tier === "generative");
+  assert.ok(generative, "switching up has to remain possible");
+  /* Anybody choosing it has to be told it needs enabling, or they get silence. */
+  assert.match(generative.what, /enabl|switched on/i);
 });
 
 test("there is always a cheaper one to switch back to", () => {
@@ -52,10 +71,20 @@ test("there is always a cheaper one to switch back to", () => {
   );
 });
 
-test("the tier is what gets billed, so an unknown voice must not read as cheap", () => {
+/*
+ * The meter has to quote whatever actually speaks.
+ *
+ * Written against the literal "generative" while that was the default, which
+ * meant moving the default between tiers left this test asserting the old price.
+ * Asked against DEFAULT_VOICE now, so the rule survives the next change of mind:
+ * an unknown name falls back to the default, so it must bill as the default
+ * does, whichever tier that happens to be.
+ */
+test("an unknown voice bills as whatever will actually speak", () => {
   assert.equal(tierOf("Polly.Brian-Neural"), "neural");
-  assert.equal(tierOf("Polly.Nonsense"), "generative", "unknown falls back to the default, which is what will actually speak");
-  assert.equal(tierOf(null), "generative");
+  assert.equal(tierOf("Polly.Nonsense"), tierOf(DEFAULT_VOICE));
+  assert.equal(tierOf(null), tierOf(DEFAULT_VOICE));
+  assert.equal(tierOf(undefined), tierOf(DEFAULT_VOICE));
 });
 
 /*

@@ -58,6 +58,16 @@ async function guard(): Promise<AgreementResult | null> {
 const NOT_YET =
   "Agreements need the database update run first — 20260927180000_agreements.sql.";
 
+/** Pounds as a reader writes them: £20, and £22.50 only when there are pence. */
+const poundsFor = (pence: number) =>
+  pence % 100 === 0 ? `£${pence / 100}` : `£${(pence / 100).toFixed(2)}`;
+
+const PERIOD_WORD: Record<"monthly" | "quarterly" | "yearly", string> = {
+  monthly: "a month",
+  quarterly: "a quarter",
+  yearly: "a year",
+};
+
 const missingTable = (message: string) => /relation|does not exist|schema cache/i.test(message);
 
 const pence = (fd: FormData, key: string) => {
@@ -223,12 +233,26 @@ export async function sendAgreement(
    * we have just agreed terms with. It also writes into that business's
    * conversation, and this is not one of their conversations.
    */
+  /*
+   * ── The link as a button, not as a line of text ────────────────────────────
+   *
+   * Giles, 30 Sep: "the link in the agreement email is not clickable."
+   *
+   * It was not. buildEmail takes an `action` and I passed it a body with a bare
+   * URL sitting in the middle of it - so the HTML version rendered that URL as
+   * plain text, exactly as typed, and the one thing the email exists to do could
+   * not be done by pressing it. Every other email this product sends already
+   * gets a button; this one was written by hand and missed it.
+   *
+   * The URL stays in the text version, because a plain-text email has no buttons
+   * and a bare link is what a mail client makes clickable there. It comes out of
+   * the HTML version, where the button is doing that job and the same address
+   * twice reads as a mistake.
+   */
   const body = [
     `Hello,`,
     ``,
-    `Here is the agreement for ${studio.name}, ready to read and sign:`,
-    ``,
-    url,
+    `Here is the agreement for ${studio.name}, ready to read and sign.`,
     ``,
     `It sets out what you are taking on, what it costs, how much notice either of us gives to end it, and what happens to your customers' information. Have a proper read, and if anything is not what we discussed, tell me and I will change it and send it again rather than asking you to sign it as it is.`,
     ``,
@@ -240,9 +264,34 @@ export async function sendAgreement(
 
   const sent = await sendEmail({
     to,
-    subject: `Your agreement with Second Pair — ${studio.name}`,
-    text: body,
-    html: buildEmail({ business: "Second Pair", body }),
+    subject: `Your agreement with Second Pair, ${studio.name}`,
+    /* Plain text keeps the address, because there is nothing to press. */
+    text: `${body}\n\n${url}`,
+    html: buildEmail({
+      business: "Second Pair",
+      heading: "Your agreement, ready to sign",
+      body,
+      action: { label: "Read it and sign it", url },
+      /*
+       * The money, where a reader's eye finds it without reading a sentence.
+       *
+       * The same argument the reminder emails make: the prose sounds like a
+       * person, and the table is what somebody actually checks. Here it is what
+       * they check before deciding whether to press the button at all.
+       */
+      details: [
+        {
+          label: "Setting up",
+          value: money.setupFeePence > 0 ? poundsFor(money.setupFeePence) : "nothing",
+        },
+        {
+          label: "Then",
+          value: `${poundsFor(money.recurringPence)} ${PERIOD_WORD[money.period]}`,
+        },
+        { label: "Notice to cancel", value: `${money.noticeDays} days` },
+        ...(money.trialEndsOn ? [{ label: "Free until", value: money.trialEndsOn }] : []),
+      ],
+    }),
     fromName: "Second Pair",
   });
 
