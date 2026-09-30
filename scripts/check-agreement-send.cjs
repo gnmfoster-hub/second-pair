@@ -166,6 +166,51 @@ const bad = (w, d) => {
     await form.locator('input[name="setup_fee"]').fill("250");
     await form.locator('input[name="recurring"]').fill("22.50");
     await form.locator('input[name="notice_days"]').fill("30");
+
+    /*
+     * ── The wording, read before anything is sent ─────────────────────────────
+     *
+     * Giles, 30 Sep: "you can't preview, amend etc." This is the half that was
+     * missing entirely - the first person to read the document was the client.
+     *
+     * Checked against the figures typed above rather than merely "there is some
+     * text", because a preview that does not follow the boxes is worse than none:
+     * somebody would read it, believe it, and send something else.
+     */
+    const readIt = form.locator("details").filter({ hasText: /Read it before you send it/ }).first();
+    if (!(await readIt.count())) {
+      bad("there is no way to read the wording before sending it");
+    } else {
+      await readIt.locator("summary").click();
+      await page.waitForTimeout(400);
+      const shown = await readIt.innerText();
+      const missing = [
+        [/Setting up: £250, once/, "the set-up fee as typed"],
+        [/Then: £22\.50 a month/, "the recurring amount as typed"],
+        [/30 days' notice/, "the notice period as typed, not the default sixty"],
+      ].filter(([pattern]) => !pattern.test(shown));
+      if (missing.length === 0) {
+        ok("the wording can be read before sending, and follows the figures typed");
+      } else {
+        bad(
+          `the wording shown is missing ${missing.map(([, w]) => w).join("; ")}`,
+          shown.slice(0, 120).split(/\s+/).join(" "),
+        );
+      }
+
+      /*
+       * And that it changes when a figure does, which is the whole claim. A
+       * preview rendered once and then left behind would pass the check above.
+       */
+      await form.locator('input[name="recurring"]').fill("31");
+      await page.waitForTimeout(400);
+      const again = await readIt.innerText();
+      if (/Then: £31 a month/.test(again)) ok("and it follows a figure being changed");
+      else bad("the wording did not follow a changed figure", again.slice(0, 100));
+      await form.locator('input[name="recurring"]').fill("22.50");
+      await page.waitForTimeout(300);
+    }
+
     await form.getByRole("button", { name: /Build it and email the link/i }).click();
     await page.waitForTimeout(6000);
 
@@ -229,6 +274,81 @@ const bad = (w, d) => {
         bad("the link does not open on the agreement", `status ${res?.status()}`);
       }
       await opened.close();
+    }
+
+    // ------------------------------------------- 4. changing an unsigned one
+    /*
+     * Giles, 30 Sep: "you can't preview, amend etc."
+     *
+     * Changing one is not an edit and must never become one: the wording is
+     * frozen when it is sent, and that freeze is the only reason a signature
+     * means anything. So the old one is withdrawn and a new one stands in its
+     * place, and the four things worth proving are that the form arrives filled
+     * in, that the change actually lands, that the old one is withdrawn, and
+     * that the old link stops working.
+     */
+    const changeIt = card.getByRole("button", { name: /^Change it$/ }).first();
+    if (!(await changeIt.count())) {
+      bad("there is no way to change an unsigned agreement");
+    } else {
+      await changeIt.click();
+      await page.waitForTimeout(900);
+
+      const form3 = card.locator('form:has(input[name="sent_to"])').first();
+      const filled = {
+        to: await form3.locator('input[name="sent_to"]').inputValue(),
+        recurring: await form3.locator('input[name="recurring"]').inputValue(),
+        notice: await form3.locator('input[name="notice_days"]').inputValue(),
+        replaces: await form3.locator('input[name="replaces"]').inputValue().catch(() => ""),
+      };
+
+      if (filled.to === to && filled.recurring === "22.5" && filled.notice === "30") {
+        ok("changing one opens the form already filled in from it");
+      } else {
+        bad(
+          "the form did not arrive filled in from the agreement",
+          `${filled.to} / ${filled.recurring} / ${filled.notice}`,
+        );
+      }
+      if (filled.replaces === row.id) ok("and it knows which one it replaces");
+      else bad("it does not know which one it replaces", filled.replaces || "nothing");
+
+      /* Change the one figure, the way somebody correcting a price would. */
+      await form3.locator('input[name="recurring"]').fill("35");
+      await form3.getByRole("button", { name: /Replace it and email the new link/i }).click();
+      await page.waitForTimeout(6000);
+
+      const { data: after } = await db
+        .from("agreements")
+        .select("id, recurring_pence, void_at, token, terms_text")
+        .eq("studio_id", studio.id)
+        .order("created_at", { ascending: false });
+
+      const replacement = (after ?? []).find((a) => Number(a.recurring_pence) === 3500);
+      const original = (after ?? []).find((a) => a.id === row.id);
+
+      if (replacement) ok("the corrected one was sent, at the new price");
+      else bad("no corrected agreement was written", "the change went nowhere");
+
+      if (original?.void_at) ok("and the one it replaced is withdrawn");
+      else bad("the old agreement is still live", "two sets of terms, both openable");
+
+      /* The old link has to stop working, or they can still sign the wrong one. */
+      if (original?.token) {
+        const stale = await context.newPage();
+        await stale.goto(`${SITE}/a/${original.token}`, { waitUntil: "domcontentloaded" });
+        const said = await stale.locator("body").innerText();
+        if (/not available/i.test(said)) ok("the old link no longer opens");
+        else bad("the old link still opens", said.slice(0, 80).split(/\s+/).join(" "));
+        await stale.close();
+      }
+
+      /* And the new wording says the new price, frozen onto the new row. */
+      if (replacement && /Then: £35 a month/.test(String(replacement.terms_text ?? ""))) {
+        ok("the new wording carries the corrected price");
+      } else if (replacement) {
+        bad("the corrected wording does not say the new price");
+      }
     }
 
     // ------------------------------- 4. a website-only one promises no assistant
