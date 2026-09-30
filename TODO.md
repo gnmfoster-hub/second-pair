@@ -1077,7 +1077,34 @@ alter after sending, a tick, a signature, and a record of who signed and when.
   agreed is a second agreement, not the quiet disappearance of the first. The
   server refuses it rather than the screen hiding the button.
 
-**Waiting on you — 1. Run the migration.**
+**Done 30 Sep, after Giles said "you can't preview, amend etc the agreement
+which is weird."** He was right, and it was worse than weird: you typed four
+figures, pressed a button, and the first person to read the document was the
+client.
+
+- **Read it before you send it.** The whole wording, folded into the send form,
+  changing as the figures change. Rendered by the same function the send uses, so
+  it is not a preview *of* the wording, it is the wording.
+- **Read the wording of one already sent.** On every agreement in the back
+  office. The one moment anybody needs to read a signed agreement is when there
+  is a disagreement about it, and the only route was the client's own link.
+- **Change an unsigned one.** Opens the form filled in from it, and sending
+  withdraws the old one and kills its link. Deliberately not an edit: the wording
+  is frozen when sent, and that freeze is the only reason a signature means
+  anything, so a document is superseded rather than altered. A signed one still
+  has no Change and no Withdraw, refused by the server rather than hidden.
+
+**Both halves are now proved**, seventeen assertions across
+`check-agreement.cjs` and `check-agreement-send.cjs`. The four worth naming: the
+preview follows a figure being *changed*; a corrected agreement is sent at the
+new price; the old one is withdrawn; **and the old link stops opening** — two
+live links to two sets of terms is the fault that would look fine from the back
+office while a client signed the wrong document.
+
+**~~Waiting on you — 1. Run the migration.~~ Done, 29 Sep.**
+`node scripts/check-migrations.mjs` reports every migration landed.
+
+**Waiting on you — the migration, for the record.**
 `20260927180000_agreements.sql`, in the Supabase SQL editor. Until it is run the
 panel is empty and pressing send says exactly that. Everything shipped safely
 ahead of it: the read cannot throw, and the public page treats a missing table
