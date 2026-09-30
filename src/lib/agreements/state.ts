@@ -12,6 +12,8 @@
  * put together.
  */
 
+import type { Line } from "./terms";
+
 export type AgreementRow = {
   id: string;
   studioId: string;
@@ -33,6 +35,14 @@ export type AgreementRow = {
    * out what we agreed is a strange way to run a company.
    */
   termsText: string;
+  /**
+   * The priced schedule as sent, where there is one.
+   *
+   * Empty for every agreement written before 30 September, and empty until the
+   * lines migration has run - which is why it is an array rather than optional,
+   * so nothing downstream has to ask which of those two it is looking at.
+   */
+  lines: Line[];
   sentTo: string | null;
   sentAt: string | null;
   openedAt: string | null;

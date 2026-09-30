@@ -33,8 +33,21 @@
  * wording somebody agreed to without reading the whole thing back.
  */
 
-/** Bump when the wording changes in a way that matters. Stamped on each one. */
-export const TERMS_VERSION = "2026-09-draft-1";
+/**
+ * Bump when the wording changes in a way that matters. Stamped on each one.
+ *
+ * draft-2, 30 September: a priced schedule in section 2, and two clauses that
+ * were missing - who owns what, and keeping things to ourselves. The first is the
+ * one that mattered. This company builds websites, the marketing pages already
+ * promise "your domain, your content, your photographs", and the agreement said
+ * nothing about ownership at all. A promise on a sales page and silence in the
+ * contract is the wrong way round.
+ *
+ * Bumping this changes what the NEXT business is sent and nothing whatever about
+ * what anybody has already signed, because the wording is frozen onto each
+ * agreement as it goes out. That is the whole point of stamping it.
+ */
+export const TERMS_VERSION = "2026-09-draft-2";
 
 export type Period = "monthly" | "quarterly" | "yearly";
 
@@ -180,12 +193,74 @@ export function buildTerms(business: string, m: Money): string {
 
   lines.push("2. WHAT IT COSTS");
   lines.push("");
+
+  /*
+   * ── The schedule, where one was given ────────────────────────────────────
+   *
+   * Giles, 30 Sep: "the agreement isn't very in depth and should really have
+   * separate lines to add services and costs etc."
+   *
+   * A set-up fee and one recurring figure is not a schedule. A real one here is
+   * a website built once, an assistant every month, the Receptionist every
+   * month and a bundle of texts on top: four lines, three recurring, two
+   * different kinds of thing. Rolled into two numbers, the client cannot see
+   * what they are paying for, and neither can we a year later when they ask why
+   * it is forty-three pounds.
+   *
+   * Written as "What it is: £20 a month" rather than in aligned columns, because
+   * this string is rendered in a proportional font on the signing page and in an
+   * email. Spaces that line up in an editor do not line up there, and a schedule
+   * that looks broken is one somebody stops trusting.
+   */
+  const schedule = m.lines ?? [];
+  if (schedule.length > 0) {
+    lines.push("What you are paying for:");
+    lines.push("");
+    for (const line of schedule) {
+      /*
+       * The comma belongs to "once" and not to a period.
+       *
+       * "£450, once" reads as somebody would say it; "£20, a month" does not, and
+       * the first draft of this produced exactly that on every recurring line.
+       * Caught by its own test rather than by a client reading it.
+       */
+      const when = line.when === "once" ? ", once" : ` ${PERIOD[line.when]}`;
+      lines.push(`  ${line.what}: ${money(line.pence)}${when}`);
+    }
+    lines.push("");
+  }
+
   if (m.setupFeePence > 0) {
-    lines.push(`Setting up: ${money(m.setupFeePence)}, once, payable before we start.`);
+    lines.push(
+      schedule.length > 0
+        ? `Once, at the start: ${money(m.setupFeePence)}, payable before we start.`
+        : `Setting up: ${money(m.setupFeePence)}, once, payable before we start.`,
+    );
   } else {
     lines.push("Setting up: nothing.");
   }
-  lines.push(`Then: ${recurring}.`);
+
+  /*
+   * The recurring total, and every period it is spread across.
+   *
+   * Where the lines share one period this is the same single sentence it always
+   * was. Where they do not - a monthly assistant and a yearly domain - there is
+   * no one recurring figure, and inventing one by adding a month to a year would
+   * be the worst kind of wrong: plausible, on a document somebody signs. So each
+   * period gets its own sum and they are read as a list.
+   */
+  const repeating = schedule.filter((l) => l.when !== "once");
+  const periods = [...new Set(repeating.map((l) => l.when as Period))];
+
+  if (periods.length > 1) {
+    const each = periods.map((p) => {
+      const sum = repeating.filter((l) => l.when === p).reduce((n, l) => n + l.pence, 0);
+      return `${money(sum)} ${PERIOD[p]}`;
+    });
+    lines.push(`Then: ${each.slice(0, -1).join(", ")} and ${each[each.length - 1]}.`);
+  } else {
+    lines.push(`Then: ${recurring}.`);
+  }
   if (m.trialEndsOn) {
     lines.push("");
     lines.push(
@@ -283,7 +358,70 @@ export function buildTerms(business: string, m: Money): string {
   );
   lines.push("");
 
-  lines.push("7. THE REST");
+  /*
+   * ── Who owns what, which was the real hole ────────────────────────────────
+   *
+   * Giles, 30 Sep: "the agreement isn't very in depth."
+   *
+   * Of everything that could be added, this is the one that was actually
+   * missing. Second Pair builds websites. The marketing pages already promise
+   * "your domain, your content, your photographs - if you ever leave it comes
+   * with you", and the agreement said nothing about ownership at all. A promise
+   * on a sales page and silence in the contract is the wrong way round: the
+   * sales page is the one nobody reads again.
+   *
+   * Two directions, and both matter.
+   *
+   * Theirs: the content, the photographs, the domain, and the site as it stands
+   * when they leave. Saying so is not a concession, it is what was already being
+   * promised, and writing it down is what makes the promise worth anything.
+   *
+   * Ours: the software itself. Every business on this platform runs the same
+   * code, and a clause that handed a copy of it to whoever paid for a website
+   * would be unworkable the second time it was signed.
+   *
+   * And the part that protects us from them: somebody hands over a photograph
+   * they found on Google, we put it on their site, and the photographer's agent
+   * writes to us. That is their liability and it has to say so, because we
+   * cannot know where a picture came from.
+   */
+  lines.push("7. WHO OWNS WHAT ★");
+  lines.push("");
+  lines.push(
+    "Everything you give us stays yours: your words, your photographs, your logo, your prices, your customers' details and your domain name. Nothing about this agreement gives us any claim on them.",
+  );
+  lines.push("");
+  lines.push(
+    hasAssistant
+      ? "Anything we build for you specifically - the pages of your site, the words on them, the way your assistant is set up - is yours to keep and to take elsewhere when this ends. What stays ours is the software this all runs on, which every business here shares and none of them owns."
+      : "The site we build for you is yours: the pages, the words, the pictures and the domain. Take it elsewhere whenever you like and it goes with you. What stays ours is the software behind it, which every business here shares and none of them owns.",
+  );
+  lines.push("");
+  lines.push(
+    "★ What you give us has to be yours to give. If you send us a photograph, a logo, a font or a piece of writing that belongs to somebody else, and they object, that is for you to settle rather than us. We cannot tell where a picture came from, and we will take anything down straight away if somebody asks us to.",
+  );
+  lines.push("");
+
+  /*
+   * Confidentiality, both ways, and deliberately short.
+   *
+   * Not boilerplate: setting a business up means being told their prices, their
+   * margins, what their staff are paid and which customers are trouble. Nothing
+   * said that any of it stays put. One paragraph rather than a page, because the
+   * long version would be the part nobody reads.
+   */
+  lines.push("8. KEEPING THINGS TO OURSELVES");
+  lines.push("");
+  lines.push(
+    "Setting you up means we are told things a competitor would like to know: what you charge, what you pay, which jobs are worth doing. None of it goes anywhere. The same applies the other way round to anything we tell you about how this is built or what it costs us to run.",
+  );
+  lines.push("");
+  lines.push(
+    "This does not stop either of us saying that we work together, unless you would rather we did not - tell us and we will not.",
+  );
+  lines.push("");
+
+  lines.push("9. THE REST");
   lines.push("");
   lines.push(
     "This is the whole agreement between us. Changing it takes both of us agreeing in writing. It is governed by the law of England and Wales.",

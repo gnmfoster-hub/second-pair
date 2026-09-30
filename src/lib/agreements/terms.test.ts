@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildTerms, TERMS_VERSION, type Money } from "./terms.ts";
+import { buildTerms, TERMS_VERSION, totalsFor, type Line, type Money } from "./terms.ts";
 
 const base: Money = {
   setupFeePence: 25000,
@@ -106,4 +106,134 @@ test("every clause a solicitor must look at is marked", () => {
 
 test("the version is stamped so it is always knowable what was signed", () => {
   assert.match(TERMS_VERSION, /^\d{4}-\d{2}-/);
+});
+
+/*
+ * ── The priced schedule ─────────────────────────────────────────────────────
+ *
+ * Giles, 30 Sep: "the agreement isn't very in depth and should really have
+ * separate lines to add services and costs etc." A set-up fee and one recurring
+ * figure is not a schedule: a real one here is a site built once, an assistant
+ * every month, the Receptionist every month, and texts on top.
+ */
+const RUN: Line[] = [
+  { what: "A website", pence: 45000, when: "once" },
+  { what: "The assistant", pence: 2000, when: "monthly" },
+  { what: "The Receptionist", pence: 1500, when: "monthly" },
+];
+
+test("every line is listed with its own price and its own period", () => {
+  const t = buildTerms("Amber's Paws", {
+    ...base,
+    lines: RUN,
+    ...totalsFor(RUN),
+  });
+  assert.match(t, /A website: £450, once/);
+  assert.match(t, /The assistant: £20 a month/);
+  assert.match(t, /The Receptionist: £15 a month/);
+});
+
+test("the totals are the sums of the lines, not a second thing to type", () => {
+  const totals = totalsFor(RUN);
+  assert.equal(totals.setupFeePence, 45000);
+  assert.equal(totals.recurringPence, 3500);
+  assert.equal(totals.period, "monthly");
+
+  const t = buildTerms("X", { ...base, lines: RUN, ...totals });
+  assert.match(t, /Once, at the start: £450, payable before we start/);
+  assert.match(t, /Then: £35 a month/);
+});
+
+/*
+ * The case that would have been quietly wrong.
+ *
+ * A monthly assistant and a yearly domain have no single recurring figure, and
+ * adding a month to a year to produce one would be the worst kind of mistake:
+ * plausible, on a document somebody signs. Each period gets its own sum.
+ */
+test("lines on different periods are not added together into a fiction", () => {
+  const mixed: Line[] = [
+    { what: "The assistant", pence: 2000, when: "monthly" },
+    { what: "Your domain", pence: 1800, when: "yearly" },
+  ];
+  const t = buildTerms("X", { ...base, lines: mixed, ...totalsFor(mixed) });
+  assert.match(t, /Then: £20 a month and £18 a year\./);
+  assert.doesNotMatch(t, /£38/, "a month and a year must never be summed");
+});
+
+test("no schedule reads exactly as it always did", () => {
+  const without = buildTerms("X", base);
+  assert.match(without, /Setting up: £250, once, payable before we start/);
+  assert.match(without, /Then: £20 a month/);
+  assert.doesNotMatch(without, /What you are paying for/);
+});
+
+test("a schedule of one is still a schedule", () => {
+  const one: Line[] = [{ what: "A website", pence: 45000, when: "once" }];
+  const t = buildTerms("X", { ...base, lines: one, ...totalsFor(one) });
+  assert.match(t, /A website: £450, once/);
+  /* Nothing recurring, so the "then" line says nought rather than going missing. */
+  assert.match(t, /Then: £0 a month/);
+});
+
+/*
+ * ── Who owns what ───────────────────────────────────────────────────────────
+ *
+ * The real hole, and the reason this version was bumped. This company builds
+ * websites; the marketing pages already promise "your domain, your content, your
+ * photographs, if you ever leave it comes with you"; and the agreement said
+ * nothing about ownership at all. A promise on a sales page and silence in the
+ * contract is the wrong way round, because the sales page is the one nobody reads
+ * again.
+ */
+test("what the client gives us stays theirs, in both directions", () => {
+  const t = buildTerms("X", base);
+  assert.match(t, /Everything you give us stays yours/);
+  assert.match(t, /your domain name/);
+  /* And the half that protects the platform: the software is not sold with it. */
+  assert.match(t, /the software this all runs on|the software behind it/);
+  assert.match(t, /every business here shares and none of them owns/);
+});
+
+test("a website-only client is told the site is theirs to take", () => {
+  const t = buildTerms("X", { ...base, includes: ["a website"] });
+  assert.match(t, /The site we build for you is yours/);
+  assert.match(t, /goes with you/);
+});
+
+/*
+ * The clause that protects us from them, which is the one most likely to be left
+ * out because it is the awkward one to write. Somebody hands over a photograph
+ * they found on Google, it goes on their site, and the photographer's agent
+ * writes to us.
+ */
+test("material a client supplies has to be theirs to supply", () => {
+  const t = buildTerms("X", base);
+  assert.match(t, /has to be yours to give/);
+  assert.match(t, /for you to settle rather than us/);
+  assert.match(t, /take anything down straight away/);
+});
+
+test("confidentiality runs both ways and does not gag either of us about working together", () => {
+  const t = buildTerms("X", base);
+  assert.match(t, /None of it goes anywhere/);
+  assert.match(t, /the same applies the other way round/i);
+  assert.match(t, /does not stop either of us saying that we work together/);
+});
+
+/*
+ * Numbering, because a cross-reference to the wrong section is the kind of fault
+ * nobody notices until a solicitor does. Two clauses were inserted before "THE
+ * REST", and section 2 refers to "the notice period in section 5".
+ */
+test("the sections are numbered in order and the cross-reference still points at notice", () => {
+  const t = buildTerms("X", base);
+  const numbers = [...t.matchAll(/^(\d+)\. [A-Z]/gm)].map((m) => Number(m[1]));
+  assert.deepEqual(numbers, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  assert.match(t, /the notice period in section 5 does not apply/);
+  assert.match(t, /^5\. ENDING IT$/m);
+});
+
+test("the version says which wording this is, and it is not the first draft any more", () => {
+  assert.equal(TERMS_VERSION, "2026-09-draft-2");
 });

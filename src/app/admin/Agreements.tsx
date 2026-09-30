@@ -10,7 +10,7 @@ import {
   type AgreementResult,
 } from "./agreementActions";
 import { whereItGot, type AgreementRow } from "@/lib/agreements/state";
-import { buildTerms, TERMS_VERSION } from "@/lib/agreements/terms";
+import { buildTerms, TERMS_VERSION, totalsFor, type Line } from "@/lib/agreements/terms";
 
 /**
  * The agreements a business has, and sending them a new one.
@@ -266,6 +266,13 @@ export function Agreements({
   );
 }
 
+/** Pounds as a reader writes them. Pence only where there are pence. */
+const poundsOf = (pence: number) =>
+  pence % 100 === 0 ? `£${pence / 100}` : `£${(pence / 100).toFixed(2)}`;
+
+const saidPeriod = (period: string) =>
+  period === "yearly" ? "a year" : period === "quarterly" ? "a quarter" : "a month";
+
 const said = (period: string) =>
   period === "yearly" ? "a year" : period === "quarterly" ? "a quarter" : "a month";
 
@@ -314,6 +321,30 @@ function SendForm({
   const [includes, setIncludes] = useState(
     (amending?.includes ?? ["the assistant"]).join(", "),
   );
+  /*
+   * ── The schedule, which is now where the money lives ──────────────────────
+   *
+   * Giles, 30 Sep: "should really have separate lines to add services and costs."
+   *
+   * The two figures below are still here and still submitted, because an
+   * agreement with no schedule is a perfectly good agreement and every one
+   * written before today has none. But where there are lines, the figures are
+   * SUMS of them rather than a second thing to type - so they are shown read-only
+   * and worked out, which is the only way two statements of one number can be
+   * stopped from disagreeing.
+   */
+  const [rows, setRows] = useState<
+    { what: string; amount: string; when: "once" | "monthly" | "quarterly" | "yearly" }[]
+  >(
+    amending?.lines?.length
+      ? amending.lines.map((l) => ({
+          what: l.what,
+          amount: String(l.pence / 100),
+          when: l.when,
+        }))
+      : [],
+  );
+
   const [setupFee, setSetupFee] = useState(
     amending ? String(amending.setupFeePence / 100) : "",
   );
@@ -339,13 +370,31 @@ function SendForm({
     return Math.round(pounds * 100);
   };
 
+  /* Only the rows somebody has actually filled in. A blank row is one in progress. */
+  const lines: Line[] = rows
+    .filter((r) => r.what.trim() && pence(r.amount) > 0)
+    .map((r) => ({ what: r.what.trim(), pence: pence(r.amount), when: r.when }));
+
+  /*
+   * Where there is a schedule, the totals come from it. Where there is not, they
+   * are what was typed - which is how every agreement before today worked.
+   */
+  const totals = lines.length
+    ? totalsFor(lines)
+    : {
+        setupFeePence: pence(setupFee),
+        recurringPence: pence(recurring),
+        period: (period === "quarterly" || period === "yearly" ? period : "monthly") as
+          | "monthly"
+          | "quarterly"
+          | "yearly",
+      };
+
   const wording = buildTerms(business, {
-    setupFeePence: pence(setupFee),
-    recurringPence: pence(recurring),
-    period: (period === "quarterly" || period === "yearly" ? period : "monthly") as
-      | "monthly"
-      | "quarterly"
-      | "yearly",
+    ...(lines.length ? { lines } : {}),
+    setupFeePence: totals.setupFeePence,
+    recurringPence: totals.recurringPence,
+    period: totals.period,
     trialEndsOn: /^\d{4}-\d{2}-\d{2}$/.test(trialEndsOn) ? trialEndsOn : null,
     noticeDays: (() => {
       const n = Math.round(Number(noticeDays));
@@ -410,16 +459,114 @@ function SendForm({
             </span>
           </label>
 
+          {/*
+            * ── The schedule ────────────────────────────────────────────────
+            *
+            * Giles, 30 Sep: "should really have separate lines to add services
+            * and costs etc."
+            *
+            * Each line is a thing they are paying for, its price, and whether
+            * that price is once or every period. `when` is per line rather than
+            * per agreement because it genuinely differs: a build is once and a
+            * subscription is not, and an agreement with both is the ordinary
+            * case rather than the awkward one.
+            *
+            * The totals below become read-only the moment there is a line,
+            * because they are then sums rather than figures - two statements of
+            * one number is how a document ends up disagreeing with itself.
+            */}
+          <div className="rounded-xl border border-border px-3.5 py-3">
+            <div className="label">What they are paying for</div>
+            <p className="hint mt-0.5 max-w-prose">
+              A line each, and whether it is once or every period. Leave it empty for a
+              simple agreement and just fill in the two figures below.
+            </p>
+
+            <div className="mt-2.5 space-y-2">
+              {rows.map((row, i) => (
+                <div key={i} className="flex flex-wrap items-center gap-2">
+                  <input
+                    value={row.what}
+                    onChange={(e) =>
+                      setRows(rows.map((r, j) => (j === i ? { ...r, what: e.target.value } : r)))
+                    }
+                    placeholder="A website"
+                    className="input min-w-0 flex-1"
+                  />
+                  <input
+                    value={row.amount}
+                    onChange={(e) =>
+                      setRows(rows.map((r, j) => (j === i ? { ...r, amount: e.target.value } : r)))
+                    }
+                    inputMode="decimal"
+                    placeholder="450"
+                    className="input w-24"
+                    aria-label="Price in pounds"
+                  />
+                  <select
+                    value={row.when}
+                    onChange={(e) =>
+                      setRows(
+                        rows.map((r, j) =>
+                          j === i
+                            ? { ...r, when: e.target.value as (typeof rows)[number]["when"] }
+                            : r,
+                        ),
+                      )
+                    }
+                    className="input w-36"
+                    aria-label="How often"
+                  >
+                    <option value="once">once</option>
+                    <option value="monthly">a month</option>
+                    <option value="quarterly">a quarter</option>
+                    <option value="yearly">a year</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setRows(rows.filter((_, j) => j !== i))}
+                    className="btn-ghost px-2.5 py-1 text-sm"
+                    aria-label="Take this line off"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-2.5 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setRows([...rows, { what: "", amount: "", when: "monthly" }])}
+                className="btn-ghost px-3 py-1.5 text-sm"
+              >
+                {rows.length ? "Add another line" : "Add a line"}
+              </button>
+              {lines.length > 0 && (
+                <span className="hint">
+                  {lines.length} line{lines.length === 1 ? "" : "s"}, coming to{" "}
+                  {poundsOf(totals.setupFeePence)} once and {poundsOf(totals.recurringPence)}{" "}
+                  {saidPeriod(totals.period)}.
+                </span>
+              )}
+            </div>
+
+            {/* Submitted as one field, so the rows can be added and removed freely. */}
+            <input type="hidden" name="lines" value={JSON.stringify(lines)} />
+          </div>
+
           <div className="grid gap-3 sm:grid-cols-3">
             <label className="block">
               <span className="label">Set-up fee £</span>
               <input
                 name="setup_fee"
                 inputMode="decimal"
-                value={setupFee}
+                value={lines.length ? String(totals.setupFeePence / 100) : setupFee}
                 onChange={(e) => setSetupFee(e.target.value)}
                 placeholder="0"
                 className="input"
+                readOnly={lines.length > 0}
+                title={lines.length ? "Added up from the lines above" : undefined}
               />
             </label>
             <label className="block">
@@ -427,10 +574,12 @@ function SendForm({
               <input
                 name="recurring"
                 inputMode="decimal"
-                value={recurring}
+                value={lines.length ? String(totals.recurringPence / 100) : recurring}
                 onChange={(e) => setRecurring(e.target.value)}
                 placeholder="20"
                 className="input"
+                readOnly={lines.length > 0}
+                title={lines.length ? "Added up from the lines above" : undefined}
               />
             </label>
             <label className="block">

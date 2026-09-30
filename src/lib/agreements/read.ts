@@ -22,6 +22,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { siteOrigin } from "@/lib/origin";
 import type { AgreementRow } from "./state";
+import type { Line } from "./terms";
 
 /**
  * Every agreement on the platform, newest first, grouped by business.
@@ -64,6 +65,23 @@ export async function agreementsByStudio(
         endsOn: (r.ends_on as string | null) ?? null,
         termsVersion: String(r.terms_version ?? ""),
         termsText: String(r.terms_text ?? ""),
+        /*
+         * Whatever is in the column, if the column is there at all.
+         *
+         * select("*") so this file ships before its migration, and a shape check
+         * rather than a cast: the value comes out of jsonb, and a row written by
+         * hand or by an older version could be anything at all. A bad line is
+         * dropped rather than allowed to reach a form as undefined.
+         */
+        lines: Array.isArray(r.lines)
+          ? (r.lines as unknown[]).filter(
+              (l): l is Line =>
+                Boolean(l) &&
+                typeof (l as Line).what === "string" &&
+                Number.isFinite((l as Line).pence) &&
+                ["once", "monthly", "quarterly", "yearly"].includes(String((l as Line).when)),
+            )
+          : [],
         sentTo: (r.sent_to as string | null) ?? null,
         sentAt: (r.sent_at as string | null) ?? null,
         openedAt: (r.opened_at as string | null) ?? null,

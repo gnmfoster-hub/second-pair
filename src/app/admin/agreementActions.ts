@@ -4,10 +4,11 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isPlatformAdmin } from "@/lib/platform";
+import { hasColumn } from "@/lib/db/hasColumn";
 import { siteOrigin } from "@/lib/origin";
 import { sendEmail } from "@/lib/messaging/email";
 import { buildEmail } from "@/lib/messaging/emailTemplate";
-import { buildTerms, TERMS_VERSION, type Money } from "@/lib/agreements/terms";
+import { buildTerms, TERMS_VERSION, totalsFor, type Line, type Money } from "@/lib/agreements/terms";
 
 /**
  * Sending a business its agreement, and withdrawing one.
@@ -146,10 +147,65 @@ export async function sendAgreement(
     return Number.isFinite(n) && n >= 0 && n <= 365 ? n : 60;
   })();
 
+  /*
+   * ── The schedule, read back rather than trusted ───────────────────────────
+   *
+   * Giles, 30 Sep: "should really have separate lines to add services and costs."
+   *
+   * It arrives as JSON from a form, so every field is checked and anything that
+   * is not a line is dropped rather than stored. This ends up inside a document
+   * somebody signs: a price that came through as a string, or a period nobody
+   * has heard of, would be frozen into it.
+   *
+   * Capped at twenty. There is no real agreement with more, and an uncapped list
+   * from a form is an uncapped row in the database.
+   */
+  const schedule: Line[] = (() => {
+    const raw = String(fd.get("lines") ?? "").trim();
+    if (!raw) return [];
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .filter(
+          (l): l is Line =>
+            Boolean(l) &&
+            typeof (l as Line).what === "string" &&
+            (l as Line).what.trim().length > 0 &&
+            Number.isFinite((l as Line).pence) &&
+            (l as Line).pence >= 0 &&
+            ["once", "monthly", "quarterly", "yearly"].includes(String((l as Line).when)),
+        )
+        .map((l) => ({
+          what: l.what.trim().slice(0, 120),
+          pence: Math.round(l.pence),
+          when: l.when,
+        }))
+        .slice(0, 20);
+    } catch {
+      /* Not JSON at all. A simple agreement with no schedule, or a stale form. */
+      return [];
+    }
+  })();
+
+  /*
+   * Where there is a schedule the totals are its sums, worked out here rather
+   * than taken from the form.
+   *
+   * The form shows them read-only and computes the same way, but the form is
+   * advisory. If the two ever disagreed, the document would carry one figure in
+   * its prose and another in the column the back office adds up - and the
+   * document is the one somebody signed.
+   */
   const money: Money = {
-    setupFeePence: pence(fd, "setup_fee"),
-    recurringPence: pence(fd, "recurring"),
-    period,
+    ...(schedule.length ? { lines: schedule } : {}),
+    ...(schedule.length
+      ? totalsFor(schedule)
+      : {
+          setupFeePence: pence(fd, "setup_fee"),
+          recurringPence: pence(fd, "recurring"),
+          period,
+        }),
     trialEndsOn,
     noticeDays,
     includes,
@@ -168,6 +224,18 @@ export async function sendAgreement(
     trial_ends_on: money.trialEndsOn,
     includes: money.includes,
     notice_days: money.noticeDays,
+    /*
+     * The schedule, only where the column exists.
+     *
+     * The lines migration is run by hand like every other one, so naming this
+     * column unconditionally would make every agreement fail to save until
+     * somebody had run SQL. Guarded, it degrades to exactly what it did before:
+     * the wording still carries the schedule in prose, because that is built
+     * before this and frozen into terms_text.
+     */
+    ...(schedule.length && (await hasColumn(db, "agreements", "lines"))
+      ? { lines: schedule }
+      : {}),
     terms_version: TERMS_VERSION,
     terms_text: terms,
     token,
