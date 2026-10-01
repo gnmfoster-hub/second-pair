@@ -1,15 +1,21 @@
 # What needs doing
 
+**Overnight, 1 October, as a page:**
+https://claude.ai/artifact/TGV3MPaqw7u7uYhLKia9tc — the four things you asked
+for, the reminder fault found while checking one of them, and **one line of SQL
+waiting on you** at the top of it. Read this one first.
+
 **Overnight, 28–29 September, as a page:**
 https://claude.ai/artifact/Gp4J5vqxMSmE4ThVcrqkX8 — the four things found setting
 up Amber's, the reminder fault nobody was looking for, and the two jobs waiting
 on Giles at the top of it.
 
 **The worklist, as a page:** https://claude.ai/artifact/RUkxMxmooA3VsckxfAVan9
-— **a week behind this file** as of 29 September; it still says 22 September.
-Worth a rebuild, and not done overnight because it is 178KB of hand-written page
-and rebuilding it unsupervised at four in the morning is how an index that
-people trust stops being trustworthy.
+— **ten days behind this file** as of 1 October; it still says 22 September.
+Worth a rebuild, and still not done overnight because it is 178KB of
+hand-written page and rebuilding it unsupervised at four in the morning is how
+an index that people trust stops being trustworthy. The overnight pages above
+carry everything it is missing, and this file is current.
 — with links at the top to the **Stripe sheet**
 (https://claude.ai/code/artifact/ce6ed7c3-5feb-4c27-a7c0-71d904f6b3f4) and the
 **Willow & Co test pass**
@@ -19,10 +25,53 @@ Two lists. Yours is first — accounts, DNS, decisions, things only you can do.
 Mine is at the bottom. They are separate on purpose: the last version mixed them
 up and it was impossible to tell what was blocking what.
 
-Last updated: 29 September 2026, overnight. Every claim in the two lists below
+Last updated: **1 October 2026, overnight**. Every claim in the two lists below
 was checked against the live database or the code rather than carried forward —
 and two entries turned out to be wrong in my favour, which is noted where they
 were.
+
+**New overnight, 30 September into 1 October.** Four things you asked for are
+live, and a fifth came out of checking one of them.
+
+- **The customer record no longer runs off the bottom of the page.** You said
+  history and planned reminders take up too much of it. They did: every booking
+  carries a confirmation and a reminder or two, and all of them were peers of
+  the booking in one flat list, so two rows in three were a message rather than
+  a visit. A booking is now a row with its messages folded under it behind a
+  line saying how they went, and bookings past the most recent four fold away
+  too. Measured on the fullest demo: 2813px down to 583px, and every word still
+  one click from where it was.
+- **Booking a regular now shows you who they are.** The picker said "Booking for
+  Marie Whitlock" and nothing else, which in a town with two of them is not an
+  answer. It shows the number and email you hold, the search list offers both so
+  the right one can be picked, and a wrong number can be put right there and
+  then — behind a **Change** press, with an emptied box counting as no change,
+  so an ordinary booking still cannot touch anybody's record.
+- **Repeating bookings can be changed for every date after this one** — the day
+  of the week shifts with it, which was the whole point and was missing from the
+  first attempt.
+- **The agreement has a priced schedule**: separate lines for services and costs,
+  each with its own figure and how often it is charged.
+
+- **F. A reminder sent on two channels would have been sent again, and again.**
+  Nobody asked for this and nothing has gone wrong yet. Found on 1 October while
+  seeding a demo: the sender wrote `"email, sms"` into `reminders.channel`, which
+  is an enum, so Postgres refused the whole update and nobody was reading the
+  error. The message had already gone — what was thrown away was the record of
+  it going, leaving the row pending for the next sweep to send again. It has
+  never happened because every template still says "default" and no business has
+  yet picked two channels for one reminder. It would have happened to the first
+  one who did. Same family as the September fault that emptied every inbox: an
+  enum value the database does not know takes the whole statement with it.
+  Fixed, with the error now read and a fallback that writes the three columns
+  that stop a resend even if the rest will not save.
+
+**Also found, and worth knowing:** not one reminder in the database belonged to
+a demo. All 232 were your three real businesses, so the half of the customer
+record you were complaining about could only be looked at by signing into a live
+business and reading somebody's real customer's messages. There is now a
+`scripts/demo-reminders.mjs` that seeds a demo with the four states that screen
+draws differently, and undoes itself.
 
 **New since the last version, and worth reading first.** The four things you
 found setting up Amber's are done and live. **Three of the four were already
@@ -64,13 +113,21 @@ Windows PC), and **ask Karen about the fifteen-minute consultation**.
 
 # Migrations
 
-> **One is waiting, and it is the only thing between you and a working
-> agreement: `20260927180000_agreements.sql`.** Checked against the live
-> database on 29 September — `agreements` does not answer. It creates one table
-> and touches nothing that exists, so running it changes nothing about any
-> business until an agreement is actually sent. Afterwards, `node
-> scripts/check-agreement.cjs` proves the whole send-and-sign path in one
-> command.
+> **One is waiting, and nothing is broken while it waits:
+> `20261001090000_reminder_went_on.sql`.** One line, adds
+> `reminders.went_on`. Checked against the live database on 1 October — the
+> column does not answer.
+>
+> It is the record of which channels a reminder went on when it went on more
+> than one. Until it is run, a two-channel reminder records the one whose
+> wording is kept and not the other; everything else is unaffected, and no
+> business has two channels on a reminder yet. See **F** below for the fault
+> that turned it up, which was worth a great deal more than the column.
+
+**Both agreement migrations are run.** Checked on 1 October rather than
+carried forward: `agreements` answers and so does `agreements.lines`, so the
+priced schedule works. The table holds nothing at the moment, which is right —
+nothing has been sent since you cleared it.
 
 **Everything else is run, as of 25 September.** Checked against the live
 database rather than the file names: `handled_messages.studio_id`,
@@ -221,21 +278,22 @@ way.
 
 Worth doing before the next demo rebuild rather than after.
 
-### 13. Your three real clients tell nobody their booking went through
+### 13. One real client still tells nobody their booking went through
 
-**Two minutes each, and it is now two minutes rather than a blank page.** Found
-on 29 September by the new `scripts/check-confirmation.cjs`, which reads what has
-actually been sent rather than what a screen claims.
+**Two of the three are done.** Re-checked against the live database on 1
+October rather than carried forward, which is the only reason this entry is now
+smaller than it was.
 
 | Business | Confirmation set up |
 | --- | --- |
 | Living Canvas Tattoo | **No** |
-| Neat & Tidy Solutions | **No** |
-| Amber's Paws & Pastures | **No** |
+| Neat & Tidy Solutions | Yes, switched on |
+| Amber's Paws & Pastures | Yes, switched on |
 | the `help` studio | Yes, and one has gone out |
 
-So somebody books with any of your three real clients and hears nothing back.
-Whether it worked is something they find out by turning up.
+So Living Canvas is the one left. Somebody books a tattoo and hears nothing
+back; whether it worked is something they find out by turning up. Two minutes,
+and theirs to write.
 
 **The good news, and it is the answer to the oldest item on this list.** The whole
 path works. One confirmation has genuinely gone out, it went at once rather than
