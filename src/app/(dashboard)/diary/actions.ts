@@ -17,6 +17,7 @@ import {
   storedRepeat,
   type RepeatRule,
 } from "@/lib/calendar";
+import { dayShift, shiftDay } from "@/lib/dayShift";
 import { dropReminders } from "@/lib/reminders";
 import { scheduleReminders } from "@/lib/reminders";
 import { DIARY_LAYOUT_COOKIE, type DiaryLayout } from "@/lib/diaryLayout";
@@ -97,9 +98,17 @@ export async function saveDiaryEntry(
 
   // ---------------------------------------------------------------- editing
   if (id) {
+    /*
+     * starts_at as well as source, and read before the update rather than after.
+     *
+     * Carrying a change forward needs to know how far this booking MOVED, which
+     * means its old day. The first version read the row inside alsoTheRest, after
+     * the save had already overwritten it — so the only date available there was
+     * the new one, with nothing to compare it against.
+     */
     const { data: existing } = await supabase
       .from("bookings")
-      .select("source")
+      .select("source, starts_at")
       .eq("id", id)
       .maybeSingle();
     if (!existing) return { error: "That entry has gone." };
@@ -149,9 +158,12 @@ export async function saveDiaryEntry(
       const spread = await alsoTheRest(supabase, studio.id, {
         id,
         patch,
+        /* Where it was, so how far it has moved can be worked out. */
+        wasAt: existing.starts_at as string,
         starts,
         ends,
         artistId,
+        timezone: studio.timezone,
       });
       revalidatePath("/diary");
 
@@ -432,14 +444,17 @@ async function alsoTheRest(
   args: {
     id: string;
     patch: Record<string, unknown>;
+    /** Where this booking was before it was saved. */
+    wasAt: string;
     starts: Date;
     ends: Date;
     artistId: string;
+    timezone: string;
   },
 ): Promise<{ changed: number; clashed: number; refused: string | null }> {
   const { data: me } = await supabase
     .from("bookings")
-    .select("id, repeat_parent_id, starts_at")
+    .select("id, repeat_parent_id")
     .eq("id", args.id)
     .maybeSingle();
 
@@ -452,7 +467,7 @@ async function alsoTheRest(
     .from("bookings")
     .select("id, starts_at")
     .or(`id.eq.${rootId},repeat_parent_id.eq.${rootId}`)
-    .gt("starts_at", me.starts_at as string)
+    .gt("starts_at", args.wasAt)
     .is("cancelled_at", null)
     .order("starts_at");
 
@@ -482,14 +497,50 @@ async function alsoTheRest(
   /** The first refusal that was not a clash, so it can be said out loud. */
   let refused: string | null = null;
 
+  /*
+   * ── How far the day moved, which is the part I got wrong ──────────────────
+   *
+   * Giles: "it says saved but it didn't change the days of the future ones."
+   *
+   * He is right and the fault was a decision, not a slip. The first version
+   * deliberately left every later date alone, on the reasoning that each
+   * occurrence has its own day and that is the point of a set. True of a run of
+   * scattered picked days, and wrong about the case he actually described - and
+   * which I had quoted in my own commit message as the motivating example:
+   * moving a standing Tuesday visit to Wednesday. It changed the time and left
+   * twelve Tuesdays exactly where they were.
+   *
+   * So a change of day shifts the rest by the same number of days: move this one
+   * on by one and the whole run follows, keeping its spacing. Move only the time
+   * and the shift is nought, which is exactly what it did before.
+   *
+   * Counted in the business's own days rather than in milliseconds. A run that
+   * crosses the end of October has a twenty-five hour day in it, and dividing by
+   * 86,400,000 across that gives 1.04 days - which rounds to the right answer by
+   * luck and to the wrong one as soon as the shift is larger.
+   */
+  const by = dayShift(args.wasAt, args.starts.toISOString(), args.timezone);
+
   for (const one of rest) {
-    const at = new Date(one.starts_at as string);
     /*
-     * Its own day, at the new time. Read in UTC and written in UTC because both
-     * instants are absolute; the hours and minutes come from the saved booking.
+     * Its own day, shifted by however far this one moved, at the new time.
+     *
+     * The day arithmetic is done on the business's own calendar date and the time
+     * is then put back on in the business's zone, so a run crossing a clock
+     * change keeps the hour that was agreed instead of drifting by one.
      */
-    const moved = new Date(args.starts.getTime());
-    moved.setUTCFullYear(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate());
+    const moved = instantFrom(
+      shiftDay(one.starts_at as string, by, args.timezone),
+      /* The time of day from the booking that was just saved. */
+      new Intl.DateTimeFormat("en-GB", {
+        timeZone: args.timezone,
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).format(args.starts),
+      args.timezone,
+    );
+    if (!moved) continue;
 
     const { error } = await supabase
       .from("bookings")

@@ -1186,9 +1186,10 @@ export function EntryDialog({
                 * means.
                 */}
               <p className="hint mt-2 max-w-prose">
-                The rest keep their own dates. The time, the length, who it is with and
-                anything else you change here carries forward. Ones already past are left
-                alone.
+                Move this one to another day and the rest shift by the same amount,
+                keeping their spacing. Change only the time and they keep their days.
+                Everything else you change here carries forward either way, and ones
+                already past are left alone.
               </p>
             </div>
           )}
