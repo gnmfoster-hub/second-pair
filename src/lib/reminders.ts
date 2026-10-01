@@ -183,6 +183,32 @@ export async function scheduleReminders(
     if (!error) written += timed.length;
   }
 
+  /*
+   * ── One confirmation per set, wherever the booking came from ──────────────
+   *
+   * The `opts.confirm` argument above is the right idea in the wrong place. It
+   * is an instruction the caller has to remember, and on 1 October five of the
+   * seven callers did not: the assistant booking a run of visits over chat,
+   * dragging one appointment of a set across the diary, and spreading an edit
+   * across the rest of a run all scheduled a confirmation per booking.
+   *
+   * It is not theoretical. Karen's customer Samantha was sent fourteen
+   * "you are booked in" emails on the morning of 1 October. One at 07:56 was
+   * the diary's add path behaving perfectly. The other thirteen were two
+   * presses of "change this one and the 11 after it" at 08:16 and 08:26: each
+   * later visit had no confirmation row of its own yet, so each wrote one and
+   * sent it on the spot.
+   *
+   * So the rule now lives where it cannot be forgotten. A confirmation
+   * confirms the act of booking, and that happened once for the whole set,
+   * whoever is asking and however they got here. `opts.confirm` stays as well,
+   * because suppressing it before the query is cheaper and the diary's add
+   * path still wants to choose which booking does the confirming.
+   */
+  if (confirmations.length && (await alreadyTold(db, bookingId, confirmations))) {
+    return written;
+  }
+
   if (confirmations.length) {
     /*
      * Left alone if there is already one, rather than updated.
@@ -214,6 +240,60 @@ export async function scheduleReminders(
   }
 
   return written;
+}
+
+/**
+ * Has anybody else in this booking's set already been confirmed?
+ *
+ * The set is the same one cancelSeries and the diary's "change the rest" use:
+ * `repeat_parent_id ?? id` is the root, and the family is that row plus
+ * everything pointing at it. "On days I pick" is included, because it stores
+ * repeats as 'none' and is held together by the parent link alone - which is
+ * exactly the shape that sent Giles two emails for a two-day booking.
+ *
+ * Only the siblings are asked about. This booking's own row is left to the
+ * unique constraint and `ignoreDuplicates` below, which already handle
+ * "scheduled twice" correctly and have their own reasons written out.
+ *
+ * Two visits of one set being scheduled at the same instant could still both
+ * find nothing and both send. Every path that writes a set does it in a loop,
+ * one at a time, so that race needs two people pressing save on the same run in
+ * the same second. Worth knowing about rather than worth a lock.
+ */
+async function alreadyTold(
+  db: SupabaseClient,
+  bookingId: string,
+  confirmations: { template_id: string }[],
+): Promise<boolean> {
+  const { data: me } = await db
+    .from("bookings")
+    .select("id, repeat_parent_id")
+    .eq("id", bookingId)
+    .maybeSingle();
+
+  const root = (me as { repeat_parent_id?: string | null } | null)?.repeat_parent_id ?? bookingId;
+
+  const { data: family } = await db
+    .from("bookings")
+    .select("id")
+    .or(`id.eq.${root},repeat_parent_id.eq.${root}`);
+
+  const siblings = (family ?? []).map((b) => (b as { id: string }).id).filter((id) => id !== bookingId);
+
+  /* Not part of anything. The ordinary single booking, and the common case. */
+  if (!siblings.length) return false;
+
+  const { data: told } = await db
+    .from("reminders")
+    .select("id")
+    .in("booking_id", siblings)
+    .in(
+      "template_id",
+      confirmations.map((c) => c.template_id),
+    )
+    .limit(1);
+
+  return Boolean(told?.length);
 }
 
 /**
