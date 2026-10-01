@@ -441,6 +441,14 @@ function siteUrl(): string {
  * claim happens before the send, so the failure — if there is one — is a
  * missing email rather than five of them.
  */
+/**
+ * How close together two messages have to be to count as one burst.
+ *
+ * Long enough that somebody typing three short texts gets one email, short
+ * enough that a reply a few minutes later is still a reply and not noise.
+ */
+const BURST_MS = 120_000;
+
 export async function tellThemSomebodyGotInTouch(
   db: SupabaseClient,
   args: {
@@ -480,16 +488,33 @@ export async function tellThemSomebodyGotInTouch(
      * which used to send nothing at all.
      */
     replied?: boolean;
+    /**
+     * The owner has taken this conversation over, so nobody else is answering.
+     *
+     * Changes three things, and each of them matters. It is the only state in
+     * which an inbound email is worth an email; it is the one state where the
+     * standing line about the assistant handling it would be a lie; and it is
+     * the state where silence is most expensive, because the customer is now
+     * waiting on a person who has not been told they wrote.
+     */
+    takenOver?: boolean;
   },
 ): Promise<boolean> {
   /*
-   * Not for email itself.
+   * Not for email itself, unless they have taken it over.
    *
    * Giles: "web, sms, and other exc email". An email telling somebody that an
    * email has arrived is a second copy of a thing already in their inbox, and
    * the fastest way to make the rest of these look like noise.
+   *
+   * That holds right up until the assistant stops answering. Once somebody has
+   * taken the conversation over, the copy in their inbox is the only thing
+   * telling them a customer is waiting, and it looks exactly like the fifty
+   * other emails of their morning. Giles, 1 October, asked for a notification
+   * "so they know to either take over or respond if they have already taken
+   * over" - this is the second half of that sentence.
    */
-  if (args.channel === "email") return false;
+  if (args.channel === "email" && !args.takenOver) return false;
 
   /*
    * And never for a rehearsal or a check.
@@ -510,15 +535,39 @@ export async function tellThemSomebodyGotInTouch(
      * cannot be, and either way a second attempt is not wanted.
      */
     /*
-     * First contact is claimed once for ever; a reply is claimed for the hour.
+     * First contact is claimed once for ever. A reply collapses bursts only.
      *
-     * The hour is in the key, so the unique index does the throttling and
-     * nothing has to remember anything. Ten messages in ten minutes send one
-     * email; a reply tomorrow morning sends another.
+     * ── Why this stopped being an hour ──────────────────────────────────────
+     *
+     * The hour went in the key, so the unique index did the throttling and
+     * nothing had to remember anything. It was too blunt. "Each time there is a
+     * return message by any means from a customer the system notifies the
+     * user", Giles asked on 1 October, and an hour is long enough to lose the
+     * message a business most wants: somebody who wrote at ten past, was
+     * answered, and wrote back at twenty past to say yes.
+     *
+     * It was also arbitrary at the edges, because a bucket is not a gap: two
+     * messages at 10:59 and 11:01 both sent, and two at 11:01 and 11:59 sent
+     * one. What is actually wanted is a quiet gap, so that is what is measured.
+     *
+     * Two minutes collapses a flurry of short texts into one email and lets
+     * anything slower through. The claim is still an insert, so two messages in
+     * the same instant cannot both win it.
      */
-    const hour = new Date().toISOString().slice(0, 13);
+    if (args.replied) {
+      const quiet = new Date(Date.now() - BURST_MS).toISOString();
+      const { data: justNow } = await db
+        .from("handled_messages")
+        .select("message_id")
+        .like("message_id", `replied:${args.conversationId}:%`)
+        .gte("seen_at", quiet)
+        .limit(1);
+
+      if (justNow?.length) return false;
+    }
+
     const key = args.replied
-      ? `replied:${args.conversationId}:${hour}`
+      ? `replied:${args.conversationId}:${Date.now()}`
       : `gotintouch:${args.conversationId}`;
 
     const { error: taken } = await db
@@ -582,13 +631,36 @@ export async function tellThemSomebodyGotInTouch(
      */
     const headline = args.replied ? `${who} has replied` : `${who} got in touch`;
 
+    /*
+     * Who is answering this, said plainly, because it is the whole decision.
+     *
+     * The standing line promises the assistant is handling it and explains that
+     * replying takes it over. On a conversation somebody has already taken
+     * over, every word of that is wrong: the assistant is not handling it, and
+     * taking it over is not a thing left to do. Worse, it reads as reassurance
+     * on the one message where nobody is answering at all.
+     */
+    const whoIsOnIt = args.takenOver
+      ? [
+          "You have taken this one over, so the assistant is staying out of it",
+          "and nobody is replying but you.",
+        ]
+      : [
+          "Your assistant is handling it. Open the conversation to read it all,",
+          "or to reply yourself. Replying takes it over and the assistant stays out.",
+        ];
+
     await notifyStudio(db, args.studioId, {
-      title: headline,
+      title: args.takenOver ? `${headline}, and it is yours` : headline,
       body: said.slice(0, 140),
       url: `/conversations/${args.conversationId}`,
       tag: `gotintouch-${args.conversationId}`,
       email: {
-        subject: args.replied ? `${who} has replied` : `${who} got in touch ${where}`,
+        subject: args.takenOver
+          ? `${who} has replied, and you are the one answering`
+          : args.replied
+            ? `${who} has replied`
+            : `${who} got in touch ${where}`,
         /*
          * Their words first, because that is the thing being told. The rest is
          * what somebody reading it on a phone needs to decide whether to stop
@@ -602,13 +674,12 @@ export async function tellThemSomebodyGotInTouch(
             ? `${who} has written again ${where}.`
             : `${who} got in touch ${where}.`,
           "",
-          "Your assistant is handling it. Open the conversation to read it all,",
-          "or to reply yourself. Replying takes it over and the assistant stays out.",
+          ...whoIsOnIt,
           "",
           `${siteUrl()}/conversations/${args.conversationId}`,
           "",
           args.replied
-            ? "At most one of these an hour per conversation, however fast they type."
+            ? "One of these for every message, with a flurry of them counted as one."
             : "One of these when somebody first gets in touch.",
         ].join("\n"),
       },

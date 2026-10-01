@@ -651,6 +651,35 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
 
   // The owner has taken this one over. Record what the client said and stay quiet.
   if (conversation.ai_paused) {
+    /*
+     * Quiet to the customer, not quiet to the owner.
+     *
+     * This returned here and told nobody anything, which made taking a
+     * conversation over the one state in the product with no alerting at all,
+     * and it is the state that needs it most. The assistant has stopped
+     * answering on purpose, so the customer is waiting on a person, and that
+     * person only found out by happening to look at the dashboard.
+     *
+     * Giles, 1 October: notify "so they know to either take over or respond if
+     * they have already taken over the conversation". Everything above this
+     * line was the first half of that sentence. This is the second.
+     *
+     * takenOver changes the words as well as the fact of sending. The standing
+     * line promises the assistant is handling it and offers to let you take
+     * over; here both halves of that would be untrue, and it would read as
+     * reassurance on the one message where nobody is answering at all.
+     */
+    await tellThemSomebodyGotInTouch(db, {
+      studioId: studio.id,
+      conversationId: conversation.id,
+      channel: input.channel,
+      said: input.message,
+      replied: true,
+      takenOver: true,
+      /* A rehearsal or a check is not a customer. See lib/notify. */
+      isTest: input.isTest === true || isCheckSession(input.sessionKey),
+    });
+
     return {
       conversationId: conversation.id,
       reply: null,
