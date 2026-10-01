@@ -116,6 +116,25 @@ export default async function InboxPage({
 
   const owns = membership?.role === "owner";
 
+  /*
+   * Is there anything that can buzz when somebody is waiting?
+   *
+   * The notification path works and has reached a real phone. What it has
+   * never had is people: across every business on the system two devices have
+   * ever been registered, and the button that registers one is at Settings,
+   * then You, which is a screen nobody opens twice.
+   *
+   * So a business with nobody on a phone is told so here, where they already
+   * look, and the line disappears the moment one is signed up. Counted rather
+   * than listed, and only for the owner, because a stylist cannot act on it.
+   */
+  const { count: devices } = owns
+    ? await supabase
+        .from("push_subscriptions")
+        .select("id", { count: "exact", head: true })
+        .eq("studio_id", studio.id)
+    : { count: 1 };
+
   // Only the owner is offered the choice, so only they need the list.
   const { data: team } = owns
     ? await supabase
@@ -358,6 +377,26 @@ export default async function InboxPage({
         * "what has Sarah got coming in" gets answered without leaving the
         * screen. A stylist sees her own and has nothing to filter.
         */}
+      {/*
+        * Nothing can buzz, and nobody knows.
+        *
+        * One line, not a card and not a colour, because it is not a fault: the
+        * business is working perfectly well, it is just finding out about
+        * customers by looking rather than by being told. It goes away by
+        * itself as soon as a phone is signed up, so it can never become
+        * furniture.
+        */}
+      {owns && devices === 0 && (
+        <p className="hint mt-5">
+          No phone is set to buzz when somebody is waiting, so a message is only seen
+          when you come and look.{" "}
+          <Link href="/settings/you" className="text-accent hover:underline">
+            Turn it on for this device
+          </Link>
+          , which takes one press on the phone you want buzzed.
+        </p>
+      )}
+
       {(owns || !me) && (team ?? []).length > 1 && (
         <div className="mt-5 flex flex-wrap items-center gap-1.5">
           <WhoseLink href="/" current={whose} match={undefined}>
