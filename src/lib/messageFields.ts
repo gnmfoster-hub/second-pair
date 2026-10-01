@@ -85,7 +85,7 @@ const WHEN: MessageField = {
  */
 const LINK: MessageField = {
   name: "link",
-  means: "their own page for this appointment — an email always has a button",
+  means: "their own page for this appointment. An email always has a button",
   example: "second-pair.com/b/example",
 };
 /*

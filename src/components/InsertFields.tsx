@@ -106,7 +106,7 @@ export function InsertFields({
              * seeing it there is how the connection gets made.
              */
             className="btn-ghost gap-1.5 px-2.5 py-1 text-[13px]"
-            title={`Puts ${field.means} in — it arrives as "${field.example}"`}
+            title={`Puts ${field.means} in. It arrives as "${field.example}"`}
           >
             {field.means}
             <code className="text-[11px] text-muted">{`{{${field.name}}}`}</code>

@@ -26,7 +26,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         <h1 className="text-lg font-semibold tracking-tight">Something went wrong at our end</h1>
         <p className="hint mt-2">
           Nothing you were doing has been lost, and nothing has been charged. It is worth trying
-          again &mdash; most of these pass on their own.
+          again, because most of these pass on their own.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button type="button" onClick={reset} className="btn border border-border">

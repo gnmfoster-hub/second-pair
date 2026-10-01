@@ -257,7 +257,7 @@ export async function probeEmail(timeoutMs = 6000): Promise<EmailProbe> {
         : `${senderDomain} is not one of the domains on this Resend account` +
           (domains.length
             ? ` (it has ${domains.map((d) => d.name).filter(Boolean).join(", ")}).`
-            : " — the account has no domains at all."),
+            : ". The account has no domains at all."),
       keyShape,
     };
   } catch (error) {

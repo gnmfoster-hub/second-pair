@@ -603,7 +603,7 @@ export async function tellThemSomebodyGotInTouch(
             : `${who} got in touch ${where}.`,
           "",
           "Your assistant is handling it. Open the conversation to read it all,",
-          "or to reply yourself — replying takes it over and the assistant stays out.",
+          "or to reply yourself. Replying takes it over and the assistant stays out.",
           "",
           `${siteUrl()}/conversations/${args.conversationId}`,
           "",

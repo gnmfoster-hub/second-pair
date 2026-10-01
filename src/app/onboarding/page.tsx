@@ -63,7 +63,7 @@ export default async function OnboardingPage() {
 
         <p className="hint mt-2">
           You are signed in, but this login has not been added to anybody&rsquo;s
-          business yet &mdash; so there is nothing here to show you.
+          business yet, so there is nothing here to show you.
         </p>
 
         <div className="card mt-6 p-5">
@@ -77,8 +77,8 @@ export default async function OnboardingPage() {
             If you are setting up a new business
           </div>
           <p className="hint mt-1.5">
-            Second Pair is set up with you rather than signed up for &mdash; get in
-            touch and we will have it running the same day.
+            Second Pair is set up with you rather than signed up for. Get in touch
+            and we will have it running the same day.
           </p>
         </div>
 

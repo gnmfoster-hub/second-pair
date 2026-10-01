@@ -40,8 +40,8 @@ export default async function SavedMessagesPage() {
     <div className="space-y-5">
       <p className="hint max-w-prose">
         Wordings you pick from when you message somebody from their own page. Every
-        business types the same five or six messages over and over — running late, a
-        cancellation has come up, sorry we missed you — and the third version is never as
+        business types the same five or six messages over and over: running late, a
+        cancellation has come up, sorry we missed you. The third version is never as
         good as the first.
       </p>
       <p className="hint max-w-prose">

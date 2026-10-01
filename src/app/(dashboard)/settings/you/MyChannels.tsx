@@ -131,7 +131,7 @@ export function MyChannels({
           <>
             <p className="hint mt-1">
               You are the only person taking bookings, so {business}&rsquo;s channels are
-              yours — everything arriving on {sharedNames.length === 1 ? "it" : "them"} is
+              yours. Everything arriving on {sharedNames.length === 1 ? "it" : "them"} is
               for you, and the assistant never asks a customer who they would like.
             </p>
             <ul className="mt-3 divide-y divide-border border-y border-border">
@@ -162,8 +162,8 @@ export function MyChannels({
       {mine.length > 0 ? (
         <>
           <p className="hint mt-1">
-            These are yours. Anything arriving on them is for {firstName} — the assistant
-            knows that already and never asks the customer who they would like.
+            These are yours. Anything arriving on them is for {firstName}, and the
+            assistant knows that already and never asks the customer who they would like.
           </p>
           <ul className="mt-3 divide-y divide-border border-y border-border">
             {mine.map((c) => (

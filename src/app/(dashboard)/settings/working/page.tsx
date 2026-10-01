@@ -55,7 +55,7 @@ export default async function IsItWorkingPage() {
       <div className="space-y-5">
         <p className="hint max-w-prose">
           Everything you have, and whether each part is set up, connected, and has actually
-          carried something. Used means a real message reached a real person — not that a
+          carried something. Used means a real message reached a real person, not that a
           box is ticked, because a number can be bought, saved, and still answer nothing.
         </p>
 

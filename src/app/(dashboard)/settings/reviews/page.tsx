@@ -32,7 +32,7 @@ export default async function ReviewsSettingsPage() {
       <p className="hint max-w-prose">
         A review is the cheapest marketing a small business has and the one nobody
         remembers to ask for. Set a link and the assistant asks the morning after, once,
-        in the same conversation they started — so a reply comes back to you.
+        in the same conversation they started, so a reply comes back to you.
       </p>
 
       <ReviewForm

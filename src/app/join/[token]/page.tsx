@@ -84,7 +84,7 @@ export default async function JoinPage({
             <>
               <p className="hint mt-2">
                 That invitation has expired or has already been used. Links last
-                fourteen days and work once &mdash; ask whoever sent it for a fresh one.
+                fourteen days and work once. Ask whoever sent it for a fresh one.
               </p>
               {/* prefetch={false}: see (marketing)/layout.tsx. A prefetched
                   /login arrives blank, and this one is shown to somebody whose

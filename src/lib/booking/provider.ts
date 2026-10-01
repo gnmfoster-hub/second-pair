@@ -125,8 +125,8 @@ export function bookingInstructions(
       "Call get_available_slots to suggest times that are genuinely open, then send them",
       bookingUrl ? `the booking link: ${bookingUrl}` : "the booking link",
       "to confirm it themselves.",
-      "Say the times are what looks free right now and their page confirms it —",
-      "the diary can move in the minutes between.",
+      "Say the times are what looks free right now and their page confirms it,",
+      "because the diary can move in the minutes between.",
     ].join(" ");
   }
 

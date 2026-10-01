@@ -103,7 +103,7 @@ export function whatToSay(result: OnTheCall, firstName: string | null): string {
   const you = firstName ? `, ${firstName}` : "";
 
   if (result.landsAs === "held") {
-    return `That's gone in${you}. We'll text you to confirm it shortly — if anything's not right, just reply to that.`;
+    return `That's gone in${you}. We'll text you to confirm it shortly. If anything's not right, just reply to that.`;
   }
   return result.mayAskDeposit
     ? `You're booked in${you}. I'll text you the details and a link for the deposit.`

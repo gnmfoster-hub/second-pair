@@ -1806,7 +1806,7 @@ export async function setReceptionist(
   if (sold?.receptionist_allowed !== true) {
     return {
       error:
-        "The Receptionist is not part of this plan. Ask us and we will switch it on — it is charged for each line that has one.",
+        "The Receptionist is not part of this plan. Ask us and we will switch it on. It is charged for each line that has one.",
     };
   }
 
@@ -2848,7 +2848,7 @@ export async function setPersonReceptionist(
   if (sold?.receptionist_allowed !== true) {
     return {
       error:
-        "The Receptionist is not part of this plan. Ask us and we will switch it on — it is charged for each line that has one.",
+        "The Receptionist is not part of this plan. Ask us and we will switch it on. It is charged for each line that has one.",
     };
   }
 

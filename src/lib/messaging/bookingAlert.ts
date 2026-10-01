@@ -153,11 +153,13 @@ export function composeBookingAlert({
      */
     `${firstName} has already been told it is booked, so there is nothing you need to do.`,
     "",
-    `— Second Pair, for ${studioName}`,
+    /* A sign-off, not a dash joining a sentence. "From" reads as a signature
+       the way the dash was meant to, and costs nothing in a text. */
+    `From Second Pair, for ${studioName}`,
   ].join("\n");
 
   return {
-    title: `New booking — ${shortWhen}`,
+    title: `New booking: ${shortWhen}`,
     body,
     emailSubject: `New ${job}: ${who}, ${shortWhen}`,
     emailText,

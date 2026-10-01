@@ -279,6 +279,17 @@ function kindOf(line, at) {
   const before = line.slice(0, at);
   const after = line.slice(at + 1);
 
+  /*
+   * A line that is about dashes, showing one on purpose.
+   *
+   * The assistant's own instructions say "Never use a dash to join two halves
+   * of a sentence" and then quote one so the model knows what is meant.
+   * Reporting that as a fault asks for the example to be deleted, which would
+   * leave a rule with nothing to point at, and it is the rule that stops the
+   * dashes being written in the first place.
+   */
+  if (/\bdash(es)?\b/i.test(line)) return "placeholder";
+
   /* The whole of the string is the dash: a stand-in for nothing. */
   if (/["'`]\s*$/.test(before) && /^\s*["'`]/.test(after)) return "placeholder";
 

@@ -163,8 +163,8 @@ export function depositReadiness(state: DepositReadiness): Verdict {
     otherwise:
       `${nameThem(state.waiting)} ${state.waiting.length === 1 ? "takes" : "take"} deposits and ` +
       `${state.waiting.length === 1 ? "has" : "have"} not connected Stripe, so a deposit for ` +
-      `their work is refused rather than going somewhere else. Only they can connect it ` +
-      `— Stripe asks for their ID and their bank details.`,
+      `their work is refused rather than going somewhere else. Only they can connect it, ` +
+      `because Stripe asks for their ID and their bank details.`,
     action: "",
     href: "/settings/artists",
   };

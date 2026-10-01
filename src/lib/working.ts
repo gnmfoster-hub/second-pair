@@ -222,7 +222,7 @@ export function assess(f: Facts): Thing[] {
           connected: "You have no number, so no text can be sent and no reminder can go.",
           proven: f.smsConfigured
             ? "No text has ever been delivered. Until one has, this is untested."
-            : "Texting is not switched on at our end. That one is ours — tell us.",
+            : "Texting is not switched on at our end. That one is ours, so tell us.",
         },
         fix: { href: "/settings/install", label: "Channels" },
         where: [{ who: "us", what: "Whether texts are on the plan", href: "/admin" }, { who: "owner", what: "The number, and who on the team has one", href: "/settings/install" }],
@@ -246,7 +246,7 @@ export function assess(f: Facts): Thing[] {
         because: {
           connected: "There is no number for anybody to ring.",
           proven:
-            "No call has ever reached us. If people are ringing and nothing appears, the voice webhook is missing at the phone company — that is the quiet one: texts work and every missed call goes nowhere.",
+            "No call has ever reached us. If people are ringing and nothing appears, the voice webhook is missing at the phone company. That is the quiet one: texts work and every missed call goes nowhere.",
         },
         fix: { href: "/settings/install", label: "Channels" },
         where: [{ who: "us", what: "Whether calls are on the plan", href: "/admin" }, { who: "owner", what: "Where it rings first, and the voicemail response", href: "/settings/install" }],
@@ -280,7 +280,7 @@ export function assess(f: Facts): Thing[] {
            * nothing has answered a call and saying otherwise would be the one
            * lie this page cannot afford.
            */
-          na("proven", "Not live yet — the talking part is still being built"),
+          na("proven", "Not live yet. The talking part is still being built"),
         ],
         because: {
           on: "Sold, but nobody has it switched on, so nothing is running and nothing is being charged for.",
@@ -306,7 +306,7 @@ export function assess(f: Facts): Thing[] {
           f.ever.emailDelivered ? yes("proven", "Email has gone out") : no("proven"),
         ],
         because: {
-          connected: "Email cannot leave the building. That one is ours — tell us.",
+          connected: "Email cannot leave the building. That one is ours, so tell us.",
           proven: "No email has ever been delivered, so this is untested.",
         },
         fix: { href: "/settings/install", label: "Channels" },
@@ -492,7 +492,7 @@ export function assess(f: Facts): Thing[] {
          * finish it. The same red cross, and opposite actions.
          */
         connected: f.ever.paymentTaken
-          ? "Money has gone through before, but nothing can be charged today. Usually the Stripe form was started and never finished — Stripe allows no charges until it is — or the account has since been disconnected."
+          ? "Money has gone through before, but nothing can be charged today. Usually the Stripe form was started and never finished, and Stripe allows no charges until it is. Or the account has since been disconnected."
           : "Nothing can be charged and no deposit can be held. Either no account has been connected, or one was started and the Stripe form was never finished.",
         proven: "No payment has gone through yet.",
       },
@@ -690,7 +690,7 @@ export function assessPeople(people: PersonFacts[]): PersonState[] {
       if (p.receptionistOn && !p.hasOwnLine) {
         notes.push({
           kind: "fault",
-          says: "Has a Receptionist switched on and no number of their own, so there is nothing for it to answer — and it is still charged for.",
+          says: "Has a Receptionist switched on and no number of their own, so there is nothing for it to answer, and it is still charged for.",
         });
       }
 
@@ -718,7 +718,7 @@ export function assessPeople(people: PersonFacts[]): PersonState[] {
         notes.push({
           kind: p.invited ? "note" : "fault",
           says: p.invited
-            ? "Invited, but has never signed in — so they cannot see their own diary."
+            ? "Invited, but has never signed in, so they cannot see their own diary."
             : "No email address, so they have never been invited and cannot sign in at all.",
         });
       }

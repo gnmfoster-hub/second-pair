@@ -64,8 +64,8 @@ export function SignIt({
   return (
     <div ref={top}>
       <p className="hint mt-2 max-w-prose">
-        Please read it through. If anything in it is not what we discussed, do not sign it —
-        tell us and we will put it right and send it again.
+        Please read it through. If anything in it is not what we discussed, do not sign it.
+        Tell us and we will put it right and send it again.
       </p>
 
       {state.error && (

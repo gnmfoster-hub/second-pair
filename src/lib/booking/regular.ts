@@ -102,7 +102,7 @@ export function regularSummary(args: {
   const lines = [`Booked ${made.length} visits, ${every}, starting with the first.`];
   if (skipped.length > 0) {
     lines.push(
-      `${skipped.length} of the dates could not be done (already booked, or shut) — tell them which ones are missing and offer to find another time for those.`,
+      `${skipped.length} of the dates could not be done (already booked, or shut). Tell them which ones are missing and offer to find another time for those.`,
     );
   }
   lines.push("Read the dates back to them.");

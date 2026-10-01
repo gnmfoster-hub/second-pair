@@ -165,7 +165,7 @@ export default async function FormsOverviewPage() {
           */}
         {waiting.data?.some((f) => f.status !== "opened" && wentNowhere((f as { sent_via?: string | null }).sent_via ?? null)) && (
           <p className="hint mt-3 max-w-prose text-xs">
-            &ldquo;Not sent&rdquo; means a link was made but nothing went out — usually because
+            &ldquo;Not sent&rdquo; means a link was made but nothing went out, usually because
             there was no mobile number or email address on that person. Open it to get the
             link and send it however suits.
           </p>

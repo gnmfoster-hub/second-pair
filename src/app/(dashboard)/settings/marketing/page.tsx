@@ -81,7 +81,7 @@ export default async function MarketingSettingsPage() {
   return (
     <div className="space-y-3">
       <p className="hint max-w-prose">
-        Offers, news and a nudge to people who have not been in for a while — sent only to
+        Offers, news and a nudge to people who have not been in for a while, sent only to
         those who have said they want to hear from you. Reminders, confirmations and review
         requests are not marketing and are not affected by anything on this page.
       </p>
@@ -90,8 +90,8 @@ export default async function MarketingSettingsPage() {
         <div className="card space-y-2 p-5">
           <div className="section-title">Not switched on</div>
           <p className="hint max-w-prose">
-            Marketing is not part of your account yet. Ask us and we will switch it on —
-            email and text are separate, because texts cost per message and email
+            Marketing is not part of your account yet. Ask us and we will switch it on.
+            Email and text are separate, because texts cost per message and email
             effectively does not.
           </p>
           <Link href="/help" className="btn-ghost mt-2 inline-flex">
@@ -138,7 +138,7 @@ export default async function MarketingSettingsPage() {
           {byEmail === 0 && byText === 0 && (
             <p className="rounded-lg bg-warn/10 px-3 py-2 text-sm text-warn">
               Nobody has agreed to hear from you yet, so nothing can be sent. That is not a
-              fault — it is the law, and it is why the number is worth watching.
+              fault. It is the law, and it is why the number is worth watching.
               {withEmail > 0 && ` ${withEmail} of your ${customers} have an email address on file.`}
             </p>
           )}

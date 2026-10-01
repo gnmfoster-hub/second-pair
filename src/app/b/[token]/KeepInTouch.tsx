@@ -52,7 +52,7 @@ export function KeepInTouch({
 
       <h2 className="text-sm font-medium">Hear from {business}?</h2>
       <p className="hint mt-1">
-        Offers and news, only if you want them. Nothing to do with your appointment — you
+        Offers and news, only if you want them. Nothing to do with your appointment. You
         will always be told about that.
       </p>
 

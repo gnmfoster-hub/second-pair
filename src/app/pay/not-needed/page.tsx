@@ -43,7 +43,7 @@ export default async function NotNeededPage({
       <div className="max-w-sm">
         <h1 className="text-lg font-semibold tracking-tight">You are booked in</h1>
         <p className="hint mt-2">
-          There is no deposit to pay after all &mdash; your appointment is confirmed exactly as it
+          There is no deposit to pay after all. Your appointment is confirmed exactly as it
           is, and nothing else is needed from you.
         </p>
         <p className="hint mt-3">

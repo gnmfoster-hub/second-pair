@@ -162,9 +162,9 @@ export default async function PaymentDonePage({
     }`;
   } else {
     heading = "Payment received";
-    body = `${formatPence(amount)} paid${to}${what ? ` for ${what}` : ""}. Thank you${
-      when ? ` — see you on ${when}` : ""
-    }.`;
+    body = `${formatPence(amount)} paid${to}${what ? ` for ${what}` : ""}. Thank you.${
+      when ? ` See you on ${when}.` : ""
+    }`;
   }
 
   return (

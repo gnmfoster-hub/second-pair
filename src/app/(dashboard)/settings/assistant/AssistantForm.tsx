@@ -207,7 +207,7 @@ export function AssistantForm({ studio }: { studio: Studio }) {
           <div>
             <h2 className="section-title">Your voice</h2>
             <p className="hint mt-1">
-              How the assistant sounds. Be specific — &ldquo;friendly and
+              How the assistant sounds. Be specific, because &ldquo;friendly and
               professional&rdquo; describes every business on earth.
             </p>
           </div>

@@ -53,7 +53,7 @@ export function SettingsSearch({ owner }: { owner: boolean }) {
              * search that has not finished.
              */
             <p className="hint px-2.5">
-              Nothing matched. Try what the thing does rather than what it is called —
+              Nothing matched. Try what the thing does rather than what it is called:
               &ldquo;no show&rdquo;, &ldquo;deposit&rdquo;, &ldquo;colour&rdquo;.
             </p>
           ) : (

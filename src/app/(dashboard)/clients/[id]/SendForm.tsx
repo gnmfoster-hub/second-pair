@@ -37,8 +37,8 @@ export function SendForm({
         No forms yet.{" "}
         <Link href="/settings/forms" className="text-accent hover:underline">
           Add one
-        </Link>{" "}
-        — there are ready-made ones for your trade.
+        </Link>
+        . There are ready-made ones for your trade.
       </p>
     );
   }

@@ -68,5 +68,5 @@ export function describeCeiling(
 
   return past
     ? `Past the ceiling of ${cap} calls this month, so calls are no longer ringing a mobile. They are still answered and still texted back.`
-    : `${usedThisMonth} of ${cap} calls this month${left <= 5 ? `, ${left} left` : ""}. Past ${cap}, calls stop ringing a mobile — they are still answered and still texted back.`;
+    : `${usedThisMonth} of ${cap} calls this month${left <= 5 ? `, ${left} left` : ""}. Past ${cap}, calls stop ringing a mobile. They are still answered and still texted back.`;
 }

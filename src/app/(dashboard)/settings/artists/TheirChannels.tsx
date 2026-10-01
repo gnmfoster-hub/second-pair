@@ -370,7 +370,7 @@ function TheirReceptionist({
 
         <span className="hint min-w-0 flex-1 text-[12px]">
           {on && !hasOwnLine
-            ? `Switched on, but ${firstName} has no number of their own yet — so there is nothing for it to answer. Give them one above, or switch this off until there is.`
+            ? `Switched on, but ${firstName} has no number of their own yet, so there is nothing for it to answer. Give them one above, or switch this off until there is.`
             : on
               ? `Anybody ringing ${firstName}'s own number gets it.`
               : hasOwnLine

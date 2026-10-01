@@ -146,7 +146,7 @@ function Starters() {
       <input type="hidden" name="intent" value="starters" />
       <div className="label">Nothing saved yet</div>
       <p className="hint mt-1 max-w-prose">
-        Start with six of the messages most businesses send — running late, a slot has come
+        Start with six of the messages most businesses send: running late, a slot has come
         up, sorry we missed you. They arrive as ordinary rows, so rewrite them in your own
         words or throw away the ones you would never send.
       </p>

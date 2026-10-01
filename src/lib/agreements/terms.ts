@@ -43,11 +43,16 @@
  * nothing about ownership at all. A promise on a sales page and silence in the
  * contract is the wrong way round.
  *
+ * draft-3, 1 October: one sentence in section 5 repunctuated and not reworded.
+ * It held what you get back between two long dashes, and a long dash is the one
+ * punctuation mark banned on anything a customer reads here. The clause says
+ * exactly what it said before, with a colon doing the work.
+ *
  * Bumping this changes what the NEXT business is sent and nothing whatever about
  * what anybody has already signed, because the wording is frozen onto each
  * agreement as it goes out. That is the whole point of stamping it.
  */
-export const TERMS_VERSION = "2026-09-draft-2";
+export const TERMS_VERSION = "2026-10-draft-3";
 
 export type Period = "monthly" | "quarterly" | "yearly";
 
@@ -318,7 +323,7 @@ export function buildTerms(business: string, m: Money): string {
   );
   lines.push("");
   lines.push(
-    "When it ends you can have everything you have put in — your customers, their details, your conversations and your diary — as a file you can open, at no charge. Ask, and it is sent within fourteen days.",
+    "When it ends you can have everything you have put in, as a file you can open, at no charge: your customers, their details, your conversations and your diary. Ask, and it is sent within fourteen days.",
   );
   lines.push("");
 

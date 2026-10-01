@@ -207,8 +207,8 @@ export function OnYourPhone() {
               </ol>
               <p className="mt-2.5">
                 It has to be Safari. Chrome and Firefox on an{" "}
-                {where === "ipad" ? "iPad" : "iPhone"} have no Add to Home Screen at all
-                &mdash; Apple does not give it to them.
+                {where === "ipad" ? "iPad" : "iPhone"} have no Add to Home Screen at all,
+                because Apple does not give it to them.
               </p>
             </>
           )}

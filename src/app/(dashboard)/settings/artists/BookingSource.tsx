@@ -45,7 +45,7 @@ export function BookingSource({ artist }: { artist?: Artist }) {
           {ORDER.map((k) => (
             <option key={k} value={k} disabled={k === "google" && kind !== "google"}>
               {PROVIDER_LABELS[k]}
-              {k === "google" ? " — not built yet" : ""}
+              {k === "google" ? " (not built yet)" : ""}
             </option>
           ))}
         </select>

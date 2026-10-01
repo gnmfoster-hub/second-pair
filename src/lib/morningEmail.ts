@@ -165,7 +165,7 @@ export async function sendMorningEmail(
         warn: bad,
         detail:
           `${sweep.runs} runs in the last day, longest gap ${sweep.longestGapMins} minutes` +
-          (bad ? " — reminders can be that late, and owners are told about five" : ""),
+          (bad ? ". Reminders can be that late, and owners are told about five" : ""),
       });
     }
 

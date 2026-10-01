@@ -408,7 +408,7 @@ export function DayList({
                     */}
                   <span>
                     {lengthOf(row.to.getTime() - row.from.getTime())}
-                    {artists.length > 1 ? " — nobody booked" : " free"}
+                    {artists.length > 1 ? " with nobody booked" : " free"}
                   </span>
                   <span aria-hidden>+</span>
                 </button>

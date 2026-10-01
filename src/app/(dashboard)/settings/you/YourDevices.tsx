@@ -99,8 +99,8 @@ export async function YourDevices() {
         */}
       {quiet && (
         <p className="hint mt-3 max-w-prose text-xs">
-          Nothing has been sent yet, so nothing has been buzzed. That is not a fault —
-          it means nothing has been left waiting for a person since you signed up.
+          Nothing has been sent yet, so nothing has been buzzed. That is not a fault. It
+          means nothing has been left waiting for a person since you signed up.
         </p>
       )}
     </section>

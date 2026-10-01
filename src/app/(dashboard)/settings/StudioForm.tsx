@@ -111,7 +111,7 @@ export function StudioForm({
 
         <Field
           label="What the assistant calls itself"
-          explain={`A name gives somebody something to say back to — "thanks Robin" is a different conversation from "thanks". Blank uses ${DEFAULT_ASSISTANT_NAME}. It always says it is an assistant when asked, name or no name.`}
+          explain={`A name gives somebody something to say back to. "Thanks Robin" is a different conversation from "thanks". Blank uses ${DEFAULT_ASSISTANT_NAME}. It always says it is an assistant when asked, name or no name.`}
         >
           <input
             name="assistant_name"
@@ -524,8 +524,8 @@ export function StudioForm({
       <section className="card space-y-5 p-6">
         <h2 className="section-title">VAT</h2>
         <p className="hint">
-          Only affects what the assistant quotes. Nothing here goes near your bookkeeping —
-          that is your accountant&rsquo;s job, not ours.
+          Only affects what the assistant quotes. Nothing here goes near your bookkeeping.
+          That is your accountant&rsquo;s job, not ours.
         </p>
 
         {/*
@@ -665,7 +665,7 @@ export function StudioForm({
           */}
         <Field
           label="A picture of your business"
-          hint="Shown to customers on a booking page and beside your address. A photo of the place works better than a logo, because it is what they are looking for when they arrive — but a logo is better than nothing."
+          hint="Shown to customers on a booking page and beside your address. A photo of the place works better than a logo, because it is what they are looking for when they arrive. A logo is better than nothing."
         >
           <div className="flex items-center gap-3">
             {photo && (

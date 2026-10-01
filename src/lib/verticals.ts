@@ -1815,7 +1815,7 @@ const MOTORING: VerticalPack[] = [
          * months, with six months still to use it.
          */
         remindBefore: 548,
-        remindText: "your theory pass runs out on {date} — after that it is the whole test again",
+        remindText: "your theory pass runs out on {date}, and after that it is the whole test again",
         onAppointment: true,
       },
       { key: "test_booked", label: "Practical test", type: "date", remindBefore: 14, remindText: "your practical is on {date}", onAppointment: true },

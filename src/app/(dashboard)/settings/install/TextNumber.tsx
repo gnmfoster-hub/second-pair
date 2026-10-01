@@ -172,7 +172,7 @@ export function TextNumber({
           <p className="hint mt-1 max-w-prose">
             So none of the settings below are running: the call is picked up rather than
             passed on, which means your phone does not ring and the voicemail response
-            never happens. That is the upgrade working, not a fault — it is the same
+            never happens. That is the upgrade working, not a fault. It is the same
             number your customers already have, answering instead of ringing out.
           </p>
           <p className="hint mt-1.5 max-w-prose">

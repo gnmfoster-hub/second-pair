@@ -84,7 +84,7 @@ export function holdLeft(hold: Hold): string {
  */
 export function holdMeans(hold: Hold): string {
   if (hold.lapsed) {
-    return "The hold has run out. This slot is about to go back into the diary — it is only still here because the sweep has not been round yet.";
+    return "The hold has run out. This slot is about to go back into the diary, and is only still here because the sweep has not been round yet.";
   }
   return `Held while they pay the deposit. ${holdLeft(hold)}, then the slot goes back and somebody else can have it.`;
 }

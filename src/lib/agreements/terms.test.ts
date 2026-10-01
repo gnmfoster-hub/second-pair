@@ -235,5 +235,17 @@ test("the sections are numbered in order and the cross-reference still points at
 });
 
 test("the version says which wording this is, and it is not the first draft any more", () => {
-  assert.equal(TERMS_VERSION, "2026-09-draft-2");
+  assert.equal(TERMS_VERSION, "2026-10-draft-3");
+});
+
+/*
+ * The one punctuation mark banned on anything a customer reads, in the document
+ * a customer reads most carefully. This test exists because the clause about
+ * getting your data back had two of them until 1 October.
+ */
+test("no long dashes anywhere in the wording", () => {
+  for (const money of [base, { ...base, setupFeePence: 0 }, { ...base, trialEndsOn: "2026-11-01" }]) {
+    const t = buildTerms("Example Ltd", money);
+    assert.ok(!t.includes("—"), "a long dash is in the agreement wording");
+  }
 });
