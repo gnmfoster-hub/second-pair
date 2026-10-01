@@ -92,6 +92,19 @@ export type Entry = {
   /** What happened, for the business. Never shown to the client. */
   outcome_note: string | null;
   repeats: string;
+  /**
+   * The first booking of the repeating set this belongs to, if any.
+   *
+   * Carried because "is this one of a set" cannot be answered by the rule alone.
+   * A run booked with "On days I pick" is stored with repeats "none" on every
+   * occurrence - the days were named one at a time, so there is no pattern to
+   * record - and the set is held together by this link exactly as every other
+   * one is. Reading the rule said those were single bookings, so the sheet
+   * offered nothing about the rest of the run.
+   */
+  repeatParentId?: string | null;
+  /** How many of the set are still to come, this one included. */
+  stillToCome?: number;
   /** A form this appointment's service needs signed first, and where it stands. */
   formNeed?: FormNeed | null;
 };

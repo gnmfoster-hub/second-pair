@@ -59,6 +59,9 @@ type RawRow = {
   held_until: string | null;
   price_pence: number | null;
   repeats: string;
+  /** The first of the repeating set, where this is one of a set. */
+  repeat_parent_id: string | null;
+  cancelled_at: string | null;
   group_id?: string | null;
   attended: boolean | null;
   actual_minutes: number | null;
@@ -549,6 +552,26 @@ export default async function DiaryPage({
       conversationId: r.enquiries?.conversation_id ?? null,
       quotePence: r.enquiries?.quote_low_pence ?? null,
       repeats: r.repeats,
+      repeatParentId: r.repeat_parent_id ?? null,
+      /*
+       * How many of this set are still ahead, counted from what is already in
+       * hand rather than with another query.
+       *
+       * Only the rows this view fetched, so a set running past the end of the
+       * week is undercounted. That is the right way to be wrong here: the number
+       * is used to say "and the 3 after it", and saying three when there are
+       * five is a smaller lie than a second round trip on every diary load. The
+       * action itself works on the whole set regardless of what the screen said.
+       */
+      stillToCome: (() => {
+        const root = r.repeat_parent_id ?? r.id;
+        return ((data ?? []) as unknown as RawRow[]).filter(
+          (o) =>
+            !o.cancelled_at &&
+            (o.id === root || o.repeat_parent_id === root) &&
+            String(o.starts_at) >= String(r.starts_at),
+        ).length;
+      })(),
       attended: r.attended,
       group:
         r.group_id && groupNames.has(r.group_id)

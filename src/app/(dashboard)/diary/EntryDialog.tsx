@@ -160,6 +160,16 @@ export function EntryDialog({
   const dialog = useSheet<HTMLDivElement>();
 
   const existing = Boolean(entry);
+  /*
+   * Whether this booking is one of a repeating set, and how many are still ahead.
+   *
+   * The parent link rather than the rule: see the note further down for why a
+   * run of picked days has no rule to read.
+   */
+  const inASet = Boolean(
+    entry?.repeatParentId || (entry?.repeats && entry.repeats !== "none") || (entry?.stillToCome ?? 0) > 1,
+  );
+  const howManyAhead = entry?.stillToCome ?? 1;
   const fromClient = entry?.source === "assistant";
   /* Whether the slot is only being held. See lib/holds. */
   const hold = holdOn(entry?.held_until, entry?.deposit_status);
@@ -1075,10 +1085,67 @@ export function EntryDialog({
             * the point: a business looking for "book this on six days" was
             * looking at the date, not under "Anything else".
             */}
-          {existing && entry?.repeats && entry.repeats !== "none" && (
-            <p className="hint">
-              Part of a repeating set. Saving changes this one only.
-            </p>
+          {/*
+            * ── Changing one of a set, or this one and the rest ──────────────
+            *
+            * Giles, 1 Oct: "when amending bookings in the diary, if the booking
+            * had repeating events it doesn't let you update future events, can
+            * you make it have the option to do so."
+            *
+            * It said "saving changes this one only" and meant it, so moving a
+            * standing Tuesday visit to Wednesday meant opening twelve
+            * appointments and editing each. Cancelling a whole run has been
+            * possible all along, which made the asymmetry stranger: you could
+            * drop the lot in one press and not move it.
+            *
+            * Read from the parent link rather than the rule, which is the other
+            * half of the fault. A run booked with "On days I pick" is stored
+            * with repeats "none" on every occurrence - the days were named one
+            * at a time, so there is no pattern to record - so a check on the
+            * rule said those were single bookings and this sheet offered nothing
+            * about the rest of the run at all.
+            */}
+          {existing && inASet && (
+            <div className="rounded-xl border border-border px-3.5 py-2.5">
+              <div className="label">This is one of a repeating set</div>
+              <div className="mt-2 space-y-1.5">
+                {[
+                  { value: "one", label: "Change just this one" },
+                  {
+                    value: "future",
+                    label:
+                      howManyAhead > 1
+                        ? `Change this one and the ${howManyAhead - 1} after it`
+                        : "Change this one and any after it",
+                  },
+                ].map((choice) => (
+                  <label key={choice.value} className="flex items-start gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="apply_to"
+                      value={choice.value}
+                      defaultChecked={choice.value === "one"}
+                      className="mt-0.5 accent-[var(--accent)]"
+                    />
+                    <span>{choice.label}</span>
+                  </label>
+                ))}
+              </div>
+              {/*
+                * What "and the ones after" does not touch, said plainly.
+                *
+                * Each occurrence has its own date and that is the whole point of
+                * a set, so a date typed here moves this one only. The time of
+                * day, the length and everything else carries forward - which is
+                * what somebody moving a standing visit from nine to two actually
+                * means.
+                */}
+              <p className="hint mt-2 max-w-prose">
+                The rest keep their own dates. The time, the length, who it is with and
+                anything else you change here carries forward. Ones already past are left
+                alone.
+              </p>
+            </div>
           )}
           {/*
             * What kind of entry this is, below the booking rather than above

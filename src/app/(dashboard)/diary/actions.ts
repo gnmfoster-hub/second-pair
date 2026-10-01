@@ -118,6 +118,33 @@ export async function saveDiaryEntry(
     // decides whose reminders they are.
     await scheduleReminders(supabase, studio.id, id, starts.toISOString(), artistId);
 
+    /*
+     * ── And the rest of the run, where that is what was asked for ─────────────
+     *
+     * Giles, 1 Oct: "if the booking had repeating events it doesn't let you
+     * update future events, can you make it have the option to do so."
+     *
+     * Moving a standing Tuesday visit to Wednesday meant opening twelve
+     * appointments and editing each. Cancelling a whole run has been possible
+     * all along, which made the asymmetry stranger: the lot could be dropped in
+     * one press and not moved.
+     */
+    if (str(fd, "apply_to") === "future") {
+      const spread = await alsoTheRest(supabase, studio.id, {
+        id,
+        patch,
+        starts,
+        ends,
+        artistId,
+      });
+      revalidatePath("/diary");
+      return spread.clashed
+        ? {
+            ok: `Saved, and ${spread.changed} after it. ${spread.clashed} could not move, because something else is in the way at the new time.`,
+          }
+        : { ok: spread.changed ? `Saved, and the ${spread.changed} after it.` : "Saved." };
+    }
+
     revalidatePath("/diary");
     return { ok: "Saved." };
   }
@@ -340,6 +367,114 @@ export async function saveDiaryEntry(
 }
 
 /** Removes every future occurrence of a repeating entry, not just this one. */
+/**
+ * Carry an edit forward to the rest of a repeating run.
+ *
+ * ── What moves and what does not ────────────────────────────────────────────
+ *
+ * Everything on the sheet carries forward except the date, and the date is the
+ * exception that makes the whole thing work: each occurrence has its own, which
+ * is the entire point of a set. So a date typed into the sheet moves that one
+ * booking, and what spreads is the TIME OF DAY, the length, and every other
+ * field - which is what somebody moving a standing visit from nine to two
+ * actually means.
+ *
+ * ── One at a time, for the same reason adding them is ──────────────────────
+ *
+ * A clash is normal: one week of a run may already have something else in it.
+ * Updated in a loop so that one refusal skips that occurrence rather than
+ * failing the lot, and the count comes back so the screen can say how many
+ * moved and how many would not.
+ *
+ * Past occurrences are left alone, exactly as cancelling a series leaves them.
+ * They are history: a visit that happened at nine happened at nine, whatever the
+ * arrangement is from now on.
+ */
+async function alsoTheRest(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  studioId: string,
+  args: {
+    id: string;
+    patch: Record<string, unknown>;
+    starts: Date;
+    ends: Date;
+    artistId: string;
+  },
+): Promise<{ changed: number; clashed: number }> {
+  const { data: me } = await supabase
+    .from("bookings")
+    .select("id, repeat_parent_id, starts_at")
+    .eq("id", args.id)
+    .maybeSingle();
+
+  if (!me) return { changed: 0, clashed: 0 };
+
+  /* The same root the series cancel uses: the parent, or itself if it is one. */
+  const rootId = (me.repeat_parent_id as string | null) ?? (me.id as string);
+
+  const { data: rest } = await supabase
+    .from("bookings")
+    .select("id, starts_at")
+    .or(`id.eq.${rootId},repeat_parent_id.eq.${rootId}`)
+    .gt("starts_at", me.starts_at as string)
+    .is("cancelled_at", null)
+    .order("starts_at");
+
+  if (!rest?.length) return { changed: 0, clashed: 0 };
+
+  /*
+   * The new time of day and the new length, taken from what was just saved.
+   *
+   * Worked out as hours and minutes rather than as an offset, so a run that
+   * crosses a clock change keeps the time somebody agreed rather than drifting
+   * by an hour. The same argument as regularInstants: a Tuesday five o'clock
+   * lesson in October is still five o'clock in November.
+   */
+  const length = args.ends.getTime() - args.starts.getTime();
+
+  /* Everything from the sheet except the two that belong to one occurrence. */
+  const { starts_at: _s, ends_at: _e, ...carried } = args.patch;
+
+  let changed = 0;
+  let clashed = 0;
+
+  for (const one of rest) {
+    const at = new Date(one.starts_at as string);
+    /*
+     * Its own day, at the new time. Read in UTC and written in UTC because both
+     * instants are absolute; the hours and minutes come from the saved booking.
+     */
+    const moved = new Date(args.starts.getTime());
+    moved.setUTCFullYear(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate());
+
+    const { error } = await supabase
+      .from("bookings")
+      .update({
+        ...carried,
+        starts_at: moved.toISOString(),
+        ends_at: new Date(moved.getTime() + length).toISOString(),
+      })
+      .eq("id", one.id as string);
+
+    if (error) {
+      /* 23P01 is the no-overlap constraint: something else is already there. */
+      if (error.code === "23P01") clashed++;
+      continue;
+    }
+
+    changed++;
+    await scheduleReminders(
+      supabase,
+      studioId,
+      one.id as string,
+      moved.toISOString(),
+      args.artistId,
+    );
+  }
+
+  return { changed, clashed };
+}
+
 export async function cancelSeries(fd: FormData) {
   const supabase = await createClient();
   const id = str(fd, "id");
