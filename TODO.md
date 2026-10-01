@@ -102,8 +102,13 @@ other half of that ask is a partnership rather than a feature — **D**.
 long run this week; the presentation has never been designed, only built. Worth
 doing after your three clients have confirmations switched on, not before.
 
-Still mine: seven lint errors older than last night, and the ninety-odd long
-dashes still in screen copy, which are deliberately not being fixed in bulk.
+Still mine: seven lint errors older than last night. **The long dashes are down
+from ninety to thirty**, read and repunctuated one at a time rather than
+replaced in bulk, including the one in a reminder *text* template, which was
+doubling the price of every one of those. The thirty left are eighteen in the
+admin console, which only I read, and twelve in marketing and product pages,
+which I do not change without asking. Every screen a client or their customer
+reads is clean.
 
 Three things are waiting on you and nothing else: **ring the Receptionist**,
 **sign a phone up for notifications** (the only device on the system is a
