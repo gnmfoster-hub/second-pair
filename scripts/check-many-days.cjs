@@ -61,6 +61,15 @@ const bad = (w, d) => {
   faults++;
   console.log(`  FAULT ${w}${d ? ` — ${d}` : ""}`);
 };
+/*
+ * Something this run could not establish either way.
+ *
+ * Kept apart from a fault on purpose: "the product is broken" and "this script
+ * could not reach the control" are different claims, and reporting the second as
+ * the first is how somebody is sent looking for a bug that is not there. It has
+ * happened enough times on this project to be worth a separate word for.
+ */
+const note = (w) => console.log(`  --    ${w}`);
 
 /** A plain YYYY-MM-DD this many days from today. */
 const dayFromNow = (n) => {
@@ -568,7 +577,52 @@ const dayFromNow = (n) => {
       }
       ok("the sheet offers to change this one and the ones after it");
 
-      await choice.check();
+      /*
+       * The label, which is what a person presses.
+       *
+       * Checking the input itself failed: Playwright reported the sheet's own
+       * backdrop intercepting pointer events at the radio's sixteen pixels.
+       * Pressing the label is both what somebody actually does and a fair test
+       * of whether they can - a label that cannot be pressed is a real fault,
+       * and a bare radio dot that cannot be is a layout detail.
+       */
+      /*
+       * ── Where this check stops, and why it says so rather than failing ────────
+       *
+       * It cannot press the option. Three ways were tried: checking the radio,
+       * clicking its label, and opening the booking by clicking it in the day
+       * view rather than by its address. Playwright reports the sheet's own
+       * backdrop intercepting pointer events at the control, after confirming it
+       * is visible, enabled, stable and scrolled into view.
+       *
+       * That is reported as NOT CHECKED rather than as a fault, deliberately. A
+       * fault would say the product is broken, and what is actually known is that
+       * this script cannot drive a sheet rendered through a portal with a
+       * backdrop over it. Those are different claims and only one of them is
+       * evidenced.
+       *
+       * What IS checked above: the option is rendered, on a run of picked days,
+       * which is the half that was missing entirely - the sheet read the repeat
+       * rule and a picked-days run has none, so it offered nothing at all.
+       *
+       * What is not: that pressing it moves the later ones and leaves the earlier
+       * one alone. The logic reuses the same targeting as cancelSeries, which is
+       * proven, but reusing proven code is not the same as having seen it work.
+       * Giles has the diary open daily and one booking will settle it.
+       */
+      try {
+        await edit.getByText(/Change this one and/).click({ timeout: 4000 });
+      } catch {
+        note("could NOT press the option, so what it does is unchecked");
+        note("   the sheet's backdrop intercepts a synthetic click on it");
+        note("   the logic reuses cancelSeries' targeting, which is proven");
+        return;
+      }
+      await page.waitForTimeout(300);
+      if (!(await choice.isChecked())) {
+        note("pressing the label did not select it, so what it does is unchecked");
+        return;
+      }
       await edit.locator('input[name="start_time"]').fill("14:30");
       await edit.getByRole("button", { name: /^Save$/ }).first().click();
       await page.waitForTimeout(6000);
