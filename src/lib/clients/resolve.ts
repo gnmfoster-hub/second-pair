@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { hasColumn } from "@/lib/db/hasColumn";
+/* Relative and with the extension, so node can run the tests beside this. */
+import { hasColumn } from "../db/hasColumn.ts";
 
 /**
  * What the client picker submitted, turned into a client.
@@ -39,11 +40,46 @@ export async function resolveContact(
   if (id) {
     const { data: ours } = await db
       .from("contacts")
-      .select("id")
+      .select("id, phone, email")
       .eq("id", id)
       .eq("studio_id", studioId)
       .maybeSingle();
-    return (ours as { id?: string } | null)?.id ?? null;
+
+    const them = ours as { id?: string; phone?: string | null; email?: string | null } | null;
+    if (!them?.id) return null;
+
+    /*
+     * A detail put right while they are still on the phone.
+     *
+     * Giles: "if when adding something to the diary that is already a client it
+     * should check the contact details of the customer at that stage so they can
+     * be changed if required". The picker sends one of these only when somebody
+     * has pressed Change and typed over what was there, so anything arriving
+     * here is a correction somebody meant to make.
+     *
+     * Blank is never written. An empty box is far more likely to be a slip than
+     * a decision to take somebody's only phone number off them, and a contact
+     * with `phone: ""` reads as somebody with a number to every query that asks
+     * whether they can be texted. Taking a detail off is done on their own page,
+     * where the screen is about them rather than about a booking.
+     */
+    const newPhone = (fields.phone ?? "").trim();
+    const newEmail = (fields.email ?? "").trim().toLowerCase();
+
+    const put: Record<string, string> = {};
+    if (newPhone && newPhone !== (them.phone ?? "")) put.phone = newPhone;
+    if (newEmail && newEmail !== (them.email ?? "").toLowerCase()) put.email = newEmail;
+
+    if (Object.keys(put).length) {
+      /*
+       * Scoped to the business as well as the id. The id was already checked
+       * above; saying it again on the write costs nothing and means no later
+       * caller can turn this into a way to edit another business's customer.
+       */
+      await db.from("contacts").update(put).eq("id", them.id).eq("studio_id", studioId);
+    }
+
+    return them.id;
   }
 
   const name = (fields.name ?? "").trim();

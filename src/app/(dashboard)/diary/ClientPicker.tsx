@@ -19,9 +19,19 @@ export type ClientChoice = {
   id: string | null;
   name: string;
   phone?: string | null;
+  email?: string | null;
 };
 
-type Match = { id: string; name: string | null; phone: string | null; alert: string | null };
+type Match = {
+  id: string;
+  name: string | null;
+  phone: string | null;
+  email: string | null;
+  alert: string | null;
+};
+
+/** Two addresses the same, allowing for how people type them. */
+const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
 export function ClientPicker({
   defaultValue,
@@ -66,12 +76,31 @@ export function ClientPicker({
    * number is in the hand of whoever is typing the name; asking a week later
    * means asking the customer again.
    *
-   * Both optional, and only shown for somebody new: an existing client already
-   * has whatever is on their record, and offering to change it here is how a
-   * booking quietly overwrites a phone number.
+   * Both optional.
+   *
+   * ── And for somebody who has been before ────────────────────────────────
+   *
+   * This used to say: only shown for somebody new, because an existing client
+   * already has whatever is on their record and offering to change it here is
+   * how a booking quietly overwrites a phone number.
+   *
+   * Giles asked for the opposite, and he is right about the case: "if when
+   * adding something to the diary that is already a client it should check the
+   * contact details of the customer at that stage so they can be changed if
+   * required but also allows the user to know its the correct customer by
+   * tel/email etc." Somebody is on the phone saying they have a new number,
+   * and the only answer was to finish the booking and go and find them in
+   * Clients.
+   *
+   * The original worry was never wrong, so it is answered rather than ignored:
+   * what we hold is shown but not editable until somebody presses Change, and
+   * an emptied box counts as no change rather than as deleting a number. An
+   * overwrite now takes a deliberate press and typing over what is there.
    */
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  /* Whether the details of somebody who has been before are open for editing. */
+  const [amending, setAmending] = useState(false);
   /*
    * Which they would rather have, asked only once both are on offer.
    *
@@ -109,25 +138,52 @@ export function ClientPicker({
   }, []);
 
   const pick = (match: Match) => {
-    setChosen({ id: match.id, name: match.name ?? "", phone: match.phone });
+    setChosen({
+      id: match.id,
+      name: match.name ?? "",
+      phone: match.phone,
+      email: match.email,
+    });
     setQuery(match.name ?? "");
+    /* Their details, in the boxes, as we hold them. Nothing is sent back
+       unless somebody types over one of them. */
+    setPhone(match.phone ?? "");
+    setEmail(match.email ?? "");
+    setAmending(false);
     setOpen(false);
   };
 
   const asNew = () => {
     setChosen({ id: null, name: query.trim() });
+    setPhone("");
+    setEmail("");
+    setAmending(false);
     setOpen(false);
   };
+
+  /*
+   * What goes back with the booking, and only that.
+   *
+   * For somebody new, whatever was typed. For somebody who has been before,
+   * only a box that has actually been changed to something — so the ordinary
+   * booking of a regular sends nothing and cannot touch their record, and an
+   * emptied box is a slip rather than an instruction to delete their number.
+   */
+  const changed = (typed: string, held: string | null | undefined) =>
+    amending && typed.trim() && !same(typed, held ?? "") ? typed.trim() : "";
+
+  const sendPhone = chosen && !chosen.id ? phone : changed(phone, chosen?.phone);
+  const sendEmail = chosen && !chosen.id ? email : changed(email, chosen?.email);
 
   return (
     <div ref={box} className="relative">
       {/* What the form actually submits. */}
       <input type="hidden" name={idName} value={chosen?.id ?? ""} />
       <input type="hidden" name={name} value={chosen?.name ?? ""} />
-      {/* Only for somebody new. An existing client's details are theirs and
-          are changed on their record, not in passing while booking them. */}
-      <input type="hidden" name={`${name}_phone`} value={chosen && !chosen.id ? phone : ""} />
-      <input type="hidden" name={`${name}_email`} value={chosen && !chosen.id ? email : ""} />
+      {/* Everything typed for somebody new, and for somebody who has been
+          before only what was deliberately typed over. See `changed` above. */}
+      <input type="hidden" name={`${name}_phone`} value={sendPhone} />
+      <input type="hidden" name={`${name}_email`} value={sendEmail} />
       <input
         type="hidden"
         name={`${name}_prefers`}
@@ -151,7 +207,7 @@ export function ClientPicker({
         <p className="hint mt-1.5">
           {chosen.id ? (
             <>
-              Booking for <strong className="text-foreground">{chosen.name}</strong> — their
+              Booking for <strong className="text-foreground">{chosen.name}</strong>. Their
               history will show this.
             </>
           ) : (
@@ -161,6 +217,110 @@ export function ClientPicker({
             </>
           )}
         </p>
+      )}
+
+      {/*
+        * What we hold for somebody who has been before.
+        *
+        * Two jobs in one small block, both of them Giles's. It confirms this is
+        * the right Marie Whitlock before the booking is made, which a name on
+        * its own cannot do in a town with two of them. And it is where a new
+        * number gets typed in, while the person whose number it is is still on
+        * the phone.
+        *
+        * Read-only until Change is pressed, because an input box sitting open
+        * next to somebody's real phone number is an accident waiting for a
+        * stray keystroke.
+        */}
+      {chosen?.id && (
+        <div className="mt-2 rounded-xl border border-border bg-surface-2/50 px-3 py-2.5">
+          {!amending ? (
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <span className="label">What you have for them</span>
+                <div className="mt-0.5 text-sm">
+                  {chosen.phone ? (
+                    <span className="num">{chosen.phone}</span>
+                  ) : (
+                    <span className="text-muted">No number</span>
+                  )}
+                  <span className="text-muted"> · </span>
+                  {chosen.email ? (
+                    <span className="break-all">{chosen.email}</span>
+                  ) : (
+                    <span className="text-muted">no email</span>
+                  )}
+                </div>
+                {!chosen.phone && !chosen.email && (
+                  <p className="hint mt-1">
+                    There is no way to reach them, so no reminder can go out and a
+                    cancelled slot cannot be offered to them.
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setAmending(true)}
+                className="shrink-0 text-sm text-accent hover:underline"
+              >
+                Change
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-2">
+                <label className="min-w-[9rem] flex-1">
+                  <span className="label">Mobile</span>
+                  <input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    inputMode="tel"
+                    autoComplete="off"
+                    placeholder="07700 900123"
+                    className="input num"
+                  />
+                </label>
+                <label className="min-w-[11rem] flex-1">
+                  <span className="label">Email</span>
+                  <input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    type="email"
+                    autoComplete="off"
+                    placeholder="them@example.com"
+                    className="input"
+                  />
+                </label>
+              </div>
+
+              <p className="hint mt-2">
+                {sendPhone || sendEmail ? (
+                  <>
+                    Saving the booking will update{" "}
+                    <strong className="text-foreground">{chosen.name}</strong> as well.
+                  </>
+                ) : (
+                  <>
+                    Type over one of these to put it right. Emptying a box leaves it as it
+                    was, so take a detail off their own page rather than here.
+                  </>
+                )}
+              </p>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setPhone(chosen.phone ?? "");
+                  setEmail(chosen.email ?? "");
+                  setAmending(false);
+                }}
+                className="mt-1.5 text-sm text-muted hover:text-foreground hover:underline"
+              >
+                Leave them as they are
+              </button>
+            </>
+          )}
+        </div>
       )}
 
       {/*
@@ -268,7 +428,15 @@ export function ClientPicker({
                 <span className="block truncate text-sm font-medium">
                   {match.name ?? "Unnamed"}
                 </span>
-                {match.phone && <span className="hint num block">{match.phone}</span>}
+                {/* Both, because a town has two Marie Whitlocks and the
+                    number alone is not always the one you were told. */}
+                {(match.phone || match.email) && (
+                  <span className="hint block truncate">
+                    {match.phone && <span className="num">{match.phone}</span>}
+                    {match.phone && match.email && " · "}
+                    {match.email}
+                  </span>
+                )}
               </span>
               {/* The thing the owner most needs to see before booking them in. */}
               {match.alert && (
