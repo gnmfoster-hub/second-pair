@@ -361,8 +361,15 @@ export function EntryDialog({
   }, [onClose, dialog]);
 
   useEffect(() => {
-    if (state.ok) onClose();
-  }, [state.ok, onClose]);
+    /*
+     * Closed on an ordinary save, left open on one that reached other days.
+     *
+     * Changing a run writes to days that are not on screen, so closing the sheet
+     * left nothing to see and nothing to read - which is exactly how a working
+     * change gets reported as a broken one.
+     */
+    if (state.ok && !state.spread) onClose();
+  }, [state.ok, state.spread, onClose]);
 
   const categoryPicker = (
           <Field label="What is it">
@@ -1231,6 +1238,10 @@ export function EntryDialog({
           <div className="sheet-wide flex flex-wrap items-center gap-3 pt-1">
             <SubmitButton>{existing ? "Save" : "Add it"}</SubmitButton>
             {state.error && <p className="text-sm text-bad">{state.error}</p>}
+            {/* What a save that reached other days actually did. */}
+            {state.ok && state.spread && (
+              <p className="text-sm text-ok">{state.ok}</p>
+            )}
             <div className="flex-1" />
             {existing && entry?.repeats && entry.repeats !== "none" && (
               <button

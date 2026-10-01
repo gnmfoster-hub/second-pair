@@ -21,7 +21,23 @@ import { dropReminders } from "@/lib/reminders";
 import { scheduleReminders } from "@/lib/reminders";
 import { DIARY_LAYOUT_COOKIE, type DiaryLayout } from "@/lib/diaryLayout";
 
-export type DiaryState = { error?: string; ok?: string };
+export type DiaryState = {
+  error?: string;
+  ok?: string;
+  /**
+   * Whether the save reached bookings other than the one on screen.
+   *
+   * The sheet closes itself on a successful save, which is right for the
+   * ordinary case and was wrong for this one: changing a run writes to days that
+   * are not on screen, the message saying how many was computed and thrown away,
+   * and Giles pressed Save, watched the sheet shut, and had no way at all to
+   * tell whether anything had happened. He reported it as not working.
+   *
+   * So a save that spread stays open and says what it did. The one case where
+   * the confirmation matters is the one case where the effect is invisible.
+   */
+  spread?: boolean;
+};
 
 const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
 
@@ -138,11 +154,31 @@ export async function saveDiaryEntry(
         artistId,
       });
       revalidatePath("/diary");
-      return spread.clashed
-        ? {
-            ok: `Saved, and ${spread.changed} after it. ${spread.clashed} could not move, because something else is in the way at the new time.`,
-          }
-        : { ok: spread.changed ? `Saved, and the ${spread.changed} after it.` : "Saved." };
+
+      /*
+       * Said in full, and the sheet left open to say it.
+       *
+       * Every one of these outcomes used to arrive as a closed sheet and nothing
+       * on screen. "Nought moved" and "five moved" looked identical, which is
+       * why this was reported as not working at all.
+       */
+      if (spread.refused) {
+        return {
+          error: `This one is saved. The ${spread.changed} after it could not be: ${spread.refused}`,
+        };
+      }
+      if (spread.changed === 0 && spread.clashed === 0) {
+        return {
+          ok: "Saved. There was nothing after this one in the run to change.",
+          spread: true,
+        };
+      }
+      return {
+        ok: spread.clashed
+          ? `Saved, and ${spread.changed} after it. ${spread.clashed} could not move, because something else is already in the diary at the new time.`
+          : `Saved, and the ${spread.changed} after it.`,
+        spread: true,
+      };
     }
 
     revalidatePath("/diary");
@@ -400,14 +436,14 @@ async function alsoTheRest(
     ends: Date;
     artistId: string;
   },
-): Promise<{ changed: number; clashed: number }> {
+): Promise<{ changed: number; clashed: number; refused: string | null }> {
   const { data: me } = await supabase
     .from("bookings")
     .select("id, repeat_parent_id, starts_at")
     .eq("id", args.id)
     .maybeSingle();
 
-  if (!me) return { changed: 0, clashed: 0 };
+  if (!me) return { changed: 0, clashed: 0, refused: null };
 
   /* The same root the series cancel uses: the parent, or itself if it is one. */
   const rootId = (me.repeat_parent_id as string | null) ?? (me.id as string);
@@ -420,7 +456,13 @@ async function alsoTheRest(
     .is("cancelled_at", null)
     .order("starts_at");
 
-  if (!rest?.length) return { changed: 0, clashed: 0 };
+  /*
+   * Nothing after it, which is a real answer and not a failure: the last
+   * occurrence of a run has nothing to carry forward to. Said rather than
+   * silently reported as "Saved", so that "nought changed" can be told apart
+   * from "did not run".
+   */
+  if (!rest?.length) return { changed: 0, clashed: 0, refused: null };
 
   /*
    * The new time of day and the new length, taken from what was just saved.
@@ -437,6 +479,8 @@ async function alsoTheRest(
 
   let changed = 0;
   let clashed = 0;
+  /** The first refusal that was not a clash, so it can be said out loud. */
+  let refused: string | null = null;
 
   for (const one of rest) {
     const at = new Date(one.starts_at as string);
@@ -458,7 +502,21 @@ async function alsoTheRest(
 
     if (error) {
       /* 23P01 is the no-overlap constraint: something else is already there. */
-      if (error.code === "23P01") clashed++;
+      if (error.code === "23P01") {
+        clashed++;
+      } else if (!refused) {
+        /*
+         * Anything else is kept and reported.
+         *
+         * The first version counted a clash and dropped every other error on the
+         * floor, so a refused write looked exactly like a run with nothing after
+         * it: nought changed, "Saved.", and no hint that the database had said
+         * no. That is the family of fault this codebase has been bitten by
+         * repeatedly, and writing it again while fixing something else is worth
+         * recording rather than quietly correcting.
+         */
+        refused = error.message;
+      }
       continue;
     }
 
@@ -472,7 +530,7 @@ async function alsoTheRest(
     );
   }
 
-  return { changed, clashed };
+  return { changed, clashed, refused };
 }
 
 export async function cancelSeries(fd: FormData) {
