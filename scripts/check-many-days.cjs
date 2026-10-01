@@ -334,6 +334,8 @@ const dayFromNow = (n) => {
    */
   await confirmsOnce();
 
+  await changesTheRest();
+
   async function confirmsOnce() {
     const runTag = `zz-conf-${randomBytes(4).toString("hex")}`;
     const days = [dayFromNow(60), dayFromNow(61), dayFromNow(62)];
@@ -490,6 +492,131 @@ const dayFromNow = (n) => {
       await db.from("contacts").delete().ilike("name", `%${runTag}%`);
       if (madeTemplate) await db.from("reminder_templates").delete().eq("id", madeTemplate);
       ok("that run, its client and its wording taken back out");
+    }
+  }
+
+
+  /*
+   * ── Changing one of a run, and the ones after it ──────────────────────────
+   *
+   * Giles, 1 Oct: "if the booking had repeating events it doesn't let you update
+   * future events, can you make it have the option to do so."
+   *
+   * One press writes to several rows, which is the shape that needs checking in
+   * the database rather than on the screen. Three things would each be silent:
+   * the later ones not moving at all, the earlier ones moving when they should
+   * not, and the time drifting rather than landing on what was asked for.
+   */
+  async function changesTheRest() {
+    const runTag = `zz-rest-${randomBytes(4).toString("hex")}`;
+    const days = [dayFromNow(70), dayFromNow(71), dayFromNow(72), dayFromNow(73)];
+
+    console.log(`
+  A run of ${days.length}, then moving it from the second one on
+`);
+
+    const browser3 = await chromium.launch({ channel: "chrome", headless: true });
+    const context3 = await browser3.newContext({ viewport: { width: 1280, height: 1000 } });
+
+    try {
+      const page = await signIn(context3, owner.user_id, "/diary");
+      await page.getByRole("button", { name: /^Add something/ }).click();
+      await page
+        .getByRole("button", { name: /Time off, or something that is not a client/i })
+        .first()
+        .click();
+
+      const sheet = page.locator("form").filter({ has: page.locator('input[name="date"]') }).first();
+      await sheet.locator('input[name="date"]').fill(days[0]);
+      await sheet.locator('input[name="start_time"]').fill("09:00");
+      await sheet.locator('input[name="title"], input[name="contact_name"]').first().fill(runTag);
+      await sheet.locator('select[name="repeats"]').selectOption("dates");
+      for (const [i, day] of days.slice(1).entries()) {
+        await sheet.getByRole("button", { name: /Add another day/i }).click();
+        await sheet.locator('input[type="date"]').nth(i + 1).fill(day);
+      }
+      await sheet.getByRole("button", { name: /^Add it$/ }).click();
+      await page.waitForTimeout(5000);
+
+      const { data: made } = await db
+        .from("bookings")
+        .select("id, starts_at")
+        .eq("title", runTag)
+        .order("starts_at");
+      if ((made ?? []).length !== days.length) {
+        bad(`${(made ?? []).length} of ${days.length} went in`, "cannot check the rest");
+        return;
+      }
+      ok(`${made.length} booked, all at 09:00`);
+
+      /*
+       * Open the SECOND one, so there is something before it that must not move.
+       * The commonest real case is "from next week onwards", not "from the start".
+       */
+      await page.goto(`${SITE}/diary?view=day&day=${days[1]}&entry=${made[1].id}`, {
+        waitUntil: "networkidle",
+      });
+      await page.waitForTimeout(2500);
+
+      const edit = page.locator("form").filter({ has: page.locator('input[name="date"]') }).first();
+
+      /* The choice has to be there at all - it was not, for a run of picked days. */
+      const choice = edit.locator('input[name="apply_to"][value="future"]');
+      if (!(await choice.count())) {
+        bad("there is no option to change the ones after it", "on a run of picked days");
+        return;
+      }
+      ok("the sheet offers to change this one and the ones after it");
+
+      await choice.check();
+      await edit.locator('input[name="start_time"]').fill("14:30");
+      await edit.getByRole("button", { name: /^Save$/ }).first().click();
+      await page.waitForTimeout(6000);
+
+      const { data: after } = await db
+        .from("bookings")
+        .select("id, starts_at")
+        .eq("title", runTag)
+        .order("starts_at");
+
+      const clock = (iso) =>
+        new Intl.DateTimeFormat("en-GB", {
+          timeZone: studio.timezone,
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }).format(new Date(iso));
+
+      const times = (after ?? []).map((b) => clock(b.starts_at));
+
+      /* The first is before the one that was edited, so it must be untouched. */
+      if (times[0] === "09:00") ok("the one before it is left alone");
+      else bad(`the earlier one moved to ${times[0]}`, "history must not be rewritten");
+
+      const later = times.slice(1);
+      if (later.length === 3 && later.every((t) => t === "14:30")) {
+        ok("and all three from the edited one onwards are at 14:30");
+      } else {
+        bad("the rest did not all move", later.join(", "));
+      }
+
+      /* And each kept its own day, which is the whole point of a set. */
+      const dayOf = (iso) =>
+        new Intl.DateTimeFormat("en-CA", { timeZone: studio.timezone, dateStyle: "short" })
+          .format(new Date(iso))
+          .replaceAll("/", "-");
+      const landed = (after ?? []).map((b) => dayOf(b.starts_at));
+      if (JSON.stringify(landed) === JSON.stringify(days)) {
+        ok("every one still on its own day");
+      } else {
+        bad("the days changed", `${landed.join(" ")} rather than ${days.join(" ")}`);
+      }
+    } catch (e) {
+      bad("the run did not finish", e.message);
+    } finally {
+      await browser3.close();
+      await db.from("bookings").delete().eq("title", runTag);
+      ok("that run taken back out");
     }
   }
 
