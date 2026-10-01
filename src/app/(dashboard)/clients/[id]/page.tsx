@@ -182,16 +182,39 @@ export default async function ClientPage({
    * any error — it simply never reached a screen, so "I never got a reminder"
    * was unanswerable.
    */
-  const { data: reminders } = bookings.length
-    ? await supabase
-        .from("reminders")
-        .select("id, booking_id, due_at, sent_at, status, channel, body, error, template_id")
-        .in(
-          "booking_id",
-          bookings.map((b) => b.id),
-        )
-        .order("due_at", { ascending: false })
-    : { data: [] };
+  /*
+   * went_on only where the database has it, and written out twice.
+   *
+   * Naming a column PostgREST has not heard of refuses the entire query, so
+   * asking for it unconditionally would empty this whole section on any deploy
+   * that landed before the migration was run by hand — which is the normal
+   * order of things here.
+   *
+   * The two column lists are spelled out rather than built from a string
+   * because supabase-js reads the select as a literal to work out the row type.
+   * Assembling it loses that and every field below becomes an error about
+   * "Unexpected input".
+   */
+  const reminderIds = bookings.map((b) => b.id);
+  const reminders = !reminderIds.length
+    ? []
+    : ((await hasColumn(supabase, "reminders", "went_on"))
+        ? (
+            await supabase
+              .from("reminders")
+              .select(
+                "id, booking_id, due_at, sent_at, status, channel, body, error, template_id, went_on",
+              )
+              .in("booking_id", reminderIds)
+              .order("due_at", { ascending: false })
+          ).data
+        : (
+            await supabase
+              .from("reminders")
+              .select("id, booking_id, due_at, sent_at, status, channel, body, error, template_id")
+              .in("booking_id", reminderIds)
+              .order("due_at", { ascending: false })
+          ).data) ?? [];
 
   /*
    * Which of those were confirmations rather than reminders.

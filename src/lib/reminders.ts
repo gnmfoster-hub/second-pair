@@ -14,6 +14,7 @@ import { buildEmail } from "@/lib/messaging/emailTemplate";
 import { avatarUrl } from "@/components/Avatar";
 import { siteOrigin } from "@/lib/origin";
 import { chooseRoutes, preferenceOf, textsAllowed, forTemplate } from "@/lib/messageChannels";
+import { hasColumn } from "@/lib/db/hasColumn";
 
 /**
  * Reminders.
@@ -947,20 +948,85 @@ export async function sendDueReminders(
       const arrived = outcomes.some((o) => o.ok);
       const trouble = outcomes.filter((o) => !o.ok);
 
-      await db
+      /*
+       * ── One channel in the channel column ───────────────────────────────
+       *
+       * This line used to read
+       *
+       *   channel: outcomes.map((o) => o.channel).join(", ")
+       *
+       * and reminders.channel is the `channel` enum. Postgres refuses a value
+       * an enum has not heard of outright — "email, sms" is not a channel — so
+       * on a two-channel send the whole update was refused, and nobody read
+       * the error it came back with.
+       *
+       * The message had already gone. What was discarded was the record of it
+       * going: the row kept status pending with no sent_at, which is exactly
+       * the shape the next sweep picks up and sends again.
+       *
+       * It has never happened, because no business has yet chosen two channels
+       * for one reminder — every template in the database still says "default".
+       * It would have happened to the first one who did, and it would have
+       * shown up as a customer getting the same reminder every few hours.
+       *
+       * Found on 1 October by a demo-seeding script hitting the same refusal.
+       * Same family as the September fault that emptied every inbox: an enum
+       * value the database does not know is not ignored, it takes the whole
+       * statement with it.
+       *
+       * So the enum column holds one real channel — the one whose wording is
+       * kept in body, so the two agree — and the full list goes beside it.
+       */
+      const went = outcomes.map((o) => o.channel);
+      const everyChannel = went.join(", ");
+
+      const record: Record<string, unknown> = {
+        status: arrived ? "sent" : "failed",
+        // What actually went, not what was composed.
+        body: outcomes[0]?.body ?? body,
+        channel: outcomes[0]?.channel ?? null,
+        error: trouble.length
+          ? trouble.map((o) => `${o.channel}: ${o.error ?? "failed"}`).join("; ")
+          : null,
+        sent_at: arrived ? new Date().toISOString() : null,
+      };
+
+      /*
+       * Every channel it went on, so the record is not half the story. Written
+       * only where the column exists, because a deploy can land before the
+       * migration is run by hand.
+       */
+      if (went.length > 1 && (await hasColumn(db, "reminders", "went_on"))) {
+        record.went_on = everyChannel;
+      }
+
+      const { error: notWritten } = await db
         .from("reminders")
-        .update({
-          status: arrived ? "sent" : "failed",
-          // What actually went, not what was composed.
-          body: outcomes[0]?.body ?? body,
-          // Every channel it went on, so the record is not half the story.
-          channel: outcomes.map((o) => o.channel).join(", "),
-          error: trouble.length
-            ? trouble.map((o) => `${o.channel}: ${o.error ?? "failed"}`).join("; ")
-            : null,
-          sent_at: arrived ? new Date().toISOString() : null,
-        })
+        .update(record)
         .eq("id", row.id);
+
+      /*
+       * And if that still fails, say so rather than leave it pending.
+       *
+       * A refused update on a message that has already gone is the worst state
+       * this code can be in: the customer has it, we believe we never sent it,
+       * and the sweep sends it again. Falling back to the three columns that
+       * stop that happening is better than a silent discard, and the reason is
+       * kept where somebody will read it.
+       */
+      if (notWritten) {
+        await db
+          .from("reminders")
+          .update({
+            status: arrived ? "sent" : "failed",
+            sent_at: arrived ? new Date().toISOString() : null,
+            error: `Sent on ${everyChannel || "no channel"}, but the record of it would not save: ${notWritten.message}`.slice(
+              0,
+              300,
+            ),
+          })
+          .eq("id", row.id);
+      }
 
         if (arrived) result.sent++;
         else result.failed++;
