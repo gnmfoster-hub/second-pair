@@ -1,9 +1,13 @@
 import Link from "next/link";
-import { IntoTheDiary } from "./IntoTheDiary";
+import "./showpiece.css";
+import { TheEvening } from "./TheEvening";
+import { Trades } from "./Trades";
+import { TheRest } from "./TheRest";
+import { Sites } from "./Sites";
+import { Passing } from "./scroll";
 import { Logo } from "@/components/Logo";
 import { Hero } from "./Hero";
 import type { Metadata } from "next";
-import { VERTICALS_BY_CATEGORY } from "@/lib/verticals";
 
 export const metadata: Metadata = {
   title: "Second Pair. You work, we answer",
@@ -34,94 +38,27 @@ export default function HomePage() {
         */}
       <section className="relative overflow-hidden">
         <Hero />
+        {/*
+          * The line under the hero's diary fades in when the demo finishes.
+          * With script off the demo never runs, so it would stay invisible.
+          */}
+        <noscript>
+          <style>{".hero-done{opacity:1!important}"}</style>
+        </noscript>
       </section>
 
       {/*
-        * Seven ways in, one diary — Giles's idea, and the one thing on this
-        * page a picture says faster than a sentence. Straight after the hero,
-        * because the argument underneath it ("a diary doesn't answer") is the
-        * caption to this drawing rather than the other way round.
+        * Seven ways in, one diary — Giles's idea — now played as one evening,
+        * with the argument that used to sit under it ("a diary doesn't answer")
+        * as its captions. See TheEvening.
         */}
-      <IntoTheDiary />
-
-      {/* ──────────────────────────────────────────────────── the argument */}
-      <section className="shell py-16 sm:py-24">
-        <div className="grid gap-10 sm:grid-cols-3">
-          {[
-            {
-              head: "A diary doesn't answer",
-              body: "Fresha, Booksy and Square are good diaries, and most of them are free. None of them reply to a message at nine on a Tuesday night. That's the bit you're losing.",
-            },
-            {
-              head: "It knows your prices",
-              body: "It quotes from your own rates and never invents a number, never goes under your minimum, and always says the price is confirmed when you've seen the job.",
-            },
-            {
-              head: "It knows when to stop",
-              body: "A complaint, anything medical, anyone under 18, anyone who asks for a person. It fetches you and stops talking. It never pretends to be you.",
-            },
-          ].map((card) => (
-            <div key={card.head} className="index-item">
-              <h2 className="section-title text-base">{card.head}</h2>
-              <p className="mt-2.5 text-sm leading-relaxed text-muted">{card.body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <TheEvening />
 
       {/* ─────────────────────────────────────────────────────── the trades */}
-      <section className="border-y border-border bg-surface">
-        <div className="shell py-16 sm:py-20">
-          <h2 className="page-title">Built for whatever you actually do</h2>
-          <p className="mt-2.5 max-w-2xl text-sm leading-relaxed text-muted">
-            Each trade brings its own questions, services, wording and reminders, and its
-            own sense. The gas engineer won&rsquo;t book someone who says they can smell
-            gas, it gives them the emergency number. The plumber tells a burst pipe where
-            the stopcock is first.
-          </p>
-
-          <div className="mt-8 space-y-6">
-            {VERTICALS_BY_CATEGORY.map((group) => (
-              <div key={group.category}>
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-                  {group.category}
-                </h3>
-                <div className="mt-2.5 flex flex-wrap gap-1.5">
-                  {group.trades.map((pack) => (
-                    <span
-                      key={pack.id}
-                      className="rounded-full border border-border bg-background px-2.5 py-1 text-xs"
-                    >
-                      {pack.label}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <Trades />
 
       {/* ─────────────────────────────────────────────────────── the detail */}
-      <section className="shell py-16 sm:py-24">
-        <h2 className="page-title">And it runs the rest of it</h2>
-
-        <div className="mt-8 grid gap-x-10 gap-y-7 sm:grid-cols-2 xl:grid-cols-3">
-          {[
-            ["A proper diary", "Day, week and person views, repeats, blocks, all-day entries. Or keep the Fresha diary you already have. It reads that too."],
-            ["Deposits, if you want them", "Straight to your bank through Stripe at their normal rate. Second Pair takes nothing from it. Off entirely for trades that invoice after."],
-            ["A link each", "In a salon, every stylist gets their own link for their own Instagram. Enquiries there are theirs, and it never asks who you'd like."],
-            ["Reminders that suit the job", "Bring photo ID for a tattoo. Come with dry hair for a colour. Leave access and somewhere to park for a sparky."],
-            ["Client records", "History, what they've spent, no-shows, and a private note that flags every time they come back."],
-            ["On your phone", "Add it to your home screen and it works like an app. No app store, no waiting."],
-          ].map(([head, body]) => (
-            <div key={head} className="index-item">
-              <h3 className="section-title text-[0.95rem]">{head}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted">{body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <TheRest />
 
       {/* ───────────────────────────────────────────────────────── websites */}
       {/*
@@ -143,7 +80,7 @@ export default function HomePage() {
             Also from us
           </p>
 
-          <h2 className="page-title mt-3 max-w-[22ch]">
+          <h2 className="page-title sp-big-title mt-3 max-w-[18ch]">
             We build the website too, if you need one
           </h2>
 
@@ -154,7 +91,9 @@ export default function HomePage() {
             assistant.
           </p>
 
-          <div className="mt-8 grid gap-x-10 gap-y-7 sm:grid-cols-2">
+          <Sites />
+
+          <div className="mt-12 grid gap-x-10 gap-y-7 sm:grid-cols-2">
             {[
               [
                 "Built around the work, not a template",
@@ -180,31 +119,10 @@ export default function HomePage() {
             ))}
           </div>
 
-          {/*
-            * One real example rather than a gallery of none.
-            *
-            * It is the only one so far, and saying so is better than implying a
-            * portfolio that does not exist yet — the first question anybody
-            * asks is "what have you done", and one honest answer beats three
-            * vague ones.
-            */}
-          <div className="mt-9 rounded-2xl border border-border bg-background p-6">
-            <p className="text-sm leading-relaxed text-muted">
-              Most recently:{" "}
-              <a
-                href="https://livingcanvastattoo.ink"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-accent underline underline-offset-2"
-              >
-                livingcanvastattoo.ink
-              </a>{" "}
-              is a tattoo studio in Devon, with the assistant answering on it.
-            </p>
-            <a href="mailto:info@second-pair.com?subject=A%20website" className="btn-highlight mt-5 inline-flex">
-              Ask about a website
-            </a>
-          </div>
+          {/* The two that are live are above, in Sites. This is only the ask. */}
+          <a href="mailto:info@second-pair.com?subject=A%20website" className="btn-highlight mt-10 inline-flex">
+            Ask about a website
+          </a>
         </div>
       </section>
 
@@ -297,7 +215,7 @@ export default function HomePage() {
         * it a headline; changing what it says is a copy decision and Giles asked
         * to be asked, so the line stays and the treatment changes.
         */}
-      <section style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
+      <section className="sp-close" style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
         {/*
           * Left, not centred. §3: "Headlines are stacked, one phrase per line,
           * never centred." A closing band is the one place the centred reflex
@@ -310,14 +228,15 @@ export default function HomePage() {
           * opens the live assistant, and swapping where a button goes is
           * behaviour, not appearance.
           */}
-        <div className="shell py-20">
+        <Passing className="shell sp-close-in">
+          <div className="sp-close-words">
           <h2
             style={{
               fontFamily: "var(--font-display), Impact, sans-serif",
               textTransform: "uppercase",
               lineHeight: 0.96,
               letterSpacing: "0.01em",
-              fontSize: "clamp(40px, 5vw, 64px)",
+              fontSize: "clamp(44px, 7vw, 104px)",
               maxWidth: "14ch",
             }}
           >
@@ -330,7 +249,19 @@ export default function HomePage() {
           <a href="#ask" className="btn-ink mt-9 inline-flex" style={{ minHeight: 54 }}>
             Ask ours anything
           </a>
-        </div>
+          </div>
+
+          {/*
+            * The line made literal: your hand, and the second one arriving
+            * beside it as the band comes into view.
+            */}
+          <div className="sp-close-hands" aria-hidden>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/hands/hand-front.webp" alt="" width={520} height={520} loading="lazy" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/hands/hand-second.webp" alt="" width={520} height={520} loading="lazy" />
+          </div>
+        </Passing>
       </section>
     </>
   );

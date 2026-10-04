@@ -180,8 +180,10 @@ export function Shot({
               {address}
             </span>
           </div>
+          {/* Lazy, or every page that links here downloads this picture too: a
+              prefetched page preloads any image it is not told to wait for. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={src} alt={alt} width={1800} height={1209} className="block w-full" />
+          <img src={src} alt={alt} width={1800} height={1209} loading="lazy" decoding="async" className="block w-full" />
         </div>
         {caption && (
           <figcaption className="mt-4 max-w-[62ch] text-sm leading-relaxed text-muted">
@@ -275,6 +277,8 @@ export function Screens({
                 alt={s.alt}
                 width={1080}
                 height={2254}
+                loading="lazy"
+                decoding="async"
                 className="block w-full"
                 style={{ borderRadius: 23 }}
               />

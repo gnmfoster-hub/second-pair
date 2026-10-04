@@ -1590,7 +1590,7 @@ export function Hero() {
               * has not happened yet.
               */}
             <p
-              className="mt-3 text-sm text-muted transition-opacity duration-500 lg:mt-auto lg:pt-3"
+              className="hero-done mt-3 text-sm text-muted transition-opacity duration-500 lg:mt-auto lg:pt-3"
               style={{ opacity: stage >= S.DONE ? 1 : 0 }}
               aria-hidden={stage < S.DONE}
             >

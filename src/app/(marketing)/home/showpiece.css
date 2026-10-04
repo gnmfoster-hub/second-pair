@@ -1,0 +1,1002 @@
+/*
+ * The home page under the hero.
+ *
+ * One idea runs through all of it: the page moves with the visitor's scroll,
+ * and what moves is the product doing its job. An evening of enquiries landing
+ * in a diary, the trades inking in, each screen arriving beside its claim, the
+ * sites we built scrolling in their frames, the second hand arriving.
+ *
+ * Every rule here has two states. Unmarked is the resting page: still,
+ * complete, in a column, what a phone, a reader with script off and somebody
+ * who has asked for less motion all get. [data-live] is switched on after
+ * mounting on a wide screen, and only that adds pinning and movement.
+ *
+ * Colour, type, shadow and the buttons all come from globals.css. Nothing new
+ * is introduced here but layout and size.
+ */
+
+.sp-big-title {
+  font-size: clamp(2.25rem, 1.1rem + 4.4vw, 4.75rem);
+}
+
+/* ───────────────────────────────────────────────────────── the evening */
+
+.sp-eve {
+  padding-block: 4rem;
+}
+
+.sp-eve-in {
+  display: grid;
+  gap: 2rem;
+}
+
+.sp-eve-title {
+  font-size: clamp(2rem, 1.2rem + 3.4vw, 3.5rem);
+  line-height: 1;
+}
+
+.sp-eve-lede {
+  margin-top: 0.75rem;
+  max-width: 38rem;
+  color: var(--muted);
+}
+
+/* Bubbles, shared by the list and the stage. */
+.sp-bub {
+  width: fit-content;
+  max-width: 26rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 1.1rem;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  opacity: 0;
+  transform: translateY(0.5rem);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.sp-bub[data-on] {
+  opacity: 1;
+  transform: none;
+}
+
+.sp-bub-them {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 0.3rem;
+}
+
+.sp-bub-us {
+  margin-left: auto;
+  background: var(--accent);
+  color: var(--on-accent);
+  border-bottom-right-radius: 0.3rem;
+}
+
+/* The evening as a list. */
+.sp-eve-list {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+}
+
+.sp-eve-list li {
+  display: grid;
+  align-content: start;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+}
+
+.sp-eve-list-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.sp-eve-list-top .font-display {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.sp-eve-chan {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.sp-eve-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.75rem;
+  margin-top: 0.25rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.sp-eve-result span,
+.sp-eve-day em,
+.sp-eve-you em {
+  font-style: normal;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.sp-eve-result[data-handed] span,
+.sp-eve-you em {
+  background: var(--highlight);
+  color: var(--on-highlight);
+}
+
+/* Only the playing version has a clock and a map. */
+.sp-eve-now,
+.sp-eve-map {
+  display: none;
+}
+
+.sp-eve-diary {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 24rem;
+}
+
+.sp-eve-diary-card {
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid var(--foreground);
+  border-radius: 1rem;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.sp-eve-diary-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.sp-eve-diary-top .font-display {
+  font-size: 1.25rem;
+  color: var(--foreground);
+}
+
+.sp-eve-day {
+  display: grid;
+  grid-template-columns: 2.1rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.4rem;
+  padding-block: 0.15rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.sp-eve-day > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  min-height: 1.85rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.4rem;
+  border-left: 3px solid transparent;
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sp-eve-day > div[data-on] {
+  border-left-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 11%, transparent);
+}
+
+.sp-eve-day > div[data-paid] em {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+.sp-eve-you {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  border: 1px dashed var(--muted);
+  border-radius: 1rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.sp-eve-you .font-display {
+  font-size: 1.25rem;
+  color: var(--foreground);
+}
+
+.sp-eve-you p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem 0.5rem;
+}
+
+.sp-eve-you[data-on] {
+  border-style: solid;
+  border-color: var(--foreground);
+  background: var(--surface);
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.sp-eve-arg {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.sp-eve-arg p {
+  margin-top: 0.4rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+@media (min-width: 640px) {
+  .sp-eve-arg {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2.5rem;
+  }
+}
+
+/* Playing. */
+
+.sp-eve[data-live] {
+  height: 620vh;
+  padding-block: 0;
+}
+
+.sp-eve[data-live] .sp-eve-pin {
+  position: sticky;
+  top: 76px;
+  height: calc(100vh - 76px);
+  overflow: hidden;
+}
+
+.sp-eve[data-live] .sp-eve-in {
+  height: 100%;
+  padding-block: 1.75rem 1.5rem;
+  gap: 1.25rem 2.5rem;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr) minmax(18rem, 0.95fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "head head head"
+    "now map diary"
+    "arg arg arg";
+}
+
+.sp-eve[data-live] .sp-eve-head {
+  grid-area: head;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.sp-eve[data-live] .sp-eve-lede {
+  margin: 0;
+  max-width: 30rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* Still on the page for a reader; just not drawn twice. */
+.sp-eve[data-live] .sp-eve-list {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.sp-eve[data-live] .sp-eve-now {
+  grid-area: now;
+  display: grid;
+  align-content: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.sp-eve-clock {
+  font-size: clamp(4.5rem, 9.5vw, 9rem);
+  line-height: 0.82;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.sp-eve-clock small {
+  margin-left: 0.08em;
+  font-size: 0.34em;
+  color: var(--accent);
+}
+
+.sp-eve-who {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sp-eve-talk {
+  display: grid;
+  gap: 0.5rem;
+  min-height: 9.5rem;
+  align-content: start;
+}
+
+.sp-eve[data-live] .sp-eve-map {
+  grid-area: map;
+  display: block;
+  position: relative;
+  min-height: 0;
+}
+
+.sp-eve-map li {
+  position: absolute;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 13.5rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  transform: translateY(-50%);
+  transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease, opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+.sp-eve-map li b {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.sp-eve-map li i {
+  display: block;
+  font-style: normal;
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sp-eve-map li[data-state="wait"] {
+  opacity: 0.45;
+}
+
+.sp-eve-map li[data-state="now"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+  transform: translateY(-50%) translateX(0.4rem) scale(1.04);
+}
+
+.sp-eve-map li[data-state="now"] i {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.sp-eve-map li[data-state="done"] svg {
+  color: var(--accent);
+}
+
+.sp-eve-wire {
+  position: absolute;
+  /* Out across the gap, so the lines reach the diary. */
+  inset: 0 -2.5rem 0 13.5rem;
+}
+
+.sp-eve-wire svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.sp-eve-wire path {
+  stroke: var(--border);
+  stroke-width: 1;
+  transition: stroke 0.3s ease;
+}
+
+.sp-eve-wire path[data-state="done"] {
+  stroke: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.sp-eve-wire path[data-state="now"] {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.sp-eve-dot {
+  position: absolute;
+  width: 0.9rem;
+  height: 0.9rem;
+  margin: -0.45rem 0 0 -0.45rem;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 0.35rem color-mix(in srgb, var(--accent) 22%, transparent);
+  opacity: 0;
+  transition: opacity 0.15s linear;
+}
+
+.sp-eve[data-live] .sp-eve-diary {
+  grid-area: diary;
+  position: relative;
+  display: block;
+  max-width: none;
+  min-height: 0;
+}
+
+/* The lines end at 42% and 91% of the map; these sit on those two heights. */
+.sp-eve[data-live] .sp-eve-diary-card,
+.sp-eve[data-live] .sp-eve-you {
+  position: absolute;
+  inset-inline: 0;
+  transform: translateY(-50%);
+}
+
+.sp-eve[data-live] .sp-eve-diary-card {
+  top: 42%;
+}
+
+.sp-eve[data-live] .sp-eve-you {
+  top: 91%;
+}
+
+.sp-eve[data-live] .sp-eve-day > div[data-on] {
+  animation: sp-land 0.45s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.sp-eve[data-live] .sp-eve-you[data-on] {
+  animation: sp-land 0.45s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+@keyframes sp-land {
+  from {
+    transform: scale(0.94);
+    opacity: 0;
+  }
+}
+
+/* The scale in sp-land would fight the centring on the You card. */
+.sp-eve[data-live] .sp-eve-you[data-on] {
+  animation-name: sp-land-you;
+}
+
+@keyframes sp-land-you {
+  from {
+    transform: translateY(-50%) scale(0.94);
+    opacity: 0;
+  }
+}
+
+.sp-eve[data-live] .sp-eve-arg {
+  grid-area: arg;
+}
+
+.sp-eve[data-live] .sp-eve-arg > div {
+  opacity: 0.32;
+  transition: opacity 0.4s ease;
+}
+
+.sp-eve[data-live] .sp-eve-arg > div[data-on] {
+  opacity: 1;
+}
+
+.sp-eve[data-live] .sp-eve-arg p {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+/* ─────────────────────────────────────────────────────────── the trades */
+
+.sp-trades-wall {
+  /* Resting: every trade inked in. */
+  --p: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.12em 0.5em;
+  width: 100%;
+  max-width: 100rem;
+  margin-inline: auto;
+  padding: 2.5rem 1.25rem 4.5rem;
+  font-family: var(--font-display), Impact, "Arial Narrow", sans-serif;
+  font-size: clamp(1.6rem, 0.9rem + 3vw, 3.5rem);
+  line-height: 1.04;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+@media (min-width: 640px) {
+  .sp-trades-wall {
+    padding-inline: 2rem;
+  }
+}
+
+.sp-trades-row,
+.sp-trades-row ul {
+  display: contents;
+}
+
+/*
+ * Each trade inks in as the wall passes: its place in its row, and its row's
+ * place in the wall, decide how far down the page it turns from putty to ink.
+ */
+.sp-trades-row li {
+  --at: calc((var(--row) + var(--i) / var(--n)) / var(--rows));
+  --ink: clamp(0, (var(--p) * 2.1 - 0.42 - var(--at)) * 9, 1);
+  color: color-mix(in srgb, var(--foreground) calc(var(--ink) * 100%), var(--putty));
+}
+
+.sp-trades-row li::after {
+  content: "";
+  display: inline-block;
+  width: 0.22em;
+  height: 0.22em;
+  margin-left: 0.5em;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: 0.22em;
+  opacity: var(--ink);
+}
+
+/* ───────────────────────────────────────────────────────────── the rest */
+
+.sp-rest {
+  position: relative;
+  padding-block: 4rem;
+}
+
+.sp-rest-list {
+  display: grid;
+  gap: 3.5rem;
+  margin-top: 2.5rem;
+}
+
+.sp-rest-list li {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.sp-rest-words .section-title {
+  font-size: clamp(1.5rem, 1rem + 1.8vw, 2.5rem);
+  line-height: 1;
+}
+
+.sp-rest-words p {
+  margin-top: 0.6rem;
+  max-width: 30rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.sp-rest-show {
+  min-width: 0;
+}
+
+@media (min-width: 720px) {
+  .sp-rest-list li {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    align-items: center;
+    gap: 2.5rem;
+  }
+}
+
+.sp-frame {
+  display: block;
+  overflow: hidden;
+  border: 1px solid var(--foreground);
+  border-radius: 0.8rem;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.sp-frame-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 1.75rem;
+  padding-inline: 0.7rem;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--foreground) 4%, var(--surface));
+}
+
+.sp-frame-bar i {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--putty);
+}
+
+.sp-frame-bar span {
+  margin-left: 0.5rem;
+  font-size: 0.6875rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sp-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.sp-texts {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 26rem;
+  margin-inline: auto;
+}
+
+.sp-texts p {
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 1.1rem;
+  border-bottom-left-radius: 0.3rem;
+  background: var(--surface);
+  line-height: 1.4;
+}
+
+.sp-texts p:nth-child(2) {
+  margin-left: 1.5rem;
+}
+
+.sp-texts p:nth-child(3) {
+  margin-left: 3rem;
+}
+
+.sp-texts small {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.sp-record {
+  max-width: 24rem;
+  margin-inline: auto;
+  padding: 1.25rem;
+  border: 1px solid var(--foreground);
+  border-radius: 1rem;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.sp-record-top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sp-record-top b {
+  display: block;
+  font-size: 1.0625rem;
+}
+
+.sp-record-top span span,
+.sp-record-top div span {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.sp-record-ini {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+}
+
+.sp-record dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-block: 1.1rem;
+  padding-block: 1rem;
+  border-block: 1px solid var(--border);
+}
+
+.sp-record dt {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sp-record dd {
+  margin-top: 0.3rem;
+}
+
+.sp-record-note {
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.6rem;
+  background: var(--warn-bg);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.sp-record-note b {
+  display: block;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--warn);
+}
+
+.sp-phone {
+  width: min(100%, 15rem);
+  margin-inline: auto;
+  padding: 2.25rem 1.1rem 1.5rem;
+  border: 0.45rem solid var(--foreground);
+  border-radius: 2.2rem;
+  background: var(--surface);
+}
+
+.sp-phone-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.1rem 0.9rem;
+  justify-items: center;
+}
+
+.sp-phone-grid i {
+  width: 100%;
+  max-width: 3.5rem;
+  aspect-ratio: 1;
+  border-radius: 28%;
+  background: color-mix(in srgb, var(--foreground) 9%, transparent);
+}
+
+.sp-phone-grid span {
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+}
+
+.sp-phone-grid img {
+  width: 100%;
+  max-width: 3.5rem;
+  height: auto;
+  border-radius: 28%;
+  box-shadow: 0 0 0 0.3rem color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.sp-phone-grid b {
+  font-size: 0.5625rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Playing: the claims scroll, the picture holds still. */
+
+.sp-rest[data-live] {
+  padding-block: 6rem 2rem;
+}
+
+.sp-rest[data-live] .sp-rest-list {
+  position: relative;
+  display: block;
+  margin-top: 0;
+}
+
+.sp-rest[data-live] .sp-rest-list li {
+  display: flex;
+  align-items: center;
+  width: 36%;
+  min-height: 52vh;
+  opacity: 0.25;
+  transition: opacity 0.35s ease;
+}
+
+.sp-rest[data-live] .sp-rest-list li[data-on] {
+  opacity: 1;
+}
+
+.sp-rest[data-live] .sp-rest-show {
+  position: absolute;
+  inset-block: 0;
+  right: 0;
+  width: 58%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+.sp-rest[data-live] li[data-on] .sp-rest-show {
+  opacity: 1;
+}
+
+.sp-rest[data-live] .sp-rest-show > div {
+  position: sticky;
+  top: calc(76px + (100vh - 76px) / 2);
+  transform: translateY(-50%);
+}
+
+/* The second hand, pointing at whichever screen is up. */
+.sp-rest[data-live] .sp-rest-show > div::after {
+  content: "";
+  position: absolute;
+  right: -7%;
+  bottom: -5.5rem;
+  width: min(34%, 15rem);
+  aspect-ratio: 1;
+  background: url("/brand/hands/hand-point.webp") center / contain no-repeat;
+  transform: translateY(1.5rem);
+  transition: transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+.sp-rest[data-live] li[data-on] .sp-rest-show > div::after {
+  transform: none;
+}
+
+/* ─────────────────────────────────────────────────────────── the sites */
+
+.sp-sites {
+  --p: 0;
+  display: grid;
+  gap: 2.5rem 2rem;
+  margin-top: 2.5rem;
+}
+
+@media (min-width: 800px) {
+  .sp-sites {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    align-items: end;
+  }
+}
+
+.sp-sites figure {
+  min-width: 0;
+}
+
+.sp-site-view {
+  aspect-ratio: 720 / 560;
+  overflow: hidden;
+  background: var(--surface-2, var(--surface));
+}
+
+/* Each site scrolls through its own page while this one scrolls past it. */
+.sp-site-view img {
+  transform: translateY(calc(clamp(0, (var(--p) - 0.22) * 2.2, 1) * var(--max) * -1%));
+  will-change: transform;
+}
+
+.sp-sites figcaption {
+  display: grid;
+  gap: 0.15rem;
+  margin-top: 1.1rem;
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
+
+.sp-sites figcaption a {
+  width: fit-content;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ─────────────────────────────────────────────────────────── the close */
+
+.sp-close {
+  overflow: hidden;
+}
+
+.sp-close-in {
+  /* Resting: both hands in. */
+  --p: 0.5;
+  display: grid;
+  gap: 1rem;
+  padding-block: 5rem 0;
+}
+
+.sp-close-hands {
+  position: relative;
+  width: min(100%, 26rem);
+  aspect-ratio: 1.5;
+  margin-inline: auto;
+}
+
+/* Paper behind them: a cobalt hand on a cobalt band is no hand at all. */
+.sp-close-hands::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -34%;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--background);
+  transform: translateX(-50%);
+}
+
+.sp-close-hands img {
+  position: absolute;
+  bottom: -22%;
+  width: 58%;
+  height: auto;
+}
+
+.sp-close-hands img:first-child {
+  left: 2%;
+  transform: scaleX(-1) rotate(8deg);
+}
+
+.sp-close-hands img:last-child {
+  right: 2%;
+  transform: translate(calc((1 - clamp(0, var(--p) * 2.4 - 0.2, 1)) * 90%), calc((1 - clamp(0, var(--p) * 2.4 - 0.2, 1)) * 30%))
+    rotate(8deg);
+}
+
+@media (min-width: 900px) {
+  .sp-close-in {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    align-items: end;
+    gap: 2rem;
+    padding-block: 7rem 0;
+  }
+
+  .sp-close-words {
+    padding-bottom: 7rem;
+  }
+
+  .sp-close-hands {
+    width: 100%;
+    margin: 0;
+    aspect-ratio: 1.15;
+  }
+
+  .sp-close-hands img {
+    width: 62%;
+  }
+}
