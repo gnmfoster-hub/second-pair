@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { SiteWidget } from "./SiteWidget";
+import { BarLife } from "./BarLife";
+import "./bar.css";
 import { Logo, Mark, Tag, Wordmark } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AlsoFromUs } from "./AlsoFromUs";
@@ -326,6 +328,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             <MobileMenu />
           </div>
         </div>
+        <BarLife />
       </header>
 
       <main className="flex-1">{children}</main>

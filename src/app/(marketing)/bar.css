@@ -1,0 +1,60 @@
+/*
+ * The marketing bar's two reactions to scroll. See BarLife.
+ *
+ * The bar itself is still set where it always was, in layout.tsx: putty, a
+ * 2px ink rule, 76px. This only adds what moves.
+ */
+
+header:has(.sp-bar-rule) {
+  transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+}
+
+/* How far down the page, drawn over the ink rule. */
+.sp-bar-rule {
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(var(--read, 0));
+  transform-origin: left;
+  pointer-events: none;
+}
+
+/*
+ * Over a night section the bar is night. Only tokens are re-pointed, the same
+ * way .sp-night does it, so everything in the bar follows.
+ */
+header[data-dark] {
+  --putty: #0c0d16;
+  --background: #0c0d16;
+  --surface: #171927;
+  --foreground: #f7f4ec;
+  --muted: rgba(247, 244, 236, 0.74);
+  --border: rgba(247, 244, 236, 0.15);
+  --accent: #8194ff;
+  --logo-bubble: #f7f4ec;
+  color: var(--foreground);
+  border-bottom-color: rgba(247, 244, 236, 0.22) !important;
+}
+
+/* The links: a line that draws in under the one you are on. */
+header:has(.sp-bar-rule) nav a {
+  padding-block: 0.35rem;
+  background: linear-gradient(var(--accent), var(--accent)) left bottom / 0 2px no-repeat;
+  transition: background-size 0.25s ease, opacity 0.2s ease;
+}
+
+header:has(.sp-bar-rule) nav a:hover,
+header:has(.sp-bar-rule) nav a:focus-visible {
+  opacity: 1;
+  background-size: 100% 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  header:has(.sp-bar-rule),
+  header:has(.sp-bar-rule) nav a {
+    transition: none;
+  }
+}

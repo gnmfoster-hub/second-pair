@@ -1,0 +1,269 @@
+/*
+ * The Websites page.
+ *
+ * Built from the same parts as the home page (home/showpiece.css): the night
+ * tokens, the browser frame, scroll as the playhead. This file is only what
+ * this page lays out differently.
+ */
+
+/* ─────────────────────────────────────────────────────────────── the top */
+
+.sp-web-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding-bottom: 4.5rem;
+}
+
+.sp-web-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(70% 60% at 10% 112%, rgba(240, 120, 24, 0.8), transparent 70%),
+    radial-gradient(60% 70% at 92% 10%, rgba(70, 92, 255, 0.4), transparent 70%),
+    linear-gradient(180deg, #0c0d16 0%, #1b1d45 62%, #4a2b3a 100%);
+}
+
+/* The shared hero sets its size inline; here it is the whole first screen. */
+.sp-web-hero h1 {
+  font-size: clamp(3rem, 1rem + 7vw, 7.25rem) !important;
+  max-width: 12ch !important;
+}
+
+.sp-web-hero header > p:last-child {
+  color: var(--muted);
+}
+
+/* ────────────────────────────────────────────────────────────── the tour */
+
+.sp-tour {
+  padding-block: 4rem;
+}
+
+.sp-tour-in {
+  display: grid;
+  gap: 3rem;
+}
+
+.sp-tour-intro {
+  margin-top: 1rem;
+  max-width: 34rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.sp-tour-items {
+  display: grid;
+  gap: 1.75rem 2.5rem;
+  margin-top: 2rem;
+}
+
+.sp-tour-items .section-title {
+  font-size: 1rem;
+}
+
+.sp-tour-items p {
+  margin-top: 0.4rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+@media (min-width: 640px) {
+  .sp-tour-items {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.sp-tour-frames {
+  display: grid;
+  gap: 2.5rem 2rem;
+}
+
+@media (min-width: 800px) {
+  .sp-tour-frames {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.sp-tour-frames figure {
+  min-width: 0;
+}
+
+.sp-tour .sp-frame {
+  border-color: rgba(247, 244, 236, 0.35);
+}
+
+.sp-tour .sp-site-view {
+  aspect-ratio: 720 / 520;
+}
+
+.sp-tour .sp-site-view img {
+  transform: translateY(calc(var(--pan, 0) * var(--max) * -1%));
+  will-change: transform;
+}
+
+.sp-tour-frames figcaption {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 1.1rem;
+  max-width: 34rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.sp-tour-frames figcaption a {
+  width: fit-content;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Playing. */
+
+.sp-tour[data-live] {
+  height: 520vh;
+  padding-block: 0;
+}
+
+.sp-tour[data-live] .sp-tour-pin {
+  position: sticky;
+  top: 76px;
+  height: calc(100vh - 76px);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.sp-tour[data-live] .sp-tour-pin::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(55% 60% at 78% 45%, rgba(70, 92, 255, 0.34), transparent 70%),
+    radial-gradient(40% 40% at 0% 100%, rgba(240, 120, 24, 0.14), transparent 70%);
+}
+
+.sp-tour[data-live] .sp-tour-in {
+  height: 100%;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  align-items: center;
+  padding-block: 1.5rem;
+}
+
+.sp-tour[data-live] .sp-big-title {
+  font-size: clamp(2rem, 1rem + 2.6vw, 3.25rem);
+}
+
+.sp-tour[data-live] .sp-tour-intro {
+  margin-top: 0.6rem;
+  font-size: 0.9375rem;
+}
+
+.sp-tour[data-live] .sp-tour-items {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  margin-top: 1.25rem;
+}
+
+/* One claim open at a time; the rest wait as headings. */
+.sp-tour[data-live] .sp-tour-items li {
+  padding-block: 0.7rem;
+  opacity: 0.38;
+  transition: opacity 0.3s ease;
+}
+
+.sp-tour[data-live] .sp-tour-items li[data-on] {
+  opacity: 1;
+}
+
+.sp-tour[data-live] .sp-tour-items li[data-on] .section-title {
+  font-size: 1.375rem;
+}
+
+.sp-tour[data-live] .sp-tour-items li:not([data-on]) p {
+  display: none;
+}
+
+.sp-tour[data-live] .sp-tour-frames {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.sp-tour[data-live] .sp-tour-frames figure {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transform: translateY(1.5rem) scale(0.97);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+  pointer-events: none;
+}
+
+.sp-tour[data-live] .sp-tour-frames figure[data-on] {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+/* ───────────────────────────────────────────────────────── how it works */
+
+.sp-steps {
+  background: var(--highlight);
+  color: var(--on-highlight);
+}
+
+.sp-steps-in {
+  padding-block: 4rem;
+}
+
+.sp-steps-intro {
+  margin-top: 1rem;
+  color: color-mix(in srgb, var(--on-highlight) 80%, transparent);
+}
+
+.sp-steps ol {
+  display: grid;
+  gap: 2.5rem;
+  margin-top: 2.5rem;
+  counter-reset: step;
+}
+
+.sp-steps li {
+  counter-increment: step;
+  min-width: 0;
+  padding-top: 1rem;
+  border-top: 2px solid var(--on-highlight);
+}
+
+/* Numbered because it is a sequence: the order is the information. */
+.sp-steps li::before {
+  content: counter(step);
+  display: block;
+  font-family: var(--font-display), Impact, "Arial Narrow", sans-serif;
+  font-size: clamp(5rem, 3rem + 7vw, 10rem);
+  line-height: 0.85;
+  color: var(--background);
+}
+
+.sp-steps .section-title {
+  margin-top: 1rem;
+  font-size: 1.375rem;
+}
+
+.sp-steps li p {
+  margin-top: 0.5rem;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--on-highlight) 82%, transparent);
+}
+
+@media (min-width: 760px) {
+  .sp-steps-in {
+    padding-block: 6rem;
+  }
+
+  .sp-steps ol {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
