@@ -1,5 +1,13 @@
 # What needs doing
 
+**Websites, as a page:** https://claude.ai/artifact/GN6S14stxVn35XBtsnuq8y
+— how to set Claude up for website work, the order to build in, and the nine
+things to measure before handing one over. **Not about any one site.** Every
+site we have built was measured for it on 4 October, and Amber's already passes
+all twelve checks, which makes it the reference rather than the newest one.
+
+Run it yourself on anything: `node scripts/check-site.cjs https://theirsite.co.uk`
+
 **Overnight, 1 October, as a page:**
 https://claude.ai/artifact/TGV3MPaqw7u7uYhLKia9tc — the four things you asked
 for, the reminder fault found while checking one of them, and **one line of SQL
@@ -109,6 +117,24 @@ doubling the price of every one of those. The thirty left are eighteen in the
 admin console, which only I read, and twelve in marketing and product pages,
 which I do not change without asking. Every screen a client or their customer
 reads is clean.
+
+**New, 4 October: the websites are a workstream of their own.** Four are built
+and none of them lives in this repo, which is why nothing here has ever checked
+them. `scripts/check-site.cjs` now measures any of them in forty seconds, and
+the first run found this:
+
+| Site | Result | What is wrong |
+| --- | --- | --- |
+| Amber's Paws & Pastures | **12 of 12** | Nothing. The reference. |
+| Second Pair | 7 ok, 3 off | 2860K, one 176K image, a block invisible without JavaScript |
+| RnB Hair Studio | 6 ok, 5 off | No social card, 174K favicon, a 481K photograph, no reduced-motion rule |
+| Living Canvas Tattoo | 5 ok, 6 off | 8460K, 15 images over 150K, **scrolls sideways on a phone** |
+
+Living Canvas is Shopify, so most of those are the theme's doing. The one worth
+fixing anyway is the sideways scroll: the page is **809px wide inside a 390px
+phone**, which is the marquee strip running outside its container, and every
+tattoo customer is on a phone. Not touched, because it is a live client's site
+and that is your call.
 
 Three things are waiting on you and nothing else: **ring the Receptionist**,
 **sign a phone up for notifications** (the only device on the system is a
