@@ -1000,3 +1000,166 @@
     width: 62%;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════ colour */
+
+/*
+ * The page under the hero was all paper, and a page of one colour reads as
+ * one long section however much it moves. So it now goes paper, night, orange,
+ * paper, night, paper, cobalt — each band a different room.
+ *
+ * Nothing here is a new colour. Night is the dark theme's own ink with a blue
+ * cast; orange is --highlight; cobalt is --accent. A dark band is made by
+ * re-pointing the tokens for everything inside it, so every rule above works
+ * in it unchanged, whichever theme the visitor is in.
+ */
+
+.sp-night {
+  --background: #0c0d16;
+  --surface: #171927;
+  --surface-2: #1e2132;
+  --border: rgba(247, 244, 236, 0.15);
+  --foreground: #f7f4ec;
+  --muted: rgba(247, 244, 236, 0.74);
+  --accent: #8194ff;
+  --accent-strong: #a9b6ff;
+  --on-accent: #0c0d16;
+  --putty: #474a60;
+  --ok: #7ad3a5;
+  --ok-bg: rgba(122, 211, 165, 0.16);
+  --highlight: #f79241;
+  --on-highlight: #16150f;
+  --shadow-card: 0 0 0 1px rgba(129, 148, 255, 0.28), 0 34px 90px -34px rgba(129, 148, 255, 0.7);
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* ── the evening: a sky that goes from dusk to dark as it plays ── */
+
+.sp-eve {
+  /* Resting: it is already night. */
+  --night: 1;
+}
+
+.sp-eve-pin {
+  position: relative;
+  isolation: isolate;
+}
+
+.sp-eve-pin::before,
+.sp-eve-pin::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Dusk: indigo down to the last orange on the horizon. */
+.sp-eve-pin::before {
+  background:
+    radial-gradient(70% 55% at 12% 108%, rgba(240, 120, 24, 0.85), transparent 70%),
+    linear-gradient(180deg, #131a52 0%, #3b2a68 48%, #6a3323 100%);
+  opacity: calc(1 - var(--night));
+}
+
+/* Night: a blue glow where the diary is, and stars. */
+.sp-eve-pin::after {
+  background:
+    radial-gradient(1.5px 1.5px at 12% 18%, rgba(247, 244, 236, 0.9) 50%, transparent 51%),
+    radial-gradient(1px 1px at 31% 9%, rgba(247, 244, 236, 0.7) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 47% 27%, rgba(247, 244, 236, 0.6) 50%, transparent 51%),
+    radial-gradient(1px 1px at 63% 12%, rgba(247, 244, 236, 0.8) 50%, transparent 51%),
+    radial-gradient(1px 1px at 78% 31%, rgba(247, 244, 236, 0.55) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 91% 8%, rgba(247, 244, 236, 0.85) 50%, transparent 51%),
+    radial-gradient(1px 1px at 22% 41%, rgba(247, 244, 236, 0.45) 50%, transparent 51%),
+    radial-gradient(1px 1px at 56% 46%, rgba(247, 244, 236, 0.4) 50%, transparent 51%),
+    radial-gradient(60% 70% at 88% 40%, rgba(70, 92, 255, 0.34), transparent 70%),
+    radial-gradient(50% 40% at 8% 100%, rgba(240, 120, 24, 0.12), transparent 70%);
+  opacity: var(--night);
+}
+
+.sp-eve.sp-night .sp-bub-us {
+  background: #2a45f0;
+  color: #fff;
+}
+
+.sp-eve-clock {
+  text-shadow: 0 0 60px rgba(129, 148, 255, 0.35);
+}
+
+.sp-eve-clock small {
+  color: var(--highlight);
+}
+
+.sp-eve-wire path[data-state="now"],
+.sp-eve-dot {
+  filter: drop-shadow(0 0 8px var(--accent));
+}
+
+.sp-eve-map li[data-state="now"] {
+  box-shadow: 0 0 34px -4px var(--accent);
+}
+
+.sp-eve.sp-night .sp-eve-list li {
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+}
+
+/* ── the trades: an orange band, the type inking in on it ── */
+
+.sp-trades {
+  background: var(--highlight);
+  color: var(--on-highlight);
+}
+
+.sp-trades p {
+  color: color-mix(in srgb, var(--on-highlight) 80%, transparent);
+}
+
+.sp-trades-row li {
+  color: color-mix(in srgb, var(--on-highlight) calc(16% + var(--ink) * 84%), transparent);
+}
+
+.sp-trades-row li::after {
+  background: var(--background);
+}
+
+/* ── the rest: each screen stands on a slab of ink ── */
+
+.sp-rest[data-live] .sp-rest-show > div::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -3.5rem -50vw -3.5rem 14%;
+  border-radius: 1.5rem 0 0 1.5rem;
+  background:
+    radial-gradient(60% 80% at 30% 20%, rgba(70, 92, 255, 0.45), transparent 70%),
+    #0c0d16;
+}
+
+/* The slab runs off the right of the screen; the band is what trims it. */
+.sp-rest-band {
+  overflow-x: clip;
+}
+
+/* ── the websites: night again, and the frames lit ── */
+
+.sp-web {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.sp-web::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(55% 45% at 85% 35%, rgba(70, 92, 255, 0.36), transparent 70%),
+    radial-gradient(45% 40% at 5% 95%, rgba(240, 120, 24, 0.2), transparent 70%);
+}
+
+.sp-web .sp-frame {
+  border-color: rgba(247, 244, 236, 0.35);
+}

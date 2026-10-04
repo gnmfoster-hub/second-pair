@@ -156,7 +156,8 @@ export function TheRest() {
   }, [live]);
 
   return (
-    <section className="sp-rest shell" data-live={live ? "" : undefined}>
+    <section className="sp-rest-band">
+      <div className="sp-rest shell" data-live={live ? "" : undefined}>
       <h2 className="page-title sp-big-title">And it runs the rest of it</h2>
 
       <ol className="sp-rest-list">
@@ -179,6 +180,7 @@ export function TheRest() {
           </li>
         ))}
       </ol>
+      </div>
     </section>
   );
 }

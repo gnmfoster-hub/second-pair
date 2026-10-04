@@ -126,7 +126,9 @@ export function TheEvening() {
   const dot = useRef<HTMLSpanElement>(null);
   const paths = useRef<(SVGPathElement | null)[]>([]);
 
-  const ref = useProgress<HTMLElement>("pin", live, (p) => {
+  const ref = useProgress<HTMLElement>("pin", live, (p, section) => {
+    /* Dusk at six, dark by half past eight. */
+    section.style.setProperty("--night", Math.min(1, p * 1.7).toFixed(3));
     const run = p * (EVENING.length + 0.6);
     const step = Math.min(EVENING.length - 1, Math.floor(run));
     const t = Math.min(1, run - step);
@@ -151,7 +153,7 @@ export function TheEvening() {
   const arguing = ARGUMENT.reduce((best, a, i) => (at.step >= a.from ? i : best), 0);
 
   return (
-    <section ref={ref} className="sp-eve" data-live={live ? "" : undefined}>
+    <section ref={ref} className="sp-eve sp-night" data-live={live ? "" : undefined}>
       <div className="sp-eve-pin">
         <div className="shell sp-eve-in">
           <header className="sp-eve-head">

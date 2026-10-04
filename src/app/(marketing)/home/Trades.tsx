@@ -16,7 +16,7 @@ import { Passing } from "./scroll";
  */
 export function Trades() {
   return (
-    <section className="sp-trades border-y border-border bg-surface">
+    <section className="sp-trades">
       <div className="shell pt-16 sm:pt-20">
         <h2 className="page-title sp-big-title">Built for whatever you actually do</h2>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted">

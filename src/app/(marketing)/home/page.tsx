@@ -74,7 +74,7 @@ export default function HomePage() {
         * No price on it. There is not one yet, and a number invented here is a
         * number somebody holds you to.
         */}
-      <section className="border-y border-border bg-surface">
+      <section className="sp-night sp-web">
         <div className="shell py-16 sm:py-24">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
             Also from us
