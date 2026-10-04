@@ -1,5 +1,19 @@
 # What needs doing
 
+> **Work from the worklist, not from this file.**
+> https://claude.ai/artifact/RUkxMxmooA3VsckxfAVan9
+>
+> Rebuilt on 4 October in the order to do it, yours first, with every claim
+> checked against the live database that day and finished work at the bottom.
+> You can tick items off and the ticks are remembered.
+>
+> **This file is the archive and the reasoning, and it contradicts itself in
+> about seventeen places** because it has been appended to for three weeks. The
+> ones worth knowing, settled on 4 October: the lint count is **seven**, not ten;
+> the backup **works** and ran eleven hours ago, it has not been silent since 21
+> September; the agreements migration is **run**; and the only migration still
+> waiting is `20261001090000_reminder_went_on.sql`.
+
 **Websites, as a page:** https://claude.ai/artifact/GN6S14stxVn35XBtsnuq8y
 — how to set Claude up for website work, the order to build in, and the nine
 things to measure before handing one over. **Not about any one site.** Every
