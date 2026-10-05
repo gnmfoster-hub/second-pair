@@ -98,6 +98,23 @@ export default async function ClientFormPage({
           ← {who}
         </Link>
         <div className="flex gap-2">
+          {/*
+            * A file to keep, as well as a print dialog.
+            *
+            * The difference shows the day an insurer asks for the consent
+            * somebody signed in March: printing wants you sat at this screen,
+            * a download is a thing you can attach to an email. One file, the
+            * signature inside it, still readable in ten years.
+            */}
+          {(form.status === "signed" || form.status === "paper") && (
+            <a
+              href={`/clients/${id}/forms/${form.id}/download`}
+              download
+              className="btn border border-border text-sm"
+            >
+              Download a copy
+            </a>
+          )}
           <PrintButton />
           {form.status !== "signed" && form.status !== "paper" && form.status !== "void" && <Withdraw id={form.id as string} />}
         </div>
