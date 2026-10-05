@@ -115,6 +115,38 @@ test("the same answer twice does not stack up", () => {
   assert.equal(once.alert, null, "nothing to change, so nothing is written");
 });
 
+/*
+ * Both of these were found by filling a real form in on a demo rather than by
+ * reading the code. The first put "Anything to watch for: yes" on a client's
+ * alert, which says there is something and not what.
+ */
+test("a yes carries what they typed, not the word yes", () => {
+  const save = whatToSave(
+    [{ id: "a", role: "alert", label: "Anything to watch for" }],
+    { a: "yes", a__detail: "Nervous of bicycles" },
+    {},
+  );
+  assert.equal(save.alert, "Anything to watch for: Nervous of bicycles");
+});
+
+test("a yes with nothing typed still flags, because there is something", () => {
+  const save = whatToSave([{ id: "a", role: "alert", label: "Anything to watch for" }], { a: "yes" }, {});
+  assert.equal(save.alert, "Anything to watch for: Yes");
+});
+
+test("a no never writes an alert at all", () => {
+  const save = whatToSave(
+    [
+      { id: "a", role: "alert", label: "Anything to watch for" },
+      { id: "b", role: "note", label: "Any trouble" },
+    ],
+    { a: "no", b: "no" },
+    {},
+  );
+  assert.equal(save.alert, null, "a dog that is fine is not a warning");
+  assert.equal(save.notes, null);
+});
+
 test("an alert on somebody with none is just the alert", () => {
   const save = whatToSave([{ id: "a", role: "alert", label: "Watch out for" }], { a: "Bites" }, {});
   assert.equal(save.alert, "Watch out for: Bites");

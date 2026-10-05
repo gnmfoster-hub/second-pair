@@ -160,14 +160,35 @@ export function whatToSave(
     const given = (answers[b.id] ?? "").trim();
     if (!given) continue;
 
+    /*
+     * ── What a yes or no actually said ──────────────────────────────────────
+     *
+     * A yes-or-no question stores "yes" or "no", and the thing somebody typed
+     * when they said yes is kept beside it under id__detail. Reading only the
+     * first put "Anything to watch for: yes" on a client's alert, which is the
+     * least useful sentence it is possible to write: it tells whoever opens
+     * that record that there is something, and not what.
+     *
+     * And a "no" must produce nothing at all. An alert that fires because
+     * somebody confirmed their dog is fine is an alert nobody reads for long.
+     */
+    const detail = (answers[`${b.id}__detail`] ?? "").trim();
+    const said =
+      given === "no"
+        ? ""
+        : given === "yes"
+          ? detail || "Yes"
+          : given;
+
     if (role === "alert") {
       /*
        * Worth the label as well as the answer. "Reactive to dogs" on its own is
        * a sentence somebody has to work out; "Behaviour to know about: reactive
        * to dogs" is one they can act on at a glance.
        */
-      const said = b.label ? `${b.label.replace(/[:\s]+$/, "")}: ${given}` : given;
-      const next = addLine(alert, said);
+      if (!said) continue;
+      const line = b.label ? `${b.label.replace(/[:\s]+$/, "")}: ${said}` : said;
+      const next = addLine(alert, line);
       if (next) {
         alert = next;
         out.alert = next;
@@ -176,8 +197,9 @@ export function whatToSave(
     }
 
     if (role === "note") {
-      const said = b.label ? `${b.label.replace(/[:\s]+$/, "")}: ${given}` : given;
-      const next = addLine(notes, said);
+      if (!said) continue;
+      const line = b.label ? `${b.label.replace(/[:\s]+$/, "")}: ${said}` : said;
+      const next = addLine(notes, line);
       if (next) {
         notes = next;
         out.notes = next;
