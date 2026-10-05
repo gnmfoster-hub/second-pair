@@ -1,5 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { cleanBlocks, answerText, type Block, type Answers } from "./blocks";
+import {
+  cleanBlocks,
+  answerText,
+  expandRepeats,
+  countsFrom,
+  type Block,
+  type Answers,
+} from "./blocks";
 import { whatToSave, type Known } from "./fieldRoles";
 import { hasColumn } from "@/lib/db/hasColumn";
 import { sendEmail, emailConfigured } from "@/lib/messaging/email";
@@ -49,8 +56,18 @@ export async function fileItAway(db: SupabaseClient, formId: string): Promise<vo
   const form = data as FormRow | null;
   if (!form) return;
 
-  const blocks = cleanBlocks(form.blocks);
   const answers = form.answers ?? {};
+
+  /*
+   * Opened out before anything reads it.
+   *
+   * Without this the roles are still sitting inside the repeating group, where
+   * nothing looks: a form filled in for three dogs wrote not one breed and not
+   * one alert, and said nothing about it, because the only block at the top
+   * level was the group itself and a group has no answer. Found by filling one
+   * in for three dogs rather than by reading this.
+   */
+  const blocks = expandRepeats(cleanBlocks(form.blocks), countsFrom(answers));
 
   const [{ data: studio }, known] = await Promise.all([
     db

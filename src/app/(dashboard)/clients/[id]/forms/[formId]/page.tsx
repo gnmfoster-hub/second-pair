@@ -3,7 +3,16 @@ import { notFound } from "next/navigation";
 import { requireStudio, getArtists } from "@/lib/studio";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { answerText, cleanBlocks, flagged, quoteTotal, isTypedSignature } from "@/lib/forms/blocks";
+import {
+  answerText,
+  cleanBlocks,
+  flagged,
+  quoteTotal,
+  isTypedSignature,
+  expandRepeats,
+  countsFrom,
+  type Answers,
+} from "@/lib/forms/blocks";
 import { signedRecord } from "@/lib/forms/whatTheySignedOn";
 import { QuoteTable } from "@/app/f/[token]/FillForm";
 import { AskForPayment } from "@/components/AskForPayment";
@@ -41,7 +50,9 @@ export default async function ClientFormPage({
 
   if (!form) notFound();
 
-  const blocks = cleanBlocks(form.blocks);
+  /* Opened out the same way the customer saw it, from the counts kept with
+     the answers. A form filled in for three dogs reads as three dogs. */
+  const blocks = expandRepeats(cleanBlocks(form.blocks), countsFrom(form.answers as Answers | null));
   const total = quoteTotal(blocks);
   const isQuote = blocks.some((b) => b.type === "lines");
   const payable = isQuote && form.status === "signed" ? payableFor(studio, (await getArtists(studio.id)).filter((a) => a.active)) : [];

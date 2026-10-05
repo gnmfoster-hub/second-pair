@@ -1,6 +1,13 @@
 import { requireStudio } from "@/lib/studio";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { answerText, cleanBlocks, isTypedSignature, type Answers } from "@/lib/forms/blocks";
+import {
+  answerText,
+  cleanBlocks,
+  isTypedSignature,
+  expandRepeats,
+  countsFrom,
+  type Answers,
+} from "@/lib/forms/blocks";
 import { signedRecord } from "@/lib/forms/whatTheySignedOn";
 
 /**
@@ -70,7 +77,9 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
-  const blocks = cleanBlocks(form.blocks);
+  /* Opened out from the counts kept with the answers, so a downloaded copy
+     shows every dog rather than the first one. */
+  const blocks = expandRepeats(cleanBlocks(form.blocks), countsFrom(form.answers));
   const answers = form.answers ?? {};
   const who = form.contacts?.name ?? "Client";
   const business = form.studios?.name ?? "";

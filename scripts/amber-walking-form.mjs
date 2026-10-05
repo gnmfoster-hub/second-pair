@@ -81,46 +81,65 @@ const blocks = [
   },
   { id: "o_emg", type: "short", label: "Emergency contact and number", required: true },
 
-  /* 2. The dog. */
+  /*
+   * 2. The dog, or dogs.
+   *
+   * The paper has one. Plenty of her clients have two or three, and filling the
+   * owner section out three times is how a form gets abandoned halfway. The
+   * group repeats; the second dog's breed is kept as breed_2 so it cannot
+   * overwrite the first.
+   */
   part("p_dog", "Your dog"),
-  { id: "d_name", type: "short", label: "Dog's name", required: true },
-  { id: "d_breed", type: "short", label: "Breed or cross", required: true, role: "fact:breed" },
-  { id: "d_age", type: "short", label: "Age or date of birth" },
   {
-    id: "d_sex",
-    type: "choice",
-    label: "Sex",
-    options: ["Male, neutered", "Male, entire", "Female, spayed", "Female, entire"],
+    id: "dog",
+    type: "repeat",
+    label: "Your dog",
+    each: "Dog",
+    addLabel: "Add another dog",
+    children: [
+      { id: "d_name", type: "short", label: "Dog's name", required: true },
+      { id: "d_breed", type: "short", label: "Breed or cross", required: true, role: "fact:breed" },
+      { id: "d_age", type: "short", label: "Age or date of birth" },
+      {
+        id: "d_sex",
+        type: "choice",
+        label: "Sex",
+        options: ["Male, neutered", "Male, entire", "Female, spayed", "Female, entire"],
+      },
+      { id: "d_marks", type: "short", label: "Colour and any identifying markings" },
+      { id: "d_chip", type: "short", label: "Microchip number" },
+      {
+        id: "d_vacc",
+        type: "date",
+        label: "When do their vaccinations run out?",
+        help: "On the card from your vet. We will remind you before it does.",
+        required: true,
+        role: "fact:vaccination_due",
+      },
+      {
+        id: "d_watch",
+        type: "yesno",
+        label: "Anything we must know about this one",
+        help: "Biting, escaping, guarding food, chasing livestock, anything that has happened before.",
+        detailOnYes: true,
+        required: true,
+        role: "alert",
+      },
+      {
+        id: "d_lead",
+        type: "yesno",
+        label: "May we let this one off the lead?",
+        required: true,
+        role: "fact:recall",
+      },
+    ],
   },
-  { id: "d_marks", type: "short", label: "Colour and any identifying markings" },
-  { id: "d_chip", type: "short", label: "Microchip number" },
-  says(
-    "d_more",
-    "If you have more than one dog, there is a box at the end for the others. " +
-      "Fill this part in for the one you walk most.",
-  ),
 
   /* 3. Vet and health. */
   part("p_vet", "Vet and health"),
   { id: "v_prac", type: "short", label: "Vet practice and telephone", required: true },
-  {
-    id: "v_vacc",
-    type: "date",
-    label: "When do their vaccinations run out?",
-    help: "On the card from your vet. We will remind you before it does.",
-    required: true,
-    role: "fact:vaccination_due",
-  },
   { id: "v_flea", type: "choice", label: "Flea and tick treatment", options: ["Up to date", "Not current", "I am not sure"] },
   { id: "v_worm", type: "choice", label: "Worming treatment", options: ["Up to date", "Not current", "I am not sure"] },
-  {
-    id: "v_cond",
-    type: "yesno",
-    label: "Any medical conditions or allergies?",
-    detailOnYes: true,
-    required: true,
-    role: "alert",
-  },
   { id: "v_meds", type: "long", label: "Medication and instructions" },
   { id: "v_hist", type: "long", label: "Previous injuries or operations" },
 
@@ -131,27 +150,6 @@ const blocks = [
     "Please be straight with us about this. Nothing here will stop us walking your dog. " +
       "It tells us how to keep them, and everybody else, safe.",
   ),
-  {
-    id: "b_people",
-    type: "choice",
-    label: "With people",
-    options: ["Friendly", "Nervous or anxious", "Reactive", "It depends"],
-  },
-  {
-    id: "b_dogs",
-    type: "choice",
-    label: "With other dogs",
-    options: ["Friendly", "Nervous or anxious", "Reactive", "It depends"],
-  },
-  {
-    id: "b_warn",
-    type: "yesno",
-    label: "Is there anything we must know about their behaviour?",
-    help: "Biting, escaping, guarding food or toys, chasing livestock, anything that has happened before.",
-    detailOnYes: true,
-    required: true,
-    role: "alert",
-  },
   { id: "b_other", type: "long", label: "Anything else about how they behave", role: "note" },
 
   /* 5. Walking. */
@@ -183,20 +181,10 @@ const blocks = [
       "Even where you say yes, we will keep them on a lead if we are not happy.",
   ),
   /*
-   * Yes or no, because that is what the fact is.
-   *
-   * The trade pack types recall as yesno and the product reads it that way, so
-   * a third option here ("only in secure areas") would store a sentence in a
-   * column everything else compares to yes. The nuance is worth having, so it
-   * is the next question rather than a value that does not fit.
+   * Whether each dog may be off the lead is asked per dog, up in the group,
+   * because it is the dog's answer and not the household's. What is left here
+   * is where, and what word brings them back.
    */
-  {
-    id: "l_ok",
-    type: "yesno",
-    label: "May we let them off the lead?",
-    required: true,
-    role: "fact:recall",
-  },
   {
     id: "l_where",
     type: "choice",
@@ -243,7 +231,6 @@ const blocks = [
     help: "For your care records, and only on your social media if you say yes separately.",
     required: true,
   },
-  { id: "c_dogs2", type: "long", label: "Your other dogs", help: "Name, breed, age and anything to know about each one." },
   { id: "c_any", type: "long", label: "Anything else you would like us to know", role: "note" },
 
   /* 10. Signing. */
@@ -267,12 +254,13 @@ const blocks = [
     process.exit(0);
   }
 
-  const counts = blocks.reduce((at, b) => ({ ...at, [b.type]: (at[b.type] ?? 0) + 1 }), {});
-  const roles = blocks.filter((b) => b.role);
+  const flat = blocks.flatMap((b) => (b.type === "repeat" ? [b, ...(b.children ?? [])] : [b]));
+  const counts = flat.reduce((at, b) => ({ ...at, [b.type]: (at[b.type] ?? 0) + 1 }), {});
+  const roles = flat.filter((b) => b.role);
 
   console.log(`\n${studio.name}`);
   console.log(`  "${NAME}"`);
-  console.log(`  ${blocks.length} blocks:`, JSON.stringify(counts));
+  console.log(`  ${flat.length} questions, ${blocks.filter((b) => b.type === "repeat").length} of them repeating:`, JSON.stringify(counts));
   console.log(`  ${roles.length} of them fill in or write back:`);
   for (const b of roles) console.log(`     ${b.role.padEnd(22)} ${b.label}`);
 
