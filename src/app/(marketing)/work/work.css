@@ -129,9 +129,9 @@
   }
 }
 
-/* The one not named yet: said plainly, and small. */
+/* The one with the assistant and no site of ours: a name and a line. */
 .sp-work-unnamed {
-  padding-block: 2.5rem;
+  padding-block: 3rem;
   border-top: 1px solid var(--border);
 }
 
@@ -139,9 +139,14 @@
   max-width: 34rem;
 }
 
+.sp-work-unnamed .section-title {
+  font-size: clamp(1.5rem, 1rem + 1.6vw, 2.25rem);
+  line-height: 1;
+}
+
 .sp-work-unnamed p {
-  margin-top: 0.4rem;
-  font-size: 0.9375rem;
+  margin-top: 0.5rem;
+  font-size: 1.0625rem;
   line-height: 1.55;
   color: var(--muted);
 }

@@ -1,0 +1,145 @@
+/*
+ * The Apps and company pages.
+ *
+ * Both are built from parts the other pages already have. This file is the
+ * phones on the Apps page, and the few things the company page lays out its
+ * own way.
+ */
+
+/* ─────────────────────────────────────────────────────────── the phones */
+
+.sp-phones {
+  /* Resting: the four level. */
+  --p: 0.5;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.sp-phones::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(55% 60% at 50% 30%, rgba(70, 92, 255, 0.4), transparent 70%),
+    radial-gradient(40% 40% at 100% 100%, rgba(240, 120, 24, 0.16), transparent 70%);
+}
+
+/* Each phone rises at its own speed as the page goes past. */
+@media (min-width: 900px) {
+  .sp-phones figure {
+    transform: translateY(calc((0.5 - var(--p)) * var(--lift, 6rem)));
+    will-change: transform;
+  }
+
+  .sp-phones figure:nth-child(1) {
+    --lift: 3rem;
+  }
+
+  .sp-phones figure:nth-child(2) {
+    --lift: 12rem;
+  }
+
+  .sp-phones figure:nth-child(3) {
+    --lift: 6rem;
+  }
+
+  .sp-phones figure:nth-child(4) {
+    --lift: 15rem;
+  }
+}
+
+.sp-phones figcaption {
+  color: var(--foreground) !important;
+}
+
+/* ─────────────────────────────────────────── additions to the three cards */
+
+.sp-own-link {
+  display: inline-block;
+  margin-top: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.sp-own-note {
+  margin-top: 2.5rem;
+  max-width: 40rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--foreground) 76%, transparent);
+}
+
+.sp-own-state {
+  display: inline-block;
+  margin: 1.4rem 0 -0.9rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: var(--ok-bg);
+  color: var(--ok);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sp-own-state[data-early] {
+  background: var(--highlight);
+  color: var(--on-highlight);
+}
+
+@media (min-width: 760px) {
+  .sp-own ul[data-two] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 3rem;
+  }
+}
+
+/* ──────────────────────────────────────────────── the company's details */
+
+.sp-facts {
+  padding-block: 4rem;
+}
+
+.sp-facts dl {
+  margin-top: 2rem;
+  max-width: 46rem;
+  border-top: 2px solid var(--foreground);
+}
+
+.sp-facts dl > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 2rem;
+  padding-block: 1.1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sp-facts dt {
+  width: 7rem;
+  flex-shrink: 0;
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: 1.0625rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.sp-facts dd {
+  min-width: 0;
+  flex: 1 1 14rem;
+  line-height: 1.5;
+}
+
+.sp-facts a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (min-width: 760px) {
+  .sp-facts {
+    padding-block: 6rem;
+  }
+}

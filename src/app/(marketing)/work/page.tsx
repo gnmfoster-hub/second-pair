@@ -15,8 +15,9 @@ export const metadata: Metadata = {
  * What we have built.
  *
  * Deliberately short on client names. Living Canvas and Amber's are here
- * because their sites are public and carry our name; the third is a
- * placeholder until Giles says they are happy to be named. A page of invented
+ * because their sites are public and carry our name, and Neat & Tidy
+ * Solutions because Giles confirmed the name on 5 October 2026. It has the
+ * assistant and no site of ours, so it is a line rather than a screen. A page of invented
  * logos is the one thing a page like this must not be — anybody who checks
  * finds out, and then nothing else on the site is believed either.
  *
@@ -85,11 +86,8 @@ export default function Page() {
 
       <div className="shell sp-work-unnamed">
         <div className="index-item">
-          <h3 className="section-title text-[0.95rem]">[CLIENT]</h3>
-          <p>
-            A cleaning business, with the assistant on its enquiries. Named here once they
-            have said they are happy to be.
-          </p>
+          <h3 className="section-title">Neat &amp; Tidy Solutions</h3>
+          <p>A cleaning business, with the assistant on its enquiries.</p>
         </div>
       </div>
 
