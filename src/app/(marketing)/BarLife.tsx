@@ -3,71 +3,57 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 /**
- * The bar, reacting to the page under it.
+ * The bar: a logo, one orange button, and MENU.
  *
- * Read from the scroll, and without script the bar is exactly what layout.tsx
- * draws:
+ * The bar was the last ordinary thing on the page: logo left, four links, two
+ * buttons, on a strip of putty. Giles tried seven and chose this one. With
+ * script running, the strip and the links go; the logo sits on the page, and
+ * top right there are two things — "Book a chat", which is the one action the
+ * site exists for and so never leaves the screen, and MENU. MENU opens a full
+ * screen of cobalt out of itself, with the four pages in headline type and a
+ * picture of whichever one is under the pointer.
  *
- * - how far down the page you are, as --read, for the line along the rule;
- * - whether a night section is under the bar, as data-dark, which re-points
- *   the bar's tokens so the logo, links and buttons follow;
- * - whether the page has left the top (data-scrolled) and which way it is
- *   going (data-down).
+ * Three things are read from the scroll:
+ * - how far down the page you are, drawn as a ring round MENU;
+ * - whether a night section is under the bar (data-dark), which re-points the
+ *   bar's tokens so the logo and the buttons follow;
+ * - whether the page has left the top (data-scrolled), when the logo takes a
+ *   backing so that what scrolls under it does not run into it.
  *
- * TRYING OUT: several bars, chosen with ?bar=<name> on any address and kept
- * for the browser tab so the choice survives moving between pages. "menu" and
- * "dock" need furniture the plain bar has not got — a full-screen menu and a
- * dock at the foot of the screen — and that is drawn here. Once Giles has
- * picked one, the others and this switch come out. See bar.css.
+ * Without script none of this is drawn and the bar is the one in layout.tsx.
  */
-const BARS = ["room", "pill", "ink", "hide", "menu", "dock", "morph"];
 
-const NAV: [string, string][] = [
-  ["/system", "The Second Pair system"],
-  ["/websites", "Websites"],
-  ["/apps", "Apps"],
-  ["/work", "Our work"],
+const NAV: { href: string; label: string; peek: string }[] = [
+  { href: "/system", label: "The Second Pair system", peek: "/shots/inbox.webp" },
+  { href: "/websites", label: "Websites", peek: "/shots/site-ambers.webp" },
+  { href: "/apps", label: "Apps", peek: "/shots/fa-holiday.webp" },
+  { href: "/work", label: "Our work", peek: "/shots/site-livingcanvas.webp" },
 ];
 
 /* An anchor, not a Link, for the reason written beside the bar's own button. */
 const CHAT = "/home?say=I%20would%20like%20to%20book%20a%2015%20minute%20chat#ask";
 
 export function BarLife() {
-  const rule = useRef<HTMLSpanElement>(null);
-  const [pick, setPick] = useState<string | null>(null);
+  const anchor = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  /* The pictures are only fetched once the menu has been opened. */
+  const [opened, setOpened] = useState(false);
+  const [peek, setPeek] = useState(0);
   const path = usePathname();
 
   useEffect(() => {
-    const bar = rule.current?.closest("header");
+    const bar = anchor.current?.closest("header");
     if (!bar) return;
-
-    let chosen = new URLSearchParams(window.location.search).get("bar");
-    try {
-      if (chosen && BARS.includes(chosen)) window.sessionStorage.setItem("sp-bar", chosen);
-      else chosen = window.sessionStorage.getItem("sp-bar");
-    } catch {
-      /* A private window may refuse storage. The address still works. */
-    }
-    if (chosen && BARS.includes(chosen)) {
-      bar.dataset.bar = chosen;
-      setPick(chosen);
-    }
-
     let frame = 0;
-    let last = window.scrollY;
 
     const measure = () => {
       frame = 0;
       const y = window.scrollY;
       const room = document.documentElement.scrollHeight - window.innerHeight;
-      const read = room > 0 ? Math.min(1, y / room).toFixed(4) : "0";
-      bar.style.setProperty("--read", read);
-      /* The dock is fixed to the screen, outside the bar's box, so it reads
-         the same number from the root. */
-      document.documentElement.style.setProperty("--read", read);
+      bar.style.setProperty("--read", room > 0 ? Math.min(1, y / room).toFixed(4) : "0");
 
       /* Which room is the foot of the bar in? */
       const foot = bar.getBoundingClientRect().bottom;
@@ -80,12 +66,7 @@ export function BarLife() {
         }
       }
       bar.toggleAttribute("data-dark", dark);
-      bar.toggleAttribute("data-scrolled", y > 90);
-
-      if (Math.abs(y - last) > 6) {
-        bar.toggleAttribute("data-down", y > last && y > 240);
-        last = y;
-      }
+      bar.toggleAttribute("data-scrolled", y > 60);
     };
 
     const ask = () => {
@@ -99,12 +80,11 @@ export function BarLife() {
       window.removeEventListener("resize", ask);
       if (frame) cancelAnimationFrame(frame);
       bar.removeAttribute("data-dark");
-      bar.removeAttribute("data-down");
       bar.removeAttribute("data-scrolled");
     };
   }, []);
 
-  /* The full-screen menu: shut on Escape, and hold the page still behind it. */
+  /* Open: shut on Escape, and hold the page still behind it. */
   useEffect(() => {
     if (!open) return;
     const key = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
@@ -118,65 +98,74 @@ export function BarLife() {
   }, [open]);
 
   const here = (href: string) => path === href || path.startsWith(`${href}/`);
+  const toggle = () => {
+    setOpened(true);
+    setOpen((o) => {
+      /* Start on the page you are on, if it is one of the four. */
+      if (!o) setPeek(Math.max(0, NAV.findIndex((n) => here(n.href))));
+      return !o;
+    });
+  };
+  const shut = () => setOpen(false);
 
   return (
-    <>
-      <span ref={rule} className="sp-bar-rule" aria-hidden />
+    <div ref={anchor} className="sp-bar-life" data-open={open ? "" : undefined}>
+      <div className="sp-bar-acts">
+        <a href={CHAT} className="sp-bar-chat">
+          Book a chat
+        </a>
+        <button
+          type="button"
+          className="sp-menu-btn"
+          aria-expanded={open}
+          aria-controls="sp-menu"
+          onClick={toggle}
+        >
+          <span aria-hidden>
+            <i />
+            <i />
+          </span>
+          {open ? "Close" : "Menu"}
+        </button>
+      </div>
 
-      {pick === "menu" && (
-        <>
-          <button
-            type="button"
-            className="sp-menu-btn"
-            aria-expanded={open}
-            aria-controls="sp-menu"
-            onClick={() => setOpen((o) => !o)}
-          >
-            <span aria-hidden>
-              <i />
-              <i />
-            </span>
-            {open ? "Close" : "Menu"}
-          </button>
-
-          <div id="sp-menu" className="sp-menu" data-open={open ? "" : undefined} inert={!open}>
-            <nav aria-label="Main">
-              {NAV.map(([href, label], i) => (
-                <Link
-                  key={href}
-                  href={href}
-                  style={{ transitionDelay: `${0.12 + i * 0.06}s` }}
-                  aria-current={here(href) ? "page" : undefined}
-                  onClick={() => setOpen(false)}
-                >
-                  {label}
-                </Link>
-              ))}
-            </nav>
-            <div className="sp-menu-foot">
-              <a href={CHAT} className="btn-ink" onClick={() => setOpen(false)}>
-                Book a chat
-              </a>
-              <Link href="/login" prefetch={false} onClick={() => setOpen(false)}>
-                Sign in
-              </Link>
-            </div>
-          </div>
-        </>
-      )}
-
-      {pick === "dock" && (
-        <nav className="sp-dock" aria-label="Main">
-          {NAV.map(([href, label]) => (
-            <Link key={href} href={href} aria-current={here(href) ? "page" : undefined}>
-              {label}
+      <div id="sp-menu" className="sp-menu" inert={!open}>
+        <nav aria-label="Main">
+          {NAV.map((n, i) => (
+            <Link
+              key={n.href}
+              href={n.href}
+              style={{ transitionDelay: open ? `${0.14 + i * 0.07}s` : "0s" }}
+              aria-current={here(n.href) ? "page" : undefined}
+              data-on={i === peek ? "" : undefined}
+              onMouseEnter={() => setPeek(i)}
+              onFocus={() => setPeek(i)}
+              onClick={shut}
+            >
+              {n.label}
             </Link>
           ))}
-          <a href={CHAT} className="sp-dock-cta">
-            Book a chat
-          </a>
         </nav>
-      )}
-    </>
+
+        {/* What is behind each link. Decoration: the link is the link. */}
+        <div className="sp-menu-peek" aria-hidden>
+          {opened &&
+            NAV.map((n, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={n.href} src={n.peek} alt="" data-on={i === peek ? "" : undefined} />
+            ))}
+        </div>
+
+        <div className="sp-menu-foot">
+          <a href={CHAT} className="sp-bar-chat" onClick={shut}>
+            Book a 15 minute chat
+          </a>
+          <Link href="/login" prefetch={false} onClick={shut}>
+            Sign in
+          </Link>
+          <ThemeToggle compact />
+        </div>
+      </div>
+    </div>
   );
 }

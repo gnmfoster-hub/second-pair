@@ -1,472 +1,351 @@
 /*
- * The marketing bar's two reactions to scroll. See BarLife.
+ * The marketing bar with script running: a logo, "Book a chat", and MENU.
+ * See BarLife for why, and layout.tsx for the bar this replaces.
  *
- * The bar itself is still set where it always was, in layout.tsx: putty, a
- * 2px ink rule, 76px. This only adds what moves.
+ * Everything here is under .sp-js, which a one-line script in layout.tsx puts
+ * on the page before the bar is drawn. Without it, none of this applies and
+ * nothing BarLife renders is shown.
  */
 
-header:has(.sp-bar-rule) {
-  transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+.sp-bar-life {
+  display: none;
 }
 
-/* How far down the page, drawn over the ink rule. */
-.sp-bar-rule {
-  position: absolute;
-  left: 0;
-  bottom: -2px;
-  width: 100%;
-  height: 2px;
-  background: var(--accent);
-  transform: scaleX(var(--read, 0));
-  transform-origin: left;
-  pointer-events: none;
+.sp-js .sp-bar-life {
+  display: block;
 }
 
-/*
- * Over a night section the bar is night. Only tokens are re-pointed, the same
- * way .sp-night does it, so everything in the bar follows.
- */
-header[data-dark] {
-  --putty: #0c0d16;
-  --background: #0c0d16;
-  --surface: #171927;
-  --foreground: #f7f4ec;
-  --muted: rgba(247, 244, 236, 0.74);
-  --border: rgba(247, 244, 236, 0.15);
-  --accent: #8194ff;
-  --logo-bubble: #f7f4ec;
-  color: var(--foreground);
-  border-bottom-color: rgba(247, 244, 236, 0.22) !important;
-}
+/* ───────────────────────────────────────────────── the strip goes away */
 
-/* The links: a line that draws in under the one you are on. */
-header:has(.sp-bar-rule) > .shell > nav a {
-  padding-block: 0.35rem;
-  background: linear-gradient(var(--accent), var(--accent)) left bottom / 0 2px no-repeat;
-  transition: background-size 0.25s ease, opacity 0.2s ease;
-}
-
-header:has(.sp-bar-rule) > .shell > nav a:hover,
-header:has(.sp-bar-rule) > .shell > nav a:focus-visible {
-  opacity: 1;
-  background-size: 100% 2px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  header:has(.sp-bar-rule),
-  header:has(.sp-bar-rule) nav a {
-    transition: none;
-  }
-}
-
-/* ═════════════════════════════════════════════ three other bars to try */
-
-/*
- * Chosen with ?bar= on the address; see BarLife. Each is only overrides on
- * the bar that layout.tsx draws, so taking the losers out is deleting their
- * block. The !importants are there because the bar's ground and rule are set
- * inline in layout.tsx.
- */
-
-/* ── pill: the bar lifts off the page as a capsule with the hard shadow ── */
-
-header[data-bar="pill"] {
+/* !important because the strip's ground and rule are set inline. */
+.sp-js .sp-bar {
   background: transparent !important;
   border-bottom-color: transparent !important;
   pointer-events: none;
 }
 
-header[data-bar="pill"] > .shell {
+/* The menu has to be above everything on the page, the hero's hand included. */
+.sp-js .sp-bar:has(.sp-bar-life[data-open]) {
+  z-index: 9990;
+}
+
+/* The links and buttons the strip carried now live behind MENU. */
+.sp-js .sp-bar > .shell > nav,
+.sp-js .sp-bar > .shell > div {
+  display: none !important;
+}
+
+/* Over a night section the logo and the buttons are night's. */
+.sp-js .sp-bar[data-dark] {
+  --background: #0c0d16;
+  --surface: #171927;
+  --foreground: #f7f4ec;
+  --muted: rgba(247, 244, 236, 0.74);
+  --border: rgba(247, 244, 236, 0.18);
+  --logo-bubble: #f7f4ec;
+  color: var(--foreground);
+}
+
+/*
+ * The logo, with a backing once the page is moving, so that what scrolls
+ * under it does not run through it.
+ */
+.sp-js .sp-bar > .shell > a {
   pointer-events: auto;
-  min-height: 64px !important;
-  margin-top: 8px;
-  max-width: min(72rem, calc(100% - 1.5rem));
-  padding-inline: 1.1rem 0.7rem;
-  border: 2px solid var(--foreground);
+  margin-left: -0.6rem;
+  padding: 0.3rem 1rem 0.3rem 0.6rem;
   border-radius: 999px;
-  background: var(--putty);
-  box-shadow: 5px 5px 0 var(--foreground);
-  transition: background-color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+  box-shadow: 0 0 0 1px transparent;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-header[data-bar="pill"][data-dark] > .shell {
-  border-color: rgba(247, 244, 236, 0.4);
-  box-shadow: 0 0 40px -6px rgba(129, 148, 255, 0.7);
+.sp-js .sp-bar[data-scrolled] > .shell > a {
+  background: var(--background);
+  box-shadow: 0 0 0 1px var(--border), 0 12px 30px -16px rgba(0, 0, 0, 0.5);
 }
 
-/* The line runs along the foot of the capsule rather than the screen. */
-header[data-bar="pill"] .sp-bar-rule {
-  left: 50%;
-  bottom: 1px;
-  width: min(60rem, calc(100% - 6rem));
-  height: 3px;
-  border-radius: 3px;
-  transform: translateX(-50%) scaleX(var(--read, 0));
-  transform-origin: center;
+/* ─────────────────────────────────────────────── the two things top right */
+
+.sp-bar-acts {
+  position: fixed;
+  top: 20px;
+  right: 1.25rem;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  pointer-events: auto;
 }
 
 @media (min-width: 640px) {
-  header[data-bar="pill"] > .shell {
-    margin-top: 6px;
+  .sp-bar-acts {
+    top: 14px;
+    right: 2rem;
   }
 }
 
-/* ── ink: always black, and the one orange thing on it is the button ── */
-
-header[data-bar="ink"],
-header[data-bar="ink"][data-dark] {
-  --putty: #16150f;
-  --background: #16150f;
-  --surface: #1f1e17;
-  --foreground: #f7f4ec;
-  --muted: rgba(247, 244, 236, 0.74);
-  --border: rgba(247, 244, 236, 0.15);
-  --accent: #f07818;
-  --logo-bubble: #f7f4ec;
-  color: var(--foreground);
-  border-bottom-color: #16150f !important;
+.sp-bar-chat,
+.sp-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 48px;
+  border-radius: 999px;
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: 1.0625rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.3s ease, color 0.3s ease, opacity 0.2s ease;
 }
 
-header[data-bar="ink"] .btn-ink {
-  background: #f07818 !important;
-  color: #16150f !important;
-  box-shadow: none !important;
+.sp-bar-chat:hover,
+.sp-menu-btn:hover {
+  transform: scale(1.05);
 }
 
-header[data-bar="ink"] .sp-bar-rule {
-  height: 3px;
-  bottom: -3px;
+/* The one orange thing on the screen. */
+.sp-bar-chat {
+  padding-inline: 1.5rem;
+  background: #f07818;
+  color: #16150f;
+  /* An ink edge, so it is still a button when the band under it is orange. */
+  border: 2px solid #16150f;
+  box-shadow: 3px 3px 0 #16150f;
 }
 
-/* ── hide: gets out of the way going down, comes back going up ── */
-
-header[data-bar="hide"] {
-  transition: transform 0.3s ease, background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+.sp-bar-chat:hover {
+  background: #f79241;
 }
 
-header[data-bar="hide"][data-down] {
-  transform: translateY(-105%);
-}
-
-/* ═══════════════════════════════════ three more: menu, dock and morph */
-
-/*
- * None of these is putty. "menu" and "dock" take the bar away and leave the
- * logo on the page; "morph" is a bar at the top that becomes a capsule.
- * Below 1024px all three fall back to the logo and the existing phone menu.
- */
-
-@media (min-width: 1024px) {
-  header[data-bar="menu"],
-  header[data-bar="dock"] {
-    background: transparent !important;
-    border-bottom-color: transparent !important;
-    pointer-events: none;
-  }
-
-  header[data-bar="menu"] > .shell > a,
-  header[data-bar="dock"] > .shell > a {
-    pointer-events: auto;
-  }
-
-  /* The links and the buttons leave the bar; they live in the menu or dock. */
-  header[data-bar="menu"] > .shell > nav,
-  header[data-bar="menu"] > .shell > div,
-  header[data-bar="dock"] > .shell > nav,
-  header[data-bar="dock"] > .shell > div,
-  header[data-bar="menu"] .sp-bar-rule,
-  header[data-bar="dock"] .sp-bar-rule {
+/* On a phone the logo needs the room; the hero's own button is just below. */
+@media (max-width: 639px) {
+  .sp-bar-acts > .sp-bar-chat {
     display: none;
   }
 }
 
-/* ── menu: one button, and a whole screen of cobalt behind it ── */
+.sp-bar-life[data-open] .sp-bar-acts > .sp-bar-chat {
+  opacity: 0;
+  pointer-events: none;
+}
 
-.sp-menu-btn,
-.sp-menu,
-.sp-dock {
+.sp-menu-btn {
+  position: relative;
+  gap: 0.7rem;
+  padding-inline: 1.1rem 1.4rem;
+  background: var(--foreground);
+  color: var(--background);
+}
+
+/* How far down the page, as a ring round the button. */
+.sp-menu-btn::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  padding: 3px;
+  border-radius: 999px;
+  background: conic-gradient(#f07818 calc(var(--read, 0) * 360deg), transparent 0);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  pointer-events: none;
+}
+
+.sp-menu-btn span {
+  display: grid;
+  gap: 5px;
+  width: 22px;
+}
+
+.sp-menu-btn i {
+  height: 2px;
+  background: currentColor;
+  transition: transform 0.3s ease;
+}
+
+.sp-menu-btn[aria-expanded="true"] {
+  background: #f7f4ec;
+  color: #16150f;
+}
+
+.sp-menu-btn[aria-expanded="true"]::before {
+  opacity: 0;
+}
+
+.sp-menu-btn[aria-expanded="true"] i:first-child {
+  transform: translateY(3.5px) rotate(45deg);
+}
+
+.sp-menu-btn[aria-expanded="true"] i:last-child {
+  transform: translateY(-3.5px) rotate(-45deg);
+}
+
+/* ───────────────────────────────────────────────────────────── the menu */
+
+/* Opens as a circle growing out of the button. */
+.sp-menu {
+  --from: calc(100% - 4.5rem) 2.6rem;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 2rem;
+  height: 100dvh;
+  padding: 6.5rem 1.5rem 2rem;
+  overflow-y: auto;
+  background: #1f3be3;
+  color: #fff;
+  pointer-events: auto;
+  clip-path: circle(0 at var(--from));
+  visibility: hidden;
+  transition: clip-path 0.55s cubic-bezier(0.7, 0, 0.2, 1), visibility 0s 0.55s;
+}
+
+.sp-bar-life[data-open] .sp-menu {
+  clip-path: circle(150vmax at var(--from));
+  visibility: visible;
+  transition: clip-path 0.7s cubic-bezier(0.7, 0, 0.2, 1), visibility 0s;
+}
+
+.sp-menu nav {
+  display: grid;
+  align-content: center;
+  gap: 0.12em;
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: clamp(2.75rem, 1rem + 6vw, 7.5rem);
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.sp-menu nav a {
+  width: fit-content;
+  opacity: 0;
+  transform: translateY(0.5em);
+  transition: opacity 0.4s ease, transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.2s ease,
+    padding 0.3s ease;
+}
+
+.sp-bar-life[data-open] .sp-menu nav a {
+  opacity: 1;
+  transform: none;
+}
+
+/* The one under the pointer steps forward, in orange. */
+.sp-menu nav a[data-on] {
+  padding-left: 0.25em;
+  color: #f79241;
+}
+
+.sp-menu nav a[aria-current]::after {
+  content: "you are here";
+  margin-left: 1.2em;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  vertical-align: middle;
+  color: #fff;
+  opacity: 0.8;
+}
+
+.sp-menu-peek {
   display: none;
 }
 
-@media (min-width: 1024px) {
-  .sp-menu-btn {
-    position: fixed;
-    top: 14px;
-    right: 24px;
-    z-index: 60;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.7rem;
-    height: 48px;
-    padding-inline: 1.1rem 1.4rem;
-    border-radius: 999px;
-    background: var(--foreground);
-    color: var(--background);
-    font-family: var(--font-display), Impact, sans-serif;
-    font-size: 1.0625rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    pointer-events: auto;
-    cursor: pointer;
-    transition: transform 0.2s ease, background-color 0.3s ease, color 0.3s ease;
-  }
+.sp-menu-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid rgba(255, 255, 255, 0.28);
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.4s ease 0.35s;
+}
 
-  .sp-menu-btn:hover {
-    transform: scale(1.05);
-  }
+.sp-bar-life[data-open] .sp-menu-foot {
+  opacity: 1;
+}
 
-  .sp-menu-btn span {
-    display: grid;
-    gap: 5px;
-    width: 22px;
-  }
+.sp-menu-foot > a:not(.sp-bar-chat) {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
 
-  .sp-menu-btn i {
-    height: 2px;
-    background: currentColor;
-    transition: transform 0.3s ease;
-  }
+.sp-menu-foot .sp-bar-chat {
+  height: 54px;
+  box-shadow: none;
+}
 
-  .sp-menu-btn[aria-expanded="true"] {
-    background: #f7f4ec;
-    color: #16150f;
-  }
-
-  .sp-menu-btn[aria-expanded="true"] i:first-child {
-    transform: translateY(3.5px) rotate(45deg);
-  }
-
-  .sp-menu-btn[aria-expanded="true"] i:last-child {
-    transform: translateY(-3.5px) rotate(-45deg);
-  }
-
-  /* Opens as a circle growing out of the button. */
+@media (min-width: 640px) {
   .sp-menu {
-    position: fixed;
-    inset: 0;
-    z-index: 50;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 3rem;
-    height: 100vh;
-    padding: 6rem clamp(2rem, 8vw, 9rem) 3rem;
-    background: #1f3be3;
-    color: #fff;
-    pointer-events: auto;
-    clip-path: circle(0 at calc(100% - 80px) 38px);
-    visibility: hidden;
-    transition: clip-path 0.6s cubic-bezier(0.7, 0, 0.2, 1), visibility 0s 0.6s;
+    --from: calc(100% - 5.5rem) 2.4rem;
+    padding: 6.5rem clamp(2rem, 7vw, 8rem) 2.5rem;
+  }
+}
+
+/* Wide enough for a picture of what is behind each link. */
+@media (min-width: 1024px) {
+  .sp-menu {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.85fr);
+    column-gap: 4rem;
   }
 
-  .sp-menu[data-open] {
-    clip-path: circle(150vmax at calc(100% - 80px) 38px);
-    visibility: visible;
-    transition: clip-path 0.7s cubic-bezier(0.7, 0, 0.2, 1), visibility 0s;
-  }
-
-  .sp-menu nav {
-    display: grid;
-    gap: 0.15em;
-    font-family: var(--font-display), Impact, sans-serif;
-    font-size: clamp(3rem, 1rem + 6.5vw, 8rem);
-    line-height: 0.95;
-    text-transform: uppercase;
-  }
-
-  .sp-menu nav a {
-    width: fit-content;
+  .sp-menu-peek {
+    position: relative;
+    display: block;
+    align-self: center;
+    aspect-ratio: 4 / 3.2;
+    border: 2px solid #16150f;
+    border-radius: 1rem;
+    background: #16150f;
+    box-shadow: 12px 12px 0 #16150f;
+    overflow: hidden;
+    transform: rotate(2.5deg) scale(0.9);
     opacity: 0;
-    transform: translateY(0.4em);
-    transition: opacity 0.4s ease, transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.2s ease;
+    transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s, opacity 0.4s ease 0.2s;
   }
 
-  .sp-menu[data-open] nav a {
+  .sp-bar-life[data-open] .sp-menu-peek {
+    transform: rotate(2.5deg);
+    opacity: 1;
+  }
+
+  .sp-menu-peek img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    object-fit: cover;
+    object-position: top;
+    opacity: 0;
+    transform: scale(1.06);
+    transition: opacity 0.35s ease, transform 0.6s ease;
+  }
+
+  .sp-menu-peek img[data-on] {
     opacity: 1;
     transform: none;
   }
 
-  .sp-menu nav a:hover,
-  .sp-menu nav a[aria-current] {
-    color: #f79241;
-  }
-
   .sp-menu-foot {
-    display: flex;
-    align-items: center;
-    gap: 2rem;
-    font-weight: 600;
-  }
-
-  .sp-menu-foot a:last-child {
-    text-decoration: underline;
-    text-underline-offset: 4px;
-  }
-}
-
-/* ── dock: the navigation at the foot of the screen, as on a phone ── */
-
-@media (min-width: 1024px) {
-  .sp-dock {
-    position: fixed;
-    left: 50%;
-    bottom: 18px;
-    z-index: 40;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.4rem;
-    border-radius: 999px;
-    background: #16150f;
-    color: #f7f4ec;
-    box-shadow: 0 18px 50px -14px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(247, 244, 236, 0.14);
-    transform: translateX(-50%);
-    pointer-events: auto;
-    font-size: 0.8125rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    white-space: nowrap;
-    overflow: hidden;
-  }
-
-  /* How far down the page, along the top of the dock. */
-  .sp-dock::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 3px;
-    background: #f07818;
-    transform: scaleX(var(--read, 0));
-    transform-origin: left;
-  }
-
-  .sp-dock a {
-    padding: 0.8rem 1.1rem;
-    border-radius: 999px;
-    transition: background-color 0.2s ease, color 0.2s ease;
-  }
-
-  .sp-dock a:hover {
-    background: rgba(247, 244, 236, 0.12);
-  }
-
-  .sp-dock a[aria-current] {
-    background: #f7f4ec;
-    color: #16150f;
-  }
-
-  .sp-dock .sp-dock-cta {
-    margin-left: 0.35rem;
-    padding-inline: 1.4rem;
-    background: #f07818;
-    color: #16150f;
-    font-family: var(--font-display), Impact, sans-serif;
-    font-size: 1rem;
-    font-weight: 400;
-  }
-
-  .sp-dock .sp-dock-cta:hover {
-    background: #f79241;
-  }
-}
-
-/* ── morph: a bar at the top of the page, a capsule once you leave it ── */
-
-@media (min-width: 1024px) {
-  header[data-bar="morph"] {
-    background: transparent !important;
-    border-bottom-color: transparent !important;
-    pointer-events: none;
-  }
-
-  header[data-bar="morph"] .sp-bar-rule {
-    display: none;
-  }
-
-  header[data-bar="morph"] > .shell {
-    pointer-events: auto;
-    max-width: 84rem;
-    margin-top: 0;
-    border-radius: 999px;
-    transition: max-width 0.55s cubic-bezier(0.7, 0, 0.2, 1), background-color 0.4s ease, color 0.4s ease,
-      min-height 0.4s ease, margin-top 0.4s ease, padding 0.4s ease, box-shadow 0.4s ease, gap 0.4s ease;
-  }
-
-  header[data-bar="morph"] > .shell > nav,
-  header[data-bar="morph"] > .shell > div > :not(.btn-ink) {
-    max-width: 40rem;
-    transition: max-width 0.5s ease, opacity 0.3s ease, margin 0.4s ease, padding 0.4s ease, border-width 0.3s ease;
-  }
-
-  header[data-bar="morph"] .btn-ink {
-    background: #f07818 !important;
-    color: #16150f !important;
-    box-shadow: none !important;
-  }
-
-  /* Left the top: everything but the logo and the one button folds away. */
-  header[data-bar="morph"][data-scrolled] > .shell:not(:hover):not(:focus-within) {
-    --foreground: #f7f4ec;
-    --logo-bubble: #f7f4ec;
-    --muted: rgba(247, 244, 236, 0.74);
-    max-width: 25rem;
-    min-height: 60px !important;
-    margin-top: 8px;
-    padding-inline: 1.25rem 0.5rem;
-    gap: 0;
-    background: #16150f;
-    color: #f7f4ec;
-    box-shadow: 0 18px 50px -14px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(247, 244, 236, 0.14);
-  }
-
-  header[data-bar="morph"][data-scrolled] > .shell:not(:hover):not(:focus-within) > nav,
-  header[data-bar="morph"][data-scrolled] > .shell:not(:hover):not(:focus-within) > div > :not(.btn-ink) {
-    max-width: 0;
-    margin: 0;
-    padding: 0;
-    border-width: 0;
-    opacity: 0;
-    overflow: hidden;
-    pointer-events: none;
-  }
-
-  /* Hover the capsule and the whole bar comes back, on ink. */
-  header[data-bar="morph"][data-scrolled] > .shell:hover,
-  header[data-bar="morph"][data-scrolled] > .shell:focus-within {
-    --foreground: #f7f4ec;
-    --logo-bubble: #f7f4ec;
-    --background: #16150f;
-    --border: rgba(247, 244, 236, 0.2);
-    margin-top: 8px;
-    min-height: 60px !important;
-    background: #16150f;
-    color: #f7f4ec;
-    box-shadow: 0 18px 50px -14px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(247, 244, 236, 0.14);
-  }
-
-  header[data-bar="morph"][data-scrolled] > .shell > a {
-    transform: scale(0.82);
-    transform-origin: left center;
-    transition: transform 0.4s ease;
+    grid-column: 1 / -1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .sp-menu,
   .sp-menu nav a,
-  header[data-bar="morph"] > .shell,
-  header[data-bar="morph"] > .shell * {
+  .sp-menu-peek,
+  .sp-menu-peek img,
+  .sp-menu-foot,
+  .sp-bar-chat,
+  .sp-menu-btn {
     transition: none !important;
   }
-}
-
-/* The one button in the full-screen menu is the orange one, whatever is under it. */
-.sp-menu .btn-ink {
-  min-height: 54px;
-  background: #f07818 !important;
-  color: #16150f !important;
-  box-shadow: none !important;
 }

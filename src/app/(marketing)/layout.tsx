@@ -41,8 +41,20 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         */}
       <SiteWidget />
 
+      {/*
+        * Before the bar is drawn, say that script is running.
+        *
+        * With script the bar is only the logo, and the links live behind a
+        * MENU button (see BarLife and bar.css). Without it there is no button
+        * to press, so the bar below stays exactly as it is written here:
+        * putty, the four links, the two buttons. This line is what tells the
+        * stylesheet which of the two it is, early enough that the full bar is
+        * never drawn and then taken away.
+        */}
+      <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('sp-js')" }} />
+
       <header
-        className="sticky top-0 z-30"
+        className="sp-bar sticky top-0 z-30"
         style={{ background: "var(--putty)", borderBottom: "2px solid var(--foreground)" }}
       >
         <div
