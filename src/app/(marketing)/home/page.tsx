@@ -36,7 +36,14 @@ export default function HomePage() {
         * the demo and the words are one thing: the headline says there is a
         * second pair of hands and the panel beside it is them working.
         */}
-      <section className="relative overflow-hidden">
+      {/*
+        * And behind it, the end of the working day: paper sky going to orange
+        * at the horizon, and a sun that sets behind the phone as the page is
+        * scrolled, into the dusk the next section opens on. The hero says you
+        * have knocked off; now the sky says it too.
+        */}
+      <Passing className="sp-hero relative overflow-hidden">
+        <div className="sp-hero-sun" aria-hidden />
         <Hero />
         {/*
           * The line under the hero's diary fades in when the demo finishes.
@@ -45,7 +52,7 @@ export default function HomePage() {
         <noscript>
           <style>{".hero-done{opacity:1!important}"}</style>
         </noscript>
-      </section>
+      </Passing>
 
       {/*
         * Seven ways in, one diary — Giles's idea — now played as one evening,

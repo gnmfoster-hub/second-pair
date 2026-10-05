@@ -1163,3 +1163,81 @@
 .sp-web .sp-frame {
   border-color: rgba(247, 244, 236, 0.35);
 }
+
+/* ═════════════════════════════════════════════════════════ the first screen */
+
+/*
+ * The hero was the one part of the page still on plain paper, which made the
+ * first thing anybody sees the quietest thing on the site. It is now the end
+ * of the working day: the sky warms to orange at the horizon and a sun sets
+ * behind the phone as the page scrolls, into the dusk the evening opens on.
+ *
+ * Only a ground and a disc are added. Nothing inside the hero is touched, and
+ * every colour is one the palette already has: paper, and --highlight.
+ */
+
+.sp-hero {
+  /* Resting, and where a page at the top starts: the sun up behind the phone. */
+  --p: 0.45;
+  isolation: isolate;
+  background: linear-gradient(
+    180deg,
+    var(--background) 0%,
+    var(--background) 38%,
+    #fbe9cc 68%,
+    #f9c98f 90%,
+    #f3a050 100%
+  );
+}
+
+.sp-hero-sun {
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 24rem;
+  width: 88vw;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 30%, #ffb863 0%, #f58a2a 46%, #f07818 70%, #e4640c 100%);
+  box-shadow: 0 0 140px 30px rgba(240, 120, 24, 0.32);
+  transform: translate(-50%, calc((var(--p) - 0.45) * 60vh));
+  will-change: transform;
+}
+
+@media (min-width: 1024px) {
+  .sp-hero-sun {
+    left: 68%;
+    top: 9%;
+    width: min(46vw, 640px);
+    transform: translate(-50%, calc((var(--p) - 0.45) * 95vh));
+  }
+}
+
+/*
+ * A laptop is about 800 tall, and at full size the headline pushed the button
+ * under it off the bottom of the screen.
+ */
+@media (min-width: 1024px) and (max-height: 880px) {
+  .sp-hero h1 {
+    font-size: clamp(52px, 5.3vw, 96px) !important;
+  }
+}
+
+/* In the dark theme the day is already over: a night sky, and the sun low. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .sp-hero {
+    background: linear-gradient(180deg, var(--background) 0%, var(--background) 40%, #1b1d45 78%, #5a2e26 100%);
+  }
+
+  :root:not([data-theme="light"]) .sp-hero-sun {
+    opacity: 0.55;
+  }
+}
+
+:root[data-theme="dark"] .sp-hero {
+  background: linear-gradient(180deg, var(--background) 0%, var(--background) 40%, #1b1d45 78%, #5a2e26 100%);
+}
+
+:root[data-theme="dark"] .sp-hero-sun {
+  opacity: 0.55;
+}
