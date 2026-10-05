@@ -1,45 +1,60 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * The bar, reacting to the page under it.
  *
- * Two things, both read from the scroll and neither changing what the bar is:
+ * Read from the scroll, and without script the bar is exactly what layout.tsx
+ * draws:
  *
- * A cobalt line grows along the ink rule as the page is read, so the rule
- * that was only a border is also how far down you are.
+ * - how far down the page you are, as --read, for the line along the rule;
+ * - whether a night section is under the bar, as data-dark, which re-points
+ *   the bar's tokens so the logo, links and buttons follow;
+ * - whether the page has left the top (data-scrolled) and which way it is
+ *   going (data-down).
  *
- * And the bar takes the colour of the room it is over. The home page now has
- * night sections, and a putty bar across the top of a night sky cut the sky
- * off. Any section marked sp-night turns the bar to night while it is under
- * it, by re-pointing the bar's own tokens, so the logo, the links and the
- * buttons all follow without knowing anything about it.
- *
- * Without script the bar is exactly what it was.
- *
- * TRYING OUT: three other bars, chosen with ?bar=pill, ?bar=ink or ?bar=hide
- * on any address (?bar=room is the one described above). The choice is kept
- * for the browser tab so it survives moving between pages. Once Giles has
+ * TRYING OUT: several bars, chosen with ?bar=<name> on any address and kept
+ * for the browser tab so the choice survives moving between pages. "menu" and
+ * "dock" need furniture the plain bar has not got — a full-screen menu and a
+ * dock at the foot of the screen — and that is drawn here. Once Giles has
  * picked one, the others and this switch come out. See bar.css.
  */
-const BARS = ["room", "pill", "ink", "hide"];
+const BARS = ["room", "pill", "ink", "hide", "menu", "dock", "morph"];
+
+const NAV: [string, string][] = [
+  ["/system", "The Second Pair system"],
+  ["/websites", "Websites"],
+  ["/apps", "Apps"],
+  ["/work", "Our work"],
+];
+
+/* An anchor, not a Link, for the reason written beside the bar's own button. */
+const CHAT = "/home?say=I%20would%20like%20to%20book%20a%2015%20minute%20chat#ask";
 
 export function BarLife() {
   const rule = useRef<HTMLSpanElement>(null);
+  const [pick, setPick] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const path = usePathname();
 
   useEffect(() => {
     const bar = rule.current?.closest("header");
     if (!bar) return;
 
-    let pick = new URLSearchParams(window.location.search).get("bar");
+    let chosen = new URLSearchParams(window.location.search).get("bar");
     try {
-      if (pick && BARS.includes(pick)) window.sessionStorage.setItem("sp-bar", pick);
-      else pick = window.sessionStorage.getItem("sp-bar");
+      if (chosen && BARS.includes(chosen)) window.sessionStorage.setItem("sp-bar", chosen);
+      else chosen = window.sessionStorage.getItem("sp-bar");
     } catch {
       /* A private window may refuse storage. The address still works. */
     }
-    if (pick && BARS.includes(pick)) bar.dataset.bar = pick;
+    if (chosen && BARS.includes(chosen)) {
+      bar.dataset.bar = chosen;
+      setPick(chosen);
+    }
 
     let frame = 0;
     let last = window.scrollY;
@@ -48,7 +63,11 @@ export function BarLife() {
       frame = 0;
       const y = window.scrollY;
       const room = document.documentElement.scrollHeight - window.innerHeight;
-      bar.style.setProperty("--read", room > 0 ? Math.min(1, y / room).toFixed(4) : "0");
+      const read = room > 0 ? Math.min(1, y / room).toFixed(4) : "0";
+      bar.style.setProperty("--read", read);
+      /* The dock is fixed to the screen, outside the bar's box, so it reads
+         the same number from the root. */
+      document.documentElement.style.setProperty("--read", read);
 
       /* Which room is the foot of the bar in? */
       const foot = bar.getBoundingClientRect().bottom;
@@ -61,8 +80,8 @@ export function BarLife() {
         }
       }
       bar.toggleAttribute("data-dark", dark);
+      bar.toggleAttribute("data-scrolled", y > 90);
 
-      /* Going down the page, or back up it. Only the "hide" bar uses this. */
       if (Math.abs(y - last) > 6) {
         bar.toggleAttribute("data-down", y > last && y > 240);
         last = y;
@@ -81,8 +100,83 @@ export function BarLife() {
       if (frame) cancelAnimationFrame(frame);
       bar.removeAttribute("data-dark");
       bar.removeAttribute("data-down");
+      bar.removeAttribute("data-scrolled");
     };
   }, []);
 
-  return <span ref={rule} className="sp-bar-rule" aria-hidden />;
+  /* The full-screen menu: shut on Escape, and hold the page still behind it. */
+  useEffect(() => {
+    if (!open) return;
+    const key = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", key);
+    const was = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", key);
+      document.body.style.overflow = was;
+    };
+  }, [open]);
+
+  const here = (href: string) => path === href || path.startsWith(`${href}/`);
+
+  return (
+    <>
+      <span ref={rule} className="sp-bar-rule" aria-hidden />
+
+      {pick === "menu" && (
+        <>
+          <button
+            type="button"
+            className="sp-menu-btn"
+            aria-expanded={open}
+            aria-controls="sp-menu"
+            onClick={() => setOpen((o) => !o)}
+          >
+            <span aria-hidden>
+              <i />
+              <i />
+            </span>
+            {open ? "Close" : "Menu"}
+          </button>
+
+          <div id="sp-menu" className="sp-menu" data-open={open ? "" : undefined} inert={!open}>
+            <nav aria-label="Main">
+              {NAV.map(([href, label], i) => (
+                <Link
+                  key={href}
+                  href={href}
+                  style={{ transitionDelay: `${0.12 + i * 0.06}s` }}
+                  aria-current={here(href) ? "page" : undefined}
+                  onClick={() => setOpen(false)}
+                >
+                  {label}
+                </Link>
+              ))}
+            </nav>
+            <div className="sp-menu-foot">
+              <a href={CHAT} className="btn-ink" onClick={() => setOpen(false)}>
+                Book a chat
+              </a>
+              <Link href="/login" prefetch={false} onClick={() => setOpen(false)}>
+                Sign in
+              </Link>
+            </div>
+          </div>
+        </>
+      )}
+
+      {pick === "dock" && (
+        <nav className="sp-dock" aria-label="Main">
+          {NAV.map(([href, label]) => (
+            <Link key={href} href={href} aria-current={here(href) ? "page" : undefined}>
+              {label}
+            </Link>
+          ))}
+          <a href={CHAT} className="sp-dock-cta">
+            Book a chat
+          </a>
+        </nav>
+      )}
+    </>
+  );
 }
