@@ -110,7 +110,15 @@ self.addEventListener("push", function (event) {
     self.registration.showNotification(message.title || "Second Pair", {
       body: message.body || "",
       icon: "/brand/png/app-icon-192.png",
-      badge: "/brand/png/favicon-32.png",
+      /*
+       * The small mark Android puts in the status bar.
+       *
+       * This pointed at /brand/png/favicon-32.png, which has never existed: the
+       * file is in brand/mark. A badge that 404s is not an error anybody sees,
+       * it is a blank square in a status bar, which is how it survived from the
+       * day push was built until somebody tidied the brand folder.
+       */
+      badge: "/brand/mark/favicon-32.png",
       // Same tag replaces rather than stacks, so five messages from one client
       // do not become five notifications.
       tag: message.tag || "second-pair",

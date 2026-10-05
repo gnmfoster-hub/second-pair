@@ -7,11 +7,11 @@
  * Giles, 5 October: "its the old logo."
  *
  * He was right, and about more than the card. The old flat two-hands artwork
- * with the peachy hand is still what social-card-default.png shows, and it is
- * also still what logo/lockup-horizontal-on-paper.svg shows, despite that folder
- * being the one the brand README points at as current. The mark the live site
- * actually renders is mark-3d: a black speech bubble with a cream and a cobalt
- * hand, which is the one everybody has seen on the header all month.
+ * with the peachy hand was what social-card-default.png showed, and it was also
+ * what the lockup files in logo/ showed, sitting beside the current mark in the
+ * folder the brand README calls current. Those have since been deleted. The mark
+ * the live site renders is mark-3d: a black speech bubble with a cream and a
+ * cobalt hand, which is the one everybody has seen on the header all month.
  *
  * So this composes the card from the assets the site itself serves rather than
  * from a file somebody exported once, which is how the two drifted apart in the

@@ -36,21 +36,52 @@ The supplied SVG lockups use outlined text and do not depend on a font being ins
 
 ## Which file to use
 
-Current assets only. The trades and brand-promise lockups no longer exist as
-lockups — those campaigns have social cards instead.
+Rewritten on 5 October after a tidy-up, and this time against what the running
+site actually asks for rather than against what was exported. Every row below
+was checked; anything not named by an exact path somewhere is marked as such.
 
-| Placement | Asset |
-| --- | --- |
-| Main website header | `logo/lockup-horizontal-on-paper.svg` |
-| Dark background | `logo/lockup-horizontal-on-ink.svg` |
-| Where the lockup has to stack | `logo/lockup-stacked-on-paper.svg` |
-| Small or narrow area | `logo/bubble-mark.svg` |
-| In the app | `logo/mark-3d-320.webp`, or `mark-flat-reversed-320.webp` on ink — this is what `src/components/Logo.tsx` loads |
-| App, avatar or chat launcher | `icons/icon-512.png`, or `png/app-icon-*.png` for the PWA manifest |
-| Favicon | `icons/favicon.ico` |
-| Social sharing | `png/social-card-default.png`, `-trades.png`, `-hands.png` |
-| Print/marketing software | PNG from `mark/`, or an SVG from `logo/` where supported |
-| Visual reference only | files in `reference/` |
+| Placement | Asset | Who asks for it |
+| --- | --- | --- |
+| The header, and anywhere in the app | `logo/mark-3d-320.webp`, or `logo/mark-flat-reversed-320.webp` on ink | `src/components/Logo.tsx` |
+| Home screen icon, PWA | `png/app-icon-192.png`, `-512.png`, `-maskable-512.png` | `public/manifest.webmanifest` |
+| A notification | `png/app-icon-192.png` for the icon, `mark/favicon-32.png` for the badge | `public/sw.js` |
+| Social sharing | `png/social-card-default.png` | `src/app/layout.tsx` |
+| Drawing that card again | `logo/mark-3d.png` | `scripts/make-social-card.cjs` |
+| The hands on the marketing site | the `.webp` files in `hands/` | the `(marketing)` pages |
+| The browser tab | `src/app/icon.png` and `src/app/apple-icon.png` | Next.js, by convention |
+
+Nothing in this folder is the site's favicon. Next.js takes that from
+`src/app/icon.png`, which is why `icons/favicon.ico` is not listed.
+
+### Deleted on 5 October
+
+The old flat two-hands artwork, which had been sitting beside the current mark
+and catching people out. Giles found it the way these things are always found:
+"its sending the second pair logo in the text form link and its the old logo."
+
+- `code/` — the pack author's sample React component, tokens, manifest and
+  metadata example. None of it was used by the app and its `Logo.tsx` pointed at
+  a folder deleted weeks earlier. A stale Logo.tsx inside a brand folder is the
+  single most copyable wrong thing here.
+- `png/lockup-*-transparent.png`, eleven files, which this README already said
+  were the old artwork used by nothing.
+- `png/social-card-hands.png` and `-trades.png`, the other two old cards.
+- `logo/lockup-horizontal-on-paper.svg` and its ink and stacked siblings. These
+  were the ones worth going for: they sat in the folder this README calls
+  current, and rendering one shows the old flat peachy hand.
+
+Everything is in git if any of it is wanted back.
+
+### Still here and used by nothing
+
+`icons/` is a complete flat icon set that nothing references. It was left alone
+rather than deleted because flat is not the same as old here: `Logo.tsx` loads a
+flat reversed mark on dark backgrounds on purpose, so a flat set may be a
+deliberate alternative rather than a leftover. Somebody who knows which should
+say, and then it either gets used or goes.
+
+The `.png` originals in `hands/` are likewise unreferenced, because the pages
+load the `.webp` versions. They are the sources those were made from.
 
 ## Minimum sizes and clear space
 
@@ -74,7 +105,7 @@ lockups — those campaigns have social cards instead.
 
 ## Developer handoff
 
-Read `CLAUDE.md`, then paste `IMPLEMENTATION-PROMPT.md` into Claude Code. The `code/` folder contains the React component, colour tokens, PWA manifest and a Next.js metadata example.
+This section described a handoff that no longer applies. `IMPLEMENTATION-PROMPT.md` never existed in this repository and the `code/` folder was deleted on 5 October. The live implementation is `src/components/Logo.tsx` and the tokens at the top of `src/app/globals.css`.
 
 ## Contents
 
