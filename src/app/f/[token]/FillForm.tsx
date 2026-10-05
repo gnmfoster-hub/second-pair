@@ -3,7 +3,7 @@
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { SignatureBox } from "@/components/SignatureBox";
 import { markOpened, submitForm, type SignState } from "./actions";
-import { detailKey, type Block } from "@/lib/forms/blocks";
+import { detailKey, expandRepeats, MOST_REPEATS, type Block } from "@/lib/forms/blocks";
 import { formatPence } from "@/lib/money";
 
 /**
@@ -46,7 +46,20 @@ export function FillForm({
   const [state, action, pending] = useActionState<SignState, FormData>(submitForm, {});
   const [yes, setYes] = useState<Record<string, boolean>>({});
   const top = useRef<HTMLDivElement>(null);
-  const isQuote = blocks.some((b) => b.type === "lines");
+
+  /*
+   * How many of each repeating group are on screen.
+   *
+   * One each to start with, because most people have one dog, and the form
+   * should not open asking somebody to think about how many of anything they
+   * have before they have answered a single question.
+   */
+  const [howMany, setHowMany] = useState<Record<string, number>>(() =>
+    Object.fromEntries(blocks.filter((b) => b.type === "repeat").map((b) => [b.id, 1])),
+  );
+
+  const shown = expandRepeats(blocks, howMany);
+  const isQuote = shown.some((b) => b.type === "lines");
 
   useEffect(() => {
     if (state.missing?.length || state.error) top.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -100,7 +113,15 @@ export function FillForm({
         </div>
       )}
 
-      {blocks.map((b) => (
+      {/*
+        * How many of each group, submitted with the answers so the server
+        * reads exactly the questions that were on the screen.
+        */}
+      {Object.entries(howMany).map(([id, n]) => (
+        <input key={id} type="hidden" name={`__n_${id}`} value={n} />
+      ))}
+
+      {shown.map((b) => (
         <div key={b.id} className={b.type === "text" ? "" : "card p-4"}>
           {b.type === "text" && <p className="whitespace-pre-line text-sm leading-relaxed">{b.label}</p>}
 
@@ -236,6 +257,50 @@ export function FillForm({
           {b.type === "signature" && <SignatureBox />}
         </div>
       ))}
+
+      {/*
+        * Another one, where the form asks about more than one of something.
+        *
+        * Under the last of them rather than at the top, because the question is
+        * "have you got another?" and that is only worth asking once somebody has
+        * finished describing the first. Removing takes the last one off, which
+        * is the only one somebody means: there is no delete on each, because a
+        * cross next to a half-filled box on a phone is a lost answer waiting to
+        * happen.
+        */}
+      {blocks
+        .filter((b) => b.type === "repeat")
+        .map((b) => {
+          const at = howMany[b.id] ?? 1;
+          const noun = (b.each || "one").toLowerCase();
+          return (
+            <div key={`more-${b.id}`} className="flex flex-wrap items-center gap-2">
+              {at < MOST_REPEATS && (
+                <button
+                  type="button"
+                  onClick={() => setHowMany((all) => ({ ...all, [b.id]: at + 1 }))}
+                  className="btn border border-border text-sm"
+                >
+                  {b.addLabel || `Add another ${noun}`}
+                </button>
+              )}
+              {at > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setHowMany((all) => ({ ...all, [b.id]: at - 1 }))}
+                  className="text-sm text-muted hover:text-foreground hover:underline"
+                >
+                  Remove the last {noun}
+                </button>
+              )}
+              {at >= MOST_REPEATS && (
+                <span className="hint text-xs">
+                  That is as many as this form takes. Tell {business} about any others.
+                </span>
+              )}
+            </div>
+          );
+        })}
 
       <button disabled={pending} className="btn w-full bg-accent py-3 text-base text-on-accent disabled:opacity-60">
         {pending ? "Sending…" : isQuote ? "Accept and sign" : "Submit"}

@@ -23,7 +23,8 @@ export type BlockType =
   | "date"
   | "agree" // a tick box that must be ticked
   | "signature"
-  | "lines"; // a priced list, for a quote, set when it is sent, never typed by the customer
+  | "lines" // a priced list, for a quote, set when it is sent, never typed by the customer
+  | "repeat"; // a group of questions asked once per dog, room, or vehicle
 
 export type Block = {
   id: string;
@@ -49,6 +50,18 @@ export type Block = {
    * the rules and the reason they are written down separately.
    */
   role?: string;
+  /**
+   * For "repeat": the questions asked about each one.
+   *
+   * One level only. A form that nests a repeating group inside a repeating
+   * group is a form nobody can fill in on a phone, and the answer keys stop
+   * being readable by anybody debugging them at nine at night.
+   */
+  children?: Block[];
+  /** For "repeat": the words on the button. "Add another dog". */
+  addLabel?: string;
+  /** For "repeat": what one of them is called. "Dog". */
+  each?: string;
 };
 
 export type QuoteLine = { name: string; quantity: number; pence: number };
@@ -67,7 +80,15 @@ export const BLOCK_TYPES: { value: BlockType; label: string }[] = [
 ];
 
 // "lines" is not offered in the editor — a quote's prices are set when it is sent.
-const TYPES = new Set<BlockType>([...BLOCK_TYPES.map((t) => t.value), "lines"]);
+/*
+ * "lines" and "repeat" are storable but not offered in the editor.
+ *
+ * A quote's prices are set when it is sent. A repeating group needs somewhere
+ * to build the questions asked about each one, and the editor is a flat list
+ * with no way to draw that yet, so offering it would only let somebody make an
+ * empty group that cleanBlocks then throws away.
+ */
+const TYPES = new Set<BlockType>([...BLOCK_TYPES.map((t) => t.value), "lines", "repeat"]);
 const MAX_BLOCKS = 80;
 const MAX_LABEL = 2000;
 
@@ -154,7 +175,111 @@ export function cleanBlocks(raw: unknown): Block[] {
         block.by = { id: by.id.slice(0, 64), name: by.name.trim().slice(0, 80) };
       }
     }
+    if (type === "repeat") {
+      /*
+       * One level deep, and never a signature or a quote inside one.
+       *
+       * The depth guard is what stops a template describing a group inside a
+       * group: cleanBlocks is called on the children with the same function, so
+       * without it a doctored template could nest until something gave way.
+       */
+      const children = cleanBlocks(
+        (Array.isArray(b.children) ? b.children : []).filter((c) => {
+          const t = (c as { type?: unknown })?.type;
+          return t !== "repeat" && t !== "signature" && t !== "lines";
+        }),
+      );
+      if (!children.length) continue;
+      block.children = children;
+
+      const each = String(b.each ?? "").trim().slice(0, 40);
+      if (each) block.each = each;
+      const addLabel = String(b.addLabel ?? "").trim().slice(0, 60);
+      if (addLabel) block.addLabel = addLabel;
+    }
+
     out.push(block);
+  }
+  return out;
+}
+
+/** The most of anything one form will ask about. */
+export const MOST_REPEATS = 6;
+
+/** How a repeated question is keyed. The first is plain, so one dog reads as one dog. */
+export const instanceId = (id: string, at: number) => (at === 0 ? id : `${id}~${at + 1}`);
+
+/**
+ * A form with its repeating groups opened out, given how many of each.
+ *
+ * ── Why flatten rather than teach everything about groups ───────────────────
+ *
+ * Six things read a form: the page that renders it, the server that validates
+ * it, the one that saves it, the record, the download and the write-back. All
+ * six already understand a flat list, and all six would have needed a second
+ * code path for groups, which is six chances to disagree about what a form
+ * says. Opening the group out once, here, means the other five never learn the
+ * word.
+ *
+ * The first instance keeps the plain id, so a client with one dog produces
+ * exactly the answers they produced before this existed, and nothing already
+ * signed reads differently.
+ *
+ * Roles are handled the same way and it matters more. A trade fact on the
+ * second dog becomes breed_2, because two dogs writing to breed would leave
+ * whichever was read last. A detail about the person is only taken from the
+ * first, since nobody has two names. The alert and the notes take all of them,
+ * because "the second dog bites" is exactly the thing that must not be lost.
+ */
+export function expandRepeats(blocks: Block[], counts: Record<string, number>): Block[] {
+  const out: Block[] = [];
+
+  for (const b of blocks) {
+    if (b.type !== "repeat" || !b.children?.length) {
+      out.push(b);
+      continue;
+    }
+
+    const asked = Math.max(1, Math.min(MOST_REPEATS, Math.round(counts[b.id] ?? 1)));
+    const noun = b.each || "One";
+
+    for (let at = 0; at < asked; at++) {
+      out.push({
+        id: instanceId(`${b.id}__h`, at),
+        type: "text",
+        label: asked > 1 ? `${noun} ${at + 1}` : noun,
+      });
+
+      for (const child of b.children) {
+        const copy: Block = { ...child, id: instanceId(child.id, at) };
+
+        if (child.role) {
+          if (at === 0) copy.role = child.role;
+          else if (child.role.startsWith("fact:")) copy.role = `${child.role}_${at + 1}`;
+          else if (child.role === "alert" || child.role === "note") copy.role = child.role;
+          else delete copy.role;
+        }
+
+        /* The label says which one it is, so the record is readable. */
+        if (asked > 1) copy.label = `${noun} ${at + 1}: ${child.label}`;
+
+        out.push(copy);
+      }
+    }
+  }
+
+  return out;
+}
+
+/** How many of each group a stored form was filled in for. */
+export const COUNT_PREFIX = "__n_";
+
+export function countsFrom(answers: Answers | null | undefined): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [key, value] of Object.entries(answers ?? {})) {
+    if (!key.startsWith(COUNT_PREFIX)) continue;
+    const n = Math.round(Number(value));
+    if (Number.isFinite(n) && n > 0) out[key.slice(COUNT_PREFIX.length)] = Math.min(MOST_REPEATS, n);
   }
   return out;
 }

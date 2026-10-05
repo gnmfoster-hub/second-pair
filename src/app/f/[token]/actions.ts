@@ -2,7 +2,15 @@
 
 import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { readAnswers, whatIsMissing, needsSignature, cleanBlocks } from "@/lib/forms/blocks";
+import {
+  readAnswers,
+  whatIsMissing,
+  needsSignature,
+  cleanBlocks,
+  expandRepeats,
+  COUNT_PREFIX,
+  MOST_REPEATS,
+} from "@/lib/forms/blocks";
 import { fileItAway } from "@/lib/forms/afterSigning";
 
 export type SignState = { error?: string; missing?: string[]; done?: boolean };
@@ -36,11 +44,30 @@ export async function submitForm(_prev: SignState, fd: FormData): Promise<SignSt
     return { error: "This link has run out. Ask for a new one." };
   }
 
-  const blocks = cleanBlocks(form.blocks);
+  /*
+   * How many of each repeating group they asked for, taken from the form they
+   * submitted and then clamped by expandRepeats. It decides which answers are
+   * read at all, so a doctored count can only ever ask for fewer or more boxes
+   * that this form already describes, never for a question nobody asked.
+   */
+  const stored = cleanBlocks(form.blocks);
+  const counts: Record<string, number> = {};
+  for (const b of stored) {
+    if (b.type !== "repeat") continue;
+    const said = Number(fd.get(`${COUNT_PREFIX}${b.id}`));
+    counts[b.id] = Number.isFinite(said) ? said : 1;
+  }
+
+  const blocks = expandRepeats(stored, counts);
   const answers = readAnswers(blocks, (key) => {
     const v = fd.get(key);
     return typeof v === "string" ? v : null;
   });
+
+  /* Kept with the answers, so the record and the download open out the same. */
+  for (const [id, n] of Object.entries(counts)) {
+    answers[`${COUNT_PREFIX}${id}`] = String(Math.max(1, Math.min(MOST_REPEATS, Math.round(n))));
+  }
   const signing = {
     name: String(fd.get("signer_name") ?? "").trim().slice(0, 120),
     signature: String(fd.get("signature") ?? "") || null,
