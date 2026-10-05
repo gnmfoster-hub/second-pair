@@ -14,7 +14,25 @@ import { formatPence } from "@/lib/money";
  * a failed submit rather than as red text somewhere down a long page they
  * have to scroll back through.
  */
-export function FillForm({ token, blocks, business }: { token: string; blocks: Block[]; business: string }) {
+export function FillForm({
+  token,
+  blocks,
+  business,
+  filled = {},
+}: {
+  token: string;
+  blocks: Block[];
+  business: string;
+  /**
+   * What the business already holds, keyed by block.
+   *
+   * Only boxes carrying a role, so nothing is guessed from the wording. Put in
+   * as a starting point they can type over rather than as something fixed: a
+   * customer who has just moved is exactly the person most likely to be filling
+   * this in, and a number they cannot correct is worse than a blank one.
+   */
+  filled?: Record<string, string>;
+}) {
   /*
    * Say it was opened, from the browser that opened it.
    *
@@ -96,16 +114,56 @@ export function FillForm({ token, blocks, business }: { token: string; blocks: B
               </span>
               {b.help && <span className="hint mt-0.5 block text-xs">{b.help}</span>}
               {b.type === "long" ? (
-                <textarea id={`q_${b.id}`} name={`q_${b.id}`} rows={3} className="input mt-2" />
+                <textarea
+                  id={`q_${b.id}`}
+                  name={`q_${b.id}`}
+                  rows={3}
+                  className="input mt-2"
+                  defaultValue={filled[b.id] ?? ""}
+                />
               ) : (
                 <input
                   id={`q_${b.id}`}
                   name={`q_${b.id}`}
                   type={b.type === "date" ? "date" : "text"}
                   className="input mt-2"
-                  autoComplete={/name/i.test(b.label) ? "name" : /phone/i.test(b.label) ? "tel" : "off"}
-                  inputMode={/phone/i.test(b.label) ? "tel" : undefined}
+                  defaultValue={filled[b.id] ?? ""}
+                  /*
+                   * The role decides the keyboard where there is one, and the
+                   * wording only where there is not. Reading "phone" out of a
+                   * label is a guess that gets "your vet's phone number" wrong;
+                   * a role is somebody saying what the box is for.
+                   */
+                  autoComplete={
+                    b.role === "name"
+                      ? "name"
+                      : b.role === "phone"
+                        ? "tel"
+                        : b.role === "email"
+                          ? "email"
+                          : b.role === "postcode"
+                            ? "postal-code"
+                            : b.role === "address"
+                              ? "street-address"
+                              : /name/i.test(b.label)
+                                ? "name"
+                                : /phone/i.test(b.label)
+                                  ? "tel"
+                                  : "off"
+                  }
+                  inputMode={
+                    b.role === "phone" || (!b.role && /phone/i.test(b.label))
+                      ? "tel"
+                      : b.role === "email"
+                        ? "email"
+                        : undefined
+                  }
                 />
+              )}
+              {filled[b.id] && (
+                <span className="hint mt-1 block text-xs">
+                  What we have for you. Change it if it is not right.
+                </span>
               )}
             </label>
           )}

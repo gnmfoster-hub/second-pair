@@ -12,6 +12,8 @@
  * tested once.
  */
 
+import { roleOf } from "./fieldRoles.ts";
+
 export type BlockType =
   | "text" // a paragraph the customer reads
   | "short" // a one-line answer
@@ -39,6 +41,14 @@ export type Block = {
   items?: QuoteLine[];
   /** For "lines": who is giving the quote, where somebody chose to say. */
   by?: { id: string; name: string };
+  /**
+   * What this question is actually asking for, where it is something we hold.
+   *
+   * "their mobile", "their vaccination expiry". It fills the box in on the way
+   * out and files the answer on the way back. See forms/fieldRoles, which has
+   * the rules and the reason they are written down separately.
+   */
+  role?: string;
 };
 
 export type QuoteLine = { name: string; quantity: number; pence: number };
@@ -109,6 +119,22 @@ export function cleanBlocks(raw: unknown): Block[] {
       block.options = options;
     }
     if (type === "yesno" && b.detailOnYes) block.detailOnYes = true;
+
+    /*
+     * A role, where it is one we know.
+     *
+     * Checked here rather than trusted, because this is the boundary: the role
+     * decides what a customer's answer is allowed to overwrite on the business's
+     * own client record, and it arrives through a form field like everything
+     * else. Anything unrecognised is dropped rather than carried, so a doctored
+     * template cannot aim an answer at a column of its choosing.
+     *
+     * Never on a paragraph or a signature: neither has an answer to file.
+     */
+    if (type !== "text" && type !== "signature" && type !== "lines") {
+      const role = roleOf(b as { role?: unknown });
+      if (role) block.role = role;
+    }
     if (type === "lines") {
       const items = (Array.isArray(b.items) ? b.items : [])
         .map((raw) => {

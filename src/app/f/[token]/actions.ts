@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { readAnswers, whatIsMissing, needsSignature, cleanBlocks } from "@/lib/forms/blocks";
+import { fileItAway } from "@/lib/forms/afterSigning";
 
 export type SignState = { error?: string; missing?: string[]; done?: boolean };
 
@@ -69,6 +70,21 @@ export async function submitForm(_prev: SignState, fd: FormData): Promise<SignSt
 
   if (error) return { error: "It did not save. Check your signal and press Submit again." };
   if (!saved?.length) return { done: true };
+
+  /*
+   * ── Everything after the form is saved ──────────────────────────────────
+   *
+   * Deliberately after, and deliberately unable to fail the submit. The
+   * customer has filled in four pages on a phone; if filing their answers onto
+   * the client record throws, or the copy cannot be emailed, the one thing
+   * that must not happen is them being told to do it all again. The form is
+   * signed and stored by this point and nothing below can un-sign it.
+   */
+  try {
+    await fileItAway(db, form.id);
+  } catch {
+    /* Noticed on the record either way, because the answers are on the form. */
+  }
 
   return { done: true };
 }
