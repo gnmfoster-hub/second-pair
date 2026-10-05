@@ -97,7 +97,7 @@ export default async function FormPage({ params }: { params: Promise<{ token: st
    */
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8" style={theirs}>
+    <main className="guest min-h-screen bg-background px-4 py-8" style={theirs}>
       <div className="mx-auto max-w-xl">
         {/*
           * Their picture, where they have one.

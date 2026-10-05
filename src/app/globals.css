@@ -771,6 +771,30 @@ body {
     box-shadow: none;
   }
 
+  /*
+   * A page handed to a customer: a form, a booking page, an agreement.
+   *
+   * The third of three looks, after .poster for the marketing site and .app for
+   * the dashboard. It exists because these pages were in neither and so fell
+   * through to the poster default, which is a two pixel black keyline, square
+   * corners and a six pixel hard shadow. That is right on a page selling
+   * something and wrong on forty questions about somebody's dog. Giles, 5
+   * October: "can you make the forms not have the black border shadow round the
+   * questions, make them more in theme with the new website and internal system
+   * pages."
+   *
+   * A hairline and a generous radius: the hairline is what both of those use,
+   * and the radius is the rebuilt marketing pages' 1rem rather than the
+   * dashboard's square corners. Softer of the two deliberately, because this is
+   * the only one of the three a stranger meets, on a phone, and the business's
+   * own colour is already doing the work of saying whose it is.
+   */
+  .guest .card {
+    @apply rounded-2xl border bg-surface;
+    border-color: var(--border);
+    box-shadow: none;
+  }
+
   /* For the rare block that really is raised off the page. */
   .card-raised {
     @apply rounded-xl border border-border bg-surface;
