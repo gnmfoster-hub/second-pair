@@ -1,5 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { cleanBlocks } from "@/lib/forms/blocks";
+import { prefillFor, type Known } from "@/lib/forms/fieldRoles";
+import { hasColumn } from "@/lib/db/hasColumn";
 import { FillForm } from "./FillForm";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +31,24 @@ export default async function FormPage({ params }: { params: Promise<{ token: st
     : { data: null };
 
   const business = (form?.studios as unknown as { name: string } | null)?.name ?? null;
+
+  /*
+   * What we already hold about them, for filling the boxes in.
+   *
+   * A second query rather than more columns on the first, and only when there
+   * is actually a form to show: the one above runs for every link preview any
+   * messaging app fetches, and a customer's name, address and notes are not
+   * something to read out of the database on a crawler's behalf.
+   *
+   * Read tolerantly, because address and postcode arrive with a migration and
+   * a deploy can land before it is run. Naming a column PostgREST has not heard
+   * of refuses the whole query, and the thing that would stop working is every
+   * form.
+   */
+  const needsFilling =
+    form && form.status !== "void" && form.status !== "signed" && Boolean(form.contacts);
+
+  const known = needsFilling ? await whatWeHold(db, form.id) : {};
 
   const gone = !form || form.status === "void";
   const expired = Boolean(form?.expires_at && hasPassed(form.expires_at as string) && form.status !== "signed");
@@ -67,7 +87,12 @@ export default async function FormPage({ params }: { params: Promise<{ token: st
                 ? `Read it through, then accept and sign below.`
                 : `Takes a couple of minutes. Your answers go privately to ${business ?? "the business"}.`}
             </p>
-            <FillForm token={token} blocks={cleanBlocks(form.blocks)} business={business ?? "the business"} />
+            <FillForm
+              token={token}
+              blocks={cleanBlocks(form.blocks)}
+              business={business ?? "the business"}
+              filled={prefillFor(cleanBlocks(form.blocks), known)}
+            />
           </>
         )}
       </div>
@@ -87,4 +112,55 @@ function Notice({ heading, children }: { heading: string; children: React.ReactN
 /** Out of the render, where reading the clock belongs. */
 function hasPassed(iso: string): boolean {
   return Date.parse(iso) < Date.now();
+}
+
+/**
+ * The details already on file, for the person this form was sent to.
+ *
+ * Guarded column by column rather than asked for in one go, because address and
+ * postcode arrive with a migration: a deploy that lands first would otherwise
+ * take every form down with it, since PostgREST refuses an entire query over
+ * one column it does not know.
+ */
+async function whatWeHold(
+  db: ReturnType<typeof createAdminClient>,
+  formId: string,
+): Promise<Known> {
+  const { data: row } = await db
+    .from("client_forms")
+    .select("contacts(name, phone, email, trade_facts)")
+    .eq("id", formId)
+    .maybeSingle();
+
+  const person = (row?.contacts ?? null) as {
+    name?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    trade_facts?: Record<string, string> | null;
+  } | null;
+
+  if (!person) return {};
+
+  const known: Known = {
+    name: person.name,
+    phone: person.phone,
+    email: person.email,
+    facts: person.trade_facts ?? null,
+  };
+
+  if (await hasColumn(db, "contacts", "address")) {
+    const { data: more } = await db
+      .from("client_forms")
+      .select("contacts(address, postcode)")
+      .eq("id", formId)
+      .maybeSingle();
+    const extra = (more?.contacts ?? null) as {
+      address?: string | null;
+      postcode?: string | null;
+    } | null;
+    known.address = extra?.address ?? null;
+    known.postcode = extra?.postcode ?? null;
+  }
+
+  return known;
 }
