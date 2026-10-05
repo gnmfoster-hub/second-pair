@@ -20,6 +20,8 @@ export type ClientChoice = {
   name: string;
   phone?: string | null;
   email?: string | null;
+  address?: string | null;
+  postcode?: string | null;
 };
 
 type Match = {
@@ -28,6 +30,9 @@ type Match = {
   phone: string | null;
   email: string | null;
   alert: string | null;
+  /** Optional, because the column arrives with a migration. */
+  address?: string | null;
+  postcode?: string | null;
 };
 
 /** Two addresses the same, allowing for how people type them. */
@@ -99,6 +104,16 @@ export function ClientPicker({
    */
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  /*
+   * Where they are, asked here because here is where somebody knows it.
+   *
+   * Never required. A salon booking somebody in for a cut has no business
+   * asking for an address, and a dog walker taking a booking over the phone has
+   * it in their hand and nowhere to put it until the client record is opened in
+   * another tab.
+   */
+  const [address, setAddress] = useState("");
+  const [postcode, setPostcode] = useState("");
   /* Whether the details of somebody who has been before are open for editing. */
   const [amending, setAmending] = useState(false);
   /*
@@ -143,12 +158,16 @@ export function ClientPicker({
       name: match.name ?? "",
       phone: match.phone,
       email: match.email,
+      address: match.address ?? null,
+      postcode: match.postcode ?? null,
     });
     setQuery(match.name ?? "");
     /* Their details, in the boxes, as we hold them. Nothing is sent back
        unless somebody types over one of them. */
     setPhone(match.phone ?? "");
     setEmail(match.email ?? "");
+    setAddress(match.address ?? "");
+    setPostcode(match.postcode ?? "");
     setAmending(false);
     setOpen(false);
   };
@@ -157,6 +176,8 @@ export function ClientPicker({
     setChosen({ id: null, name: query.trim() });
     setPhone("");
     setEmail("");
+    setAddress("");
+    setPostcode("");
     setAmending(false);
     setOpen(false);
   };
@@ -174,6 +195,8 @@ export function ClientPicker({
 
   const sendPhone = chosen && !chosen.id ? phone : changed(phone, chosen?.phone);
   const sendEmail = chosen && !chosen.id ? email : changed(email, chosen?.email);
+  const sendAddress = chosen && !chosen.id ? address : changed(address, chosen?.address);
+  const sendPostcode = chosen && !chosen.id ? postcode : changed(postcode, chosen?.postcode);
 
   return (
     <div ref={box} className="relative">
@@ -184,6 +207,8 @@ export function ClientPicker({
           before only what was deliberately typed over. See `changed` above. */}
       <input type="hidden" name={`${name}_phone`} value={sendPhone} />
       <input type="hidden" name={`${name}_email`} value={sendEmail} />
+      <input type="hidden" name={`${name}_address`} value={sendAddress} />
+      <input type="hidden" name={`${name}_postcode`} value={sendPostcode} />
       <input
         type="hidden"
         name={`${name}_prefers`}
@@ -251,6 +276,11 @@ export function ClientPicker({
                     <span className="text-muted">no email</span>
                   )}
                 </div>
+                {(chosen.address || chosen.postcode) && (
+                  <div className="hint mt-0.5 whitespace-pre-line text-xs">
+                    {[chosen.address, chosen.postcode].filter(Boolean).join(", ")}
+                  </div>
+                )}
                 {!chosen.phone && !chosen.email && (
                   <p className="hint mt-1">
                     There is no way to reach them, so no reminder can go out and a
@@ -288,6 +318,26 @@ export function ClientPicker({
                     type="email"
                     autoComplete="off"
                     placeholder="them@example.com"
+                    className="input"
+                  />
+                </label>
+                <label className="w-full">
+                  <span className="label">Address</span>
+                  <textarea
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    rows={2}
+                    autoComplete="off"
+                    placeholder="Where you go to them"
+                    className="input"
+                  />
+                </label>
+                <label className="min-w-[8rem] flex-1">
+                  <span className="label">Postcode</span>
+                  <input
+                    value={postcode}
+                    onChange={(e) => setPostcode(e.target.value)}
+                    autoComplete="postal-code"
                     className="input"
                   />
                 </label>
@@ -352,6 +402,33 @@ export function ClientPicker({
               type="email"
               autoComplete="off"
               placeholder="them@example.com"
+              className="input"
+            />
+          </label>
+          {/*
+            * Where they are, for the trades that go to them.
+            *
+            * Never required, and under the two ways of reaching them because
+            * that is the order it matters in: a reminder needs a number, a walk
+            * needs an address.
+            */}
+          <label className="w-full">
+            <span className="label">Address</span>
+            <textarea
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              rows={2}
+              autoComplete="off"
+              placeholder="Where you go to them"
+              className="input"
+            />
+          </label>
+          <label className="min-w-[8rem] flex-1">
+            <span className="label">Postcode</span>
+            <input
+              value={postcode}
+              onChange={(e) => setPostcode(e.target.value)}
+              autoComplete="postal-code"
               className="input"
             />
           </label>

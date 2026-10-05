@@ -10,7 +10,14 @@ import { resolveContact } from "./resolve.ts";
  * tests are about what it must refuse to do as much as what it does.
  */
 
-type Row = { id: string; studio_id: string; phone: string | null; email: string | null };
+type Row = {
+  id: string;
+  studio_id: string;
+  phone: string | null;
+  email: string | null;
+  address?: string | null;
+  postcode?: string | null;
+};
 
 /**
  * Enough of supabase-js to answer the three calls resolveContact makes.
@@ -162,6 +169,46 @@ test("somebody with nothing on file gets their first number without fuss", async
   const { db, updates } = fakeDb([{ id: "c2", studio_id: "s1", phone: null, email: null }]);
   await resolveContact(db, "s1", { id: "c2", phone: "+447700900444" });
   assert.deepEqual(updates, [{ id: "c2", put: { phone: "+447700900444" } }]);
+});
+
+/* ------------------------------------------------------------- the address */
+
+test("an address typed while booking reaches the record", async () => {
+  const { db, updates } = fakeDb([{ ...marie }]);
+  await resolveContact(db, "s1", {
+    id: "c1",
+    address: "2 Union Street, Newton Abbot",
+    postcode: "TQ12 2JS",
+  });
+  assert.deepEqual(updates, [
+    { id: "c1", put: { address: "2 Union Street, Newton Abbot", postcode: "TQ12 2JS" } },
+  ]);
+});
+
+test("and an empty address never clears the one on file", async () => {
+  const { db, updates, rows } = fakeDb([
+    { ...marie, address: "2 Union Street", postcode: "TQ12 2JS" },
+  ]);
+  await resolveContact(db, "s1", { id: "c1", address: "", postcode: "  " });
+  assert.deepEqual(updates, []);
+  assert.equal(rows[0].address, "2 Union Street");
+});
+
+test("a brand new client keeps the address they gave", async () => {
+  const { db, inserts } = fakeDb([]);
+  await resolveContact(db, "s1", {
+    name: "New Person",
+    address: "1 The Lane",
+    postcode: "TQ12 1AA",
+  });
+  assert.equal(inserts[0].address, "1 The Lane");
+  assert.equal(inserts[0].postcode, "TQ12 1AA");
+});
+
+test("and one who gave none has no empty address written on them", async () => {
+  const { db, inserts } = fakeDb([]);
+  await resolveContact(db, "s1", { name: "New Person", phone: "07700 900555" });
+  assert.ok(!("address" in inserts[0]), "an empty address is left off the row entirely");
 });
 
 /* Somebody new is still made, which is the path this function was written for. */

@@ -68,10 +68,24 @@ export async function saveClient(_prev: ClientState, fd: FormData): Promise<Clie
     }
   }
 
+  /*
+   * Where they are, if the column is there yet.
+   *
+   * Guarded for the same reason as the facts above: PostgREST refuses the whole
+   * update over one column it has not heard of, and losing somebody's phone
+   * number because a migration has not been run is a far worse morning than not
+   * being able to type an address for an afternoon.
+   */
+  const wherePatch =
+    fd.has("address") && (await hasColumn(supabase, "contacts", "address"))
+      ? { address: str(fd, "address") || null, postcode: str(fd, "postcode") || null }
+      : {};
+
   const { error } = await supabase
     .from("contacts")
     .update({
       ...factPatch,
+      ...wherePatch,
       name: str(fd, "name") || null,
       phone: str(fd, "phone") || null,
       email: str(fd, "email") || null,

@@ -35,6 +35,9 @@ export function ClientForm({
     email: string | null;
     notes: string | null;
     alert: string | null;
+    /** Both optional in the type, because they arrive with a migration. */
+    address?: string | null;
+    postcode?: string | null;
     marketing_consent: boolean;
     marketing_email?: boolean | null;
     marketing_sms?: boolean | null;
@@ -59,6 +62,32 @@ export function ClientForm({
         </Field>
         <Field label="Email">
           <input name="email" type="email" defaultValue={client.email ?? ""} className="input" />
+        </Field>
+      </div>
+
+      {/*
+        * Where they are.
+        *
+        * Never asked for until now, which is fine for a salon somebody walks
+        * into and wrong for every trade that travels to them. A dog walker
+        * collects from the house, a cleaner has to find the door, and all of
+        * them have been writing it into the notes where nothing can read it.
+        *
+        * One free box and a postcode, because a UK address is whatever somebody
+        * writes and a schema that insists otherwise is one people type around.
+        * The postcode is apart only because it is the half worth searching on.
+        */}
+      <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
+        <Field label="Address" hint="Where you go to them, or where they are. Never shown to anybody else.">
+          <textarea name="address" defaultValue={client.address ?? ""} rows={2} className="input" />
+        </Field>
+        <Field label="Postcode">
+          <input
+            name="postcode"
+            defaultValue={client.postcode ?? ""}
+            autoComplete="postal-code"
+            className="input"
+          />
         </Field>
       </div>
 

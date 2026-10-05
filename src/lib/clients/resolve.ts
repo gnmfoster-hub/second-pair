@@ -26,6 +26,9 @@ export async function resolveContact(
     email?: string | null;
     /** Which way they would rather be reached, where they said. */
     prefers?: string | null;
+    /** Where they are, for the trades that travel to them. */
+    address?: string | null;
+    postcode?: string | null;
   },
 ): Promise<string | null> {
   /*
@@ -70,6 +73,17 @@ export async function resolveContact(
     if (newPhone && newPhone !== (them.phone ?? "")) put.phone = newPhone;
     if (newEmail && newEmail !== (them.email ?? "").toLowerCase()) put.email = newEmail;
 
+    /*
+     * The address, where the column exists. Same rule as the rest: an empty box
+     * is a slip, never an instruction to delete somebody's address.
+     */
+    if (await hasColumn(db, "contacts", "address")) {
+      const newAddress = (fields.address ?? "").trim();
+      const newPostcode = (fields.postcode ?? "").trim();
+      if (newAddress) put.address = newAddress;
+      if (newPostcode) put.postcode = newPostcode;
+    }
+
     if (Object.keys(put).length) {
       /*
        * Scoped to the business as well as the id. The id was already checked
@@ -110,6 +124,11 @@ export async function resolveContact(
   const prefers = wanted === "sms" || wanted === "email" ? wanted : null;
   const canPrefer = prefers ? await hasColumn(db, "contacts", "prefers") : false;
 
+  const address = (fields.address ?? "").trim();
+  const postcode = (fields.postcode ?? "").trim();
+  const canHoldAddress =
+    address || postcode ? await hasColumn(db, "contacts", "address") : false;
+
   const { data } = await db
     .from("contacts")
     .insert({
@@ -118,6 +137,8 @@ export async function resolveContact(
       ...(phone ? { phone } : {}),
       ...(email ? { email } : {}),
       ...(canPrefer ? { prefers } : {}),
+      ...(canHoldAddress && address ? { address } : {}),
+      ...(canHoldAddress && postcode ? { postcode } : {}),
     })
     .select("id")
     .single();

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { resolveContact } from "@/lib/clients/resolve";
+import { hasColumn } from "@/lib/db/hasColumn";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -1186,13 +1187,32 @@ export async function findClients(query: string) {
   const clauses = [`name.ilike.%${term}%`, `email.ilike.%${term}%`, `phone.ilike.%${term}%`];
   if (asDialled && asDialled !== term) clauses.push(`phone.ilike.%${asDialled}%`);
 
-  const { data } = await supabase
-    .from("contacts")
-    .select("id, name, phone, email, alert")
-    .eq("studio_id", studio.id)
-    .or(clauses.join(","))
-    .order("name")
-    .limit(8);
+  /*
+   * The address too, where the column is there.
+   *
+   * Written out twice rather than built from a string: supabase-js reads the
+   * select as a literal to work out the row type, and assembling it turns every
+   * field into an "Unexpected input" error. Guarded at all because PostgREST
+   * refuses the whole query over one column it has not heard of, and the thing
+   * that would stop working is the client search in the diary.
+   */
+  const where = { studio: studio.id, clauses: clauses.join(",") };
+
+  const { data } = (await hasColumn(supabase, "contacts", "address"))
+    ? await supabase
+        .from("contacts")
+        .select("id, name, phone, email, alert, address, postcode")
+        .eq("studio_id", where.studio)
+        .or(where.clauses)
+        .order("name")
+        .limit(8)
+    : await supabase
+        .from("contacts")
+        .select("id, name, phone, email, alert")
+        .eq("studio_id", where.studio)
+        .or(where.clauses)
+        .order("name")
+        .limit(8);
 
   return data ?? [];
 }
@@ -1243,6 +1263,8 @@ async function fromPicker(
     phone: str(fd, "contact_name_phone"),
     email: str(fd, "contact_name_email"),
     prefers: str(fd, "contact_name_prefers"),
+    address: str(fd, "contact_name_address"),
+    postcode: str(fd, "contact_name_postcode"),
   });
 }
 

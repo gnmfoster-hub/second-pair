@@ -465,6 +465,9 @@ export default async function ClientPage({
               name: contact.name,
               phone: contact.phone,
               email: contact.email,
+              /* select("*") above, so these are here the moment the column is. */
+              address: (contact as { address?: string | null }).address ?? null,
+              postcode: (contact as { postcode?: string | null }).postcode ?? null,
               notes: contact.notes,
               alert: contact.alert,
               marketing_consent: contact.marketing_consent,
