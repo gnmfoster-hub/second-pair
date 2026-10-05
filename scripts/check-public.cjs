@@ -152,7 +152,12 @@ const BAD = /Application error|Something went wrong|Internal Server Error|Unhand
     const page = await context.newPage();
     try {
       await page.goto(`${SITE}/`, { waitUntil: "networkidle", timeout: 30000 });
-      const link = page.locator('a[href="/login"]').first();
+      /*
+       * The one a person can see. With script running the bar's own link is
+       * still in the page but not drawn, and Sign in is the button BarLife
+       * puts top right; clicking the hidden one tested nothing a visitor does.
+       */
+      const link = page.locator('a[href="/login"]:visible').first();
 
       if (!(await link.count())) {
         problems++;
