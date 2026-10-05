@@ -17,19 +17,38 @@ import { useEffect, useRef } from "react";
  * buttons all follow without knowing anything about it.
  *
  * Without script the bar is exactly what it was.
+ *
+ * TRYING OUT: three other bars, chosen with ?bar=pill, ?bar=ink or ?bar=hide
+ * on any address (?bar=room is the one described above). The choice is kept
+ * for the browser tab so it survives moving between pages. Once Giles has
+ * picked one, the others and this switch come out. See bar.css.
  */
+const BARS = ["room", "pill", "ink", "hide"];
+
 export function BarLife() {
   const rule = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     const bar = rule.current?.closest("header");
     if (!bar) return;
+
+    let pick = new URLSearchParams(window.location.search).get("bar");
+    try {
+      if (pick && BARS.includes(pick)) window.sessionStorage.setItem("sp-bar", pick);
+      else pick = window.sessionStorage.getItem("sp-bar");
+    } catch {
+      /* A private window may refuse storage. The address still works. */
+    }
+    if (pick && BARS.includes(pick)) bar.dataset.bar = pick;
+
     let frame = 0;
+    let last = window.scrollY;
 
     const measure = () => {
       frame = 0;
+      const y = window.scrollY;
       const room = document.documentElement.scrollHeight - window.innerHeight;
-      bar.style.setProperty("--read", room > 0 ? Math.min(1, window.scrollY / room).toFixed(4) : "0");
+      bar.style.setProperty("--read", room > 0 ? Math.min(1, y / room).toFixed(4) : "0");
 
       /* Which room is the foot of the bar in? */
       const foot = bar.getBoundingClientRect().bottom;
@@ -42,6 +61,12 @@ export function BarLife() {
         }
       }
       bar.toggleAttribute("data-dark", dark);
+
+      /* Going down the page, or back up it. Only the "hide" bar uses this. */
+      if (Math.abs(y - last) > 6) {
+        bar.toggleAttribute("data-down", y > last && y > 240);
+        last = y;
+      }
     };
 
     const ask = () => {
@@ -55,6 +80,7 @@ export function BarLife() {
       window.removeEventListener("resize", ask);
       if (frame) cancelAnimationFrame(frame);
       bar.removeAttribute("data-dark");
+      bar.removeAttribute("data-down");
     };
   }, []);
 

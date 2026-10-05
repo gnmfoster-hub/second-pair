@@ -58,3 +58,92 @@ header:has(.sp-bar-rule) nav a:focus-visible {
     transition: none;
   }
 }
+
+/* ═════════════════════════════════════════════ three other bars to try */
+
+/*
+ * Chosen with ?bar= on the address; see BarLife. Each is only overrides on
+ * the bar that layout.tsx draws, so taking the losers out is deleting their
+ * block. The !importants are there because the bar's ground and rule are set
+ * inline in layout.tsx.
+ */
+
+/* ── pill: the bar lifts off the page as a capsule with the hard shadow ── */
+
+header[data-bar="pill"] {
+  background: transparent !important;
+  border-bottom-color: transparent !important;
+  pointer-events: none;
+}
+
+header[data-bar="pill"] > div {
+  pointer-events: auto;
+  min-height: 64px !important;
+  margin-top: 8px;
+  max-width: min(72rem, calc(100% - 1.5rem));
+  padding-inline: 1.1rem 0.7rem;
+  border: 2px solid var(--foreground);
+  border-radius: 999px;
+  background: var(--putty);
+  box-shadow: 5px 5px 0 var(--foreground);
+  transition: background-color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+header[data-bar="pill"][data-dark] > div {
+  border-color: rgba(247, 244, 236, 0.4);
+  box-shadow: 0 0 40px -6px rgba(129, 148, 255, 0.7);
+}
+
+/* The line runs along the foot of the capsule rather than the screen. */
+header[data-bar="pill"] .sp-bar-rule {
+  left: 50%;
+  bottom: 1px;
+  width: min(60rem, calc(100% - 6rem));
+  height: 3px;
+  border-radius: 3px;
+  transform: translateX(-50%) scaleX(var(--read, 0));
+  transform-origin: center;
+}
+
+@media (min-width: 640px) {
+  header[data-bar="pill"] > div {
+    margin-top: 6px;
+  }
+}
+
+/* ── ink: always black, and the one orange thing on it is the button ── */
+
+header[data-bar="ink"],
+header[data-bar="ink"][data-dark] {
+  --putty: #16150f;
+  --background: #16150f;
+  --surface: #1f1e17;
+  --foreground: #f7f4ec;
+  --muted: rgba(247, 244, 236, 0.74);
+  --border: rgba(247, 244, 236, 0.15);
+  --accent: #f07818;
+  --logo-bubble: #f7f4ec;
+  color: var(--foreground);
+  border-bottom-color: #16150f !important;
+}
+
+header[data-bar="ink"] .btn-ink {
+  background: #f07818 !important;
+  color: #16150f !important;
+  box-shadow: none !important;
+}
+
+header[data-bar="ink"] .sp-bar-rule {
+  height: 3px;
+  bottom: -3px;
+}
+
+/* ── hide: gets out of the way going down, comes back going up ── */
+
+header[data-bar="hide"] {
+  transition: transform 0.3s ease, background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+}
+
+header[data-bar="hide"][data-down] {
+  transform: translateY(-105%);
+}
