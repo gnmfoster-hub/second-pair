@@ -28,9 +28,10 @@
   inset: 0;
   z-index: -1;
   background:
-    radial-gradient(70% 60% at 10% 112%, rgba(240, 120, 24, 0.8), transparent 70%),
-    radial-gradient(60% 70% at 92% 10%, rgba(70, 92, 255, 0.4), transparent 70%),
-    linear-gradient(180deg, #0c0d16 0%, #1b1d45 62%, #4a2b3a 100%);
+    /* The warm glow is on the right, away from the words. */
+    radial-gradient(60% 55% at 92% 112%, rgba(240, 120, 24, 0.75), transparent 70%),
+    radial-gradient(60% 70% at 70% 0%, rgba(70, 92, 255, 0.4), transparent 70%),
+    linear-gradient(180deg, #0c0d16 0%, #1b1d45 70%, #2a2147 100%);
 }
 
 /* The shared hero sets its size inline; here it is the whole first screen. */
@@ -40,7 +41,7 @@
 }
 
 .sp-web-hero header > p:last-child {
-  color: var(--muted);
+  color: #f7f4ec;
 }
 
 /* ────────────────────────────────────────────────────────────── the tour */
@@ -180,7 +181,7 @@
 /* One claim open at a time; the rest wait as headings. */
 .sp-tour[data-live] .sp-tour-items li {
   padding-block: 0.7rem;
-  opacity: 0.38;
+  opacity: 0.6;
   transition: opacity 0.3s ease;
 }
 
@@ -227,7 +228,7 @@
 
 .sp-steps-intro {
   margin-top: 1rem;
-  color: color-mix(in srgb, var(--on-highlight) 80%, transparent);
+  color: var(--on-highlight);
 }
 
 .sp-steps ol,
@@ -252,7 +253,8 @@
   font-family: var(--font-display), Impact, "Arial Narrow", sans-serif;
   font-size: clamp(5rem, 3rem + 7vw, 10rem);
   line-height: 0.85;
-  color: var(--background);
+  /* Ink, not paper: paper on orange was a number you had to look for. */
+  color: var(--on-highlight);
 }
 
 .sp-steps .section-title {
@@ -263,7 +265,7 @@
 .sp-steps li p {
   margin-top: 0.5rem;
   line-height: 1.55;
-  color: color-mix(in srgb, var(--on-highlight) 82%, transparent);
+  color: var(--on-highlight);
 }
 
 @media (min-width: 760px) {

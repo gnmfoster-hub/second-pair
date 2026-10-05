@@ -1241,3 +1241,107 @@
 :root[data-theme="dark"] .sp-hero-sun {
   opacity: 0.55;
 }
+
+/* ══════════════════════════════════════════════════ words on the new grounds */
+
+/*
+ * Once the grounds had colour, some of the words on them did not carry: grey
+ * small print on an orange sky, outlined buttons over a photograph of a hand,
+ * captions dimmed until they were a guess. Every rule here is the same fix —
+ * more of the ink, or a ground of its own under the words.
+ */
+
+/* ── the first screen ── */
+
+/* The sky stays paler on the left, where the words are; the orange is the sun's side. */
+.sp-hero {
+  background:
+    linear-gradient(90deg, var(--background) 0%, color-mix(in srgb, var(--background) 70%, transparent) 42%, transparent 70%),
+    linear-gradient(180deg, var(--background) 0%, var(--background) 38%, #fbe9cc 68%, #f9c98f 90%, #f3a050 100%);
+}
+
+/* Small print on a warm sky needs to be ink, not grey. */
+.sp-hero .text-muted {
+  color: color-mix(in srgb, var(--foreground) 84%, transparent);
+}
+
+/* The paragraph ran on under the hand. It stops short of it. */
+@media (min-width: 1024px) {
+  .sp-hero p[class*="max-w-[60ch]"] {
+    max-width: min(60ch, 33rem);
+  }
+}
+
+/* The trade buttons sit over the hand and the sun, so they get paper under them. */
+.sp-hero button[style*="background: transparent"],
+.sp-hero button[style*="background:transparent"] {
+  background: var(--background) !important;
+}
+
+.sp-hero div[class*="z-30"] > span[class*="uppercase"] {
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--background) 86%, transparent);
+  font-weight: 600;
+}
+
+/* ── the evening ── */
+
+/* Less orange under the captions at dusk, and a little shade behind them. */
+.sp-eve-pin::before {
+  background:
+    radial-gradient(60% 34% at 12% 112%, rgba(240, 120, 24, 0.6), transparent 70%),
+    linear-gradient(180deg, #131a52 0%, #33265f 55%, #4a2a33 100%);
+}
+
+.sp-eve[data-live] .sp-eve-arg {
+  position: relative;
+}
+
+.sp-eve[data-live] .sp-eve-arg::before {
+  content: "";
+  position: absolute;
+  inset: -1.5rem -50vw -2rem;
+  z-index: -1;
+  background: linear-gradient(180deg, transparent, rgba(12, 13, 22, 0.6) 45%);
+}
+
+/* The captions and channels that are not in play are quieter, not unreadable. */
+.sp-eve[data-live] .sp-eve-arg > div {
+  opacity: 0.6;
+}
+
+.sp-eve-map li[data-state="wait"] {
+  opacity: 0.68;
+}
+
+.sp-eve.sp-night {
+  --muted: rgba(247, 244, 236, 0.84);
+}
+
+/* ── the trades ── */
+
+/* Not yet inked is fainter, but still a word you can read. */
+.sp-trades-row li {
+  color: color-mix(in srgb, var(--on-highlight) calc(38% + var(--ink) * 62%), transparent);
+}
+
+.sp-trades p {
+  color: var(--on-highlight);
+}
+
+/* ── the rest ── */
+
+.sp-rest[data-live] .sp-rest-list li {
+  opacity: 0.45;
+}
+
+.sp-rest-words p {
+  color: color-mix(in srgb, var(--foreground) 80%, transparent);
+}
+
+/* ── night sections everywhere: the small print a step brighter ── */
+
+.sp-night {
+  --muted: rgba(247, 244, 236, 0.84);
+}
