@@ -137,6 +137,13 @@
   }
 }
 
+/* Sign in joins them where there is room for three. */
+@media (max-width: 1023px) {
+  .sp-bar-acts > .sp-bar-signin {
+    display: none;
+  }
+}
+
 .sp-bar-life[data-open] .sp-bar-acts > .sp-bar-chat {
   opacity: 0;
   pointer-events: none;
@@ -283,9 +290,25 @@
   opacity: 1;
 }
 
-.sp-menu-foot > a:not(.sp-bar-chat) {
-  text-decoration: underline;
-  text-underline-offset: 4px;
+/* Sign in, as a button: the outline to Book a chat’s fill. */
+.sp-menu-signin {
+  display: inline-flex;
+  align-items: center;
+  height: 54px;
+  padding-inline: 1.6rem;
+  border: 2px solid #f7f4ec;
+  border-radius: 999px;
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: 1.0625rem;
+  font-weight: 400;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.sp-menu-signin:hover {
+  background: #f7f4ec;
+  color: #16150f;
 }
 
 .sp-menu-foot .sp-bar-chat {
@@ -317,32 +340,74 @@
     background: #16150f;
     box-shadow: 12px 12px 0 #16150f;
     overflow: hidden;
-    transform: rotate(2.5deg) scale(0.9);
+    /* Square on, not tilted: a turned picture of text is a soft picture of text. */
+    transform: translateY(1.5rem) scale(0.94);
     opacity: 0;
     transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s, opacity 0.4s ease 0.2s;
   }
 
   .sp-bar-life[data-open] .sp-menu-peek {
-    transform: rotate(2.5deg);
+    transform: none;
     opacity: 1;
   }
 
-  .sp-menu-peek img {
+  .sp-menu-peek > div {
     position: absolute;
     inset: 0;
+    opacity: 0;
+    transform: scale(1.04);
+    transition: opacity 0.35s ease, transform 0.6s ease;
+  }
+
+  .sp-menu-peek > div[data-on] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .sp-menu-peek img {
     width: 100%;
     height: 100%;
     max-width: none;
     object-fit: cover;
     object-position: top;
-    opacity: 0;
-    transform: scale(1.06);
-    transition: opacity 0.35s ease, transform 0.6s ease;
   }
 
-  .sp-menu-peek img[data-on] {
-    opacity: 1;
-    transform: none;
+  /* Phone screens: three whole phones in a row, on paper. */
+  .sp-menu-peek > div[data-phones] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4%;
+    padding: 6% 5%;
+    background: #f7f4ec;
+  }
+
+  .sp-menu-peek > div[data-phones] img {
+    width: auto;
+    height: 100%;
+    min-width: 0;
+    flex: 0 1 auto;
+    border: 2px solid #16150f;
+    border-radius: 0.9rem;
+    object-fit: contain;
+  }
+
+  .sp-menu-peek > div[data-phones] img:nth-child(2) {
+    height: 108%;
+  }
+
+  /*
+   * A product screen at its own size, with the frame over the figures: the
+   * picture is drawn at about two thirds of its pixels, so it is sharp on an
+   * ordinary screen and a sharp one.
+   */
+  .sp-menu-peek > div[data-close] img {
+    position: absolute;
+    /* Over the three figures and the takings under them. */
+    inset: -11% auto auto -25%;
+    width: 132%;
+    height: auto;
+    object-fit: fill;
   }
 
   .sp-menu-foot {

@@ -26,10 +26,17 @@ import { ThemeToggle } from "@/components/ThemeToggle";
  * Without script none of this is drawn and the bar is the one in layout.tsx.
  */
 
-const NAV: { href: string; label: string; peek: string }[] = [
-  { href: "/system", label: "The Second Pair system", peek: "/shots/inbox.webp" },
+/*
+ * "close" is for a picture of the product. A whole screen of software shrunk
+ * to the size of the frame is a grey blur of text nobody can read, so those
+ * are shown at their own size and the frame looks at one part of them: here,
+ * the week’s figures on the report.
+ */
+const NAV: { href: string; label: string; peek: string | string[]; close?: boolean }[] = [
+  { href: "/system", label: "The Second Pair system", peek: "/shots/report.webp", close: true },
   { href: "/websites", label: "Websites", peek: "/shots/site-ambers.webp" },
-  { href: "/apps", label: "Apps", peek: "/shots/fa-holiday.webp" },
+  /* Phone screens, so three whole phones rather than the top of one. */
+  { href: "/apps", label: "Apps", peek: ["/shots/fa-chat.webp", "/shots/fa-food.webp", "/shots/fa-holiday.webp"] },
   { href: "/work", label: "Our work", peek: "/shots/site-livingcanvas.webp" },
 ];
 
@@ -116,6 +123,11 @@ export function BarLife() {
   return (
     <div ref={anchor} className="sp-bar-life" data-open={open ? "" : undefined}>
       <div className="sp-bar-acts">
+        {/* A door for people who already have an account, and a real button:
+            somebody who uses this every day should not have to open a menu. */}
+        <Link href="/login" prefetch={false} className="sp-bar-chat sp-bar-signin">
+          Sign in
+        </Link>
         <a href={CHAT} className="sp-bar-chat">
           Book a chat
         </a>
@@ -156,8 +168,17 @@ export function BarLife() {
         <div className="sp-menu-peek" aria-hidden>
           {opened &&
             NAV.map((n, i) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img key={n.href} src={n.peek} alt="" data-on={i === peek ? "" : undefined} />
+              <div
+                key={n.href}
+                data-on={i === peek ? "" : undefined}
+                data-close={n.close ? "" : undefined}
+                data-phones={Array.isArray(n.peek) ? "" : undefined}
+              >
+                {(Array.isArray(n.peek) ? n.peek : [n.peek]).map((src) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={src} src={src} alt="" />
+                ))}
+              </div>
             ))}
         </div>
 
@@ -165,7 +186,7 @@ export function BarLife() {
           <a href={CHAT} className="sp-bar-chat" onClick={shut}>
             Book a 15 minute chat
           </a>
-          <Link href="/login" prefetch={false} onClick={shut}>
+          <Link href="/login" prefetch={false} className="sp-menu-signin" onClick={shut}>
             Sign in
           </Link>
           <ThemeToggle compact />
