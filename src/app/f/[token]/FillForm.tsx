@@ -150,10 +150,22 @@ export function FillForm({
                   className="input mt-2"
                   defaultValue={filled[b.id] ?? ""}
                   /*
-                   * The role decides the keyboard where there is one, and the
-                   * wording only where there is not. Reading "phone" out of a
-                   * label is a guess that gets "your vet's phone number" wrong;
-                   * a role is somebody saying what the box is for.
+                   * The role decides, and nothing else.
+                   *
+                   * This used to fall back to reading the label when there was
+                   * no role, and the comment here warned that it would get
+                   * "your vet's phone number" wrong. It then did exactly that:
+                   * /phone/i matches "telephone", so "Vet practice and
+                   * telephone" got a numeric keypad and could not be typed
+                   * into at all. Giles found it by filling the form in.
+                   *
+                   * The keypad was the visible half. The worse half was
+                   * autoComplete="tel" on the same box, which offers to fill
+                   * the customer's own number into the vet's field, so a form
+                   * could come back with the owner's mobile recorded as the
+                   * practice. A guess that is right most of the time is not
+                   * good enough when being wrong puts the wrong number on a
+                   * record somebody rings in an emergency.
                    */
                   autoComplete={
                     b.role === "name"
@@ -166,18 +178,26 @@ export function FillForm({
                             ? "postal-code"
                             : b.role === "address"
                               ? "street-address"
-                              : /name/i.test(b.label)
-                                ? "name"
-                                : /phone/i.test(b.label)
-                                  ? "tel"
-                                  : "off"
+                              : "off"
                   }
+                  /*
+                   * The keyboard may still be guessed from the wording, because
+                   * guessing it wrong costs a keypad and guessing autofill wrong
+                   * costs the wrong number on a record. Those are not the same
+                   * mistake and they do not deserve the same caution.
+                   *
+                   * "Vet's telephone number" is a telephone number and wants the
+                   * keypad. What it must never do is offer to fill in the
+                   * customer's own, which is why only this half reads the label.
+                   */
                   inputMode={
-                    b.role === "phone" || (!b.role && /phone/i.test(b.label))
+                    b.role === "phone"
                       ? "tel"
                       : b.role === "email"
                         ? "email"
-                        : undefined
+                        : /phone|mobile|telephone|number/i.test(b.label)
+                          ? "tel"
+                          : undefined
                   }
                 />
               )}

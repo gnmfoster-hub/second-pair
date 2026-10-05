@@ -8,9 +8,59 @@ import { FillForm } from "./FillForm";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  robots: { index: false, follow: false },
-};
+/**
+ * What the link looks like when it lands in a text.
+ *
+ * Giles, 5 October: "its sending the second pair logo in the text form link and
+ * its the old logo." Both true, and the first is the one that matters. This page
+ * had a robots tag and nothing else, so every preview fell through to the
+ * site-wide card: the Second Pair wordmark, the words "You work, we answer", and
+ * a picture of our logo.
+ *
+ * So a business sends their customer a consent form and what arrives in their
+ * messages is an advert for their supplier. The booking page has done it
+ * properly since it was built; this one never did.
+ *
+ * Their picture or nothing, and an empty array rather than a missing key,
+ * because leaving it out falls through to the site card again, which is the
+ * whole fault.
+ */
+export async function generateMetadata({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params;
+
+  /* A page about one person's dog has no business in a search index. */
+  const base = { robots: { index: false, follow: false } };
+
+  if (!/^[A-Za-z0-9_-]{20,64}$/.test(token)) return { ...base, title: "A form to fill in" };
+
+  const db = createAdminClient();
+  const { data } = await db
+    .from("client_forms")
+    .select("title, studios(name, photo_path)")
+    .eq("token", token)
+    .maybeSingle();
+
+  const studio = (data?.studios ?? null) as unknown as {
+    name?: string | null;
+    photo_path?: string | null;
+  } | null;
+
+  const business = studio?.name ?? null;
+  const picture = avatarUrl(studio?.photo_path);
+  const title = business
+    ? `${(data?.title as string) ?? "A form"} for ${business}`
+    : ((data?.title as string) ?? "A form to fill in");
+
+  return {
+    ...base,
+    title,
+    openGraph: {
+      title,
+      description: business ? `${business} would like you to fill this in.` : "A form to fill in.",
+      images: picture ? [picture] : [],
+    },
+  };
+}
 
 /**
  * A form, opened by the customer from a text or an email.

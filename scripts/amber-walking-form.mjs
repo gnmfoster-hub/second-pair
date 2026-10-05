@@ -137,7 +137,17 @@ const blocks = [
 
   /* 3. Vet and health. */
   part("p_vet", "Vet and health"),
-  { id: "v_prac", type: "short", label: "Vet practice and telephone", required: true },
+  /*
+   * Two boxes, not one.
+   *
+   * It was "Vet practice and telephone" in a single box, which asks somebody to
+   * type a name and a number into the same line, and then the form gave them a
+   * numeric keypad because the label contains the word telephone. The practice
+   * is a name and the number is a number, and they are what somebody reads out
+   * loud at a vet's reception in an emergency.
+   */
+  { id: "v_prac", type: "short", label: "Which vet do you use?", required: true },
+  { id: "v_tel", type: "short", label: "Vet's telephone number", required: true, role: "note" },
   { id: "v_flea", type: "choice", label: "Flea and tick treatment", options: ["Up to date", "Not current", "I am not sure"] },
   { id: "v_worm", type: "choice", label: "Worming treatment", options: ["Up to date", "Not current", "I am not sure"] },
   { id: "v_meds", type: "long", label: "Medication and instructions" },
@@ -213,10 +223,9 @@ const blocks = [
   says(
     "e_text",
     "If we cannot reach you in an emergency, you are authorising us to do what is reasonable to look after your dog, " +
-      "including contacting the person below and taking them to a vet. Veterinary costs are yours.",
+      "including contacting the person below and taking them to the vet you named above. Veterinary costs are yours.",
   ),
   { id: "e_alt", type: "short", label: "Another contact and number", help: "Somebody else we can try." },
-  { id: "e_vet", type: "short", label: "Which vet would you want us to use?" },
   { id: "e_ok", type: "agree", label: "I authorise this, and I understand the vet's bill is mine.", required: true },
 
   /* 9. The promises. */
