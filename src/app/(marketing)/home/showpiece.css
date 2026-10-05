@@ -1223,24 +1223,11 @@
   }
 }
 
-/* In the dark theme the day is already over: a night sky, and the sun low. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .sp-hero {
-    background: linear-gradient(180deg, var(--background) 0%, var(--background) 40%, #1b1d45 78%, #5a2e26 100%);
-  }
-
-  :root:not([data-theme="light"]) .sp-hero-sun {
-    opacity: 0.55;
-  }
-}
-
-:root[data-theme="dark"] .sp-hero {
-  background: linear-gradient(180deg, var(--background) 0%, var(--background) 40%, #1b1d45 78%, #5a2e26 100%);
-}
-
-:root[data-theme="dark"] .sp-hero-sun {
-  opacity: 0.55;
-}
+/*
+ * No dark-theme version: the marketing pages are a poster and stay on paper
+ * whatever the theme is set to, so a night sky here would be a dark band
+ * under ink type.
+ */
 
 /* ══════════════════════════════════════════════════ words on the new grounds */
 
