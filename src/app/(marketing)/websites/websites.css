@@ -8,7 +8,14 @@
 
 /* ─────────────────────────────────────────────────────────────── the top */
 
+/*
+ * Pulled up under the bar, which with script running is only a logo and two
+ * buttons: the night starts at the top of the screen instead of under a strip
+ * of paper. Without script the bar is solid again and simply covers it.
+ */
 .sp-web-hero {
+  margin-top: calc(-1 * var(--sp-bar, 88px));
+  padding-top: var(--sp-bar, 88px);
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -223,7 +230,8 @@
   color: color-mix(in srgb, var(--on-highlight) 80%, transparent);
 }
 
-.sp-steps ol {
+.sp-steps ol,
+.sp-steps-list {
   display: grid;
   gap: 2.5rem;
   margin-top: 2.5rem;
@@ -263,7 +271,8 @@
     padding-block: 6rem;
   }
 
-  .sp-steps ol {
+  .sp-steps ol,
+.sp-steps-list {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

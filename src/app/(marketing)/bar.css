@@ -104,18 +104,30 @@
   transform: scale(1.05);
 }
 
-/* The one orange thing on the screen. */
+/*
+ * Book a chat, as the quiet twin of MENU: the same capsule, outlined rather
+ * than filled, and orange only when you go to press it. It was a solid orange
+ * button with a black edge, and Giles said it looked horrible; he was right,
+ * it shouted over the headline it sits beside.
+ */
 .sp-bar-chat {
-  padding-inline: 1.5rem;
-  background: #f07818;
-  color: #16150f;
-  /* An ink edge, so it is still a button when the band under it is orange. */
-  border: 2px solid #16150f;
-  box-shadow: 3px 3px 0 #16150f;
+  padding-inline: 1.4rem;
+  border: 2px solid var(--foreground);
+  background: var(--background);
+  color: var(--foreground);
 }
 
 .sp-bar-chat:hover {
-  background: #f79241;
+  border-color: #f07818;
+  background: #f07818;
+  color: #16150f;
+}
+
+/* Inside the menu it is the action, so there it is filled. */
+.sp-menu-foot .sp-bar-chat {
+  border-color: #f7f4ec;
+  background: #f7f4ec;
+  color: #16150f;
 }
 
 /* On a phone the logo needs the room; the hero's own button is just below. */

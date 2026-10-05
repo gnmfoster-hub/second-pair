@@ -1,0 +1,222 @@
+/*
+ * The Our Work page.
+ *
+ * Built from the same parts as the home and Websites pages: the night tokens
+ * and the browser frame from home/showpiece.css, the dark opening and the
+ * orange band from websites/websites.css. This file is only what is this
+ * page's own.
+ */
+
+.sp-work-lead {
+  padding-block: 4rem 1rem;
+}
+
+.sp-work-lead p {
+  margin-top: 1rem;
+  max-width: 40rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+/* ───────────────────────────────────────────────────────── one piece of work */
+
+.sp-case {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.sp-case.sp-night::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(55% 60% at 80% 40%, rgba(70, 92, 255, 0.36), transparent 70%),
+    radial-gradient(40% 45% at 0% 100%, rgba(240, 120, 24, 0.16), transparent 70%);
+}
+
+.sp-case-in {
+  --p: 0;
+  display: grid;
+  gap: 2.5rem;
+  padding-block: 4rem;
+}
+
+.sp-case-name {
+  font-size: clamp(2.75rem, 1.2rem + 6vw, 6.5rem);
+  line-height: 0.92;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.sp-case-words p {
+  margin-top: 1.5rem;
+  max-width: 32rem;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.sp-case-words ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.sp-case-words li {
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--foreground);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sp-case-link {
+  display: inline-block;
+  margin-top: 1.75rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.sp-case-link span {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.sp-case-link:hover span {
+  transform: translateX(0.3rem);
+}
+
+.sp-case-frame {
+  min-width: 0;
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.sp-case.sp-night .sp-case-frame {
+  border-color: rgba(247, 244, 236, 0.35);
+}
+
+.sp-case-frame:hover {
+  transform: translateY(-0.4rem);
+}
+
+.sp-case .sp-site-view {
+  aspect-ratio: 720 / 520;
+}
+
+/* The site scrolls through its own page while this one goes past it. */
+.sp-case .sp-site-view img {
+  transform: translateY(calc(clamp(0, (var(--p) - 0.25) * 2.4, 1) * var(--max) * -1%));
+  will-change: transform;
+}
+
+@media (min-width: 900px) {
+  .sp-case-in {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    align-items: center;
+    gap: 4rem;
+    padding-block: 7rem;
+  }
+
+  .sp-case[data-flip] .sp-case-words {
+    order: 2;
+  }
+}
+
+/* The one not named yet: said plainly, and small. */
+.sp-work-unnamed {
+  padding-block: 2.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.sp-work-unnamed div {
+  max-width: 34rem;
+}
+
+.sp-work-unnamed p {
+  margin-top: 0.4rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+/* ───────────────────────────────────────────── what we make for ourselves */
+
+.sp-own {
+  padding-block: 4rem;
+}
+
+.sp-own ul {
+  display: grid;
+  gap: 2rem;
+  margin-top: 2.5rem;
+}
+
+.sp-own li {
+  min-width: 0;
+}
+
+.sp-own-pic {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid var(--foreground);
+  border-radius: 0.8rem;
+  background: var(--putty);
+  box-shadow: var(--shadow-card);
+}
+
+.sp-own-pic img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: top;
+  transition: transform 0.6s ease;
+}
+
+.sp-own li:hover .sp-own-pic img {
+  transform: scale(1.04);
+}
+
+.sp-own-pic[data-fit="hand"] img {
+  object-fit: contain;
+  object-position: center bottom;
+}
+
+.sp-own .section-title {
+  margin-top: 1.4rem;
+  font-size: 1.375rem;
+}
+
+.sp-own li p {
+  margin-top: 0.5rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+@media (min-width: 760px) {
+  .sp-own {
+    padding-block: 6rem;
+  }
+
+  .sp-own ul {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* How we work is three promises, not three steps: the same band, no numerals. */
+.sp-steps[data-plain] li::before {
+  content: none;
+}
+
+.sp-steps[data-plain] .section-title {
+  margin-top: 0.4rem;
+  font-size: clamp(1.5rem, 1rem + 1.4vw, 2.25rem);
+  line-height: 1;
+}

@@ -55,8 +55,13 @@ export function BarLife() {
       const room = document.documentElement.scrollHeight - window.innerHeight;
       bar.style.setProperty("--read", room > 0 ? Math.min(1, y / room).toFixed(4) : "0");
 
-      /* Which room is the foot of the bar in? */
-      const foot = bar.getBoundingClientRect().bottom;
+      /*
+       * Which room is the middle of the bar in? The middle, not the foot: a
+       * night section that starts directly under the bar has not reached it,
+       * and turning the logo to paper over paper made it vanish.
+       */
+      const box = bar.getBoundingClientRect();
+      const foot = box.top + box.height / 2;
       let dark = false;
       for (const el of document.querySelectorAll(".sp-night")) {
         const r = el.getBoundingClientRect();
