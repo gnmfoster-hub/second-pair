@@ -1,0 +1,199 @@
+/*
+ * The System page.
+ *
+ * Built from the parts the other pages already have: the dark opening and the
+ * orange band from websites/websites.css, and the claim-with-a-screen section
+ * from home/showpiece.css. This file is the two sections that are its own.
+ */
+
+.sp-rest-intro {
+  margin-top: 1rem;
+  max-width: 40rem;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--foreground) 80%, transparent);
+}
+
+/* ─────────────────────────────────────────────────────── where it answers */
+
+.sp-where {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.sp-where::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(50% 55% at 88% 12%, rgba(70, 92, 255, 0.36), transparent 70%),
+    radial-gradient(40% 40% at 0% 100%, rgba(240, 120, 24, 0.14), transparent 70%);
+}
+
+.sp-where-in {
+  padding-block: 4rem;
+}
+
+.sp-where-intro {
+  margin-top: 1rem;
+  max-width: 38rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.sp-where ul {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2.5rem;
+}
+
+.sp-where li {
+  display: grid;
+  align-content: start;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 1.4rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+}
+
+.sp-where-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 1.6rem;
+}
+
+.sp-where-icons {
+  display: flex;
+  gap: 0.5rem;
+  color: var(--accent);
+}
+
+/* The state, said first and said plainly. */
+.sp-where em {
+  font-style: normal;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+.sp-where li[data-state="Not yet"] em {
+  background: rgba(247, 244, 236, 0.12);
+  color: var(--foreground);
+}
+
+.sp-where li[data-state="Part way"] em {
+  background: var(--highlight);
+  color: var(--on-highlight);
+}
+
+/* The ones that are live are the ones lit. */
+.sp-where li[data-state="Live now"] {
+  border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+}
+
+.sp-where .section-title {
+  font-size: 1.25rem;
+  line-height: 1.05;
+}
+
+.sp-where li p {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+@media (min-width: 640px) {
+  .sp-where ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .sp-where-in {
+    padding-block: 6rem;
+  }
+
+  .sp-where ul {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Six things in the orange band, in two rows of three. */
+.sp-steps[data-plain] .sp-steps-list {
+  row-gap: 3rem;
+}
+
+/* ──────────────────────────────────────────────────── what you get back */
+
+.sp-back-in {
+  display: grid;
+  gap: 3rem;
+  padding-block: 4rem;
+}
+
+.sp-back-intro {
+  margin-top: 1rem;
+  max-width: 34rem;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--foreground) 80%, transparent);
+}
+
+.sp-back ul {
+  display: grid;
+  gap: 1.75rem 2.5rem;
+  margin-top: 2.25rem;
+}
+
+.sp-back .section-title {
+  font-size: 1.0625rem;
+}
+
+.sp-back li p {
+  margin-top: 0.4rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--foreground) 76%, transparent);
+}
+
+.sp-back-shot {
+  min-width: 0;
+}
+
+.sp-back-shot figcaption {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--foreground) 76%, transparent);
+}
+
+@media (min-width: 640px) {
+  .sp-back ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Wide: the report holds still beside the six things it tells you. */
+@media (min-width: 1100px) {
+  .sp-back-in {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    align-items: start;
+    gap: 4rem;
+    padding-block: 6rem;
+  }
+
+  .sp-back-shot {
+    position: sticky;
+    top: calc(var(--sp-bar, 76px) + 2rem);
+  }
+}

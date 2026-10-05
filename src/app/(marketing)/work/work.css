@@ -209,14 +209,3 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
-
-/* How we work is three promises, not three steps: the same band, no numerals. */
-.sp-steps[data-plain] li::before {
-  content: none;
-}
-
-.sp-steps[data-plain] .section-title {
-  margin-top: 0.4rem;
-  font-size: clamp(1.5rem, 1rem + 1.4vw, 2.25rem);
-  line-height: 1;
-}

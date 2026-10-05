@@ -19,7 +19,7 @@ import { useLive } from "./scroll";
  * picture underneath. Nothing is hidden.
  */
 
-function Shot({ src, alt }: { src: string; alt: string }) {
+export function Shot({ src, alt }: { src: string; alt: string }) {
   return (
     <div className="sp-frame">
       <div className="sp-frame-bar" aria-hidden>
@@ -33,7 +33,7 @@ function Shot({ src, alt }: { src: string; alt: string }) {
   );
 }
 
-function Reminders() {
+export function Reminders() {
   return (
     <div className="sp-texts">
       <p>
@@ -53,7 +53,7 @@ function Reminders() {
   );
 }
 
-function Record() {
+export function Record() {
   return (
     <div className="sp-record">
       <div className="sp-record-top">
@@ -85,7 +85,7 @@ function Record() {
   );
 }
 
-function HomeScreen() {
+export function HomeScreen() {
   return (
     <div className="sp-phone">
       <div className="sp-phone-grid" aria-hidden>
@@ -136,9 +136,25 @@ const REST: { head: string; body: string; show: ReactNode }[] = [
 ];
 
 export function TheRest() {
+  return <Showcase title="And it runs the rest of it" items={REST} />;
+}
+
+/**
+ * The shape itself, for any page that has claims with a screen to each: the
+ * System page uses it for what the assistant does.
+ */
+export function Showcase({
+  title,
+  intro,
+  items,
+}: {
+  title: string;
+  intro?: string;
+  items: { head: string; body: ReactNode; show: ReactNode }[];
+}) {
   const live = useLive();
   const [active, setActive] = useState(0);
-  const items = useRef<(HTMLLIElement | null)[]>([]);
+  const rows = useRef<(HTMLLIElement | null)[]>([]);
 
   /* Whichever claim is nearest the middle of the screen is the one shown. */
   useEffect(() => {
@@ -151,21 +167,22 @@ export function TheRest() {
       },
       { rootMargin: "-46% 0px -46% 0px" },
     );
-    items.current.forEach((el) => el && seen.observe(el));
+    rows.current.forEach((el) => el && seen.observe(el));
     return () => seen.disconnect();
   }, [live]);
 
   return (
     <section className="sp-rest-band">
       <div className="sp-rest shell" data-live={live ? "" : undefined}>
-      <h2 className="page-title sp-big-title">And it runs the rest of it</h2>
+      <h2 className="page-title sp-big-title">{title}</h2>
+      {intro && <p className="sp-rest-intro">{intro}</p>}
 
       <ol className="sp-rest-list">
-        {REST.map((r, i) => (
+        {items.map((r, i) => (
           <li
             key={r.head}
             ref={(el) => {
-              items.current[i] = el;
+              rows.current[i] = el;
             }}
             data-i={i}
             data-on={i === active ? "" : undefined}
