@@ -426,3 +426,45 @@
     transition: none !important;
   }
 }
+
+/* On a phone the menu was words on blue. Each link gets a small picture of
+   what is behind it, since there is no room for the large one. */
+.sp-menu-thumb {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .sp-menu nav {
+    gap: 0.45em;
+    font-size: clamp(1.9rem, 1rem + 4.6vw, 3.25rem);
+  }
+
+  .sp-menu nav a {
+    display: flex;
+    align-items: center;
+    gap: 0.45em;
+    width: auto;
+  }
+
+  .sp-menu nav a[data-on] {
+    padding-left: 0;
+  }
+
+  .sp-menu-thumb {
+    display: block;
+    flex: none;
+    width: 1.75em;
+    height: 1.75em;
+    max-width: none;
+    border: 2px solid #16150f;
+    border-radius: 0.3em;
+    object-fit: cover;
+    object-position: top;
+    background: #f7f4ec;
+    box-shadow: 4px 4px 0 #16150f;
+  }
+
+  .sp-menu nav a[aria-current]::after {
+    content: none;
+  }
+}

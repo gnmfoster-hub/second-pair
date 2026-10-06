@@ -120,7 +120,7 @@ const LEAVES = 0.52;
 const LANDS = 0.9;
 
 export function TheEvening() {
-  const live = useLive();
+  const live = useLive("any");
   /* Server and first paint: everything has already happened. */
   const [at, setAt] = useState({ step: EVENING.length - 1, stage: 3 });
   const dot = useRef<HTMLSpanElement>(null);
@@ -164,6 +164,19 @@ export function TheEvening() {
               to remember it.
             </p>
           </header>
+
+          {/*
+            * The seven ways in, as a row of lights. On a phone there is no
+            * room for the map and its lines, so this is the map: the one that
+            * is talking is lit, and the ones that have landed stay marked.
+            */}
+          <ul className="sp-eve-strip" aria-hidden>
+            {EVENING.map((e, i) => (
+              <li key={e.channel} data-state={i === at.step ? "now" : landed(i) ? "done" : "wait"}>
+                <ChannelIcon channel={e.channel} className="size-5" />
+              </li>
+            ))}
+          </ul>
 
           {/* The clock and the conversation. Only when it is playing. */}
           <div className="sp-eve-now" aria-hidden>

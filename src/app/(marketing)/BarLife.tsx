@@ -159,7 +159,13 @@ export function BarLife() {
               onFocus={() => setPeek(i)}
               onClick={shut}
             >
-              {n.label}
+              {/* On a phone there is no room for the big picture, so each link
+                  carries a small one of its own. */}
+              {opened && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="sp-menu-thumb" src={Array.isArray(n.peek) ? n.peek[0] : n.peek} alt="" />
+              )}
+              <span>{n.label}</span>
             </Link>
           ))}
         </nav>

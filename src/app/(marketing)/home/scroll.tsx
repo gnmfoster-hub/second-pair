@@ -17,21 +17,29 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
  * rather than waiting for a scroll that will not drive anything.
  */
 
-/** Wide enough for a pinned stage, and nobody has asked for less motion. */
-const LIVE = "(min-width: 960px) and (min-height: 620px) and (prefers-reduced-motion: no-preference)";
+/** Wide enough for a side-by-side pinned stage, and nobody has asked for less motion. */
+const WIDE = "(min-width: 960px) and (min-height: 620px) and (prefers-reduced-motion: no-preference)";
+/**
+ * Any screen tall enough to pin something on, a phone included.
+ *
+ * The moving page was desktop only at first, which left a phone with the
+ * resting version: correct, complete, and a long column of blocks that did
+ * nothing. Most of the people this site is for will see it on a phone.
+ */
+const ANY = "(min-height: 560px) and (prefers-reduced-motion: no-preference)";
 
 /** True once mounted on a screen that can take the moving version. */
-export function useLive(): boolean {
+export function useLive(kind: "wide" | "any" = "wide"): boolean {
   const [live, setLive] = useState(false);
   useEffect(() => {
     /* ?still shows the resting page, for a full-page picture of it. */
     if (/[?&]still\b/.test(window.location.search)) return;
-    const mq = window.matchMedia(LIVE);
+    const mq = window.matchMedia(kind === "wide" ? WIDE : ANY);
     const set = () => setLive(mq.matches);
     set();
     mq.addEventListener("change", set);
     return () => mq.removeEventListener("change", set);
-  }, []);
+  }, [kind]);
   return live;
 }
 
@@ -90,7 +98,7 @@ export function Passing({
   className?: string;
   style?: CSSProperties;
 }) {
-  const live = useLive();
+  const live = useLive("any");
   const ref = useProgress<HTMLDivElement>("pass", live, (p, el) => {
     el.style.setProperty("--p", p.toFixed(4));
   });
