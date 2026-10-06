@@ -120,7 +120,7 @@ const LEAVES = 0.52;
 const LANDS = 0.9;
 
 export function TheEvening() {
-  const live = useLive("any");
+  const live = useLive("pin");
   /* Server and first paint: everything has already happened. */
   const [at, setAt] = useState({ step: EVENING.length - 1, stage: 3 });
   const dot = useRef<HTMLSpanElement>(null);
@@ -146,6 +146,23 @@ export function TheEvening() {
     el.style.opacity = t > LEAVES && t < LANDS + 0.04 ? "1" : "0";
   });
 
+  /*
+   * Press a channel and the evening goes to it.
+   *
+   * Scroll is the playhead, so going to a moment is scrolling to it. It makes
+   * the seven things on screen do something when they are pressed, which is
+   * what anybody looking at seven round buttons expects.
+   */
+  const go = (i: number) => {
+    const el = ref.current;
+    if (!el || !live) return;
+    const top = el.getBoundingClientRect().top + window.scrollY;
+    const travel = el.offsetHeight - window.innerHeight;
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    /* a little past the point where its booking lands */
+    window.scrollTo({ top: top + (travel * (i + 0.94)) / (EVENING.length + 0.6), behavior: calm ? "auto" : "smooth" });
+  };
+
   const landed = (i: number) => i < at.step || (i === at.step && at.stage === 3);
   const now = EVENING[at.step];
   const booked = EVENING.filter((e, i) => e.day && landed(i)).length;
@@ -170,10 +187,12 @@ export function TheEvening() {
             * room for the map and its lines, so this is the map: the one that
             * is talking is lit, and the ones that have landed stay marked.
             */}
-          <ul className="sp-eve-strip" aria-hidden>
+          <ul className="sp-eve-strip">
             {EVENING.map((e, i) => (
               <li key={e.channel} data-state={i === at.step ? "now" : landed(i) ? "done" : "wait"}>
-                <ChannelIcon channel={e.channel} className="size-5" />
+                <button type="button" onClick={() => go(i)} aria-label={`Show the ${e.label.toLowerCase()} enquiry`}>
+                  <ChannelIcon channel={e.channel} className="size-5" />
+                </button>
               </li>
             ))}
           </ul>
@@ -244,6 +263,7 @@ export function TheEvening() {
                   key={e.channel}
                   style={{ top: `${y(i)}%` }}
                   data-state={i === at.step ? "now" : landed(i) ? "done" : "wait"}
+                  onClick={() => go(i)}
                 >
                   <ChannelIcon channel={e.channel} className="size-5 shrink-0" />
                   <span>

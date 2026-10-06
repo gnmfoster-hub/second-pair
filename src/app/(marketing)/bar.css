@@ -468,3 +468,13 @@
     content: none;
   }
 }
+
+/* The narrowest phones: the word MENU ran into the name beside it, so the
+   button is its two bars and nothing else. */
+@media (max-width: 359px) {
+  .sp-menu-btn {
+    gap: 0;
+    padding-inline: 0.85rem;
+    font-size: 0;
+  }
+}

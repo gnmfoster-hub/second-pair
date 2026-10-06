@@ -1531,3 +1531,85 @@
     min-height: 6.6rem;
   }
 }
+
+/* ══════════════════════════════════ the evening: pressed, calm, and short */
+
+/* The channels can be pressed: the evening goes to that enquiry. */
+.sp-eve[data-live] .sp-eve-map li {
+  cursor: pointer;
+}
+
+.sp-eve[data-live] .sp-eve-map li:hover {
+  opacity: 1;
+  border-color: var(--accent);
+}
+
+.sp-eve-strip button {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  color: inherit;
+  cursor: pointer;
+}
+
+/*
+ * "Reduce motion" is on. The stage still plays, because it only changes when
+ * the reader scrolls; what goes is everything that moves by itself.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .sp-eve *,
+  .sp-eve *::before,
+  .sp-eve *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .sp-eve-dot {
+    display: none;
+  }
+}
+
+/*
+ * A short screen: a phone on its side, or the browser inside another app.
+ * The stage keeps what it is for, the lights, the clock, the conversation
+ * and the diary, and lets go of the heading, the You card and the caption.
+ */
+@media (max-width: 959px) and (max-height: 620px) {
+  .sp-eve[data-live] .sp-eve-head,
+  .sp-eve[data-live] .sp-eve-you,
+  .sp-eve[data-live] .sp-eve-arg {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .sp-eve[data-live] .sp-eve-in {
+    padding-top: 0.6rem;
+  }
+
+  .sp-eve[data-live] .sp-eve-clock {
+    font-size: 2.75rem;
+  }
+
+  .sp-eve[data-live] .sp-eve-talk {
+    min-height: 5.2rem;
+  }
+
+  .sp-eve[data-live] .sp-eve-day > div {
+    min-height: 1.2rem;
+  }
+
+  .sp-eve[data-live] .sp-eve-diary-card {
+    padding-block: 0.4rem 0.5rem;
+  }
+
+  .sp-eve-strip li {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+}

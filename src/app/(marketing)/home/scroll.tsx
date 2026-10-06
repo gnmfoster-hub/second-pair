@@ -27,14 +27,28 @@ const WIDE = "(min-width: 960px) and (min-height: 620px) and (prefers-reduced-mo
  * nothing. Most of the people this site is for will see it on a phone.
  */
 const ANY = "(min-height: 560px) and (prefers-reduced-motion: no-preference)";
+/**
+ * Tall enough to pin a stage on, whatever has been asked about motion.
+ *
+ * For a stage that only changes when the reader scrolls. Nothing in it
+ * moves on its own, so "reduce motion" is honoured by taking its
+ * transitions away (in the stylesheet), not by taking the stage away. That
+ * setting is on for far more phones than you would guess: it is what a
+ * battery saver switches on, and with the stage gated on it the section sat
+ * there as a column of blocks, on the owner's own phone among others.
+ *
+ * 440 rather than 560 because the browser inside Facebook or Instagram, where
+ * most links to this site are opened, is a good deal shorter than Safari.
+ */
+const PIN = "(min-height: 440px)";
 
 /** True once mounted on a screen that can take the moving version. */
-export function useLive(kind: "wide" | "any" = "wide"): boolean {
+export function useLive(kind: "wide" | "any" | "pin" = "wide"): boolean {
   const [live, setLive] = useState(false);
   useEffect(() => {
     /* ?still shows the resting page, for a full-page picture of it. */
     if (/[?&]still\b/.test(window.location.search)) return;
-    const mq = window.matchMedia(kind === "wide" ? WIDE : ANY);
+    const mq = window.matchMedia(kind === "wide" ? WIDE : kind === "pin" ? PIN : ANY);
     const set = () => setLive(mq.matches);
     set();
     mq.addEventListener("change", set);
