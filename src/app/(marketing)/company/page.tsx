@@ -138,9 +138,25 @@ export default function CompanyPage() {
       <section className="shell sp-facts">
         <h2 className="page-title sp-big-title">The details</h2>
         <dl>
+          {/*
+            * Worded to match the register, character for character.
+            *
+            * This said "Second Pair Ltd" and gave the address under "Where",
+            * which reads fine and is no use to anybody checking us. Meta's
+            * business verification, and every other check of this kind, matches
+            * the name, the number and the registered office against the public
+            * record, and a page that gives two of the three in different words
+            * corroborates nothing.
+            *
+            * So: the name exactly as Companies House holds it, the number
+            * beside it, and the address called what it is. Terms and privacy
+            * have carried all three since they were written; this is the page
+            * somebody actually lands on.
+            */}
           {[
             ["Company", "Second Pair Ltd, trading as second-pair.com"],
-            ["Where", "13 Bugle Place, Newton Abbot, TQ12 1GZ, United Kingdom"],
+            ["Company number", "17453965, registered in England and Wales"],
+            ["Registered office", "13 Bugle Place, Newton Abbot, TQ12 1GZ, United Kingdom"],
             ["Built in", "Devon, England"],
           ].map(([k, v]) => (
             <div key={k}>
