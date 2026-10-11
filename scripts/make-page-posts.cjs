@@ -68,7 +68,7 @@ const POSTS = [
     /* /system hero title, exact. */
     head: "It answers while you are working.",
     sub: "In your words, from your own prices, and into your diary before you have put the tools down.",
-    art: "hand",
+    art: "pair",
   },
   {
     file: "2-one-diary",
@@ -136,8 +136,8 @@ const square = (p) => `<!doctype html><html><head><meta charset="utf-8">${FONTS}
   }
   h1 {
     font-family: "Anton", sans-serif; font-weight: 400; text-transform: uppercase;
-    font-size: ${p.art === "hand" ? 86 : 82}px; line-height: 0.92; letter-spacing: 0.012em;
-    max-width: ${p.art === "hand" ? 760 : 912}px;
+    font-size: ${p.art === "hand" || p.art === "pair" ? 86 : 82}px; line-height: 0.92; letter-spacing: 0.012em;
+    max-width: ${p.art === "hand" || p.art === "pair" ? 760 : 912}px;
     /* Stops a headline dropping one orphan word onto its own line. */
     text-wrap: balance;
   }
@@ -145,16 +145,25 @@ const square = (p) => `<!doctype html><html><head><meta charset="utf-8">${FONTS}
   h1 em { font-style: normal; color: ${COBALT}; }
   p.sub {
     margin-top: 28px; font-size: 31px; line-height: 1.42; color: ${MUTED};
-    max-width: ${p.art === "hand" ? 640 : 820}px; font-weight: 500;
+    max-width: ${p.art === "hand" || p.art === "pair" ? 620 : 820}px; font-weight: 500;
   }
   /* Pushed to the bottom so every square has its mark in the same place. */
-  .foot { margin-top: auto; display: flex; align-items: center; gap: 18px; position: relative; z-index: 2; }
+  /*
+   * One left-aligned group, and above everything.
+   *
+   * The URL used to be pushed to the right with margin-left:auto, which put
+   * it exactly where the artwork bleeds in. On the square with the pair of
+   * hands the cobalt one covered it completely, and z-index alone would only
+   * have moved the problem by printing the address across a thumb.
+   */
+  .foot { margin-top: auto; display: flex; align-items: center; gap: 16px; position: relative; z-index: 5; }
   .foot img { width: 76px; height: 76px; display: block; }
   .foot b {
     font-family: "Anton", sans-serif; font-weight: 400; text-transform: uppercase;
     font-size: 34px; letter-spacing: 0.02em;
   }
-  .foot span { font-size: 26px; color: ${MUTED}; margin-left: auto; font-weight: 600; }
+  .foot span { font-size: 26px; color: ${MUTED}; font-weight: 600; }
+  .foot i { font-style: normal; color: ${MUTED}; font-size: 26px; }
 
   /*
    * The hand, with the same cast shadow as the cover so the set hangs
@@ -165,6 +174,20 @@ const square = (p) => `<!doctype html><html><head><meta charset="utf-8">${FONTS}
     transform: rotate(-14deg);
     filter: drop-shadow(-26px 24px 38px rgba(22, 21, 15, 0.24));
   }
+
+  /*
+   * The matched pair, for the square about the assistant.
+   *
+   * Every piece was using the same pointing finger, which is the fastest way
+   * to make a set look like one template filled in six times. The brand owns
+   * two hands in the same pose, natural and cobalt, and that pair is the
+   * company's own name. The cobalt one sits behind and higher.
+   */
+  .cobalt, .natural {
+    position: absolute; filter: drop-shadow(-24px 22px 36px rgba(22,21,15,.22));
+  }
+  .cobalt  { right: -40px; bottom: -40px; height: 560px; z-index: 1; }
+  .natural { right: 170px; bottom: -70px; height: 505px; z-index: 2; }
 
   /* Real client sites, shown as the things they are rather than as mockups. */
   .sites { margin-top: 46px; display: flex; gap: 26px; }
@@ -204,6 +227,12 @@ const square = (p) => `<!doctype html><html><head><meta charset="utf-8">${FONTS}
 </style></head>
 <body>
   ${p.art === "hand" ? `<img class="hand" src="${SITE}/brand/hands/hand-type.png" alt="">` : ""}
+  ${
+    p.art === "pair"
+      ? `<img class="cobalt" src="${SITE}/brand/hands/hand-second.png" alt="">
+         <img class="natural" src="${SITE}/brand/hands/hand-front.png" alt="">`
+      : ""
+  }
   <h1>${p.head}</h1>
   <p class="sub">${p.sub}</p>
   ${
@@ -225,6 +254,7 @@ const square = (p) => `<!doctype html><html><head><meta charset="utf-8">${FONTS}
   <div class="foot">
     <img src="${SITE}/brand/logo/mark-3d.png" alt="">
     <b>Second Pair</b>
+    <i>&middot;</i>
     <span>second-pair.com</span>
   </div>
 </body></html>`;

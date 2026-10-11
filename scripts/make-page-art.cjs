@@ -211,26 +211,30 @@ const coverHtml = `<!doctype html><html><head><meta charset="utf-8">${FONTS}
 
 
 /*
- * THE COVER, second version: all three things the company sells.
+ * THE COVER: all three services, and the pair of hands.
  *
- * Giles, twice: "it needs to cover all aspects of second pair work" and then
- * "the cover photo is still the same i thought we were making it more
- * inclusive of all products."
+ * Two corrections from Giles, both right.
  *
- * I had argued a cover should carry one message and let the posts carry the
- * rest. That is the textbook answer and it is wrong here, because this Page
- * has no history on it. Somebody landing on it sees the cover and the intro
- * and nothing else, so a cover that shows only the assistant tells them the
- * company does one thing. The posts fix that over weeks. The cover has to do
- * it in a second.
+ * "The wording doesn't make sense re answering the phone." The line was
+ * "a small software company in Devon, run by people who answer the phone",
+ * lifted from /work where it reads fine. On a Page whose product answers the
+ * phone FOR you it is actively confusing: it sounds like the service is
+ * people picking up, which is the opposite of what is being sold. Out.
  *
- * So the three services are the headline, named exactly as the site's own
- * navigation names them, and the supporting line is the /work hero lede word
- * for word. Still no price, no turnaround, no guarantee.
+ * "It needs to be clever and impressive." The headline was a plain list:
+ * THE ASSISTANT. WEBSITES. APPS. Functional, and nothing more. Three verbs
+ * do the same work in fewer words and carry the brand's own metaphor, which
+ * is hands doing things: we answer (the assistant), we build (websites and
+ * apps), we look after it (hosting, and keeping it working). The services
+ * are then named plainly underneath so nobody has to guess.
  *
- * The conversation cover is kept and still written out, because it is the
- * better picture and it makes a good post, a pinned post, or a seasonal
- * swap once the Page has some history behind it.
+ * "Artwork could be better." It was one pointing finger on every single
+ * piece. The brand already owns a matched pair in the same pose, cut out
+ * with real alpha: hand-front in natural skin and hand-second in cobalt.
+ * That pair IS the company's name and the line on the Page, and it had
+ * never been used anywhere. The cobalt one sits behind and higher, the
+ * natural one in front and lower, so they read as two hands rather than two
+ * photographs side by side.
  */
 const coverServicesHtml = `<!doctype html><html><head><meta charset="utf-8">${FONTS}
 <style>
@@ -244,31 +248,34 @@ const coverServicesHtml = `<!doctype html><html><head><meta charset="utf-8">${FO
       radial-gradient(1150px 720px at 26% 32%, #fdfbf6 0%, #f8f4ea 58%, #f1ecdf 100%);
   }
   .col {
-    position: absolute;
+    position: absolute; z-index: 3;
     left: ${(COVER.w - COVER_SAFE) / 2 + 50}px;
-    top: 112px; width: 680px;
+    top: 150px; width: 520px;
   }
   h1 {
     font-family: "Anton", sans-serif; font-weight: 400; text-transform: uppercase;
-    font-size: 82px; line-height: 0.95; letter-spacing: 0.012em;
+    font-size: 72px; line-height: 0.95; letter-spacing: 0.012em;
   }
-  /* The third one in cobalt, so the eye reaches the end of the list. */
+  /* The third verb in cobalt, so the eye reaches the end of the list. */
   h1 span { color: ${COBALT}; }
   p {
-    margin-top: 26px; font-size: 30px; line-height: 1.38; color: ${MUTED};
-    max-width: 600px; font-weight: 500;
+    margin-top: 24px; font-size: 29px; line-height: 1.38; color: ${MUTED};
+    font-weight: 500;
   }
-  .hand {
-    position: absolute; right: -40px; bottom: -180px; height: 672px;
-    transform: rotate(-14deg);
-    filter: drop-shadow(-30px 26px 42px rgba(22, 21, 15, 0.26));
-  }
+  /*
+   * Both hands bleed off the bottom so the wrists leave the frame. Separate
+   * shadows, thrown the same way, or they read as cut out and pasted.
+   */
+  .cobalt, .natural { position: absolute; filter: drop-shadow(-26px 24px 40px rgba(22,21,15,.24)); }
+  .cobalt  { right: 170px; bottom: -40px; height: 560px; z-index: 1; }
+  .natural { right: 430px; bottom: -70px; height: 510px; z-index: 2; }
 </style></head>
 <body>
-  <img class="hand" src="${SITE}/brand/hands/hand-type.png" alt="">
+  <img class="cobalt" src="${SITE}/brand/hands/hand-second.png" alt="">
+  <img class="natural" src="${SITE}/brand/hands/hand-front.png" alt="">
   <div class="col">
-    <h1>The assistant.<br>Websites.<br><span>Apps.</span></h1>
-    <p>A small software company in Devon, run by people who answer the phone.</p>
+    <h1>We answer.<br>We build.<br><span>We look after it.</span></h1>
+    <p>The assistant, websites and apps. A small software company in Devon.</p>
   </div>
 </body></html>`;
 
