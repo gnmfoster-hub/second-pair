@@ -387,7 +387,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           </nav>
         </div>
         <div
-          className="shell shell-wide flex flex-wrap items-center gap-x-6 gap-y-2 pb-10 text-xs"
+          className="shell shell-wide flex flex-wrap items-center gap-x-6 gap-y-2 pb-5 text-xs"
           style={{ color: "var(--muted-on-ink)", borderTop: "1px solid rgba(247,244,236,0.2)", paddingTop: "1.5rem" }}
         >
           {/*
@@ -408,6 +408,38 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             Terms
           </Link>
           <span className="ml-auto">Second Pair Ltd &middot; made in the UK</span>
+        </div>
+        {/*
+          * The registered details, on every page rather than only on /company.
+          *
+          * Added because a verification reviewer, and anybody else checking
+          * whether this company is real, lands on whichever page they were
+          * sent and does not go looking for an About link. The number, the
+          * office and a telephone were on one page or on none; now the set is
+          * wherever they arrive.
+          *
+          * The telephone is the piece that was missing everywhere. Every
+          * check of this kind matches a name, an address and a number, and
+          * two out of three corroborates nothing.
+          *
+          * Worded to match the register, because that is what it is checked
+          * against. The name is not repeated: it is in the line above and in
+          * the signature above that.
+          */}
+        <div
+          className="shell shell-wide pb-10 text-xs"
+          style={{ color: "var(--muted-on-ink)", lineHeight: 1.7 }}
+        >
+          Registered in England and Wales, company number 17453965. Registered office
+          13 Bugle Place, Newton Abbot, TQ12 1GZ, United Kingdom.
+          <br />
+          <a href="tel:+447861911077" className="link-on-ink">
+            07861 911077
+          </a>{" "}
+          &middot;{" "}
+          <a href="mailto:info@second-pair.com" className="link-on-ink">
+            info@second-pair.com
+          </a>
         </div>
       </footer>
     </div>

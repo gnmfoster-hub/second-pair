@@ -38,6 +38,19 @@ type Event = {
   day: string | null;
   row: string;
   tag: string;
+  /**
+   * Waiting on Meta's review, so not switched on for anybody yet.
+   *
+   * The evening is the one place the home page named WhatsApp, Instagram and
+   * Messenger as ways in, with a paid deposit and two bookings against them,
+   * while /system was telling the same visitor those three are not available.
+   * One of the two pages was wrong, and it was this one.
+   *
+   * Kept in the evening rather than cut from it. Seven ways in is what the
+   * product is for, and three of them arriving later is a different statement
+   * from three of them not existing. So they play, and they say so.
+   */
+  soon?: boolean;
 };
 
 const EVENING: Event[] = [
@@ -57,19 +70,19 @@ const EVENING: Event[] = [
     channel: "whatsapp", label: "WhatsApp", note: "the one people already use", time: "7:26pm", from: "Hannah",
     asks: "How much for a full head of foils?",
     answer: "[YOUR PRICE], confirmed when Chloe’s seen your hair. Tuesday at 1? [DEPOSIT] holds it.",
-    day: "Tue", row: "1pm Full head foils", tag: "DEPOSIT PAID",
+    day: "Tue", row: "1pm Full head foils", tag: "DEPOSIT PAID", soon: true,
   },
   {
     channel: "instagram", label: "Instagram", note: "DMs on the shop account", time: "8:03pm", from: "Leila",
     asks: "Do you do bridal hair? Wedding’s in June",
     answer: "We do. Sarah has a trial free on Wednesday at 4.",
-    day: "Wed", row: "4pm Bridal trial", tag: "BOOKED",
+    day: "Wed", row: "4pm Bridal trial", tag: "BOOKED", soon: true,
   },
   {
     channel: "messenger", label: "Messenger", note: "from the Facebook page", time: "8:49pm", from: "Dawn",
     asks: "My colour’s gone brassy since last week. Not happy.",
     answer: "I’m sorry. I’ve passed this straight to Chloe and she’ll message you herself.",
-    day: null, row: "Dawn · colour complaint", tag: "HANDED TO YOU",
+    day: null, row: "Dawn · colour complaint", tag: "HANDED TO YOU", soon: true,
   },
   {
     channel: "email", label: "Email", note: "the enquiry address", time: "9:34pm", from: "Beth",
@@ -190,7 +203,13 @@ export function TheEvening() {
           <ul className="sp-eve-strip">
             {EVENING.map((e, i) => (
               <li key={e.channel} data-state={i === at.step ? "now" : landed(i) ? "done" : "wait"}>
-                <button type="button" onClick={() => go(i)} aria-label={`Show the ${e.label.toLowerCase()} enquiry`}>
+                <button
+                  type="button"
+                  onClick={() => go(i)}
+                  /* The caveat belongs in the name, not only in the picture: the
+                     strip is icons, and a screen reader gets nothing from a dot. */
+                  aria-label={`Show the ${e.label.toLowerCase()} enquiry${e.soon ? ", coming soon" : ""}`}
+                >
                   <ChannelIcon channel={e.channel} className="size-5" />
                 </button>
               </li>
@@ -206,6 +225,7 @@ export function TheEvening() {
             <div className="sp-eve-who">
               <ChannelIcon channel={now.channel} className="size-4" />
               {now.from} · {now.label}
+              {now.soon ? <em className="sp-eve-soon">Coming soon</em> : null}
             </div>
             <div key={at.step} className="sp-eve-talk">
               <p className="sp-bub sp-bub-them" data-on={at.stage >= 1 ? "" : undefined}>
@@ -226,6 +246,7 @@ export function TheEvening() {
                   <span className="sp-eve-chan">
                     <ChannelIcon channel={e.channel} className="size-4" />
                     {e.label}
+                    {e.soon ? <em className="sp-eve-soon">Coming soon</em> : null}
                   </span>
                 </div>
                 <p className="sp-bub sp-bub-them" data-on="">{e.asks}</p>

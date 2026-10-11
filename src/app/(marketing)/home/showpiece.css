@@ -110,6 +110,33 @@
   color: var(--muted);
 }
 
+/*
+ * The three channels waiting on Meta's review.
+ *
+ * Deliberately quieter than the outcome pills below it. Those say a booking
+ * landed and are meant to be read as a win; this one says the opposite, and a
+ * caveat set in the accent colour reads as a feature badge. Muted, on the
+ * border colour, the same shape so it belongs to the same family.
+ *
+ * One rule for both places it appears. The whole evening is inside .sp-night,
+ * which redefines --border and --muted for ink, so an override for the clock
+ * panel would only be the same two colours written out by hand and left to
+ * drift the next time the night palette moves.
+ */
+.sp-eve-soon {
+  font-style: normal;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding: 0.15rem 0.4rem;
+  margin-left: 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
 .sp-eve-result {
   display: flex;
   flex-wrap: wrap;

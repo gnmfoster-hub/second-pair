@@ -165,6 +165,21 @@ export default function CompanyPage() {
             </div>
           ))}
           <div>
+            <dt>Telephone</dt>
+            <dd>
+              {/*
+                * The one detail that was nowhere on the site.
+                *
+                * Name, office and email were all here; a reviewer checking
+                * this company against the register had two of the three
+                * things they match on and no number to ring. It rings a
+                * person first, so it is a telephone number and not a
+                * text-only line, and it is written as it would be dialled.
+                */}
+              <a href="tel:+447861911077">07861 911077</a>
+            </dd>
+          </div>
+          <div>
             <dt>Email</dt>
             <dd>
               {/* Shown as text as well as linked, so it can be copied. */}
