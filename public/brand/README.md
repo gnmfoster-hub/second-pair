@@ -47,6 +47,7 @@ was checked; anything not named by an exact path somewhere is marked as such.
 | A notification | `png/app-icon-192.png` for the icon, `mark/favicon-32.png` for the badge | `public/sw.js` |
 | Social sharing | `png/social-card-default.png` | `src/app/layout.tsx` |
 | Drawing that card again | `logo/mark-3d.png` | `scripts/make-social-card.cjs` |
+| The Facebook Page | `social/facebook-profile.png`, `social/facebook-cover.png` | uploaded by hand, drawn by `scripts/make-page-art.cjs` |
 | The hands on the marketing site | the `.webp` files in `hands/` | the `(marketing)` pages |
 | The browser tab | `src/app/icon.png` and `src/app/apple-icon.png` | Next.js, by convention |
 
@@ -71,6 +72,21 @@ and catching people out. Giles found it the way these things are always found:
   current, and rendering one shows the old flat peachy hand.
 
 Everything is in git if any of it is wanted back.
+
+### Still wrong, left alone on purpose
+
+`social-avatar.png` and `social-cover-blank.png`, both 21 September, both named
+by nothing. The avatar is a flat cream and cobalt hand pair on a black circle.
+The site has never rendered that artwork: it serves `mark-3d` on paper and
+`mark-flat-reversed` on ink.
+
+They are the same trap as the lockups deleted above, and the obvious thing to
+do with them is upload them to a social account, where nobody would notice for
+a month that the Page and the website disagree. `social/` holds the ones drawn
+from the live mark instead.
+
+Not deleted, because unlike the lockups these are somebody's finished artwork
+rather than a stale export, and that is Giles's call rather than mine.
 
 ### Still here and used by nothing
 
