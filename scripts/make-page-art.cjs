@@ -210,6 +210,68 @@ const coverHtml = `<!doctype html><html><head><meta charset="utf-8">${FONTS}
 </body></html>`;
 
 
+/*
+ * THE COVER, second version: all three things the company sells.
+ *
+ * Giles, twice: "it needs to cover all aspects of second pair work" and then
+ * "the cover photo is still the same i thought we were making it more
+ * inclusive of all products."
+ *
+ * I had argued a cover should carry one message and let the posts carry the
+ * rest. That is the textbook answer and it is wrong here, because this Page
+ * has no history on it. Somebody landing on it sees the cover and the intro
+ * and nothing else, so a cover that shows only the assistant tells them the
+ * company does one thing. The posts fix that over weeks. The cover has to do
+ * it in a second.
+ *
+ * So the three services are the headline, named exactly as the site's own
+ * navigation names them, and the supporting line is the /work hero lede word
+ * for word. Still no price, no turnaround, no guarantee.
+ *
+ * The conversation cover is kept and still written out, because it is the
+ * better picture and it makes a good post, a pinned post, or a seasonal
+ * swap once the Page has some history behind it.
+ */
+const coverServicesHtml = `<!doctype html><html><head><meta charset="utf-8">${FONTS}
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    width: ${COVER.w}px; height: ${COVER.h}px; color: ${INK};
+    font-family: "Instrument Sans", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    position: relative; overflow: hidden;
+    background:
+      radial-gradient(1150px 720px at 26% 32%, #fdfbf6 0%, #f8f4ea 58%, #f1ecdf 100%);
+  }
+  .col {
+    position: absolute;
+    left: ${(COVER.w - COVER_SAFE) / 2 + 50}px;
+    top: 112px; width: 680px;
+  }
+  h1 {
+    font-family: "Anton", sans-serif; font-weight: 400; text-transform: uppercase;
+    font-size: 82px; line-height: 0.95; letter-spacing: 0.012em;
+  }
+  /* The third one in cobalt, so the eye reaches the end of the list. */
+  h1 span { color: ${COBALT}; }
+  p {
+    margin-top: 26px; font-size: 30px; line-height: 1.38; color: ${MUTED};
+    max-width: 600px; font-weight: 500;
+  }
+  .hand {
+    position: absolute; right: -40px; bottom: -180px; height: 672px;
+    transform: rotate(-14deg);
+    filter: drop-shadow(-30px 26px 42px rgba(22, 21, 15, 0.26));
+  }
+</style></head>
+<body>
+  <img class="hand" src="${SITE}/brand/hands/hand-type.png" alt="">
+  <div class="col">
+    <h1>The assistant.<br>Websites.<br><span>Apps.</span></h1>
+    <p>A small software company in Devon, run by people who answer the phone.</p>
+  </div>
+</body></html>`;
+
 /** Render one page and hand back the PNG, refusing to guess at a delay. */
 async function draw(browser, { html, size, needsMark, needsType, clip }) {
   const page = await browser.newPage({
@@ -278,7 +340,11 @@ async function draw(browser, { html, size, needsMark, needsType, clip }) {
   };
 
   const { shot: cover, clipped: crop } = await draw(browser, {
-    html: coverHtml, size: COVER, needsMark: true, needsType: true, clip: phoneClip,
+    html: coverServicesHtml, size: COVER, needsMark: true, needsType: true, clip: phoneClip,
+  });
+  /* Kept as an alternative, and as a post in its own right. */
+  const { shot: coverTalk } = await draw(browser, {
+    html: coverHtml, size: COVER, needsMark: true, needsType: true,
   });
   console.log(`  ok    cover drawn, ${COVER.w}x${COVER.h}, safe width ${COVER_SAFE}`);
   console.log(`  ok    phone crop clipped, ${COVER_SAFE}x${COVER.h}`);
@@ -342,6 +408,7 @@ async function draw(browser, { html, size, needsMark, needsType, clip }) {
     ["profile.png", profile],
     ["cover.png", cover],
     ["cover-as-a-phone-sees-it.png", crop],
+    ["cover-alternative-the-conversation.png", coverTalk],
     ["the-page-header.png", together],
   ];
   for (const [name, buf] of previews) {
@@ -357,6 +424,7 @@ async function draw(browser, { html, size, needsMark, needsType, clip }) {
   fs.mkdirSync(OUT_DIR, { recursive: true });
   fs.writeFileSync(path.join(OUT_DIR, "facebook-profile.png"), profile);
   fs.writeFileSync(path.join(OUT_DIR, "facebook-cover.png"), cover);
+  fs.writeFileSync(path.join(OUT_DIR, "facebook-cover-conversation.png"), coverTalk);
   console.log(`\n  written into ${OUT_DIR}`);
   console.log(`  facebook-profile.png  ${Math.round(profile.length / 1024)}K`);
   console.log(`  facebook-cover.png    ${Math.round(cover.length / 1024)}K\n`);
