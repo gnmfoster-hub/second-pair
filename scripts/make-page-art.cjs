@@ -148,7 +148,7 @@ const coverHtml = `<!doctype html><html><head><meta charset="utf-8">${FONTS}
    * right:100 keeps the blue hand's outer edge close enough to the safe
    * band that a phone loses only its edge, not half of it.
    */
-  .hands { position: absolute; height: 620px; right: 100px; bottom: -70px; }
+  .hands { position: absolute; height: 580px; right: 100px; bottom: -60px; }
   /*
    * 56px clear of the safe band, not flush to it. Type that starts exactly
    * where the crop starts touches the edge of the frame on a phone.
@@ -156,25 +156,20 @@ const coverHtml = `<!doctype html><html><head><meta charset="utf-8">${FONTS}
   .words {
     position: absolute;
     left: ${(COVER.w - COVER_SAFE) / 2 + 56}px;
-    top: 155px;
-    width: 470px;
+    top: 205px;
+    width: 545px;
   }
   h1 {
     font-family: "Anton", sans-serif; font-weight: 400;
-    font-size: 58px; line-height: 0.96; letter-spacing: 0.012em;
+    font-size: 70px; line-height: 0.96; letter-spacing: 0.012em;
     text-transform: uppercase;
   }
   h1 span { color: ${COBALT}; }
-  .url {
-    margin-top: 24px; font-size: 19px; font-weight: 600;
-    letter-spacing: 0.14em; text-transform: uppercase; color: ${MUTED};
-  }
 </style></head>
 <body>
   <img class="hands" src="${SITE}/brand/hands/hands-seq-01.png" alt="">
   <div class="words">
     ${HEADLINE}
-    <div class="url">second-pair.com</div>
   </div>
 </body></html>`;
 
