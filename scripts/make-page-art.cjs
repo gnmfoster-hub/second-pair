@@ -116,118 +116,99 @@ const COBALT = "#2a45f0";
 const HEADLINE = `<h1>You've only got<br>one pair of hands.<br><span>We're the second.</span></h1>`;
 
 /*
- * The arrangement, arrived at by drawing two and looking at them.
+ * THE COVER: the conversation.
  *
- * The first held everything inside the safe band so nothing could ever be
- * cropped. Nothing was, and the hands ended up small and floating in the
- * middle of a lot of empty paper with their wrists stopping in mid-air.
+ * Giles, on three earlier attempts: "it crys web designer and software
+ * company." He was right. Big condensed type on cream beside an abstract
+ * graphic is the house style of every design studio and every B2B startup,
+ * it said nothing about what the product does, and the people who land on
+ * this Page are tattooists, cleaners and dog walkers rather than anybody who
+ * buys software.
  *
- * The second let the hands bleed off the right edge at full size. Much more
- * confident, but it cut the blue hand in half on a phone, clipped the
- * fingertips against the top edge, and the words ran flush to the crop edge
- * because the type began exactly where the safe band began.
+ * So the cover shows the product working instead of claiming anything: a
+ * customer asked at nine at night on a Sunday and got an answer. That is the
+ * whole business in one picture, read in about a second with no marketing
+ * language in it, and no agency has a booking exchange on its cover.
  *
- * This is the third. The hands are large and bleed off the BOTTOM, so the
- * wrists leave the frame the way they would in print rather than hanging
- * above the edge, and the pair sits far enough inside that a phone loses
- * only the outer edge of the blue hand. The words are held a clear margin
- * inside the safe band rather than against it. A photograph running off an
- * edge reads as intentional; cropped words never do.
+ * It is also the mark unpacked. The logo is a speech bubble with two hands in
+ * it, so a cover built from speech bubbles, with the blue hand having just
+ * sent the second one, is the brand saying its own name. The finger is lined
+ * up to land on the message it sent.
+ *
+ * The words in the bubbles are an example, the same way the demo on the site
+ * is an example. Nothing here is a real customer.
+ *
+ * Everything that makes it look built rather than assembled is in four
+ * places, and all four are large enough to survive the 820x312 downsample:
+ *
+ *   the ground    a wide radial warmth rather than one flat cream. A flat
+ *                 fill is the fastest way to look like a template.
+ *   the hand      a real cast shadow. drop-shadow follows the alpha of a
+ *                 cut-out, so the shadow is hand-shaped and the hand sits in
+ *                 the picture rather than on top of it. This is the single
+ *                 biggest difference between this and the version before it.
+ *   the bubbles   depth, and a coloured shadow under the blue one so it
+ *                 glows the way a sent message does on a screen.
+ *   the tails     one squared corner each, pointing the right way, which is
+ *                 what makes them read as messages and not rounded boxes.
  */
 const coverHtml = `<!doctype html><html><head><meta charset="utf-8">${FONTS}
 <style>
   * { box-sizing: border-box; margin: 0; }
   body {
-    width: ${COVER.w}px; height: ${COVER.h}px; background: ${HAND_PAPER};
-    color: ${INK}; font-family: "Instrument Sans", system-ui, sans-serif;
+    width: ${COVER.w}px; height: ${COVER.h}px; color: ${INK};
+    font-family: "Instrument Sans", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     position: relative; overflow: hidden;
+    background:
+      radial-gradient(1150px 720px at 26% 32%, #fdfbf6 0%, #f8f4ea 58%, #f1ecdf 100%);
   }
   /*
-   * The hands, bleeding off the bottom so the wrists leave the frame.
-   * right:100 keeps the blue hand's outer edge close enough to the safe
-   * band that a phone loses only its edge, not half of it.
+   * Held 50px clear of the safe band so nothing touches the frame edge when
+   * a phone crops to the middle 68 per cent.
    */
-  .hands { position: absolute; height: 580px; right: 100px; bottom: -60px; }
-  /*
-   * 56px clear of the safe band, not flush to it. Type that starts exactly
-   * where the crop starts touches the edge of the frame on a phone.
-   */
-  .words {
+  .col {
     position: absolute;
-    left: ${(COVER.w - COVER_SAFE) / 2 + 56}px;
-    top: 205px;
-    width: 545px;
+    left: ${(COVER.w - COVER_SAFE) / 2 + 50}px;
+    top: 180px; width: 720px;
   }
-  h1 {
-    font-family: "Anton", sans-serif; font-weight: 400;
-    font-size: 70px; line-height: 0.96; letter-spacing: 0.012em;
-    text-transform: uppercase;
+  .time {
+    font-family: "Anton", sans-serif; font-weight: 400; text-transform: uppercase;
+    font-size: 44px; letter-spacing: 0.04em; color: #a8a28f; margin-bottom: 22px;
   }
-  h1 span { color: ${COBALT}; }
+  .bub {
+    font-size: 34px; line-height: 1.3; padding: 23px 33px; border-radius: 30px;
+    display: inline-block; max-width: 660px; font-weight: 500;
+  }
+  .them {
+    background: #eae4d6; border-bottom-left-radius: 10px;
+    box-shadow: 0 3px 16px rgba(22, 21, 15, 0.07);
+  }
+  .us {
+    background: ${COBALT}; color: #fff; border-bottom-right-radius: 10px;
+    margin-top: 18px; margin-left: 58px;
+    box-shadow: 0 10px 30px rgba(42, 69, 240, 0.3);
+  }
+  /*
+   * Bleeding off the bottom right. The shadow is thrown up and to the left,
+   * against the light the photograph was lit with, so it agrees with the
+   * highlights already on the hand.
+   */
+  .hand {
+    position: absolute; right: -40px; bottom: -180px; height: 672px;
+    transform: rotate(-14deg);
+    filter: drop-shadow(-30px 26px 42px rgba(22, 21, 15, 0.26));
+  }
 </style></head>
 <body>
-  <img class="hands" src="${SITE}/brand/hands/hands-seq-01.png" alt="">
-  <div class="words">
-    ${HEADLINE}
+  <img class="hand" src="${SITE}/brand/hands/hand-type.png" alt="">
+  <div class="col">
+    <div class="time">Sunday, 9:47pm</div>
+    <div class="bub them">Are you free Friday for a cut?</div><br>
+    <div class="bub us">Friday 10am is free. Shall I book it in?</div>
   </div>
 </body></html>`;
 
-const coverHtmlOld = `<!doctype html><html><head><meta charset="utf-8">${FONTS}
-<style>
-  * { box-sizing: border-box; margin: 0; }
-  body {
-    width: ${COVER.w}px; height: ${COVER.h}px; background: ${NIGHT};
-    color: ${ON_NIGHT};
-    font-family: "Instrument Sans", system-ui, sans-serif;
-    /* Subpixel rendering fringes colour on a dark ground; this is a flat image. */
-    -webkit-font-smoothing: antialiased;
-    display: flex; align-items: center; justify-content: center;
-    /*
-     * The bottom 108px is left empty on purpose. On a desktop the round
-     * profile picture sits over the bottom left of this image, and anything
-     * put there is read with a face on top of it.
-     */
-    padding: 84px 0 108px;
-  }
-  /*
-   * No mark on the cover.
-   *
-   * Facebook parks the round profile picture on top of this image, and the
-   * profile picture is the mark. A logo here puts the same artwork twice
-   * within a hundred pixels of itself. It also solved a real problem: the
-   * reversed mark carries its own black ground, which sat on the night blue
-   * as a visible darker rectangle, and the 3D bubble is black on black here.
-   * The cover carries the words, the avatar carries the mark.
-   */
-  .safe {
-    width: ${COVER_SAFE}px;
-    text-align: center;
-  }
-  h1 {
-    font-family: "Anton", sans-serif; font-weight: 400;
-    font-size: 104px; line-height: 0.9; letter-spacing: 0.012em;
-    text-transform: uppercase;
-  }
-  /* The one spot of colour, on the half of the line that is the promise. */
-  h1 span { color: ${ACCENT}; }
-  p {
-    margin: 26px auto 0; font-size: 27px; line-height: 1.4;
-    color: ${NIGHT_MUTED}; max-width: 42ch;
-  }
-  .url {
-    margin-top: 26px; font-size: 20px; font-weight: 600;
-    letter-spacing: 0.14em; text-transform: uppercase; color: ${ON_NIGHT};
-  }
-</style></head>
-<body>
-  <div class="safe">
-    <h1>You work, <span>we answer.</span></h1>
-    <p>An assistant that answers the phone and the messages for businesses
-       that work by appointment.</p>
-    <div class="url">second-pair.com</div>
-  </div>
-</body></html>`;
 
 /** Render one page and hand back the PNG, refusing to guess at a delay. */
 async function draw(browser, { html, size, needsMark, needsType, clip }) {
@@ -317,19 +298,28 @@ async function draw(browser, { html, size, needsMark, needsType, clip }) {
     html: `<!doctype html><html><head><meta charset="utf-8">${FONTS}
 <style>
   * { box-sizing: border-box; margin: 0; }
-  body { width: 1640px; height: 900px; background: ${PAPER};
+  body { width: 1640px; height: 900px; background: #1c1c1d;
          font-family: "Instrument Sans", system-ui, sans-serif; }
-  .cover { display: block; width: 1640px; height: 624px; }
-  .bar { position: relative; height: 276px; }
+  .cover { display: block; width: 1640px; height: 624px; border-radius: 0 0 10px 10px; }
+  /*
+   * Corrected against the live Page on 11 October.
+   *
+   * This mock used to park the avatar over the bottom left of the cover,
+   * which is the old Facebook layout and is what I showed Giles. The current
+   * one sits it BELOW the cover with a gap, touching nothing. Showing him a
+   * preview that did not match what he would get is how two rounds of this
+   * got spent on the wrong problem.
+   */
+  .bar { position: relative; height: 276px; background: #1c1c1d; }
   .pic {
-    position: absolute; left: 72px; top: -112px;
-    width: 336px; height: 336px; border-radius: 50%;
-    border: 10px solid ${PAPER}; object-fit: cover;
+    position: absolute; left: 44px; top: 28px;
+    width: 232px; height: 232px; border-radius: 50%;
+    object-fit: cover;
   }
-  .name { position: absolute; left: 452px; top: 36px; }
+  .name { position: absolute; left: 320px; top: 56px; }
   h2 { font-family: "Anton", sans-serif; font-weight: 400; font-size: 54px;
-       text-transform: uppercase; letter-spacing: .01em; color: ${INK}; }
-  .meta { margin-top: 10px; font-size: 24px; color: ${MUTED}; }
+       text-transform: uppercase; letter-spacing: .01em; color: #e4e6eb; }
+  .meta { margin-top: 10px; font-size: 24px; color: #b0b3b8; }
 </style></head>
 <body>
   <img class="cover" src="${asUri(cover)}" alt="">
