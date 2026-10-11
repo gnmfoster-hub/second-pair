@@ -93,7 +93,92 @@ const profileHtml = `<!doctype html><html><head><meta charset="utf-8">${FONTS}
 </style></head>
 <body><img src="${SITE}/brand/logo/mark-3d.png" alt=""></body></html>`;
 
+/*
+ * The ground of the hands photography, sampled from the file rather than
+ * assumed. It is #f8f6ef, a shade lighter than the brand paper at #f7f4ec,
+ * and the difference is enough to draw a visible rectangle around the
+ * photograph if the page is painted in the brand value instead.
+ */
+const HAND_PAPER = "#f8f6ef";
+
+/* The blue of the second hand, so the type and the photograph agree. */
+const COBALT = "#2a45f0";
+
+/*
+ * Giles's own line, kept.
+ *
+ * "You've only got one pair of hands. We're the second." is already the Page
+ * bio and it is the better line, because the photograph is literally it: two
+ * hands, one of them ours. The complaint was the execution, not the idea, so
+ * this rebuilds it with the real brand photography, Anton set properly, and
+ * the safe area respected. The words are his.
+ */
+const HEADLINE = `<h1>You've only got<br>one pair of hands.<br><span>We're the second.</span></h1>`;
+
+/*
+ * The arrangement, arrived at by drawing two and looking at them.
+ *
+ * The first held everything inside the safe band so nothing could ever be
+ * cropped. Nothing was, and the hands ended up small and floating in the
+ * middle of a lot of empty paper with their wrists stopping in mid-air.
+ *
+ * The second let the hands bleed off the right edge at full size. Much more
+ * confident, but it cut the blue hand in half on a phone, clipped the
+ * fingertips against the top edge, and the words ran flush to the crop edge
+ * because the type began exactly where the safe band began.
+ *
+ * This is the third. The hands are large and bleed off the BOTTOM, so the
+ * wrists leave the frame the way they would in print rather than hanging
+ * above the edge, and the pair sits far enough inside that a phone loses
+ * only the outer edge of the blue hand. The words are held a clear margin
+ * inside the safe band rather than against it. A photograph running off an
+ * edge reads as intentional; cropped words never do.
+ */
 const coverHtml = `<!doctype html><html><head><meta charset="utf-8">${FONTS}
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    width: ${COVER.w}px; height: ${COVER.h}px; background: ${HAND_PAPER};
+    color: ${INK}; font-family: "Instrument Sans", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    position: relative; overflow: hidden;
+  }
+  /*
+   * The hands, bleeding off the bottom so the wrists leave the frame.
+   * right:100 keeps the blue hand's outer edge close enough to the safe
+   * band that a phone loses only its edge, not half of it.
+   */
+  .hands { position: absolute; height: 620px; right: 100px; bottom: -70px; }
+  /*
+   * 56px clear of the safe band, not flush to it. Type that starts exactly
+   * where the crop starts touches the edge of the frame on a phone.
+   */
+  .words {
+    position: absolute;
+    left: ${(COVER.w - COVER_SAFE) / 2 + 56}px;
+    top: 155px;
+    width: 470px;
+  }
+  h1 {
+    font-family: "Anton", sans-serif; font-weight: 400;
+    font-size: 58px; line-height: 0.96; letter-spacing: 0.012em;
+    text-transform: uppercase;
+  }
+  h1 span { color: ${COBALT}; }
+  .url {
+    margin-top: 24px; font-size: 19px; font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase; color: ${MUTED};
+  }
+</style></head>
+<body>
+  <img class="hands" src="${SITE}/brand/hands/hands-seq-01.png" alt="">
+  <div class="words">
+    ${HEADLINE}
+    <div class="url">second-pair.com</div>
+  </div>
+</body></html>`;
+
+const coverHtmlOld = `<!doctype html><html><head><meta charset="utf-8">${FONTS}
 <style>
   * { box-sizing: border-box; margin: 0; }
   body {
@@ -211,12 +296,13 @@ async function draw(browser, { html, size, needsMark, needsType, clip }) {
   });
   console.log(`  ok    profile drawn, ${PROFILE.w}x${PROFILE.h}`);
 
+  /* What a phone keeps: the full height, the middle 1108 of the width. */
+  const phoneClip = {
+    x: (COVER.w - COVER_SAFE) / 2, y: 0, width: COVER_SAFE, height: COVER.h,
+  };
+
   const { shot: cover, clipped: crop } = await draw(browser, {
-    html: coverHtml,
-    size: COVER,
-    needsType: true,
-    /* What a phone keeps: the full height, the middle 1108 of the width. */
-    clip: { x: (COVER.w - COVER_SAFE) / 2, y: 0, width: COVER_SAFE, height: COVER.h },
+    html: coverHtml, size: COVER, needsMark: true, needsType: true, clip: phoneClip,
   });
   console.log(`  ok    cover drawn, ${COVER.w}x${COVER.h}, safe width ${COVER_SAFE}`);
   console.log(`  ok    phone crop clipped, ${COVER_SAFE}x${COVER.h}`);
