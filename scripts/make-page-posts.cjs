@@ -48,10 +48,24 @@ const PREVIEW_DIR = path.join(os.tmpdir(), "second-pair-shots", "posts");
 
 const S = 1080;
 
-const INK = "#16150f";
-const MUTED = "#6b675c";
-const COBALT = "#2a45f0";
-const GROUND = "radial-gradient(900px 760px at 24% 22%, #fdfbf6 0%, #f8f4ea 58%, #f0ebde 100%)";
+/*
+ * Ink, to match the cover.
+ *
+ * The set was cream and black condensed type, which is the house style of
+ * every design studio and the thing Giles objected to from the start. The
+ * cover went dark and product-led and he asked for the squares to follow, so
+ * the palette is the site's own .sp-night values rather than invented ones.
+ * The accent lifts from #2a45f0 to #8194ff, because cobalt on near-black is
+ * too close in value to read.
+ */
+const INK = "#f7f4ec";
+const MUTED = "rgba(247, 244, 236, 0.72)";
+const COBALT = "#8194ff";
+const LINE = "rgba(247, 244, 236, 0.16)";
+const GROUND =
+  "radial-gradient(820px 700px at 78% 28%, rgba(42,69,240,.30), transparent 66%)," +
+  "radial-gradient(900px 760px at 16% 86%, rgba(129,148,255,.10), transparent 70%)," +
+  "#0a0b12";
 
 const FONTS = `
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Sans:wght@400;500;600&display=swap">`;
@@ -157,7 +171,18 @@ const square = (p) => `<!doctype html><html><head><meta charset="utf-8">${FONTS}
    * have moved the problem by printing the address across a thumb.
    */
   .foot { margin-top: auto; display: flex; align-items: center; gap: 16px; position: relative; z-index: 5; }
-  .foot img { width: 76px; height: 76px; display: block; }
+  /*
+   * The mark on a paper disc.
+   *
+   * mark-3d is a black speech bubble. On ink it simply disappears, and the
+   * reversed mark brings its own black ground which fights the panel. The
+   * disc is what the profile picture already is, so the two agree.
+   */
+  .foot .disc {
+    width: 84px; height: 84px; border-radius: 50%; background: #f7f4ec;
+    display: grid; place-items: center; flex: none;
+  }
+  .foot .disc img { width: 64px; height: 64px; display: block; }
   .foot b {
     font-family: "Anton", sans-serif; font-weight: 400; text-transform: uppercase;
     font-size: 34px; letter-spacing: 0.02em;
@@ -172,7 +197,7 @@ const square = (p) => `<!doctype html><html><head><meta charset="utf-8">${FONTS}
   .hand {
     position: absolute; right: -130px; bottom: 40px; height: 620px;
     transform: rotate(-14deg);
-    filter: drop-shadow(-26px 24px 38px rgba(22, 21, 15, 0.24));
+    filter: drop-shadow(-26px 24px 40px rgba(0, 0, 0, 0.55));
   }
 
   /*
@@ -184,7 +209,7 @@ const square = (p) => `<!doctype html><html><head><meta charset="utf-8">${FONTS}
    * company's own name. The cobalt one sits behind and higher.
    */
   .cobalt, .natural {
-    position: absolute; filter: drop-shadow(-24px 22px 36px rgba(22,21,15,.22));
+    position: absolute; filter: drop-shadow(-24px 22px 38px rgba(0,0,0,.55));
   }
   .cobalt  { right: -40px; bottom: -40px; height: 560px; z-index: 1; }
   .natural { right: 170px; bottom: -70px; height: 505px; z-index: 2; }
@@ -194,8 +219,8 @@ const square = (p) => `<!doctype html><html><head><meta charset="utf-8">${FONTS}
   .sites figure { flex: 1; min-width: 0; }
   .sites img {
     width: 100%; height: 430px; object-fit: cover; object-position: top center;
-    border-radius: 14px; border: 1px solid rgba(22,21,15,.1);
-    box-shadow: 0 14px 34px rgba(22, 21, 15, 0.14);
+    border-radius: 14px; border: 1px solid ${LINE};
+    box-shadow: 0 24px 50px rgba(0,0,0,.55), 0 0 70px rgba(42,69,240,.22);
   }
   .sites figcaption { margin-top: 14px; font-size: 24px; color: ${MUTED}; font-weight: 600; }
 
@@ -208,10 +233,10 @@ const square = (p) => `<!doctype html><html><head><meta charset="utf-8">${FONTS}
    */
   .rows { margin-top: 52px; }
   .rows div {
-    padding: 30px 0; border-top: 1px solid rgba(22,21,15,.14);
+    padding: 30px 0; border-top: 1px solid ${LINE};
     display: flex; flex-direction: column; gap: 8px;
   }
-  .rows div:last-child { border-bottom: 1px solid rgba(22,21,15,.14); }
+  .rows div:last-child { border-bottom: 1px solid ${LINE}; }
   .rows b {
     font-family: "Anton", sans-serif; font-weight: 400; text-transform: uppercase;
     font-size: 44px; letter-spacing: .012em;
@@ -221,8 +246,8 @@ const square = (p) => `<!doctype html><html><head><meta charset="utf-8">${FONTS}
   .shot { margin-top: 46px; }
   .shot img {
     width: 100%; height: 470px; object-fit: cover; object-position: top center;
-    border-radius: 14px; border: 1px solid rgba(22,21,15,.1);
-    box-shadow: 0 14px 34px rgba(22, 21, 15, 0.14);
+    border-radius: 14px; border: 1px solid ${LINE};
+    box-shadow: 0 24px 50px rgba(0,0,0,.55), 0 0 70px rgba(42,69,240,.22);
   }
 </style></head>
 <body>
@@ -252,7 +277,7 @@ const square = (p) => `<!doctype html><html><head><meta charset="utf-8">${FONTS}
   }
   ${p.art === "shot" ? `<div class="shot"><img src="${SITE}${p.shot}" alt=""></div>` : ""}
   <div class="foot">
-    <img src="${SITE}/brand/logo/mark-3d.png" alt="">
+    <span class="disc"><img src="${SITE}/brand/logo/mark-3d.png" alt=""></span>
     <b>Second Pair</b>
     <i>&middot;</i>
     <span>second-pair.com</span>

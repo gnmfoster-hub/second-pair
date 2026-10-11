@@ -267,25 +267,35 @@ const coverServicesHtml = `<!doctype html><html><head><meta charset="utf-8">${FO
   .col {
     position: absolute; z-index: 3;
     left: ${(COVER.w - COVER_SAFE) / 2 + 50}px;
-    top: 148px; width: 540px;
+    top: 160px; width: 440px;
   }
   h1 {
     font-family: "Anton", sans-serif; font-weight: 400; text-transform: uppercase;
-    font-size: 74px; line-height: 0.95; letter-spacing: 0.012em;
+    font-size: 62px; line-height: 0.95; letter-spacing: 0.012em;
   }
   h1 span { color: #8194ff; }
   p {
-    margin-top: 22px; font-size: 27px; line-height: 1.4;
+    margin-top: 20px; font-size: 24px; line-height: 1.4;
     color: rgba(247, 244, 236, 0.74); font-weight: 500;
   }
-  /* The real Reports page, cropped past the sidebar and bled off the edge. */
+  /*
+   * The real Reports page, cropped past the sidebar and bled off the edge.
+   *
+   * Giles: "the screen shot doesn't really show much." It did not. The panel
+   * was 860 wide and the crop cut the right-hand column of cards in half, so
+   * it read as a fragment rather than as a piece of software. It is now wide
+   * enough to carry the whole six-card grid AND the earnings bars under it,
+   * which is the part that actually looks like a product somebody built.
+   * The type column gives up the width to pay for it.
+   */
   .app {
-    position: absolute; z-index: 2; right: -150px; top: 74px;
-    width: 860px; height: 482px; overflow: hidden; border-radius: 18px;
+    position: absolute; z-index: 2; right: -90px; top: 58px;
+    width: 960px; height: 540px; overflow: hidden; border-radius: 18px;
     border: 1px solid rgba(247, 244, 236, 0.14);
-    box-shadow: 0 40px 90px rgba(0, 0, 0, 0.6), 0 0 120px rgba(42, 69, 240, 0.3);
+    box-shadow: 0 40px 90px rgba(0, 0, 0, 0.6), 0 0 130px rgba(42, 69, 240, 0.32);
   }
-  .app img { position: absolute; width: 1520px; left: -300px; top: -272px; }
+  /* 1412 source px of content scaled to fit the panel, sidebar cropped off. */
+  .app img { position: absolute; width: 1224px; left: -237px; top: -231px; }
 </style></head>
 <body>
   <div class="glow"></div>
