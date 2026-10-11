@@ -211,71 +211,88 @@ const coverHtml = `<!doctype html><html><head><meta charset="utf-8">${FONTS}
 
 
 /*
- * THE COVER: all three services, and the pair of hands.
+ * THE COVER: the product, on ink.
  *
- * Two corrections from Giles, both right.
+ * Giles: "not sure about the hands or the small and devon sentence, come on
+ * does this really look like an impressive facebook page." No, it did not,
+ * and two of the three objections were mine to have caught.
  *
- * "The wording doesn't make sense re answering the phone." The line was
- * "a small software company in Devon, run by people who answer the phone",
- * lifted from /work where it reads fine. On a Page whose product answers the
- * phone FOR you it is actively confusing: it sounds like the service is
- * people picking up, which is the opposite of what is being sold. Out.
+ * "A small software company in Devon" is good copy on /work, where modesty
+ * reads as honesty next to a page of real clients. On a cover meant to
+ * impress it opens with "small" and a county, and undersells the company to
+ * somebody who has never heard of it. Replaced with the line from /apps,
+ * word for word, which is concrete and says something worth hearing.
  *
- * "It needs to be clever and impressive." The headline was a plain list:
- * THE ASSISTANT. WEBSITES. APPS. Functional, and nothing more. Three verbs
- * do the same work in fewer words and carry the brand's own metaphor, which
- * is hands doing things: we answer (the assistant), we build (websites and
- * apps), we look after it (hosting, and keeping it working). The services
- * are then named plainly underneath so nobody has to guess.
+ * The hands are gone from here. They are the right mark and they are on the
+ * avatar sitting directly underneath, and two cut-out hands on cream is not
+ * what a software company's page looks like. Cream plus black condensed type
+ * is also the house style of every design studio, which is the thing he
+ * objected to in the first place and which I kept returning to.
  *
- * "Artwork could be better." It was one pointing finger on every single
- * piece. The brand already owns a matched pair in the same pose, cut out
- * with real alpha: hand-front in natural skin and hand-second in cobalt.
- * That pair IS the company's name and the line on the Page, and it had
- * never been used anywhere. The cobalt one sits behind and higher, the
- * natural one in front and lower, so they read as two hands rather than two
- * photographs side by side.
+ * What is actually impressive, and had never been used anywhere: the
+ * software. Ink ground, a cobalt glow behind the panel so the screen reads
+ * as lit rather than pasted on, and the real Reports page bleeding off the
+ * right edge. That is what a tech company's page looks like, and unlike a
+ * slogan it is evidence.
+ *
+ * ONE THING TO KNOW. The figures on it are the demo salon's, and the site
+ * says in as many words that the demo's money is made up. This is the same
+ * screenshot already published on /company and /system, it is the product's
+ * own dashboard rather than a claim about a client, and nothing is
+ * attributed to anybody. Flagged for Giles rather than decided quietly,
+ * because inventing numbers is the one thing this brand does not do. If he
+ * would rather no money showed, move the crop right and the two cards left
+ * are "median first reply" and "enquiries, arrived out of hours".
+ *
+ * The diary was tried first for exactly that reason and was worse: most of
+ * a month's cells are empty, so it reads as an empty diary, which is the
+ * opposite of what is being sold.
  */
 const coverServicesHtml = `<!doctype html><html><head><meta charset="utf-8">${FONTS}
 <style>
   * { box-sizing: border-box; margin: 0; }
   body {
-    width: ${COVER.w}px; height: ${COVER.h}px; color: ${INK};
+    width: ${COVER.w}px; height: ${COVER.h}px; background: #0a0b12; color: #f7f4ec;
     font-family: "Instrument Sans", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     position: relative; overflow: hidden;
+  }
+  /* Behind the panel, so the screen looks lit rather than stuck on. */
+  .glow {
+    position: absolute; inset: 0;
     background:
-      radial-gradient(1150px 720px at 26% 32%, #fdfbf6 0%, #f8f4ea 58%, #f1ecdf 100%);
+      radial-gradient(760px 620px at 74% 52%, rgba(42, 69, 240, 0.42), transparent 68%),
+      radial-gradient(900px 700px at 12% 18%, rgba(129, 148, 255, 0.10), transparent 70%);
   }
   .col {
     position: absolute; z-index: 3;
     left: ${(COVER.w - COVER_SAFE) / 2 + 50}px;
-    top: 150px; width: 520px;
+    top: 148px; width: 540px;
   }
   h1 {
     font-family: "Anton", sans-serif; font-weight: 400; text-transform: uppercase;
-    font-size: 72px; line-height: 0.95; letter-spacing: 0.012em;
+    font-size: 74px; line-height: 0.95; letter-spacing: 0.012em;
   }
-  /* The third verb in cobalt, so the eye reaches the end of the list. */
-  h1 span { color: ${COBALT}; }
+  h1 span { color: #8194ff; }
   p {
-    margin-top: 24px; font-size: 29px; line-height: 1.38; color: ${MUTED};
-    font-weight: 500;
+    margin-top: 22px; font-size: 27px; line-height: 1.4;
+    color: rgba(247, 244, 236, 0.74); font-weight: 500;
   }
-  /*
-   * Both hands bleed off the bottom so the wrists leave the frame. Separate
-   * shadows, thrown the same way, or they read as cut out and pasted.
-   */
-  .cobalt, .natural { position: absolute; filter: drop-shadow(-26px 24px 40px rgba(22,21,15,.24)); }
-  .cobalt  { right: 170px; bottom: -40px; height: 560px; z-index: 1; }
-  .natural { right: 430px; bottom: -70px; height: 510px; z-index: 2; }
+  /* The real Reports page, cropped past the sidebar and bled off the edge. */
+  .app {
+    position: absolute; z-index: 2; right: -150px; top: 74px;
+    width: 860px; height: 482px; overflow: hidden; border-radius: 18px;
+    border: 1px solid rgba(247, 244, 236, 0.14);
+    box-shadow: 0 40px 90px rgba(0, 0, 0, 0.6), 0 0 120px rgba(42, 69, 240, 0.3);
+  }
+  .app img { position: absolute; width: 1520px; left: -300px; top: -272px; }
 </style></head>
 <body>
-  <img class="cobalt" src="${SITE}/brand/hands/hand-second.png" alt="">
-  <img class="natural" src="${SITE}/brand/hands/hand-front.png" alt="">
+  <div class="glow"></div>
+  <div class="app"><img src="${SITE}/shots/report.webp" alt=""></div>
   <div class="col">
     <h1>We answer.<br>We build.<br><span>We look after it.</span></h1>
-    <p>The assistant, websites and apps. A small software company in Devon.</p>
+    <p>Answering real enquiries for real businesses every day, including at three in the morning.</p>
   </div>
 </body></html>`;
 
