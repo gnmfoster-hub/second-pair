@@ -1249,18 +1249,51 @@
 
 /* ── the first screen ── */
 
-/* Paler on the left, where the words are; the blue is the phone's side and the foot. */
+/* Paler on the left, where the words are; the colour is the phone's side and the foot. */
 .sp-hero {
+  --g1: #e3e7fc;
+  --g2: #b9c3f8;
+  --g3: #8b9bf4;
+  --g4: #5a70ee;
   background:
     linear-gradient(90deg, var(--background) 0%, color-mix(in srgb, var(--background) 62%, transparent) 40%, transparent 68%),
-    linear-gradient(180deg, var(--background) 0%, #e3e7fc 14%, #b9c3f8 42%, #8b9bf4 72%, #5a70ee 100%);
+    linear-gradient(180deg, var(--background) 0%, var(--g1) 14%, var(--g2) 42%, var(--g3) 72%, var(--g4) 100%);
 }
 
 @media (max-width: 1023.98px) {
-  /* A phone's first screen is only the top half of the hero, so the blue starts sooner. */
+  /* A phone's first screen is only the top half of the hero, so the colour starts sooner. */
   .sp-hero {
-    background: linear-gradient(180deg, var(--background) 0%, var(--background) 5%, #dfe4fc 13%, #b3bef8 30%, #8b9bf4 60%, #5a70ee 100%);
+    background: linear-gradient(180deg, var(--background) 0%, var(--background) 5%, var(--g1) 13%, var(--g2) 30%, var(--g3) 60%, var(--g4) 100%);
   }
+}
+
+/* TRIAL: other colours for the ground, picked with ?bg=. Delete the losers. */
+html[data-bg="mist"] .sp-hero {
+  --g1: #f0f2fb;
+  --g2: #e2e7fb;
+  --g3: #d3dbfa;
+  --g4: #c2ccf8;
+}
+
+html[data-bg="sky"] .sp-hero {
+  --g1: #e2efff;
+  --g2: #bedaff;
+  --g3: #98c3ff;
+  --g4: #6fa8fb;
+}
+
+html[data-bg="sand"] .sp-hero {
+  --g1: #f4eee0;
+  --g2: #eee3cd;
+  --g3: #e7d7b8;
+  --g4: #dfcaa2;
+}
+
+html[data-bg="plain"] .sp-hero {
+  --g1: var(--background);
+  --g2: var(--background);
+  --g3: var(--background);
+  --g4: var(--background);
 }
 
 /* Small print on a coloured ground needs to be ink, not grey. */
