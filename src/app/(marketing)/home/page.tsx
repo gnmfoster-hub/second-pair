@@ -7,7 +7,7 @@ import { Sites } from "./Sites";
 import { Passing } from "./scroll";
 import { Logo } from "@/components/Logo";
 import { Hero } from "./Hero";
-import { SkyPick } from "./SkyPick";
+import { HeroGround } from "./HeroGround";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -38,21 +38,13 @@ export default function HomePage() {
         * second pair of hands and the panel beside it is them working.
         */}
       {/*
-        * And behind it, the end of the working day: paper sky going to orange
-        * at the horizon, and a sun that sets behind the phone as the page is
-        * scrolled, into the dusk the next section opens on. The hero says you
-        * have knocked off; now the sky says it too.
+        * And behind it, what the pair of hands is for: customers' questions
+        * crossing the page to the phone, answered before they get there. Touch
+        * one and it is answered on the spot. The ground goes from paper to the
+        * brand's blue toward the evening the next section opens on.
         */}
       <Passing className="sp-hero relative overflow-hidden">
-        <div className="sp-hero-sun" aria-hidden />
-        {/* TRIAL: other skies to choose between, picked with ?sky=. Delete the losers. */}
-        <div className="sp-hero-sky" aria-hidden>
-          <i />
-          <i />
-          <i />
-          <i />
-        </div>
-        <SkyPick />
+        <HeroGround />
         <Hero />
         {/*
           * The line under the hero's diary fades in when the demo finishes.

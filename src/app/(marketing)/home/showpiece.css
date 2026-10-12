@@ -1195,49 +1195,31 @@
 
 /*
  * The hero was the one part of the page still on plain paper, which made the
- * first thing anybody sees the quietest thing on the site. It is now the end
- * of the working day: the sky warms to orange at the horizon and a sun sets
- * behind the phone as the page scrolls, into the dusk the evening opens on.
+ * first thing anybody sees the quietest thing on the site. Its ground is now
+ * the job itself: questions from customers crossing the page to the phone
+ * (HeroMessages), on paper that deepens to the brand's blue toward the evening
+ * below. An orange sun was here first; it read as a flag, and went.
  *
- * Only a ground and a disc are added. Nothing inside the hero is touched, and
- * every colour is one the palette already has: paper, and --highlight.
+ * Nothing inside the hero is touched, and every colour is one the palette
+ * already has: paper, ink and cobalt.
  */
 
 .sp-hero {
-  /* Resting, and where a page at the top starts: the sun up behind the phone. */
-  --p: 0.45;
   isolation: isolate;
-  background: linear-gradient(
-    180deg,
-    var(--background) 0%,
-    var(--background) 38%,
-    #fbe9cc 68%,
-    #f9c98f 90%,
-    #f3a050 100%
-  );
 }
 
-.sp-hero-sun {
+.sp-hero-ground {
   position: absolute;
+  inset: 0;
   z-index: -1;
-  left: 50%;
-  top: 24rem;
-  width: 88vw;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(circle at 36% 30%, #ffb863 0%, #f58a2a 46%, #f07818 70%, #e4640c 100%);
-  box-shadow: 0 0 140px 30px rgba(240, 120, 24, 0.32);
-  transform: translate(-50%, calc((var(--p) - 0.45) * 60vh));
-  will-change: transform;
+  pointer-events: none;
 }
 
-@media (min-width: 1024px) {
-  .sp-hero-sun {
-    left: 68%;
-    top: 9%;
-    width: min(46vw, 640px);
-    transform: translate(-50%, calc((var(--p) - 0.45) * 95vh));
-  }
+.sp-hero-ground canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 /*
@@ -1267,14 +1249,21 @@
 
 /* ── the first screen ── */
 
-/* The sky stays paler on the left, where the words are; the orange is the sun's side. */
+/* Paler on the left, where the words are; the blue is the phone's side and the foot. */
 .sp-hero {
   background:
-    linear-gradient(90deg, var(--background) 0%, color-mix(in srgb, var(--background) 70%, transparent) 42%, transparent 70%),
-    linear-gradient(180deg, var(--background) 0%, var(--background) 38%, #fbe9cc 68%, #f9c98f 90%, #f3a050 100%);
+    linear-gradient(90deg, var(--background) 0%, color-mix(in srgb, var(--background) 62%, transparent) 40%, transparent 68%),
+    linear-gradient(180deg, var(--background) 0%, #e3e7fc 14%, #b9c3f8 42%, #8b9bf4 72%, #5a70ee 100%);
 }
 
-/* Small print on a warm sky needs to be ink, not grey. */
+@media (max-width: 1023.98px) {
+  /* A phone's first screen is only the top half of the hero, so the blue starts sooner. */
+  .sp-hero {
+    background: linear-gradient(180deg, var(--background) 0%, var(--background) 5%, #dfe4fc 13%, #b3bef8 30%, #8b9bf4 60%, #5a70ee 100%);
+  }
+}
+
+/* Small print on a coloured ground needs to be ink, not grey. */
 .sp-hero .text-muted {
   color: color-mix(in srgb, var(--foreground) 84%, transparent);
 }
@@ -1286,7 +1275,7 @@
   }
 }
 
-/* The trade buttons sit over the hand and the sun, so they get paper under them. */
+/* The trade buttons sit over the hand and the blue, so they get paper under them. */
 .sp-hero button[style*="background: transparent"],
 .sp-hero button[style*="background:transparent"] {
   background: var(--background) !important;
@@ -1639,154 +1628,4 @@
     width: 2.25rem;
     height: 2.25rem;
   }
-}
-
-/* ═══════════════════════════════════════════ TRIAL: other grounds for the hero */
-
-/*
- * The orange disc read as a flag, and so did everything sun-shaped that
- * replaced it. These drop the sun and the orange altogether:
- * ?sky=blue, ?sky=bubble, ?sky=lines, ?sky=night.
- */
-
-.sp-hero-sky {
-  display: none;
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  --cx: 50%;
-  --cy: calc(24rem + 44vw);
-  --size: 150vw;
-  --set: calc((var(--p) - 0.45) * 60vh);
-}
-
-@media (min-width: 1024px) {
-  .sp-hero-sky {
-    --cx: 68%;
-    --cy: calc(9% + min(23vw, 320px));
-    --size: min(74vw, 1040px);
-    --set: calc((var(--p) - 0.45) * 95vh);
-  }
-}
-
-html[data-sky] .sp-hero-sun {
-  display: none;
-}
-
-html[data-sky] .sp-hero-sky {
-  display: block;
-}
-
-.sp-hero-sky i {
-  display: none;
-  position: absolute;
-  left: var(--cx);
-  top: var(--cy);
-  width: var(--size);
-  aspect-ratio: 1;
-  translate: -50% calc(-50% + var(--set));
-}
-
-/* blue: dusk in the brand's own blue, and a soft light behind the phone */
-html[data-sky="blue"] .sp-hero {
-  background:
-    linear-gradient(90deg, var(--background) 0%, color-mix(in srgb, var(--background) 70%, transparent) 42%, transparent 70%),
-    linear-gradient(180deg, var(--background) 0%, var(--background) 34%, #dde2fb 62%, #a3b0f6 86%, #6a7ef0 100%);
-}
-
-html[data-sky="blue"] .sp-hero-sky i:nth-child(1) {
-  display: block;
-  border-radius: 50%;
-  background: radial-gradient(
-    closest-side,
-    color-mix(in srgb, var(--accent) 62%, transparent) 0%,
-    color-mix(in srgb, var(--accent) 26%, transparent) 45%,
-    transparent 100%
-  );
-}
-
-/* bubble: the speech bubble from the mark, in cobalt, with the phone in it */
-html[data-sky="bubble"] .sp-hero {
-  background: var(--background);
-}
-
-html[data-sky="bubble"] .sp-hero-sky i:nth-child(1) {
-  display: block;
-  width: calc(var(--size) * 0.56);
-  aspect-ratio: 1 / 1.04;
-  border-radius: 17%;
-  background: var(--accent);
-  rotate: -5deg;
-}
-
-html[data-sky="bubble"] .sp-hero-sky i:nth-child(1)::after {
-  content: "";
-  position: absolute;
-  left: 9%;
-  bottom: -9%;
-  width: 24%;
-  aspect-ratio: 1;
-  background: inherit;
-  clip-path: polygon(0 0, 100% 0, 12% 100%);
-}
-
-@media (max-width: 1023.98px) {
-  html[data-sky="bubble"] .sp-hero-sky i:nth-child(1) {
-    width: 92vw;
-  }
-}
-
-/* lines: no colour at all. The ruled page of the diary the product fills. */
-html[data-sky="lines"] .sp-hero {
-  background: var(--background);
-}
-
-html[data-sky="lines"] .sp-hero-sky {
-  background:
-    repeating-linear-gradient(0deg, color-mix(in srgb, var(--foreground) 13%, transparent) 0 1px, transparent 1px 64px),
-    repeating-linear-gradient(90deg, color-mix(in srgb, var(--foreground) 13%, transparent) 0 1px, transparent 1px 14.2857%);
-  background-position: 0 calc(var(--set) * -0.5), 0 0;
-  -webkit-mask-image: linear-gradient(105deg, transparent 18%, #000 62%);
-  mask-image: linear-gradient(105deg, transparent 18%, #000 62%);
-}
-
-@media (max-width: 1023.98px) {
-  html[data-sky="lines"] .sp-hero-sky {
-    -webkit-mask-image: linear-gradient(180deg, transparent 30%, #000 60%);
-    mask-image: linear-gradient(180deg, transparent 30%, #000 60%);
-  }
-}
-
-/* night: the page opens after dark, the phone the only thing lit */
-html[data-sky="night"] .sp-hero {
-  --background: #0c0d16;
-  --surface: #171927;
-  --surface-2: #1e2132;
-  --border: rgba(247, 244, 236, 0.15);
-  --foreground: #f7f4ec;
-  --muted: rgba(247, 244, 236, 0.84);
-  --accent: #8194ff;
-  --accent-strong: #a9b6ff;
-  --on-accent: #0c0d16;
-  --putty: #474a60;
-  color: var(--foreground);
-  background:
-    radial-gradient(60% 55% at 72% 58%, rgba(70, 92, 255, 0.5), transparent 70%),
-    #0c0d16;
-}
-
-/* The ones that answer a finger: plain paper, and a canvas drawn by SkyLive. */
-html[data-sky="msgs"] .sp-hero,
-html[data-sky="diary"] .sp-hero,
-html[data-sky="torch"] .sp-hero,
-html[data-sky="field"] .sp-hero {
-  background: var(--background);
-}
-
-.sp-hero-live {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
 }
