@@ -1267,33 +1267,71 @@
   }
 }
 
-/* TRIAL: other colours for the ground, picked with ?bg=. Delete the losers. */
-html[data-bg="mist"] .sp-hero {
-  --g1: #f0f2fb;
-  --g2: #e2e7fb;
-  --g3: #d3dbfa;
-  --g4: #c2ccf8;
+/*
+ * TRIAL: textured grounds in other colours, picked with ?bg=. Delete the losers.
+ *
+ * Two layers under the diary: a broad uneven wash, the way colour sits on real
+ * paper, and a fine grain over it. Both are drawn by the browser from a few
+ * lines of SVG, so there is no picture to download.
+ */
+html[data-bg] .sp-hero-ground::before,
+html[data-bg] .sp-hero-ground::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  /* Comes in gradually under the top bar, so there is no edge where the texture starts. */
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 220px);
+  mask-image: linear-gradient(180deg, transparent 0, #000 220px);
 }
 
-html[data-bg="sky"] .sp-hero {
-  --g1: #e2efff;
-  --g2: #bedaff;
-  --g3: #98c3ff;
-  --g4: #6fa8fb;
+html[data-bg] .sp-hero-ground::before {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.009' numOctaves='4' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 2.4 -1.05'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23w)'/%3E%3C/svg%3E");
+  opacity: 0.55;
 }
 
-html[data-bg="sand"] .sp-hero {
-  --g1: #f4eee0;
-  --g2: #eee3cd;
-  --g3: #e7d7b8;
-  --g4: #dfcaa2;
+html[data-bg] .sp-hero-ground::after {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .08  0 0 0 0 .08  0 0 0 0 .06  0 0 0 1.6 -.62'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.5;
+  mix-blend-mode: multiply;
 }
 
-html[data-bg="plain"] .sp-hero {
-  --g1: var(--background);
-  --g2: var(--background);
-  --g3: var(--background);
-  --g4: var(--background);
+html[data-bg] .sp-hero-ground canvas {
+  z-index: 1;
+}
+
+html[data-bg="denim"] .sp-hero {
+  --g1: #dfe8f6;
+  --g2: #b9cdec;
+  --g3: #92b0e0;
+  --g4: #6f94d4;
+}
+
+html[data-bg="sage"] .sp-hero {
+  --g1: #e6ecdb;
+  --g2: #cddbbb;
+  --g3: #b3c99c;
+  --g4: #9ab880;
+}
+
+html[data-bg="clay"] .sp-hero {
+  --g1: #f5e3d7;
+  --g2: #edc9b4;
+  --g3: #e3ae93;
+  --g4: #d99577;
+}
+
+html[data-bg="butter"] .sp-hero {
+  --g1: #f8efcc;
+  --g2: #f4e3a0;
+  --g3: #efd678;
+  --g4: #e8c853;
+}
+
+html[data-bg="slate"] .sp-hero {
+  --g1: #e2e5e8;
+  --g2: #c8ced5;
+  --g3: #adb7c1;
+  --g4: #93a0ad;
 }
 
 /* Small print on a coloured ground needs to be ink, not grey. */
