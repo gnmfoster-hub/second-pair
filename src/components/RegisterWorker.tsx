@@ -41,6 +41,17 @@ export function RegisterWorker() {
     let reloading = false;
 
     /*
+     * Was a worker already running this page when it loaded?
+     *
+     * The very first visit installs one, and it claims the page, which fires
+     * the same event as an update does. Reloading then made every new visitor
+     * load the site twice, measured on the live home page as a second full
+     * load 0.7s in. Only an update, a worker replacing a worker, is a reason
+     * to take the page with it.
+     */
+    const hadWorker = Boolean(navigator.serviceWorker.controller);
+
+    /*
      * When the new worker takes over, take the page with it.
      *
      * The worker skips waiting and claims its clients, so this fires on the
@@ -53,7 +64,7 @@ export function RegisterWorker() {
      * on the screen a business runs its day from would be unforgivable.
      */
     const onControllerChange = () => {
-      if (reloading) return;
+      if (!hadWorker || reloading) return;
       reloading = true;
       window.location.reload();
     };

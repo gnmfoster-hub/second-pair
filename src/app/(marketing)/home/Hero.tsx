@@ -1031,7 +1031,15 @@ export function Hero() {
                 <img
                   src={h.src}
                   alt=""
-                  className="w-full select-none"
+                  /*
+                   * The biggest thing on the first screen, so the browser is
+                   * told to fetch it first, and told its shape so nothing
+                   * moves when it lands.
+                   */
+                  width={700}
+                  height={974}
+                  fetchPriority="high"
+                  className="h-auto w-full select-none"
                   style={{
                     animation: `${h.keyframes} ${h.seconds}s ease-in-out infinite`,
                     opacity: 0.95,

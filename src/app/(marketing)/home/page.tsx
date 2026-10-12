@@ -7,6 +7,7 @@ import { Sites } from "./Sites";
 import { Passing } from "./scroll";
 import { Logo } from "@/components/Logo";
 import { Hero } from "./Hero";
+import { SkyPick } from "./SkyPick";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -44,6 +45,14 @@ export default function HomePage() {
         */}
       <Passing className="sp-hero relative overflow-hidden">
         <div className="sp-hero-sun" aria-hidden />
+        {/* TRIAL: other skies to choose between, picked with ?sky=. Delete the losers. */}
+        <div className="sp-hero-sky" aria-hidden>
+          <i />
+          <i />
+          <i />
+          <i />
+        </div>
+        <SkyPick />
         <Hero />
         {/*
           * The line under the hero's diary fades in when the demo finishes.

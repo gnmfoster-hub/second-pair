@@ -1640,3 +1640,137 @@
     height: 2.25rem;
   }
 }
+
+/* ═══════════════════════════════════════════ TRIAL: other skies for the hero */
+
+/*
+ * The disc is the thing in question. Each of these keeps the end of the day
+ * and loses the big circle: ?sky=glow, ?sky=rays, ?sky=rings. All are drawn
+ * from --highlight alone, and all set with the scroll as the sun did.
+ */
+
+.sp-hero-sky {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  --cx: 50%;
+  --cy: calc(24rem + 44vw);
+  --size: 150vw;
+  --set: calc((var(--p) - 0.45) * 60vh);
+}
+
+@media (min-width: 1024px) {
+  .sp-hero-sky {
+    --cx: 68%;
+    --cy: calc(9% + min(23vw, 320px));
+    --size: min(74vw, 1040px);
+    --set: calc((var(--p) - 0.45) * 95vh);
+  }
+}
+
+html[data-sky] .sp-hero-sun {
+  display: none;
+}
+
+html[data-sky] .sp-hero-sky {
+  display: block;
+}
+
+.sp-hero-sky i {
+  display: none;
+  position: absolute;
+  left: var(--cx);
+  top: var(--cy);
+  width: var(--size);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  translate: -50% calc(-50% + var(--set));
+}
+
+/* glow: the light of a sun with no edge to it */
+html[data-sky="glow"] .sp-hero-sky i:nth-child(1),
+html[data-sky="rays"] .sp-hero-sky i:nth-child(2),
+html[data-sky="rings"] .sp-hero-sky i:nth-child(1) {
+  display: block;
+  background: radial-gradient(
+    closest-side,
+    #ffc37a 0%,
+    color-mix(in srgb, var(--highlight) 72%, transparent) 24%,
+    color-mix(in srgb, var(--highlight) 30%, transparent) 52%,
+    transparent 100%
+  );
+}
+
+/* rays: a low sun fanning light up the sky, turning slowly */
+html[data-sky="rays"] .sp-hero-sky i:nth-child(1) {
+  display: block;
+  width: calc(var(--size) * 1.5);
+  background: repeating-conic-gradient(
+    from 0deg,
+    color-mix(in srgb, var(--highlight) 34%, transparent) 0deg 5deg,
+    transparent 5deg 15deg
+  );
+  -webkit-mask-image: radial-gradient(closest-side, #000 8%, transparent 96%);
+  mask-image: radial-gradient(closest-side, #000 8%, transparent 96%);
+  animation: sp-sky-turn 140s linear infinite;
+}
+
+html[data-sky="rays"] .sp-hero-sky i:nth-child(2) {
+  width: calc(var(--size) * 0.62);
+}
+
+@keyframes sp-sky-turn {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* rings: something arriving, over and over, which is what the product is */
+html[data-sky="rings"] .sp-hero-sky i:nth-child(1) {
+  width: calc(var(--size) * 0.6);
+}
+
+html[data-sky="rings"] .sp-hero-sky i:nth-child(n + 2) {
+  display: block;
+  border: 4px solid var(--highlight);
+  animation: sp-sky-ring 7.5s linear infinite;
+}
+
+html[data-sky="rings"] .sp-hero-sky i:nth-child(3) {
+  animation-delay: -2.5s;
+}
+
+html[data-sky="rings"] .sp-hero-sky i:nth-child(4) {
+  animation-delay: -5s;
+}
+
+@keyframes sp-sky-ring {
+  0% {
+    scale: 0.16;
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 0.55;
+  }
+  100% {
+    scale: 1;
+    opacity: 0;
+  }
+}
+
+/* A phone in battery saver asks for less motion; these are the page's sky and keep going. */
+@media (prefers-reduced-motion: reduce) {
+  html[data-sky="rays"] .sp-hero-sky i:nth-child(1) {
+    animation-duration: 140s !important;
+    animation-iteration-count: infinite !important;
+  }
+  html[data-sky="rings"] .sp-hero-sky i:nth-child(n + 2) {
+    animation-duration: 7.5s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
