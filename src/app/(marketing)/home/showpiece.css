@@ -1641,12 +1641,12 @@
   }
 }
 
-/* ═══════════════════════════════════════════ TRIAL: other skies for the hero */
+/* ═══════════════════════════════════════════ TRIAL: other grounds for the hero */
 
 /*
- * The disc is the thing in question. Each of these keeps the end of the day
- * and loses the big circle: ?sky=glow, ?sky=rays, ?sky=rings. All are drawn
- * from --highlight alone, and all set with the scroll as the sun did.
+ * The orange disc read as a flag, and so did everything sun-shaped that
+ * replaced it. These drop the sun and the orange altogether:
+ * ?sky=blue, ?sky=bubble, ?sky=lines, ?sky=night.
  */
 
 .sp-hero-sky {
@@ -1685,92 +1685,93 @@ html[data-sky] .sp-hero-sky {
   top: var(--cy);
   width: var(--size);
   aspect-ratio: 1;
-  border-radius: 50%;
   translate: -50% calc(-50% + var(--set));
 }
 
-/* glow: the light of a sun with no edge to it */
-html[data-sky="glow"] .sp-hero-sky i:nth-child(1),
-html[data-sky="rays"] .sp-hero-sky i:nth-child(2),
-html[data-sky="rings"] .sp-hero-sky i:nth-child(1) {
+/* blue: dusk in the brand's own blue, and a soft light behind the phone */
+html[data-sky="blue"] .sp-hero {
+  background:
+    linear-gradient(90deg, var(--background) 0%, color-mix(in srgb, var(--background) 70%, transparent) 42%, transparent 70%),
+    linear-gradient(180deg, var(--background) 0%, var(--background) 34%, #dde2fb 62%, #a3b0f6 86%, #6a7ef0 100%);
+}
+
+html[data-sky="blue"] .sp-hero-sky i:nth-child(1) {
   display: block;
+  border-radius: 50%;
   background: radial-gradient(
     closest-side,
-    #ffc37a 0%,
-    color-mix(in srgb, var(--highlight) 72%, transparent) 24%,
-    color-mix(in srgb, var(--highlight) 30%, transparent) 52%,
+    color-mix(in srgb, var(--accent) 62%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 26%, transparent) 45%,
     transparent 100%
   );
 }
 
-/* rays: a low sun fanning light up the sky, turning slowly */
-html[data-sky="rays"] .sp-hero-sky i:nth-child(1) {
+/* bubble: the speech bubble from the mark, in cobalt, with the phone in it */
+html[data-sky="bubble"] .sp-hero {
+  background: var(--background);
+}
+
+html[data-sky="bubble"] .sp-hero-sky i:nth-child(1) {
   display: block;
-  width: calc(var(--size) * 1.5);
-  background: repeating-conic-gradient(
-    from 0deg,
-    color-mix(in srgb, var(--highlight) 34%, transparent) 0deg 5deg,
-    transparent 5deg 15deg
-  );
-  -webkit-mask-image: radial-gradient(closest-side, #000 8%, transparent 96%);
-  mask-image: radial-gradient(closest-side, #000 8%, transparent 96%);
-  animation: sp-sky-turn 140s linear infinite;
+  width: calc(var(--size) * 0.56);
+  aspect-ratio: 1 / 1.04;
+  border-radius: 17%;
+  background: var(--accent);
+  rotate: -5deg;
 }
 
-html[data-sky="rays"] .sp-hero-sky i:nth-child(2) {
-  width: calc(var(--size) * 0.62);
+html[data-sky="bubble"] .sp-hero-sky i:nth-child(1)::after {
+  content: "";
+  position: absolute;
+  left: 9%;
+  bottom: -9%;
+  width: 24%;
+  aspect-ratio: 1;
+  background: inherit;
+  clip-path: polygon(0 0, 100% 0, 12% 100%);
 }
 
-@keyframes sp-sky-turn {
-  to {
-    rotate: 360deg;
+@media (max-width: 1023.98px) {
+  html[data-sky="bubble"] .sp-hero-sky i:nth-child(1) {
+    width: 92vw;
   }
 }
 
-/* rings: something arriving, over and over, which is what the product is */
-html[data-sky="rings"] .sp-hero-sky i:nth-child(1) {
-  width: calc(var(--size) * 0.6);
+/* lines: no colour at all. The ruled page of the diary the product fills. */
+html[data-sky="lines"] .sp-hero {
+  background: var(--background);
 }
 
-html[data-sky="rings"] .sp-hero-sky i:nth-child(n + 2) {
-  display: block;
-  border: 4px solid var(--highlight);
-  animation: sp-sky-ring 7.5s linear infinite;
+html[data-sky="lines"] .sp-hero-sky {
+  background:
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--foreground) 13%, transparent) 0 1px, transparent 1px 64px),
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--foreground) 13%, transparent) 0 1px, transparent 1px 14.2857%);
+  background-position: 0 calc(var(--set) * -0.5), 0 0;
+  -webkit-mask-image: linear-gradient(105deg, transparent 18%, #000 62%);
+  mask-image: linear-gradient(105deg, transparent 18%, #000 62%);
 }
 
-html[data-sky="rings"] .sp-hero-sky i:nth-child(3) {
-  animation-delay: -2.5s;
-}
-
-html[data-sky="rings"] .sp-hero-sky i:nth-child(4) {
-  animation-delay: -5s;
-}
-
-@keyframes sp-sky-ring {
-  0% {
-    scale: 0.16;
-    opacity: 0;
-  }
-  12% {
-    opacity: 1;
-  }
-  60% {
-    opacity: 0.55;
-  }
-  100% {
-    scale: 1;
-    opacity: 0;
+@media (max-width: 1023.98px) {
+  html[data-sky="lines"] .sp-hero-sky {
+    -webkit-mask-image: linear-gradient(180deg, transparent 30%, #000 60%);
+    mask-image: linear-gradient(180deg, transparent 30%, #000 60%);
   }
 }
 
-/* A phone in battery saver asks for less motion; these are the page's sky and keep going. */
-@media (prefers-reduced-motion: reduce) {
-  html[data-sky="rays"] .sp-hero-sky i:nth-child(1) {
-    animation-duration: 140s !important;
-    animation-iteration-count: infinite !important;
-  }
-  html[data-sky="rings"] .sp-hero-sky i:nth-child(n + 2) {
-    animation-duration: 7.5s !important;
-    animation-iteration-count: infinite !important;
-  }
+/* night: the page opens after dark, the phone the only thing lit */
+html[data-sky="night"] .sp-hero {
+  --background: #0c0d16;
+  --surface: #171927;
+  --surface-2: #1e2132;
+  --border: rgba(247, 244, 236, 0.15);
+  --foreground: #f7f4ec;
+  --muted: rgba(247, 244, 236, 0.84);
+  --accent: #8194ff;
+  --accent-strong: #a9b6ff;
+  --on-accent: #0c0d16;
+  --putty: #474a60;
+  color: var(--foreground);
+  background:
+    radial-gradient(60% 55% at 72% 58%, rgba(70, 92, 255, 0.5), transparent 70%),
+    #0c0d16;
 }

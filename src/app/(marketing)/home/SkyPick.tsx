@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 /**
- * TRIAL. Chooses the hero's sky from ?sky=glow|rays|rings so the options can
+ * TRIAL. Chooses the hero's sky from ?sky=blue|bubble|lines|night so the options can
  * be looked at side by side. Goes when one is chosen.
  */
 export function SkyPick() {
