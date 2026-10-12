@@ -1298,11 +1298,20 @@
 }
 
 /*
- * Putty was the quiet line of the headline on plain paper. On slate it is the
- * colour of the ground and vanished into it, so it takes the slate's own dark.
+ * Putty is the quiet line of the headline, and on slate it is nearly the colour
+ * of the ground. It keeps its colour and is made solid instead: an ink edge
+ * round each letter and a block of ink behind, the way the panels stand on
+ * their hard shadow. Sized in ems so it holds from a phone to a wide screen.
  */
 .sp-hero h1 span[style*="--putty"] {
-  color: #4f5b68 !important;
+  -webkit-text-stroke: 0.03em var(--foreground);
+  paint-order: stroke fill;
+  text-shadow:
+    0.011em 0.011em 0 var(--foreground),
+    0.022em 0.022em 0 var(--foreground),
+    0.033em 0.033em 0 var(--foreground),
+    0.044em 0.044em 0 var(--foreground),
+    0.055em 0.055em 0 var(--foreground);
 }
 
 /* Small print on a coloured ground needs to be ink, not grey. */
