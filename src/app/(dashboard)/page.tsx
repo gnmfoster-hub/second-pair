@@ -1,3 +1,4 @@
+import { whatItBooked } from "@/lib/whatItBooked";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudio } from "@/lib/studio";
@@ -210,14 +211,22 @@ export default async function InboxPage({
     status: ConvStatus;
     enquiries: {
       quote_low_pence: number | null;
-      bookings: { cancelled_at: string | null }[];
+      /*
+       * price_pence as well as the quote.
+       *
+       * It was never fetched, so the money on this row could only ever be
+       * the quote the enquiry opened at. A price agreed afterwards, or
+       * corrected by the owner, was invisible to the one figure this screen
+       * exists to show.
+       */
+      bookings: { cancelled_at: string | null; price_pence: number | null }[];
     } | null;
   };
 
   /* The week's figures. Spam is taken out below, in code, not in the query. */
   let counted = supabase
     .from("conversations")
-    .select("created_at, status, enquiries(quote_low_pence, bookings(cancelled_at))")
+    .select("created_at, status, enquiries(quote_low_pence, bookings(cancelled_at, price_pence))")
     .eq("studio_id", studio.id)
     .eq("is_test", false)
     .gte("created_at", sevenDaysAgo);
@@ -317,13 +326,28 @@ export default async function InboxPage({
   const whileShut = recent.filter((c) =>
     isOutOfHours(new Date(c.created_at), studio.hours, studio.timezone),
   );
-  const isBooked = (c: WeekRow) =>
-    (c.enquiries?.bookings ?? []).some((b) => !b.cancelled_at);
+  const countedOf = (c: WeekRow) => whatItBooked(c.enquiries?.bookings, c.enquiries?.quote_low_pence);
+  const isBooked = (c: WeekRow) => countedOf(c).count > 0;
 
-  const booked = recent.filter(isBooked);
-  const recovered = whileShut
-    .filter(isBooked)
-    .reduce((total, c) => total + (c.enquiries?.quote_low_pence ?? 0), 0);
+  /*
+   * Appointments, not conversations.
+   *
+   * Giles, 12 October: "surely living canvas total should be more?" This
+   * counted the conversations that led to a booking, so somebody who booked a
+   * consultation and the work in one chat, or a standing weekly job, counted
+   * once. "Booked in" beside a diary is read as appointments, and it should
+   * be appointments.
+   */
+  const booked = recent.reduce((n, c) => n + countedOf(c).count, 0);
+
+  /*
+   * What was agreed, then what was quoted, which is the rule the diary has
+   * used since a shop that types its own regulars in saw nought every week.
+   * This row never had it: the money came off the enquiry's opening quote and
+   * nothing else, so a price corrected on the booking never showed, and an
+   * enquiry carrying two bookings was counted once at one of their prices.
+   */
+  const recovered = whileShut.reduce((total, c) => total + countedOf(c).pence, 0);
 
   const waiting = needsSomebody ?? [];
 
@@ -434,7 +458,7 @@ export default async function InboxPage({
         <div className="card settle mt-5 overflow-hidden p-0">
           <Band inline>
             <Figure inline label="Booked in">
-              <Ticker value={booked.length} />
+              <Ticker value={booked} />
             </Figure>
             <Figure
               inline

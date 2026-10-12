@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { OpeningHours, Studio } from "@/lib/types";
+import { whatItBooked } from "./whatItBooked.ts";
 import { localParts } from "./booking/tz.ts";
 import { countsAsEnquiry } from "./conversationStatus.ts";
 
@@ -159,14 +160,33 @@ export async function weeklyReport(
 
     const live = (row.enquiries?.bookings ?? []).filter((b) => !b.cancelled_at);
     if (live.length) {
-      report.booked++;
-      const value = row.enquiries?.quote_low_pence ?? 0;
+      /*
+       * Appointments, not conversations, and the agreed price before the quote.
+       *
+       * Giles, 12 October: "surely living canvas total should be more?" Both
+       * halves of this line were wrong in the same way the inbox row was.
+       *
+       * booked++ counted the conversation, so an enquiry that produced a
+       * consultation and the work, or a standing weekly job, counted once
+       * however many appointments came out of it.
+       *
+       * And the value was the enquiry's opening quote and nothing else, so a
+       * price agreed afterwards or corrected by the owner never reached the
+       * figure, and two bookings off one enquiry were counted at one price.
+       * Living Canvas read £320 over thirty days where the bookings
+       * themselves came to £160.
+       *
+       * The fallback to the quote stays, for the many bookings nobody has put
+       * a price on. Same rule as the diary.
+       */
+      const { count, pence: value } = whatItBooked(live, row.enquiries?.quote_low_pence);
+      report.booked += count;
       report.quotedValuePence += value;
 
       // The headline: work that would most likely have been lost, because
       // nobody was there when the enquiry came in.
       if (afterHours) {
-        report.recoveredBookings++;
+        report.recoveredBookings += count;
         report.recoveredPence += value;
       }
     }
