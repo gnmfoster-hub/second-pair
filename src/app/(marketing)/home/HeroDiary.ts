@@ -115,7 +115,7 @@ export function startDiary(hero: HTMLElement, layer: HTMLElement) {
   const draw = () => {
     const t = clock;
     // The ruling.
-    g.strokeStyle = "rgba(22, 21, 15, 0.2)";
+    g.strokeStyle = "rgba(22, 21, 15, 0.14)";
     g.lineWidth = 1;
     g.beginPath();
     for (let c = 1; c < cols; c++) {
@@ -128,8 +128,8 @@ export function startDiary(hero: HTMLElement, layer: HTMLElement) {
     }
     g.stroke();
     if (wide) {
-      // On a wide screen it is rubbed out under the words, which have a column to themselves.
-      const rub = g.createLinearGradient(edge - 140, 0, edge + 60, 0);
+      // On a wide screen the diary is the right of the page only: the words keep their side clear.
+      const rub = g.createLinearGradient(edge, 0, edge + 90, 0);
       rub.addColorStop(0, "rgba(0, 0, 0, 1)");
       rub.addColorStop(1, "rgba(0, 0, 0, 0)");
       g.globalCompositeOperation = "destination-out";
@@ -141,21 +141,22 @@ export function startDiary(hero: HTMLElement, layer: HTMLElement) {
     if (ptr.on) {
       const c = Math.floor(ptr.x / cw);
       const r = Math.floor(ptr.y / ROW);
-      if (c >= 0 && c < cols && r >= 0 && !taken(c, r)) slots.push({ c, r, born: t, mine: true });
+      if (c >= 0 && c < cols && r >= 0 && !taken(c, r) && !(wide && c * cw < edge + 24)) slots.push({ c, r, born: t, mine: true });
     }
     if (t > next) {
-      next = t + rnd(0.4, 0.9);
+      // Unhurried: a handful on the page at once, not a wall of them.
+      next = t + rnd(1.1, 2);
       for (let i = 0; i < 16; i++) {
         const c = Math.floor(rnd(0, cols));
         const r = Math.floor(rnd(1.4, Math.min(H, row.b + 80) / ROW));
         const k = cell(c, r);
-        if (taken(c, r) || onWords(k) || hidden(k)) continue;
+        if (taken(c, r) || onWords(k) || hidden(k) || (wide && k.l < edge + 24)) continue;
         slots.push({ c, r, born: t, mine: false });
         break;
       }
     }
 
-    const life = (b: Slot) => (b.mine ? 5 : wide ? 13 : 9);
+    const life = (b: Slot) => (b.mine ? 3.5 : wide ? 9 : 7);
     slots = slots.filter((b) => t - b.born < life(b) + 0.8);
     g.textAlign = "left";
     g.textBaseline = "top";
@@ -172,15 +173,11 @@ export function startDiary(hero: HTMLElement, layer: HTMLElement) {
       g.scale(s, s);
       // One a finger put under the words is only a ghost of a booking.
       g.globalAlpha = Math.min(1, age / 0.12) * (1 - smooth(life(b), life(b) + 0.8, age)) * (onWords(k) ? 0.22 : 1);
-      // The hard ink shadow every panel on the site stands on.
-      box(g, -w / 2 + 3, -h / 2 + 3, w, h, 9);
-      g.fillStyle = INK;
-      g.fill();
       box(g, -w / 2, -h / 2, w, h, 9);
       g.fillStyle = fill;
       g.fill();
       g.strokeStyle = INK;
-      g.lineWidth = 1.75;
+      g.lineWidth = 1.25;
       g.stroke();
       g.fillStyle = text;
       g.font = `700 12px ${font}`;
