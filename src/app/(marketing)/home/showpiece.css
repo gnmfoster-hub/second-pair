@@ -1197,11 +1197,11 @@
  * The hero was the one part of the page still on plain paper, which made the
  * first thing anybody sees the quietest thing on the site. Its ground is now
  * the job itself: a diary booking itself up, which a finger can book too
- * (HeroDiary), on paper that deepens to the brand's blue toward the evening
+ * (HeroDiary), on paper that deepens to a textured slate toward the evening
  * below. An orange sun was here first; it read as a flag, and went.
  *
  * Nothing inside the hero is touched, and every colour is one the palette
- * already has: paper, ink and cobalt.
+ * already has, bar the slate itself: paper, ink and cobalt.
  */
 
 .sp-hero {
@@ -1251,10 +1251,10 @@
 
 /* Paler on the left, where the words are; the colour is the phone's side and the foot. */
 .sp-hero {
-  --g1: #e3e7fc;
-  --g2: #b9c3f8;
-  --g3: #8b9bf4;
-  --g4: #5a70ee;
+  --g1: #e2e5e8;
+  --g2: #c8ced5;
+  --g3: #adb7c1;
+  --g4: #93a0ad;
   background:
     linear-gradient(90deg, var(--background) 0%, color-mix(in srgb, var(--background) 62%, transparent) 40%, transparent 68%),
     linear-gradient(180deg, var(--background) 0%, var(--g1) 14%, var(--g2) 42%, var(--g3) 72%, var(--g4) 100%);
@@ -1268,14 +1268,12 @@
 }
 
 /*
- * TRIAL: textured grounds in other colours, picked with ?bg=. Delete the losers.
- *
- * Two layers under the diary: a broad uneven wash, the way colour sits on real
+ * The slate is textured: a broad uneven wash, the way colour sits on real
  * paper, and a fine grain over it. Both are drawn by the browser from a few
  * lines of SVG, so there is no picture to download.
  */
-html[data-bg] .sp-hero-ground::before,
-html[data-bg] .sp-hero-ground::after {
+.sp-hero-ground::before,
+.sp-hero-ground::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -1284,54 +1282,27 @@ html[data-bg] .sp-hero-ground::after {
   mask-image: linear-gradient(180deg, transparent 0, #000 220px);
 }
 
-html[data-bg] .sp-hero-ground::before {
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.009' numOctaves='4' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 2.4 -1.05'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23w)'/%3E%3C/svg%3E");
+.sp-hero-ground::before {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.007' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1.5 -.5'/%3E%3CfeGaussianBlur stdDeviation='10'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23w)'/%3E%3C/svg%3E");
   opacity: 0.55;
 }
 
-html[data-bg] .sp-hero-ground::after {
+.sp-hero-ground::after {
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .08  0 0 0 0 .08  0 0 0 0 .06  0 0 0 1.6 -.62'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   opacity: 0.5;
   mix-blend-mode: multiply;
 }
 
-html[data-bg] .sp-hero-ground canvas {
+.sp-hero-ground canvas {
   z-index: 1;
 }
 
-html[data-bg="denim"] .sp-hero {
-  --g1: #dfe8f6;
-  --g2: #b9cdec;
-  --g3: #92b0e0;
-  --g4: #6f94d4;
-}
-
-html[data-bg="sage"] .sp-hero {
-  --g1: #e6ecdb;
-  --g2: #cddbbb;
-  --g3: #b3c99c;
-  --g4: #9ab880;
-}
-
-html[data-bg="clay"] .sp-hero {
-  --g1: #f5e3d7;
-  --g2: #edc9b4;
-  --g3: #e3ae93;
-  --g4: #d99577;
-}
-
-html[data-bg="butter"] .sp-hero {
-  --g1: #f8efcc;
-  --g2: #f4e3a0;
-  --g3: #efd678;
-  --g4: #e8c853;
-}
-
-html[data-bg="slate"] .sp-hero {
-  --g1: #e2e5e8;
-  --g2: #c8ced5;
-  --g3: #adb7c1;
-  --g4: #93a0ad;
+/*
+ * Putty was the quiet line of the headline on plain paper. On slate it is the
+ * colour of the ground and vanished into it, so it takes the slate's own dark.
+ */
+.sp-hero h1 span[style*="--putty"] {
+  color: #4f5b68 !important;
 }
 
 /* Small print on a coloured ground needs to be ink, not grey. */

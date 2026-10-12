@@ -10,9 +10,6 @@ export function HeroGround() {
   const layer = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // TRIAL: ?bg=blue|denim|sage|clay|butter|slate tries a textured ground in that colour. Goes when one is chosen.
-    const bg = new URLSearchParams(window.location.search).get("bg");
-    if (bg) document.documentElement.dataset.bg = bg;
     const el = layer.current;
     const hero = el?.closest<HTMLElement>(".sp-hero");
     if (!el || !hero || el.firstChild) return;

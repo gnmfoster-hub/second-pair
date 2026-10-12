@@ -40,8 +40,8 @@ export default function HomePage() {
       {/*
         * And behind it, what the pair of hands is for: the page is a diary,
         * booking itself up while you read. Drag a finger across and you book a
-        * trail of slots yourself. The ground goes from paper to the brand's
-        * blue toward the evening the next section opens on.
+        * trail of slots yourself. The ground goes from paper to a textured
+        * slate toward the evening the next section opens on.
         */}
       <Passing className="sp-hero relative overflow-hidden">
         <HeroGround />
