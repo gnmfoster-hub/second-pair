@@ -38,10 +38,10 @@ export default function HomePage() {
         * second pair of hands and the panel beside it is them working.
         */}
       {/*
-        * And behind it, what the pair of hands is for: customers' questions
-        * crossing the page to the phone, answered before they get there. Touch
-        * one and it is answered on the spot. The ground goes from paper to the
-        * brand's blue toward the evening the next section opens on.
+        * And behind it, what the pair of hands is for: the page is a diary,
+        * booking itself up while you read. Drag a finger across and you book a
+        * trail of slots yourself. The ground goes from paper to the brand's
+        * blue toward the evening the next section opens on.
         */}
       <Passing className="sp-hero relative overflow-hidden">
         <HeroGround />
