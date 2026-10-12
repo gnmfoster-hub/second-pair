@@ -333,6 +333,26 @@ export async function createBooking(args: {
   studio: Studio;
   artist: Artist;
   enquiryId: string;
+  /**
+   * Whose appointment it is.
+   *
+   * Never written until now, on any booking the assistant made, which is the
+   * same omission as the price below and it was missed in the same place. The
+   * client record finds a person's appointments by this column, so every
+   * booking the assistant took was detached from the customer it was for: the
+   * conversation knew exactly who they were, a contact row existed with their
+   * name and number, and their own record showed no bookings and nothing
+   * owed.
+   *
+   * Giles, 12 October: "bookings by the assistant that doesn't show in the
+   * bookings value and count." At Living Canvas that was Lauren on 30
+   * September and Marika on 16 October, both of them real customers with real
+   * client records, neither appointment attached to either.
+   *
+   * Required rather than optional. Every caller has it to hand, and an
+   * optional field is how this went missing the first time.
+   */
+  contactId: string;
   slot: Slot;
   type: "consultation" | "session";
   depositPence: number;
@@ -368,6 +388,7 @@ export async function createBooking(args: {
     db,
     artist,
     enquiryId,
+    contactId,
     slot,
     type,
     depositPence,
@@ -388,6 +409,7 @@ export async function createBooking(args: {
     .from("bookings")
     .insert({
       enquiry_id: enquiryId,
+      contact_id: contactId,
       artist_id: artist.id,
       type,
       starts_at: slot.starts_at,

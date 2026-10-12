@@ -1807,6 +1807,7 @@ async function makeBooking(
     studio: ctx.studio,
     artist,
     enquiryId: ctx.enquiryId,
+    contactId: ctx.contactId,
     slot: { starts_at: startsAt, ends_at: new Date(when + minutes * 60_000).toISOString() },
     type,
     depositPence: takesDeposit ? ctx.depositPence : 0,
@@ -2051,6 +2052,7 @@ async function bookTheRest(args: {
       studio: ctx.studio,
       artist,
       enquiryId: ctx.enquiryId,
+      contactId: ctx.contactId,
       slot: {
         starts_at: iso,
         ends_at: new Date(Date.parse(iso) + minutes * 60_000).toISOString(),
