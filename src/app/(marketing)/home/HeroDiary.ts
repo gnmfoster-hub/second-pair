@@ -12,13 +12,17 @@ const PAPER = "#f7f4ec";
 const PANEL = "#fffdf4";
 const INK = "#16150f";
 const COBALT = "#1f3be3";
-/** Fill, then what is written on it. Mostly cobalt, as a diary is mostly one kind of job. */
+/**
+ * Card, the bar down its left edge, the time, the line under it. An entry in a
+ * well-made calendar: a quiet card and a stripe of colour, no outline. Mostly
+ * white, some tinted, the odd one solid.
+ */
 const KINDS = [
-  [COBALT, PAPER],
-  [COBALT, PAPER],
-  [INK, PAPER],
-  [COBALT, PAPER],
-  [PANEL, INK],
+  [PANEL, COBALT, INK, "rgba(22, 21, 15, 0.22)"],
+  ["#e9edff", COBALT, "#1730b4", "rgba(31, 59, 227, 0.3)"],
+  [PANEL, COBALT, INK, "rgba(22, 21, 15, 0.22)"],
+  [COBALT, "#8fa0ff", PAPER, "rgba(247, 244, 236, 0.5)"],
+  ["#e9edff", COBALT, "#1730b4", "rgba(31, 59, 227, 0.3)"],
 ] as const;
 
 type Slot = { c: number; r: number; born: number; mine: boolean };
@@ -31,11 +35,8 @@ const smooth = (a: number, b: number, v: number) => {
   return k * k * (3 - 2 * k);
 };
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
-const pop = (k: number) => {
-  const c = 1.70158;
-  const u = clamp(k, 0, 1) - 1;
-  return 1 + (c + 1) * u * u * u + c * u * u;
-};
+/** Settles into place without a bounce. */
+const ease = (k: number) => 1 - Math.pow(1 - clamp(k, 0, 1), 3);
 /** Rows are half hours from eight in the morning. */
 const time = (r: number) => {
   const m = 8 * 60 + r * 30;
@@ -160,30 +161,34 @@ export function startDiary(hero: HTMLElement, layer: HTMLElement) {
     slots = slots.filter((b) => t - b.born < life(b) + 0.8);
     g.textAlign = "left";
     g.textBaseline = "top";
-    g.lineJoin = "round";
     for (const b of slots) {
       const age = t - b.born;
       const k = cell(b.c, b.r);
-      const [fill, text] = KINDS[(b.c * 7 + b.r * 13) % KINDS.length];
+      const [card, bar, ink, rule] = KINDS[(b.c * 7 + b.r * 13) % KINDS.length];
       const w = cw - 12;
       const h = ROW - 12;
-      const s = pop(age / 0.34);
+      const e = ease(age / 0.45);
+      const alpha = e * (1 - smooth(life(b), life(b) + 0.8, age)) * (onWords(k) ? 0.22 : 1);
       g.save();
-      g.translate(k.l + cw / 2 - 1, k.t + ROW / 2 - 1);
-      g.scale(s, s);
-      // One a finger put under the words is only a ghost of a booking.
-      g.globalAlpha = Math.min(1, age / 0.12) * (1 - smooth(life(b), life(b) + 0.8, age)) * (onWords(k) ? 0.22 : 1);
-      box(g, -w / 2, -h / 2, w, h, 9);
-      g.fillStyle = fill;
+      g.translate(k.l + cw / 2, k.t + ROW / 2 + (1 - e) * 6);
+      g.scale(0.96 + e * 0.04, 0.96 + e * 0.04);
+      g.globalAlpha = alpha;
+      // Lifted a little off the page by a soft shadow, nothing harder.
+      g.shadowColor = "rgba(23, 34, 110, 0.16)";
+      g.shadowBlur = 14;
+      g.shadowOffsetY = 4 * dpr;
+      box(g, -w / 2, -h / 2, w, h, 8);
+      g.fillStyle = card;
       g.fill();
-      g.strokeStyle = INK;
-      g.lineWidth = 1.25;
-      g.stroke();
-      g.fillStyle = text;
-      g.font = `700 12px ${font}`;
-      g.fillText(time(b.r), -w / 2 + 8, -h / 2 + 7);
-      g.globalAlpha *= 0.6;
-      box(g, -w / 2 + 8, h / 2 - 13, Math.min(w - 16, 22 + ((b.c * 5 + b.r * 3) % 4) * 8), 4.5, 2.25);
+      g.shadowColor = "transparent";
+      g.clip();
+      g.fillStyle = bar;
+      g.fillRect(-w / 2, -h / 2, 3.5, h);
+      g.fillStyle = ink;
+      g.font = `600 12px ${font}`;
+      g.fillText(time(b.r), -w / 2 + 12, -h / 2 + 8);
+      g.fillStyle = rule;
+      box(g, -w / 2 + 12, h / 2 - 12, Math.min(w - 22, 22 + ((b.c * 5 + b.r * 3) % 4) * 8), 4, 2);
       g.fill();
       g.restore();
     }
