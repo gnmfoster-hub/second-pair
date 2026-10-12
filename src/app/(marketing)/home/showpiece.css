@@ -1298,37 +1298,13 @@
 }
 
 /*
- * TRIAL: putty is the quiet line of the headline, and on slate it is nearly the
- * colour of the ground. Ways to make it carry, picked with ?we=. Delete the losers.
+ * Putty was the quiet line of the headline on plain paper. On slate it is nearly
+ * the colour of the ground, so the line is drawn hollow instead: ink outline
+ * only, the slate showing through. Still the quiet line, and it can be read.
  */
-
-/* edge: its own colour, with a fine ink line round each letter and nothing else */
-html[data-we="edge"] .sp-hero h1 span[style*="--putty"] {
-  -webkit-text-stroke: 0.028em var(--foreground);
-  paint-order: stroke fill;
-}
-
-/* hollow: the letters drawn in ink line only, the slate showing through */
-html[data-we="hollow"] .sp-hero h1 span[style*="--putty"] {
+.sp-hero h1 span[style*="--putty"] {
   color: transparent !important;
   -webkit-text-stroke: 0.036em var(--foreground);
-}
-
-/* white: the panels' white, which is the lightest thing on the slate */
-html[data-we="white"] .sp-hero h1 span[style*="--putty"] {
-  color: var(--surface) !important;
-  text-shadow: 0 0.02em 0.06em rgba(22, 21, 15, 0.22);
-}
-
-/* blue: hollow in cobalt, so the line leads into the solid cobalt word under it */
-html[data-we="blue"] .sp-hero h1 span[style*="--putty"] {
-  color: transparent !important;
-  -webkit-text-stroke: 0.04em var(--accent);
-}
-
-/* dark: the slate's own dark, solid */
-html[data-we="dark"] .sp-hero h1 span[style*="--putty"] {
-  color: #4f5b68 !important;
 }
 
 /* Small print on a coloured ground needs to be ink, not grey. */

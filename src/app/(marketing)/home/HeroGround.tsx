@@ -10,9 +10,6 @@ export function HeroGround() {
   const layer = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // TRIAL: ?we=edge|hollow|white|blue|dark tries a treatment for the quiet line of the headline.
-    const we = new URLSearchParams(window.location.search).get("we");
-    if (we) document.documentElement.dataset.we = we;
     const el = layer.current;
     const hero = el?.closest<HTMLElement>(".sp-hero");
     if (!el || !hero || el.firstChild) return;
