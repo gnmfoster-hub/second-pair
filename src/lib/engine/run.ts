@@ -33,6 +33,7 @@ import type {
   Studio,
 } from "@/lib/types";
 import { NotAnswering } from "./errors";
+import { oneTimeCodeIn } from "../oneTimeCode";
 import { hasColumn } from "@/lib/db/hasColumn";
 import { connectedChannels } from "@/lib/messaging/connections";
 import { neverSay } from "./neverSay";
@@ -644,6 +645,53 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
       conversationId: conversation.id,
       reply: null,
       status: "needs_human",
+      paused: true,
+      moments: [],
+    };
+  }
+
+  /*
+   * A one-time code, which is not a customer.
+   *
+   * Giles, 12 October. A verification code was texted to Second Pair's own
+   * number at 08:39 on the 11th, while he was resubmitting to Meta. That
+   * number is wired in as an SMS channel, so it arrived as a conversation and
+   * the assistant answered it with the privacy notice. It never reached a
+   * phone, and he only found it because we went looking for something else.
+   *
+   * Any code from a bank, a registrar or Meta does the same, and the one time
+   * it matters is the one time somebody is waiting for it.
+   *
+   * So: the code goes straight to the owner's phone with the digits in the
+   * notification, where they can read it without opening anything, and the
+   * assistant says nothing. Filed as paperwork rather than needs_human,
+   * because it is not a judgement about a customer, it is a judgement that
+   * there was never a customer. That keeps it out of the week's figures and
+   * out of the way of somebody's morning, exactly as spam is.
+   *
+   * Narrow on purpose. See lib/oneTimeCode: three separate signals must all
+   * agree, and a question is always treated as a person. Mistaking a customer
+   * for a robot means never answering them, which is far worse than this.
+   */
+  const code = oneTimeCodeIn(input.message);
+  if (code) {
+    await db
+      .from("conversations")
+      .update({ status: "paperwork", ai_paused: true })
+      .eq("id", conversation.id);
+
+    await notifyStudio(db, studio.id, {
+      title: `Your code is ${code.code}`,
+      body: "A one-time code arrived on your number. The assistant left it alone.",
+      url: `/conversations/${conversation.id}`,
+      /* Its own tag, so a code never replaces a real customer's notification. */
+      tag: `code-${conversation.id}`,
+    });
+
+    return {
+      conversationId: conversation.id,
+      reply: null,
+      status: "paperwork",
       paused: true,
       moments: [],
     };
