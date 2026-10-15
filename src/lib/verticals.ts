@@ -323,9 +323,24 @@ function defaultReminders(travels: boolean): ReminderTemplate[] {
     {
       hours_before: 48,
       label: "Two days before",
+      /*
+       * Short enough that the advice arrives as a text, not only as an email.
+       *
+       * The old wording filled out to 216 characters, so the sender kept the
+       * first sentence and "somewhere to park and access to the work" reached
+       * nobody without an email address. For Amber's that is five customers
+       * in eight, and parking and access is the whole reason this reminder
+       * exists for a trade that travels.
+       *
+       * Measured rather than trimmed by eye, with the longest date the diary
+       * produces: it now arrives whole, in one text, for all three live
+       * businesses, and for a business with a far longer name the advice
+       * still lands and only the last sentence falls to the email.
+       * See scripts/fit-one-text.mts.
+       */
       body: travels
-        ? "Hi {{name}}, {{practitioner}} from {{business}} is booked to come out to you {{when}}. " +
-          "Please make sure there's somewhere to park and access to the work. Need to move it? Just reply here."
+        ? "Hi {{name}}, {{practitioner}} from {{business}} is coming {{when}}. " +
+          "Please leave parking and access clear. Reply here to move it."
         : "Hi {{name}}, you're booked in with {{practitioner}} at {{business}} {{when}}. " +
           "Need to move it? Just reply here.",
     },

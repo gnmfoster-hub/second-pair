@@ -89,7 +89,7 @@ export function reminderStarters({ travels }: Where): Starter[] {
     {
       label: "A couple of days before",
       body: travels
-        ? "Hi {{name}}, {{practitioner}} from {{business}} is booked to come out to you {{when}}. Please make sure there's somewhere to park and access to the work. Need to move it? Just reply here."
+        ? "Hi {{name}}, {{practitioner}} from {{business}} is coming {{when}}. Please leave parking and access clear. Reply here to move it."
         : "Hi {{name}}, you're booked in with {{practitioner}} at {{business}} {{when}}. Need to move it? Just reply here.",
     },
     {

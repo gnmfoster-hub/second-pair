@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { confirmationStarters, reminderStarters, startersFor } from "./messageStarters.ts";
-import { renderReminder } from "./reminderText.ts";
+import { renderReminder, forOneText } from "./reminderText.ts";
 import { unknownIn } from "./messageFields.ts";
 import { segments } from "./reminderText.ts";
 
@@ -81,6 +81,39 @@ test("no starter carries a character that doubles the price of a text", () => {
   for (const s of every) {
     const odd = [...new Set([...s.body].filter((c) => c.charCodeAt(0) > 127))];
     assert.deepEqual(odd, [], `${s.label} would be charged as two texts: ${odd.join(" ")}`);
+  }
+});
+
+/*
+ * The advice is the point of the two-day reminder, so it has to arrive.
+ *
+ * Measured against the live templates on 15 October: filled out, the old
+ * wording ran to 216 characters, the sender kept the first sentence only, and
+ * "somewhere to park and access to the work" reached nobody without an email
+ * address. At Amber's that is five customers in eight.
+ *
+ * Filled here with the longest date the diary produces and a long business
+ * name, because the check below using "tomorrow at 2pm" is exactly why nobody
+ * noticed: the short filling fits and the real one does not.
+ */
+test("the advice in the away-from-base reminder survives being cut to one text", () => {
+  const long = (body: string) =>
+    renderReminder(body, {
+      name: "Alexandra",
+      practitioner: "Christopher",
+      business: "Brightwork Plastering & Rendering",
+      when: "Thursday 17 September at 11:00 am",
+      link: "",
+    });
+
+  for (const starter of reminderStarters(OUT)) {
+    const filled = long(starter.body);
+    if (!/parking and access/.test(filled)) continue;
+    assert.match(
+      forOneText(filled),
+      /parking and access/,
+      `${starter.label} loses its advice: ${JSON.stringify(forOneText(filled))}`,
+    );
   }
 });
 
