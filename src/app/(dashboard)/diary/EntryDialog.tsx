@@ -14,6 +14,7 @@ import { formatPence } from "@/lib/money";
 import { depositPaid, hasDeposit } from "@/lib/deposit";
 import { Complete } from "./Complete";
 import { Glance } from "./Glance";
+import { History } from "./History";
 import { capital, type Words } from "@/lib/wordsText";
 import type { ShelfItem } from "./Complete";
 import {
@@ -606,6 +607,15 @@ export function EntryDialog({
             onChange={() => setMode("edit")}
           />
         )}
+
+        {/*
+          * And where it came from, for the day somebody disagrees about it.
+          *
+          * Under the appointment rather than in it, and shut until asked:
+          * this is the rarest question on the screen and the one that matters
+          * most when it is asked at all.
+          */}
+        {mode === "look" && entry && <History id={entry.id} timezone={timezone} />}
 
         {mode === "complete" && entry && (
           <div className="mt-3">

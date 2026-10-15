@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireStudio, getArtists } from "@/lib/studio";
+import { whoIsActing, madeBy, recordBookingEvent } from "@/lib/bookingHistory";
 import { createClient } from "@/lib/supabase/server";
 import { instantFrom } from "@/lib/booking/tz";
 import { scheduleReminders } from "@/lib/reminders";
@@ -67,9 +68,10 @@ export async function createBookingGroup(
   _prev: GroupState,
   fd: FormData,
 ): Promise<GroupState> {
-  const { studio } = await requireStudio();
+  const { studio, userId, userEmail } = await requireStudio();
   const supabase = await createClient();
   const artists = await getArtists(studio.id);
+  const who = await whoIsActing(supabase, studio.id, userId, userEmail);
 
   const name = str(fd, "name");
   if (!name) return { error: "Give it a name: whose wedding, or which address." };
@@ -171,6 +173,8 @@ export async function createBookingGroup(
       .from("bookings")
       .insert({
         enquiry_id: null,
+        /* Who typed the party in; nothing at all until the migration is run. */
+        ...(await madeBy(supabase, who)),
         /*
          * Their own record where the search found one.
          *
@@ -233,6 +237,14 @@ export async function createBookingGroup(
       .eq("id", group.id);
   }
 
+  await recordBookingEvent(supabase, {
+    bookings: made,
+    what: "booked",
+    by: who,
+    source: "diary",
+    detail: { party: name, people: made.length },
+  });
+
   revalidatePath("/diary");
   return { ok: true, made: made.length, skipped };
 }
@@ -252,7 +264,7 @@ export async function cancelBookingGroup(
   _prev: GroupState,
   fd: FormData,
 ): Promise<GroupState> {
-  const { studio } = await requireStudio();
+  const { studio, userId, userEmail } = await requireStudio();
   const supabase = await createClient();
 
   const id = str(fd, "group_id");
@@ -275,6 +287,14 @@ export async function cancelBookingGroup(
     .select("id");
 
   if (error) return { error: error.message };
+
+  await recordBookingEvent(supabase, {
+    bookings: ((cancelled ?? []) as { id: string }[]).map((b) => b.id),
+    what: "cancelled",
+    by: await whoIsActing(supabase, studio.id, userId, userEmail),
+    source: "diary",
+    detail: { theWholeParty: true },
+  });
 
   revalidatePath("/diary");
   return { ok: true, made: cancelled?.length ?? 0 };

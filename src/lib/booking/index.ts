@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Artist, PriceBand, Studio } from "@/lib/types";
 import { busyFromIcal } from "./ical";
 import { scheduleReminders, dropReminders } from "@/lib/reminders";
+import { recordBookingEvent } from "@/lib/bookingHistory";
 import { findSlots, describeSlot } from "./slots";
 import { withTravelTime } from "@/lib/travel";
 import { timeOffAsBusy } from "./timeOff";
@@ -440,6 +441,22 @@ export async function createBooking(args: {
     }
     return { ok: false, reason: "error", message: error.message };
   }
+
+  /*
+   * The assistant booked this, and no person did.
+   *
+   * created_by stays null here on purpose, and the history says "assistant"
+   * with no name against it. That is the honest answer and it is the one that
+   * was missing: a booking the assistant took and one somebody typed in were
+   * told apart only by a `source` column nobody surfaces, which is how "who
+   * booked this?" became unanswerable in the first place.
+   */
+  await recordBookingEvent(db, {
+    bookings: data.id,
+    what: "booked",
+    source: "assistant",
+    detail: { through: enquiryId ? "a conversation" : "the booking page" },
+  });
 
   // Scheduled here rather than by the caller, so every route into a booking —
   // the assistant, the diary, a future import — gets reminders without having

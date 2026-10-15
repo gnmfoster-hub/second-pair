@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireStudio } from "@/lib/studio";
+import { whoIsActing, recordBookingEvent } from "@/lib/bookingHistory";
 import { createClient } from "@/lib/supabase/server";
 import { siteOrigin } from "@/lib/origin";
 import { createPaymentLink } from "@/lib/payments/link";
@@ -68,7 +69,7 @@ const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
  * two different answers on one afternoon.
  */
 export async function takePayment(_prev: BillState, fd: FormData): Promise<BillState> {
-  const { studio } = await requireStudio();
+  const { studio, userId, userEmail } = await requireStudio();
   const supabase = await createClient();
   /*
    * Payments are written with the server's own access, once the checks above
@@ -157,6 +158,21 @@ export async function takePayment(_prev: BillState, fd: FormData): Promise<BillS
   // The diary and the till agree about what this appointment cost.
   if (charging && workPence !== booking.price_pence) {
     await supabase.from("bookings").update({ price_pence: workPence }).eq("id", bookingId);
+    /*
+     * What it was booked at against what it came to.
+     *
+     * The price on the row is overwritten here, so without this the £95 that
+     * was agreed when it went in the diary is gone the moment somebody rings
+     * it through at £115, and the only record of the difference is a till
+     * receipt nobody connects to the appointment.
+     */
+    await recordBookingEvent(supabase, {
+      bookings: bookingId,
+      what: "price changed",
+      by: await whoIsActing(supabase, studio.id, userId, userEmail),
+      source: "payment",
+      detail: { from: booking.price_pence ?? null, to: workPence },
+    });
   }
 
   const method = str(fd, "method");
@@ -426,7 +442,7 @@ export async function completeAppointment(
   _prev: BillState,
   fd: FormData,
 ): Promise<BillState> {
-  const { studio } = await requireStudio();
+  const { studio, userId, userEmail } = await requireStudio();
   const supabase = await createClient();
 
   const bookingId = str(fd, "booking_id");
@@ -448,6 +464,15 @@ export async function completeAppointment(
       .from("bookings")
       .update({ attended: false, updated_at: new Date().toISOString() })
       .eq("id", bookingId);
+
+    // The one outcome somebody comes back and disputes.
+    await recordBookingEvent(supabase, {
+      bookings: bookingId,
+      what: "finished",
+      by: await whoIsActing(supabase, studio.id, userId, userEmail),
+      source: "diary",
+      detail: { attended: false },
+    });
 
     revalidatePath("/diary");
     revalidatePath("/report");
@@ -474,6 +499,18 @@ export async function completeAppointment(
   if (workName && workName !== booking.title) patch.title = workName;
 
   await supabase.from("bookings").update(patch).eq("id", bookingId);
+
+  await recordBookingEvent(supabase, {
+    bookings: bookingId,
+    what: "finished",
+    by: await whoIsActing(supabase, studio.id, userId, userEmail),
+    source: "diary",
+    detail: {
+      attended: true,
+      /* Only where the work was not what was booked. */
+      ...(patch.title ? { instead: patch.title } : {}),
+    },
+  });
 
   const method = str(fd, "method");
 

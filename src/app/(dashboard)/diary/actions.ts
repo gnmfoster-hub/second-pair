@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { whatBlocks, describeFact, type FactValues } from "@/lib/tradeFacts";
 import { verticalPack } from "@/lib/verticals";
 import { requireStudio, getArtists } from "@/lib/studio";
+import { whoIsActing, madeBy, recordBookingEvent } from "@/lib/bookingHistory";
 import { instantFrom } from "@/lib/booking/tz";
 import { samePhone } from "@/lib/channels/phoneNumbers";
 import {
@@ -58,9 +59,12 @@ export async function saveDiaryEntry(
   _prev: DiaryState,
   fd: FormData,
 ): Promise<DiaryState> {
-  const { studio } = await requireStudio();
+  const { studio, userId, userEmail } = await requireStudio();
   const supabase = await createClient();
   const artists = await getArtists(studio.id);
+  /* Named once for the whole action: adding, editing and spreading a change
+   * all want the same answer, and it is one query. */
+  const who = await whoIsActing(supabase, studio.id, userId, userEmail);
 
   const id = str(fd, "id");
   const artistId = str(fd, "artist_id");
@@ -109,7 +113,7 @@ export async function saveDiaryEntry(
      */
     const { data: existing } = await supabase
       .from("bookings")
-      .select("source, starts_at")
+      .select("source, starts_at, price_pence")
       .eq("id", id)
       .maybeSingle();
     if (!existing) return { error: "That entry has gone." };
@@ -139,6 +143,46 @@ export async function saveDiaryEntry(
 
     const { error } = await supabase.from("bookings").update(patch).eq("id", id);
     if (error) return { error: clashMessage(error.code, error.message) };
+
+    /*
+     * What the save actually changed, in the history.
+     *
+     * Moving is told apart from everything else because it is the change
+     * people ask about: an appointment that is not when somebody expected it
+     * is the complaint, and "Amber moved it on Tuesday" is the answer. The
+     * price is the other one worth naming on its own, for the same reason.
+     */
+    const movedTo = patch.starts_at as string;
+    const wasAt = existing.starts_at as string;
+    const oldPrice = (existing as { price_pence?: number | null }).price_pence ?? null;
+    const newPrice = "price_pence" in patch ? ((patch.price_pence as number | null) ?? null) : oldPrice;
+
+    if (movedTo !== wasAt) {
+      await recordBookingEvent(supabase, {
+        bookings: id,
+        what: "moved",
+        by: who,
+        source: "diary",
+        detail: { from: wasAt, to: movedTo },
+      });
+    }
+    if (newPrice !== oldPrice) {
+      await recordBookingEvent(supabase, {
+        bookings: id,
+        what: "price changed",
+        by: who,
+        source: "diary",
+        detail: { from: oldPrice, to: newPrice },
+      });
+    }
+    if (movedTo === wasAt && newPrice === oldPrice) {
+      await recordBookingEvent(supabase, {
+        bookings: id,
+        what: "changed",
+        by: who,
+        source: "diary",
+      });
+    }
 
     // A moved appointment needs its reminders moved with it, and whose it is
     // decides whose reminders they are.
@@ -215,6 +259,15 @@ export async function saveDiaryEntry(
   const base = {
     enquiry_id: null,
     contact_id: contactId,
+    /*
+     * Who typed it in.
+     *
+     * Empty until the migration is run, and the two columns are left off the
+     * insert entirely until then — PostgREST refuses the whole statement for
+     * one column it has not heard of, which would mean nobody could add
+     * anything to a diary at all.
+     */
+    ...(await madeBy(supabase, who)),
     artist_id: artistId,
     source: definition.blocks && category !== "meeting" ? "block" : "manual",
     type: category === "consultation" ? "consultation" : "session",
@@ -303,6 +356,9 @@ export async function saveDiaryEntry(
   let added = 0;
   let clashed = 0;
   let firstId: string | null = null;
+  /* Every day that actually landed, so the history is written in one go after
+   * the loop rather than a round trip per visit. */
+  const madeIds: string[] = [];
 
   for (const occurrence of occurrences) {
     const { day, time } = occurrence;
@@ -335,6 +391,7 @@ export async function saveDiaryEntry(
 
     added++;
     firstId ??= result.data.id;
+    madeIds.push(result.data.id);
 
     /*
      * Reminders, for somebody who is coming in.
@@ -374,6 +431,21 @@ export async function saveDiaryEntry(
   if (added === 0) {
     return { error: clashMessage("23P01", "Could not add that.") };
   }
+
+  /*
+   * Typed in by hand, by somebody, at a time.
+   *
+   * created_by on the row says who; this says when, which is the half the
+   * row cannot hold. The question that started all this was really about the
+   * when: a booking made two days after the customer says she made it.
+   */
+  await recordBookingEvent(supabase, {
+    bookings: madeIds,
+    what: "booked",
+    by: who,
+    source: "diary",
+    detail: madeIds.length > 1 ? { visits: madeIds.length } : undefined,
+  });
 
   /*
    * One confirmation for the whole run, now that every day of it exists.
@@ -586,6 +658,7 @@ async function alsoTheRest(
 }
 
 export async function cancelSeries(fd: FormData) {
+  const { studio, userId, userEmail } = await requireStudio();
   const supabase = await createClient();
   const id = str(fd, "id");
 
@@ -600,12 +673,16 @@ export async function cancelSeries(fd: FormData) {
   const now = new Date().toISOString();
 
   // Past occurrences stay as history; only what is still to come is dropped.
-  const { error } = await supabase
+  //
+  // The ids come back so the history can name every day that went, rather
+  // than a count nobody can check afterwards.
+  const { data: dropped, error } = await supabase
     .from("bookings")
     .update({ cancelled_at: now })
     .or(`id.eq.${rootId},repeat_parent_id.eq.${rootId}`)
     .gte("starts_at", entry.starts_at)
-    .is("cancelled_at", null);
+    .is("cancelled_at", null)
+    .select("id");
 
   /*
    * A cancellation that failed must not look like one that worked.
@@ -621,10 +698,19 @@ export async function cancelSeries(fd: FormData) {
    */
   if (error) throw new Error(`Could not cancel those appointments: ${error.message}`);
 
+  await recordBookingEvent(supabase, {
+    bookings: ((dropped ?? []) as { id: string }[]).map((b) => b.id),
+    what: "cancelled",
+    by: await whoIsActing(supabase, studio.id, userId, userEmail),
+    source: "diary",
+    detail: { theRunFrom: entry.starts_at },
+  });
+
   revalidatePath("/diary");
 }
 
 export async function cancelDiaryEntry(fd: FormData) {
+  const { studio, userId, userEmail } = await requireStudio();
   const supabase = await createClient();
 
   /*
@@ -652,6 +738,13 @@ export async function cancelDiaryEntry(fd: FormData) {
 
   if (error) throw new Error(`Could not cancel that appointment: ${error.message}`);
 
+  await recordBookingEvent(supabase, {
+    bookings: str(fd, "id"),
+    what: "cancelled",
+    by: await whoIsActing(supabase, studio.id, userId, userEmail),
+    source: "diary",
+  });
+
   // Nobody should get a reminder about an appointment that is not happening.
   await dropReminders(supabase, str(fd, "id"));
 
@@ -674,6 +767,7 @@ export async function cancelDiaryEntry(fd: FormData) {
  * back that is not claiming they turned up.
  */
 export async function closeBooking(fd: FormData) {
+  const { studio, userId, userEmail } = await requireStudio();
   const supabase = await createClient();
 
   const said = str(fd, "attended");
@@ -712,6 +806,20 @@ export async function closeBooking(fd: FormData) {
    * update one either.
    */
   await supabase.from("bookings").update(patch).eq("id", str(fd, "id"));
+
+  /*
+   * Who closed it off, and what they said.
+   *
+   * A no-show is the one outcome somebody later disputes, so it matters that
+   * the history says who marked it and when, not only that it is marked.
+   */
+  await recordBookingEvent(supabase, {
+    bookings: str(fd, "id"),
+    what: "finished",
+    by: await whoIsActing(supabase, studio.id, userId, userEmail),
+    source: "diary",
+    detail: { attended },
+  });
 
   /*
    * And, where somebody asked for it, remember it about the client.
@@ -818,7 +926,7 @@ export async function moveDiaryEntry(input: {
   endsAt: string;
   artistId?: string;
 }): Promise<DiaryState> {
-  const { studio } = await requireStudio();
+  const { studio, userId, userEmail } = await requireStudio();
   const supabase = await createClient();
 
   const starts = new Date(input.startsAt);
@@ -842,6 +950,13 @@ export async function moveDiaryEntry(input: {
   };
   if (input.artistId) patch.artist_id = input.artistId;
 
+  /* Where it was, read before the move, because afterwards nothing knows. */
+  const { data: before } = await supabase
+    .from("bookings")
+    .select("starts_at, artist_id")
+    .eq("id", input.id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("bookings")
     .update(patch)
@@ -851,6 +966,28 @@ export async function moveDiaryEntry(input: {
   if (error) {
     return { error: clashMessage(error.code, "That could not be moved.") };
   }
+
+  /*
+   * A drag is a move like any other, and the easiest one to do by accident.
+   *
+   * It takes one slip on a phone to drop somebody's Tuesday into Thursday,
+   * and until now the diary simply showed the new time with nothing to say it
+   * had ever been anywhere else.
+   */
+  await recordBookingEvent(supabase, {
+    bookings: input.id,
+    what: "moved",
+    by: await whoIsActing(supabase, studio.id, userId, userEmail),
+    source: "diary",
+    detail: {
+      from: (before as { starts_at?: string } | null)?.starts_at ?? null,
+      to: starts.toISOString(),
+      ...(input.artistId &&
+      input.artistId !== (before as { artist_id?: string } | null)?.artist_id
+        ? { toWhose: team.find((a) => a.id === input.artistId)?.name ?? null }
+        : {}),
+    },
+  });
 
   // The reminder said "Tuesday at two". It is not Tuesday at two any more.
   await dropReminders(supabase, input.id);
@@ -977,6 +1114,87 @@ export async function bookableServices() {
  * moved, and it is the difference between a form that seems to guess and one
  * that is obviously repeating something a colleague wrote down.
  */
+/** One thing that happened to a booking, as the dialog shows it. */
+export type HistoryLine = {
+  at: string;
+  what: string;
+  who: string | null;
+  source: string | null;
+  detail: Record<string, unknown> | null;
+};
+
+/**
+ * Everything that has happened to one appointment.
+ *
+ * Giles, 15 October: "I think we need a created by and a way of seeing the
+ * history." This is the seeing half, and the reason it is a separate call
+ * rather than part of the diary's own query is that it is one question about
+ * one appointment: loading it with the week would be forty extra joins to
+ * answer something nobody has asked yet.
+ *
+ * Old bookings have no history and never will, so the row itself provides the
+ * first line where it can — created_at is when it went in, whatever else is
+ * or is not recorded about it. A diary that said nothing at all for every
+ * appointment made before today would look broken rather than new.
+ */
+export async function bookingHistory(id: string): Promise<HistoryLine[]> {
+  const { studio } = await requireStudio();
+  const supabase = await createClient();
+  if (!id) return [];
+
+  /*
+   * Tenancy first. The id comes from the browser, and row-level security
+   * covers the bookings table but not a table the browser never reads.
+   */
+  const { data: booking } = await supabase
+    .from("bookings")
+    .select("*, artists!inner(studio_id)")
+    .eq("id", id)
+    .eq("artists.studio_id", studio.id)
+    .maybeSingle();
+  if (!booking) return [];
+
+  const lines: HistoryLine[] = [];
+
+  if (await hasColumn(supabase, "booking_events", "booking_id")) {
+    const { data: events } = await supabase
+      .from("booking_events")
+      .select("at, what, by_name, source, detail")
+      .eq("booking_id", id)
+      .order("at", { ascending: true });
+
+    for (const e of (events ?? []) as Record<string, unknown>[]) {
+      lines.push({
+        at: e.at as string,
+        what: e.what as string,
+        who: (e.by_name as string | null) ?? null,
+        source: (e.source as string | null) ?? null,
+        detail: (e.detail as Record<string, unknown> | null) ?? null,
+      });
+    }
+  }
+
+  /*
+   * The row's own account of itself, where nothing recorded the booking.
+   *
+   * Select("*") above rather than naming created_by_name, for the usual
+   * reason: the column may not exist yet and PostgREST would refuse the whole
+   * query, which would empty this panel for everybody instead of for nobody.
+   */
+  const madeAt = (booking as { created_at?: string | null }).created_at ?? null;
+  if (madeAt && !lines.some((l) => l.what === "booked")) {
+    lines.unshift({
+      at: madeAt,
+      what: "booked",
+      who: (booking as { created_by_name?: string | null }).created_by_name ?? null,
+      source: booking.source === "assistant" ? "assistant" : "diary",
+      detail: null,
+    });
+  }
+
+  return lines;
+}
+
 /**
  * What this client normally has, and when they were last in.
  *
