@@ -58,8 +58,30 @@ export type Plan = {
  * all stranded ones from weeks ago. So this has not bitten yet. It is luck
  * rather than design, because appointments cluster in the working day.
  */
-const OPENS = 8;
-const SHUTS = 20;
+export const OPENS = 8;
+export const SHUTS = 20;
+
+/**
+ * The hour of the clock on the wall where the business is, or null.
+ *
+ * Exported because the same window has to be applied twice: once when a
+ * reminder is scheduled, and again when it is actually sent. See
+ * holdTillMorning.ts for why those are two different questions.
+ */
+export function localHour(at: number, timeZone: string): number | null {
+  const hour = Number(
+    new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", hour12: false }).format(
+      new Date(at),
+    ),
+  );
+  /*
+   * Midnight comes back as 24 from some copies of the date tables and as 0
+   * from others, and the difference is not harmless: read as 24, midnight
+   * looks like four hours past closing and a reminder gets moved BACK to
+   * eight the previous evening, which can be a time that has already gone.
+   */
+  return Number.isFinite(hour) ? hour % 24 : null;
+}
 
 /**
  * Nudge a send time into waking hours, and never past the appointment.
@@ -73,12 +95,8 @@ const SHUTS = 20;
  * time is kept. Early beats useless.
  */
 function atASensibleHour(due: number, start: number, timeZone: string): number {
-  const hour = Number(
-    new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", hour12: false }).format(
-      new Date(due),
-    ),
-  );
-  if (!Number.isFinite(hour)) return due;
+  const hour = localHour(due, timeZone);
+  if (hour === null) return due;
   if (hour >= OPENS && hour < SHUTS) return due;
 
   const shift = hour < OPENS ? OPENS - hour : SHUTS - hour;

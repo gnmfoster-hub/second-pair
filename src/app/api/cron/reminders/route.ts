@@ -164,6 +164,14 @@ export async function GET(request: NextRequest) {
   let due = 0;
   let sent = 0;
   let waiting = 0;
+  /*
+   * Due, fit to send, and deliberately left for the morning.
+   *
+   * Reported rather than silent: "due 40, sent 0" on a run at two in the
+   * morning should say why, or the next person to read it will go looking for
+   * a fault. Not a failure — these go out on the first sweep after eight.
+   */
+  let held = 0;
   const failures: string[] = [];
 
   for (const studio of (studios ?? []) as Studio[]) {
@@ -186,6 +194,7 @@ export async function GET(request: NextRequest) {
       due += result.due;
       sent += result.sent;
       waiting += result.waiting.length;
+      held += result.held;
       if (result.failed) failures.push(`${studio.name}: ${result.failed} failed`);
     } catch (error) {
       failures.push(`${studio.name}: ${(error as Error).message}`);
@@ -375,7 +384,7 @@ export async function GET(request: NextRequest) {
   const newest = await newestBackup(db);
 
   const body = {
-    released, due, sent, waiting, failures, answered, forgotten, tidied, weekly,
+    released, due, sent, waiting, held, failures, answered, forgotten, tidied, weekly,
     reviews,
     dues,
     backup: { ...backup, newest, lastAttempt: await lastAttempt(db) },

@@ -10,6 +10,7 @@ import type { Channel } from "@/lib/types";
 import { isOptedOut } from "@/lib/messaging/optOut";
 import { whyNotSend } from "@/lib/whyNotSend";
 import { planReminders } from "@/lib/reminderSchedule";
+import { holdTillMorning } from "@/lib/holdTillMorning";
 import { buildEmail } from "@/lib/messaging/emailTemplate";
 import { avatarUrl } from "@/components/Avatar";
 import { siteOrigin } from "@/lib/origin";
@@ -408,6 +409,8 @@ export type SendResult = {
   sent: number;
   skipped: number;
   failed: number;
+  /** Left pending for the morning rather than sent in the middle of the night. */
+  held: number;
   /** Ready to send but with nowhere to send it — the owner does these by hand. */
   waiting: { id: string; body: string; who: string; when: string }[];
 };
@@ -545,7 +548,14 @@ export async function sendDueReminders(
     (r) => r.bookings?.artists?.studio_id === studio.id,
   );
 
-  const result: SendResult = { due: rows.length, sent: 0, skipped: 0, failed: 0, waiting: [] };
+  const result: SendResult = {
+    due: rows.length,
+    sent: 0,
+    skipped: 0,
+    failed: 0,
+    held: 0,
+    waiting: [],
+  };
   if (!rows.length) return result;
 
   /*
@@ -723,6 +733,25 @@ export async function sendDueReminders(
         .update({ status: "skipped", error: notSending })
         .eq("id", row.id);
       result.skipped++;
+      continue;
+    }
+
+    /*
+     * Due, and fit to send, but not at this hour.
+     *
+     * Nothing is written: the row stays pending, and the next sweep asks the
+     * same question again. Scheduling puts the due time in waking hours; this
+     * is the other half, because a sweep that runs late sends everything it
+     * finds at whatever time it happens to be running. See holdTillMorning.
+     */
+    const waitTillMorning = holdTillMorning(
+      now.getTime(),
+      booking.starts_at,
+      studio.timezone,
+      confirms.has(row.template_id ?? ""),
+    );
+    if (waitTillMorning) {
+      result.held++;
       continue;
     }
 
