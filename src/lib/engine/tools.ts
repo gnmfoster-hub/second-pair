@@ -2199,7 +2199,10 @@ const HANDS_OVER = new Set(["medical", "under_18", "complaint", "asked_for_human
  * questions pass rather than by anybody using it.
  */
 const SAY_IT_ONCE =
-  " If you have already said this earlier in the same reply, do not say it a second time.";
+  " IF YOU HAVE ALREADY TOLD THEM IN THIS REPLY that you are checking, passing it on, " +
+  "getting somebody to look, or coming back to them, that counts as having said it. Do " +
+  "not add a further sentence confirming it has been passed on. Carry straight on with " +
+  "whatever else you were saying.";
 
 async function escalate(
   input: Record<string, unknown>,
