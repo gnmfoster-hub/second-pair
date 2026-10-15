@@ -270,7 +270,7 @@ export default async function WidgetPage({
     <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-surface-2 px-4 py-6 sm:h-auto sm:min-h-dvh sm:gap-5 sm:py-10">
       <header className="flex w-full max-w-[34rem] flex-col items-center gap-2.5 text-center">
         <span
-          className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl text-base font-semibold shadow-[var(--shadow-card)]"
+          className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl text-base font-semibold shadow-[0_4px_16px_rgba(10,12,16,0.10),0_1px_3px_rgba(10,12,16,0.06)]"
           style={{
             background: look ? `#${look.fill}` : "var(--accent)",
             color: look ? `#${look.text}` : "var(--on-accent)",

@@ -786,12 +786,27 @@ export function ChatWindow({
           * size, so repeating them in a pill over the conversation is a label
           * on a label — and it costs the top of the thread to say it.
           */}
+        {/*
+          * Soft elevation, not the site's hard shadow.
+          *
+          * This pill and the close button were painted with --shadow-card,
+          * which on the marketing site is a deliberate brutalist device:
+          * `6px 6px 0 var(--foreground)`, a solid near-black block offset
+          * down and to the right. It works on a flat card on a page. On a
+          * small translucent pill floating over a conversation it reads as a
+          * smear, and it was the first thing Giles said about the widget:
+          * "the bubbles look horrible with really black shadows".
+          *
+          * The panel itself has always used a proper two-layer soft shadow a
+          * few lines above, so the widget was arguing with itself. This is
+          * the same vocabulary, scaled down for something small.
+          */}
         <div
           className={`pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start gap-2 p-3 ${
             standalone ? "hidden" : ""
           }`}
         >
-          <div className="pointer-events-auto flex min-w-0 items-center gap-2.5 rounded-full border border-border bg-surface/75 py-1.5 pl-1.5 pr-4 shadow-[var(--shadow-card)] backdrop-blur-xl">
+          <div className="pointer-events-auto flex min-w-0 items-center gap-2.5 rounded-full border border-border bg-surface/75 py-1.5 pl-1.5 pr-4 shadow-[0_4px_16px_rgba(10,12,16,0.10),0_1px_3px_rgba(10,12,16,0.06)] backdrop-blur-xl">
             <span className="relative shrink-0">
               <span
                 className="grid size-8 place-items-center overflow-hidden rounded-full text-[11px] font-semibold"
@@ -858,7 +873,7 @@ export function ChatWindow({
             <button
               type="button"
               onClick={() => window.parent?.postMessage({ secondPair: "close" }, "*")}
-              className="pointer-events-auto ml-auto grid size-9 shrink-0 place-items-center rounded-full border border-border bg-surface/75 text-muted shadow-[var(--shadow-card)] backdrop-blur-xl transition-colors hover:text-foreground"
+              className="pointer-events-auto ml-auto grid size-9 shrink-0 place-items-center rounded-full border border-border bg-surface/75 text-muted shadow-[0_4px_16px_rgba(10,12,16,0.10),0_1px_3px_rgba(10,12,16,0.06)] backdrop-blur-xl transition-colors hover:text-foreground"
               aria-label="Close chat"
             >
               <CloseIcon />

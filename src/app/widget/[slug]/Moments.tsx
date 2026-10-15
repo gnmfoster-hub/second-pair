@@ -280,7 +280,11 @@ export function MomentCard({
 function Card({ children, accent }: { children: React.ReactNode; accent?: string }) {
   return (
     <div
-      className="rounded-2xl border border-border bg-surface p-3.5 shadow-[var(--shadow-card)] motion-safe:animate-[rise_260ms_ease-out_both]"
+      /* Soft elevation. --shadow-card is the marketing site's hard
+       * `6px 6px 0` black block, which on a card sitting inside a
+       * conversation looks like a printing error. Same two-layer
+       * shadow the panel itself uses. */
+      className="rounded-2xl border border-border bg-surface p-3.5 shadow-[0_4px_16px_rgba(10,12,16,0.10),0_1px_3px_rgba(10,12,16,0.06)] motion-safe:animate-[rise_260ms_ease-out_both]"
       /*
        * A hairline of the business's own colour down the left edge.
        *
