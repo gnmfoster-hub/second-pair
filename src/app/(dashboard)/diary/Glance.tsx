@@ -6,6 +6,7 @@ import { depositPaid, hasDeposit } from "@/lib/deposit";
 import type { Entry } from "./WeekGrid";
 import { capital, type Words } from "@/lib/wordsText";
 import { FormFirst, SendAnyForm } from "./FormFirst";
+import { writeCopied } from "./copied";
 
 /**
  * An appointment, as it is when you tap it.
@@ -29,6 +30,7 @@ export function Glance({
   due,
   onComplete,
   onChange,
+  onCopied,
 }: {
   entry: Entry;
   timezone: string;
@@ -40,6 +42,8 @@ export function Glance({
   due: boolean;
   onComplete: () => void;
   onChange: () => void;
+  /** Closes the sheet, so the diary underneath is there to paste onto. */
+  onCopied: () => void;
 }) {
   const start = new Date(entry.starts_at);
   const end = new Date(entry.ends_at);
@@ -180,6 +184,31 @@ export function Glance({
             <span />
           )}
         </div>
+
+        {/*
+          * The same appointment again, somewhere else.
+          *
+          * Giles: "it will make it easier for clients to add multiple
+          * bookings." A regular whose visits are nearly but not quite a
+          * pattern is exactly what the repeat rules cannot help with, and
+          * retyping the lot is what it costs today.
+          */}
+        <button
+          type="button"
+          onClick={() => {
+            writeCopied({
+              id: entry.id,
+              what: entry.clientName || entry.title || capital(words.service),
+              minutes: Math.round(
+                (Date.parse(entry.ends_at) - Date.parse(entry.starts_at)) / 60_000,
+              ),
+            });
+            onCopied();
+          }}
+          className="btn w-full border border-border"
+        >
+          Copy, to put in again elsewhere
+        </button>
 
         {entry.conversationId && (
           <Link

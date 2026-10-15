@@ -18,7 +18,8 @@ import type { Words } from "@/lib/wordsText";
 import type { FormNeed } from "@/lib/forms/required";
 import type { ShelfItem } from "./Complete";
 import type { Bookable } from "./ServicePick";
-import { moveDiaryEntry } from "./actions";
+import { moveDiaryEntry, pasteBooking } from "./actions";
+import { useCopied } from "./copied";
 import { zonedToUtc as toUtc } from "@/lib/booking/tz";
 import { useDrag, clockOf, lengthOf, SNAP_MINUTES } from "./useDrag";
 import { Avatar } from "@/components/Avatar";
@@ -377,6 +378,8 @@ export function WeekGrid({
   const [nowMinutes, setNowMinutes] = useState<number | null>(null);
   const [moveError, setMoveError] = useState("");
   const [, startMove] = useTransition();
+  /* The booking waiting to be put down somewhere, if there is one. */
+  const copied = useCopied();
 
   // Where each column sits on screen, so a drag knows which one it is over.
   const columnBoxes = useRef(new Map<string, HTMLDivElement>());
@@ -556,6 +559,45 @@ export function WeekGrid({
     return null;
   }, []);
 
+  /**
+   * An empty slot, tapped, held or dragged out.
+   *
+   * One function behind all three, because there are now two things it can
+   * mean. With nothing copied it opens the form, exactly as it always has.
+   * With a booking on the clipboard it puts that booking down here instead,
+   * which is the whole of the paste gesture: there is no second mode to turn
+   * on and nothing new to learn, the diary simply does the obvious thing with
+   * what you are holding.
+   *
+   * The length comes from the booking being copied rather than from how far
+   * the slot was dragged. A copy that came out a different length would be a
+   * surprise, and the drag is how somebody says where, not how long.
+   */
+  const startOrPaste = useCallback(
+    (date: string, artistId: string | undefined, startMinutes: number, endMinutes?: number) => {
+      if (copied) {
+        setMoveError("");
+        startMove(async () => {
+          const result = await pasteBooking({
+            id: copied.id,
+            startsAt: zonedToUtc(date, startMinutes, timezone),
+            artistId,
+          });
+          if (result.error) setMoveError(result.error);
+        });
+        return;
+      }
+
+      setCreating({
+        date,
+        time: hhmm(startMinutes),
+        ...(endMinutes == null ? {} : { endTime: hhmm(endMinutes) }),
+        artistId,
+      });
+    },
+    [copied, timezone],
+  );
+
   /*
    * Committing a drag.
    *
@@ -570,12 +612,7 @@ export function WeekGrid({
       if (!column) return;
 
       if (drag.kind === "create") {
-        setCreating({
-          date: column.date,
-          time: hhmm(drag.startMinutes),
-          endTime: hhmm(drag.endMinutes),
-          artistId: column.artist?.id,
-        });
+        startOrPaste(column.date, column.artist?.id, drag.startMinutes, drag.endMinutes);
         return;
       }
 
@@ -605,7 +642,7 @@ export function WeekGrid({
         if (result.error) setMoveError(result.error);
       });
     },
-    [columns, entries, timezone],
+    [columns, entries, timezone, startOrPaste],
   );
 
   /*
@@ -967,11 +1004,7 @@ export function WeekGrid({
                       // A short buzz, where the device offers one, so it is
                       // obvious the diary has taken over from the page.
                       navigator.vibrate?.(8);
-                      setCreating({
-                        date: col.date,
-                        time: hhmm(at),
-                        artistId: col.artist?.id,
-                      });
+                      startOrPaste(col.date, col.artist?.id, at);
                     }, 450);
 
                     const moved = (m: PointerEvent) => {
@@ -1001,11 +1034,7 @@ export function WeekGrid({
                       Math.round(
                         (((event.clientY - box.top) / HOUR_HEIGHT) * 60) / SNAP_MINUTES,
                       ) * SNAP_MINUTES;
-                    setCreating({
-                      date: col.date,
-                      time: hhmm(at),
-                      artistId: col.artist?.id,
-                    });
+                    startOrPaste(col.date, col.artist?.id, at);
                   }}
                   className={`relative flex-1 cursor-copy touch-pan-y border-r border-cal-grid last:border-r-0 ${
                     isToday

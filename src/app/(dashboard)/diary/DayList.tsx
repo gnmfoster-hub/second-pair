@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { EntryDialog } from "./EntryDialog";
+import { useCopied } from "./copied";
+import { pasteBooking } from "./actions";
 import type { Words } from "@/lib/wordsText";
 import { formatPence } from "@/lib/money";
 import type { ShelfItem } from "./Complete";
@@ -168,6 +170,17 @@ export function DayList({
     time: string;
     endTime?: string;
   } | null>(null);
+
+  /*
+   * A booking waiting to be put down, and somewhere to say so when it cannot.
+   *
+   * A gap is the paste target here. It is the only part of a list that means
+   * "this time is free", which is exactly what a grid's empty space means and
+   * what somebody is looking for when they are holding an appointment.
+   */
+  const copied = useCopied();
+  const [pasteError, setPasteError] = useState("");
+  const [, startPaste] = useTransition();
 
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = [];
@@ -385,14 +398,22 @@ export function DayList({
                   */}
                 <button
                   type="button"
-                  onClick={() =>
+                  onClick={() => {
+                    if (copied) {
+                      setPasteError("");
+                      startPaste(async () => {
+                        const result = await pasteBooking({ id: copied.id, startsAt: from });
+                        if (result.error) setPasteError(result.error);
+                      });
+                      return;
+                    }
                     setCreating({
                       // The gap's own day, which in a week is not the first one.
                       date: dayOf(from, timezone),
                       time: clock24(from, timezone),
                       endTime: clock24(row.to.toISOString(), timezone),
-                    })
-                  }
+                    });
+                  }}
                   className="flex min-h-11 w-full items-center gap-3 rounded-xl border border-dashed border-border px-3.5 py-2 text-left text-xs text-muted transition-colors hover:border-solid hover:text-foreground"
                 >
                   <span className="tabular-nums">{clockOf(from, timezone)}</span>
@@ -553,6 +574,26 @@ export function DayList({
           </li>
         )}
       </ol>
+
+      {/* A paste the database refused, usually because something is already
+        * there. Without this the gap simply stays a gap and it looks as
+        * though tapping it did nothing. */}
+      {pasteError && (
+        <div
+          role="alert"
+          className="fixed inset-x-4 bottom-24 z-50 mx-auto flex w-fit max-w-sm items-start gap-3 rounded-xl border border-warn/40 bg-surface px-4 py-3 text-sm shadow-[var(--shadow-pop)] md:bottom-6"
+        >
+          <span className="text-warn">{pasteError}</span>
+          <button
+            type="button"
+            onClick={() => setPasteError("")}
+            className="shrink-0 text-muted hover:text-foreground"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {(open || creating) && (
         <EntryDialog

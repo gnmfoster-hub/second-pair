@@ -605,6 +605,7 @@ export function EntryDialog({
             due={Date.parse(entry.starts_at) <= endOfToday()}
             onComplete={() => setMode("complete")}
             onChange={() => setMode("edit")}
+            onCopied={onClose}
           />
         )}
 

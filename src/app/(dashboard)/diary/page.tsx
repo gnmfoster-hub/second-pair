@@ -31,6 +31,7 @@ import { formNeeded } from "@/lib/forms/required";
 import { Find } from "./Find";
 import { FullDiary } from "./FullDiary";
 import { SwipeDates } from "./SwipeDates";
+import { CopiedBar } from "./CopiedBar";
 import { busyFromIcal } from "@/lib/booking/ical";
 
 /** Sunday first, matching getUTCDay(). Single letters — the strips are 24px. */
@@ -1957,6 +1958,14 @@ export default async function DiaryPage({
         )}
       </div>
 
+    {/*
+      * What is on the clipboard, over both views.
+      *
+      * Out here because the list and the grid are both mounted with CSS
+      * hiding one: a bar inside either would be invisible to half the people
+      * using it, and on a phone the hidden one is the grid.
+      */}
+    <CopiedBar />
     </div>
     </SwipeDates>
   );

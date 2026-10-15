@@ -1114,6 +1114,123 @@ export async function bookableServices() {
  * moved, and it is the difference between a form that seems to guess and one
  * that is obviously repeating something a colleague wrote down.
  */
+/**
+ * The same appointment again, somewhere else.
+ *
+ * Giles, 15 October: "can we make it so you can hold down and copy a booking
+ * on the diary and paste somewhere else, this will make it easier for clients
+ * to add multiple bookings."
+ *
+ * The case is a regular. Somebody's Tuesday at ten, four more times, at times
+ * that are nearly but not quite a pattern — which is exactly what the repeat
+ * rules cannot do and what sixteen fields of retyping currently costs. Copy
+ * once, drop it on four mornings.
+ *
+ * A copy, not a link: the new one knows nothing about the old one afterwards,
+ * because the first thing somebody does with a pasted booking is change it.
+ * What it does carry is who it is for, what it is, how long it takes and what
+ * it costs, which is all of the typing.
+ */
+export async function pasteBooking(input: {
+  id: string;
+  /** Where it is going, already converted out of the diary's wall clock. */
+  startsAt: string;
+  artistId?: string;
+}): Promise<DiaryState> {
+  const { studio, userId, userEmail } = await requireStudio();
+  const supabase = await createClient();
+
+  const starts = new Date(input.startsAt);
+  if (Number.isNaN(starts.getTime())) return { error: "That time did not make sense." };
+
+  const team = await getArtists(studio.id);
+  if (input.artistId && !team.some((a) => a.id === input.artistId)) {
+    return { error: "That is not one of your team." };
+  }
+
+  /*
+   * Everything about the original, read with the business checked in the
+   * query rather than trusted from the browser. select("*") for the usual
+   * reason: naming a column whose migration has not run refuses the lot.
+   */
+  const { data: from } = await supabase
+    .from("bookings")
+    .select("*, artists!inner(studio_id)")
+    .eq("id", input.id)
+    .eq("artists.studio_id", studio.id)
+    .maybeSingle();
+
+  if (!from) return { error: "That booking is not in this diary." };
+
+  const length = Math.max(
+    5 * 60_000,
+    Date.parse(from.ends_at as string) - Date.parse(from.starts_at as string),
+  );
+  const artistId = input.artistId ?? (from.artist_id as string);
+  const who = await whoIsActing(supabase, studio.id, userId, userEmail);
+
+  /*
+   * What is carried and what is not.
+   *
+   * Not the enquiry: this is a new appointment the business made, not another
+   * one from the conversation that produced the first. Not the deposit: a
+   * deposit was taken for that visit and is not owed again for this one, and
+   * "paid" is what keeps the unpaid-hold sweep from taking it back out of the
+   * diary an hour later. Not the repeat rule and not the parent, because a
+   * pasted booking is its own thing.
+   */
+  const { data: made, error } = await supabase
+    .from("bookings")
+    .insert({
+      ...(await madeBy(supabase, who)),
+      enquiry_id: null,
+      contact_id: from.contact_id,
+      artist_id: artistId,
+      source: from.source === "block" ? "block" : "manual",
+      type: from.type,
+      category: from.category,
+      all_day: from.all_day,
+      blocks_availability: from.blocks_availability,
+      title: from.title,
+      notes: from.notes,
+      price_pence: from.price_pence,
+      deposit_amount_pence: 0,
+      deposit_status: "paid",
+      repeats: "none",
+      starts_at: starts.toISOString(),
+      ends_at: new Date(starts.getTime() + length).toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (error || !made) {
+    return { error: clashMessage(error?.code, error?.message ?? "Could not paste that.") };
+  }
+
+  /*
+   * A pasted appointment is an appointment, so it is reminded about and
+   * confirmed exactly like one typed in by hand. Anything else would make the
+   * quick way of booking somebody the way that quietly tells them nothing.
+   */
+  if (from.contact_id && !from.all_day && (from.category === "appointment" || from.category === "consultation")) {
+    await scheduleReminders(supabase, studio.id, made.id, starts.toISOString(), artistId, {
+      confirm: true,
+    });
+  }
+
+  await recordBookingEvent(supabase, {
+    bookings: made.id,
+    what: "booked",
+    by: who,
+    source: "diary",
+    detail: { copiedFrom: from.starts_at },
+  });
+
+  revalidatePath("/diary");
+  revalidatePath("/");
+  return { ok: "Pasted." };
+}
+
 /** One thing that happened to a booking, as the dialog shows it. */
 export type HistoryLine = {
   at: string;
