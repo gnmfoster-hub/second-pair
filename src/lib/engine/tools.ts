@@ -2180,6 +2180,27 @@ async function sendDepositLink(ctx: ToolContext): Promise<ToolOutcome> {
  */
 const HANDS_OVER = new Set(["medical", "under_18", "complaint", "asked_for_human"]);
 
+/*
+ * Say it once.
+ *
+ * Every branch below tells the model to tell the customer it has been passed
+ * on. None of them allowed for the model having already said so in the same
+ * breath, before it called the tool, which it often does: it is mid sentence
+ * reassuring somebody when it decides to escalate.
+ *
+ * Willow, asked what another customer had paid, 15 October:
+ *
+ *   "Let me get that one checked with the studio.
+ *    That's with the studio now and somebody will come back to you on it.
+ *    In the meantime, is there anything I can help with?"
+ *
+ * Three sentences doing one job. It reads like a machine with a stutter, which
+ * is exactly the impression this product cannot afford. Found by the awkward
+ * questions pass rather than by anybody using it.
+ */
+const SAY_IT_ONCE =
+  " If you have already said this earlier in the same reply, do not say it a second time.";
+
 async function escalate(
   input: Record<string, unknown>,
   ctx: ToolContext,
@@ -2192,7 +2213,7 @@ async function escalate(
     return {
       result:
         "The owner has been notified and is taking over. Tell the client someone from the " +
-        "studio will come back to them, then stop replying.",
+        "studio will come back to them, then stop replying." + SAY_IT_ONCE,
       // A person is coming. The widget says so as a quiet line of its own
       // rather than leaving it buried in a paragraph the customer may not
       // read — waiting is much easier when you can see that you are.
@@ -2268,7 +2289,7 @@ async function escalate(
         "Raised as a request with a person, and it is on their Help page where they can " +
         "follow it. Tell them it has been raised and that somebody will come back to " +
         "them there, then carry on helping with everything else as normal. It is with " +
-        "them now: do not raise this same question again later in the conversation.",
+        "them now: do not raise this same question again later in the conversation." + SAY_IT_ONCE,
     };
   }
 
@@ -2295,7 +2316,7 @@ async function escalate(
       "moved, or off the diary: none of that is true yet, and they will act on it, which means not " +
       "turning up to an appointment that is still in the book. Then carry on helping with " +
       "everything else as normal. It is with them now: do not raise this same thing again " +
-      "later in the conversation.",
+      "later in the conversation." + SAY_IT_ONCE,
   };
 }
 
