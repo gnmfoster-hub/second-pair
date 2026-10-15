@@ -754,7 +754,7 @@ export function ChatWindow({
              * bio. It takes what is left of the screen now, so the header and
              * footer are subtracted rather than added.
              */
-            "flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-background sm:h-[min(38rem,calc(100dvh-13rem))] sm:flex-none sm:rounded-[22px] sm:border sm:border-border sm:shadow-[0_16px_50px_rgba(10,12,16,0.16),0_2px_8px_rgba(10,12,16,0.06)]"
+            "flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-background sm:h-[min(38rem,calc(100dvh-13rem))] sm:flex-none sm:rounded-[28px] sm:border sm:border-border sm:shadow-[0_16px_50px_rgba(10,12,16,0.16),0_2px_8px_rgba(10,12,16,0.06)]"
           : "mx-auto flex h-dvh w-full max-w-2xl flex-col bg-background sm:border-x sm:border-border"
       }
       style={{ ["--brand" as string]: brand, ["--on-brand" as string]: onBrand }}

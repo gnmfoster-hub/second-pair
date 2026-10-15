@@ -493,6 +493,26 @@
   var pulse = document.createElement("span");
   var status = null;
 
+  /*
+   * The business's own initials, for the capsule.
+   *
+   * Giles picked the capsule over the round bubble, and then put his finger
+   * on why it was not enough on its own: "it doesn't change the shape of the
+   * open agent." It is the same point either way round. A capsule carrying
+   * the stock speech balloon is still the stock widget, only wider.
+   *
+   * With their initials on it instead, the button and the panel's header say
+   * the same thing in the same shape, so opening it reads as the capsule
+   * growing rather than as a different object appearing. The panel has worn
+   * these since it was built. The button never did.
+   *
+   * Inverted on purpose: the launcher is already filled with the business's
+   * colour, so the chip takes the writing colour and the letters take the
+   * fill. That reads on every pair of colours anybody can choose, which a
+   * fixed white chip would not.
+   */
+  var face = document.createElement("span");
+
   icon.innerHTML = CHAT_ICON;
   style(icon, { display: "grid", placeItems: "center", transition: "transform " + ease });
 
@@ -507,6 +527,7 @@
     display: "none",
   });
 
+  button.appendChild(face);
   button.appendChild(icon);
   button.appendChild(pulse);
   button.appendChild(label);
@@ -644,7 +665,18 @@
        * to point at, and rounding into the bottom of the screen only shows a
        * strip of the page behind.
        */
-      borderRadius: full ? "22px 22px 0 0" : onLeft ? "22px 22px 22px 6px" : "22px 22px 6px 22px",
+      /*
+       * Rounder, and plainly lopsided.
+       *
+       * It has always been asymmetric, with the corner nearest the
+       * launcher pulled tight so the panel points at the button it came
+       * from. At 22 against 6 nobody could see it: it read as an
+       * ordinary rounded rectangle, which is what Giles meant by the
+       * open agent not having changed shape. At 28 against 8 the
+       * lopsidedness is the silhouette, and it matches the capsule and
+       * the header pill inside it.
+       */
+      borderRadius: full ? "28px 28px 0 0" : onLeft ? "28px 28px 28px 8px" : "28px 28px 8px 28px",
       boxShadow: "0 16px 50px rgba(10, 12, 16, 0.26), 0 2px 8px rgba(10, 12, 16, 0.1)",
     });
 
@@ -734,6 +766,34 @@
         "transform " + ease + ", box-shadow " + ease + ", padding " + ease + ", gap " + ease,
       WebkitTapHighlightColor: "transparent",
     });
+
+    /*
+     * The capsule wears the business, the circle keeps the icon.
+     *
+     * Shut and round there is nothing but the button, so the balloon is
+     * still the clearest thing it can say. Once it has widened into a
+     * sentence, the initials beside that sentence are what stop it reading
+     * as a widget.
+     */
+    var wearsFace = wide && Boolean(status && status.face && status.face.initials);
+    var chip = Math.round(shape.height * 0.72);
+
+    face.textContent = wearsFace ? status.face.initials : "";
+    style(face, {
+      display: wearsFace ? "grid" : "none",
+      placeItems: "center",
+      width: chip + "px",
+      height: chip + "px",
+      borderRadius: "50%",
+      flex: "0 0 auto",
+      background: paint.colour,
+      color: paint.background,
+      fontWeight: "700",
+      fontSize: Math.round(chip * 0.36) + "px",
+      letterSpacing: "0.01em",
+      lineHeight: "1",
+    });
+    style(icon, { display: wearsFace ? "none" : "grid" });
 
     label.textContent = wide ? status.line : "";
     style(label, {

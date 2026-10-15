@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { noteWidgetSeen } from "@/lib/widget/seen";
 import { statusFor } from "@/lib/widgetStatus";
 import { paint } from "@/lib/widget/colour";
+import { initialsFor } from "@/components/Avatar";
 import {
   geometry,
   bubbleColours,
@@ -67,7 +68,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await db
     .from("studios")
     .select(
-      "hours, timezone, archived_at, widget_accent, widget_text, widget_position, widget_teaser, widget_enabled, widget_line_open, widget_line_closed, widget_shape, widget_size, widget_bubble, widget_pulse, widget_font, widget_weight, widget_surface, widget_bubble_fill, widget_bubble_text",
+      "name, hours, timezone, archived_at, widget_accent, widget_text, widget_position, widget_teaser, widget_enabled, widget_line_open, widget_line_closed, widget_shape, widget_size, widget_bubble, widget_pulse, widget_font, widget_weight, widget_surface, widget_bubble_fill, widget_bubble_text",
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -182,6 +183,23 @@ export async function GET(request: NextRequest) {
 
   return readableAnywhere({
     ...status,
+    /*
+     * The business's own face for the launcher.
+     *
+     * Giles picked the capsule shape, and the thing that makes a capsule
+     * look like somebody rather than like every other website chat is whose
+     * initials are on it. The panel's header has worn them since it was
+     * built; the button that opens it wore a speech bubble, which is the
+     * single most generic object on the internet.
+     *
+     * Initials rather than a picture because no business has a logo column
+     * and only one has uploaded a photograph of anybody. Worked out here
+     * with the same helper the panel uses, so the two cannot drift.
+     */
+    face: {
+      name: typeof data.name === "string" ? data.name : null,
+      initials: typeof data.name === "string" ? initialsFor(data.name) : null,
+    },
     line: lineFor(status.line, status.open, {
       open: typeof data.widget_line_open === "string" ? data.widget_line_open : null,
       closed: typeof data.widget_line_closed === "string" ? data.widget_line_closed : null,
