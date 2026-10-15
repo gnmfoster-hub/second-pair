@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { NotAnswering } from "@/lib/engine/errors";
 import { Limiter } from "@/lib/askingTooMuch";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isInsideHelp } from "@/lib/insideHelp";
 import { handOverAfterFailure } from "@/lib/engine/turnFailed";
 
 export const runtime = "nodejs";
@@ -98,7 +99,17 @@ export async function POST(request: NextRequest) {
    * Null for every ordinary business: a salon's enquiries are from customers,
    * and telling its assistant otherwise would be noise in the prompt.
    */
-  const signedIn = studio === process.env.NEXT_PUBLIC_SUPPORT_SLUG ? await hasSession() : null;
+  /*
+   * Both our own assistants ask this, for different reasons.
+   *
+   * The marketing one uses it to tell an owner from a stranger, which is the
+   * whole of its audience split. The assistant inside the product uses it
+   * only to know which business is asking, so a handover is filed where
+   * they will look for it: everybody there is signed in by definition, and
+   * its prompt does not mention the question.
+   */
+  const ours = studio === process.env.NEXT_PUBLIC_SUPPORT_SLUG || isInsideHelp(studio);
+  const signedIn = ours ? await hasSession() : null;
 
   /*
    * Whose business is asking, so a request can be filed where they will look

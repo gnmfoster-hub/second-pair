@@ -3,6 +3,7 @@ import { hasColumn } from "@/lib/db/hasColumn";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { verticalPack } from "@/lib/verticals";
+import { isInsideHelp } from "@/lib/insideHelp";
 import { paint } from "@/lib/widget/colour";
 import { avatarUrl, initialsFor } from "@/components/Avatar";
 import { Mark } from "@/components/Logo";
@@ -232,6 +233,21 @@ export default async function WidgetPage({
       forArtistName={whose?.name ?? null}
       photoUrl={avatarUrl(whose?.avatar_path) ?? null}
       privacyUrl={studio.privacy_notice_url ?? null}
+      /*
+       * The assistant inside the product says none of that, and should not.
+       *
+       * Giles: "the internal assistant doesn't need the privacy etc." The
+       * reason it does not is who is reading. That line exists for a member
+       * of the public about to hand their name and number to something that
+       * writes like a person, at the moment they are deciding whether to
+       * type it. A client signed in to the product, asking the product how
+       * to work it, has already been told what it is and is not giving it
+       * anything. Telling them anyway reads as a form, not as care.
+       *
+       * Keyed on this one studio, so the marketing assistant and every
+       * client's own widget are untouched.
+       */
+      insideHelp={isInsideHelp(studio.slug)}
       accent={look ? `#${look.fill}` : null}
       onAccent={look ? `#${look.text}` : null}
     />

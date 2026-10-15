@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { INSIDE_SLUG } from "@/lib/insideHelp";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireStudio, getArtists } from "@/lib/studio";
 import { NavLink } from "@/components/NavLink";
@@ -94,7 +95,21 @@ export default async function DashboardLayout({ children }: { children: React.Re
    * here — the name is a string in an environment variable, nothing validates
    * it, and the page it points at is somebody else's route.
    */
-  const wanted = process.env.NEXT_PUBLIC_SUPPORT_SLUG?.trim() || null;
+  /*
+   * The assistant inside the product, which is not the one on the website.
+   *
+   * It used to be NEXT_PUBLIC_SUPPORT_SLUG, the same studio the marketing
+   * site embeds, so one assistant was answering both a stranger deciding
+   * whether to buy and a client who has bought and is stuck. They want
+   * opposite things, and its brief had to describe both.
+   *
+   * Giles, 15 October: "the internal help one needs to be different as its
+   * only to help with issues on the second pair back end where the client
+   * logs in. i dont want the second pair marketing agent touched either."
+   * So the marketing one keeps its studio, its wording and its enquiries,
+   * and this points somewhere else entirely. See lib/insideHelp.
+   */
+  const wanted = INSIDE_SLUG;
   /*
    * Asked with our own client, not the signed-in one.
    *
@@ -123,7 +138,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (wanted && !supportSlug) {
     // Worth saying out loud: it is a setting pointing at nothing, and the only
     // symptom is a button that does nothing useful.
-    console.error(`[help] NEXT_PUBLIC_SUPPORT_SLUG is "${wanted}" and no such studio exists.`);
+    console.error(`[help] the inside assistant is "${wanted}" and no such studio exists. Run scripts/seed-inside.mjs.`);
   }
 
   return (

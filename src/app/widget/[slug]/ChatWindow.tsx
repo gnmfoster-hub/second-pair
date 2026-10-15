@@ -189,11 +189,20 @@ export function ChatWindow({
   accent = null,
   onAccent = null,
   standalone = false,
+  insideHelp = false,
 }: {
   slug: string;
   studioName: string;
   /** Their own notice, when they have published one. */
   privacyUrl?: string | null;
+  /**
+   * The assistant inside the product, talking to a signed-in client.
+   *
+   * It says nothing about being an assistant rather than a person, because
+   * the person reading is not a member of the public handing over their
+   * details. See the page, where this is decided.
+   */
+  insideHelp?: boolean;
   greeting: string;
   /** Three things worth tapping. Falls back to the customer-facing set. */
   openers?: string[];
@@ -905,8 +914,17 @@ export function ChatWindow({
                 * is a fact about the conversation, not a warning about it, and
                 * anything that has to be dismissed teaches people to dismiss
                 * things.
+                *
+                * Not shown to a client inside the product asking how to work
+                * it. They are not handing over details and they already know
+                * what they bought; saying it anyway reads as a form rather
+                * than as care. Every other widget, the marketing one
+                * included, is unchanged.
                 */}
-              <p className="pl-10 pt-1.5 text-[11px] leading-relaxed text-muted">
+              <p
+                hidden={insideHelp}
+                className="pl-10 pt-1.5 text-[11px] leading-relaxed text-muted"
+              >
                 You are talking to {studioName}&rsquo;s assistant, not a person. A real
                 one sees everything and can step in.
                 {privacyUrl && (

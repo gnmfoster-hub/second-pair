@@ -11,6 +11,8 @@ import { tradingName, tradesOwn } from "../tradingName.ts";
 import { CALLBACK_WORD } from "../messaging/missedCall.ts";
 import { bookingInstructions, type ProviderKind } from "../booking/provider.ts";
 import { howToSendPhotos } from "./photos.ts";
+import { isInsideHelp } from "../insideHelp.ts";
+import { insideSystemPrompt } from "./insidePrompt.ts";
 import type { Artist, Faq, PriceBand, ServiceOption, Studio } from "../types.ts";
 
 export type EnquiryState = {
@@ -90,6 +92,21 @@ export function studioSystemPrompt(
    */
   canReach: string[] = [],
 ): string {
+  /*
+   * The assistant inside the product is a different job, so it gets a
+   * different prompt rather than this one with the wrong parts suppressed.
+   *
+   * Everything below describes a business that takes bookings: hours, a
+   * team, bands, a deposit, how to get somebody booked in. Rendered for the
+   * help desk it produced "You are Bebe, the receptionist for Second Pair, a
+   * something else", five thousand tokens of booking instructions, and a
+   * team list with an hourly rate of £0. See insidePrompt.
+   *
+   * The marketing assistant is not this and is deliberately untouched: it
+   * keeps its own studio and comes through here exactly as it always has.
+   */
+  if (isInsideHelp(studio.slug)) return insideSystemPrompt(studio, faqs);
+
   /*
    * Only the people this assistant may speak for.
    *

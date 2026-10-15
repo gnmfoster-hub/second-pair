@@ -6,6 +6,7 @@ import { notifyStudio, alertNewBooking } from "@/lib/notify";
 import { offeredIn, type ToolTrace } from "@/lib/booking/offered";
 import { quoteForBand, quoteForStudio, depositFor, withVat } from "@/lib/quote";
 import { verticalPack } from "@/lib/verticals";
+import { isInsideHelp } from "@/lib/insideHelp";
 import { coversPostcode } from "@/lib/travel";
 import { dayIn } from "@/lib/diaryGaps";
 import { samePhone } from "@/lib/channels/phoneNumbers";
@@ -100,6 +101,48 @@ export function toolDefinitions(
   /** The website routes; a private number never does. */
   channel: string = "web",
 ): Anthropic.Tool[] {
+  /*
+   * The assistant inside the product gets one tool, and that is deliberate.
+   *
+   * It has no diary, no prices and no customers of its own, so every other
+   * tool here is one it cannot truthfully use. Leaving them in its hands is
+   * not harmless: quote_estimate was being offered to it with an empty list
+   * of bands, and a model holding a pricing tool eventually reaches for it.
+   * A figure for what Second Pair costs, handed to a client by a machine
+   * inside the product they already pay for, is the one answer nobody
+   * should get that way.
+   *
+   * Escalating is the one it needs, because handing over is most of the job.
+   */
+  if (isInsideHelp(studio.slug)) {
+    return [
+      {
+        name: "escalate_to_owner",
+        description:
+          "Pass this to a person at Second Pair. Use it for anything about billing or " +
+          "what they are paying, losing data or deleting an account, a complaint, " +
+          "anything urgent, and anything you do not know. Say afterwards that you have " +
+          "passed it on, then carry on helping with anything else they need.",
+        input_schema: {
+          type: "object" as const,
+          properties: {
+            reason: {
+              type: "string",
+              enum: ["billing", "data", "complaint", "asked_for_human", "unknown_question", "other"],
+            },
+            summary: {
+              type: "string",
+              description:
+                "One or two sentences saying what they need, and which business they are.",
+            },
+          },
+          required: ["reason", "summary"],
+          additionalProperties: false,
+        },
+      },
+    ];
+  }
+
   const bandLabels = bands.map((b) => b.size_label);
   /*
    * Who this assistant is allowed to speak for.

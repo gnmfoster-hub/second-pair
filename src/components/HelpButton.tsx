@@ -114,8 +114,26 @@ export function HelpButton({ slug }: { slug: string | null }) {
             </svg>
           </button>
 
+          {/*
+            * embed=1, which is what was missing and why this looked wrong.
+            *
+            * The widget route renders two different things. Embedded, it is
+            * the thread and a small floating pill with the name in it, which
+            * is what belongs inside a panel. Standalone, it is a whole page:
+            * a full-height column, centred vertically, with a large square
+            * logo tile above it and "Answered with Second Pair" beneath.
+            *
+            * This frame asked for the standalone one and then gave it 400
+            * pixels of a 544 pixel panel, so a full-height centred page
+            * overflowed top and bottom in equal measure and the logo was
+            * sliced in half. Giles: "it shows the sp logo at the top and is
+            * cut off. Can we make it a different shape at the top." It is
+            * already a different shape; this frame was asking for the wrong
+            * one. Every customer's own website appends embed=1 here, which
+            * is why it has only ever looked wrong inside our own dashboard.
+            */}
           <iframe
-            src={`/widget/${slug}`}
+            src={`/widget/${slug}?embed=1`}
             title="Help"
             className="h-[calc(100%-2.6rem)] w-full border-0"
           />
