@@ -202,6 +202,32 @@ test("a long reminder is cut to one text, and only between sentences", () => {
   assert.equal(short.endsWith("."), true, "it never stops mid-sentence");
 });
 
+/*
+ * Found by measuring the live templates on 15 October rather than by reading
+ * the function, which looks right. Neat & Tidy's confirmation was going out
+ * as "all booked.Karen Foster will be with you": trimming the accumulation
+ * on every round ate the space in front of the sentence added next.
+ */
+test("the sentences that survive the cut are still separated", () => {
+  const two =
+    "Thanks John, all booked. Karen Foster from Neat & Tidy Solutions will be with you Thursday at 11:00 am. " +
+    "We'll see you then, and if anything changes just reply here and we'll sort it out for you.";
+  assert.equal(segments(two), 2);
+
+  const short = forOneText(two);
+  assert.equal(segments(short), 1);
+  assert.match(short, /all booked\. Karen Foster/, "a space between the two that are kept");
+  assert.doesNotMatch(short, /\.[A-Za-z]/, "nothing is jammed up against a full stop");
+});
+
+test("a blank line between kept sentences survives the cut", () => {
+  // The confirmation is written in paragraphs and the email shows them.
+  const laid =
+    "Thanks John, you're booked in.\n\nThursday at 11:00 am with Karen.\n\n" +
+    "Everything you need is here, including how to change it if something comes up, and any questions just reply.";
+  assert.match(forOneText(laid), /booked in\.\n\nThursday/, "the paragraph break is kept");
+});
+
 test("a reminder that already fits is left exactly as it is", () => {
   const fine = "See you tomorrow, John - Karen will be with you Thursday at 11:00 am. Reply here if anything's changed.";
   assert.equal(forOneText(fine), fine);

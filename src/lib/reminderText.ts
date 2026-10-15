@@ -132,10 +132,25 @@ export function forOneText(body: string): string {
 
   const sentences = text.match(/[^.!?]+[.!?]*\s*/g) ?? [text];
   let kept = "";
+  /*
+   * The accumulation with its spacing still on it.
+   *
+   * There used to be one variable here, trimmed at the end of every round,
+   * and the trim ate the space that separated the sentence just added from
+   * the one added next. Every cut-down message with two sentences left in it
+   * went out reading "Thanks Julie, all booked.Amber Hurden will be with
+   * you", which is what Neat & Tidy's confirmation was actually sending.
+   *
+   * Found by measuring what the live templates come out as rather than by
+   * reading this function, which looks right.
+   */
+  let spaced = "";
 
   for (const sentence of sentences) {
-    const next = (kept + sentence).trimEnd();
+    const nextSpaced = spaced + sentence;
+    const next = nextSpaced.trimEnd();
     if (segments(next) > 1) break;
+    spaced = nextSpaced;
     kept = next;
   }
 
