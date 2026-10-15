@@ -86,3 +86,57 @@ test("an unreadable appointment time drops the timed ones and keeps the confirma
   assert.equal(plan.confirmations.length, 1);
   assert.deepEqual(plan.timed, []);
 });
+
+// -------------------------------------------- sent at a sensible hour
+
+const TZ = "Europe/London";
+const at = (iso: string) => Date.parse(iso);
+const whenSent = (startsAt: string, hoursBefore: number) =>
+  planReminders([{ id: "t", hours_before: hoursBefore }], startsAt, at("2026-01-01T00:00:00Z"), TZ)
+    .timed[0]?.due_at;
+
+const londonHour = (iso: string) =>
+  Number(new Intl.DateTimeFormat("en-GB", { timeZone: TZ, hour: "2-digit", hour12: false })
+    .format(new Date(iso)));
+
+test("an early appointment does not text somebody before eight", () => {
+  /*
+   * Amber walks dogs at seven. The day-before reminder landed at seven in the
+   * morning, because due_at was nothing but the appointment minus the hours.
+   */
+  const sent = whenSent("2026-06-10T07:00:00+01:00", 24);
+  assert.equal(londonHour(sent), 8, sent);
+});
+
+test("a reminder that would land late in the evening is moved back, not forward", () => {
+  /*
+   * Forward would be the next morning, which can be after the appointment.
+   * A reminder arriving afterwards is worse than one arriving early.
+   */
+  const sent = whenSent("2026-06-10T09:00:00+01:00", 12);
+  assert.equal(londonHour(sent), 20, sent);
+  assert.ok(Date.parse(sent) < at("2026-06-10T09:00:00+01:00"));
+});
+
+test("a sensible hour is left exactly alone", () => {
+  const sent = whenSent("2026-06-10T10:00:00+01:00", 24);
+  assert.equal(sent, new Date(at("2026-06-09T10:00:00+01:00")).toISOString());
+});
+
+test("nudging never pushes a reminder past its own appointment", () => {
+  // Two hours before a seven o'clock start: moving to eight would be too late.
+  const sent = whenSent("2026-06-10T07:00:00+01:00", 2);
+  assert.ok(Date.parse(sent) < at("2026-06-10T07:00:00+01:00"), sent);
+  assert.equal(londonHour(sent), 5, sent);
+});
+
+test("a confirmation is still due now, not nudged anywhere", () => {
+  const plan = planReminders(
+    [{ id: "c", hours_before: 0 }],
+    "2026-06-10T07:00:00+01:00",
+    at("2026-06-09T23:30:00Z"),
+    TZ,
+  );
+  assert.equal(plan.confirmations.length, 1);
+  assert.equal(plan.confirmations[0].due_at, new Date(at("2026-06-09T23:30:00Z")).toISOString());
+});

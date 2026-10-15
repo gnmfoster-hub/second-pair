@@ -139,6 +139,18 @@ export async function scheduleReminders(
 
   if (!templates?.length) return 0;
 
+  /*
+   * The business's own time, so "a sensible hour" means sensible where they
+   * are. Defaulted rather than failed on: a missing timezone must not stop a
+   * reminder being scheduled, and every business on here is in the UK.
+   */
+  const { data: whereTheyAre } = await db
+    .from("studios")
+    .select("timezone")
+    .eq("id", studioId)
+    .maybeSingle();
+  const studioTimeZone = whereTheyAre?.timezone || "Europe/London";
+
   const now = Date.now();
 
   /*
@@ -150,7 +162,7 @@ export async function scheduleReminders(
    * the messaging layer, so no test can load it. Pure and tested there;
    * written and sent here.
    */
-  const plan = planReminders(templates, startsAt, now);
+  const plan = planReminders(templates, startsAt, now, studioTimeZone);
 
   const row = (r: { template_id: string; due_at: string }) => ({
     booking_id: bookingId,
