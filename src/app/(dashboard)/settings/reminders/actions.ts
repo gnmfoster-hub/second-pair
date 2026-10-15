@@ -198,3 +198,34 @@ export async function saveChannelChoice(_prev: FormState, fd: FormData): Promise
   revalidatePath("/settings/reminders");
   return { ok: true };
 }
+
+export type DailyBriefState = { ok?: boolean; error?: string };
+
+/**
+ * The morning email, on or off. The owner's call.
+ *
+ * Giles asked for it switchable because it is the kind of thing that is
+ * either the most useful mail a business gets or one more thing to delete,
+ * and which of those it is depends entirely on whether they open the diary.
+ */
+export async function setDailyBrief(
+  _prev: DailyBriefState,
+  fd: FormData,
+): Promise<DailyBriefState> {
+  const { studio } = await requireOwner();
+  const supabase = await createClient();
+
+  if (!(await hasColumn(supabase, "studios", "daily_brief_email"))) {
+    return { error: "This needs a small database update first." };
+  }
+
+  const { error } = await supabase
+    .from("studios")
+    .update({ daily_brief_email: ticked(fd, "on") })
+    .eq("id", studio.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/reminders");
+  return { ok: true };
+}

@@ -9,6 +9,7 @@ import { readableNumber } from "@/lib/channels/phoneNumbers";
 import { reminderCover, whatIsMissing, whoSendsFewer } from "@/lib/reminderCover";
 import { avatarUrl } from "@/components/Avatar";
 import { ChannelChoice } from "./ChannelChoice";
+import { DailyBriefSwitch } from "./DailyBriefSwitch";
 import { preferenceOf } from "@/lib/messageChannels";
 
 export default async function RemindersPage() {
@@ -169,6 +170,31 @@ export default async function RemindersPage() {
         )}
         hasNumber={Boolean(sender.number)}
       />
+
+      {/*
+        * And the one email that goes the other way.
+        *
+        * Everything else on this page is sent to customers. This is sent to
+        * the business, and it belongs here because it is the same question
+        * asked at the other end: what goes out every morning without anybody
+        * pressing anything.
+        *
+        * Giles: "a run down of the days diary including everything in case
+        * they dont log into the diary."
+        */}
+      <section className="card p-4 sm:p-5">
+        <h2 className="font-display text-base">The day ahead, by email</h2>
+        <p className="hint mt-1">
+          Every morning from seven, the whole of that day&rsquo;s diary: times, who they are
+          with, phone numbers, notes, and anything still owed. The owners get the
+          business&rsquo;s day. Anybody on the team with their own email address gets their own.
+        </p>
+        <div className="mt-3">
+          <DailyBriefSwitch
+            on={(studio as unknown as { daily_brief_email?: boolean }).daily_brief_email === true}
+          />
+        </div>
+      </section>
 
       {ours.map((reminder, i) => (
         <ReminderEditor

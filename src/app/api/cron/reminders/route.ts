@@ -10,6 +10,7 @@ import { forgetOldEnquiries } from "@/lib/retention";
 import { forgetHandledMessages } from "@/lib/handledMessages";
 import { sweepWentWrong } from "@/lib/cronOutcome";
 import { sendWeeklyReports } from "@/lib/weeklyReports";
+import { sendDailyBriefs } from "@/lib/dailyBriefs";
 import { watchTheEssentials } from "@/lib/watchdog";
 import { askForReviews } from "@/lib/askForReviews";
 import { sayWhatsDue } from "@/lib/sayWhatsDue";
@@ -220,6 +221,19 @@ export async function GET(request: NextRequest) {
   }));
 
   /*
+   * This morning's diary, for the businesses that switched it on.
+   *
+   * Beside the weekly report rather than anywhere clever, for the same
+   * reason: the sweep is the one piece of scheduling here that is proven to
+   * run, and a second schedule is a second thing that can quietly stop.
+   * Never able to fail the run.
+   */
+  const briefs = await sendDailyBriefs(db, (studios ?? []) as Studio[]).catch((e) => ({
+    sent: 0,
+    failed: [(e as Error).message],
+  }));
+
+  /*
    * Tonight's copy of the book.
    *
    * Last, because it is the one thing here nobody is waiting on, and quiet:
@@ -385,6 +399,7 @@ export async function GET(request: NextRequest) {
 
   const body = {
     released, due, sent, waiting, held, failures, answered, forgotten, tidied, weekly,
+    briefs,
     reviews,
     dues,
     backup: { ...backup, newest, lastAttempt: await lastAttempt(db) },
