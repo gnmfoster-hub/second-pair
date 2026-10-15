@@ -238,6 +238,55 @@ const DEMOS = [
     ],
   },
   {
+    key: "kerbside",
+    name: "Kerbside Motors (demo)",
+    slug: "kerbside-demo",
+    vertical: "dealership",
+    email: "demo-kerbside@second-pair.com",
+    settings: {
+      hours: open({ 1: ["09:00", "18:00"], 2: ["09:00", "18:00"], 3: ["09:00", "18:00"], 4: ["09:00", "18:00"], 5: ["09:00", "18:00"], 6: ["09:00", "17:00"], 0: ["10:00", "16:00"] }),
+      travel_mode: "at_premises",
+      deposit_mode: "none",
+      takes_payments: false,
+      payment_model: "business",
+      vat_registered: true,
+      prices_include_vat: true,
+      vat_rate_percent: 20,
+      notice_hours: 2,
+      consultation_minutes: 30,
+      diary_colour: "person",
+      cancellation_policy:
+        "Ring us if you cannot make it and we will put it back. We hold a test drive car for fifteen minutes.",
+    },
+    /*
+     * Salespeople, not bays. Rates are nought on purpose: nothing here is sold
+     * by the hour, and the appointments are free. If a rate mattered the trade
+     * would be priced hourly, and it is not.
+     */
+    team: [
+      ["Dev Raithatha", "#2f8fd6", "Sales", 0, 0],
+      ["Marie Colclough", "#e0507a", "Sales", 0, 0],
+      ["Stu Parfitt", "#5aa84f", "Business manager", 0, 0],
+    ],
+    clients: [
+      ["Hannah Doyle", "07700 900401", "Looking at a Qashqai, has a Fiesta to px"],
+      ["Rob Nkemelu", "07700 900402", "Wants something seven seat, monthly budget"],
+      ["Sian Beckett", "07700 900403", "Cash buyer, no part exchange"],
+      ["Tomasz Krol", "07700 900404", "Van, needs it for work next week"],
+      ["Priya Lamb", "07700 900405", "First car for her daughter"],
+    ],
+    work: [
+      ["Test drive", 45, 0],
+      ["Viewing", 30, 0],
+      ["Part exchange appraisal", 30, 0],
+    ],
+    asks: [
+      "Have you got anything like a Qashqai for about fifteen grand?",
+      "What's my 2018 Fiesta worth in part exchange? Reg is WD26LGZ, 48000 miles",
+      "Can I pay monthly? What sort of figure would I be looking at on a £20k car?",
+    ],
+  },
+  {
     key: "dan",
     name: "Dan's Driving School (demo)",
     slug: "dansdriving-demo",

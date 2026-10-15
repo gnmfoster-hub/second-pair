@@ -6,6 +6,7 @@ import { DAY_NAMES, labelFor } from "../types.ts";
 import { verticalPack } from "../verticals.ts";
 import { describeLength } from "./bandLength.ts";
 import { assistantName } from "../assistantName.ts";
+import { bothWays } from "../clockWords.ts";
 import { tradingName, tradesOwn } from "../tradingName.ts";
 import { CALLBACK_WORD } from "../messaging/missedCall.ts";
 import { bookingInstructions, type ProviderKind } from "../booking/provider.ts";

@@ -1874,6 +1874,117 @@ const MOTORING: VerticalPack[] = [
       "Motorway lesson": { price: 68, minutes: 120 },
     },
   }),
+
+  /*
+   * A car dealership, and the first pack here that SELLS rather than books.
+   *
+   * Every other trade answers somebody who has already decided what they want
+   * and is choosing a time. A car buyer has decided nothing. Giles, 15
+   * October: "qualified as much as possible, basically sold to like a salesman
+   * to help with conversions."
+   *
+   * That pulls against the rule this whole product rests on, so the hard rules
+   * below are longer than any other pack's. A salesman who invents a car on
+   * the forecourt, or quotes a part exchange as an offer, or talks about
+   * finance as though it were advice, does far more damage than one who asks
+   * a question too few. The qualification is pushy. The facts are not.
+   *
+   * STAGE ONE, DELIBERATELY WITHOUT STOCK. It can qualify a buyer and hand
+   * over a lead. It cannot see the forecourt, value a part exchange or quote
+   * finance, and it says so rather than guessing. Those arrive with the
+   * catalogue, the valuation lookup and the finance API, in that order.
+   *
+   * The test drive is a service here, but the thing being booked is the CAR,
+   * not a salesperson. That is already possible: a vehicle becomes a row with
+   * is_resource set, which the type's own comment anticipates ("a garage books
+   * a bay, a hire firm a room, a driving school a car"). So the availability
+   * engine, the double-booking constraint, the confirmation and the reminder
+   * all work unchanged once stock exists.
+   */
+  trade({
+    id: "dealership",
+    label: "Car dealership",
+    category: "Motoring",
+    blurb: "Selling cars, with part exchange, finance and test drives.",
+    aliases: ["dealer", "dealership", "car sales", "motors", "showroom", "forecourt"],
+    greeting: "Hi, are you after a particular car, or shall I help you narrow it down?",
+    words: {
+      practitioner: "salesperson",
+      practitioners: "sales team",
+      service: "appointment",
+      service_verb: "arranged",
+      size_unit: "appointment",
+      business: "dealership",
+    },
+    roles: ["Sales", "Sales manager", "Business manager", "Aftersales"],
+
+    /*
+     * What a salesperson would get out of somebody, in the order they would
+     * get it. Budget before model: somebody who says "an X5" and has twelve
+     * thousand pounds needs a different conversation, and finding that out on
+     * the forecourt wastes everybody's afternoon.
+     */
+    asks: [
+      { key: "looking_for", prompt: "What they are after: type of car, size, how they will use it", required: true },
+      { key: "budget", prompt: "Budget, as a total price or a monthly figure. Ask which of the two they think in", required: true },
+      { key: "timeframe", prompt: "When they need it. Today, this month, or just looking", required: true },
+      { key: "part_exchange", prompt: "Whether they have something to part exchange", required: true },
+      { key: "finance", prompt: "Whether they are paying outright or want finance", required: true },
+    ],
+
+    factsTitle: "About the buyer",
+    facts: [
+      { key: "px_registration", label: "Part exchange registration", type: "text", ask: "the registration of the car they are part exchanging" },
+      { key: "px_mileage", label: "Part exchange mileage", type: "number", ask: "the mileage on it" },
+      { key: "budget_total", label: "Budget", type: "text" },
+      { key: "budget_monthly", label: "Monthly budget", type: "text" },
+      { key: "licence_held", label: "Full licence held", type: "text", ask: "whether they hold a full UK licence, before arranging a test drive" },
+    ],
+
+    intents: [
+      { value: "buying", label: "Buying a car" },
+      { value: "part_exchange", label: "Part exchange" },
+      { value: "finance", label: "Finance" },
+      { value: "test_drive", label: "Test drive" },
+      { value: "aftersales", label: "Service or MOT" },
+      { value: "question", label: "General question" },
+    ],
+
+    rules: [
+      /* The ones that stop it doing harm. */
+      "NEVER name, describe or imply a car is in stock. You cannot see the forecourt. If they ask what you have, say plainly that you cannot see the stock list from here and that you will get a salesperson to send them what is in.",
+      "NEVER give a part exchange figure, a trade-in price or a guess at what their car is worth, even a range, even if pushed. Take the registration and the mileage and say a valuation will come from a person.",
+      "NEVER quote finance: no monthly figure, no APR, no deposit, no term. Finance is regulated and this is not yours to give. Take whether they want it and hand over.",
+      "NEVER say a car is reserved, held, or taken off sale. Only a person can do that.",
+      "A test drive needs a full licence and insurance. Ask whether they hold a full UK licence before arranging one, and hand over if they do not.",
+      /* The ones that make it worth having. */
+      "Qualify properly before handing over. What they want, what they will spend, when, whether there is a part exchange, and whether they need finance. A lead with all five is worth several without.",
+      "Ask whether they think in a total price or a monthly figure, and use their answer for the rest of the conversation. Buyers who think monthly find a total price meaningless, and the other way round.",
+      "If they are just looking, say that is fine and ask what would make them decide. Do not push for an appointment from somebody who is months away, but do get what they are after on record.",
+      "One question at a time. A list of five questions is a form, and people abandon forms.",
+    ],
+
+    faqs: [
+      "Do you take part exchanges?",
+      "Can I pay by finance?",
+      "Where are you, and what are your opening hours?",
+      "Can I come and look without buying?",
+      "What warranty comes with it?",
+      "Do you deliver?",
+      "Can I reserve a car?",
+    ],
+
+    /*
+     * A test drive and a viewing cost nothing and are the whole point. Priced
+     * at nought deliberately rather than left out: the engine needs something
+     * bookable with a duration, and a free appointment is still an appointment.
+     */
+    services: {
+      "Test drive": { price: 0, minutes: 45 },
+      Viewing: { price: 0, minutes: 30 },
+      "Part exchange appraisal": { price: 0, minutes: 30 },
+    },
+  }),
 ];
 
 // ═══════════════════════════════════════════════════════════ everything else
