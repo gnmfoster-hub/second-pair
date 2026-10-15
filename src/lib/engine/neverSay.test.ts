@@ -176,3 +176,33 @@ test("a real morning is not a contradiction", () => {
     );
   }
 });
+
+// ------------------------------------------- saying the handover twice
+
+test("the handover said twice in one reply is caught", () => {
+  /*
+   * Kerbside, 15 October, verbatim. Three beats where there should be one,
+   * with a question wedged in the middle so it reads like a stutter.
+   */
+  const slips = neverSay(
+    "I'll get that checked with the team and come back to you on it.\n\n" +
+      "Can I grab your name while I do?\n\n" +
+      "That's with the team now and somebody will come back to you on it.",
+  );
+  assert.ok(slips.some((s) => s.what.includes("passed on twice")), JSON.stringify(slips));
+});
+
+test("saying it once is not a slip, however it is phrased", () => {
+  for (const good of [
+    "I can't see the forecourt from here, so I'll get that checked with the team. What's your name?",
+    "Part exchange figures come from a person, so somebody will come back to you with a number. Can I take your number?",
+    "That's with the studio now. In the meantime, what were you after?",
+    "Friday 10am with Chloe is free. Shall I book it in?",
+  ]) {
+    const slips = neverSay(good);
+    assert.ok(
+      !slips.some((s) => s.what.includes("passed on twice")),
+      `${good} -> ${JSON.stringify(slips)}`,
+    );
+  }
+});

@@ -23,6 +23,31 @@ type Rule = { what: string; pattern: RegExp };
 
 const RULES: Rule[] = [
   /*
+   * Saying it has been handed over twice in one reply.
+   *
+   * The model announces it is checking, asks a question, and then the
+   * escalate tool tells it to confirm the handover, so it says it again:
+   *
+   *   I'll get that checked with the team and come back to you on it.
+   *   Can I grab your name while I do?
+   *   That's with the team now and somebody will come back to you on it.
+   *
+   * Four out of four on the dealership demo before the tool's wording was
+   * tightened, one in six after. The wording helps and does not settle it,
+   * because the model can always argue the two sentences differ.
+   *
+   * Detected rather than removed, for the reason this whole file gives:
+   * rewriting what a business says to its own customers is not ours to do.
+   * This makes the next one findable in an hour instead of in a week of
+   * transcripts, and measurable if it is ever worth fixing properly.
+   */
+  {
+    what: "says it has been passed on twice in the same reply",
+    pattern:
+      /(?:get(?:ting)? (?:that|it|this) checked|check(?:ing)? (?:that|it|this) with|pass(?:ed|ing)? (?:that|it|this)\b|with the (?:team|studio|garage|salon) now|(?:somebody|someone) will come back)[^.?!]*[.?!].{0,400}?(?:get(?:ting)? (?:that|it|this) checked|check(?:ing)? (?:that|it|this) with|pass(?:ed|ing)? (?:that|it|this)\b|with the (?:team|studio|garage|salon) now|(?:somebody|someone) will come back)/i,
+  },
+
+  /*
    * Thinking out loud.
    *
    * Living Canvas answered a Shopify order notification with "This one's an
