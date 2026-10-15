@@ -921,26 +921,32 @@ export function ChatWindow({
                 * than as care. Every other widget, the marketing one
                 * included, is unchanged.
                 */}
-              <p
-                hidden={insideHelp}
-                className="pl-10 pt-1.5 text-[11px] leading-relaxed text-muted"
-              >
-                You are talking to {studioName}&rsquo;s assistant, not a person. A real
-                one sees everything and can step in.
-                {privacyUrl && (
-                  <>
-                    {" "}
-                    <a
-                      href={privacyUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline underline-offset-2 hover:text-foreground"
-                    >
-                      What happens to your details
-                    </a>
-                  </>
-                )}
-              </p>
+              {/*
+                * Not rendered rather than hidden, so that "it is not shown"
+                * can be checked from outside. With hidden the sentence was
+                * still in the page source, and a check against the live site
+                * could not tell a hidden line from a flag that never
+                * arrived. A verification that cannot fail is not one.
+                */}
+              {!insideHelp && (
+                <p className="pl-10 pt-1.5 text-[11px] leading-relaxed text-muted">
+                  You are talking to {studioName}&rsquo;s assistant, not a person. A real
+                  one sees everything and can step in.
+                  {privacyUrl && (
+                    <>
+                      {" "}
+                      <a
+                        href={privacyUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline underline-offset-2 hover:text-foreground"
+                      >
+                        What happens to your details
+                      </a>
+                    </>
+                  )}
+                </p>
+              )}
 
               <div className="flex flex-wrap gap-2 pl-10 pt-2">
                 {(openers?.length ? openers : OPENERS).map((opener, i) => (
