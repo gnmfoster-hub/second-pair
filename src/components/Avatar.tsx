@@ -64,12 +64,11 @@ export function colourFor(name: string): string {
   return PALETTE[hash % PALETTE.length];
 }
 
-export function initialsFor(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
+/* Imported as well as re-exported: Avatar below calls it, and a bare
+ * `export ... from` does not bring the name into this file's scope. Every
+ * existing `from "@/components/Avatar"` keeps working. */
+import { initialsFor } from "@/lib/initials";
+export { initialsFor };
 
 /** Public bucket, so this URL works in the widget on the studio's own site too. */
 export function avatarUrl(path: string | null | undefined): string | null {
