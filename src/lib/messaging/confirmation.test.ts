@@ -100,3 +100,50 @@ test("a consultation says so in the calendar entry", () => {
   const { calendar } = composeConfirmation({ ...base, type: "consultation" });
   assert.match(calendar, /DESCRIPTION:Consultation/);
 });
+
+/*
+ * The most-sent customer-facing email in the product, which went out as four
+ * lines of plain text until 16 October.
+ */
+test("it is drawn as well as written", () => {
+  const { html, text } = composeConfirmation(base);
+  assert.match(html, /<!doctype html>/i);
+  assert.match(html, /You are booked in/);
+  // The two things somebody opens this to check, as labelled rows.
+  assert.match(html, /When<\/td>/);
+  // And the words still go, because half the world reads mail as text.
+  assert.match(text, /You are booked in with/);
+});
+
+test("the deposit is only mentioned when there is one", () => {
+  // The shared fixture has one, so the negative case has to take it away.
+  assert.doesNotMatch(composeConfirmation({ ...base, depositPence: 0 }).html, /Deposit/);
+  assert.match(composeConfirmation({ ...base, depositPence: 2000 }).html, /£20 received/);
+});
+
+test("their cancellation policy comes through in their own words", () => {
+  const { html } = composeConfirmation(base);
+  assert.match(html, /If you need to cancel/);
+  assert.match(html, /48 hours&#39; notice, or the deposit is kept\./);
+
+  // And no block at all where a business has not written one.
+  assert.doesNotMatch(
+    composeConfirmation({ ...base, cancellationPolicy: null }).html,
+    /If you need to cancel/,
+  );
+});
+
+/*
+ * The subject and the calendar entry both carried a long dash, and neither
+ * could have been found by sweeping the database: they are built here.
+ */
+test("no long dash in the subject, the words, the drawing or the calendar", () => {
+  const made = composeConfirmation({
+    ...base,
+    depositPence: 2000,
+    cancellationPolicy: "Two days' notice please.",
+  });
+  for (const [what, value] of Object.entries(made)) {
+    assert.doesNotMatch(String(value), /[\u2014\u2013]/, `${what} still has one`);
+  }
+});

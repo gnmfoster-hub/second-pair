@@ -38,11 +38,19 @@ export function alreadyGreets(body: string): boolean {
  */
 export function subjectFor(businessName: string, about?: string | null): string {
   const topic = (about ?? "").trim();
-  if (!topic) return `Your enquiry — ${businessName}`;
+  /*
+   * A comma, not a long dash.
+   *
+   * This is the subject on every email the assistant sends, so it was the
+   * most-read long dash in the product and the database sweep could never
+   * have found it: it is built here, in code, not stored anywhere. The rule
+   * is the rule wherever the string is written.
+   */
+  if (!topic) return `Your enquiry, ${businessName}`;
 
   // Trimmed to something that survives a phone's preview line.
   const short = topic.length > 48 ? `${topic.slice(0, 45).trimEnd()}…` : topic;
-  return `${short} — ${businessName}`;
+  return `${short}, ${businessName}`;
 }
 
 export function asEmail({

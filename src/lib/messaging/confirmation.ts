@@ -5,6 +5,7 @@ import { sendEmail, emailConfigured } from "./email.ts";
 import { replyToFor } from "./replyTo.ts";
 import { buildCalendar } from "../ics.ts";
 import { formatPence } from "../money.ts";
+import { buildEmail } from "./emailTemplate.ts";
 
 /**
  * The email a customer gets when their booking is confirmed.
@@ -79,7 +80,7 @@ export async function sendBookingConfirmation(
     // over Instagram and never give one.
     if (!contact?.email || !studio) return;
 
-    const { subject, text, calendar } = composeConfirmation({
+    const { subject, text, html, calendar } = composeConfirmation({
       startsAt: booking.starts_at,
       endsAt: booking.ends_at,
       type: booking.type,
@@ -97,6 +98,7 @@ export async function sendBookingConfirmation(
       to: contact.email,
       subject,
       text,
+      html,
       fromName: studio.name,
       replyTo: replyToFor(studio),
       attachments: [
@@ -207,7 +209,7 @@ export function composeConfirmation({
    * calendar, which then still shows the old time.
    */
   updatedAt?: string | null;
-}): { subject: string; text: string; calendar: string } {
+}): { subject: string; text: string; html: string; calendar: string } {
   const starts = new Date(startsAt);
   const ends = new Date(endsAt);
 
@@ -258,12 +260,45 @@ ${studioName}`;
         uid: `booking-${bookingId}@second-pair.com`,
         starts,
         ends,
-        summary: `${studioName}${artistName ? ` — ${artistName}` : ""}`,
+        summary: `${studioName}${artistName ? ` with ${artistName}` : ""}`,
         description: type === "consultation" ? "Consultation" : undefined,
         updated: updatedAt ? new Date(updatedAt) : undefined,
       },
     ],
   });
 
-  return { subject: `You are booked in — ${when}`, text, calendar };
+  /*
+   * The same thing, drawn.
+   *
+   * This is the most-sent customer-facing email in the product and it has
+   * always gone out as four lines of plain text, so it arrived looking like
+   * a note from a stranger rather than from the business they just booked
+   * with. Giles, 16 October: "the emails are all just boring text."
+   *
+   * The detail goes in the details table rather than in the sentence,
+   * because when and who are the two things somebody opens this to check
+   * and a label beside each is faster to read than a paragraph containing
+   * both. The policy keeps its own block, in their words, under its own
+   * heading, exactly as the reminder does.
+   */
+  const html = buildEmail({
+    business: studioName,
+    heading: "You are booked in",
+    body: `Hello ${firstName}, that is all confirmed. The appointment is attached to this email, so you can add it to your calendar.`,
+    details: [
+      { label: "When", value: when },
+      ...(artistName ? [{ label: "Who", value: artistName }] : []),
+      ...(depositPence
+        ? [
+            {
+              label: "Deposit",
+              value: `${formatPence(depositPence)} received, and it comes off the total on the day`,
+            },
+          ]
+        : []),
+    ],
+    policy: cancellationPolicy ?? null,
+  });
+
+  return { subject: `You are booked in: ${when}`, text, html, calendar };
 }

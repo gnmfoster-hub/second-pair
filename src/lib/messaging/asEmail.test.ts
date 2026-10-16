@@ -57,21 +57,21 @@ test("it says replying works, when replying works", () => {
 // ─────────────────────────────────────────────────────────── the subject
 
 test("the subject names the business, not us", () => {
-  assert.equal(subjectFor("Willow & Co"), "Your enquiry — Willow & Co");
+  assert.equal(subjectFor("Willow & Co"), "Your enquiry, Willow & Co");
 });
 
 test("and what it is about, where that is known", () => {
-  assert.equal(subjectFor("Willow & Co", "Balayage"), "Balayage — Willow & Co");
+  assert.equal(subjectFor("Willow & Co", "Balayage"), "Balayage, Willow & Co");
 });
 
 test("a long one is trimmed to survive a phone's preview line", () => {
   const long = "A really very extremely long description of what somebody asked about";
   const s = subjectFor("Willow & Co", long);
   assert.ok(s.length < long.length + 14, s);
-  assert.match(s, /…— Willow & Co$|… — Willow & Co$/);
+  assert.match(s, /…, Willow & Co$/);
 });
 
 test("an empty description falls back rather than making a dangling subject", () => {
-  assert.equal(subjectFor("Willow & Co", "   "), "Your enquiry — Willow & Co");
-  assert.equal(subjectFor("Willow & Co", null), "Your enquiry — Willow & Co");
+  assert.equal(subjectFor("Willow & Co", "   "), "Your enquiry, Willow & Co");
+  assert.equal(subjectFor("Willow & Co", null), "Your enquiry, Willow & Co");
 });
