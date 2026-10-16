@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // tested by node directly. The rest of the codebase uses the @/ alias.
 import { sendEmail, emailConfigured } from "./email.ts";
 import { replyToFor } from "./replyTo.ts";
+import { buildEmail } from "./emailTemplate.ts";
 import { formatExactPence } from "../money.ts";
 
 /**
@@ -71,7 +72,7 @@ export async function sendPaymentReceipt(
      */
     if (!studio || !contact?.email) return;
 
-    const { subject, text } = composeReceipt({
+    const { subject, text, html } = composeReceipt({
       businessName: studio.name,
       amountPence: payment.gross_pence,
       paidAt: payment.paid_at ?? payment.created_at,
@@ -94,6 +95,7 @@ export async function sendPaymentReceipt(
       to: contact.email,
       subject,
       text,
+      html,
       fromName: studio.name,
       replyTo: replyToFor(studio),
     });
@@ -143,7 +145,7 @@ export function composeReceipt({
   items: ReceiptLine[];
   /** Only for a registered business. Saying anything otherwise is misleading. */
   vat: { ratePercent: number; number: string | null } | null;
-}): { subject: string; text: string } {
+}): { subject: string; text: string; html: string } {
   const firstName = contactName?.split(" ")[0] ?? "there";
   const paid = formatExactPence(amountPence);
   const deposit = kind === "deposit";
@@ -204,9 +206,59 @@ export function composeReceipt({
     `\n\nThis is your receipt; it is worth keeping. If anything on it looks wrong, ` +
     `reply to this email and it comes straight to us.\n\n${businessName}`;
 
+  /*
+   * The same receipt, laid out.
+   *
+   * This is the one email somebody may forward to an accountant, so the
+   * figures go in a column that lines up rather than into a sentence, and
+   * what it was for sits beside what it cost. The reference and the date
+   * are details rather than money, because nobody adds them up.
+   */
+  const html = buildEmail({
+    business: businessName,
+    heading: deposit ? "Deposit received" : "Receipt",
+    body: deposit
+      ? `Hello ${firstName}, thank you. Your deposit has been received and it comes off the total on the day.`
+      : `Hello ${firstName}, thank you. Your payment has gone through.`,
+    money: [
+      ...(rows.length
+        ? rows.map((r) => ({ label: r.left, amount: r.right }))
+        : [
+            {
+              label: description ?? (deposit ? "Deposit" : "Payment"),
+              amount: paid,
+            },
+          ]),
+      { label: "Paid", amount: paid, total: true },
+    ],
+    details: [
+      { label: "When", value: when },
+      { label: "Reference", value: shortRef(reference) },
+      ...(vat && amountPence > 0
+        ? [
+            {
+              label: "VAT",
+              value:
+                `${vat.ratePercent}% included, ` +
+                `${formatExactPence(
+                  amountPence - Math.round(amountPence / (1 + vat.ratePercent / 100)),
+                )}` +
+                `${vat.number ? `. VAT number ${vat.number}` : ""}`,
+            },
+          ]
+        : []),
+    ],
+  });
+
   return {
-    subject: `${deposit ? "Deposit received" : "Receipt"} — ${paid} — ${businessName}`,
+    /*
+     * Two long dashes used to live in here, on a financial document.
+     * A subject is read in a list of forty, so the business goes last and
+     * the commas do the separating.
+     */
+    subject: `${deposit ? "Deposit received" : "Receipt"}, ${paid}, ${businessName}`,
     text,
+    html,
   };
 }
 

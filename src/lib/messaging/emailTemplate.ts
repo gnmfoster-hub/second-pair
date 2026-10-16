@@ -57,6 +57,16 @@ export type EmailParts = {
   action?: { label: string; url: string } | null;
   /** Their cancellation policy, in their own words. */
   policy?: string | null;
+  /**
+   * Money, as a bill: what it was on the left, what it cost on the right.
+   *
+   * Not the same shape as `details`, and that is the point. Details is a
+   * narrow label against a wide value, which is right for "When: Thursday at
+   * three" and wrong for "Olaplex No.4 Bond Maintenance Shampoo 250ml"
+   * against "£24.50": the name needs the room and the figure needs to be
+   * right-aligned so a column of them can be read down and added up.
+   */
+  money?: { label: string; amount: string; total?: boolean }[] | null;
 };
 
 /* Ink and paper from the brand, as literals: an email cannot read a variable. */
@@ -154,6 +164,33 @@ export function buildEmail(parts: EmailParts): string {
     : "";
 
   /*
+   * A bill, with the figures in a column that lines up.
+   *
+   * Tabular figures on the amounts so the pence sit under the pence. A
+   * receipt is the one email somebody may hand to an accountant, and a
+   * ragged column of money on it looks like it was typed rather than issued.
+   */
+  const money = parts.money?.length
+    ? `<tr><td style="padding:6px 28px 0">
+         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+           ${parts.money
+             .map(
+               (m) => `<tr>
+                 <td style="padding:9px 0;font-size:14px;line-height:1.4;color:${INK}${
+                   m.total ? `;font-weight:600;border-top:1px solid ${LINE}` : ""
+                 }">${escapeHtml(m.label)}</td>
+                 <td style="padding:9px 0;text-align:right;white-space:nowrap;font-family:${FIGURES};
+                            font-size:14px;color:${INK}${
+                              m.total ? `;font-weight:600;border-top:1px solid ${LINE}` : ""
+                            }">${escapeHtml(m.amount)}</td>
+               </tr>`,
+             )
+             .join("")}
+         </table>
+       </td></tr>`
+    : "";
+
+  /*
    * The appointment, as a table a reader scans rather than a sentence.
    *
    * Label on the left, value on the right, one row each, hairline between —
@@ -212,6 +249,8 @@ export function buildEmail(parts: EmailParts): string {
   ${heading}
 
   <tr><td style="padding:16px 28px 0">${paragraphs(parts.body)}</td></tr>
+
+  ${money}
 
   ${details}
 

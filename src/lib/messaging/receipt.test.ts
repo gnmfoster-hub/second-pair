@@ -28,7 +28,8 @@ test("somebody with no name on file is still written to", () => {
 });
 
 test("the subject carries the amount and the business", () => {
-  assert.equal(receipt().subject, "Receipt — £38.00 — Willow & Co");
+  // Commas, not long dashes. This is read in a list of forty.
+  assert.equal(receipt().subject, "Receipt, £38.00, Willow & Co");
 });
 
 test("a deposit says so, in the subject and in the words", () => {
@@ -129,4 +130,33 @@ test("it signs off as the business, never as us", () => {
   const r = receipt();
   assert.match(r.text, /Willow & Co$/);
   assert.doesNotMatch(r.text, /Second Pair/);
+});
+
+
+/*
+ * The one email somebody may forward to an accountant, which went out as
+ * plain text with the figures padded into a column by hand until 16 October.
+ */
+test("it is laid out as well as written", () => {
+  const { html } = receipt();
+  assert.match(html, /<!doctype html>/i);
+  assert.match(html, /Receipt/);
+  // What it was for on the left, what it cost on the right, in a column.
+  assert.match(html, /text-align:right/);
+  assert.match(html, /Paid<\/td>/);
+  assert.match(html, /Reference<\/td>/);
+});
+
+test("VAT is shown only for a business that is registered", () => {
+  assert.doesNotMatch(receipt({ vat: null }).html, /VAT/);
+  const reg = receipt({ vat: { ratePercent: 20, number: "GB123456789" } });
+  assert.match(reg.html, /20% included/);
+  assert.match(reg.html, /GB123456789/);
+});
+
+test("no long dash anywhere on a financial document", () => {
+  const r = receipt({ vat: { ratePercent: 20, number: "GB1" } });
+  for (const [what, value] of Object.entries(r)) {
+    assert.doesNotMatch(String(value), /[—–]/, `${what} still has one`);
+  }
 });
