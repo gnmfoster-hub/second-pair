@@ -39,7 +39,7 @@ export default async function WidgetPage({
   const db = createAdminClient();
   const { data: studio } = await db
     .from("studios")
-    .select("id, name, slug, vertical, greeting, privacy_notice_url, widget_accent, widget_text, archived_at, email")
+    .select("id, name, slug, vertical, greeting, privacy_notice_url, widget_accent, widget_text, archived_at, email, photo_path")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -231,7 +231,19 @@ export default async function WidgetPage({
       openers={openers}
       forArtistId={whose?.id ?? null}
       forArtistName={whose?.name ?? null}
-      photoUrl={avatarUrl(whose?.avatar_path) ?? null}
+      /*
+       * Whose face this is, in order of who the customer thinks they are
+       * talking to.
+       *
+       * On somebody's own link it is them. Otherwise it is the business's
+       * own photograph, which has existed on studios.photo_path since
+       * confirmations were built and which the widget has ignored ever
+       * since: Amber uploaded one and every booking email carried it while
+       * the chat on her website showed her initials. Giles: "can we make
+       * sure people's logo is on the icon on the assistant if they have
+       * one." It was already uploaded. Nothing read it here.
+       */
+      photoUrl={avatarUrl(whose?.avatar_path) ?? avatarUrl(studio.photo_path) ?? null}
       privacyUrl={studio.privacy_notice_url ?? null}
       /*
        * The assistant inside the product says none of that, and should not.
@@ -264,7 +276,7 @@ export default async function WidgetPage({
    * the tattooist.
    */
   const who = whose?.name ?? studio.name;
-  const photo = avatarUrl(whose?.avatar_path) ?? null;
+  const photo = avatarUrl(whose?.avatar_path) ?? avatarUrl(studio.photo_path) ?? null;
 
   return (
     <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-surface-2 px-4 py-6 sm:h-auto sm:min-h-dvh sm:gap-5 sm:py-10">

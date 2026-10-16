@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { noteWidgetSeen } from "@/lib/widget/seen";
 import { statusFor } from "@/lib/widgetStatus";
 import { paint } from "@/lib/widget/colour";
-import { initialsFor } from "@/components/Avatar";
+import { initialsFor, avatarUrl } from "@/components/Avatar";
 import {
   geometry,
   bubbleColours,
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await db
     .from("studios")
     .select(
-      "name, hours, timezone, archived_at, widget_accent, widget_text, widget_position, widget_teaser, widget_enabled, widget_line_open, widget_line_closed, widget_shape, widget_size, widget_bubble, widget_pulse, widget_font, widget_weight, widget_surface, widget_bubble_fill, widget_bubble_text",
+      "name, photo_path, hours, timezone, archived_at, widget_accent, widget_text, widget_position, widget_teaser, widget_enabled, widget_line_open, widget_line_closed, widget_shape, widget_size, widget_bubble, widget_pulse, widget_font, widget_weight, widget_surface, widget_bubble_fill, widget_bubble_text",
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -199,6 +199,9 @@ export async function GET(request: NextRequest) {
     face: {
       name: typeof data.name === "string" ? data.name : null,
       initials: typeof data.name === "string" ? initialsFor(data.name) : null,
+      /* Their own photograph where they have uploaded one, which the booking
+       * emails have used for months and the launcher never has. */
+      url: avatarUrl(typeof data.photo_path === "string" ? data.photo_path : null),
     },
     line: lineFor(status.line, status.open, {
       open: typeof data.widget_line_open === "string" ? data.widget_line_open : null,

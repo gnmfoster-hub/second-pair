@@ -775,14 +775,38 @@
      */
     var wearsFace = wide && Boolean(status && status.face && status.face.initials);
     var chip = Math.round(shape.height * 0.72);
+    var photo = wearsFace && status.face.url ? status.face.url : null;
 
-    face.textContent = wearsFace ? status.face.initials : "";
+    /*
+     * Their photograph where there is one, their initials where there is not.
+     *
+     * Built with the DOM rather than innerHTML. The URL comes from our own
+     * status endpoint and is made from a storage path, so it is not somebody
+     * else's string, but this script runs inside every customer's website and
+     * the one place never to be relaxed about markup is the one you do not
+     * own.
+     */
+    if (photo) {
+      if (face.firstChild && face.firstChild.tagName === "IMG") {
+        if (face.firstChild.src !== photo) face.firstChild.src = photo;
+      } else {
+        face.textContent = "";
+        var img = document.createElement("img");
+        img.src = photo;
+        img.alt = "";
+        style(img, { width: "100%", height: "100%", objectFit: "cover", display: "block" });
+        face.appendChild(img);
+      }
+    } else {
+      face.textContent = wearsFace ? status.face.initials : "";
+    }
     style(face, {
       display: wearsFace ? "grid" : "none",
       placeItems: "center",
       width: chip + "px",
       height: chip + "px",
       borderRadius: "50%",
+      overflow: "hidden",
       flex: "0 0 auto",
       background: paint.colour,
       color: paint.background,
