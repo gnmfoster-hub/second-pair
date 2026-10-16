@@ -1247,25 +1247,50 @@ export function EntryDialog({
             </p>
           )}
 
-          <div className="sheet-wide flex flex-wrap items-center gap-3 pt-1">
+          {/*
+            * Save stays on screen, and the dangerous buttons move away from it.
+            *
+            * Reported as "editing the diary on mobile isn't very good", and
+            * this is most of it. The form is around six hundred lines of
+            * fields: client, service, price, title, date, start, length,
+            * repeat, until, who it is for, deposit, notes, things to sell. In
+            * a sheet capped at 82% of a phone screen, Save was several
+            * screens below the fold, so every edit meant scrolling the whole
+            * form again to commit a change you had already made.
+            *
+            * Sticky to the bottom of the scrolling panel, with the panel's own
+            * background behind it and a hairline above, so it reads as the
+            * floor of the sheet rather than as a field that happens to follow
+            * the last one.
+            *
+            * And the delete buttons come out of that row. They were in the
+            * same wrapping flex as Save, so on a narrow phone they wrapped
+            * directly underneath it: two btn-danger submits, no confirmation
+            * step, one mis-tap from cancelling somebody's appointment. They
+            * are now below the floor, past a rule, where a thumb aiming at
+            * Save cannot reach them.
+            */}
+          <div className="sheet-wide sticky bottom-0 -mx-4 mt-2 flex flex-wrap items-center gap-3 border-t border-border bg-surface px-4 py-3 sm:-mx-6 sm:px-6 sm:pb-1">
             <SubmitButton>{existing ? "Save" : "Add it"}</SubmitButton>
             {state.error && <p className="text-sm text-bad">{state.error}</p>}
             {/* What a save that reached other days actually did. */}
             {state.ok && state.spread && (
               <p className="text-sm text-ok">{state.ok}</p>
             )}
-            <div className="flex-1" />
-            {existing && entry?.repeats && entry.repeats !== "none" && (
-              <button
-                type="submit"
-                formAction={cancelSeries}
-                formNoValidate
-                className="btn-danger"
-              >
-                Delete all future
-              </button>
-            )}
-            {existing && (
+          </div>
+
+          {existing && (
+            <div className="sheet-wide flex flex-wrap items-center gap-3 pt-4">
+              {entry?.repeats && entry.repeats !== "none" && (
+                <button
+                  type="submit"
+                  formAction={cancelSeries}
+                  formNoValidate
+                  className="btn-danger"
+                >
+                  Delete all future
+                </button>
+              )}
               <button
                 type="submit"
                 formAction={cancelDiaryEntry}
@@ -1274,8 +1299,8 @@ export function EntryDialog({
               >
                 {fromClient ? "Cancel booking" : "Delete this one"}
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </form>
         )}
       </div>

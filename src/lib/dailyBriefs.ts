@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Studio } from "@/lib/types";
 import { localParts } from "@/lib/booking/tz";
 import { dailyBrief, type BriefBooking } from "@/lib/dailyBrief";
+import { dailyBriefHtml } from "@/lib/dailyBriefEmail";
 import { sendEmail } from "@/lib/messaging/email";
 import { hasColumn } from "@/lib/db/hasColumn";
 
@@ -190,13 +191,21 @@ async function briefOneBusiness(
   const anchor = all[0]?.starts_at ?? `${today}T12:00:00Z`;
 
   for (const owner of new Set(ownerEmails)) {
-    const brief = dailyBrief(all, {
+    const about = {
       day: anchor,
       timeZone: tz,
       business: studio.name,
       manyPeople: people.length > 1,
-    });
-    sent += await post(owner, brief, studio, failed);
+    };
+    /*
+     * Both halves, from the same rows and the same options object.
+     *
+     * The shared builder has a plain-text renderer that nothing uses, so
+     * every other email in the product hand-writes its text part separately
+     * and the two can drift. Building both from one `about` here is the
+     * cheapest way of making sure the diary and the words agree.
+     */
+    sent += await post(owner, dailyBrief(all, about), studio, failed, dailyBriefHtml(all, about));
   }
 
   /*
@@ -210,15 +219,21 @@ async function briefOneBusiness(
     if (!address || ownerEmails.includes(address)) continue;
 
     const theirs = all.filter((b) => b.artist_id === person.id);
-    const brief = dailyBrief(theirs, {
+    const mine = {
       day: theirs[0]?.starts_at ?? anchor,
       timeZone: tz,
       business: studio.name,
       forWhom: person.name?.split(" ")[0] ?? null,
       /* Their own day is all theirs, so there is no point naming them on it. */
       manyPeople: false,
-    });
-    sent += await post(address, brief, studio, failed);
+    };
+    sent += await post(
+      address,
+      dailyBrief(theirs, mine),
+      studio,
+      failed,
+      dailyBriefHtml(theirs, mine),
+    );
   }
 
   return sent;
@@ -229,11 +244,14 @@ async function post(
   brief: { subject: string; text: string },
   studio: Studio,
   failed: string[],
+  /** The diary, drawn. The text above is sent with it, never instead of it. */
+  html?: string,
 ): Promise<number> {
   const result = await sendEmail({
     to,
     subject: brief.subject,
     text: brief.text,
+    html,
     fromName: studio.name,
   });
   if (result.status === "failed") {

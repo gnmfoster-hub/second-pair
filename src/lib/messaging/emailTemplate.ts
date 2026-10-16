@@ -66,6 +66,25 @@ const MUTED = "#6b675c";
 const LINE = "#e6e2d8";
 const ACCENT = "#1f3be3";
 
+/**
+ * The typeface, which was never set.
+ *
+ * Not one rule in here named a font, so every email the product has ever
+ * sent rendered in whatever the reader's client defaults to. In Outlook on
+ * Windows that is Times New Roman: a salon's confirmation, set in a serif,
+ * next to a website set in Public Sans. Giles: "the emails are all just
+ * boring text."
+ *
+ * A stack rather than a web font, because a linked font is stripped by most
+ * clients and the ones that keep it are the ones that needed it least.
+ * Segoe first for Outlook on Windows, which is where the serif came from.
+ */
+export const FONT =
+  "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif";
+
+/** Numbers that line up in a column, for times and money. */
+export const FIGURES = "'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',Menlo,monospace";
+
 /** Escapes the five characters that would otherwise close a tag or an entity. */
 export function escapeHtml(value: string): string {
   return value
@@ -82,7 +101,7 @@ function paragraphs(text: string): string {
     .split(/\n{2,}/)
     .map(
       (block) =>
-        `<p style="margin:0 0 14px;font-size:15px;line-height:1.55;color:${INK}">` +
+        `<p style="margin:0 0 14px;font-size:15px;line-height:1.55;color:${INK};font-family:${FONT}">` +
         block.replace(/\n/g, "<br>") +
         `</p>`,
     )
@@ -175,17 +194,17 @@ export function buildEmail(parts: EmailParts): string {
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <title>${business}</title></head>
-<body style="margin:0;padding:0;background:#f2efe6">
+<body style="margin:0;padding:0;background:#f2efe6;font-family:${FONT}">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f2efe6">
 <tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"
-       style="width:100%;max-width:600px;background:${PAPER};border:1px solid ${LINE};border-radius:14px">
+       style="width:100%;max-width:600px;background:${PAPER};border:1px solid ${LINE};border-radius:14px;font-family:${FONT}">
 
   <tr><td style="padding:24px 28px 0">
     <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
       ${picture ? `<td style="padding-right:12px">${picture}</td>` : ""}
       <td style="vertical-align:middle">
-        <div style="font-size:17px;font-weight:600;color:${INK}">${business}</div>
+        <div style="font-size:17px;font-weight:600;letter-spacing:-0.01em;color:${INK};font-family:${FONT}">${business}</div>
       </td>
     </tr></table>
   </td></tr>
@@ -201,7 +220,7 @@ export function buildEmail(parts: EmailParts): string {
   ${policy}
 
   <tr><td style="padding:20px 28px 24px">
-    <p style="margin:0;font-size:11px;line-height:1.5;color:${MUTED}">
+    <p style="margin:0;font-size:11px;line-height:1.5;color:${MUTED};font-family:${FONT}">
       Sent by ${business}, who use Second Pair to answer and keep the diary.
     </p>
   </td></tr>

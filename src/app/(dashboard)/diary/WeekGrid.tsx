@@ -838,7 +838,7 @@ export function WeekGrid({
                     <span
                       className={`grid size-9 place-items-center rounded-xl font-display text-lg tabular-nums leading-none ${
                         isToday
-                          ? "bg-accent text-on-accent shadow-[var(--shadow-card)]"
+                          ? "bg-accent text-on-accent shadow-[0_4px_16px_rgba(10,12,16,0.10),0_1px_3px_rgba(10,12,16,0.06)]"
                           : closed
                             ? "text-muted/70"
                             : "text-foreground"

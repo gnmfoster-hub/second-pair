@@ -12,6 +12,7 @@
 import { createClient } from "@supabase/supabase-js";
 import fs from "node:fs";
 import { dailyBrief, type BriefBooking } from "../src/lib/dailyBrief.ts";
+import { dailyBriefHtml } from "../src/lib/dailyBriefEmail.ts";
 
 const slug = process.argv[2] ?? "amber-s-paws-pastures";
 const day = process.argv[3] ?? new Date().toISOString().slice(0, 10);
@@ -108,6 +109,21 @@ const owner = dailyBrief(all, {
 console.log("=== TO THE OWNER ".padEnd(70, "=") + "\n");
 console.log(`Subject: ${owner.subject}\n`);
 console.log(owner.text);
+
+/* And the drawn one, written out so it can actually be looked at. */
+const out = process.env.BRIEF_HTML;
+if (out) {
+  fs.writeFileSync(
+    out,
+    dailyBriefHtml(all, {
+      day: anchor,
+      timeZone: tz,
+      business: studio.name,
+      manyPeople: (people ?? []).length > 1,
+    }),
+  );
+  console.log(`\nThe diary version written to ${out}`);
+}
 
 /*
  * Who the sender would actually write to.

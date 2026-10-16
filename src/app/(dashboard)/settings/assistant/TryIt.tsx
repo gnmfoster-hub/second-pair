@@ -131,7 +131,7 @@ export function TryIt({ slug }: { slug: string }) {
             className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
               line.from === "you"
                 ? "ml-auto rounded-br-md bg-accent text-on-accent"
-                : "rounded-bl-md bg-surface text-foreground shadow-[var(--shadow-card)]"
+                : "rounded-bl-md bg-surface text-foreground shadow-[0_4px_16px_rgba(10,12,16,0.10),0_1px_3px_rgba(10,12,16,0.06)]"
             }`}
           >
             {line.text}
@@ -139,7 +139,7 @@ export function TryIt({ slug }: { slug: string }) {
         ))}
 
         {sending && (
-          <div className="w-fit rounded-2xl rounded-bl-md bg-surface px-4 py-3.5 shadow-[var(--shadow-card)]">
+          <div className="w-fit rounded-2xl rounded-bl-md bg-surface px-4 py-3.5 shadow-[0_4px_16px_rgba(10,12,16,0.10),0_1px_3px_rgba(10,12,16,0.06)]">
             <span className="flex gap-1" role="status" aria-label="Thinking">
               {[0, 1, 2].map((i) => (
                 <span
