@@ -654,29 +654,27 @@
       height: full ? "88%" : "min(620px, calc(100vh - 130px))",
       maxWidth: "100vw",
       /*
-       * A bubble anchored to its button, not a rectangle floating near one.
+       * The launcher, stood up.
        *
-       * Uniform corners are what every widget does, and they leave the panel
-       * looking like it happens to be nearby. Pulling in the corner nearest
-       * the launcher points the whole shape at it — the same trick the teaser
-       * above already uses, so the two now read as one thing.
+       * This was a rounded rectangle with one corner pinched in towards the
+       * button, on the theory that the pinch made the panel point at where
+       * it came from. The theory was fine and it did not survive being
+       * looked at: at 28 against 8, one tight corner out of four is
+       * invisible, and Giles said so twice. "Can't you make the open
+       * assistant box a different shape."
        *
-       * Full-screen on a phone keeps square lower corners: there is no button
-       * to point at, and rounding into the bottom of the screen only shows a
-       * strip of the page behind.
+       * So it is a capsule now, the same as the button and the same as the
+       * header pill inside it. Not because a bigger radius is prettier, but
+       * because it makes the whole widget one shape at three sizes: the
+       * thing you press, the thing at the top of what opens, and the thing
+       * itself. That is a house style rather than a decoration, and nobody
+       * else's panel is this round.
+       *
+       * Full-screen on a phone keeps square lower corners. There is no
+       * button down there to echo, and rounding into the bottom of the
+       * screen only shows a strip of the page behind it.
        */
-      /*
-       * Rounder, and plainly lopsided.
-       *
-       * It has always been asymmetric, with the corner nearest the
-       * launcher pulled tight so the panel points at the button it came
-       * from. At 22 against 6 nobody could see it: it read as an
-       * ordinary rounded rectangle, which is what Giles meant by the
-       * open agent not having changed shape. At 28 against 8 the
-       * lopsidedness is the silhouette, and it matches the capsule and
-       * the header pill inside it.
-       */
-      borderRadius: full ? "28px 28px 0 0" : onLeft ? "28px 28px 28px 8px" : "28px 28px 8px 28px",
+      borderRadius: full ? "34px 34px 0 0" : "34px",
       boxShadow: "0 16px 50px rgba(10, 12, 16, 0.26), 0 2px 8px rgba(10, 12, 16, 0.1)",
     });
 
