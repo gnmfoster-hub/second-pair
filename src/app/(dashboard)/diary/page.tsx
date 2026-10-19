@@ -67,7 +67,7 @@ type RawRow = {
   attended: boolean | null;
   actual_minutes: number | null;
   outcome_note: string | null;
-  contacts: { id: string; name: string | null; phone: string | null } | null;
+  contacts: { id: string; name: string | null; phone: string | null; email: string | null } | null;
   enquiries: {
     /** What they were booked for, where the business prices by a named list. */
     service_id: string | null;
@@ -77,7 +77,7 @@ type RawRow = {
     quote_low_pence: number | null;
     conversation_id: string;
     conversations: {
-      contacts: { name: string | null; phone: string | null } | null;
+      contacts: { name: string | null; phone: string | null; email: string | null } | null;
     } | null;
   } | null;
 };
@@ -266,8 +266,8 @@ export default async function DiaryPage({
      * tables that are not changing.
      */
     .select(
-      "*, contacts(id, name, phone), " +
-        "enquiries(service_id, description, job_address, job_postcode, quote_low_pence, conversation_id, conversations(contacts(name, phone)))",
+      "*, contacts(id, name, phone, email), " +
+        "enquiries(service_id, description, job_address, job_postcode, quote_low_pence, conversation_id, conversations(contacts(name, phone, email)))",
     )
     /*
      * This business's people, named.
@@ -545,6 +545,7 @@ export default async function DiaryPage({
       // Either route: a conversation's contact, or one attached by hand.
       clientName: r.enquiries?.conversations?.contacts?.name ?? r.contacts?.name ?? null,
       clientPhone: r.enquiries?.conversations?.contacts?.phone ?? r.contacts?.phone ?? null,
+      clientEmail: r.enquiries?.conversations?.contacts?.email ?? r.contacts?.email ?? null,
       contactId: r.contacts?.id ?? null,
       serviceId: r.enquiries?.service_id ?? null,
       description: r.enquiries?.description ?? null,
@@ -663,6 +664,7 @@ export default async function DiaryPage({
             deposit_amount_pence: 0,
             clientName: null,
             clientPhone: null,
+            clientEmail: null,
             contactId: null,
             description: null,
             conversationId: null,

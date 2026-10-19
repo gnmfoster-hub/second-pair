@@ -93,6 +93,19 @@ export function Glance({
   const pence = entry.price_pence ?? entry.quotePence;
   const address = [entry.job_address, entry.job_postcode].filter(Boolean).join(", ");
 
+  /*
+   * Whether a reminder has anywhere to go.
+   *
+   * Only for appointments with a customer in them. A block holding time out
+   * of the diary and somebody's own private entry have nobody to remind, so
+   * saying so about those would be noise on every lunch break.
+   */
+  const noWayToReach =
+    entry.source !== "block" &&
+    entry.source !== "personal" &&
+    !entry.clientPhone &&
+    !entry.clientEmail;
+
   return (
     <div className="mt-2">
       <div className="text-2xl font-semibold leading-tight">{who}</div>
@@ -140,6 +153,26 @@ export function Glance({
           <a href={`tel:${entry.clientPhone.replace(/\s/g, "")}`} className="text-accent tabular-nums hover:underline">
             {entry.clientPhone}
           </a>
+        )}
+        {noWayToReach && (
+          /*
+           * Why no reminder is going to this one.
+           *
+           * The diary says this already when the appointment is made — see
+           * ClientPicker — and then never again, which is a hint read once
+           * while booking and remembered by nobody. On 19 October ten
+           * reminders were due across three live businesses and none of them
+           * could be sent, all for this reason, and nothing on the screen
+           * said so: the appointment looked exactly like one that had been
+           * reminded.
+           *
+           * Phrased as the consequence rather than as a missing field,
+           * because "no phone number" is a fact and "nobody is going to be
+           * reminded" is the thing worth knowing. Quiet, not a warning: a
+           * regular somebody rings themselves is a perfectly good way to run
+           * a diary, and this must not nag about it.
+           */
+          <span className="hint">No phone or email, so no reminder will go</span>
         )}
         {address && (
           <a

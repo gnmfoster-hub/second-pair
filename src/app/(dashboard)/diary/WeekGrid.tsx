@@ -47,6 +47,12 @@ export type Entry = {
   deposit_amount_pence: number;
   clientName: string | null;
   clientPhone: string | null;
+  /*
+   * Not shown anywhere, and here only so the appointment can say when there
+   * is no way to remind somebody. The phone alone could not tell the
+   * difference between "no way to reach them" and "reach them by email".
+   */
+  clientEmail: string | null;
   /** Set when a manual entry was attached to somebody. */
   contactId: string | null;
   /**
