@@ -3,6 +3,7 @@ import { isOptedOut } from "./optOut.ts";
 import type { Channel } from "@/lib/types";
 import { withinWindow as isWithinWindow, WINDOWED } from "./reach";
 import { sendEmail } from "./email";
+import { avatarUrl } from "@/components/Avatar";
 import { sendSms } from "./sms";
 import { sendMeta } from "./meta";
 
@@ -55,6 +56,36 @@ import { asEmail } from "./asEmail.ts";
  * subject reading "Message from Willow & Co" arrive looking like a text that has
  * wandered in, and read as a mail filter's idea of junk.
  */
+/**
+ * The business's own photograph, for the top of an email.
+ *
+ * Asked here rather than passed in by each of the six callers, because every
+ * one of them would have to be given it and the ones that forgot would send a
+ * plain letterhead with no sign that anything was missing.
+ *
+ * One small read, only on the email path, and it can never stop a send: a
+ * business with no photograph, a renamed column, a database having a bad
+ * minute — all of them come back as no picture, which is what every one of
+ * these emails has had until now anyway.
+ */
+async function businessPhoto(
+  /* The same narrow client deliver itself takes: one table, read only. */
+  db: Pick<SupabaseClient, "from"> | undefined,
+  studioId: string | null | undefined,
+): Promise<string | null> {
+  if (!db || !studioId) return null;
+  try {
+    const { data } = await db
+      .from("studios")
+      .select("photo_path")
+      .eq("id", studioId)
+      .maybeSingle();
+    return avatarUrl((data as { photo_path?: string | null } | null)?.photo_path);
+  } catch {
+    return null;
+  }
+}
+
 async function asEmailTo(
   reachOn: { email?: string | null; firstName?: string | null },
   parts: {
@@ -63,6 +94,7 @@ async function asEmailTo(
     fromName?: string;
     replyTo?: string;
     subject?: string;
+    photoUrl?: string | null;
   },
 ): Promise<Delivery> {
   const letter = asEmail({
@@ -71,13 +103,21 @@ async function asEmailTo(
     firstName: reachOn.firstName,
     canReply: Boolean(parts.replyTo),
     about: parts.subject,
+    photoUrl: parts.photoUrl ?? null,
   });
 
   return sendEmail({
     to: reachOn.email as string,
     subject: letter.subject,
     text: letter.text,
-    html: parts.html,
+    /*
+     * The envelope, unless the caller has built its own.
+     *
+     * A confirmation and a receipt lay themselves out, with the appointment
+     * in a table and a button on it, and those must win. Everything else is
+     * prose and used to go as text alone.
+     */
+    html: parts.html ?? letter.html,
     fromName: parts.fromName,
     replyTo: parts.replyTo,
   });
@@ -221,7 +261,14 @@ export async function deliver({
     const emailFirst = reachOn?.prefer === "email";
 
     if (emailFirst && reachOn?.email) {
-      const posted = await asEmailTo(reachOn, { body, html, fromName, replyTo, subject });
+      const posted = await asEmailTo(reachOn, {
+        body,
+        html,
+        fromName,
+        replyTo,
+        subject,
+        photoUrl: await businessPhoto(db, studioId),
+      });
       if (posted.status === "sent") return posted;
     }
 
@@ -233,7 +280,14 @@ export async function deliver({
     }
 
     if (reachOn?.email) {
-      return asEmailTo(reachOn, { body, html, fromName, replyTo, subject });
+      return asEmailTo(reachOn, {
+        body,
+        html,
+        fromName,
+        replyTo,
+        subject,
+        photoUrl: await businessPhoto(db, studioId),
+      });
     }
 
     return {
@@ -314,13 +368,14 @@ export async function deliver({
         firstName: reachOn?.firstName,
         canReply: Boolean(replyTo),
         about: subject,
+        photoUrl: await businessPhoto(db, studioId),
       });
 
       return sendEmail({
         to,
         subject: letter.subject,
         text: letter.text,
-        html,
+        html: html ?? letter.html,
         fromName,
         replyTo,
       });

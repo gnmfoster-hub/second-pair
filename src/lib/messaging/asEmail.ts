@@ -15,6 +15,8 @@
  * Alias-free, so the composing can be tested without sending anything.
  */
 
+import { buildEmail } from "./emailTemplate.ts";
+
 /** Openings that mean somebody has already been greeted. */
 const GREETED = /^\s*(hi|hello|hey|dear|good\s+(morning|afternoon|evening))\b/i;
 
@@ -59,6 +61,7 @@ export function asEmail({
   firstName,
   canReply,
   about,
+  photoUrl,
 }: {
   body: string;
   businessName: string;
@@ -73,7 +76,9 @@ export function asEmail({
   canReply: boolean;
   /** What the enquiry was about, for the subject line. */
   about?: string | null;
-}): { subject: string; text: string } {
+  /** The business's own photograph, where it has one. */
+  photoUrl?: string | null;
+}): { subject: string; text: string; html: string } {
   const name = (firstName ?? "").trim().split(" ")[0];
 
   const greeting = alreadyGreets(body) ? "" : `Hello${name ? ` ${name}` : ""},\n\n`;
@@ -98,8 +103,34 @@ export function asEmail({
     ? "\n\nJust reply to this email and it comes straight back to us."
     : "";
 
+  /*
+   * The same words, laid out.
+   *
+   * This is the email the product sends most of: every reply to somebody who
+   * wrote in by email, and every answer the widget offers to send on. It went
+   * out as text alone, which a mail client sets in its own default — Times
+   * New Roman, in Outlook on Windows — with the business's name as the last
+   * line and nothing else to say who it was from. Giles: "they are all just
+   * boring text."
+   *
+   * No details table and no button, because a reply is prose. The assistant
+   * has written something; inventing rows to sit under it would be decorating
+   * a sentence. What it gets is the business at the top, its photograph where
+   * it has one, the paper, the ink and a typeface.
+   *
+   * The sign-off comes off the body in the html, because the template already
+   * puts the business's name where a letterhead goes. The text keeps it:
+   * there is no letterhead in a plain-text email.
+   */
+  const html = buildEmail({
+    business: businessName,
+    body: `${greeting}${spaced}${reply}`,
+    photoUrl: photoUrl ?? null,
+  });
+
   return {
     subject: subjectFor(businessName, about),
     text: `${greeting}${spaced}${reply}\n\n${businessName}`,
+    html,
   };
 }
