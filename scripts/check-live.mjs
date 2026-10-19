@@ -401,48 +401,39 @@ if (reachable) {
       pass("the job runs", body ? `due ${body.due}, sent ${body.sent}, waiting ${body.waiting}` : "");
 
       /*
-       * How often it runs on its own.
+       * How long since it last ran on its own.
        *
        * The line above only proves it runs when this check calls it by hand,
        * which is the one time it is guaranteed to. On 19 October that line
-       * had been green for four days while the sweep ran exactly once a day
-       * and every timed reminder in the product arrived twenty hours late.
-       * Nothing said so: the morning health email reports the gap between
-       * sweeps and only goes out when the sweep runs, so a dead sweep could
-       * not report a dead sweep.
+       * had been green for four days while the sweep ran once a day and
+       * every timed reminder arrived twenty hours late. Nothing said so: the
+       * morning health email reports the gap between sweeps and only goes
+       * out when the sweep runs, so a dead sweep could not report one.
        *
-       * body.sweep is {runs, longestGapMins} over the last 48 hours, kept by
-       * the job itself. The first version of this read it as a list of
-       * timestamps, found none, and fell through to a warning about not
-       * being able to tell — which would have been a check that quietly
-       * passed on the very fault it was written for.
+       * Two earlier versions of this check were wrong, both in the same
+       * direction. The first read the heartbeats as a list of timestamps,
+       * found none, and fell through to a warning about not being able to
+       * tell. The second counted runs over 48 hours, which cannot tell "just
+       * fixed" from "still broken" and would have said FAIL for two days
+       * after the fault was cured.
        *
-       * Every fifteen minutes is about 190 runs in 48 hours. Twenty four is
-       * one every two hours, which is already too slow to be trusted and far
-       * above the two it was actually doing.
+       * sinceLastMins is the gap this call has just ended, so it answers the
+       * question directly and answers it correctly the minute things come
+       * right. Twenty five minutes allows one missed quarter hour.
        */
-      const sweep = body?.sweep;
-      const runs = typeof sweep?.runs === "number" ? sweep.runs : null;
-      const worst = typeof sweep?.longestGapMins === "number" ? sweep.longestGapMins : null;
+      const since = body?.sweep?.sinceLastMins;
 
-      if (runs == null) {
-        warn("cannot tell how often the job runs", "the sweep figures did not come back");
-      } else if (runs < 24) {
+      if (typeof since !== "number") {
+        warn("cannot tell how often the job runs", "no gap came back with it");
+      } else if (since > 25) {
+        const said = since < 90 ? `${since} minutes` : `${(since / 60).toFixed(1)} hours`;
         fail(
-          "the job is barely running on its own",
-          `${runs} runs in 48 hours. It should be about 190. Reminders go out late, and ` +
-            `from the end of British Summer Time some would not go out at all.`,
-        );
-      } else if (worst != null && worst > 90) {
-        warn(
-          "the job has stalled at least once",
-          `longest gap ${(worst / 60).toFixed(1)} hours in the last 48`,
+          "the job is not running on its own",
+          `${said} since the one before this. It should be every 15 minutes. Reminders go ` +
+            `out late, and from the end of British Summer Time some would not go out at all.`,
         );
       } else {
-        pass(
-          "the job runs on its own",
-          `${runs} runs in 48 hours` + (worst != null ? `, longest gap ${worst} minutes` : ""),
-        );
+        pass("the job runs on its own", `${since} minutes since the one before`);
       }
 
       /*

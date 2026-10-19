@@ -50,7 +50,7 @@ const KEEP_HOURS = 48;
 export async function noteRun(
   db: SupabaseClient,
   now: Date = new Date(),
-): Promise<{ runs: number; longestGapMins: number | null }> {
+): Promise<{ runs: number; longestGapMins: number | null; sinceLastMins: number | null }> {
   try {
     let times: string[] = [];
     const { data } = await db.storage.from(BUCKET).download(RUNS_FILE);
@@ -83,10 +83,29 @@ export async function noteRun(
       if (longest === null || gap > longest) longest = gap;
     }
 
-    return { runs: day.length, longestGapMins: longest };
+    /*
+     * And how long since the one before this call.
+     *
+     * runs and longestGapMins both look back a whole day, which is the right
+     * window for a morning report and the wrong one for "is it running now":
+     * for 24 hours after a fault is fixed they still describe the fault. On
+     * 19 October that was not academic. The sweep had been running once a
+     * day for four days, the fix went in, and the check still said FAIL
+     * because it was counting history. A check that cries wolf after it has
+     * been fixed is a check somebody learns to ignore.
+     *
+     * Measured against the entry before this run was pushed, so it answers
+     * "how long was the gap we have just ended", not zero.
+     */
+    const before = times.slice(0, -1);
+    const previous = before.length ? Date.parse(before[before.length - 1]) : null;
+    const sinceLastMins =
+      previous === null ? null : Math.round((now.getTime() - previous) / 60_000);
+
+    return { runs: day.length, longestGapMins: longest, sinceLastMins };
   } catch (e) {
     console.error("[morning] could not note the run:", (e as Error)?.message);
-    return { runs: 0, longestGapMins: null };
+    return { runs: 0, longestGapMins: null, sinceLastMins: null };
   }
 }
 
@@ -99,7 +118,7 @@ function ago(hours: number): string {
 export async function sendMorningEmail(
   db: SupabaseClient,
   site: string,
-  sweep: { runs: number; longestGapMins: number | null },
+  sweep: { runs: number; longestGapMins: number | null; sinceLastMins?: number | null },
   now: Date = new Date(),
 ): Promise<{ sent: boolean; why?: string }> {
   try {
