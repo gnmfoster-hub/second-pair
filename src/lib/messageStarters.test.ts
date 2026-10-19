@@ -166,3 +166,27 @@ test("no starter invents a figure or a policy", () => {
     assert.doesNotMatch(s.body, /£|\d+ ?(hours?|days?) ?(notice|before)|deposit/i, s.label);
   }
 });
+
+/*
+ * No shipped reminder names a day it cannot be sure of.
+ *
+ * On 19 October Samantha's day-before reminder arrived at eight on the
+ * morning of the appointment, still opening "See you tomorrow". The sweep
+ * had been running once a day since the 15th, so every timed reminder was
+ * twenty hours late, and the word "tomorrow" was the only part of the
+ * message that was wrong: {{when}} had the day and the time in it, correctly,
+ * the whole time.
+ *
+ * A reminder can always be late. A template that asserts which day it is
+ * cannot always be right. So none of them say.
+ */
+test("no shipped reminder claims a relative day", () => {
+  const whenWords = /\b(tomorrow|today|tonight|this morning|this afternoon|yesterday)\b/i;
+  for (const s of every) {
+    assert.doesNotMatch(
+      s.body,
+      whenWords,
+      `${s.label} names a day it cannot know is right: ${s.body}`,
+    );
+  }
+});

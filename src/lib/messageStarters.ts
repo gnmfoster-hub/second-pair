@@ -83,8 +83,8 @@ export function reminderStarters({ travels }: Where): Starter[] {
     {
       label: "The day before",
       body: travels
-        ? "See you tomorrow, {{name}}, {{practitioner}} will be with you {{when}}. Reply here if anything's changed."
-        : "See you tomorrow, {{name}}, {{when}} with {{practitioner}}. Reply here if anything's changed.",
+        ? "Just a reminder, {{name}}. {{practitioner}} will be with you {{when}}. Reply here if anything's changed."
+        : "Just a reminder, {{name}}. {{when}} with {{practitioner}}. Reply here if anything's changed.",
     },
     {
       label: "A couple of days before",

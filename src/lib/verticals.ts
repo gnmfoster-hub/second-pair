@@ -347,9 +347,23 @@ function defaultReminders(travels: boolean): ReminderTemplate[] {
     {
       hours_before: 24,
       label: "The day before",
+      /*
+       * No relative day in it, on purpose.
+       *
+       * This said "See you tomorrow" until 19 October, when Samantha got her
+       * day-before reminder at eight on the morning of the appointment. The
+       * sweep had been running once a day, so every timed reminder was
+       * arriving twenty hours late, and the one word the template was certain
+       * about was the one thing it could not know.
+       *
+       * {{when}} renders the day and the time in full, so the message carries
+       * the timing and the wording never has to. The same fault as the prompt
+       * that told every business to say "Saturdays 9 to 3": a fact frozen
+       * into a sentence that outlives the moment it was true.
+       */
       body: travels
-        ? "See you tomorrow, {{name}}, {{practitioner}} will be with you {{when}}. Reply here if anything's changed."
-        : "See you tomorrow, {{name}}, {{when}} with {{practitioner}}. Reply here if anything's changed.",
+        ? "Just a reminder, {{name}}. {{practitioner}} will be with you {{when}}. Reply here if anything's changed."
+        : "Just a reminder, {{name}}. {{when}} with {{practitioner}}. Reply here if anything's changed.",
     },
   ];
 }
@@ -951,7 +965,7 @@ const TATTOO = trade({
       hours_before: 24,
       label: "The day before",
       body:
-        "See you tomorrow, {{name}}, {{when}} with {{practitioner}}. Wear something that " +
+        "Just a reminder, {{name}}. {{when}} with {{practitioner}}. Wear something that " +
         "gives easy access to the area. Reply here if anything's changed.",
     },
   ],
@@ -1043,7 +1057,7 @@ const BEAUTY: VerticalPack[] = [
         hours_before: 24,
         label: "The day before",
         body:
-          "See you tomorrow, {{name}}, {{when}} with {{practitioner}}. Reply here if anything's changed.",
+          "Just a reminder, {{name}}. {{when}} with {{practitioner}}. Reply here if anything's changed.",
       },
     ],
   }),

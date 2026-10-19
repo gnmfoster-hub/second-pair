@@ -39,6 +39,24 @@ import { OPENS, SHUTS, localHour } from "./reminderSchedule.ts";
  */
 const SWEEP_CAN_BE_LATE_HOURS = 5;
 
+/*
+ * A warning about the number above, written on 19 October.
+ *
+ * Five hours is only safe while the sweep runs every few minutes. It had
+ * quietly become once a day, at 07:00 UTC, and that turns this guard from a
+ * kindness into a hazard: British Summer Time ends on 25 October, the cron
+ * then fires at 07:00 local, which is before OPENS, so everything with an
+ * appointment later than about one o'clock would be held until a morning
+ * sweep that does not come for another 24 hours. By then the appointment has
+ * passed and whyNotSend marks it as already happened, so it is not sent late,
+ * it is not sent at all.
+ *
+ * Fixed by making the sweep run every fifteen minutes again, with pg_cron
+ * rather than GitHub Actions. See the migration of the same date. If the
+ * sweep ever goes back to being rare, this number has to go with it, and
+ * check-live now fails loudly when it does.
+ */
+
 /**
  * The reason to wait, or null to send now.
  *

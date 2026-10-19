@@ -82,6 +82,31 @@ test("reminders are worded, and land before the appointment", () => {
   assert.deepEqual(broken, []);
 });
 
+/*
+ * The reminder every one of the 35 trades ships with, checked for a word it
+ * cannot be sure of.
+ *
+ * On 19 October a day-before reminder arrived on the morning of the
+ * appointment, still opening "See you tomorrow", because the sweep had been
+ * running once a day and every timed reminder was twenty hours late. The
+ * timing was right in {{when}} the whole time; only the hard-coded day was
+ * wrong.
+ *
+ * This is the file that seeds a new business, so it is the one place worth
+ * holding the line: a reminder can always be late, and a template that
+ * asserts which day it is cannot always be right.
+ */
+test("no trade's reminder names a day it cannot know", () => {
+  const whenWords = /(tomorrow|today|tonight|this morning|this afternoon|yesterday)/i;
+  const broken: string[] = [];
+  for (const trade of VERTICAL_LIST) {
+    for (const r of trade.reminders) {
+      if (whenWords.test(r.body)) broken.push(`${trade.id}: ${r.body}`);
+    }
+  }
+  assert.deepEqual(broken, []);
+});
+
 test("every trade opens with something to say", () => {
   const broken = VERTICAL_LIST.filter((t) => !t.greeting?.trim()).map(names);
   assert.deepEqual(broken, [], `no greeting: ${broken.join(", ")}`);

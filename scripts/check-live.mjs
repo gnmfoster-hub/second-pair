@@ -401,6 +401,51 @@ if (reachable) {
       pass("the job runs", body ? `due ${body.due}, sent ${body.sent}, waiting ${body.waiting}` : "");
 
       /*
+       * How often it runs on its own.
+       *
+       * The line above only proves it runs when this check calls it by hand,
+       * which is the one time it is guaranteed to. On 19 October that line
+       * had been green for four days while the sweep ran exactly once a day
+       * and every timed reminder in the product arrived twenty hours late.
+       * Nothing said so: the morning health email reports the gap between
+       * sweeps and only goes out when the sweep runs, so a dead sweep could
+       * not report a dead sweep.
+       *
+       * body.sweep is {runs, longestGapMins} over the last 48 hours, kept by
+       * the job itself. The first version of this read it as a list of
+       * timestamps, found none, and fell through to a warning about not
+       * being able to tell — which would have been a check that quietly
+       * passed on the very fault it was written for.
+       *
+       * Every fifteen minutes is about 190 runs in 48 hours. Twenty four is
+       * one every two hours, which is already too slow to be trusted and far
+       * above the two it was actually doing.
+       */
+      const sweep = body?.sweep;
+      const runs = typeof sweep?.runs === "number" ? sweep.runs : null;
+      const worst = typeof sweep?.longestGapMins === "number" ? sweep.longestGapMins : null;
+
+      if (runs == null) {
+        warn("cannot tell how often the job runs", "the sweep figures did not come back");
+      } else if (runs < 24) {
+        fail(
+          "the job is barely running on its own",
+          `${runs} runs in 48 hours. It should be about 190. Reminders go out late, and ` +
+            `from the end of British Summer Time some would not go out at all.`,
+        );
+      } else if (worst != null && worst > 90) {
+        warn(
+          "the job has stalled at least once",
+          `longest gap ${(worst / 60).toFixed(1)} hours in the last 48`,
+        );
+      } else {
+        pass(
+          "the job runs on its own",
+          `${runs} runs in 48 hours` + (worst != null ? `, longest gap ${worst} minutes` : ""),
+        );
+      }
+
+      /*
        * Whether last night's copy of the book was taken.
        *
        * A backup nobody checks is a hope. This is the cheapest possible
