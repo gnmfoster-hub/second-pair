@@ -399,7 +399,7 @@ export function answerText(block: Block, answers: Answers | null | undefined): s
   if (block.type === "yesno") {
     if (!value) return "—";
     const detail = answers?.[detailKey(block.id)];
-    return value === "yes" ? (detail ? `Yes — ${detail}` : "Yes") : "No";
+    return value === "yes" ? (detail ? `Yes, ${detail}` : "Yes") : "No";
   }
   if (block.type === "date" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
     const [y, m, d] = value.split("-").map(Number);

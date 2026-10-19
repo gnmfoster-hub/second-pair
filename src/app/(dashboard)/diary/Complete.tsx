@@ -215,7 +215,7 @@ export function Complete({
 
       {/* The sheet already says Complete and has a way back when it opened straight here. */}
       <div className={startOpen ? "hidden" : "flex items-baseline justify-between gap-3"}>
-        <div className="font-medium">Complete{clientName ? ` — ${clientName}` : ""}</div>
+        <div className="font-medium">Complete{clientName ? `: ${clientName}` : ""}</div>
         <button
           type="button"
           onClick={() => (onCancel ? onCancel() : setOpen(false))}

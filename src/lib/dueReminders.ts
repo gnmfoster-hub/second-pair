@@ -61,7 +61,7 @@ export function dueMessage(
   const ahead = on >= now.toISOString().slice(0, 10);
   const offer = ahead ? "want me to book you in before then?" : "want me to book you in?";
 
-  return `${hello}${what}. ${who.business} here — ${offer} Reply STOP to opt out.`;
+  return `${hello}${what}. ${who.business} here, ${offer} Reply STOP to opt out.`;
 }
 
 /**

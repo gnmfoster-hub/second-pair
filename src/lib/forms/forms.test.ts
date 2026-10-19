@@ -32,7 +32,9 @@ test("a complete form is accepted", () => {
   const a = answersFrom({ q_name: "Jo", q_allergy: "yes", [`q_${detailKey("allergy")}`]: "latex", q_use: "No", q_ok: "on" });
   assert.deepEqual(whatIsMissing(form, a, { name: "Jo Marsh", signature: SIGNATURE }), []);
   assert.equal(a[detailKey("allergy")], "latex");
-  assert.equal(answerText(form[2], a), "Yes — latex");
+  /* A comma, not a long dash: this answer is printed on the form somebody
+   * signs, and the rule covers anything a customer reads. */
+  assert.equal(answerText(form[2], a), "Yes, latex");
   assert.equal(answerText(form[4], a), "Agreed");
 });
 

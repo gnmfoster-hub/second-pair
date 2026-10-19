@@ -1409,7 +1409,7 @@ async function generateReply(
             ? "this number"
             : "this chat";
 
-      const notice = `Quick note: ${where} is handled by ${ctx.studio.name}'s assistant, and your details are ${purpose}${url ? ` — ${url}` : "."}`;
+      const notice = `Quick note: ${where} is handled by ${ctx.studio.name}'s assistant, and your details are ${purpose}${url ? `. ${url}` : "."}`;
       text = `${notice}
 
 ${text}`;

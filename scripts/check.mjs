@@ -42,6 +42,17 @@ const checks = [
     run: ["node", "scripts/check-edges.cjs"],
     quick: true,
   },
+  /*
+   * Beside the one about things drawn past the edge, because it is the same
+   * kind of fault: nothing breaks, it just looks wrong to whoever is reading
+   * it. It could not be in this list until today, when it learned to tell a
+   * customer's screen from our own console.
+   */
+  {
+    name: "no long dash where a customer or a client reads it",
+    run: ["node", "scripts/check-dashes.cjs"],
+    quick: true,
+  },
   {
     name: "the diary search behaves",
     run: ["node", "scripts/check-find.cjs"],

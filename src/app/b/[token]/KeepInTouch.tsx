@@ -38,7 +38,7 @@ export function KeepInTouch({
       <section className="mt-8 rounded-xl border border-border bg-surface-2/40 px-4 py-3">
         <p className="text-sm">
           {byEmail || bySms
-            ? `Thanks — ${business} will let you know about offers and news.`
+            ? `Thanks. ${business} will let you know about offers and news.`
             : "Saved. You will only hear from them about your appointments."}
         </p>
         <p className="hint mt-1">You can change this any time from any message they send you.</p>

@@ -80,7 +80,7 @@ export async function createPaymentLink(args: {
   if (!verdict.ok) throw new Error(verdict.because);
 
   const label =
-    kind === "deposit" ? `Deposit — ${business.name}` : `${business.name}`;
+    kind === "deposit" ? `${business.name} deposit` : `${business.name}`;
 
   const params: Stripe.Checkout.SessionCreateParams = {
     mode: "payment",

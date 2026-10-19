@@ -234,7 +234,7 @@ export function ServicePick({
               : `${-timing.minutes_delta} minutes shorter than usual`}
           </strong>{" "}
           for this client
-          {timing.note ? ` — ${timing.note}` : ""}. Set aside{" "}
+          {timing.note ? `, ${timing.note}` : ""}. Set aside{" "}
           {Math.max(5, service.minutes + timing.minutes_delta)} minutes.
         </p>
       )}

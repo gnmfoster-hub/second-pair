@@ -270,6 +270,6 @@ export async function sendMorningEmail(
 /** The last backup attempt, in a sentence. */
 function describeAttempt(outcome: { ran: boolean; because?: string; error?: string }): string {
   if (outcome.ran) return "it worked";
-  if (outcome.because === "failed") return `it failed — ${outcome.error ?? "no reason given"}`;
+  if (outcome.because === "failed") return `it failed: ${outcome.error ?? "no reason given"}`;
   return outcome.because ?? "no reason given";
 }

@@ -57,7 +57,7 @@ export function canRemove(bookings: BookingLike[], timezone = "Europe/London"): 
     ok: false,
     because:
       live.length === 1
-        ? `There is an appointment on this one${said ? ` — ${said}` : ""}. Cancel it first if it is not happening.`
+        ? `There is an appointment on this one${said ? `, ${said}` : ""}. Cancel it first if it is not happening.`
         : `There are ${live.length} appointments on this one${said ? `, the first ${said}` : ""}. Cancel them first if they are not happening.`,
   };
 }

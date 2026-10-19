@@ -476,7 +476,7 @@ export function EntryDialog({
               {mode === "look"
                 ? capital(words.service)
                 : mode === "complete"
-                  ? `Complete${entry?.clientName ? ` — ${entry.clientName}` : ""}`
+                  ? `Complete${entry?.clientName ? `: ${entry.clientName}` : ""}`
                   : existing
                     ? "Change"
                     : "Add to the diary"}

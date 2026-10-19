@@ -156,7 +156,7 @@ export async function createDepositCheckout(args: {
           currency: "gbp",
           unit_amount: amountPence,
           product_data: {
-            name: `Deposit — ${studio.name}`,
+            name: `${studio.name} deposit`,
             description,
           },
         },
@@ -167,7 +167,7 @@ export async function createDepositCheckout(args: {
     metadata: { booking_id: bookingId, conversation_id: conversationId, studio_id: studio.id },
     payment_intent_data: {
       metadata: { booking_id: bookingId, studio_id: studio.id },
-      description: `${formatPence(amountPence)} deposit — ${studio.name}`,
+      description: `${formatPence(amountPence)} deposit for ${studio.name}`,
     },
     expires_at: expiryFor(heldUntil),
     success_url: `${origin}/pay/done?booking=${bookingId}`,

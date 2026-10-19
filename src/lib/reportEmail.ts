@@ -104,7 +104,7 @@ export async function buildReportEmail(
   if (takings) lines.push(`• ${takings.bookings} ${plural(words.service, takings.bookings)} worth ${formatPence(takings.pence)}`);
   lines.push(`• ${formatPence(paid.total)} taken${paid.fees ? ` (Stripe kept ${formatPence(paid.fees)})` : ""}`);
   if (people.people) lines.push(`• ${people.new} new ${plural(words.customer, people.new)}, ${people.returning} returning`);
-  if (report.noShows) lines.push(`• ${report.noShows} did not turn up — ${formatPence(report.noShowPence)} of work`);
+  if (report.noShows) lines.push(`• ${report.noShows} did not turn up, which was ${formatPence(report.noShowPence)} of work`);
   if (report.needsHuman) lines.push(`• ${report.needsHuman} conversation${report.needsHuman === 1 ? "" : "s"} waiting for you`);
   if (paid.waitingCount) lines.push(`• ${paid.waitingCount} payment link${paid.waitingCount === 1 ? "" : "s"} not paid yet (${formatPence(paid.waitingPence)})`);
   if (forms.data?.length) lines.push(`• ${forms.data.length} form${forms.data.length === 1 ? "" : "s"} still to be signed`);
@@ -136,7 +136,7 @@ export async function buildReportEmail(
   lines.push(`The full report: ${origin}/report`);
 
   return {
-    subject: `${studio.name} — ${title}: ${report.booked} booked, ${formatPence(paid.total)} taken`,
+    subject: `${studio.name}, ${title}: ${report.booked} booked, ${formatPence(paid.total)} taken`,
     text: lines.join("\n"),
   };
 }

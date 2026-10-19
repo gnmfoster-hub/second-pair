@@ -340,7 +340,7 @@ export async function POST(request: NextRequest) {
         await db.from("messages").insert({
           conversation_id: conversationId,
           role: "system",
-          content: `Deposit paid — ${((session.amount_total ?? 0) / 100).toLocaleString("en-GB", { style: "currency", currency: "GBP" })}.`,
+          content: `Deposit paid: ${((session.amount_total ?? 0) / 100).toLocaleString("en-GB", { style: "currency", currency: "GBP" })}.`,
         });
       }
 

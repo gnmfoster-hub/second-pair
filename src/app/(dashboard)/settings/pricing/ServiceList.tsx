@@ -60,7 +60,7 @@ export function ServiceList({
 
       {only !== "service" && <Group
         title="What you sell"
-        blurb={`Anything that takes no time — ${(words.product ?? "a gift card").toLowerCase()}, a gift card. It can be sold on its own and never appears in the diary.`}
+        blurb={`Anything that takes no time: ${(words.product ?? "a gift card").toLowerCase()}, a gift card. It can be sold on its own and never appears in the diary.`}
         items={retail}
         empty="Nothing yet. Worth adding if you sell anything over the counter."
         editing={editing}

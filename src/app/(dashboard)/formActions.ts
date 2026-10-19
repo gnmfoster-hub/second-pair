@@ -177,7 +177,7 @@ export async function sendForm(_prev: FormActionState, fd: FormData): Promise<Fo
       subject: `${template.name} — ${studio.name}`,
       message: (firstName, url) =>
         `${firstName ? `Hi ${firstName}, ` : ""}${studio.name} has a form for you to fill in: ` +
-        `${template.name}. It takes a couple of minutes — ${url}`,
+        `${template.name}. It takes a couple of minutes. ${url}`,
     },
   });
 }
@@ -442,12 +442,12 @@ ${note}` : ""}`,
     bookingId: await ourBooking(supabase, studio.id, str(fd, "booking_id")),
     copy: {
       templateId: null,
-      title: `Quote — ${formatPence(total)}`,
+      title: `Quote for ${formatPence(total)}`,
       blocks,
       subject: `Your quote from ${studio.name} — ${formatPence(total)}`,
       message: (firstName, url) =>
         `${firstName ? `Hi ${firstName}, ` : ""}here is your quote from ${by ? `${by.name.split(" ")[0]} at ` : ""}${studio.name}: ${formatPence(total)}. ` +
-        `You can read it and accept it here — ${url}`,
+        `You can read it and accept it here: ${url}`,
       expiresInDays: validDays,
     },
   });

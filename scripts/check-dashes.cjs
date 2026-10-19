@@ -293,8 +293,25 @@ function kindOf(line, at) {
   /* The whole of the string is the dash: a stand-in for nothing. */
   if (/["'`]\s*$/.test(before) && /^\s*["'`]/.test(after)) return "placeholder";
 
-  /* A label and a value: an interpolation all but touching it. */
-  if (/\$\{[^}]*\}\s*$/.test(before) || /^\s*\$\{/.test(after)) return "separator";
+  /*
+   * A label and a value: an interpolation all but touching it.
+   *
+   * -- Narrowed on 19 October ---------------------------------------------
+   *
+   * This counted an interpolation on *either* side, and the one after the
+   * dash was doing real damage. The weekly report held a line that reads,
+   * once the count and the money are filled in, "two did not turn up — £120
+   * of work": prose, with a figure in it, in an email that goes to a client
+   * every Monday morning. The check filed it under separators, which is the
+   * bucket that gets a number printed and never opened, so it survived every
+   * pass over this rule, including the one that took the dashes out of the
+   * subject lines.
+   *
+   * A real separator has the *label* side interpolated, or is a dash
+   * standing in for a missing value. Words before the dash make it prose,
+   * whatever follows it.
+   */
+  if (/\$\{[^}]*\}\s*$/.test(before)) return "separator";
   if (/\{\s*$/.test(before) || /^\s*\{/.test(after)) return "separator";
   if (/<\/?[A-Za-z][^>]*>\s*$/.test(before) || /^\s*<\/?[A-Za-z]/.test(after)) return "separator";
 
@@ -338,14 +355,35 @@ for (const root of ROOTS) {
   }
 }
 
-const found = prose;
+/*
+ * Three lists, not one, so this can be a gate rather than a reading task.
+ *
+ * It exited 1 on anything it found anywhere, which meant it could never go
+ * into npm run check: our own admin console has two dozen, and the marketing
+ * pages have nine that are nobody's to change without asking. A check that
+ * cannot be run is a check that is not run, and on 19 October a long dash was
+ * sitting in the weekly report email going out to three live businesses.
+ *
+ * So: anything a customer or a client reads has to be clean, and that is what
+ * fails. The console is ours and is listed. The marketing copy is the public's
+ * and Giles's to word, so it is listed and named as his.
+ */
+/* Plain strings, because every path in this list is already normalised to
+ * forward slashes where it is collected. */
+const isOurs = (f) => f.file.startsWith("src/app/admin/");
+const isHis = (f) =>
+  f.file.startsWith("src/app/(marketing)/") || f.file.startsWith("src/app/(product)/");
+
+const found = prose.filter((f) => !isOurs(f) && !isHis(f));
+const ours = prose.filter(isOurs);
+const his = prose.filter(isHis);
 
 const only = process.argv.includes("--all") ? null : process.argv[2];
 const listed = only ? found.filter((f) => f.file.includes(only)) : found;
 
 console.log("");
 if (found.length === 0) {
-  console.log("No long dash in prose on any screen. Comments are left alone.");
+  console.log("No long dash in anything a customer or a client reads.");
 } else {
   console.log(`${found.length} long dash${found.length === 1 ? "" : "es"} in prose a person reads.`);
   console.log(
@@ -359,3 +397,22 @@ if (found.length === 0) {
   console.log("A bulk pass over the last lot got eleven wrong in exactly that way.");
   process.exitCode = 1;
 }
+
+if (ours.length || his.length) {
+  console.log("");
+  if (ours.length) {
+    console.log(`${ours.length} in our own console, which only we read. Listed, not failed.`);
+  }
+  if (his.length) {
+    console.log(
+      `${his.length} in the marketing and product pages. Those are Giles's words and ` +
+        `wait on his say-so.`,
+    );
+  }
+  console.log("Run with --ours or --his to see them.");
+}
+
+if (process.argv.includes("--ours")) for (const f of ours) console.log(`  ${f.file}:${f.line}
+    ${f.text}`);
+if (process.argv.includes("--his")) for (const f of his) console.log(`  ${f.file}:${f.line}
+    ${f.text}`);

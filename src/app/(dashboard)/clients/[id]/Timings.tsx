@@ -162,7 +162,7 @@ function TimingRow({
               {choices.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
-                  {s.minutes != null ? ` — ${s.minutes} min` : ""}
+                  {s.minutes != null ? `, ${s.minutes} min` : ""}
                 </option>
               ))}
             </select>
