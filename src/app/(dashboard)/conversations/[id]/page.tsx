@@ -65,6 +65,20 @@ export default async function ConversationPage({
     getServiceOptions(studio.id),
   ]);
 
+  /*
+   * Newest at the top.
+   *
+   * Giles, 19 Oct: "on the inbox when you in a conversation, can it show the
+   * latest message at the top to save scrolling down each time." A thread with
+   * forty messages in it opened on the oldest one, which is the message nobody
+   * came to read, and the one worth reading was a screen and a half down.
+   *
+   * The query stays in order and this reverses a copy of it, because the order
+   * it is stored in is the order everything else reads it in: the history the
+   * assistant is given, the brief, the weekly report. Only the screen changes.
+   */
+  const newestFirst = [...(messages ?? [])].reverse();
+
   const contact = conversation.contacts;
   const band = bands.find((b) => b.id === enquiry?.size_band_id);
   const artist = artists.find((a) => a.id === enquiry?.artist_id);
@@ -153,9 +167,28 @@ export default async function ConversationPage({
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_20rem]">
         <div className="min-w-0 space-y-6">
           <section className="card p-5">
-            <h2 className="section-title mb-4">Conversation</h2>
+            <div className="mb-4 flex items-baseline gap-3">
+              <h2 className="section-title">Conversation</h2>
+              {/*
+                * Said out loud, because an inverted thread that does not admit
+                * it reads as though the answers came before the questions.
+                */}
+              <span className="hint">Newest first</span>
+              {/*
+                * And a way to the reply box without reading backwards to find
+                * it. It stays under the thread, which with the newest message
+                * at the top is now the far end of the page. One tap rather
+                * than a scroll. Only worth the room on a thread long enough
+                * for the scroll to be the thing he complained about.
+                */}
+              {newestFirst.length > 4 && (
+                <a href="#reply" className="btn-ghost ml-auto">
+                  Reply
+                </a>
+              )}
+            </div>
             <div className="space-y-3">
-              {(messages ?? []).map((m) => {
+              {newestFirst.map((m) => {
                 if (m.role === "system") {
                   return (
                     <p key={m.id} className="py-1 text-center text-xs text-warn">
@@ -262,7 +295,7 @@ export default async function ConversationPage({
             </div>
           </section>
 
-          <section className="card p-5">
+          <section id="reply" className="card scroll-mt-4 p-5">
             <div className="mb-4 flex items-center gap-3">
               <h2 className="section-title">Reply</h2>
               <form action={setPaused} className="ml-auto">
