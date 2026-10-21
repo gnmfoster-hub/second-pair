@@ -179,7 +179,19 @@ export async function fileItAway(db: SupabaseClient, formId: string): Promise<vo
   if (!toBusiness) return;
 
   const who = known.name?.trim() || form.signer_name?.trim() || "A client";
-  const record = `${siteOrigin()}/clients/${form.contact_id}`;
+  /*
+   * Awaited, which it was not.
+   *
+   * siteOrigin is async, and a promise in a template literal becomes the
+   * string "[object Promise]". So every business that has had a form signed
+   * has been emailed a link reading
+   * "[object Promise]/clients/4f3a..." , as text and as the button on the
+   * drawn version, and the one thing that email exists to offer was the one
+   * thing in it that did not work. Found on 21 October while drawing the
+   * last of the plain-text emails; nothing in the types caught it because
+   * interpolating a promise is legal TypeScript.
+   */
+  const record = `${await siteOrigin()}/clients/${form.contact_id}`;
 
   const landed = [
     ...Object.keys(save.person).map((k) => theWord(k)),

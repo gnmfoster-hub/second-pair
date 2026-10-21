@@ -213,7 +213,11 @@ export async function sendAgreement(
 
   const terms = buildTerms(studio.name as string, money);
   const token = randomBytes(24).toString("base64url");
-  const url = `${siteOrigin()}/a/${token}`;
+  /*
+   * Awaited. This is the link a prospective client is emailed and asked to
+   * sign on, and unawaited it came out as "[object Promise]/a/<token>".
+   */
+  const url = `${await siteOrigin()}/a/${token}`;
   const now = new Date().toISOString();
 
   const { error: insert } = await db.from("agreements").insert({

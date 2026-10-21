@@ -49,7 +49,9 @@ export async function agreementsByStudio(
     /* A missing table is not a fault to report here. See the note above. */
     if (error || !data) return out;
 
-    const origin = siteOrigin();
+    /* Awaited. Unawaited it is a promise, and `${origin}/a/${token}` below
+       then reads "[object Promise]/a/…" on every agreement in the list. */
+    const origin = await siteOrigin();
 
     for (const r of data) {
       const row: AgreementRow = {

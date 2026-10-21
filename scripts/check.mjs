@@ -53,6 +53,17 @@ const checks = [
     run: ["node", "scripts/check-dashes.cjs"],
     quick: true,
   },
+  /*
+   * Beside it because it is the same shape of fault again: legal code, a
+   * clean build, and a link that reads "[object Promise]/a/4f3a" to whoever
+   * is being asked to click it. Three of those were live on 21 October,
+   * including the agreement a new client is emailed to sign.
+   */
+  {
+    name: "nothing reads a promise as though it were a string",
+    run: ["node", "scripts/check-awaited.cjs"],
+    quick: true,
+  },
   {
     name: "the diary search behaves",
     run: ["node", "scripts/check-find.cjs"],

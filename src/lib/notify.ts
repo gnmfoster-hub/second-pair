@@ -1,6 +1,7 @@
 import webpush from "web-push";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmail, emailConfigured } from "@/lib/messaging/email";
+import { buildEmail } from "@/lib/messaging/emailTemplate";
 import { gatherBookingAlert } from "@/lib/messaging/bookingAlert";
 
 /**
@@ -226,6 +227,26 @@ async function emailStudio(
       to: studio.email,
       subject: email.subject,
       text: email.text,
+      /*
+       * Drawn, and under our name rather than theirs.
+       *
+       * This is the alert that tells an owner somebody has booked, which is
+       * the email they most want to see land. The letterhead says Second
+       * Pair because that is who is writing: it is our software telling them
+       * something happened, and a business emailing itself lands in its own
+       * spam. No brand colour for the same reason.
+       */
+      html: buildEmail({
+        business: "Second Pair",
+        heading: email.subject,
+        body: email.text,
+        /*
+         * No button. The notification's own url is relative, this is not
+         * running inside a request so siteOrigin cannot be asked, and a
+         * relative href in an email goes nowhere at all. The body carries
+         * the customer's name and number, which is what it is for.
+         */
+      }),
       // From us, not from them. It is our software telling them something
       // happened, and a business emailing itself lands in its own spam.
       fromName: "Second Pair",
@@ -304,6 +325,11 @@ export async function notifyArtist(
           to: artist.email,
           subject: message.email.subject,
           text: message.email.text,
+          html: buildEmail({
+            business: "Second Pair",
+            heading: message.email.subject,
+            body: message.email.text,
+          }),
         });
       }
     }

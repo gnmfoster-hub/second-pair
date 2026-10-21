@@ -9,6 +9,7 @@ import { parsePounds } from "@/lib/money";
 import { DEFAULT_HOURS, type DepositRule, type OpeningHours } from "@/lib/types";
 import { sendEmail, emailConfigured } from "@/lib/messaging/email";
 import { usableAddress } from "@/lib/messaging/address";
+import { buildEmail } from "@/lib/messaging/emailTemplate";
 import { mergeVocabulary } from "@/lib/vocabulary";
 import { readInboundMode } from "@/lib/messaging/inboundEmail";
 import { siteOrigin } from "@/lib/origin";
@@ -1564,24 +1565,40 @@ export async function inviteToTeam(
   const link = `${await siteOrigin()}/join/${data.token}`;
   const first = person.name.split(" ")[0];
 
+  const body =
+    `${studio.name} has set you up with a login for the diary. The link below ` +
+    `works once and expires in fourteen days, and you will be asked to choose ` +
+    `a password when you open it.
+
+` +
+    `If you were not expecting this, ignore it and nothing happens.`;
+
   const sent = await sendEmail({
     to: person.email,
     subject: `Your login for ${studio.name}`,
-    text:
-      `Hello ${first},
+    text: `Hello ${first},
 
-` +
-      `${studio.name} has set you up with a login for the diary.
+${body}
 
-` +
-      `${link}
-
-` +
-      `The link works once and expires in fourteen days. You will be asked to ` +
-      `choose a password when you open it.
-
-` +
-      `If you were not expecting this, ignore it and nothing happens.`,
+${link}`,
+    /*
+     * Drawn, like everything else the product sends.
+     *
+     * This is the first thing a new member of somebody's team ever receives
+     * from us, it carries a link they are being asked to trust with a
+     * password, and it was four paragraphs of plain text with a bare URL in
+     * the middle. That is the shape of every phishing email ever written.
+     * The business at the top, in their colour, and the link on a button.
+     */
+    html: buildEmail({
+      business: studio.name,
+      heading: `Hello ${first}`,
+      body,
+      action: { label: "Set your password", url: link },
+      accent: studio.widget_accent ?? null,
+      contactEmail: usableAddress(studio.email ?? "") ?? null,
+      replies: Boolean(studio.email),
+    }),
     fromName: studio.name,
     replyTo: studio.email ?? undefined,
   });
