@@ -66,7 +66,7 @@ export function InviteButton({
           <span className="text-xs font-medium">
             {emailedTo
               ? `Emailed to ${emailedTo}. It works once, and expires in 14 days`
-              : `Send this to ${name.split(" ")[0]} — it works once, and expires in 14 days`}
+              : `Send this to ${name.split(" ")[0]}. It works once, and expires in 14 days`}
           </span>
           <button
             type="button"

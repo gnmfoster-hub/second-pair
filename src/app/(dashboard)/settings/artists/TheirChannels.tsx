@@ -192,7 +192,7 @@ export function TheirChannels({
                 <span className="hint min-w-0 flex-1 text-[12px]">
                   {may
                     ? whatAllowingMeans(channel, firstName)
-                    : `Not allowed. The ${business}'s channels still reach ${firstName} — a customer writing in is asked who they would like.`}
+                    : `Not allowed. The ${business}'s channels still reach ${firstName}. A customer writing in is asked who they would like.`}
                 </span>
               </form>
             </li>

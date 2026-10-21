@@ -8,6 +8,7 @@ import { gapsAhead } from "@/lib/gapsAhead";
 import { formatPence } from "@/lib/money";
 import { wordsFor } from "@/lib/words";
 import { whereTheWorkIs, howJobsRan, weekShapeLines } from "@/lib/reportShape";
+import { reportLetterHtml, type Figure } from "@/lib/reportLetter";
 
 /**
  * A business's report, as an email somebody reads over a coffee on Monday.
@@ -23,7 +24,7 @@ export async function buildReportEmail(
   range: { from: Date; to: Date; title: string },
   origin: string,
   now: Date = new Date(),
-): Promise<{ subject: string; text: string }> {
+): Promise<{ subject: string; text: string; html: string }> {
   const words = wordsFor(studio);
   const { from, to, title } = range;
 
@@ -102,7 +103,11 @@ export async function buildReportEmail(
   );
   if (report.recoveredPence > 0) lines.push(`• ${formatPence(report.recoveredPence)} booked from enquiries that came in while you were shut`);
   if (takings) lines.push(`• ${takings.bookings} ${plural(words.service, takings.bookings)} worth ${formatPence(takings.pence)}`);
-  lines.push(`• ${formatPence(paid.total)} taken${paid.fees ? ` (Stripe kept ${formatPence(paid.fees)})` : ""}`);
+  lines.push(
+    paid.total > 0
+      ? `• ${formatPence(paid.total)} taken${paid.fees ? ` (Stripe kept ${formatPence(paid.fees)})` : ""}`
+      : `• nothing was recorded as paid through Second Pair`,
+  );
   if (people.people) lines.push(`• ${people.new} new ${plural(words.customer, people.new)}, ${people.returning} returning`);
   if (report.noShows) lines.push(`• ${report.noShows} did not turn up, which was ${formatPence(report.noShowPence)} of work`);
   if (report.needsHuman) lines.push(`• ${report.needsHuman} conversation${report.needsHuman === 1 ? "" : "s"} waiting for you`);
@@ -135,10 +140,193 @@ export async function buildReportEmail(
   lines.push("");
   lines.push(`The full report: ${origin}/report`);
 
+  /*
+   * The same figures, drawn.
+   *
+   * Built from the values the text above was built from, not from the text:
+   * a second pass over nine sentences would be a parser, and the first time
+   * somebody reworded a bullet the layout would quietly lose a row.
+   *
+   * The two halves are not identical and should not be. The text is a list
+   * because that is all text can be. The html puts the three figures an owner
+   * opens this for into tiles, the money in a column that adds up, and the
+   * people worth ringing in a list beside a button. Nothing is in one half
+   * and missing from the other.
+   */
+  /*
+   * What the week is worth, and the trap in saying it.
+   *
+   * paid.total is money recorded through Second Pair. For all three live
+   * businesses that is nought: Living Canvas takes payment through Shopify,
+   * Neat & Tidy is paid by bank transfer, and Amber's is paid on the day. So
+   * the first draft of this email opened with a tile reading "£0 taken" over
+   * a week in which Living Canvas did £700 of tattooing, which is true of
+   * Stripe and a lie about the week.
+   *
+   * So the headline figure is the money taken where there is any, and the
+   * value of the work booked where there is not. The other is still in the
+   * money table underneath, said in full, because "nothing was recorded as
+   * paid" is a thing an owner should be able to see rather than a thing to
+   * hide behind a nicer number.
+   */
+  const headline =
+    paid.total > 0
+      ? { value: formatPence(paid.total), label: "taken" }
+      : takings && takings.pence > 0
+        ? { value: formatPence(takings.pence), label: "of work booked" }
+        : { value: formatPence(0), label: "taken" };
+
+  const money: Figure[] = [
+    {
+      label: "Taken",
+      value: formatPence(paid.total),
+      note: paid.count
+        ? `${paid.count} payment${paid.count === 1 ? "" : "s"}`
+        : "nothing was recorded as paid through Second Pair",
+    },
+    ...(paid.fees ? [{ label: "Stripe kept", value: formatPence(paid.fees) }] : []),
+    ...(paid.deposits ? [{ label: "Of that, deposits", value: formatPence(paid.deposits) }] : []),
+    ...(paid.waitingCount
+      ? [
+          {
+            label: "Not paid yet",
+            value: formatPence(paid.waitingPence),
+            note: `${paid.waitingCount} payment link${paid.waitingCount === 1 ? "" : "s"} sent and still open`,
+            bad: true,
+          },
+        ]
+      : []),
+    ...(report.recoveredPence > 0
+      ? [
+          {
+            label: "Booked while you were shut",
+            value: formatPence(report.recoveredPence),
+            note: "from enquiries that came in out of hours",
+          },
+        ]
+      : []),
+  ];
+
+  const week: Figure[] = [
+    ...(report.enquiries
+      ? [
+          {
+            label: "Enquiries that booked",
+            value: `${Math.round((report.booked / report.enquiries) * 100)}%`,
+            note: `${report.booked} of ${report.enquiries}`,
+          },
+        ]
+      : []),
+    ...(takings
+      ? [
+          {
+            label: `${cap(plural(words.service, takings.bookings))} booked`,
+            value: String(takings.bookings),
+            note: `worth ${formatPence(takings.pence)}`,
+          },
+        ]
+      : []),
+    ...(people.people
+      ? [
+          { label: `New ${plural(words.customer, people.new)}`, value: String(people.new) },
+          { label: "Coming back", value: String(people.returning) },
+        ]
+      : []),
+    ...(report.noShows
+      ? [
+          {
+            label: "Did not turn up",
+            value: String(report.noShows),
+            note: `${formatPence(report.noShowPence)} of work`,
+            bad: true,
+          },
+        ]
+      : []),
+    ...(report.needsHuman
+      ? [
+          {
+            label: "Waiting for you",
+            value: String(report.needsHuman),
+            note: `conversation${report.needsHuman === 1 ? "" : "s"} the assistant handed over`,
+            bad: true,
+          },
+        ]
+      : []),
+    ...(forms.data?.length ? [{ label: "Forms still to be signed", value: String(forms.data.length) }] : []),
+  ];
+
+  /* The dates it covers, in words, because "last week" is not a date. */
+  const period = (() => {
+    const show = (d: Date) =>
+      new Intl.DateTimeFormat("en-GB", {
+        timeZone: studio.timezone ?? "Europe/London",
+        day: "numeric",
+        month: "long",
+      }).format(d);
+    /* to is exclusive, so the last day it covers is the one before it. */
+    return `${show(from)} to ${show(new Date(to.getTime() - 86_400_000))}`;
+  })();
+
+  const html = reportLetterHtml({
+    business: studio.name,
+    title,
+    period,
+    tiles: [
+      { value: String(report.enquiries), label: `enquir${report.enquiries === 1 ? "y" : "ies"}` },
+      { value: String(report.booked), label: "booked in" },
+      headline,
+    ],
+    money,
+    week,
+    notes: weekShapeLines({
+      where,
+      running,
+      service: words.service,
+      services: plural(words.service, 2),
+      money: formatPence,
+    }),
+    lapsed: lapsed.slice(0, 3).map((p) => ({
+      name: p.name ?? "Somebody unnamed",
+      detail: `Last in ${p.daysSince} days ago, and usually comes every ${p.usualGapDays}`,
+    })),
+    ahead:
+      freeHours > 0
+        ? `${freeHours} hour${freeHours === 1 ? "" : "s"} free in the week ahead that could be filled.`
+        : null,
+    reportUrl: `${origin}/report`,
+  });
+
   return {
-    subject: `${studio.name}, ${title}: ${report.booked} booked, ${formatPence(paid.total)} taken`,
+    /*
+     * The subject, which is most of what gets read.
+     *
+     * It said "0 booked, £0 taken" for every one of the three live businesses,
+     * which is a subject line somebody learns to leave unopened. Worse, with
+     * the headline figure fixed it then read "0 booked, £90 of work booked",
+     * contradicting itself: booked counts enquiries that turned into
+     * appointments, and the money counts the appointments that happened, so a
+     * week of regulars booked a fortnight ago is nought and £90 at once.
+     *
+     * Money and enquiries, then, which do not argue with each other.
+     */
+    subject:
+      `${studio.name}, ${title}: ${headline.value} ${paid.total > 0 ? "taken" : "of work"}, ` +
+      `${report.enquiries} enquir${report.enquiries === 1 ? "y" : "ies"}`,
     text: lines.join("\n"),
+    html,
   };
+}
+
+/*
+ * A trade's own word for what it sells, at the start of a line.
+ *
+ * The vocabulary holds "tattoo", "clean", "walk" — written as they are used
+ * mid-sentence, which is right everywhere else in the product and wrong as
+ * the first word of a row in a table. The first draft of the drawn report had
+ * a line reading "tattoos booked" under a capitalised heading.
+ */
+function cap(word: string): string {
+  return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
 function plural(word: string, n: number): string {

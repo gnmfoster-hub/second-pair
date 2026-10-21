@@ -25,7 +25,9 @@ test("a date is said the way a person says it", () => {
 
 test("the reminder names the business and offers the slot", () => {
   const text = dueMessage(mot, "2026-11-01", { name: "Dave Smith", business: "Cogs & Co" });
-  assert.match(text, /^Hi Dave — your MOT runs out on 1 November\./);
+  /* A comma, not a long dash. The checker had been filing this one under
+     separators because the name beside it is an interpolation. */
+  assert.match(text, /^Hi Dave, your MOT runs out on 1 November\./);
   assert.match(text, /Cogs & Co here/);
   assert.match(text, /book you in before then/);
 });

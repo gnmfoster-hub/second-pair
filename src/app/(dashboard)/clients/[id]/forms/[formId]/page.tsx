@@ -143,8 +143,8 @@ export default async function ClientFormPage({
               : form.status === "void"
                 ? "Withdrawn"
                 : form.status === "opened"
-                  ? `Opened ${stamp(form.opened_at as string)} — not signed yet`
-                  : `Sent ${stamp(form.sent_at as string)} — not opened yet`}
+                  ? `Opened ${stamp(form.opened_at as string)}, not signed yet`
+                  : `Sent ${stamp(form.sent_at as string)}, not opened yet`}
         </p>
       </header>
 
@@ -233,7 +233,7 @@ export default async function ClientFormPage({
         */}
       {isQuote && form.status === "signed" && (
         <section className="card p-5 print:hidden">
-          <h2 className="section-title">Accepted — {formatPence(total)}</h2>
+          <h2 className="section-title">Accepted, {formatPence(total)}</h2>
           <p className="hint mt-1 text-sm">Take a deposit or the whole amount by link, or book the work in the diary.</p>
           <div className="mt-3">
             <AskForPayment

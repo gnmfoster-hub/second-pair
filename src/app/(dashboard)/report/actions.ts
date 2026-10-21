@@ -34,8 +34,8 @@ export async function emailMeReport(_prev: EmailReportState, fd: FormData): Prom
     studio.timezone,
   );
 
-  const { subject, text } = await buildReportEmail(supabase, studio, range, await siteOrigin());
-  const sent = await sendEmail({ to: user.email, subject, text, fromName: "Second Pair" });
+  const { subject, text, html } = await buildReportEmail(supabase, studio, range, await siteOrigin());
+  const sent = await sendEmail({ to: user.email, subject, text, html, fromName: "Second Pair" });
   if (sent.status === "failed") return { error: sent.error ?? "It would not send. Try again in a minute." };
 
   return { ok: true, to: user.email };

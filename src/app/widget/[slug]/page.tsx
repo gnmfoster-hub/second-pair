@@ -299,7 +299,7 @@ export default async function WidgetPage({
           <h1 className="text-lg font-semibold leading-tight sm:text-xl">{who}</h1>
           <p className="hint mt-1">
             {whose
-              ? `Message ${whose.name.split(" ")[0]} — it answers straight away, day or night.`
+              ? `Message ${whose.name.split(" ")[0]}. It answers straight away, day or night.`
               : "Message us. It answers straight away, day or night."}
           </p>
         </div>

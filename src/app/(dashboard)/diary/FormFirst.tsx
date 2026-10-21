@@ -114,9 +114,9 @@ export function SendAnyForm({ contactId, bookingId }: { contactId: string; booki
   if (!templates.length) {
     return (
       <p className="hint text-sm">
-        No forms yet —{" "}
+        No forms yet.{" "}
         <Link href="/settings/forms" className="text-accent hover:underline">
-          add one in Settings → Forms
+          Add one in Settings → Forms
         </Link>
         .
       </p>

@@ -96,7 +96,7 @@ export function regularSummary(args: {
     rule === "weekly" ? "every week" : rule === "fortnightly" ? "every two weeks" : "every month";
 
   if (made.length <= 1) {
-    return `Only the first one could be booked ${every} — the rest were already taken or the business is shut then. Confirm the one appointment and say you will sort the rest out with them.`;
+    return `Only the first one could be booked ${every}. The rest were already taken, or the business is shut then. Confirm the one appointment and say you will sort the rest out with them.`;
   }
 
   const lines = [`Booked ${made.length} visits, ${every}, starting with the first.`];

@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // tested by node directly. The rest of the codebase uses the @/ alias.
 import { sendEmail, emailConfigured } from "./email.ts";
 import { replyToFor } from "./replyTo.ts";
+import { usableAddress } from "./address.ts";
 import { buildCalendar } from "../ics.ts";
 import { formatPence } from "../money.ts";
 import { buildEmail } from "./emailTemplate.ts";
@@ -92,6 +93,7 @@ export async function sendBookingConfirmation(
       cancellationPolicy: studio.cancellation_policy,
       bookingId: booking.id,
       updatedAt: booking.updated_at ?? null,
+      contactEmail: usableAddress(studio.email ?? "") ?? null,
     });
 
     const result = await sendEmail({
@@ -192,6 +194,7 @@ export function composeConfirmation({
   cancellationPolicy,
   bookingId,
   updatedAt,
+  contactEmail,
 }: {
   startsAt: string;
   endsAt: string;
@@ -209,6 +212,14 @@ export function composeConfirmation({
    * calendar, which then still shows the old time.
    */
   updatedAt?: string | null;
+  /**
+   * The business's own public address, for the foot of the letter.
+   *
+   * Not the reply-to, which points at our inbound domain so the assistant can
+   * carry an email conversation on. Printing that at a customer is what this
+   * field exists to avoid.
+   */
+  contactEmail?: string | null;
 }): { subject: string; text: string; html: string; calendar: string } {
   const starts = new Date(startsAt);
   const ends = new Date(endsAt);
@@ -298,6 +309,8 @@ ${studioName}`;
         : []),
     ],
     policy: cancellationPolicy ?? null,
+    replies: true,
+    contactEmail: contactEmail ?? null,
   });
 
   return { subject: `You are booked in: ${when}`, text, html, calendar };

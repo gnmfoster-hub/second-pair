@@ -311,9 +311,59 @@ function kindOf(line, at) {
    * standing in for a missing value. Words before the dash make it prose,
    * whatever follows it.
    */
+  /*
+   * ── Narrowed again on 21 October ─────────────────────────────────────────
+   *
+   * The narrowing above was right and did not go far enough. It took the
+   * interpolation case off the `after` side and left two more rules that both
+   * still looked at it: a dash followed by `{`, and a dash with a JSX tag on
+   * either side of it. Between them they were hiding ten lines of plain
+   * English on the screens a client uses every day, including
+   *
+   *     {paid.waitingCount} payment links not paid yet —{" "}
+   *     <strong>could not go in</strong> — that time was already taken
+   *     Hi, it's Sarah — what were you thinking of having done?
+   *
+   * The last of those is the placeholder in the message editor, which is a
+   * wording businesses copy. Every one of them passed, every time, because
+   * `{" "}` is how JSX writes a space and a closing tag is how a sentence
+   * carries a bold word in it. Neither has anything to do with whether the
+   * dash is joining two halves of a sentence.
+   *
+   * So the rule the comment above already states is now the rule the code
+   * follows: words before the dash make it prose, whatever follows it. Tags
+   * and JSX spaces are taken out of the way first, because `</strong> ` is
+   * not what the reader sees — ".csv " is.
+   */
+  /*
+   * What the reader actually sees before the dash.
+   *
+   * Tags and interpolations are taken out rather than kept, because they are
+   * not words on the screen and they are exactly what the old rules were
+   * tripping over. Removed, not replaced with a stand-in: a line that is only
+   * an interpolation and a dash is a genuine label-and-value separator, and
+   * leaving a stand-in word behind would make every one of those look like
+   * prose. What is left is whatever a person reads, and if that ends in a
+   * word then the dash is joining two halves of a sentence.
+   *
+   * This is what catches the message-editor placeholder,
+   * "Hi, it's ${name} — what were you thinking of having done?", which is a
+   * wording businesses copy and which the interpolation rule had been hiding
+   * since the rule was written.
+   */
+  const words = before
+    .replace(/<\/?[A-Za-z][^>]*>/g, "")
+    .replace(/\$\{[^{}]*\}/g, "")
+    .replace(/\{[^{}]*\}/g, "");
+
+  /* One or more spaces: an interpolation taken out leaves two behind, which
+     is how the message editor placeholder stayed hidden through the first
+     version of this very fix. */
+  if (/[\w.,!?)"']\s+$/.test(words)) return "prose";
+
   if (/\$\{[^}]*\}\s*$/.test(before)) return "separator";
-  if (/\{\s*$/.test(before) || /^\s*\{/.test(after)) return "separator";
-  if (/<\/?[A-Za-z][^>]*>\s*$/.test(before) || /^\s*<\/?[A-Za-z]/.test(after)) return "separator";
+  if (/\{\s*$/.test(before)) return "separator";
+  if (/<\/?[A-Za-z][^>]*>\s*$/.test(before)) return "separator";
 
   /* A word each side, with the spaces that make it a clause. */
   if (/[\w.,!?)"']\s$/.test(before) && /^\s[\w"'(]/.test(after)) return "prose";

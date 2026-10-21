@@ -444,7 +444,7 @@ ${note}` : ""}`,
       templateId: null,
       title: `Quote for ${formatPence(total)}`,
       blocks,
-      subject: `Your quote from ${studio.name} — ${formatPence(total)}`,
+      subject: `Your quote from ${studio.name}, ${formatPence(total)}`,
       message: (firstName, url) =>
         `${firstName ? `Hi ${firstName}, ` : ""}here is your quote from ${by ? `${by.name.split(" ")[0]} at ` : ""}${studio.name}: ${formatPence(total)}. ` +
         `You can read it and accept it here: ${url}`,

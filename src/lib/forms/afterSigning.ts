@@ -11,6 +11,7 @@ import { whatToSave, type Known } from "./fieldRoles";
 import { hasColumn } from "@/lib/db/hasColumn";
 import { sendEmail, emailConfigured } from "@/lib/messaging/email";
 import { buildEmail } from "@/lib/messaging/emailTemplate";
+import { usableAddress } from "@/lib/messaging/address";
 import { avatarUrl } from "@/components/Avatar";
 import { siteOrigin } from "@/lib/origin";
 
@@ -163,6 +164,8 @@ export async function fileItAway(db: SupabaseClient, formId: string): Promise<vo
           `for your own records. If anything changes, reply to this email and we will put it right.`,
         details: shownAsRows(blocks, answers),
         policy: `Signed ${whenSigned}${form.signer_name ? ` by ${form.signer_name}` : ""}.`,
+        /* The words above already ask them to reply, so the foot does not. */
+        contactEmail: usableAddress((studio?.email as string) ?? "") ?? null,
       }),
     }).catch(() => {
       /* Their copy failing must not stop the business being told. */

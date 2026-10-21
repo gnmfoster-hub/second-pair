@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // tested by node directly. The rest of the codebase uses the @/ alias.
 import { sendEmail, emailConfigured } from "./email.ts";
 import { replyToFor } from "./replyTo.ts";
+import { usableAddress } from "./address.ts";
 import { buildEmail } from "./emailTemplate.ts";
 import { formatExactPence } from "../money.ts";
 
@@ -89,6 +90,7 @@ export async function sendPaymentReceipt(
       vat: studio.vat_registered
         ? { ratePercent: studio.vat_rate_percent ?? 20, number: studio.vat_number ?? null }
         : null,
+      contactEmail: usableAddress(studio.email ?? "") ?? null,
     });
 
     const result = await sendEmail({
@@ -130,6 +132,7 @@ export function composeReceipt({
   reference,
   items,
   vat,
+  contactEmail,
 }: {
   businessName: string;
   amountPence: number;
@@ -145,6 +148,14 @@ export function composeReceipt({
   items: ReceiptLine[];
   /** Only for a registered business. Saying anything otherwise is misleading. */
   vat: { ratePercent: number; number: string | null } | null;
+  /**
+   * The business's own public address, for the foot of the letter.
+   *
+   * Not the reply-to, which points at our inbound domain so the assistant can
+   * carry an email conversation on. Printing that at a customer is what this
+   * field exists to avoid.
+   */
+  contactEmail?: string | null;
 }): { subject: string; text: string; html: string } {
   const firstName = contactName?.split(" ")[0] ?? "there";
   const paid = formatExactPence(amountPence);
@@ -217,6 +228,8 @@ export function composeReceipt({
   const html = buildEmail({
     business: businessName,
     heading: deposit ? "Deposit received" : "Receipt",
+    replies: true,
+    contactEmail: contactEmail ?? null,
     body: deposit
       ? `Hello ${firstName}, thank you. Your deposit has been received and it comes off the total on the day.`
       : `Hello ${firstName}, thank you. Your payment has gone through.`,

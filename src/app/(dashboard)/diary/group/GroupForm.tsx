@@ -79,7 +79,7 @@ export function GroupForm({ artists, today }: { artists: Artist[]; today: string
 
         {state.skipped && state.skipped.length > 0 && (
           <p className="mt-3 rounded-lg bg-warn/10 px-3 py-2 text-sm text-warn">
-            <strong>{state.skipped.join(", ")} could not go in</strong> — that time was
+            <strong>{state.skipped.join(", ")} could not go in</strong>. That time was
             already taken in their diary. Everybody else is booked; add them separately
             once you have found a slot.
           </p>

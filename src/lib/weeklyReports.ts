@@ -53,9 +53,11 @@ export async function sendWeeklyReports(
       if (!emails.length) continue;
 
       const range = reportRange({}, now, tz);
-      const { subject, text } = await buildReportEmail(db, studio, range, origin, now);
+      const { subject, text, html } = await buildReportEmail(db, studio, range, origin, now);
       for (const to of emails) {
-        const result = await sendEmail({ to, subject, text, fromName: "Second Pair" });
+        /* The report, drawn, with the text half still going for the people
+           who read mail that way and for the filters that want to see one. */
+        const result = await sendEmail({ to, subject, text, html, fromName: "Second Pair" });
         if (result.status === "failed") failed.push(`${studio.name}: ${result.error ?? "did not send"}`);
         else sent += 1;
       }

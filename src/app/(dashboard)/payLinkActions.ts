@@ -297,7 +297,7 @@ async function sendLink({
   const firstName = (contact.name ?? "").split(" ")[0];
   const body =
     `${firstName ? `Hi ${firstName}, ` : ""}here is a link to pay ` +
-    `${formatPence(amountPence)} for ${description} — ${url}`;
+    `${formatPence(amountPence)} for ${description}. ${url}`;
 
   const sent = await deliver({
     channel: route.channel,

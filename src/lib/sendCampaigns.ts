@@ -3,6 +3,7 @@ import type { Studio } from "@/lib/types";
 import { dueNow, type Campaign, type PastBooking } from "@/lib/campaigns";
 import { renderReminder } from "@/lib/reminderText";
 import { buildEmail } from "@/lib/messaging/emailTemplate";
+import { usableAddress } from "@/lib/messaging/address";
 import { avatarUrl } from "@/components/Avatar";
 import { sendEmail, emailConfigured } from "@/lib/messaging/email";
 import { sendSms, smsConfigured } from "@/lib/messaging/sms";
@@ -146,7 +147,13 @@ export async function sendCampaigns(
             to: one.booking.contact.email,
             subject: one.campaign.name,
             text: body,
-            html: buildEmail({ business: studio.name, body, photoUrl }),
+            html: buildEmail({
+              business: studio.name,
+              body,
+              photoUrl,
+              replies: Boolean(studio.email),
+              contactEmail: usableAddress(studio.email ?? "") ?? null,
+            }),
             fromName: studio.name,
             replyTo: studio.email ?? undefined,
           });

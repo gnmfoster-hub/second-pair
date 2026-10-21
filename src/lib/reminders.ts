@@ -12,6 +12,7 @@ import { whyNotSend } from "@/lib/whyNotSend";
 import { planReminders } from "@/lib/reminderSchedule";
 import { holdTillMorning } from "@/lib/holdTillMorning";
 import { buildEmail } from "@/lib/messaging/emailTemplate";
+import { usableAddress } from "@/lib/messaging/address";
 import { avatarUrl } from "@/components/Avatar";
 import { siteOrigin } from "@/lib/origin";
 import { chooseRoutes, preferenceOf, textsAllowed, forTemplate } from "@/lib/messageChannels";
@@ -977,6 +978,15 @@ export async function sendDueReminders(
             ? buildEmail({
                 business: studio.name,
                 body: forThisChannel,
+                /*
+                 * Signed off as the business, with a way to answer.
+                 *
+                 * A reminder is the email most customers see most often, and
+                 * it is the one Giles was reading when he said the line at
+                 * the bottom "is more internal than customer facing".
+                 */
+                replies: Boolean(studio.email),
+                contactEmail: usableAddress(studio.email ?? "") ?? null,
                 photoUrl: avatarUrl(
                   (studio as unknown as { photo_path?: string | null }).photo_path,
                 ),

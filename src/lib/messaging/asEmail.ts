@@ -62,6 +62,7 @@ export function asEmail({
   canReply,
   about,
   photoUrl,
+  contactEmail,
 }: {
   body: string;
   businessName: string;
@@ -78,6 +79,16 @@ export function asEmail({
   about?: string | null;
   /** The business's own photograph, where it has one. */
   photoUrl?: string | null;
+  /**
+   * The business's own public address, for the foot of the letter.
+   *
+   * Deliberately not the reply-to. A reply is addressed to
+   * slug@in.second-pair.com so the assistant can carry the conversation on,
+   * which is right and is the last thing to print at somebody: it is our
+   * plumbing, and an address with our domain in it at the foot of a salon's
+   * email is exactly the fault Giles reported on 21 October.
+   */
+  contactEmail?: string | null;
 }): { subject: string; text: string; html: string } {
   const name = (firstName ?? "").trim().split(" ")[0];
 
@@ -126,6 +137,15 @@ export function asEmail({
     business: businessName,
     body: `${greeting}${spaced}${reply}`,
     photoUrl: photoUrl ?? null,
+    contactEmail: contactEmail ?? null,
+    /*
+     * Not in the foot as well.
+     *
+     * The words above already say it, in the business's own voice, which is
+     * the better place for it. The foot says it on the emails that have no
+     * room for it in the prose: a reminder, a receipt, a confirmation.
+     */
+    replies: false,
   });
 
   return {

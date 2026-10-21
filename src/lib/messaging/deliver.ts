@@ -4,6 +4,7 @@ import type { Channel } from "@/lib/types";
 import { withinWindow as isWithinWindow, WINDOWED } from "./reach";
 import { sendEmail } from "./email";
 import { avatarUrl } from "@/components/Avatar";
+import { usableAddress } from "./address.ts";
 import { sendSms } from "./sms";
 import { sendMeta } from "./meta";
 
@@ -68,21 +69,34 @@ import { asEmail } from "./asEmail.ts";
  * minute — all of them come back as no picture, which is what every one of
  * these emails has had until now anyway.
  */
-async function businessPhoto(
+async function businessCard(
   /* The same narrow client deliver itself takes: one table, read only. */
   db: Pick<SupabaseClient, "from"> | undefined,
   studioId: string | null | undefined,
-): Promise<string | null> {
-  if (!db || !studioId) return null;
+): Promise<{ photoUrl: string | null; email: string | null }> {
+  const nothing = { photoUrl: null, email: null };
+  if (!db || !studioId) return nothing;
   try {
     const { data } = await db
       .from("studios")
-      .select("photo_path")
+      .select("photo_path, email")
       .eq("id", studioId)
       .maybeSingle();
-    return avatarUrl((data as { photo_path?: string | null } | null)?.photo_path);
+    const row = data as { photo_path?: string | null; email?: string | null } | null;
+    return {
+      photoUrl: avatarUrl(row?.photo_path),
+      /*
+       * Their own address, not the one replies are sent to.
+       *
+       * Checked rather than trusted, because this is printed at a customer:
+       * usableAddress is the function that caught
+       * info@neatandtidysolutions.co,uk in a settings box, and a malformed
+       * address at the foot of a letter is a business that looks careless.
+       */
+      email: usableAddress(row?.email ?? "") ?? null,
+    };
   } catch {
-    return null;
+    return nothing;
   }
 }
 
@@ -95,6 +109,7 @@ async function asEmailTo(
     replyTo?: string;
     subject?: string;
     photoUrl?: string | null;
+    contactEmail?: string | null;
   },
 ): Promise<Delivery> {
   const letter = asEmail({
@@ -104,6 +119,7 @@ async function asEmailTo(
     canReply: Boolean(parts.replyTo),
     about: parts.subject,
     photoUrl: parts.photoUrl ?? null,
+    contactEmail: parts.contactEmail ?? null,
   });
 
   return sendEmail({
@@ -260,6 +276,16 @@ export async function deliver({
      */
     const emailFirst = reachOn?.prefer === "email";
 
+    /*
+     * Read once, whichever way this goes.
+     *
+     * Both branches below can end up emailing, and asking twice for the same
+     * two columns is a second round trip for an answer that cannot have
+     * changed. Cheap enough to take on the text path too, which never uses
+     * it, rather than thread a lazy read through three call sites.
+     */
+    const card = reachOn?.email ? await businessCard(db, studioId) : null;
+
     if (emailFirst && reachOn?.email) {
       const posted = await asEmailTo(reachOn, {
         body,
@@ -267,7 +293,8 @@ export async function deliver({
         fromName,
         replyTo,
         subject,
-        photoUrl: await businessPhoto(db, studioId),
+        photoUrl: card?.photoUrl ?? null,
+        contactEmail: card?.email ?? null,
       });
       if (posted.status === "sent") return posted;
     }
@@ -286,7 +313,8 @@ export async function deliver({
         fromName,
         replyTo,
         subject,
-        photoUrl: await businessPhoto(db, studioId),
+        photoUrl: card?.photoUrl ?? null,
+        contactEmail: card?.email ?? null,
       });
     }
 
@@ -362,13 +390,15 @@ export async function deliver({
       // The same envelope as the widget's email fallback above, for the same
       // reason: one of these is a reply to somebody who wrote in by email, and
       // it was going out looking even more like a text than the other.
+      const card = await businessCard(db, studioId);
       const letter = asEmail({
         body,
         businessName: fromName ?? "",
         firstName: reachOn?.firstName,
         canReply: Boolean(replyTo),
         about: subject,
-        photoUrl: await businessPhoto(db, studioId),
+        photoUrl: card.photoUrl,
+        contactEmail: card.email,
       });
 
       return sendEmail({

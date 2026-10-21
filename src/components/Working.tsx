@@ -55,7 +55,7 @@ export function Working({
       <summary className="cursor-pointer text-sm text-muted">
         Is it working?
         <span className={`ml-2 text-xs ${broken.length ? "text-warn" : ""}`}>
-          — {summarise(things)}
+          {summarise(things)}
         </span>
       </summary>
 

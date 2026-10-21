@@ -107,7 +107,7 @@ export function ClientSummary({
           onClick={() => onUsual(summary.usual!.id)}
           className="btn-ghost mt-3 w-full justify-start text-sm"
         >
-          The usual — {summary.usual.name}
+          The usual, {summary.usual.name}
           <span className="hint ml-2">{summary.usual.times} times</span>
         </button>
       )}

@@ -56,7 +56,7 @@ export function MoneyAndPeople({
         )}
         {paid.waitingCount > 0 && (
           <p className="mt-3 rounded-lg bg-warn/10 px-3 py-2 text-sm text-warn">
-            {paid.waitingCount} payment link{paid.waitingCount === 1 ? "" : "s"} not paid yet —{" "}
+            {paid.waitingCount} payment link{paid.waitingCount === 1 ? "" : "s"} not paid yet,{" "}
             {formatPence(paid.waitingPence)}.
           </p>
         )}

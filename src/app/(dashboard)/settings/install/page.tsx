@@ -443,7 +443,7 @@ export default async function ChannelsPage({
           {lastEmailAt ? (
             <p className="mt-4 rounded-lg bg-ok/10 px-3 py-2 text-xs leading-relaxed text-ok">
               <strong>Working.</strong> The last email came through here{" "}
-              {ukAgo(lastEmailAt)} — {ukStamp(lastEmailAt)}.
+              {ukAgo(lastEmailAt)}, {ukStamp(lastEmailAt)}.
             </p>
           ) : (
             <p className="hint mt-4 max-w-prose text-xs leading-relaxed">

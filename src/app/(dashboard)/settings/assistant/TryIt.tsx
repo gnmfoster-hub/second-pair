@@ -95,7 +95,7 @@ export function TryIt({ slug }: { slug: string }) {
           <h2 className="section-title">Try it yourself</h2>
           <p className="hint mt-1 max-w-prose">
             Ask it something a customer would. This is your real assistant with your real
-            settings, so what it says here is what they will get —{" "}
+            settings, so what it says here is what they will get,{" "}
             <strong className="text-foreground">but it never reaches your inbox</strong>.
           </p>
         </div>

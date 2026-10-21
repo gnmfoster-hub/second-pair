@@ -4,12 +4,39 @@ import { buildEmail, emailText, escapeHtml } from "./emailTemplate.ts";
 
 const basic = { business: "Willow & Co", body: "See you tomorrow, Marie." };
 
-test("the business is the heading, and we are a line at the bottom", () => {
+/*
+ * Giles, 21 October: the line at the foot of a reminder "is more internal than
+ * customer facing". It read "Sent by X, who use Second Pair to answer and keep
+ * the diary" on every email the product sends, so the most-read sentence we
+ * had was an explanation of our own software to somebody checking what time
+ * they were in on Thursday. The foot is now the business, signed off, and our
+ * name appears nowhere a customer reads.
+ */
+test("the foot is the business signing off, and never mentions us", () => {
   const html = buildEmail(basic);
   assert.match(html, /Willow &amp; Co/);
-  assert.match(html, /who use Second Pair to answer and keep the diary/);
-  /* Ours appears once, small, and never above theirs. */
-  assert.ok(html.indexOf("Willow &amp; Co") < html.indexOf("Second Pair"));
+  assert.doesNotMatch(html, /Second Pair/);
+  /* Their name twice: the letterhead at the top and the signature at the foot. */
+  assert.equal(html.match(/Willow &amp; Co/g)?.length, 3);
+});
+
+test("a reply is only promised where one would arrive", () => {
+  assert.doesNotMatch(buildEmail(basic), /Reply to this email/);
+  assert.match(buildEmail({ ...basic, replies: true }), /Reply to this email/);
+});
+
+/*
+ * The business's own address, never the one replies are addressed to.
+ *
+ * A reply goes to slug@in.second-pair.com so the assistant can carry the
+ * conversation on. That address is ours, and printing it at the foot of a
+ * salon's email would have been the same fault wearing a different hat, so
+ * the field is named for what it is and the callers pass studio.email.
+ */
+test("the business's own address is printed, as a link, when there is one", () => {
+  const html = buildEmail({ ...basic, contactEmail: "hello@willow.co.uk" });
+  assert.match(html, /mailto:hello@willow\.co\.uk/);
+  assert.doesNotMatch(buildEmail(basic), /mailto:/);
 });
 
 /*

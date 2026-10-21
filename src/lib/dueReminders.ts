@@ -44,7 +44,7 @@ export function dueMessage(
   now: Date = new Date(),
 ): string {
   const first = (who.name ?? "").trim().split(/\s+/)[0] ?? "";
-  const hello = first ? `Hi ${first} — ` : "";
+  const hello = first ? `Hi ${first}, ` : "";
 
   const what = fact.remindText
     ? fact.remindText.replace("{date}", sayDate(on))

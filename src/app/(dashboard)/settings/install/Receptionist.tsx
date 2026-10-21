@@ -142,7 +142,7 @@ export function Receptionist({
             <select name="receptionist_voice" defaultValue={voice ?? ""} className="input max-w-xs">
               {VOICES.map((v) => (
                 <option key={v.id} value={v.id}>
-                  {v.label} — {v.what}
+                  {v.label}, {v.what}
                 </option>
               ))}
             </select>

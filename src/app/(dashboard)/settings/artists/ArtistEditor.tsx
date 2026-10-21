@@ -545,7 +545,7 @@ export function ArtistEditor({
                 name="greeting"
                 defaultValue={artist?.greeting ?? ""}
                 rows={2}
-                placeholder={`Hi, it's ${artist?.name?.split(" ")[0] ?? "Sarah"} — what were you thinking of having done?`}
+                placeholder={`Hi, it's ${artist?.name?.split(" ")[0] ?? "Sarah"}. What were you thinking of having done?`}
                 className="input"
               />
             </Field>

@@ -67,6 +67,15 @@ export type EmailParts = {
    * right-aligned so a column of them can be read down and added up.
    */
   money?: { label: string; amount: string; total?: boolean }[] | null;
+  /**
+   * Whether a reply to this reaches the business, so the foot can say so.
+   *
+   * True wherever a reply-to is set. An email from an address somebody does
+   * not recognise is one they answer by ringing up, or not at all.
+   */
+  replies?: boolean | null;
+  /** The business's own address, where we hold one, for the foot of the letter. */
+  contactEmail?: string | null;
 };
 
 /* Ink and paper from the brand, as literals: an email cannot read a variable. */
@@ -132,7 +141,18 @@ export function emailText(parts: EmailParts): string {
   }
   if (parts.action) lines.push("", `${parts.action.label}: ${parts.action.url}`);
   if (parts.policy?.trim()) lines.push("", "If you need to cancel", parts.policy.trim());
-  lines.push("", `Sent by ${parts.business}, who use Second Pair to answer and keep the diary.`);
+  /*
+   * Signed off as the business, with nothing about us.
+   *
+   * Giles, 21 October: the line at the bottom of a reminder "is more internal
+   * than customer facing". It read "Sent by X, who use Second Pair to answer
+   * and keep the diary", which explains our product to somebody who is only
+   * trying to find out when their appointment is. What belongs at the foot of
+   * a letter is who it is from and how to answer it.
+   */
+  lines.push("", parts.business);
+  if (parts.contactEmail?.trim()) lines.push(parts.contactEmail.trim());
+  if (parts.replies) lines.push("Reply to this email and it comes straight to us.");
   return lines.join("\n");
 }
 
@@ -216,6 +236,40 @@ export function buildEmail(parts: EmailParts): string {
        </td></tr>`
     : "";
 
+  /*
+   * The foot of the letter, which is theirs and not ours.
+   *
+   * It used to read "Sent by X, who use Second Pair to answer and keep the
+   * diary" on every email the product sends. Giles, 21 October: it "is more
+   * internal than customer facing". He is right, and it was worse than
+   * useless: a customer checking what time they are in on Thursday was being
+   * told which software the salon buys. What a letter is signed with is the
+   * name of whoever sent it and how to answer them.
+   *
+   * No phone number, deliberately. The only number the product holds for a
+   * business is the one it sends texts from, which is often not theirs, and a
+   * number at the foot of a letter is one somebody rings.
+   */
+  const contact = parts.contactEmail?.trim()
+    ? ` &middot; <a href="mailto:${escapeHtml(parts.contactEmail.trim())}" ` +
+      `style="color:${MUTED};text-decoration:none">${escapeHtml(parts.contactEmail.trim())}</a>`
+    : "";
+
+  const foot = `<tr><td style="padding:22px 28px 26px">
+    <div style="border-top:1px solid ${LINE};padding-top:14px">
+      <p style="margin:0;font-size:12px;line-height:1.6;color:${MUTED};font-family:${FONT}">
+        <span style="font-weight:600;color:${INK}">${business}</span>${contact}
+      </p>
+      ${
+        parts.replies
+          ? `<p style="margin:5px 0 0;font-size:12px;line-height:1.6;color:${MUTED};font-family:${FONT}">
+               Reply to this email and it comes straight to us.
+             </p>`
+          : ""
+      }
+    </div>
+  </td></tr>`;
+
   const heading = parts.heading?.trim()
     ? `<tr><td style="padding:18px 28px 0">
          <div style="font-size:22px;font-weight:600;line-height:1.25;color:${INK}">${escapeHtml(
@@ -258,11 +312,7 @@ export function buildEmail(parts: EmailParts): string {
 
   ${policy}
 
-  <tr><td style="padding:20px 28px 24px">
-    <p style="margin:0;font-size:11px;line-height:1.5;color:${MUTED};font-family:${FONT}">
-      Sent by ${business}, who use Second Pair to answer and keep the diary.
-    </p>
-  </td></tr>
+  ${foot}
 
 </table>
 </td></tr></table>

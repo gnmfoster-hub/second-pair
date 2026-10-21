@@ -66,3 +66,15 @@ backups/
 # stays ignored.
 scripts/_*.mjs
 !scripts/_tidy.mjs
+
+# What an email actually looks like, rendered from the live database.
+#
+# The preview scripts write these beside themselves so they can be opened and
+# looked at, and every one of them holds real client data: customers' names,
+# what they paid, who has not been back. That is the same class of thing as
+# the backups above and it is not going into a repository. The scripts are
+# committed; what they produce is not.
+scripts/*-preview*.html
+scripts/*-email-*.html
+scripts/*-email-*.txt
+scripts/*-email-*.png

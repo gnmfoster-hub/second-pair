@@ -295,8 +295,15 @@ export default async function BookingPage({ params }: { params: Promise<{ token:
         />
       )}
 
+      {/*
+        * Signed off as the business, not as us.
+        *
+        * This said "who use Second Pair to answer and keep the diary", which
+        * is the same fault as the foot of the emails: a customer checking
+        * their appointment is told which software the business buys.
+        */}
       <p className="hint mt-10 border-t border-border pt-4 text-center text-[11px]">
-        Booked with {studio.name as string}, who use Second Pair to answer and keep the diary.
+        Booked with {studio.name as string}.
       </p>
     </main>
   );
