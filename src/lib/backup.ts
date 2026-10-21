@@ -240,6 +240,40 @@ export async function lastAttempt(db: SupabaseClient): Promise<BackupAttempt | n
   }
 }
 
+/** Where scripts/restore.mjs notes that a backup was read back and worked. */
+export const PROVED_FILE = "last-restore-check.json";
+
+/**
+ * When a backup was last decrypted and read, and by what.
+ *
+ * The thing the nightly job cannot tell anybody. A backup that is written
+ * every night, kept for a fortnight and never once opened is a hope: the
+ * passphrase in the password manager could be last month's, the format could
+ * have drifted, and the morning somebody needs it is the worst possible
+ * morning to find out. scripts/restore.mjs writes this file when it succeeds,
+ * and the morning email says how long ago that was.
+ *
+ * Null for never, which is the honest answer and the one worth saying.
+ */
+export async function lastProved(
+  db: SupabaseClient,
+): Promise<{ at: string; file: string; daysAgo: number } | null> {
+  try {
+    const { data, error } = await db.storage.from(BUCKET).download(PROVED_FILE);
+    if (error || !data) return null;
+    const note = JSON.parse(await data.text()) as { at?: string; file?: string };
+    const at = Date.parse(note?.at ?? "");
+    if (!Number.isFinite(at)) return null;
+    return {
+      at: note.at as string,
+      file: note.file ?? "a backup",
+      daysAgo: Math.round((Date.now() - at) / 86_400_000),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function newestBackup(
   db: SupabaseClient,
 ): Promise<{ name: string; bytes: number; hoursOld: number } | null> {

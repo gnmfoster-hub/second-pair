@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmail, emailConfigured } from "./messaging/email";
 import { alertAddress } from "./platformAlert";
-import { newestBackup, lastAttempt, BUCKET } from "./backup";
+import { newestBackup, lastAttempt, lastProved, BUCKET } from "./backup";
 import { smsConfigured } from "./messaging/sms";
 import {
   morningReport,
@@ -165,6 +165,43 @@ export async function sendMorningEmail(
         what: "Backup",
         ok: true,
         detail: `${newest.name}, ${Math.round(newest.bytes / 1024)}KB, ${ago(newest.hoursOld)}`,
+      });
+    }
+
+    /*
+     * And whether anybody has ever read one back.
+     *
+     * Separate from the check above on purpose: that one asks whether a file
+     * was written, which is all the nightly job can know. This asks whether
+     * the file can be opened, which is the only question that matters the
+     * morning something is gone, and the only way to answer it is for
+     * somebody to have run scripts/restore.mjs with the real passphrase.
+     *
+     * A warning rather than a failure. Nothing is broken; it is simply
+     * unproven, and a red line for a thing nobody can fix in the next ten
+     * minutes is how a morning email stops being read.
+     */
+    const proved = await lastProved(db);
+    if (!proved) {
+      checks.push({
+        what: "Restore",
+        ok: false,
+        warn: true,
+        detail:
+          "no backup has ever been read back. BACKUP_KEY='…' node scripts/restore.mjs latest",
+      });
+    } else if (proved.daysAgo > 35) {
+      checks.push({
+        what: "Restore",
+        ok: false,
+        warn: true,
+        detail: `last proved ${proved.daysAgo} days ago, on ${proved.file}. Worth ten seconds`,
+      });
+    } else {
+      checks.push({
+        what: "Restore",
+        ok: true,
+        detail: `read back ${proved.daysAgo} days ago, from ${proved.file}`,
       });
     }
 
