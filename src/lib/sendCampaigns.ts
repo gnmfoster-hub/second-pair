@@ -153,6 +153,7 @@ export async function sendCampaigns(
               photoUrl,
               replies: Boolean(studio.email),
               contactEmail: usableAddress(studio.email ?? "") ?? null,
+              accent: studio.widget_accent,
             }),
             fromName: studio.name,
             replyTo: studio.email ?? undefined,

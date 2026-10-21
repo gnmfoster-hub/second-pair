@@ -228,7 +228,7 @@ export async function GET(request: NextRequest) {
    * run, and a second schedule is a second thing that can quietly stop.
    * Never able to fail the run.
    */
-  const briefs = await sendDailyBriefs(db, (studios ?? []) as Studio[]).catch((e) => ({
+  const briefs = await sendDailyBriefs(db, (studios ?? []) as Studio[], await siteOrigin()).catch((e) => ({
     sent: 0,
     failed: [(e as Error).message],
   }));

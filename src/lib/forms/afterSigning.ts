@@ -73,7 +73,7 @@ export async function fileItAway(db: SupabaseClient, formId: string): Promise<vo
   const [{ data: studio }, known] = await Promise.all([
     db
       .from("studios")
-      .select("name, email, photo_path")
+      .select("name, email, photo_path, widget_accent")
       .eq("id", form.studio_id)
       .maybeSingle(),
     whatWeHold(db, form.contact_id),
@@ -166,6 +166,7 @@ export async function fileItAway(db: SupabaseClient, formId: string): Promise<vo
         policy: `Signed ${whenSigned}${form.signer_name ? ` by ${form.signer_name}` : ""}.`,
         /* The words above already ask them to reply, so the foot does not. */
         contactEmail: usableAddress((studio?.email as string) ?? "") ?? null,
+        accent: (studio?.widget_accent as string | null) ?? null,
       }),
     }).catch(() => {
       /* Their copy failing must not stop the business being told. */

@@ -34,6 +34,8 @@ const FROM_HOUR = 7;
 export async function sendDailyBriefs(
   db: SupabaseClient,
   studios: Studio[],
+  /** Where the diary is, so the brief can offer the way into it. */
+  origin: string | null = null,
   now: Date = new Date(),
 ): Promise<{ sent: number; failed: string[] }> {
   let sent = 0;
@@ -76,7 +78,7 @@ export async function sendDailyBriefs(
     if (!claimed?.length) continue;
 
     try {
-      sent += await briefOneBusiness(db, studio, today, tz, failed);
+      sent += await briefOneBusiness(db, studio, today, tz, failed, origin);
     } catch (e) {
       failed.push(`${studio.name}: ${(e as Error).message}`);
     }
@@ -121,6 +123,7 @@ async function briefOneBusiness(
   today: string,
   tz: string,
   failed: string[],
+  origin: string | null,
 ): Promise<number> {
   const { data: team } = await db
     .from("artists")
@@ -196,6 +199,7 @@ async function briefOneBusiness(
       timeZone: tz,
       business: studio.name,
       manyPeople: people.length > 1,
+      diaryUrl: origin ? `${origin}/diary` : null,
     };
     /*
      * Both halves, from the same rows and the same options object.
@@ -223,6 +227,7 @@ async function briefOneBusiness(
       day: theirs[0]?.starts_at ?? anchor,
       timeZone: tz,
       business: studio.name,
+      diaryUrl: origin ? `${origin}/diary` : null,
       forWhom: person.name?.split(" ")[0] ?? null,
       /* Their own day is all theirs, so there is no point naming them on it. */
       manyPeople: false,

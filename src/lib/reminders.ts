@@ -987,6 +987,7 @@ export async function sendDueReminders(
                  */
                 replies: Boolean(studio.email),
                 contactEmail: usableAddress(studio.email ?? "") ?? null,
+                accent: studio.widget_accent,
                 photoUrl: avatarUrl(
                   (studio as unknown as { photo_path?: string | null }).photo_path,
                 ),

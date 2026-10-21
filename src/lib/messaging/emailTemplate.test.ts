@@ -114,3 +114,43 @@ test("the plain text half carries everything the html does", () => {
   /* Plain text, so nothing is escaped into entities in it. */
   assert.doesNotMatch(text, /&amp;/);
 });
+
+/*
+ * ── Their colour, not ours ──────────────────────────────────────────────────
+ *
+ * Giles, 21 October: "the emails to customers need to be more marketing."
+ * Every business that has set itself up has already picked a colour for its
+ * widget, and every email we sent on their behalf came out in our blue.
+ * Living Canvas is teal and Neat & Tidy is orange, and their customers were
+ * reading a button in somebody else's brand.
+ */
+const withButton = { ...basic, action: { label: "See your appointment", url: "https://x.test/b/1" } };
+
+test("the button is the business's own colour when they have chosen one", () => {
+  const theirs = buildEmail({ ...withButton, accent: "3dbec7" });
+  assert.match(theirs, /background:#3dbec7/);
+  assert.doesNotMatch(theirs, /background:#1f3be3/);
+});
+
+test("no colour chosen leaves ours, which is right for the emails that are ours", () => {
+  assert.match(buildEmail(withButton), /background:#1f3be3/);
+});
+
+/*
+ * The part that matters more than the colour. Both of the pale brands in use
+ * fail against white, and a button somebody cannot read is worse than one in
+ * the wrong blue, so the writing is worked out by the same function the
+ * widget uses rather than assumed to be white.
+ */
+test("writing on a pale brand colour is darkened rather than left white", () => {
+  const pale = buildEmail({ ...withButton, accent: "f89134" });
+  assert.doesNotMatch(pale, /background:#f89134[^"]*"[^>]*>\s*<a[^>]*color:#ffffff/);
+  assert.match(pale, /background:#f89134/);
+  /* Near-black writing, as autoText picks for it. */
+  assert.match(pale, /color:#[0-9a-f]{6};text-decoration:none">See your appointment/);
+});
+
+test("a band of their colour sits across the top, and nothing when there is none", () => {
+  assert.match(buildEmail({ ...basic, accent: "3dbec7" }), /height:4px/);
+  assert.doesNotMatch(buildEmail(basic), /height:4px/);
+});

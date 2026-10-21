@@ -32,6 +32,10 @@
  * CSS variables are, and a theme-aware email is a contradiction.
  */
 
+/* Relative, not aliased: this file is loaded directly by node --test, which
+   does not know what "@/" means. */
+import { paint } from "../widget/colour.ts";
+
 export type EmailParts = {
   /** The business, which is the sender as far as the reader is concerned. */
   business: string;
@@ -76,6 +80,19 @@ export type EmailParts = {
   replies?: boolean | null;
   /** The business's own address, where we hold one, for the foot of the letter. */
   contactEmail?: string | null;
+  /**
+   * The business's own colour, as they chose it for the widget.
+   *
+   * Giles, 21 October: "the emails to customers need to be more marketing."
+   * Every business that has set itself up has already picked a colour, and
+   * every email we sent on their behalf came out in our blue. Living Canvas
+   * is teal, Neat & Tidy is orange, and their customers were getting a button
+   * in somebody else's brand.
+   *
+   * Null keeps our own blue, which is right for the emails that really are
+   * from us.
+   */
+  accent?: string | null;
 };
 
 /* Ink and paper from the brand, as literals: an email cannot read a variable. */
@@ -164,12 +181,26 @@ export function buildEmail(parts: EmailParts): string {
       `style="display:block;border-radius:10px;border:1px solid ${LINE};object-fit:cover">`
     : "";
 
+  /*
+   * The business's colour, where they have one, and ours where they have not.
+   *
+   * paint is the function the widget uses, so the button on an email and the
+   * button on their website are worked out the same way, including the part
+   * that matters: Neat & Tidy's orange and Living Canvas's teal are both too
+   * pale for white writing, and paint picks near-black for them exactly as it
+   * does on their site. A brand colour that makes the one thing somebody is
+   * meant to press unreadable is worse than our blue.
+   */
+  const brand = parts.accent?.trim() ? paint(parts.accent, null) : null;
+  const fill = brand ? `#${brand.fill}` : ACCENT;
+  const onFill = brand ? `#${brand.text}` : "#ffffff";
+
   const action = parts.action
     ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 20px">
-         <tr><td style="border-radius:10px;background:${ACCENT}">
+         <tr><td style="border-radius:10px;background:${fill}">
            <a href="${escapeHtml(parts.action.url)}"
               style="display:inline-block;padding:12px 22px;font-size:15px;font-weight:600;
-                     color:#ffffff;text-decoration:none">${escapeHtml(parts.action.label)}</a>
+                     color:${onFill};text-decoration:none">${escapeHtml(parts.action.label)}</a>
          </td></tr>
        </table>`
     : "";
@@ -290,6 +321,13 @@ export function buildEmail(parts: EmailParts): string {
 <tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"
        style="width:100%;max-width:600px;background:${PAPER};border:1px solid ${LINE};border-radius:14px;font-family:${FONT}">
+
+  ${
+    brand
+      ? `<tr><td style="padding:0;background:${fill};height:4px;font-size:1px;line-height:4px;
+                        border-radius:13px 13px 0 0">&nbsp;</td></tr>`
+      : ""
+  }
 
   <tr><td style="padding:24px 28px 0">
     <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>

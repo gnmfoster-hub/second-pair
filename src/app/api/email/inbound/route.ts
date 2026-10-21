@@ -6,6 +6,9 @@ import { runTurn } from "@/lib/engine/run";
 import { handOverAfterFailure } from "@/lib/engine/turnFailed";
 import { sendEmail, emailConfigured, fetchReceivedEmail } from "@/lib/messaging/email";
 import { replyToFor } from "@/lib/messaging/replyTo";
+import { asEmail } from "@/lib/messaging/asEmail";
+import { usableAddress } from "@/lib/messaging/address";
+import { avatarUrl } from "@/components/Avatar";
 import {
   judge,
   domainOf,
@@ -162,7 +165,9 @@ export async function POST(request: NextRequest) {
 
   const { data: studio } = await db
     .from("studios")
-    .select("id, slug, name, email, archived_at, inbound_mode, inbound_addresses")
+    .select(
+      "id, slug, name, email, archived_at, inbound_mode, inbound_addresses, photo_path, widget_accent",
+    )
     .eq("slug", slug)
     .maybeSingle();
 
@@ -377,10 +382,33 @@ export async function POST(request: NextRequest) {
 
     if (result.paused || !result.reply) return ok("handed over");
 
+    /*
+     * The same letterhead as every other reply the assistant sends.
+     *
+     * deliver wraps a reply in asEmail on its way out, and this route does
+     * not go through deliver: it answers the webhook directly. So the one
+     * reply that is definitely being read in an inbox, by somebody who chose
+     * to write a proper email, was the one still arriving as bare text in
+     * whatever the reader's client defaults to. Nobody would have noticed
+     * from the dashboard, where it looks identical to all the others.
+     */
+    const letter = asEmail({
+      body: result.reply,
+      businessName: studio.name,
+      canReply: true,
+      about: email.subject,
+      photoUrl: avatarUrl(studio.photo_path),
+      contactEmail: usableAddress((studio.email as string) ?? "") ?? null,
+      accent: studio.widget_accent as string | null,
+    });
+
     const sent = await sendEmail({
       to: sender,
+      /* Their own subject, threaded, rather than the one asEmail would make:
+         this is a reply to a mail they sent, and a mail client threads on it. */
       subject: replySubject(email.subject),
-      text: result.reply,
+      text: letter.text,
+      html: letter.html,
       fromName: studio.name,
       replyTo: replyToFor(studio),
       // Marked as an automatic reply, so other automatic mailboxes do not answer it.

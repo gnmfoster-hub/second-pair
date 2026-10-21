@@ -120,6 +120,7 @@ if (out) {
       timeZone: tz,
       business: studio.name,
       manyPeople: (people ?? []).length > 1,
+      diaryUrl: "https://www.second-pair.com/diary",
     }),
   );
   console.log(`\nThe diary version written to ${out}`);

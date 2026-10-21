@@ -73,16 +73,20 @@ async function businessCard(
   /* The same narrow client deliver itself takes: one table, read only. */
   db: Pick<SupabaseClient, "from"> | undefined,
   studioId: string | null | undefined,
-): Promise<{ photoUrl: string | null; email: string | null }> {
-  const nothing = { photoUrl: null, email: null };
+): Promise<{ photoUrl: string | null; email: string | null; accent: string | null }> {
+  const nothing = { photoUrl: null, email: null, accent: null };
   if (!db || !studioId) return nothing;
   try {
     const { data } = await db
       .from("studios")
-      .select("photo_path, email")
+      .select("photo_path, email, widget_accent")
       .eq("id", studioId)
       .maybeSingle();
-    const row = data as { photo_path?: string | null; email?: string | null } | null;
+    const row = data as {
+      photo_path?: string | null;
+      email?: string | null;
+      widget_accent?: string | null;
+    } | null;
     return {
       photoUrl: avatarUrl(row?.photo_path),
       /*
@@ -94,6 +98,8 @@ async function businessCard(
        * address at the foot of a letter is a business that looks careless.
        */
       email: usableAddress(row?.email ?? "") ?? null,
+      /* Their own colour, so the letter looks like it came from them. */
+      accent: row?.widget_accent ?? null,
     };
   } catch {
     return nothing;
@@ -110,6 +116,7 @@ async function asEmailTo(
     subject?: string;
     photoUrl?: string | null;
     contactEmail?: string | null;
+    accent?: string | null;
   },
 ): Promise<Delivery> {
   const letter = asEmail({
@@ -120,6 +127,7 @@ async function asEmailTo(
     about: parts.subject,
     photoUrl: parts.photoUrl ?? null,
     contactEmail: parts.contactEmail ?? null,
+    accent: parts.accent ?? null,
   });
 
   return sendEmail({
@@ -295,6 +303,7 @@ export async function deliver({
         subject,
         photoUrl: card?.photoUrl ?? null,
         contactEmail: card?.email ?? null,
+        accent: card?.accent ?? null,
       });
       if (posted.status === "sent") return posted;
     }
@@ -315,6 +324,7 @@ export async function deliver({
         subject,
         photoUrl: card?.photoUrl ?? null,
         contactEmail: card?.email ?? null,
+        accent: card?.accent ?? null,
       });
     }
 
@@ -399,6 +409,7 @@ export async function deliver({
         about: subject,
         photoUrl: card.photoUrl,
         contactEmail: card.email,
+        accent: card.accent,
       });
 
       return sendEmail({

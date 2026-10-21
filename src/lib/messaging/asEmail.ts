@@ -63,6 +63,7 @@ export function asEmail({
   about,
   photoUrl,
   contactEmail,
+  accent,
 }: {
   body: string;
   businessName: string;
@@ -89,6 +90,8 @@ export function asEmail({
    * email is exactly the fault Giles reported on 21 October.
    */
   contactEmail?: string | null;
+  /** The business's own colour, as they chose it for the widget. */
+  accent?: string | null;
 }): { subject: string; text: string; html: string } {
   const name = (firstName ?? "").trim().split(" ")[0];
 
@@ -138,6 +141,7 @@ export function asEmail({
     body: `${greeting}${spaced}${reply}`,
     photoUrl: photoUrl ?? null,
     contactEmail: contactEmail ?? null,
+    accent: accent ?? null,
     /*
      * Not in the foot as well.
      *

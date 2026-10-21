@@ -91,6 +91,7 @@ export async function sendPaymentReceipt(
         ? { ratePercent: studio.vat_rate_percent ?? 20, number: studio.vat_number ?? null }
         : null,
       contactEmail: usableAddress(studio.email ?? "") ?? null,
+      accent: studio.widget_accent ?? null,
     });
 
     const result = await sendEmail({
@@ -133,6 +134,7 @@ export function composeReceipt({
   items,
   vat,
   contactEmail,
+  accent,
 }: {
   businessName: string;
   amountPence: number;
@@ -156,6 +158,8 @@ export function composeReceipt({
    * field exists to avoid.
    */
   contactEmail?: string | null;
+  /** The business's own colour, as they chose it for the widget. */
+  accent?: string | null;
 }): { subject: string; text: string; html: string } {
   const firstName = contactName?.split(" ")[0] ?? "there";
   const paid = formatExactPence(amountPence);
@@ -230,6 +234,7 @@ export function composeReceipt({
     heading: deposit ? "Deposit received" : "Receipt",
     replies: true,
     contactEmail: contactEmail ?? null,
+    accent: accent ?? null,
     body: deposit
       ? `Hello ${firstName}, thank you. Your deposit has been received and it comes off the total on the day.`
       : `Hello ${firstName}, thank you. Your payment has gone through.`,

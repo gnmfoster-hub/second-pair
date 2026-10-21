@@ -57,7 +57,7 @@ export async function sendBookingConfirmation(
     const { data: conversation } = await db
       .from("conversations")
       .select(
-        "id, contacts(name, email), studios(slug, name, email, timezone, cancellation_policy)",
+        "id, contacts(name, email), studios(slug, name, email, timezone, cancellation_policy, widget_accent)",
       )
       .eq("id", enquiry.conversation_id)
       .maybeSingle();
@@ -72,6 +72,7 @@ export async function sendBookingConfirmation(
       slug: string;
       name: string;
       email: string | null;
+      widget_accent: string | null;
       timezone: string;
       cancellation_policy: string | null;
     } | null;
@@ -94,6 +95,7 @@ export async function sendBookingConfirmation(
       bookingId: booking.id,
       updatedAt: booking.updated_at ?? null,
       contactEmail: usableAddress(studio.email ?? "") ?? null,
+      accent: studio.widget_accent ?? null,
     });
 
     const result = await sendEmail({
@@ -195,6 +197,7 @@ export function composeConfirmation({
   bookingId,
   updatedAt,
   contactEmail,
+  accent,
 }: {
   startsAt: string;
   endsAt: string;
@@ -220,6 +223,8 @@ export function composeConfirmation({
    * field exists to avoid.
    */
   contactEmail?: string | null;
+  /** The business's own colour, as they chose it for the widget. */
+  accent?: string | null;
 }): { subject: string; text: string; html: string; calendar: string } {
   const starts = new Date(startsAt);
   const ends = new Date(endsAt);
@@ -311,6 +316,7 @@ ${studioName}`;
     policy: cancellationPolicy ?? null,
     replies: true,
     contactEmail: contactEmail ?? null,
+    accent: accent ?? null,
   });
 
   return { subject: `You are booked in: ${when}`, text, html, calendar };

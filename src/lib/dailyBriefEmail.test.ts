@@ -129,3 +129,88 @@ test("a note keeps the lines somebody typed", () => {
 test("no long dashes, the same as everything else a person reads", () => {
   assert.doesNotMatch(dailyBriefHtml([booking()], about), /[—–]/);
 });
+
+/*
+ * ── The empty time ──────────────────────────────────────────────────────────
+ *
+ * Giles, 21 October: "the daily diary needs to look better, more like a
+ * diary." What made it a list rather than a day is that it drew every
+ * appointment with the same space between them, so four hours of nothing in
+ * the middle of a Tuesday looked exactly like two jobs back to back. The gaps
+ * are the half of a diary an owner can sell.
+ */
+test("the hole in the middle of the day is drawn, not skipped over", () => {
+  const html = dailyBriefHtml(
+    [
+      booking({ starts_at: "2026-10-16T09:00:00Z", ends_at: "2026-10-16T10:00:00Z" }),
+      booking({ starts_at: "2026-10-16T13:00:00Z", ends_at: "2026-10-16T14:00:00Z" }),
+    ],
+    about,
+  );
+  assert.match(html, /3 hours free/);
+  assert.match(html, /3 hours free in between/);
+});
+
+test("turning round between two jobs is not announced as free time", () => {
+  const html = dailyBriefHtml(
+    [
+      booking({ starts_at: "2026-10-16T09:00:00Z", ends_at: "2026-10-16T10:00:00Z" }),
+      booking({ starts_at: "2026-10-16T10:15:00Z", ends_at: "2026-10-16T11:00:00Z" }),
+    ],
+    about,
+  );
+  assert.doesNotMatch(html, /free/);
+});
+
+/*
+ * A double booking is a thing that happens, and the arithmetic that finds a
+ * gap is the arithmetic that gets it wrong: comparing each appointment with
+ * the one before would make an overlap a negative gap, and the one after that
+ * would then be measured from a start time that had already passed.
+ */
+test("a double booking does not invent hours of free time after it", () => {
+  const html = dailyBriefHtml(
+    [
+      booking({ starts_at: "2026-10-16T09:00:00Z", ends_at: "2026-10-16T17:00:00Z" }),
+      booking({ starts_at: "2026-10-16T10:00:00Z", ends_at: "2026-10-16T11:00:00Z" }),
+      booking({ starts_at: "2026-10-16T11:30:00Z", ends_at: "2026-10-16T12:00:00Z" }),
+    ],
+    about,
+  );
+  assert.doesNotMatch(html, /free/);
+});
+
+test("the head of the day says when it starts and ends and how full it is", () => {
+  const html = dailyBriefHtml(
+    [
+      booking({ starts_at: "2026-10-16T09:00:00Z", ends_at: "2026-10-16T10:00:00Z" }),
+      booking({ starts_at: "2026-10-16T13:00:00Z", ends_at: "2026-10-16T14:30:00Z" }),
+    ],
+    about,
+  );
+  assert.match(html, /10am to 3:30pm|10am to 2:30pm/);
+  assert.match(html, /2 hours 30 minutes booked/);
+});
+
+/*
+ * The diary on screen colours a card by what kind of thing it is, and the
+ * mapping from ten categories onto four colours lives in lib/calendar. The
+ * first draft of this kept its own copy keyed on the colour names rather than
+ * the category names, so a school run and a client appointment came out the
+ * same blue.
+ */
+test("time off is not coloured as client work", () => {
+  const client = dailyBriefHtml([booking({ category: "appointment" })], about);
+  const off = dailyBriefHtml([booking({ category: "personal" })], about);
+  assert.match(client, /#1f3be3/);
+  assert.match(off, /#7b8598/);
+  assert.doesNotMatch(off, /background:#1f3be3/);
+});
+
+test("the way back into the diary is offered only when there is one to offer", () => {
+  assert.doesNotMatch(dailyBriefHtml([booking()], about), /Open the diary/);
+  assert.match(
+    dailyBriefHtml([booking()], { ...about, diaryUrl: "https://www.second-pair.com/diary" }),
+    /Open the diary/,
+  );
+});
