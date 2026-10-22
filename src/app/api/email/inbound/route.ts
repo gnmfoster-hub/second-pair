@@ -330,6 +330,8 @@ export async function POST(request: NextRequest) {
   if (overBudget) {
     await park(db, studio.id, sender, email, overBudget);
     await note(db, studio.id, slug, "parked", overBudget);
+    /* Their email is in the inbox and a person will read it. Say so. */
+    await holdingLine(db, studio, sender);
     return ok(`parked: ${overBudget}`);
   }
 
@@ -361,6 +363,20 @@ export async function POST(request: NextRequest) {
       const because = "the assistant has already answered this sender six times today";
       await park(db, studio.id, sender, email, because);
       await note(db, studio.id, slug, "parked", because);
+      /*
+       * And one line, so somebody mid-sentence is not left in silence.
+       *
+       * This ceiling is right and it is also where Jess's morning ended. She
+       * had just answered the question the assistant asked her — describing
+       * the tattoo she wanted — and the reply to that was nothing at all, on
+       * either channel, for the rest of the day. From her side the business
+       * simply stopped talking to her halfway through.
+       *
+       * Once per sender per day, claimed before sending, so the loop this
+       * ceiling exists to stop gets exactly one more message and then
+       * nothing.
+       */
+      await holdingLine(db, studio, sender);
       return ok(`parked: ${because}`);
     }
   }
@@ -560,13 +576,16 @@ async function park(
      * already handles that: a missed call from an unknown number has done it
      * since it was built.
      */
+    /*
+     * Theirs if they already have one, which was the second place making a
+     * duplicate. The same shape as lib/people/sameContact, which run.ts uses
+     * on the answered path: an address the business already holds is the same
+     * person, and a parked email from a customer they know should land on the
+     * record their notes are on.
+     */
     const { data: contact } = as.status === "paperwork"
       ? { data: null }
-      : await db
-          .from("contacts")
-          .insert({ studio_id: studioId, channel: "email", email: sender })
-          .select("id")
-          .single();
+      : await theirRecord(db, studioId, sender);
 
     const { data: made, error } = await db
       .from("conversations")
@@ -616,13 +635,105 @@ async function park(
     content: [email.subject, email.body].filter(Boolean).join("\n\n") || "(an empty message)",
   });
 
+  /* A colon, not a long dash: the business reads this line in their inbox. */
   await db.from("messages").insert({
     conversation_id: id,
     role: "system",
-    content: `${as.note} — ${because}.`,
+    content: `${as.note}: ${because}.`,
   });
 
   await db.from("conversations").update({ status: as.status }).eq("id", id);
+}
+
+/**
+ * "I have passed this on", once, to somebody the assistant has stopped
+ * answering.
+ *
+ * There are two ceilings on this route and both of them are silent: a
+ * business-wide budget for the day, and six replies to one sender. They do
+ * the job they were built for, which is to stop two machines talking to each
+ * other for ever and to stop a day costing more than it should. What neither
+ * of them considered is that the sender might be a customer in the middle of
+ * a sentence.
+ *
+ * So one short line, and then quiet. Claimed in handled_messages before it is
+ * sent, keyed on the sender and the day, which is the same mechanism reviews
+ * and campaigns use: an automatic mailbox that trips the ceiling gets this
+ * once and never again, and a person gets told why nobody is answering.
+ *
+ * It says nothing about ceilings, budgets or assistants. What somebody needs
+ * to know is that a human has it and is coming back to them.
+ */
+async function holdingLine(
+  db: ReturnType<typeof createAdminClient>,
+  studio: { id: string; slug: string; name: string; email: string | null; photo_path?: string | null; widget_accent?: string | null },
+  sender: string,
+): Promise<void> {
+  try {
+    if (!emailConfigured()) return;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const { error: claimed } = await db
+      .from("handled_messages")
+      .insert({ message_id: `held:${studio.id}:${sender}:${today}`, channel: "email", studio_id: studio.id });
+    if (claimed) return;
+
+    const letter = asEmail({
+      body:
+        `Thanks for that. I have passed it to ${studio.name} and somebody will come ` +
+        "back to you on it directly.\n\nIf it is urgent, replying here is still the " +
+        "quickest way to reach them.",
+      businessName: studio.name,
+      canReply: true,
+      photoUrl: avatarUrl(studio.photo_path ?? null),
+      contactEmail: usableAddress(studio.email ?? "") ?? null,
+      accent: studio.widget_accent ?? null,
+    });
+
+    await sendEmail({
+      to: sender,
+      subject: `${studio.name} has your message`,
+      text: letter.text,
+      html: letter.html,
+      fromName: studio.name,
+      replyTo: replyToFor(studio),
+      automatic: true,
+    });
+  } catch (error) {
+    console.error("[inbound:holding]", (error as Error).message);
+  }
+}
+
+/**
+ * The record this business already holds for that address, or a new one.
+ *
+ * Matched case-insensitively and nothing more clever than that: two spellings
+ * of an address differing by case are certainly the same person, and the
+ * dots-and-plus-signs rule Gmail allows is true for Gmail and wrong
+ * everywhere else.
+ */
+async function theirRecord(
+  db: ReturnType<typeof createAdminClient>,
+  studioId: string,
+  sender: string,
+): Promise<{ data: { id: string } | null }> {
+  const { data: already } = await db
+    .from("contacts")
+    .select("id")
+    .eq("studio_id", studioId)
+    .ilike("email", sender)
+    .limit(1)
+    .maybeSingle();
+
+  if (already) return { data: already as { id: string } };
+
+  const { data: made } = await db
+    .from("contacts")
+    .insert({ studio_id: studioId, channel: "email", email: sender })
+    .select("id")
+    .single();
+
+  return { data: (made as { id: string } | null) ?? null };
 }
 
 function ok(note: string) {

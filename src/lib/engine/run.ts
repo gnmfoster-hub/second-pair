@@ -6,6 +6,9 @@ import { isOutOfHours } from "@/lib/report";
 import { notifyStudio, tellThemSomebodyGotInTouch } from "@/lib/notify";
 import { whoOffers } from "./whoOffers";
 import { reachableFrom } from "./reachableFrom";
+import { matchContact, fillGaps, sameEmail, phoneTail } from "@/lib/people/sameContact";
+import { readTheirHistory } from "@/lib/people/readTheirHistory";
+import { theirHistoryNote } from "@/lib/people/theirHistory";
 import { splitQuoted } from "@/lib/messaging/quotedReply";
 import { isCheckSession } from "@/lib/checkSessions";
 import { isFirstReply } from "./firstReply";
@@ -1047,9 +1050,23 @@ async function generateReply(
     .order("created_at", { ascending: false })
     .limit(60);
 
-  const [{ data: enquiry }, { data: contact }] = await Promise.all([
+  const [{ data: enquiry }, { data: contact }, knownOfThem] = await Promise.all([
     ctx.db.from("enquiries").select("*").eq("id", ctx.enquiryId).single(),
     ctx.db.from("contacts").select("name, phone, email").eq("id", ctx.contactId).single(),
+    /*
+     * And who they are, which nothing used to ask.
+     *
+     * In the same Promise.all as the two reads that were already here, so
+     * knowing a customer costs no wait at all. It never throws: a turn that
+     * could not read somebody's past carries on without it.
+     */
+    readTheirHistory(ctx.db, {
+      studioId: ctx.studio.id,
+      contactId: ctx.contactId,
+      exceptConversationId: ctx.conversationId,
+      artists: ctx.artists,
+      bands: ctx.bands,
+    }),
   ]);
 
   /*
@@ -1121,7 +1138,18 @@ async function generateReply(
         contact as ContactState | null,
         ctx.options,
         ctx.forArtist ?? null,
-      ),
+      ) +
+      /*
+       * Everything this business already knows about them, where there is
+       * anything. Empty for a stranger, which is most people, so a first
+       * enquiry reads exactly as it did before.
+       */
+      (() => {
+        const note = theirHistoryNote(knownOfThem, ctx.studio.timezone);
+        return note ? `
+
+${note}` : "";
+      })(),
   } as Anthropic.MessageParam);
 
   /*
@@ -1363,7 +1391,17 @@ async function generateReply(
    * Every other channel still needs it here: a text message has no screen of
    * ours to put a line on.
    */
-  if (firstReply && text && ctx.channel !== "web") {
+  /*
+   * And not to somebody who has already been told.
+   *
+   * firstReply asks whether this thread has had an answer, which is the right
+   * question for a stranger and the wrong one for a regular. Jess replied to
+   * her own confirmation email four minutes after booking on the website and
+   * was introduced to the assistant for the second time, privacy notice and
+   * all, by something that had just taken her booking. See theirHistory for
+   * why it is bounded at a year rather than for ever.
+   */
+  if (firstReply && !knownOfThem.metBefore && text && ctx.channel !== "web") {
     const url = ctx.studio.privacy_notice_url;
 
     /*
@@ -1645,11 +1683,59 @@ async function findOrCreateConversation(
    */
   const known = reachableFrom(channel, sessionKey);
 
-  let { data: contact } = await db
-    .from("contacts")
-    .insert({ studio_id: studioId, channel, is_test: isTest, ...known })
-    .select("id")
-    .single();
+  /*
+   * And whether this business already knows them.
+   *
+   * This was the whole of Jess at Living Canvas. She chatted on the website,
+   * booked a Saturday, and four minutes later replied to her own confirmation
+   * email to cancel it. The reply made a second contact row with the same
+   * name and the same address, so the business had two of her and the
+   * assistant reading the email had never heard of the one who had just
+   * booked. The same pair is on the list of all three live businesses.
+   *
+   * It is checked before the insert rather than after a refusal, which is
+   * where the old guard sat: a refusal only happens where there is a unique
+   * index, there is one on the number and none on the address, and the
+   * website is the thing that collects addresses.
+   *
+   * The query is wide and the decision is narrow. See lib/people/sameContact.
+   */
+  let contact: { id: string } | null = null;
+
+  if (known.email || known.phone) {
+    const tail = phoneTail(known.phone);
+    const or = [
+      known.email ? `email.ilike.${sameEmail(known.email)}` : "",
+      tail ? `phone.ilike.%${tail}` : "",
+    ]
+      .filter(Boolean)
+      .join(",");
+
+    const { data: maybe } = await db
+      .from("contacts")
+      .select("id, name, email, phone, is_test, created_at")
+      .eq("studio_id", studioId)
+      .or(or)
+      .limit(20);
+
+    const found = matchContact(maybe ?? [], known, isTest);
+    if (found) {
+      contact = { id: found.id };
+      /* Anything they have just proved about themselves that was not on file. */
+      const patch = fillGaps(found, known);
+      if (Object.keys(patch).length) {
+        await db.from("contacts").update(patch).eq("id", found.id);
+      }
+    }
+  }
+
+  if (!contact) {
+    ({ data: contact } = await db
+      .from("contacts")
+      .insert({ studio_id: studioId, channel, is_test: isTest, ...known })
+      .select("id")
+      .single());
+  }
 
   /*
    * That number is already somebody's.

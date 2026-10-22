@@ -339,8 +339,8 @@ export function dailyBriefHtml(
   <tr><td style="padding:22px 28px 26px">
     <div style="border-top:1px solid ${LINE};padding-top:14px">
       <p style="margin:0;font-size:12px;line-height:1.6;color:${MUTED};font-family:${FONT}">
-        Sent every morning because it is switched on in Settings, Reminders.
-        Reply to this email if anything here looks wrong.
+        Your diary for the day, sent every morning. Reply to this email if
+        something here looks wrong, or turn it off in Settings, Reminders.
       </p>
     </div>
   </td></tr>

@@ -237,8 +237,8 @@ export function reportLetterHtml(letter: ReportLetter): string {
   <tr><td style="padding:22px 28px 26px">
     <div style="border-top:1px solid ${LINE};padding-top:14px">
       <p style="margin:0;font-size:12px;line-height:1.6;color:${MUTED};font-family:${FONT}">
-        Sent every Monday because it is switched on in Settings, Reminders.
-        Reply to this email if a figure here looks wrong.
+        Your week, sent every Monday morning. Reply to this email if a figure
+        here looks wrong, or turn it off in Settings, Reminders.
       </p>
     </div>
   </td></tr>

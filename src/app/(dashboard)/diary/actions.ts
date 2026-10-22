@@ -23,6 +23,7 @@ import { dayShift, shiftDay } from "@/lib/dayShift";
 import { dropReminders } from "@/lib/reminders";
 import { scheduleReminders } from "@/lib/reminders";
 import { DIARY_LAYOUT_COOKIE, type DiaryLayout } from "@/lib/diaryLayout";
+import { sendCancellationNotice } from "@/lib/messaging/cancelled";
 
 export type DiaryState = {
   error?: string;
@@ -747,6 +748,20 @@ export async function cancelDiaryEntry(fd: FormData) {
 
   // Nobody should get a reminder about an appointment that is not happening.
   await dropReminders(supabase, str(fd, "id"));
+
+  /*
+   * And the person who was coming, which nothing told.
+   *
+   * Jess at Living Canvas asked to be taken out of the diary on 18 October,
+   * twice, and was told both times that somebody would confirm it with her.
+   * It was taken out by hand the next day. Four days later she had still
+   * heard nothing from us, so the only safe thing left for her to do was turn
+   * up on the Saturday and find out.
+   *
+   * Not awaited and it cannot throw: the diary is already right, and an email
+   * that failed must never be able to put an appointment back in it.
+   */
+  void sendCancellationNotice(supabase, str(fd, "id"), "the business");
 
   revalidatePath("/diary");
   revalidatePath("/");
