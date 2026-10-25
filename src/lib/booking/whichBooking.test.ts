@@ -160,3 +160,68 @@ test("an occurrence of a run is one even where the rule says none", () => {
   assert.equal(got.ok, false);
   assert.equal(!got.ok && got.handToAPerson, true);
 });
+
+/*
+ * What Giles found on Neat & Tidy on 25 October, which is the whole reason
+ * the three branches below exist rather than one.
+ *
+ * He typed "can i cancel my booking", then "Giles test", then "28th", on the
+ * website, with no email and no number. The conversation got a client record
+ * of its own and his real appointment on the 28th sat on the record he made
+ * in September, so nothing was found. He was told: "there's nothing booked in
+ * under you, Giles". He had a booking.
+ *
+ * Telling somebody they have nothing booked when they have is the worst
+ * answer in this file. They either turn up anyway or they do not turn up at
+ * all, and both cost the business the appointment.
+ */
+
+/* One: they have one, and it is on the record but out of this conversation's
+   reach. Say so, and get a person. */
+test("an appointment out of reach is never reported as no appointment", () => {
+  const got = whichBooking([], { now: NOW, outOfReach: 1, unproved: true });
+  assert.equal(got.ok, false);
+  assert.equal(!got.ok && got.handToAPerson, true);
+  assert.match(!got.ok ? got.because : "", /DO have an appointment booked/);
+  assert.match(!got.ok ? got.because : "", /Do not tell them they have nothing booked/);
+});
+
+/* Two: nothing here at all, on a channel that cannot identify them. We do
+   not know, so we must not say. Ask for the thing that would tell us. */
+test("a nameless website chat is asked for an address, not told it has none", () => {
+  const got = whichBooking([], { now: NOW, unproved: true });
+  assert.equal(got.ok, false);
+  assert.match(!got.ok ? got.because : "", /does NOT mean they have nothing booked/);
+  assert.match(!got.ok ? got.because : "", /email address or the phone number/);
+  assert.match(!got.ok ? got.because : "", /save_contact/);
+  assert.doesNotMatch(!got.ok ? got.because : "", /nothing booked that has not already happened/);
+});
+
+/* Three: an email or a text. The record is them, so an empty answer is true
+   and may be said plainly. */
+test("on a proved channel an empty diary is a fact and is stated", () => {
+  const got = whichBooking([], { now: NOW });
+  assert.equal(got.ok, false);
+  assert.equal(!got.ok && got.handToAPerson, false);
+  assert.match(!got.ok ? got.because : "", /nothing booked that has not already happened/);
+});
+
+/*
+ * And where this conversation does hold their history, an empty answer is
+ * about time rather than about identity, so asking for an address again would
+ * be the assistant not listening.
+ */
+test("a past appointment in this very chat is not a stranger", () => {
+  const got = whichBooking([{ id: "done", starts_at: "2026-09-01T09:00:00Z" }], {
+    now: NOW,
+    unproved: true,
+  });
+  assert.equal(got.ok, false);
+  assert.match(!got.ok ? got.because : "", /nothing booked that has not already happened/);
+  assert.doesNotMatch(!got.ok ? got.because : "", /email address or the phone number/);
+});
+
+test("something in reach is still just answered, whatever else exists", () => {
+  const got = whichBooking([hers], { now: NOW, outOfReach: 2, unproved: true });
+  assert.equal(got.ok && got.booking.id, "jess");
+});

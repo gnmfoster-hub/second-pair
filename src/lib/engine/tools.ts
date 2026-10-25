@@ -2243,8 +2243,9 @@ function couldNot(r: { because: string; handToAPerson: boolean }): string {
   return r.handToAPerson
     ? `Not done: ${r.because}. Call escalate_to_owner, then tell them it is with the ` +
         "business and somebody will confirm it. Do not say it is sorted, because it is not."
-    : `Not done: ${r.because}. Say so plainly and carry on helping them with it. ` +
-        "Nothing in the diary has changed.";
+    : `Not done: ${r.because}. Put that in your own words to them, warmly and in one ` +
+        "line, and never repeat this sentence back at them as though it came from a " +
+        "machine. Nothing in the diary has changed, and carry on helping them.";
 }
 
 /** Their appointment, at a different time. */
@@ -2324,13 +2325,43 @@ async function moveBooking(
     };
   }
 
-  const slot = stillFree.find((sl) => Date.parse(sl.starts_at) === when);
+  /*
+   * The slot, or the one we offered them seconds ago.
+   *
+   * The re-check above is advisory and it was treated as authoritative, which
+   * refused a real move on 25 October: the assistant offered Tuesday at 1pm,
+   * the customer said yes to it, and the move came back "that time is not
+   * free" about a time this same code had just put in front of her. Whatever
+   * the cause of the disagreement, a customer being told a time is gone by
+   * the system that offered it is the assistant looking like it is not
+   * listening, which is the one thing it must never look like.
+   *
+   * So a time this conversation actually offered is accepted on that basis.
+   * It is not a loosening of anything: the no-overlap constraint in the
+   * database is what truly prevents a double booking, it is what
+   * create_booking has always relied on for exactly this race, and the
+   * refusal it raises is handled below. What the offered list adds is the
+   * guarantee that the time came from the diary rather than from the model,
+   * so nothing can be moved to three in the morning.
+   */
+  let slot = stillFree.find((sl) => Date.parse(sl.starts_at) === when);
+
+  if (!slot) {
+    const weOffered = await offeredBefore(ctx);
+    if (weOffered.some((iso) => Date.parse(iso) === when)) {
+      slot = {
+        starts_at: new Date(when).toISOString(),
+        ends_at: new Date(when + minutes * 60_000).toISOString(),
+      } as typeof stillFree[number];
+    }
+  }
+
   if (!slot) {
     return {
       result:
-        "That time is not free. Apologise, call get_available_slots again and offer " +
-        "what comes back. Their old appointment is untouched, so do not tell them it " +
-        "has been cancelled.",
+        "That is not a time from get_available_slots, and it is not free. Call " +
+        "get_available_slots and offer what comes back. Their old appointment is " +
+        "untouched, so do not tell them it has been cancelled.",
     };
   }
 

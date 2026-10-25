@@ -43,9 +43,13 @@ const PREFIX = "chng";
 const sessionOf = () => PREFIX + Math.random().toString(36).slice(2, 14) + "abcdefgh";
 const mine = sessionOf();
 const theirs = sessionOf();
+/* Giles's own case: the same person, a fresh chat, nothing proved. */
+const again = sessionOf();
 
 /* 07700 900xxx is Ofcom's drama and testing range. It reaches nobody. */
 const testNumber = `07700 900${600 + Math.floor(Math.random() * 100)}`;
+/* example.com is reserved by the IETF and reaches nobody. */
+const testEmail = `dawn.pethick.${Math.random().toString(36).slice(2, 8)}@example.com`;
 
 const DEMOS = ["willow-demo", "pawfect-demo", "cogs-demo", "ashcroft-demo", "brightwork-demo", "dansdriving-demo", "kerbside-demo"];
 if (!DEMOS.includes(slug)) {
@@ -137,7 +141,7 @@ const SCRIPTS = {
     "hi, how much is a cut and blow dry?",
     "great, what have you got the week after next?",
     "the first one please",
-    `I'm Dawn Pethick, ${testNumber}. Just a trim, nothing fancy.`,
+    `I'm Dawn Pethick, ${testNumber}, ${testEmail}. Just a trim, nothing fancy.`,
     "yes please, book that in",
   ],
   "pawfect-demo": [
@@ -220,6 +224,58 @@ if (strangerSide.conversation?.contact_id === conversation.contact_id) {
   );
 }
 
+// ------------------------------------------------- Giles's own case
+/*
+ * Neat & Tidy, 25 October. He opened the website, typed "can i cancel my
+ * booking", then "Giles test", then "28th", and was told: "there's nothing
+ * booked in under you, Giles". He had an appointment on the 28th. It was on
+ * the client record he made in September, and the fresh chat had a record of
+ * its own, so nothing was found and the assistant reported that as a fact
+ * about his diary.
+ *
+ * Two sentences that must never be the same one. What it has to do instead is
+ * ask for the address or the number it was booked with, and once that joins
+ * it to the real record, say plainly that it can see something booked and get
+ * a person to check it is them.
+ */
+console.log("\n  --- the same person, a new chat, nothing proved ---\n");
+
+const first = await say(again, "hi, can i cancel my booking");
+if (/nothing (booked|in the diary)|haven't got|don't have (a|any)/i.test(first)) {
+  bad("told them they have no appointment before knowing who they are", "they have one");
+} else {
+  ok("did not deny the appointment before it knew who it was talking to");
+}
+
+const second = await say(again, "Dawn Pethick");
+const asked = /email|e-mail|address|number|phone/i.test(second);
+if (!asked) {
+  console.log("  note  it did not ask for an email or a number off a bare name");
+} else {
+  ok("asked what the appointment was booked under");
+}
+if (/nothing (booked|in the diary)|no appointment/i.test(second)) {
+  bad("told them they have no appointment off a name alone", "a name proves nothing");
+} else {
+  ok("still did not deny it off a name alone");
+}
+
+const third = await say(again, `it's ${testEmail}`);
+if (/nothing (booked|in the diary)|no appointment|can't find (a|any)/i.test(third)) {
+  bad("denied the appointment even once it could identify them");
+} else {
+  ok("once identified, it did not deny the appointment");
+}
+
+/* And it must not have cancelled it either: a web chat may say it sees one,
+   and may not touch one it did not make. */
+const afterOutsider = await bookingFor(mine);
+if (afterOutsider.booking?.cancelled_at) {
+  bad("a new web chat cancelled an appointment made in another one");
+} else {
+  ok("and it did not touch it, which is the other half of the rule");
+}
+
 // ------------------------------------------------- move it
 console.log("\n  --- moving it ---\n");
 await say(mine, "actually, something's come up. what else have you got?");
@@ -278,7 +334,7 @@ if (afterCancel.booking) {
 }
 
 // ------------------------------------------------- put the demo back
-for (const session of [mine, theirs]) {
+for (const session of [mine, theirs, again]) {
   const { booking: b } = await bookingFor(session);
   if (b) {
     await client.from("booking_events").delete().eq("booking_id", b.id);

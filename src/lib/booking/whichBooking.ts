@@ -23,6 +23,10 @@
  *   1. Nothing in the past. An appointment that has happened is history
  *      rather than a plan, and "cancel my Tuesday" on a Wednesday means next
  *      Tuesday.
+ *   1b. Having none in reach is not the same as having none. Where the reach
+ *      is narrowed and they do have one outside it, that is said plainly and
+ *      handed to a person. Telling somebody they have nothing booked when
+ *      they have is the worst answer in this file.
  *   2. The one they named, matched to the minute. Where they named nothing,
  *      or named a time nothing sits at, and they have exactly one appointment
  *      ahead of them, that is the one, because there is nothing else they
@@ -76,18 +80,93 @@ const standingRun = (row: Candidate): boolean => {
 };
 
 /**
- * @param rows Their own appointments, already cancelled ones left out.
+ * @param rows The appointments this conversation may touch, cancelled ones
+ *   already left out.
  * @param asked `which` is the start time they named, as an ISO string.
+ *   `outOfReach` is how many upcoming appointments they have that this
+ *   conversation may NOT touch, which is a different answer, not a smaller
+ *   one. See below.
  */
 export function whichBooking<T extends Candidate>(
   rows: T[],
-  asked: { which?: string | null; now: number },
+  asked: {
+    which?: string | null;
+    now: number;
+    outOfReach?: number;
+    /**
+     * True where the channel has not proved who they are, which is the
+     * website. Then an empty answer means "I cannot see one", never "you
+     * have not got one". See the branch below.
+     */
+    unproved?: boolean;
+  },
 ): Which<T> {
   const ahead = rows
     .filter((b) => Date.parse(b.starts_at) >= asked.now)
     .sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
 
   if (!ahead.length) {
+    /*
+     * They have one, and this conversation may not touch it.
+     *
+     * Two very different sentences, and running them together was the first
+     * thing a real test of this found. Giles tried it on Neat & Tidy on 25
+     * October: a fresh website chat, no email and no number given, so a fresh
+     * client record, while his actual appointment sat on the record he made
+     * in September. The assistant told him he did not have a booking.
+     *
+     * He had one. Saying otherwise is not a refusal, it is a false statement
+     * about somebody's diary, and it is the worst answer available: somebody
+     * told they have nothing booked either turns up anyway or does not turn
+     * up at all, and both of those cost the business the appointment.
+     *
+     * So this is a refusal that goes to a person, with the model told in as
+     * many words not to deny the appointment exists.
+     */
+    if (asked.outOfReach) {
+      return {
+        ok: false,
+        because:
+          "they DO have an appointment booked, and it is not one this conversation may " +
+          "change: it was made somewhere else and nothing here proves who they are. Do " +
+          "not tell them they have nothing booked, because they have. Say you can see " +
+          "something is booked, that you want somebody to check it is really them before " +
+          "anything is moved, and that the business will confirm it",
+        handToAPerson: true,
+      };
+    }
+
+    /*
+     * Nothing on this record, on a channel that cannot identify them.
+     *
+     * The second half of what Giles found on 25 October. He typed "Giles
+     * test" into the website with no email and no number, so the
+     * conversation got a client record of its very own, and his actual
+     * appointment on the 28th sat on the record he made in September. There
+     * was nothing out of reach either, because as far as the database was
+     * concerned this was a different person.
+     *
+     * So an empty answer here is not a fact about his diary. It is a fact
+     * about what this conversation can see, which is nothing, and the two
+     * must not be said in the same words. What it needs is the address or
+     * the number the booking was made with: give it one and saveContact
+     * joins this conversation to the record that already exists, and the
+     * branch above can then say the true thing.
+     */
+    if (asked.unproved && !rows.length) {
+      return {
+        ok: false,
+        because:
+          "this conversation has nothing booked on it, and that does NOT mean they have " +
+          "nothing booked: on the website anybody who has not given an email or a number " +
+          "is a stranger to us, however well you know their name. Do not tell them there " +
+          "is nothing booked. Ask for the email address or the phone number the " +
+          "appointment was made with, say it is so you can find the right one, save it " +
+          "with save_contact, and try again. If they cannot give you either, escalate",
+        handToAPerson: false,
+      };
+    }
+
     return {
       ok: false,
       because: "they have nothing booked that has not already happened",

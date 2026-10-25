@@ -67,6 +67,7 @@ export type Changed =
 
 type BookingRow = Candidate & {
   contact_id: string | null;
+  enquiry_id: string | null;
   ends_at: string;
   cancelled_at: string | null;
   artist_id: string | null;
@@ -114,23 +115,39 @@ export async function theirBooking(
     onlyEnquiries = ((mine ?? []) as unknown as { id: string }[]).map((e) => e.id);
   }
 
-  let q = db
+  /*
+   * Everything on the record, then narrowed here rather than in the query.
+   *
+   * One read instead of two, and it is the only way to tell the two refusals
+   * apart: "you have nothing booked" and "you have one and I may not touch
+   * it" are completely different sentences, and the first of them said to
+   * somebody who does have an appointment is the worst answer this code can
+   * give. See whichBooking, where that is decided.
+   */
+  const { data: rows } = await db
     .from("bookings")
     .select(COLUMNS)
     .eq("contact_id", args.contactId)
-    .is("cancelled_at", null);
+    .is("cancelled_at", null)
+    .order("starts_at");
 
-  if (onlyEnquiries) {
-    /* An empty list would match everything if it were left out, so it is
-       passed through as an impossible value rather than skipped. */
-    q = q.in("enquiry_id", onlyEnquiries.length ? onlyEnquiries : ["00000000-0000-0000-0000-000000000000"]);
-  }
+  const all = (rows ?? []) as unknown as BookingRow[];
+  const now = args.now ?? Date.now();
 
-  const { data: rows } = await q.order("starts_at");
+  const inReach = onlyEnquiries
+    ? all.filter((b) => onlyEnquiries.includes(String(b.enquiry_id ?? "")))
+    : all;
 
-  return whichBooking((rows ?? []) as unknown as BookingRow[], {
+  const outOfReach = all.filter(
+    (b) => Date.parse(b.starts_at) >= now && !inReach.includes(b),
+  ).length;
+
+  return whichBooking(inReach, {
     which: args.which,
-    now: args.now ?? Date.now(),
+    now,
+    outOfReach,
+    /* The reach is only ever narrowed on a channel that cannot prove them. */
+    unproved: Boolean(args.onlyFromConversation),
   });
 }
 
