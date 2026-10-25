@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mayChangeBookings, reachesWholeRecord } from "./mayChange.ts";
+import { mayChangeBookings, provedWhoTheyAre } from "./mayChange.ts";
 
 const ours = { booking_provider: "native" };
 
@@ -50,31 +50,21 @@ test("nobody set up yet is a no, and does not throw", () => {
 });
 
 /*
- * Whether this channel's own say-so reaches every appointment on the record.
- *
- * It lives in change.ts beside the reasoning, and is tested here because this
- * is the file about who is allowed to do what.
- *
- * The hole it closes: saveContact moves a conversation onto an existing
- * client record when somebody gives a number or an address already on file
- * and a first name that agrees. That is deliberate and good, and it means a
- * website visitor who types a real customer's number and first name is, to
- * anything downstream, that customer. So the website reaches this
- * conversation only, and the proved channels are listed rather than the
- * unproved ones, so a channel added later is strict until somebody decides.
+ * Whether the channel itself establishes who they are, which decides one
+ * thing: whether "nothing is booked" may be said as a fact.
  */
 test("a website visitor is nobody in particular", () => {
-  assert.equal(reachesWholeRecord("web"), false);
+  assert.equal(provedWhoTheyAre("web"), false);
 });
 
-test("a channel keyed on something they had to hold reaches the record", () => {
+test("a channel keyed on something they had to hold does establish them", () => {
   for (const channel of ["email", "sms", "whatsapp", "instagram", "messenger", "voice"]) {
-    assert.equal(reachesWholeRecord(channel), true, channel);
+    assert.equal(provedWhoTheyAre(channel), true, channel);
   }
 });
 
-test("anything unrecognised, missing or new is strict", () => {
+test("anything unrecognised, missing or new is treated as unproved", () => {
   for (const channel of ["", "widget", "carrier_pigeon", null, undefined]) {
-    assert.equal(reachesWholeRecord(channel), false, String(channel));
+    assert.equal(provedWhoTheyAre(channel), false, String(channel));
   }
 });

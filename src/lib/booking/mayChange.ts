@@ -48,27 +48,45 @@ export function mayChangeBookings(
  * from an account somebody logged into. Not proof of identity in the legal
  * sense, and plenty for deciding whether somebody may move their own haircut.
  *
- * The website is not on the list and that is the whole point of the list.
- * saveContact deliberately moves a conversation onto an existing client
- * record when somebody gives a phone number or an email already on file and a
- * first name that agrees, which is good behaviour and the reason a returning
- * customer's history is in front of the business rather than scattered. It
- * also means a website visitor who types a real customer's number and first
- * name is, to everything downstream, that customer. The rejoin code says it
- * plainly: on a website a phone number proves nothing at all.
+ * The website is not on the list, and what that now decides is one thing
+ * only: whether an empty answer may be stated as a fact. On the website it
+ * may not. Anybody who has not given an email or a number is a stranger to
+ * us however well we know their name, so "nothing is booked" is a claim this
+ * code cannot make, and making it is what told Giles he had no appointment
+ * when he had one. It asks for the address or the number instead.
  *
- * So on the website an appointment is only in reach if it was made in that
- * same conversation, which is the case that actually matters: somebody
- * cancelling over chat is nearly always cancelling what they booked minutes
- * ago. A returning customer wanting an older one moved is handed to a person,
- * and that is the right answer rather than a shortfall.
+ * It used to decide more than that. The website could only reach an
+ * appointment made in that same conversation, on the reasoning that a number
+ * typed into a web page proves nothing, which is true as far as it goes.
+ *
+ * Giles, 25 October, having walked the whole flow: "it should be able to
+ * change as long as there is time in the diary but only if it was an
+ * assistant booking in the first place." He is right about where the line
+ * belongs. His own clean, identified by his own email, was refused twice and
+ * handed to Karen, which is the stall this work existed to remove. The useful
+ * question is not which chat window a booking came through, it is whose
+ * booking it is to change: one the assistant took is the assistant's to move,
+ * and one the business typed into the diary themselves is theirs. That is in
+ * whichBooking, read off `source`.
+ *
+ * What stands between a stranger and somebody else's appointment is then the
+ * client record itself: saveContact only moves a conversation onto an
+ * existing record when the email or the number given is already on it AND
+ * the first name agrees. So it takes knowing a customer's address and their
+ * name, and if somebody does, the customer is emailed about the change and
+ * the business is alerted, both within the minute. Giles's call, made with
+ * that in front of him.
  *
  * The proved channels are listed rather than the unproved ones, so a channel
- * added later is strict until somebody decides otherwise.
+ * added later is cautious until somebody decides otherwise.
  */
 const PROVED = ["email", "sms", "whatsapp", "instagram", "messenger", "voice"];
 
-/** Whether this channel's own say-so reaches every appointment on the record. */
-export function reachesWholeRecord(channel: string | null | undefined): boolean {
+/**
+ * Whether the channel itself establishes who they are.
+ *
+ * False on the website, where an empty diary may not be stated as a fact.
+ */
+export function provedWhoTheyAre(channel: string | null | undefined): boolean {
   return PROVED.includes(String(channel ?? ""));
 }

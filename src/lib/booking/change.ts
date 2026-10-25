@@ -20,33 +20,31 @@
  * Who is allowed to do it
  * -----------------------
  *
+ * Two things, and neither of them is about which chat window it came through.
+ *
  * The appointment must belong to the contact this conversation belongs to.
- * And on a channel that has not proved who they are, it must also have been
- * made in this very conversation.
+ * On email, text and the rest the thread key is the address or the number the
+ * message arrived from, so that is settled by arriving. On the website it is
+ * settled by saveContact, which moves a conversation onto an existing client
+ * record only where the email or the number given is already on it and the
+ * first name agrees.
  *
- * The second half is not belt and braces. It was written here first as a note
- * saying it was unnecessary, on the reasoning that a web conversation gets a
- * fresh contact of its own because its thread key is an invented session id
- * that matches nobody. That reasoning was wrong, and reading saveContact is
- * what showed it: `rejoin` deliberately moves a conversation onto an existing
- * client record when somebody gives a phone number or an email already on
- * file and a first name that agrees. It is good behaviour and the reason a
- * returning customer's history is in front of the business instead of
- * scattered. It also means a website visitor who types a real customer's
- * number and first name is, from this file's point of view, that customer.
+ * And the assistant must have made it. One it took is its to move; one
+ * somebody at the business typed into the diary is theirs, because they may
+ * have taken it on the phone and promised something nobody here knows about.
+ * The whole of that reasoning is at madeByTheAssistant in whichBooking.ts.
  *
- * Nothing on a web page proves anything. A number is a thing anybody can
- * type, which the rejoin code says in as many words: "on a website a phone
- * number proves nothing at all". So on the website the reach is this
- * conversation only, which is the case that actually matters anyway, because
- * somebody cancelling over chat is nearly always cancelling what they booked
- * minutes ago. A returning customer wanting an older appointment moved is
- * handed to a person, and that is the right answer rather than a shortfall.
+ * It was narrower than this for a day: on the website, only an appointment
+ * made in that same conversation. Giles walked the flow on 25 October, was
+ * refused twice on his own clean with his own email in front of it, and said
+ * where the line actually belongs: "it should be able to change as long as
+ * there is time in the diary but only if it was an assistant booking in the
+ * first place."
  *
- * The proved channels are listed rather than the unproved ones, so a channel
- * added later is strict until somebody decides otherwise. Email, text,
- * WhatsApp, Instagram, Messenger and a phone call all key the thread on an
- * address, a number or an account the person had to be holding.
+ * What is left is somebody who knows a customer's address or number and
+ * their first name. If that happens the customer is emailed about the change
+ * and the business is alerted, both within the minute, so it cannot happen
+ * quietly. Giles's call, made with that in front of him.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -55,10 +53,10 @@ import { scheduleReminders, dropReminders } from "@/lib/reminders";
 import { cancelBooking } from "@/lib/booking";
 import { alertBookingChanged } from "@/lib/notify";
 import { sendCancellationNotice } from "@/lib/messaging/cancelled";
-import { whichBooking, type Candidate } from "./whichBooking";
-import { reachesWholeRecord } from "./mayChange";
+import { whichBooking, madeByTheAssistant, type Candidate } from "./whichBooking";
+import { provedWhoTheyAre } from "./mayChange";
 
-export { reachesWholeRecord };
+export { provedWhoTheyAre };
 
 export type Changed =
   | { ok: true; what: "cancelled"; was: string }
@@ -68,6 +66,7 @@ export type Changed =
 type BookingRow = Candidate & {
   contact_id: string | null;
   enquiry_id: string | null;
+  source: string | null;
   ends_at: string;
   cancelled_at: string | null;
   artist_id: string | null;
@@ -76,8 +75,8 @@ type BookingRow = Candidate & {
 };
 
 const COLUMNS =
-  "id, contact_id, enquiry_id, starts_at, ends_at, cancelled_at, repeats, repeat_parent_id, " +
-  "group_id, artist_id, deposit_amount_pence, deposit_status";
+  "id, contact_id, enquiry_id, source, starts_at, ends_at, cancelled_at, repeats, " +
+  "repeat_parent_id, group_id, artist_id, deposit_amount_pence, deposit_status";
 
 /**
  * The one appointment this request is about, or the reason there is not one.
@@ -91,38 +90,21 @@ export async function theirBooking(
     which?: string | null;
     contactId: string;
     /**
-     * Set on an unproved channel, and then only appointments made in this
-     * conversation are in reach. See the top of the file.
+     * False on the website, where an empty answer may not be stated as a
+     * fact. It does not decide what is in reach. See mayChange.ts.
      */
-    onlyFromConversation?: string | null;
+    proved?: boolean;
     now?: number;
   },
 ) {
   /*
-   * The enquiries this conversation has had, when the reach is narrowed.
-   *
-   * Bookings hang off an enquiry rather than off a conversation, and a
-   * conversation can have more than one enquiry over its life, so it is a
-   * list. No enquiries means nothing was ever booked here, which is a plain
-   * answer rather than a failure.
-   */
-  let onlyEnquiries: string[] | null = null;
-  if (args.onlyFromConversation) {
-    const { data: mine } = await db
-      .from("enquiries")
-      .select("id")
-      .eq("conversation_id", args.onlyFromConversation);
-    onlyEnquiries = ((mine ?? []) as unknown as { id: string }[]).map((e) => e.id);
-  }
-
-  /*
    * Everything on the record, then narrowed here rather than in the query.
    *
-   * One read instead of two, and it is the only way to tell the two refusals
-   * apart: "you have nothing booked" and "you have one and I may not touch
-   * it" are completely different sentences, and the first of them said to
-   * somebody who does have an appointment is the worst answer this code can
-   * give. See whichBooking, where that is decided.
+   * One read, and it is the only way to tell the two refusals apart: "you
+   * have nothing booked" and "you have one and it is not mine to change" are
+   * completely different sentences, and saying the first to somebody who does
+   * have an appointment is the worst answer this code can give. See
+   * whichBooking, where that is decided.
    */
   const { data: rows } = await db
     .from("bookings")
@@ -134,20 +116,17 @@ export async function theirBooking(
   const all = (rows ?? []) as unknown as BookingRow[];
   const now = args.now ?? Date.now();
 
-  const inReach = onlyEnquiries
-    ? all.filter((b) => onlyEnquiries.includes(String(b.enquiry_id ?? "")))
-    : all;
-
-  const outOfReach = all.filter(
-    (b) => Date.parse(b.starts_at) >= now && !inReach.includes(b),
+  /* Ours to change, and the business's own. */
+  const ours = all.filter((b) => madeByTheAssistant(b.source));
+  const theirs = all.filter(
+    (b) => Date.parse(b.starts_at) >= now && !madeByTheAssistant(b.source),
   ).length;
 
-  return whichBooking(inReach, {
+  return whichBooking(ours, {
     which: args.which,
     now,
-    outOfReach,
-    /* The reach is only ever narrowed on a channel that cannot prove them. */
-    unproved: Boolean(args.onlyFromConversation),
+    outOfReach: theirs,
+    unproved: args.proved === false,
   });
 }
 
@@ -158,7 +137,7 @@ export async function cancelTheirBooking(
     studioId: string;
     which?: string | null;
     contactId: string;
-    onlyFromConversation?: string | null;
+    proved?: boolean;
     now?: number;
   },
 ): Promise<Changed> {
@@ -203,7 +182,7 @@ export async function moveTheirBooking(
     studioId: string;
     which?: string | null;
     contactId: string;
-    onlyFromConversation?: string | null;
+    proved?: boolean;
     startsAt: string;
     endsAt: string;
     now?: number;

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { whichBooking } from "./whichBooking.ts";
+import { whichBooking, madeByTheAssistant } from "./whichBooking.ts";
 
 /* Jess's own, so the one that started this is the one in the tests. */
 const NOW = Date.parse("2026-10-18T10:39:00Z");
@@ -184,6 +184,7 @@ test("an appointment out of reach is never reported as no appointment", () => {
   assert.equal(!got.ok && got.handToAPerson, true);
   assert.match(!got.ok ? got.because : "", /DO have an appointment booked/);
   assert.match(!got.ok ? got.because : "", /Do not tell them they have nothing booked/);
+  assert.match(!got.ok ? got.because : "", /business put it in the diary themselves/);
 });
 
 /* Two: nothing here at all, on a channel that cannot identify them. We do
@@ -224,4 +225,26 @@ test("a past appointment in this very chat is not a stranger", () => {
 test("something in reach is still just answered, whatever else exists", () => {
   const got = whichBooking([hers], { now: NOW, outOfReach: 2, unproved: true });
   assert.equal(got.ok && got.booking.id, "jess");
+});
+
+/*
+ * Whose appointment it is to change.
+ *
+ * Giles, 25 October, after being refused twice on his own clean: "it should
+ * be able to change as long as there is time in the diary but only if it was
+ * an assistant booking in the first place."
+ *
+ * The right line, and a better one than where I had put it. One the
+ * assistant took is its to move. One somebody at the business typed into the
+ * diary is theirs: they may have taken it on the phone, written something
+ * against it, or promised the customer something nobody here knows about.
+ */
+test("a booking the assistant took is one of ours", () => {
+  assert.equal(madeByTheAssistant("assistant"), true);
+});
+
+test("one the business typed in, time held out of the diary, and anything else, is not", () => {
+  for (const source of ["manual", "block", "import", "", null, undefined, "Assistant"]) {
+    assert.equal(madeByTheAssistant(source), false, String(source));
+  }
 });

@@ -23,10 +23,10 @@
  *   1. Nothing in the past. An appointment that has happened is history
  *      rather than a plan, and "cancel my Tuesday" on a Wednesday means next
  *      Tuesday.
- *   1b. Having none in reach is not the same as having none. Where the reach
- *      is narrowed and they do have one outside it, that is said plainly and
- *      handed to a person. Telling somebody they have nothing booked when
- *      they have is the worst answer in this file.
+ *   1b. Having none of ours is not the same as having none. Where they have
+ *      an appointment the business put in themselves, that is said plainly
+ *      and handed to a person. Telling somebody they have nothing booked
+ *      when they have is the worst answer in this file.
  *   2. The one they named, matched to the minute. Where they named nothing,
  *      or named a time nothing sits at, and they have exactly one appointment
  *      ahead of them, that is the one, because there is nothing else they
@@ -52,6 +52,25 @@ export type Candidate = {
   repeat_parent_id?: string | null;
   group_id?: string | null;
 };
+
+/**
+ * Whose appointment this is to change.
+ *
+ * Giles, 25 October: "it should be able to change as long as there is time in
+ * the diary but only if it was an assistant booking in the first place."
+ *
+ * One the assistant took is the assistant's to move. One somebody at the
+ * business typed into the diary is theirs, and reaching into it over chat
+ * would be the product overstepping: they may have taken it on the phone,
+ * written something against it, or promised the customer something nobody
+ * here knows about.
+ *
+ * `source` on the booking says which. It is "assistant" for a booking taken
+ * over chat, "manual" for one a person typed in, and "block" for time held
+ * out of the diary which is not an appointment at all.
+ */
+export const madeByTheAssistant = (source: string | null | undefined): boolean =>
+  String(source ?? "") === "assistant";
 
 export type Which<T> =
   | { ok: true; booking: T }
@@ -80,12 +99,11 @@ const standingRun = (row: Candidate): boolean => {
 };
 
 /**
- * @param rows The appointments this conversation may touch, cancelled ones
+ * @param rows Their appointments that the assistant took, cancelled ones
  *   already left out.
  * @param asked `which` is the start time they named, as an ISO string.
- *   `outOfReach` is how many upcoming appointments they have that this
- *   conversation may NOT touch, which is a different answer, not a smaller
- *   one. See below.
+ *   `outOfReach` is how many upcoming appointments they have that the
+ *   business made itself, which is a different answer, not a smaller one.
  */
 export function whichBooking<T extends Candidate>(
   rows: T[],
@@ -127,11 +145,11 @@ export function whichBooking<T extends Candidate>(
       return {
         ok: false,
         because:
-          "they DO have an appointment booked, and it is not one this conversation may " +
-          "change: it was made somewhere else and nothing here proves who they are. Do " +
+          "they DO have an appointment booked and it is not one of yours: the business " +
+          "put it in the diary themselves, so it is theirs to change and not yours. Do " +
           "not tell them they have nothing booked, because they have. Say you can see " +
-          "something is booked, that you want somebody to check it is really them before " +
-          "anything is moved, and that the business will confirm it",
+          "it, that this one has to go through the business, and that somebody will " +
+          "confirm it with them",
         handToAPerson: true,
       };
     }

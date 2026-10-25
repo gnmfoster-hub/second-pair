@@ -24,7 +24,7 @@ import {
 } from "@/lib/booking";
 import { mayChangeBookings } from "@/lib/booking/mayChange";
 import {
-  reachesWholeRecord,
+  provedWhoTheyAre,
   theirBooking,
   cancelTheirBooking,
   moveTheirBooking,
@@ -2262,19 +2262,12 @@ async function moveBooking(
   const which = typeof input.which === "string" ? input.which : null;
 
   /*
-   * On the website, only what was booked in this conversation.
-   *
-   * Nothing on a web page proves who is typing, and saveContact will move a
-   * conversation onto an existing client record on the strength of a number
-   * and a first name. The reasoning is at the top of booking/change.ts.
+   * Whether an empty answer may be stated as a fact, which the website cannot
+   * do. What is in reach is decided by who made the booking, not by this.
    */
-  const onlyFromConversation = reachesWholeRecord(ctx.channel) ? null : ctx.conversationId;
+  const proved = provedWhoTheyAre(ctx.channel);
 
-  const found = await theirBooking(ctx.db, {
-    which,
-    contactId: ctx.contactId,
-    onlyFromConversation,
-  });
+  const found = await theirBooking(ctx.db, { which, contactId: ctx.contactId, proved });
   if (!found.ok) return { result: couldNot(found) };
 
   /*
@@ -2369,7 +2362,7 @@ async function moveBooking(
     studioId: ctx.studio.id,
     which,
     contactId: ctx.contactId,
-    onlyFromConversation,
+    proved,
     startsAt: slot.starts_at,
     endsAt: slot.ends_at,
   });
@@ -2402,8 +2395,8 @@ async function callItOff(
     studioId: ctx.studio.id,
     which,
     contactId: ctx.contactId,
-    /* As in moveBooking: unproved channels reach this conversation only. */
-    onlyFromConversation: reachesWholeRecord(ctx.channel) ? null : ctx.conversationId,
+    /* As in moveBooking: only about whether an empty answer may be stated. */
+    proved: provedWhoTheyAre(ctx.channel),
   });
 
   if (!done.ok) return { result: couldNot(done) };
