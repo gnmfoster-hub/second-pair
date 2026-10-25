@@ -22,6 +22,13 @@ import {
   bookingTypeFor,
   capabilitiesFor,
 } from "@/lib/booking";
+import { mayChangeBookings } from "@/lib/booking/mayChange";
+import {
+  reachesWholeRecord,
+  theirBooking,
+  cancelTheirBooking,
+  moveTheirBooking,
+} from "@/lib/booking/change";
 import {
   isRegularRule,
   howManyVisits,
@@ -452,6 +459,65 @@ export function toolDefinitions(
         ]
       : []),
     /*
+     * Changing one that is already in the diary.
+     *
+     * Gated on the same provider check as create_booking, because a diary
+     * that cannot be written to cannot be rewritten either, and on the
+     * business's own setting, which arrives on by default. See
+     * Studio.assistant_may_change_bookings for why that way round.
+     */
+    ...(mayChangeBookings(studio, artists.find((a) => a.active))
+      ? [
+          {
+            name: "move_booking",
+            description:
+              "Put an appointment they have already made at a different time, at their " +
+              "own request. Only ever their own appointment. Call get_available_slots " +
+              "first and pass a time it returned: never offer or take a time you have " +
+              "not been given. The appointment keeps the same length and the same " +
+              `${who}.`,
+            input_schema: {
+              type: "object" as const,
+              properties: {
+                starts_at: {
+                  type: "string",
+                  description: "The exact starts_at value from get_available_slots.",
+                },
+                which: {
+                  type: "string",
+                  description:
+                    "Which appointment they mean, as its exact start time. Only needed " +
+                    "when they have more than one booked. Leave it out if they have one.",
+                },
+              },
+              required: ["starts_at"],
+              additionalProperties: false,
+            },
+          },
+          {
+            name: "cancel_booking",
+            description:
+              "Call off an appointment they have already made, at their own request. " +
+              "Only ever their own appointment. The slot frees up straight away, they " +
+              "get it in writing and the business is told. Say the day and the time " +
+              "back to them when you confirm it, and say nothing about refunding a " +
+              "deposit: that is the business's to decide.",
+            input_schema: {
+              type: "object" as const,
+              properties: {
+                which: {
+                  type: "string",
+                  description:
+                    "Which appointment they mean, as its exact start time. Only needed " +
+                    "when they have more than one booked. Leave it out if they have one.",
+                },
+              },
+              additionalProperties: false,
+            },
+          },
+        ]
+      : []),
+    /*
      * Offered only if a link could actually be produced. The platform key on
      * its own is not enough — without the business's own Stripe account the
      * tool refuses, so handing it over invites the assistant to promise a
@@ -527,6 +593,10 @@ export async function executeTool(
       return getSlots(input, ctx);
     case "create_booking":
       return makeBooking(input, ctx);
+    case "move_booking":
+      return moveBooking(input, ctx);
+    case "cancel_booking":
+      return callItOff(input, ctx);
     case "send_deposit_link":
       return sendDepositLink(ctx);
     case "escalate_to_owner":
@@ -2158,6 +2228,164 @@ async function bookTheRest(args: {
   }
 
   return { rule, made, skipped };
+}
+
+/**
+ * What to tell the model when a change was refused.
+ *
+ * The distinction carried through is whether a person is needed. "They have
+ * two booked, ask which" is a question to put to the customer; "it is one of
+ * a standing run" is somebody's whole week and goes to a human. Getting these
+ * the wrong way round either empties a diary or leaves a customer waiting on
+ * a confirmation nobody is coming to give, which is Jess's complaint exactly.
+ */
+function couldNot(r: { because: string; handToAPerson: boolean }): string {
+  return r.handToAPerson
+    ? `Not done: ${r.because}. Call escalate_to_owner, then tell them it is with the ` +
+        "business and somebody will confirm it. Do not say it is sorted, because it is not."
+    : `Not done: ${r.because}. Say so plainly and carry on helping them with it. ` +
+        "Nothing in the diary has changed.";
+}
+
+/** Their appointment, at a different time. */
+async function moveBooking(
+  input: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<ToolOutcome> {
+  const startsAt = String(input.starts_at ?? "");
+  const when = Date.parse(startsAt);
+  if (!Number.isFinite(when)) {
+    return { result: "That is not a time from get_available_slots. Call it again." };
+  }
+
+  const which = typeof input.which === "string" ? input.which : null;
+
+  /*
+   * On the website, only what was booked in this conversation.
+   *
+   * Nothing on a web page proves who is typing, and saveContact will move a
+   * conversation onto an existing client record on the strength of a number
+   * and a first name. The reasoning is at the top of booking/change.ts.
+   */
+  const onlyFromConversation = reachesWholeRecord(ctx.channel) ? null : ctx.conversationId;
+
+  const found = await theirBooking(ctx.db, {
+    which,
+    contactId: ctx.contactId,
+    onlyFromConversation,
+  });
+  if (!found.ok) return { result: couldNot(found) };
+
+  /*
+   * The same length as before.
+   *
+   * A move is a different time, not a different job. Working the duration out
+   * from the price band again would quietly resize an appointment somebody
+   * had already agreed to, and the customer would find out on the day.
+   */
+  const minutes = Math.round(
+    (Date.parse(found.booking.ends_at) - Date.parse(found.booking.starts_at)) / 60_000,
+  );
+
+  /* And the same person, where they are still on the team. */
+  const artist =
+    ctx.artists.find((a) => a.id === found.booking.artist_id) ??
+    ctx.artists.find((a) => a.active);
+
+  if (!artist) return { result: "Nobody is taking bookings. Escalate." };
+
+  /*
+   * Checked against the live diary, anchored to the day asked for, exactly as
+   * create_booking does it and for the same reason: an unanchored look at the
+   * next forty slots cannot reach a day further out than about two, and every
+   * booking beyond that was once refused as "no longer free".
+   *
+   * Their own appointment still holds its old slot while this runs, so a move
+   * onto a time overlapping it will not be offered. That is a fair trade for
+   * never double-booking, and moving an appointment on top of itself is not
+   * something anybody asks for.
+   */
+  const stillFree = await availableSlots({
+    db: ctx.db,
+    studio: ctx.studio,
+    artist,
+    durationMinutes: minutes,
+    onOrAfter: dayIn(new Date(when).toISOString(), ctx.studio.timezone),
+    limit: 40,
+  }).catch(() => null);
+
+  // Not being able to look is not the same as it being free.
+  if (!stillFree) {
+    return {
+      result:
+        "Could not check the diary just now, so nothing was moved and their old " +
+        "appointment still stands. Tell them you are checking and try once more; if " +
+        "it fails again, escalate.",
+    };
+  }
+
+  const slot = stillFree.find((sl) => Date.parse(sl.starts_at) === when);
+  if (!slot) {
+    return {
+      result:
+        "That time is not free. Apologise, call get_available_slots again and offer " +
+        "what comes back. Their old appointment is untouched, so do not tell them it " +
+        "has been cancelled.",
+    };
+  }
+
+  const done = await moveTheirBooking(ctx.db, {
+    studioId: ctx.studio.id,
+    which,
+    contactId: ctx.contactId,
+    onlyFromConversation,
+    startsAt: slot.starts_at,
+    endsAt: slot.ends_at,
+  });
+
+  if (!done.ok) return { result: couldNot(done) };
+  if (done.what !== "moved") return { result: couldNot({ because: "it did not move", handToAPerson: true }) };
+
+  const before = slotParts(done.was, ctx.studio.timezone);
+  const after = slotParts(done.now, ctx.studio.timezone);
+
+  return {
+    result:
+      `Moved from ${before.day} at ${before.time} to ${after.day} at ${after.time}. ` +
+      "Say the new day and time back to them so they can see which appointment you " +
+      "touched. They will get it in writing and the business has been told, so there " +
+      "is nothing either of them needs to chase. Say nothing about a deposit unless " +
+      "they ask: on a real move it was told a customer her deposit carried over when " +
+      "she had never paid one, which is a claim about her money that was not true.",
+  };
+}
+
+/** Their appointment, off. */
+async function callItOff(
+  input: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<ToolOutcome> {
+  const which = typeof input.which === "string" ? input.which : null;
+
+  const done = await cancelTheirBooking(ctx.db, {
+    studioId: ctx.studio.id,
+    which,
+    contactId: ctx.contactId,
+    /* As in moveBooking: unproved channels reach this conversation only. */
+    onlyFromConversation: reachesWholeRecord(ctx.channel) ? null : ctx.conversationId,
+  });
+
+  if (!done.ok) return { result: couldNot(done) };
+
+  const was = slotParts(done.was, ctx.studio.timezone);
+
+  return {
+    result:
+      `Cancelled ${was.day} at ${was.time}. Say that day and time back to them so they ` +
+      "can see which appointment it was, and that it is confirmed in writing. Say " +
+      "nothing about refunding a deposit, whether or not one was paid: that is the " +
+      "business's decision and they will be in touch about it.",
+  };
 }
 
 async function sendDepositLink(ctx: ToolContext): Promise<ToolOutcome> {

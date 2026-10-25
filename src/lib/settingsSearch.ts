@@ -77,6 +77,7 @@ export const SETTINGS: Setting[] = [
   { label: "Never say", href: "/settings/assistant", page: "Assistant", keywords: "never say banned words avoid do not mention", ownerOnly: true },
   { label: "Always come and get me for", href: "/settings/assistant", page: "Assistant", keywords: "hand over escalate get me human refuse complicated", ownerOnly: true },
   { label: "Who answers first", href: "/settings/assistant", page: "Assistant", keywords: "first refusal head start answer first me or it", ownerOnly: true },
+  { label: "Moving and cancelling", href: "/settings/assistant", page: "Assistant", keywords: "cancel cancellation move reschedule change appointment booking rebook customer themselves", ownerOnly: true },
   { label: "Try it yourself", href: "/settings/assistant", page: "Assistant", keywords: "test try preview demo play", ownerOnly: true },
 
   /* ----------------------------------------------------------- questions */

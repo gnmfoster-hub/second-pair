@@ -134,6 +134,50 @@ export function AssistantForm({ studio }: { studio: Studio }) {
         </section>
 
         {/*
+          * What it may do to an appointment that is already in the diary.
+          *
+          * On, for everybody, from the day it shipped. Giles, 22 October:
+          * "don't be afraid to turn on by default any setting that is
+          * required to improve the system, as long as the clients are aware."
+          * This box is the aware half, which is why it says plainly what it
+          * does rather than hiding behind a label.
+          */}
+        <section className="card space-y-5 p-6">
+          <div>
+            <h2 className="section-title">Moving and cancelling</h2>
+            <p className="hint mt-1 max-w-prose">
+              What the assistant may do about an appointment somebody has already
+              booked. Whichever way you set this, you are told the moment anything
+              changes, by email and on your phone.
+            </p>
+          </div>
+
+          <input type="hidden" name="touch_may_change" value="1" />
+
+          <label className="row flex cursor-pointer items-start gap-3 rounded-xl border border-border p-3.5 transition-colors has-[:checked]:border-accent has-[:checked]:bg-surface-2/60">
+            <input
+              type="checkbox"
+              name="may_change_bookings"
+              defaultChecked={studio.assistant_may_change_bookings !== false}
+              className="mt-1 size-4 shrink-0 accent-[var(--accent)]"
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-medium">
+                Let people move or cancel their own appointment
+              </span>
+              <span className="hint mt-0.5 block">
+                Only ever their own, and only one at a time. A regular slot and a
+                group booking are always handed to you instead. The time frees up
+                straight away, they get it in writing, and you get told. Turn this
+                off and every request waits for you to answer it, which is how it
+                worked before and is the reason somebody who wants to cancel
+                sometimes just does not turn up.
+              </span>
+            </span>
+          </label>
+        </section>
+
+        {/*
           * Only matters to a business forwarding email to us, which is why it
           * sits under its own heading rather than beside the answering mode —
           * the two sound alike and one of them is about every channel.

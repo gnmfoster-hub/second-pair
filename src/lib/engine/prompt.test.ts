@@ -99,3 +99,70 @@ test("the salon's own channel is answered for the salon", () => {
   assert.match(text, /receptionist for Willow & Co/);
   assert.doesNotMatch(text, /trades as/);
 });
+
+/*
+ * Moving and cancelling an appointment that is already in the diary.
+ *
+ * The prompt and the tool list are gated on the same two conditions and they
+ * are written out in both places, because capabilitiesFor cannot be loaded by
+ * a test. A prompt that promises something the assistant has no tool for is
+ * the exact fault this piece of work exists to undo, so it is worth a test on
+ * each side of the condition.
+ */
+const withDiary = (over: Partial<Studio> = {}): Studio =>
+  ({ ...studio("none"), ...over }) as Studio;
+
+const dave = { id: "a1", name: "Dave", active: true, styles: [], booking_provider: "native" } as never;
+/* Fresha and the like: a feed we can read and a page we cannot write to. */
+const onFresha = { id: "a2", name: "Mo", active: true, styles: [], booking_provider: "ical_link" } as never;
+
+test("a business with a diary we write to is told it can move and cancel", () => {
+  const text = studioSystemPrompt(withDiary(), [dave], [], [], []);
+  assert.match(text, /You can move or cancel an appointment/);
+  assert.match(text, /move_booking or cancel_booking/);
+  assert.doesNotMatch(text, /You cannot cancel, move or change/);
+});
+
+test("it is told what it may not touch, in the same breath", () => {
+  const text = studioSystemPrompt(withDiary(), [dave], [], [], []);
+  assert.match(text, /standing run of appointments and a group booking are not yours/);
+});
+
+/* The aware half of on-by-default: a business that says no is obeyed. */
+test("a business that has switched it off is told it cannot", () => {
+  const text = studioSystemPrompt(
+    withDiary({ assistant_may_change_bookings: false }),
+    [dave],
+    [],
+    [],
+    [],
+  );
+  assert.match(text, /You cannot cancel, move or change/);
+  assert.doesNotMatch(text, /move_booking/);
+});
+
+test("the setting unset reads as yes, because the column arrives later", () => {
+  const text = studioSystemPrompt(
+    withDiary({ assistant_may_change_bookings: undefined }),
+    [dave],
+    [],
+    [],
+    [],
+  );
+  assert.match(text, /You can move or cancel an appointment/);
+});
+
+/*
+ * Somebody else's booking system. We can read their feed and cannot write to
+ * it, so there is nothing here to cancel and the old wording is the true one.
+ */
+test("a diary we cannot write to is never promised a change", () => {
+  const text = studioSystemPrompt(withDiary(), [onFresha], [], [], []);
+  assert.match(text, /You cannot cancel, move or change/);
+  assert.doesNotMatch(text, /move_booking/);
+});
+
+test("a business with nobody set up yet is never promised a change", () => {
+  const text = studioSystemPrompt(withDiary(), [], [], [], []);
+  assert.match(text, /You cannot cancel, move or change/);
+});

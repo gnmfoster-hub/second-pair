@@ -177,6 +177,23 @@ export type Studio = {
   /** What the assistant introduces itself as. Null uses the product default. */
   assistant_name: string | null;
   /**
+   * Whether a customer may move or cancel their own appointment over chat.
+   *
+   * On by default, which is the deliberate part. A business that has to be
+   * asked to switch this on will not be asked at the moment it matters, and a
+   * customer who cannot cancel does not keep the appointment, they simply do
+   * not turn up. Off is in Settings, then Assistant, for anybody who would
+   * rather hold the diary themselves.
+   *
+   * Only ever their own, and only one at a time: a standing run and a group
+   * booking are both handed to a person. The rules are in
+   * booking/whichBooking.ts and the reasoning for each is written beside it.
+   *
+   * Undefined means yes, because the column arrives with a migration run by
+   * hand and the answer must not change while that is pending.
+   */
+  assistant_may_change_bookings?: boolean;
+  /**
    * Whose Stripe account money lands in.
    *
    * "business" is one account for the shop. "people" is an account each, for a

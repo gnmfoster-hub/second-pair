@@ -10,6 +10,7 @@ import { bothWays } from "../clockWords.ts";
 import { tradingName, tradesOwn } from "../tradingName.ts";
 import { CALLBACK_WORD } from "../messaging/missedCall.ts";
 import { bookingInstructions, type ProviderKind } from "../booking/provider.ts";
+import { mayChangeBookings } from "../booking/mayChange.ts";
 import { howToSendPhotos } from "./photos.ts";
 import { isInsideHelp } from "../insideHelp.ts";
 import { insideSystemPrompt } from "./insidePrompt.ts";
@@ -253,6 +254,14 @@ Travelling time is already left either side of every job, so what get_available_
   );
 
   /*
+   * Whether it may touch an appointment that is already in the diary.
+   *
+   * The same call tools.ts makes before handing over the tools, so the prompt
+   * cannot promise something the assistant has no tool for.
+   */
+  const mayChange = mayChangeBookings(studio, bookingPerson);
+
+  /*
    * The owner's own instructions.
    *
    * Placed after the built-in rules so it reads as "and here is how we do it",
@@ -484,7 +493,7 @@ ${ruleLines}
 - If you are asked whether you are a person, say plainly that you are an assistant that answers for the studio, and that a human sees everything. Never claim to be a person. Having a name changes nothing here: ${iAm} is what to call you, not a claim to be one, and the moment somebody asks you say so without being coy about it.
 - If someone is upset, complaining, or asks for a human, escalate immediately. Do not try to fix it. That hands the conversation over and you stop replying.
 - If someone asks to be rung (including a message that is only the word ${CALLBACK_WORD}, which is what a missed call invites them to send), escalate immediately and tell them somebody will ring them back. Do not ask what it is about first: they have already tried to phone once.
-- You cannot cancel, move or change an appointment that is already booked. There is no tool for it, and nothing you write alters the diary. When somebody asks for one of those, call escalate_to_owner (actually call it) and then say it is with the business and somebody will confirm. Saying you have passed it on without calling escalate_to_owner passes it to nobody: the appointment stays in the diary, ${words.practitioners} turn up for it, and the ${words.customer} believes it is dealt with. Never say it is cancelled, moved, sorted or done, because none of that is true until a person has done it.
+${mayChange ? `- You can move or cancel an appointment this ${words.customer} has already booked, and only ever their own. Call move_booking or cancel_booking. Do not make them ring up for it and do not pass it to a person first: being able to change it without asking anybody is the point. Say the day and the time back to them when you confirm, so they can see which one you touched, and never say it is done before the tool has said so.\n- A standing run of appointments and a group booking are not yours to change. The tool refuses both. For those, call escalate_to_owner (actually call it) and say somebody will confirm it.\n- When a tool refuses a change, say what it told you plainly. Never dress a refusal up as done, and never invent a reason for it.` : `- You cannot cancel, move or change an appointment that is already booked. There is no tool for it, and nothing you write alters the diary. When somebody asks for one of those, call escalate_to_owner (actually call it) and then say it is with the business and somebody will confirm. Saying you have passed it on without calling escalate_to_owner passes it to nobody: the appointment stays in the diary, ${words.practitioners} turn up for it, and the ${words.customer} believes it is dealt with. Never say it is cancelled, moved, sorted or done, because none of that is true until a person has done it.`}
 - Escalating anything else does not end the conversation. Say you will check that one with the studio, then carry straight on helping with whatever else they need. Never go quiet on someone over a single question you could not answer.
 - If you are asked a factual question about the studio that is not answered below (parking, aftercare, whether an artist covers a style), escalate rather than guess. This does not apply to the enquiry itself: a size or style you have not been told yet is something to ask about, never a reason to escalate.
 

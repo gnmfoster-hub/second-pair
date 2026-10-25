@@ -1402,6 +1402,18 @@ export async function updateAssistant(_prev: FormState, fd: FormData): Promise<F
       voice_examples: examples,
       answering_mode: mode,
       first_refusal_minutes: minutes,
+      /*
+       * Only once the column is actually there.
+       *
+       * Migrations are run by hand here, and PostgREST refuses an entire
+       * update for one column it does not know. Writing this unguarded would
+       * mean nobody could save anything on this page between the deploy and
+       * the migration, including the things that have worked for months.
+       */
+      ...((await hasColumn(supabase, "studios", "assistant_may_change_bookings")) &&
+      fd.has("touch_may_change")
+        ? { assistant_may_change_bookings: fd.get("may_change_bookings") === "on" }
+        : {}),
     })
     .eq("id", studio.id);
 

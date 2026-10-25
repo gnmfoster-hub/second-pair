@@ -34,6 +34,8 @@ export const CHECK_PREFIXES = [
   "answ",
   "awkw",
   "sale",
+  /* Booking something and then changing it. See scripts/check-change.mjs. */
+  "chng",
 ];
 
 export function isCheckSession(sessionKey: string | null | undefined): boolean {

@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmail, emailConfigured } from "@/lib/messaging/email";
 import { buildEmail } from "@/lib/messaging/emailTemplate";
 import { gatherBookingAlert } from "@/lib/messaging/bookingAlert";
+import { gatherChangeAlert } from "@/lib/messaging/changeAlert";
 
 /**
  * Telling the owner something needs them.
@@ -414,6 +415,58 @@ export async function alertNewBooking(
     }
   } catch (error) {
     console.error("[notify:booking]", (error as Error).message);
+  }
+}
+
+/**
+ * Telling them a customer moved or cancelled their own appointment.
+ *
+ * The companion to alertNewBooking, and the reason the assistant is allowed
+ * to touch a booking at all. A customer who can cancel without ringing is
+ * worth having; a diary that empties itself without saying so is not, and the
+ * difference between those two products is this function.
+ *
+ * Same two routes as a new booking, same tag rule, same promise that it
+ * cannot fail loudly: the change is in the diary and the customer has already
+ * been answered by the time this runs.
+ *
+ * @param was The time it was at before the change, which the row no longer
+ *   holds after a move and never held after a cancellation.
+ */
+export async function alertBookingChanged(
+  db: SupabaseClient,
+  bookingId: string,
+  what: "cancelled" | "moved",
+  was: string,
+): Promise<void> {
+  try {
+    const alert = await gatherChangeAlert(db, bookingId, siteUrl(), what, was);
+    if (!alert) return;
+
+    const message = {
+      title: alert.title,
+      body: alert.body,
+      url: `/conversations/${alert.conversationId}`,
+      /*
+       * Its own tag rather than the booking's.
+       *
+       * `booking-${id}` would replace the notification that announced the
+       * booking, so a cancellation would erase the only record that it was
+       * ever made. Two changes to the same appointment do replace each other,
+       * which is right: the latest is the true one.
+       */
+      tag: `booking-changed-${bookingId}`,
+      email: { subject: alert.emailSubject, text: alert.emailText },
+    };
+
+    await notifyStudio(db, alert.studioId, message);
+
+    /* And whoever's diary it is, who is the one who will be stood waiting. */
+    if (alert.artistId) {
+      await notifyArtist(db, alert.artistId, message);
+    }
+  } catch (error) {
+    console.error("[notify:booking-changed]", (error as Error).message);
   }
 }
 
