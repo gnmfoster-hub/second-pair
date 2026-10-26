@@ -23,10 +23,12 @@
  *   1. Nothing in the past. An appointment that has happened is history
  *      rather than a plan, and "cancel my Tuesday" on a Wednesday means next
  *      Tuesday.
- *   1b. Having none of ours is not the same as having none. Where they have
- *      an appointment the business put in themselves, that is said plainly
- *      and handed to a person. Telling somebody they have nothing booked
- *      when they have is the worst answer in this file.
+ *   1b. Nothing in here ever tells anybody they have no appointment. Not on
+ *      any channel, not even where the record is certainly theirs: whether
+ *      the diary is joined up to that record is a different question, and at
+ *      one live business five of twelve entries in a day had no client on
+ *      them at all. The two sentences available are "I can see it" and "I
+ *      cannot see it", and the second goes to a person.
  *   2. The one they named, matched to the minute. Where they named nothing,
  *      or named a time nothing sits at, and they have exactly one appointment
  *      ahead of them, that is the one, because there is nothing else they
@@ -185,10 +187,38 @@ export function whichBooking<T extends Candidate>(
       };
     }
 
+    /*
+     * Nothing we can see, which is not the same as nothing.
+     *
+     * This said "they have nothing booked that has not already happened",
+     * and the assistant said it to customers as a fact about their diary.
+     * Alison texted Amber's from the number on her own client record on 26
+     * October about Alfie's midday walk, and was told there was nothing in.
+     * There was. It was in the diary with no client record attached to it,
+     * which is how five of Amber's twelve entries that day were written, and
+     * filed as a block besides.
+     *
+     * The reasoning that allowed it was that on a proved channel the record
+     * IS them, so an empty answer must be true. That is wrong, and this is
+     * the second time the same mistake has been made in this file: the
+     * record being theirs says nothing about whether the diary is joined up
+     * to it. A business types a name into an entry and gets on with its day.
+     *
+     * So nothing in here ever denies an appointment again, on any channel.
+     * Somebody asking to move or cancel believes they have one, and the two
+     * sentences available are "I can see it" and "I cannot see it". It goes
+     * to a person, which costs the business ten seconds and never costs them
+     * the appointment.
+     */
     return {
       ok: false,
-      because: "they have nothing booked that has not already happened",
-      handToAPerson: false,
+      because:
+        "you cannot see one on their record, and that is NOT the same as them not " +
+        "having one: plenty of appointments are typed straight into the diary with no " +
+        "client attached. Never tell them they have nothing booked. Say you cannot see " +
+        "it from your end, ask what name or number it might be under in case it is " +
+        "somewhere else, and get somebody to look properly",
+      handToAPerson: true,
     };
   }
 

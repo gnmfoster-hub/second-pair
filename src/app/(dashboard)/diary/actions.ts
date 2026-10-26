@@ -13,6 +13,7 @@ import { whoIsActing, madeBy, recordBookingEvent } from "@/lib/bookingHistory";
 import { instantFrom } from "@/lib/booking/tz";
 import { samePhone } from "@/lib/channels/phoneNumbers";
 import {
+  WORK_CATEGORIES,
   categoryFor,
   extraDates,
   repeatDates,
@@ -270,7 +271,33 @@ export async function saveDiaryEntry(
      */
     ...(await madeBy(supabase, who)),
     artist_id: artistId,
-    source: definition.blocks && category !== "meeting" ? "block" : "manual",
+    /*
+     * Work, or time held out of the diary. Not the same question as whether
+     * it blocks availability, which is what this used to read.
+     *
+     * `definition.blocks` means "takes up time", and it is true of an
+     * appointment because an appointment takes up time. Reading it as "this
+     * is not a customer's appointment" filed every appointment anybody typed
+     * into a diary as `block`, which is the value that means NOT WORK.
+     *
+     * Counted on the live database, 26 October: 321 appointments worth
+     * £7,140.50 recorded as blocks. Everything downstream filters them out,
+     * and is right to, because a block is a lunch break:
+     *
+     *   - The assistant cannot see them, so a customer asking about an
+     *     appointment that is sitting in the diary is told there is nothing
+     *     in. Alison texted Amber's about Alfie's walk this morning and got
+     *     exactly that. Her whole diary was blocks.
+     *   - The money ignores them. reports/platform.ts and loadPlatform.ts
+     *     both skip `source === "block"`, so a business's own week came out
+     *     at nothing: Karen's diary showing £0 against £2,527.50.
+     *   - No review is ever asked for one. reviews.ts skips them too.
+     *
+     * So it is decided by what the entry IS. An appointment, a consultation
+     * and a meeting are somebody's time with somebody; a break, a holiday,
+     * an hour of admin and a trip for supplies are not.
+     */
+    source: (WORK_CATEGORIES as string[]).includes(category) ? "manual" : "block",
     type: category === "consultation" ? "consultation" : "session",
     category,
     all_day: allDay,

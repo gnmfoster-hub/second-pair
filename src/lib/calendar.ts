@@ -391,3 +391,14 @@ export function nextHalfHour(timezone: string, now: Date = new Date()): string {
 
   return `${String(Math.floor(next / 60)).padStart(2, "0")}:${String(next % 60).padStart(2, "0")}`;
 }
+
+/**
+ * The diary categories that are somebody's work rather than time held out.
+ *
+ * Kept beside the categories themselves so the two cannot drift. It is NOT
+ * the same as `blocks`, which says whether an entry takes time up: an
+ * appointment does both, a lunch break does only the second, and reading one
+ * as the other filed 321 real appointments as lunch breaks. See the comment
+ * at the source line in diary/actions.ts for what that cost.
+ */
+export const WORK_CATEGORIES: CategoryKey[] = ["appointment", "consultation", "meeting"];

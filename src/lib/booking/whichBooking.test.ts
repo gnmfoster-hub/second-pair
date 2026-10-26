@@ -33,11 +33,13 @@ test("a wrong hour against a single appointment still finds it", () => {
   assert.equal(got.ok && got.booking.id, "jess");
 });
 
-test("nothing ahead of now is nothing to change", () => {
+test("nothing we can see goes to a person, and never denies the appointment", () => {
   const got = whichBooking([{ id: "old", starts_at: "2026-09-01T09:00:00Z" }], { now: NOW });
   assert.equal(got.ok, false);
-  assert.match(!got.ok ? got.because : "", /nothing booked that has not already happened/);
-  assert.equal(!got.ok && got.handToAPerson, false);
+  assert.match(!got.ok ? got.because : "", /cannot see one on their record/);
+  assert.match(!got.ok ? got.because : "", /Never tell them they have nothing booked/);
+  /* Ten seconds of a business's time beats losing the appointment. */
+  assert.equal(!got.ok && got.handToAPerson, true);
 });
 
 test("an appointment that has already started today is in the past", () => {
@@ -195,16 +197,24 @@ test("a nameless website chat is asked for an address, not told it has none", ()
   assert.match(!got.ok ? got.because : "", /does NOT mean they have nothing booked/);
   assert.match(!got.ok ? got.because : "", /email address or the phone number/);
   assert.match(!got.ok ? got.because : "", /save_contact/);
-  assert.doesNotMatch(!got.ok ? got.because : "", /nothing booked that has not already happened/);
 });
 
-/* Three: an email or a text. The record is them, so an empty answer is true
-   and may be said plainly. */
-test("on a proved channel an empty diary is a fact and is stated", () => {
+/*
+ * Three: an email or a text, where the record certainly is them.
+ *
+ * This once read "an empty diary is a fact and is stated", on the reasoning
+ * that a proved channel makes an empty answer true. Alison disproved it on 26
+ * October: she texted Amber's from the number on her own client record and
+ * was told there was nothing in the diary for Alfie. His walk was in the
+ * diary with no client attached to it. The record being hers says nothing
+ * about whether the diary is joined up to it.
+ */
+test("even on a proved channel it says what it can see, not what they have", () => {
   const got = whichBooking([], { now: NOW });
   assert.equal(got.ok, false);
-  assert.equal(!got.ok && got.handToAPerson, false);
-  assert.match(!got.ok ? got.because : "", /nothing booked that has not already happened/);
+  assert.equal(!got.ok && got.handToAPerson, true);
+  assert.match(!got.ok ? got.because : "", /cannot see one on their record/);
+  assert.doesNotMatch(!got.ok ? got.because : "", /they have nothing booked(?!.*Never)/);
 });
 
 /*
@@ -218,7 +228,7 @@ test("a past appointment in this very chat is not a stranger", () => {
     unproved: true,
   });
   assert.equal(got.ok, false);
-  assert.match(!got.ok ? got.because : "", /nothing booked that has not already happened/);
+  assert.match(!got.ok ? got.because : "", /cannot see one on their record/);
   assert.doesNotMatch(!got.ok ? got.because : "", /email address or the phone number/);
 });
 
